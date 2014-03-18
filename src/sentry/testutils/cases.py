@@ -26,11 +26,12 @@ from django.test.client import Client
 from django.utils.importlib import import_module
 from exam import Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
+from django_sudo import COOKIE_NAME as SUDO_COOKIE_NAME
+from django_sudo.utils import grant_sudo_privileges
 
 from sentry.constants import MODULE_ROOT
 from sentry.models import Option, ProjectOption
 from sentry.utils import json
-from sentry.utils.sudo import grant_sudo_privileges, SUDO_COOKIE_NAME
 
 from .fixtures import Fixtures
 from .helpers import get_auth_header

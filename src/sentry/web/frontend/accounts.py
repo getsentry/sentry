@@ -8,7 +8,7 @@ sentry.web.frontend.accounts
 import itertools
 
 from django.contrib import messages
-from django.contrib.auth import authenticate
+from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
@@ -17,6 +17,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 
+from django_sudo.decorators import sudo_required
+
 from sentry.constants import MEMBER_USER
 from sentry.models import Project, UserOption, LostPasswordHash
 from sentry.plugins import plugins
@@ -24,12 +26,10 @@ from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm, AuthenticationForm, SudoForm)
+    ProjectEmailOptionsForm, AuthenticationForm)
 from sentry.web.helpers import render_to_response
-from sentry.utils.auth import get_auth_providers, login as login_user
+from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
-from sentry.utils.sudo import (
-    grant_sudo_privileges, revoke_sudo_privileges, sudo_required)
 
 
 @csrf_protect
@@ -56,28 +56,6 @@ def login(request):
         'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
-
-
-@never_cache
-@csrf_protect
-@login_required
-def sudo(request):
-    redirect_to = request.GET.get('next', '/')
-
-    if request.is_sudo():
-        return HttpResponseRedirect(redirect_to)
-
-    form = SudoForm(request.user, request.POST or None)
-    if request.method == 'POST':
-        if form.is_valid():
-            grant_sudo_privileges(request)
-            return HttpResponseRedirect(redirect_to)
-
-    context = {
-        'form': form,
-        'next': redirect_to,
-    }
-    return render_to_response('sentry/account/sudo.html', context, request)
 
 
 @csrf_protect
@@ -126,7 +104,6 @@ def logout(request):
     from django.contrib.auth import logout
 
     logout(request)
-    revoke_sudo_privileges(request)
 
     return HttpResponseRedirect(reverse('sentry'))
 
