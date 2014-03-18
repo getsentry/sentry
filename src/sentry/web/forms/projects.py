@@ -7,11 +7,10 @@ sentry.web.forms.projects
 """
 from django import forms
 from django.conf import settings
-from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import EMPTY_PASSWORD_VALUES, TAG_LABELS
-from sentry.models import Project, ProjectOption, User
+from sentry.constants import TAG_LABELS
+from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import (
     UserField, OriginsField, RangeField, get_team_choices)
@@ -82,25 +81,9 @@ class NewProjectAdminForm(NewProjectForm):
 
 
 class RemoveProjectForm(forms.Form):
-    password = forms.CharField(
-        label=_("Password"), widget=forms.PasswordInput,
-        help_text=_("Confirm your identity by entering your password."))
-
     def __init__(self, user, *args, **kwargs):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)
         self.user = user
-        # HACK: don't require current password if they don't have one
-        if self.user.password in EMPTY_PASSWORD_VALUES:
-            del self.fields['password']
-
-    def clean_password(self):
-        """
-        Validates that the old_password field is correct.
-        """
-        password = self.cleaned_data["password"]
-        if not isinstance(authenticate(username=self.user.username, password=password), User):
-            raise forms.ValidationError(_("Your password was entered incorrectly. Please enter it again."))
-        return password
 
 
 class EditProjectForm(BaseProjectForm):
