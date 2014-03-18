@@ -1,7 +1,10 @@
 from django.conf import settings
 import mock
+import sys
 import os
 import os.path
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 
 def pytest_configure(config):
