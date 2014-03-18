@@ -43,8 +43,7 @@ def login(request):
     if form.is_valid():
         login_user(request, form.get_user())
         response = login_redirect(request)
-        grant_sudo_privileges(request, response)
-        return response
+        return grant_sudo_privileges(request, response)
 
     request.session.set_test_cookie()
 
@@ -102,7 +101,8 @@ def register(request):
 
         login_user(request, user)
 
-        return login_redirect(request)
+        response = login_redirect(request)
+        return grant_sudo_privileges(request, response)
 
     return render_to_response('sentry/register.html', {
         'form': form,
