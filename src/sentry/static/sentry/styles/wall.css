@@ -8969,9 +8969,11 @@ table.vars table.vars th {
     border-radius: 0 0 7px 7px;
   }
 }
+.windowed-small,
 .windowed {
   background: #c8cbd0;
 }
+.windowed-small .outer-wrapper,
 .windowed .outer-wrapper {
   width: 900px;
   max-width: 900px;
@@ -8984,32 +8986,44 @@ table.vars table.vars th {
   -moz-border-radius: 9px;
   border-radius: 9px;
 }
+.windowed-small .navbar .navbar-inner,
 .windowed .navbar .navbar-inner {
   -webkit-border-radius: 7px 7px 0 0;
   -moz-border-radius: 7px 7px 0 0;
   border-radius: 7px 7px 0 0;
 }
+.windowed-small footer,
 .windowed footer {
   -webkit-border-radius: 0 0 7px 7px;
   -moz-border-radius: 0 0 7px 7px;
   border-radius: 0 0 7px 7px;
   padding: 30px 30px;
 }
+.windowed-small .container,
 .windowed .container {
   min-width: auto;
 }
+.windowed-small #content,
+.windowed #content {
+  width: auto;
+  min-width: auto;
+}
+.windowed-small #content.with-left-sidebar,
 .windowed #content.with-left-sidebar {
   width: 900px;
   min-width: 900px;
   background: #ffffff url(../images/dashboard/sidebar-bg.png) -50px top repeat-y;
 }
+.windowed-small #content.with-left-sidebar .content,
 .windowed #content.with-left-sidebar .content {
   padding-left: 250px;
 }
+.windowed-small #content.with-left-sidebar .main,
 .windowed #content.with-left-sidebar .main {
   min-width: 0;
   float: right;
 }
+.windowed-small #content.with-left-sidebar .sidebar,
 .windowed #content.with-left-sidebar .sidebar {
   width: 190px;
   display: block;
@@ -9017,8 +9031,24 @@ table.vars table.vars th {
   margin-top: 0;
   margin-left: -250px;
 }
+.windowed-small #content.with-left-sidebar section.body,
 .windowed #content.with-left-sidebar section.body {
   min-width: 0;
+}
+.windowed-small .outer-wrapper {
+  width: auto;
+  max-width: auto;
+}
+.windowed-small footer,
+.windowed-small header {
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  padding: 0;
+}
+.windowed-small footer .container,
+.windowed-small header .container {
+  width: 500px;
 }
 .popover {
   width: auto;
