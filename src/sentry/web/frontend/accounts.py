@@ -185,7 +185,8 @@ def recover_confirm(request, user_id, hash):
 
                 password_hash.delete()
 
-                return login_redirect(request)
+                response = login_redirect(request)
+                return grant_sudo_privileges(request, response)
         else:
             form = ChangePasswordRecoverForm()
 
