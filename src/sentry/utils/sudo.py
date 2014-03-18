@@ -14,9 +14,10 @@ from django.http import HttpResponseRedirect, QueryDict
 from django.utils.crypto import get_random_string
 
 SUDO_COOKIE_NAME = getattr(settings, 'SUDO_COOKIE_NAME', 'sudo')
+SUDO_COOKIE_MAX_AGE = getattr(settings, 'SUDO_COOKIE_MAX_AGE', 10800)
 
 
-def grant_sudo_privileges(request, max_age=3600):
+def grant_sudo_privileges(request, max_age=SUDO_COOKIE_MAX_AGE):
     """
     Assigns a random token to the user's session that allows them to have elevated permissions
     """
