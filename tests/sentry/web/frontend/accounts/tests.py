@@ -150,15 +150,6 @@ class SettingsTest(TestCase):
         assert 'form' in resp.context
         assert 'first_name' in resp.context['form'].errors
 
-    def test_requires_old_password(self):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, self.params(without=['old_password']))
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/settings.html')
-        assert 'form' in resp.context
-        assert 'old_password' in resp.context['form'].errors
-
     def test_minimum_valid_params(self):
         self.login_as(self.user)
 

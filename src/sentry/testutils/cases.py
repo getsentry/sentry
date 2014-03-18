@@ -30,6 +30,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry.constants import MODULE_ROOT
 from sentry.models import Option, ProjectOption
 from sentry.utils import json
+from sentry.utils.sudo import grant_sudo_privileges, SUDO_COOKIE_NAME
 
 from .fixtures import Fixtures
 from .helpers import get_auth_header
@@ -55,6 +56,7 @@ class BaseTestCase(Fixtures, Exam):
             request.session = engine.SessionStore()
 
         login(request, user)
+        sudo_token = grant_sudo_privileges(request)
 
         # Save the session values.
         request.session.save()
@@ -70,6 +72,7 @@ class BaseTestCase(Fixtures, Exam):
             'expires': None,
         }
         self.client.cookies[session_cookie].update(cookie_data)
+        self.client.cookies[SUDO_COOKIE_NAME] = sudo_token
 
     def login(self):
         self.login_as(self.user)
