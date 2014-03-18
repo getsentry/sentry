@@ -8,7 +8,7 @@ sentry.web.frontend.accounts
 import itertools
 
 from django.contrib import messages
-from django.contrib.auth import login as login_user, authenticate
+from django.contrib.auth import authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
@@ -24,10 +24,11 @@ from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm, AuthenticationForm)
+    ProjectEmailOptionsForm, AuthenticationForm, SudoForm)
 from sentry.web.helpers import render_to_response
-from sentry.utils.auth import get_auth_providers
+from sentry.utils.auth import get_auth_providers, login as login_user
 from sentry.utils.safe import safe_execute
+from sentry.utils.sudo import grant_sudo_privileges, sudo_required
 
 
 @csrf_protect
@@ -54,6 +55,28 @@ def login(request):
         'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
+
+
+@never_cache
+@csrf_protect
+@login_required
+def sudo(request):
+    redirect_to = request.GET.get('next', '/')
+
+    if request.is_sudo():
+        return HttpResponseRedirect(redirect_to)
+
+    form = SudoForm(request.user, request.POST or None)
+    if request.method == 'POST':
+        if form.is_valid():
+            grant_sudo_privileges(request)
+            return HttpResponseRedirect(redirect_to)
+
+    context = {
+        'form': form,
+        'next': redirect_to,
+    }
+    return render_to_response('sentry/account/sudo.html', context, request)
 
 
 @csrf_protect
@@ -174,6 +197,7 @@ def recover_confirm(request, user_id, hash):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
@@ -197,6 +221,7 @@ def settings(request):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def appearance_settings(request):
     from django.conf import settings
@@ -224,6 +249,7 @@ def appearance_settings(request):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)

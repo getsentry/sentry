@@ -2485,7 +2485,6 @@ table.vars {
   }
 }
 
-
 .windowed {
   background: #c8cbd0;
 
@@ -2512,6 +2511,9 @@ table.vars {
   }
 
   #content {
+    width: auto;
+    min-width: auto;
+
     &.with-left-sidebar {
       width: 900px;
       min-width: 900px;
@@ -2536,6 +2538,47 @@ table.vars {
       }
 
     }
+  }
+}
+
+.windowed-small {
+  background: #c8cbd0;
+
+  .outer-wrapper {
+    width: auto;
+    max-width: 400px;
+  }
+  footer, header {
+    text-align: center;
+    padding: 0;
+    min-width: 0;
+    width: auto;
+  }
+  footer {
+    padding: 10px 25px;
+    height: 60px;
+  }
+  header {
+    height: 40px;
+
+    h2 {
+      letter-spacing: -1px;
+      font-weight: bold;
+      font-size: 22px;
+      position: absolute;
+      left: 70px;
+      margin-top: 2px;
+      color: #fff;
+    }
+  }
+  #content {
+    .main, section.body {
+      min-width: 0;
+    }
+  }
+  .container {
+    width: auto;
+    min-width: 0;
   }
 }
 

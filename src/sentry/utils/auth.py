@@ -7,7 +7,17 @@ sentry.utils.auth
 """
 from django.conf import settings
 from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth import login as _login
 from sentry.models import User
+from sentry.utils.sudo import grant_sudo_privileges
+
+
+def login(request, user):
+    """
+    Always grant users sudo privileges when logging in
+    """
+    grant_sudo_privileges(request)
+    return _login(request, user)
 
 
 def parse_auth_header(header):
