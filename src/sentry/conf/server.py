@@ -116,7 +116,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'sentry.middleware.sudo.SudoMiddleware',
+    'django_sudo.middleware.SudoMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
     'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -167,6 +167,7 @@ INSTALLED_APPS = (
     'social_auth',
     'south',
     'static_compiler',
+    'django_sudo',
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
