@@ -288,3 +288,16 @@ class ProjectEmailOptionsForm(forms.Form):
         else:
             UserOption.objects.unset_value(
                 self.user, self.project, 'mail:email')
+
+
+class SudoForm(forms.Form):
+    password = forms.CharField(widget=forms.PasswordInput())
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(SudoForm, self).__init__(*args, **kwargs)
+
+    def clean_password(self):
+        if not self.user.check_password(self.data['password']):
+            raise forms.ValidationError(_('Invalid password.'))
+        return self.data['password']
