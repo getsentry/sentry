@@ -14,7 +14,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm as AuthenticationForm_
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
+from sentry.constants import LANGUAGES
 from sentry.models import UserOption, User
 from sentry.utils.auth import find_users
 

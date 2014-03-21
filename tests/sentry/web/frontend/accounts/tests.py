@@ -117,7 +117,6 @@ class SettingsTest(TestCase):
             'username': 'foobar',
             'email': 'foo@example.com',
             'first_name': 'Foo bar',
-            'old_password': 'admin',
         }
         return dict((k, v) for k, v in params.iteritems() if k not in without)
 
