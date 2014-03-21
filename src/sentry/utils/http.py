@@ -9,12 +9,20 @@ import urllib
 from urlparse import urlparse, urljoin
 
 from django.conf import settings
+from django.core.urlresolvers import get_script_prefix
 
 
 def absolute_uri(url=None):
     if not url:
         return settings.SENTRY_URL_PREFIX
-    return urljoin(settings.SENTRY_URL_PREFIX.rstrip('/') + '/', url.lstrip('/'))
+
+    script_name = get_script_prefix().rstrip('/')
+    l = len(script_name)
+    if l:
+        prefix = settings.SENTRY_URL_PREFIX[:0 - l]
+    else:
+        prefix = settings.SENTRY_URL_PREFIX
+    return urljoin(prefix.rstrip('/') + '/', url.lstrip('/'))
 
 
 def safe_urlencode(params, doseq=0):
