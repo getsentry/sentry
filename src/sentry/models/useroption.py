@@ -6,12 +6,12 @@ sentry.models.useroption
 :license: BSD, see LICENSE for more details.
 """
 
-from picklefield.fields import PickledObjectField
 
 from django.conf import settings
 from django.db import models
 
 from sentry.db.models import Model, sane_repr
+from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.manager import UserOptionManager
 
 
@@ -25,7 +25,7 @@ class UserOption(Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     project = models.ForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=64)
-    value = PickledObjectField()
+    value = UnicodePickledObjectField()
 
     objects = UserOptionManager()
 

@@ -63,6 +63,11 @@ class ScoreClause(object):
     def __init__(self, group):
         self.group = group
 
+    def __int__(self):
+        # Calculate the score manually when coercing to an int.
+        # This is used within create_or_update and friends
+        return self.group.get_score()
+
     def prepare_database_save(self, unused):
         return self
 
@@ -77,7 +82,7 @@ class ScoreClause(object):
             sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
         else:
             # XXX: if we cant do it atomically let's do it the best we can
-            sql = self.group.get_score()
+            sql = int(self)
 
         return (sql, [])
 

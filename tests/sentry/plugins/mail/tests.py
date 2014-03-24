@@ -195,7 +195,14 @@ class MailPluginTest(TestCase):
         assert user4.pk in self.plugin.get_sendable_users(project)
 
         # disabled by default user4
-        UserOption.objects.create(key='subscribe_by_default', value='0',
+        uo1 = UserOption.objects.create(key='subscribe_by_default', value='0',
+                                  project=project, user=user4)
+
+        assert user4.pk not in self.plugin.get_sendable_users(project)
+
+        uo1.delete()
+
+        UserOption.objects.create(key='subscribe_by_default', value=u'0',
                                   project=project, user=user4)
 
         assert user4.pk not in self.plugin.get_sendable_users(project)

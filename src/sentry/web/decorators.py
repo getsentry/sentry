@@ -3,6 +3,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
+from django_sudo.decorators import sudo_required
+
+from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team, Group
 from sentry.web.helpers import (
     render_to_response, get_login_url)
@@ -115,6 +118,9 @@ def has_access(access_or_func=None, team=None, access=None):
                 kwargs['team'] = team
 
             return func(request, *args, **kwargs)
+
+        if access is MEMBER_OWNER:
+            _wrapped = login_required(sudo_required(_wrapped))
         return _wrapped
     return wrapped
 

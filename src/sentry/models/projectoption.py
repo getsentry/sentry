@@ -6,11 +6,10 @@ sentry.models.projectoption
 :license: BSD, see LICENSE for more details.
 """
 
-from picklefield.fields import PickledObjectField
-
 from django.db import models
 
 from sentry.db.models import Model, sane_repr
+from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.manager import InstanceMetaManager
 
 
@@ -23,7 +22,7 @@ class ProjectOption(Model):
     """
     project = models.ForeignKey('sentry.Project')
     key = models.CharField(max_length=64)
-    value = PickledObjectField()
+    value = UnicodePickledObjectField()
 
     objects = InstanceMetaManager('project')
 
