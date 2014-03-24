@@ -216,6 +216,8 @@ def plugin_config(plugin, project, request):
                     test_results = '%s\n%s' % (exc, exc.read())
                 else:
                     test_results = exc
+            if test_results is None:
+                test_results = 'No errors returned'
 
     if hasattr(plugin, 'is_configured'):
         is_configured = plugin.is_configured(project)
