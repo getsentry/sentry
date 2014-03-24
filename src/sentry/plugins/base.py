@@ -528,6 +528,12 @@ class IPlugin(local):
         """
         return []
 
+    def is_testable(self, **kwargs):
+        """
+        Returns True if this plugin is able to be tested.
+        """
+        return hasattr(self, 'test_configuration')
+
 
 class Plugin(IPlugin):
     """

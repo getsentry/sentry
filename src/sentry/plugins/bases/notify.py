@@ -98,6 +98,11 @@ class NotificationPlugin(Plugin):
                 return False
         return True
 
+    def test_configuration(self, project):
+        from sentry.utils.samples import create_sample_event
+        event = create_sample_event(project, default='python')
+        return self.post_process(event.group, event, is_new=True, is_sample=False)
+
     ## plugin hooks
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
@@ -107,7 +112,7 @@ class NotificationPlugin(Plugin):
         if not self.should_notify(group, event):
             return
 
-        self.notify_users(group, event)
+        return self.notify_users(group, event)
 
 # Backwards-compatibility
 NotifyConfigurationForm = NotificationConfigurationForm
