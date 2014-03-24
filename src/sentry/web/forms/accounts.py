@@ -11,11 +11,10 @@ import pytz
 from datetime import datetime
 
 from django import forms
-from django.contrib.auth import authenticate
 from django.contrib.auth.forms import AuthenticationForm as AuthenticationForm_
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
+from sentry.constants import LANGUAGES
 from sentry.models import UserOption, User
 from sentry.utils.auth import find_users
 
@@ -130,7 +129,6 @@ class NotificationSettingsForm(forms.Form):
 
 
 class AccountSettingsForm(forms.Form):
-    old_password = forms.CharField(label=_('Current password'), widget=forms.PasswordInput)
     username = forms.CharField(label=_('Username'), max_length=128)
     email = forms.EmailField(label=_('Email'))
     first_name = forms.CharField(required=True, label=_('Name'), max_length=30)
@@ -144,24 +142,11 @@ class AccountSettingsForm(forms.Form):
         if self.user.email == self.user.username:
             del self.fields['username']
 
-        # HACK: don't require current password if they don't have one
-        if self.user.password in EMPTY_PASSWORD_VALUES:
-            del self.fields['old_password']
-
     def clean_username(self):
         value = self.cleaned_data['username']
         if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
             raise forms.ValidationError(_("That username is already in use."))
         return value
-
-    def clean_old_password(self):
-        """
-        Validates that the old_password field is correct.
-        """
-        old_password = self.cleaned_data["old_password"]
-        if not isinstance(authenticate(username=self.user.username, password=old_password), User):
-            raise forms.ValidationError(_("Your old password was entered incorrectly. Please enter it again."))
-        return old_password
 
     def save(self, commit=True):
         if self.cleaned_data.get('new_password'):

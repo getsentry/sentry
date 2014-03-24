@@ -12,6 +12,8 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
+from django_sudo.decorators import sudo_required
+
 from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
@@ -41,6 +43,7 @@ def render_with_team_context(team, template, context, request=None):
 
 
 @login_required
+@sudo_required
 @csrf_protect
 def create_new_team(request):
     if not can_create_teams(request.user):

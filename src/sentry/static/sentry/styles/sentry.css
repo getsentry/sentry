@@ -8998,6 +8998,10 @@ table.vars table.vars th {
 .windowed .container {
   min-width: auto;
 }
+.windowed #content {
+  width: auto;
+  min-width: auto;
+}
 .windowed #content.with-left-sidebar {
   width: 900px;
   min-width: 900px;
@@ -9018,6 +9022,44 @@ table.vars table.vars th {
   margin-left: -250px;
 }
 .windowed #content.with-left-sidebar section.body {
+  min-width: 0;
+}
+.windowed-small {
+  background: #c8cbd0;
+}
+.windowed-small .outer-wrapper {
+  width: auto;
+  max-width: 400px;
+}
+.windowed-small footer,
+.windowed-small header {
+  text-align: center;
+  padding: 0;
+  min-width: 0;
+  width: auto;
+}
+.windowed-small footer {
+  padding: 10px 25px;
+  height: 60px;
+}
+.windowed-small header {
+  height: 40px;
+}
+.windowed-small header h2 {
+  letter-spacing: -1px;
+  font-weight: bold;
+  font-size: 22px;
+  position: absolute;
+  left: 70px;
+  margin-top: 2px;
+  color: #fff;
+}
+.windowed-small #content .main,
+.windowed-small #content section.body {
+  min-width: 0;
+}
+.windowed-small .container {
+  width: auto;
   min-width: 0;
 }
 .popover {

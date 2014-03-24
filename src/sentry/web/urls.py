@@ -60,6 +60,12 @@ if settings.DEBUG:
     )
 
 urlpatterns += patterns('',
+    # Store endpoints first since they are the most active
+    url(r'^api/store/$', api.StoreView.as_view(),
+        name='sentry-api-store'),
+    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(),
+        name='sentry-api-store'),
+
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
@@ -72,6 +78,9 @@ urlpatterns += patterns('',
         name='sentry-logout'),
     url(r'^register/$', accounts.register,
         name='sentry-register'),
+    url(r'^account/sudo/$', 'django_sudo.views.sudo',
+        {'template_name': 'sentry/account/sudo.html'},
+        name='sentry-sudo'),
     url(r'^account/recover/$', accounts.recover,
         name='sentry-account-recover'),
     url(r'^account/recover/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$', accounts.recover_confirm,
@@ -223,17 +232,11 @@ urlpatterns += patterns('',
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
         name='sentry-admin-configure-plugin'),
 
-    # API / JS
+    # crossdomain.xml
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
         name='sentry-api-crossdomain-xml-index'),
-    url(r'^api/store/$', api.StoreView.as_view(),
-        name='sentry-api-store'),
-
-    # Client API endpoints. MUST NOT BE CHANGED
     url(r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$', api.crossdomain_xml,
         name='sentry-api-crossdomain-xml'),
-    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(),
-        name='sentry-api-store'),
 
     # Generic API
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/poll/$', api.poll,

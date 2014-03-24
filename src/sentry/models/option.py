@@ -6,11 +6,10 @@ sentry.models.option
 :license: BSD, see LICENSE for more details.
 """
 
-from picklefield.fields import PickledObjectField
-
 from django.db import models
 
 from sentry.db.models import Model, sane_repr
+from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.manager import MetaManager
 
 
@@ -23,7 +22,7 @@ class Option(Model):
     their key. e.g. key='myplugin:optname'
     """
     key = models.CharField(max_length=64, unique=True)
-    value = PickledObjectField()
+    value = UnicodePickledObjectField()
 
     objects = MetaManager(cache_fields=[
         'key',

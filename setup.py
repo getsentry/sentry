@@ -76,6 +76,7 @@ install_requires = [
     'django-social-auth>=0.7.28,<0.8.0',
     'django-static-compiler>=0.3.0,<0.4.0',
     'django-statsd-mozilla>=0.3.8.0,<0.3.9.0',
+    'django-sudo>=0.0.2,<1.0.0',
     'django-templatetag-sugar>=0.1.0,<0.2.0',
     'djangorestframework>=2.3.8,<2.4.0',
     'email-reply-parser>=0.2.0,<0.3.0',

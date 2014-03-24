@@ -10,13 +10,6 @@
     <form action="" method="post">
         {% csrf_token %}
         {{ form|as_crispy_errors }}
-        <p>{% trans "To make changes to your account, you must first enter your current password." %}</p>
-        {% with form.old_password as field %}
-            {% if field %}
-                {{ field|as_crispy_field }}
-            {% endif %}
-        {% endwith %}
-        <hr>
         {% with form.first_name as field %}
             {{ field|as_crispy_field }}
         {% endwith %}

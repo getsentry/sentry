@@ -17,6 +17,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 
+from django_sudo.decorators import sudo_required
+
 from sentry.constants import MEMBER_USER
 from sentry.models import Project, UserOption, LostPasswordHash
 from sentry.plugins import plugins
@@ -174,6 +176,7 @@ def recover_confirm(request, user_id, hash):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
@@ -197,6 +200,7 @@ def settings(request):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def appearance_settings(request):
     from django.conf import settings
@@ -224,6 +228,7 @@ def appearance_settings(request):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)
