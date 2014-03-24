@@ -219,10 +219,12 @@ def plugin_config(plugin, project, request):
             if test_results is None:
                 test_results = 'No errors returned'
 
-    if hasattr(plugin, 'is_configured'):
-        is_configured = plugin.is_configured(project)
-    else:
-        is_configured = True
+    # TODO(mattrobenolt): Reliably determine if a plugin is configured
+    # if hasattr(plugin, 'is_configured'):
+    #     is_configured = plugin.is_configured(project)
+    # else:
+    #     is_configured = True
+    is_configured = True
 
     from django.template.loader import render_to_string
     return ('display', mark_safe(render_to_string(template, {
