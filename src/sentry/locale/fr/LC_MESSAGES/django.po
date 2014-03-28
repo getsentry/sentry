@@ -1172,7 +1172,7 @@ msgstr "Réouvert à : "
 
 #: templates/sentry/groups/details.html:99
 msgid "Last Seen:"
-msgstr "Dernier vu\""
+msgstr "Dernier vu:"
 
 #: templates/sentry/groups/details.html:102
 msgid "Avg Duration:"
