@@ -311,11 +311,9 @@ highly encouraged:
     ::
 
         {
-            "modules": [
-                {
-                    "my.module.name": "1.0"
-                }
-            ]
+            "modules": {
+                "my.module.name": "1.0"
+            }
         }
 
 .. data:: extra
