@@ -10,3 +10,8 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle  # NOQA
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO  # NOQA
