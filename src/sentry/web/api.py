@@ -33,7 +33,8 @@ from sentry.constants import (
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
-    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip)
+    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
+    decompress_deflate, decompress_gzip)
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.models import (
     Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
@@ -316,7 +317,11 @@ class StoreView(APIView):
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
 
-        if not data.startswith('{'):
+        if request.META.get('HTTP_CONTENT_ENCODING') == 'gzip':
+            data = decompress_gzip(data)
+        elif request.META.get('HTTP_CONTENT_ENCODING') == 'deflate':
+            data = decompress_deflate(data)
+        elif not data.startswith('{'):
             data = decode_and_decompress_data(data)
         data = safely_load_json_string(data)
 
