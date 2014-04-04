@@ -317,9 +317,11 @@ class StoreView(APIView):
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
 
-        if request.META.get('HTTP_CONTENT_ENCODING') == 'gzip':
+        content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
+
+        if content_encoding == 'gzip':
             data = decompress_gzip(data)
-        elif request.META.get('HTTP_CONTENT_ENCODING') == 'deflate':
+        elif content_encoding == 'deflate':
             data = decompress_deflate(data)
         elif not data.startswith('{'):
             data = decode_and_decompress_data(data)
