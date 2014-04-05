@@ -75,7 +75,7 @@ class Project(Model):
 
     def merge_to(self, project):
         from sentry.models import (
-            Group, GroupCountByMinute, GroupTag, Event, TagValue
+            Group, GroupCountByMinute, GroupTagValue, Event, TagValue
         )
 
         if not isinstance(project, Project):
@@ -91,13 +91,13 @@ class Project(Model):
                 )
             except Group.DoesNotExist:
                 group.update(project=project)
-                for model in (Event, GroupTag, GroupCountByMinute):
+                for model in (Event, GroupTagValue, GroupCountByMinute):
                     model.objects.filter(project=self, group=group).update(project=project)
             else:
                 Event.objects.filter(group=group).update(group=other)
 
-                for obj in GroupTag.objects.filter(group=group):
-                    obj2, created = GroupTag.objects.get_or_create(
+                for obj in GroupTagValue.objects.filter(group=group):
+                    obj2, created = GroupTagValue.objects.get_or_create(
                         project=project,
                         group=group,
                         key=obj.key,

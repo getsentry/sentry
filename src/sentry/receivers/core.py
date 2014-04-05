@@ -8,7 +8,7 @@ from sentry.db.models import update
 from sentry.db.models.utils import slugify_instance
 from sentry.models import (
     Project, User, Option, Team, ProjectKey, UserOption, TagKey, TagValue,
-    GroupTag, GroupTagKey, Activity, TeamMember, Alert)
+    GroupTagValue, GroupTagKey, Activity, TeamMember, Alert)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.safe import safe_execute
 
@@ -129,7 +129,7 @@ def record_project_tag_count(filters, created, **kwargs):
     })
 
 
-@buffer_incr_complete.connect(sender=GroupTag, weak=False)
+@buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
 def record_group_tag_count(filters, created, **kwargs):
     from sentry import app
 
