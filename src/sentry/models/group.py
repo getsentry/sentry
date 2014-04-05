@@ -89,23 +89,6 @@ class Group(Model):
             self.message = self.message.splitlines()[0][:255]
         super(Group, self).save(*args, **kwargs)
 
-    def delete(self):
-        from sentry.models import (
-            GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
-        )
-        model_list = (
-            GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
-        )
-        for model in model_list:
-            logging.info('Removing %r objects where group=%s', model, self.id)
-            has_results = True
-            while has_results:
-                has_results = False
-                for obj in model.objects.filter(group=self)[:1000]:
-                    obj.delete()
-                    has_results = True
-        super(Group, self).delete()
-
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-group', args=[
             self.team.slug, self.project.slug, self.id]))
