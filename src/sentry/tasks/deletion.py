@@ -15,7 +15,7 @@ from sentry.tasks.base import instrumented_task
 def delete_project(object_id, **kwargs):
     from sentry.constants import STATUS_HIDDEN
     from sentry.models import (
-        Project, ProjectKey, TagKey, TagValue, GroupTagKey, GroupTag,
+        Project, ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue,
         GroupCountByMinute, ProjectCountByMinute, Activity, EventMapping,
         Event, Group
     )
@@ -33,7 +33,7 @@ def delete_project(object_id, **kwargs):
     # This handles cascades properly
     # TODO: this doesn't clean up the index
     for model in (
-            ProjectKey, TagKey, TagValue, GroupTagKey, GroupTag,
+            ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue,
             GroupCountByMinute, ProjectCountByMinute, Activity, EventMapping,
             Event, Group):
         logger.info('Removing %r objects where project=%s', model, p.id)
