@@ -11,6 +11,45 @@ from __future__ import absolute_import
 from sentry.tasks.base import instrumented_task
 
 
+@instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+def delete_team(object_id, **kwargs):
+    from sentry.models import (
+        Team, Project, AccessGroup, PendingTeamMember, TeamMember,
+    )
+
+    try:
+        t = Team.objects.get(id=object_id)
+    except Team.DoesNotExist:
+        return
+
+    # TODO(mattrobenolt): Add status column
+    # if t.status != STATUS_HIDDEN:
+    #     t.update(status=STATUS_HIDDEN)
+
+    logger = delete_team.get_logger()
+
+    # Delete 1 project at a time since this is expensive by itself
+    for project in Project.objects.filter(team=t)[:1]:
+        logger.info('Removing project %s', project.id)
+        delete_project(project.id)
+        delete_team.delay(object_id=object_id)
+        return
+
+    model_list = (
+        AccessGroup, PendingTeamMember, TeamMember,
+    )
+
+    try:
+        has_more = delete_objects(model_list, relation={'team': t}, logger=logger)
+        if has_more:
+            delete_team.delay(object_id=object_id)
+            return
+        t.delete()
+    except Exception as exc:
+        delete_team.retry(exc=exc)
+
+
 @instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
 def delete_project(object_id, **kwargs):
@@ -38,17 +77,10 @@ def delete_project(object_id, **kwargs):
     )
 
     try:
-        for model in model_list:
-            logger.info('Removing %r objects where project=%s', model, p.id)
-            has_results = False
-            for obj in model.objects.filter(project=p)[:1000]:
-                obj.delete()
-                has_results = True
-
-            if has_results:
-                delete_project.delay(object_id=object_id)
-                return
-
+        has_more = delete_objects(model_list, relation={'project': p}, logger=logger)
+        if has_more:
+            delete_project.delay(object_id=object_id)
+            return
         p.delete()
     except Exception as exc:
         delete_project.retry(exc=exc)
@@ -73,19 +105,25 @@ def delete_group(object_id, **kwargs):
     )
 
     try:
-        for model in model_list:
-            logger.info('Removing %r objects where group=%s', model, group.id)
-            has_results = True
-            while has_results:
-                has_results = False
-                for obj in model.objects.filter(group=group)[:1000]:
-                    obj.delete()
-                    has_results = True
-
-            if has_results:
-                delete_group.delay(object_id=object_id)
-                return
-
+        has_more = delete_objects(model_list, relation={'group': group}, logger=logger)
+        if has_more:
+            delete_group.delay(object_id=object_id)
+            return
         group.delete()
     except Exception as exc:
         delete_group.retry(exc=exc)
+
+
+def delete_objects(models, relation, limit=1000, logger=None):
+    # This handles cascades properly
+    # TODO: this doesn't clean up the index
+    for model in models:
+        if logger is not None:
+            logger.info('Removing %r objects where %r', model, relation)
+        has_more = False
+        for obj in model.objects.filter(**relation)[:limit]:
+            obj.delete()
+            has_more = True
+
+        if has_more:
+            return True
