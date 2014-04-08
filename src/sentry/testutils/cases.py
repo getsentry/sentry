@@ -26,7 +26,7 @@ from django.test.client import Client
 from django.utils.importlib import import_module
 from exam import Exam
 from rest_framework.test import APITestCase as BaseAPITestCase
-from django_sudo import COOKIE_NAME as SUDO_COOKIE_NAME
+from django_sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
 from django_sudo.utils import grant_sudo_privileges
 
 from sentry.constants import MODULE_ROOT
