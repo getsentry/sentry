@@ -234,8 +234,12 @@ class SentryRemoteTest(TestCase):
         message = json.dumps(kwargs)
 
         fp = StringIO()
-        with GzipFile(fileobj=fp, mode='w') as f:
-            return f.write(message)
+
+        try:
+            f = GzipFile(fileobj=fp, mode='w')
+            f.write(message)
+        finally:
+            f.close()
 
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
@@ -243,7 +247,7 @@ class SentryRemoteTest(TestCase):
         resp = self.client.post(
             self.path, fp.getvalue(),
             content_type='application/octet-stream',
-            CONTENT_ENCODING='gzip',
+            HTTP_CONTENT_ENCODING='gzip',
             HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
         )
 
