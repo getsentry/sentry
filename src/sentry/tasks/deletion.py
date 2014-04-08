@@ -31,7 +31,7 @@ def delete_team(object_id, **kwargs):
 
     # Delete 1 project at a time since this is expensive by itself
     for project in Project.objects.filter(team=t)[:1]:
-        logger.info('Removing project %s', project.id)
+        logger.info('Removing Project id=%s where team=%s', project.id, t.id)
         delete_project(project.id)
         delete_team.delay(object_id=object_id)
         return
