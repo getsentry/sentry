@@ -57,6 +57,7 @@ class BaseTestCase(Fixtures, Exam):
             request.session = engine.SessionStore()
 
         login(request, user)
+        request.user = user
         sudo_token = grant_sudo_privileges(request)
 
         # Save the session values.
