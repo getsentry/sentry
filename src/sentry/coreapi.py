@@ -178,8 +178,11 @@ def decompress_deflate(encoded_data):
 def decompress_gzip(encoded_data):
     try:
         fp = StringIO(encoded_data)
-        with GzipFile(fileobj=fp) as f:
+        try:
+            f = GzipFile(fileobj=fp)
             return f.read()
+        finally:
+            f.close()
     except Exception as e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
