@@ -311,7 +311,7 @@ class StoreView(APIView):
                 is_rate_limited = True
 
         if is_rate_limited:
-                raise APIRateLimited
+            raise APIRateLimited
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
