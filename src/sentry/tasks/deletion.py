@@ -15,7 +15,7 @@ from sentry.tasks.base import instrumented_task
                    default_retry_delay=60 * 5, max_retries=None)
 def delete_team(object_id, **kwargs):
     from sentry.models import (
-        Team, Project, AccessGroup, PendingTeamMember, TeamMember,
+        Team, TeamStatus, Project, AccessGroup, PendingTeamMember, TeamMember,
     )
 
     try:
@@ -23,14 +23,13 @@ def delete_team(object_id, **kwargs):
     except Team.DoesNotExist:
         return
 
-    # TODO(mattrobenolt): Add status column
-    # if t.status != STATUS_HIDDEN:
-    #     t.update(status=STATUS_HIDDEN)
+    if t.status != TeamStatus.DELETION_IN_PROGRESS:
+        t.update(status=TeamStatus.DELETION_IN_PROGRESS)
 
     logger = delete_team.get_logger()
 
     # Delete 1 project at a time since this is expensive by itself
-    for project in Project.objects.filter(team=t)[:1]:
+    for project in Project.objects.filter(team=t).order_by('id')[:1]:
         logger.info('Removing Project id=%s where team=%s', project.id, t.id)
         delete_project(project.id)
         delete_team.delay(object_id=object_id)
