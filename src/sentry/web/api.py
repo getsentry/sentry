@@ -303,7 +303,7 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, data, **kwargs):
-        event_received.send(ip=request.META['REMOTE_ADDR'], sender=type(self))
+        event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
         is_rate_limited = safe_execute(app.quotas.is_rate_limited, project=project)
         for plugin in plugins.all():
