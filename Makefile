@@ -102,4 +102,4 @@ run-uwsgi:
 publish:
 	python setup.py sdist bdist_wheel upload
 
-.PHONY: build publish
+.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex compile-bootstrap-js update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
