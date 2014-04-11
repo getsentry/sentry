@@ -284,7 +284,7 @@ class StoreView(APIView):
 
     """
     def post(self, request, project, auth, **kwargs):
-        data = request.raw_post_data
+        data = request.body
         response_or_event_id = self.process(request, project, auth, data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
