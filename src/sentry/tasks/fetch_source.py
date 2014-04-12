@@ -388,7 +388,7 @@ def generate_module(src):
 
     e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
     """
-    if src is None:
+    if not src:
         return UNKNOWN_MODULE
     return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0]) or UNKNOWN_MODULE
 
