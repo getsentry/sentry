@@ -355,10 +355,7 @@ def expand_javascript_source(data, **kwargs):
                 frame.function = last_state.name if last_state else state.name
                 frame.abs_path = abs_path
                 frame.filename = state.src
-                if state.src is None:
-                    frame.module = UNKNOWN_MODULE
-                else:
-                    frame.module = generate_module(state.src) or UNKNOWN_MODULE
+                frame.module = generate_module(state.src)
         elif sourcemap in sourmap_idxs:
             frame.data = {
                 'sourcemap': sourcemap,
@@ -391,7 +388,9 @@ def generate_module(src):
 
     e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
     """
-    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0])
+    if src is None:
+        return UNKNOWN_MODULE
+    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0]) or UNKNOWN_MODULE
 
 
 def generate_culprit(frame):
