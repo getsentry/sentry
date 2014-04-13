@@ -41,6 +41,7 @@ from sentry.models import (
     User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
+from sentry.quotas.base import RateLimit
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
@@ -237,6 +238,8 @@ class APIView(BaseView):
 
             except APIError as error:
                 response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
+                if isinstance(error, APIRateLimited) and error.retry_after is not None:
+                    response['Retry-After'] = str(error.retry_after)
 
         if origin:
             response['Access-Control-Allow-Origin'] = origin
@@ -305,13 +308,16 @@ class StoreView(APIView):
     def process(self, request, project, auth, data, **kwargs):
         event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
-        is_rate_limited = safe_execute(app.quotas.is_rate_limited, project=project)
+        rate_limits = [safe_execute(app.quotas.is_rate_limited, project=project)]
         for plugin in plugins.all():
-            if safe_execute(plugin.is_rate_limited, project=project):
-                is_rate_limited = True
+            rate_limit = safe_execute(plugin.is_rate_limited, project=project)
+            # We must handle the case of plugins not returning new RateLimit objects
+            if isinstance(rate_limit, bool):
+                rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
+            rate_limits.append(rate_limit)
 
-        if is_rate_limited:
-            raise APIRateLimited
+        if any(limit.is_limited for limit in rate_limits):
+            raise APIRateLimited(max(limit.retry_after for limit in rate_limits))
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
