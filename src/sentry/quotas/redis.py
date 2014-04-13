@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from nydus.db import create_cluster
-from sentry.quotas.base import Quota
+from sentry.quotas.base import Quota, RateLimited, NotRateLimited
 
 
 import time
@@ -40,20 +40,23 @@ class RedisQuota(Quota):
         system_quota = self.get_system_quota()
 
         if not (proj_quota or system_quota or team_quota):
-            return False
+            return NotRateLimited
 
         sys_result, team_result, proj_result = self._incr_project(project)
 
         if proj_quota and proj_result > proj_quota:
-            return True
+            return RateLimited(retry_after=self.get_time_remaining())
 
         if team_quota and team_result > team_quota:
-            return True
+            return RateLimited(retry_after=self.get_time_remaining())
 
         if system_quota and sys_result > system_quota:
-            return True
+            return RateLimited(retry_after=self.get_time_remaining())
 
-        return False
+        return NotRateLimited
+
+    def get_time_remaining(self):
+        return int(self.ttl - (time.time() - int(time.time() / self.ttl) * self.ttl))
 
     def _get_system_key(self):
         return 'quota:s:%s' % (int(time.time() / self.ttl),)

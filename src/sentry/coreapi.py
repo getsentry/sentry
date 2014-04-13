@@ -93,6 +93,9 @@ class APIRateLimited(APIError):
     http_status = 429
     msg = 'Creation of this event was denied due to rate limiting.'
 
+    def __init__(self, retry_after=None):
+        self.retry_after = retry_after
+
 
 def get_interface(name):
     if name not in settings.SENTRY_ALLOWED_INTERFACES:
