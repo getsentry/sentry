@@ -26,19 +26,18 @@ class Fixtures(object):
 
     @fixture
     def team(self):
-        return Team.objects.create(
+        return self.create_team(
             name='foo',
             slug='foo',
-            owner=self.user,
-        )
+            owner=self.user)
 
     @fixture
     def project(self):
-        return Project.objects.create(
-            owner=self.user,
+        return self.create_project(
             name='Bar',
             slug='bar',
             team=self.team,
+            owner=self.user,
         )
 
     @fixture
@@ -56,6 +55,24 @@ class Fixtures(object):
             type=Activity.NOTE, user=self.user,
             data={}
         )
+
+    def create_team(self, **kwargs):
+        kwargs.setdefault('name', 'foo')
+        kwargs.setdefault('slug', 'foo')
+        if not kwargs.get('owner'):
+            kwargs['owner'] = self.user
+
+        return Team.objects.create(**kwargs)
+
+    def create_project(self, **kwargs):
+        kwargs.setdefault('name', 'Bar')
+        kwargs.setdefault('slug', 'bar')
+        if not kwargs.get('team'):
+            kwargs['team'] = self.team
+        if not kwargs.get('owner'):
+            kwargs['owner'] = kwargs['team'].owner
+
+        return Project.objects.create(**kwargs)
 
     def create_user(self, email, **kwargs):
         kwargs.setdefault('username', email)
