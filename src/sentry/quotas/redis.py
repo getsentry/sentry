@@ -56,13 +56,13 @@ class RedisQuota(Quota):
         return False
 
     def _get_system_key(self):
-        return 'quota:s:%s' % (int(time.time() / 60),)
+        return 'quota:s:%s' % (int(time.time() / self.ttl),)
 
     def _get_team_key(self, team):
-        return 'quota:t:%s:%s' % (team.id, int(time.time() / 60))
+        return 'quota:t:%s:%s' % (team.id, int(time.time() / self.ttl))
 
     def _get_project_key(self, project):
-        return 'quota:p:%s:%s' % (project.id, int(time.time() / 60))
+        return 'quota:p:%s:%s' % (project.id, int(time.time() / self.ttl))
 
     def _incr_project(self, project):
         if project.team:
