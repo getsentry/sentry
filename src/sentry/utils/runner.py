@@ -317,9 +317,10 @@ def skip_migration_if_applied(settings, app_name, table_name,
         skip_if_table_exists(migration.forwards), migration)
 
 
-def configure():
+def configure(config_path=None):
     configure_app(
         project='sentry',
+        config_path=config_path,
         default_config_path='~/.sentry/sentry.conf.py',
         default_settings='sentry.conf.server',
         settings_initializer=generate_settings,
