@@ -176,13 +176,7 @@ class ChartMixin(object):
             date__gte=min_date,
         ).extra(
             select={'grouper': method},
-        )
-        if key:
-            chart_qs = chart_qs.values('grouper', key)
-        else:
-            chart_qs = chart_qs.values('grouper')
-
-        chart_qs = chart_qs.annotate(
+        ).annotate(
             num=Sum('times_seen'),
         )
 
