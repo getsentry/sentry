@@ -308,7 +308,11 @@ class StoreView(APIView):
     def process(self, request, project, auth, data, **kwargs):
         event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
-        rate_limits = [safe_execute(app.quotas.is_rate_limited, project=project)]
+        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project)
+        if isinstance(rate_limit, bool):
+            rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
+
+        rate_limits = [rate_limit]
         for plugin in plugins.all():
             rate_limit = safe_execute(plugin.is_rate_limited, project=project)
             # We must handle the case of plugins not returning new RateLimit objects
