@@ -534,10 +534,6 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # manually.
 SENTRY_ALLOW_REGISTRATION = True
 
-# Enable trend results. These can be expensive and are calculated in real-time.
-# When disabled they will be replaced w/ a default priority sort.
-SENTRY_USE_TRENDING = True
-
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 SENTRY_ALLOW_ORIGIN = None
 

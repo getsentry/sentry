@@ -39,7 +39,7 @@ from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
-from sentry.utils.db import has_trending, get_db_engine
+from sentry.utils.db import get_db_engine
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
@@ -114,9 +114,6 @@ def _get_group_list(request, project):
     if sort != request.session.get('streamsort'):
         request.session['streamsort'] = sort
 
-    if sort.startswith('accel_') and not has_trending():
-        sort = DEFAULT_SORT_OPTION
-
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
         score_clause = SQLITE_SORT_CLAUSES.get(sort)
@@ -140,9 +137,6 @@ def _get_group_list(request, project):
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort == 'avgtime':
         event_list = event_list.filter(time_spent_count__gt=0)
-    elif sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(
-            [project.id], event_list, minutes=int(sort.split('_', 1)[1]))
 
     if score_clause:
         event_list = event_list.extra(
@@ -373,7 +367,6 @@ def group_list(request, team, project):
         'sort_label': sort_label,
         'filters': response['filters'],
         'SORT_OPTIONS': SORT_OPTIONS,
-        'HAS_TRENDING': has_trending(),
     }, request)
 
 
