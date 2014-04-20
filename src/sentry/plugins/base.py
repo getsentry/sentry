@@ -16,7 +16,6 @@ from django.http import HttpResponseRedirect, HttpResponse
 
 from sentry.utils.managers import InstanceManager
 from sentry.utils.safe import safe_execute
-from sentry.quotas.base import NotRateLimited
 from threading import local
 
 
@@ -426,14 +425,6 @@ class IPlugin(local):
         """
 
     # Server side signals which do not have request context
-
-    def is_rate_limited(self, project, **kwargs):
-        """
-        Return a ``RateLimit`` object which indicates if this project
-        (or the system) is over any defined quotas, and specifies how
-        long until the quota has expired so it's safe to try again.
-        """
-        return NotRateLimited
 
     def has_perm(self, user, perm, *objects, **kwargs):
         """
