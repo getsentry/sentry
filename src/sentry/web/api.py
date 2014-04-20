@@ -313,7 +313,7 @@ class StoreView(APIView):
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
-        if rate_limit.is_limited:
+        if rate_limit is not None and rate_limit.is_limited:
             raise APIRateLimited(rate_limit.retry_after)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
