@@ -313,19 +313,8 @@ class StoreView(APIView):
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
-        rate_limits = [rate_limit]
-        for plugin in plugins.all():
-            rate_limit = safe_execute(plugin.is_rate_limited, project=project)
-            if rate_limit is None:
-                continue
-
-            # We must handle the case of plugins not returning new RateLimit objects
-            if isinstance(rate_limit, bool):
-                rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
-            rate_limits.append(rate_limit)
-
-        if any(limit.is_limited for limit in rate_limits):
-            raise APIRateLimited(max(limit.retry_after for limit in rate_limits))
+        if rate_limit.is_limited:
+            raise APIRateLimited(rate_limit.retry_after)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
