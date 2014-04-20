@@ -44,7 +44,6 @@ from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json
 from sentry.utils.cache import cache
-from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -656,18 +655,13 @@ def get_group_trends(request, team=None, project=None):
         status=0,
     )
 
-    if has_trending():
-        group_list = list(Group.objects.get_accelerated(project_dict, base_qs, minutes=(
-            minutes
-        ))[:limit])
-    else:
-        cutoff = datetime.timedelta(minutes=minutes)
-        cutoff_dt = timezone.now() - cutoff
+    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff_dt = timezone.now() - cutoff
 
-        group_list = list(base_qs.filter(
-            status=STATUS_UNRESOLVED,
-            last_seen__gte=cutoff_dt
-        ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
+    group_list = list(base_qs.filter(
+        status=STATUS_UNRESOLVED,
+        last_seen__gte=cutoff_dt
+    ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
