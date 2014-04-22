@@ -103,7 +103,7 @@ class NotificationPlugin(Plugin):
         event = create_sample_event(project, default='python')
         return self.post_process(event.group, event, is_new=True, is_sample=False)
 
-    ## plugin hooks
+    # plugin hooks
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         if not is_new:

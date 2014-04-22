@@ -89,4 +89,5 @@ class OsPlugin(UserAgentPlugin):
 
         return tag
 
+
 register(OsPlugin)
