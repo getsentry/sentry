@@ -94,7 +94,7 @@
                 type: 'post',
                 dataType: 'json',
                 success: _.bind(function(response) {
-                    this.model.set('version', response.version);
+                    this.model.set('version', response.version + 1000);
                     this.model.set('isResolved', true);
                 }, this)
             });
@@ -106,7 +106,7 @@
                 type: 'post',
                 dataType: 'json',
                 success: _.bind(function(response) {
-                    this.model.set('version', response.version);
+                    this.model.set('version', response.version + 1000);
                     this.model.set('isResolved', false);
                 }, this)
             });
