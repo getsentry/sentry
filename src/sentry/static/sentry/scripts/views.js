@@ -315,7 +315,8 @@
         },
 
         addMember: function(member){
-            if (!this.hasMember(member)) {
+            var existing = this.collection.get(member.id);
+            if (!existing) {
                 if (this.collection.length >= this.options.maxItems) {
                     // bail early if the score is too low
                     if (member.score < this.collection.last().get('score'))
@@ -325,6 +326,8 @@
                     while (this.collection.length >= this.options.maxItems)
                         this.collection.pop();
                 }
+            } else if (existing.get('version') > member.version) {
+                return;
             }
             this.collection.add(member, {merge: true});
         },
