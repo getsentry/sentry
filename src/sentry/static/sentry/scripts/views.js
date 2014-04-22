@@ -326,7 +326,7 @@
                     while (this.collection.length >= this.options.maxItems)
                         this.collection.pop();
                 }
-            } else if (existing.get('version') > member.version) {
+            } else if (existing.get('version') >= member.version) {
                 return;
             }
             this.collection.add(member, {merge: true});
@@ -343,7 +343,7 @@
                 options = {};
 
             var existing = this.collection.get(member.id);
-            if (existing.get('version') > member.get('version'))
+            if (existing.get('version') >= member.get('version'))
                 return;
 
             this.collection.add(member, {
