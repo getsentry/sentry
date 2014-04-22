@@ -463,7 +463,10 @@ def resolve_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_RESOLVED)
+    happened = group.update(
+        status=STATUS_RESOLVED,
+        resovled_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -485,7 +488,10 @@ def mute_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_MUTED)
+    happened = group.update(
+        status=STATUS_MUTED,
+        resovled_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -507,7 +513,10 @@ def unresolve_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_UNRESOLVED)
+    happened = group.update(
+        status=STATUS_UNRESOLVED,
+        active_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
