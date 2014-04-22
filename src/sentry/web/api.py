@@ -465,7 +465,7 @@ def resolve_group(request, team, project, group_id):
 
     happened = group.update(
         status=STATUS_RESOLVED,
-        resovled_at=timezone.now(),
+        resolved_at=timezone.now(),
     )
     if happened:
         Activity.objects.create(
@@ -490,7 +490,7 @@ def mute_group(request, team, project, group_id):
 
     happened = group.update(
         status=STATUS_MUTED,
-        resovled_at=timezone.now(),
+        resolved_at=timezone.now(),
     )
     if happened:
         Activity.objects.create(
