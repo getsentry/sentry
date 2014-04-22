@@ -147,6 +147,11 @@ class GroupTransformer(Transformer):
         else:
             status_label = 'unresolved'
 
+        version = obj.last_seen
+        if obj.resolved_at:
+            version = max(obj.resolved_at, obj.last_seen)
+        version = int(version.strftime('%s'))
+
         d = {
             'id': str(obj.id),
             'count': str(obj.times_seen),
@@ -169,7 +174,7 @@ class GroupTransformer(Transformer):
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
-            'version': int(max([obj.resolved_at, obj.last_seen]).strftime('%s')),
+            'version': version,
         }
         if hasattr(obj, 'is_bookmarked'):
             d['isBookmarked'] = obj.is_bookmarked
