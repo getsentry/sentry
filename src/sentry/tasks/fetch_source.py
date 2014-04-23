@@ -279,7 +279,7 @@ def expand_javascript_source(data, **kwargs):
         if not sourcemap:
             source_code[filename] = (result.body.splitlines(), None, None)
             for f in frames:
-                if f.abs_path == filename:
+                if not f.module and f.abs_path == filename:
                     f.module = generate_module(filename)
             continue
         else:
@@ -375,10 +375,10 @@ def expand_javascript_source(data, **kwargs):
         for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
             exception['stacktrace'] = stacktrace.serialize()
 
-        # Attempt to fix the culrpit now that we have useful information
-        culprit_frame = stacktraces[0].frames[-1]
-        if culprit_frame.module and culprit_frame.function:
-            data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
+    # Attempt to fix the culrpit now that we have potentially useful information
+    culprit_frame = stacktraces[0].frames[-1]
+    if culprit_frame.module and culprit_frame.function:
+        data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
 
 
 def generate_module(src):
