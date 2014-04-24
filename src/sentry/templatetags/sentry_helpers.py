@@ -350,16 +350,18 @@ def with_metadata(group_list, request):
 
 @register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
 def render_tag_widget(group, tag):
+    cutoff = timezone.now() - timedelta(days=7)
+
     total = GroupTagValue.objects.filter(
         group=group,
         key=tag,
-        last_seen__gte=timezone.now() - timedelta(days=7),
+        last_seen__gte=cutoff,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 
     return {
         'title': tag.replace('_', ' ').title(),
         'tag_name': tag,
-        'unique_tags': list(group.get_unique_tags(tag)[:10]),
+        'unique_tags': list(group.get_unique_tags(tag, cutoff)[:10]),
         'total_count': total,
         'group': group,
     }
