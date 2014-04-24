@@ -142,14 +142,17 @@ class Group(Model):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
-    def get_unique_tags(self, tag):
+    def get_unique_tags(self, tag, since=None):
         from sentry.models import GroupTagValue
 
-        return GroupTagValue.objects.filter(
+        queryset = GroupTagValue.objects.filter(
             group=self,
             project=self.project,
             key=tag,
-        ).values_list(
+        )
+        if since:
+            queryset = queryset.filter(last_seen__gte=since)
+        queryset = queryset.values_list(
             'value',
             'times_seen',
             'first_seen',
