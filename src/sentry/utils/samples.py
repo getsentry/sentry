@@ -12,14 +12,23 @@ from sentry.models import Group
 from sentry.utils import json
 
 
-def load_data(platform):
-    json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'),))
+def load_data(platform, default=None):
+    data = None
+    for platform in (platform, default):
+        if platform is None:
+            continue
 
-    if not os.path.exists(json_path):
+        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'),))
+
+        if not os.path.exists(json_path):
+            continue
+
+        with open(json_path) as fp:
+            data = json.loads(fp.read())
+            break
+
+    if data is None:
         return
-
-    with open(json_path) as fp:
-        data = json.loads(fp.read())
 
     data['platform'] = platform
     data['message'] = 'This is an example %s exception' % (
@@ -49,16 +58,16 @@ def load_data(platform):
     return data
 
 
-def create_sample_event(project, platform=None):
+def create_sample_event(project, platform=None, default=None):
     if not platform:
         platform = project.platform
 
-    if not platform:
+    if not platform and not default:
         return
 
     platform = PLATFORM_ROOTS.get(platform, platform)
 
-    data = load_data(platform)
+    data = load_data(platform, default)
 
     if not data:
         return

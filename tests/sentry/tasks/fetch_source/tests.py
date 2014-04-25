@@ -124,6 +124,7 @@ class ExpandJavascriptSourceTest(TestCase):
 
 class GenerateModuleTest(TestCase):
     def test_simple(self):
+        assert generate_module(None) == '<unknown module>'
         assert generate_module('http://example.com/foo.js') == 'foo'
         assert generate_module('http://example.com/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/js/foo/bar.js') == 'foo/bar'

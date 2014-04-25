@@ -33,16 +33,17 @@ from sentry.constants import (
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
-    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip)
+    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
+    decompress_deflate, decompress_gzip)
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.models import (
     Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
     User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
+from sentry.quotas.base import RateLimit
 from sentry.utils import json
 from sentry.utils.cache import cache
-from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -236,6 +237,8 @@ class APIView(BaseView):
 
             except APIError as error:
                 response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
+                if isinstance(error, APIRateLimited) and error.retry_after is not None:
+                    response['Retry-After'] = str(error.retry_after)
 
         if origin:
             response['Access-Control-Allow-Origin'] = origin
@@ -283,7 +286,7 @@ class StoreView(APIView):
 
     """
     def post(self, request, project, auth, **kwargs):
-        data = request.raw_post_data
+        data = request.body
         response_or_event_id = self.process(request, project, auth, data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
@@ -302,21 +305,27 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, data, **kwargs):
-        event_received.send(ip=request.META['REMOTE_ADDR'], sender=type(self))
+        event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
-        is_rate_limited = safe_execute(app.quotas.is_rate_limited, project=project)
-        for plugin in plugins.all():
-            if safe_execute(plugin.is_rate_limited, project=project):
-                is_rate_limited = True
+        # TODO: improve this API (e.g. make RateLimit act on __ne__)
+        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project)
+        if isinstance(rate_limit, bool):
+            rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
-        if is_rate_limited:
-                raise APIRateLimited
+        if rate_limit is not None and rate_limit.is_limited:
+            raise APIRateLimited(rate_limit.retry_after)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
 
-        if not data.startswith('{'):
+        content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
+
+        if content_encoding == 'gzip':
+            data = decompress_gzip(data)
+        elif content_encoding == 'deflate':
+            data = decompress_deflate(data)
+        elif not data.startswith('{'):
             data = decode_and_decompress_data(data)
         data = safely_load_json_string(data)
 
@@ -454,7 +463,10 @@ def resolve_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_RESOLVED)
+    happened = group.update(
+        status=STATUS_RESOLVED,
+        resolved_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -476,7 +488,10 @@ def mute_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_MUTED)
+    happened = group.update(
+        status=STATUS_MUTED,
+        resolved_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -498,7 +513,10 @@ def unresolve_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_UNRESOLVED)
+    happened = group.update(
+        status=STATUS_UNRESOLVED,
+        active_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -646,18 +664,13 @@ def get_group_trends(request, team=None, project=None):
         status=0,
     )
 
-    if has_trending():
-        group_list = list(Group.objects.get_accelerated(project_dict, base_qs, minutes=(
-            minutes
-        ))[:limit])
-    else:
-        cutoff = datetime.timedelta(minutes=minutes)
-        cutoff_dt = timezone.now() - cutoff
+    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff_dt = timezone.now() - cutoff
 
-        group_list = list(base_qs.filter(
-            status=STATUS_UNRESOLVED,
-            last_seen__gte=cutoff_dt
-        ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
+    group_list = list(base_qs.filter(
+        status=STATUS_UNRESOLVED,
+        last_seen__gte=cutoff_dt
+    ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)

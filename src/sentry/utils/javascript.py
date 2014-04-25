@@ -5,8 +5,6 @@ sentry.utils.javascript
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import time
-
 from collections import defaultdict
 
 from django.core.urlresolvers import reverse
@@ -149,6 +147,11 @@ class GroupTransformer(Transformer):
         else:
             status_label = 'unresolved'
 
+        version = obj.last_seen
+        if obj.resolved_at:
+            version = max(obj.resolved_at, obj.last_seen)
+        version = int(version.strftime('%s'))
+
         d = {
             'id': str(obj.id),
             'count': str(obj.times_seen),
@@ -171,7 +174,7 @@ class GroupTransformer(Transformer):
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
-            'version': time.time(),
+            'version': version,
         }
         if hasattr(obj, 'is_bookmarked'):
             d['isBookmarked'] = obj.is_bookmarked
