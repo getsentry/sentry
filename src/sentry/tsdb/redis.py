@@ -1,41 +1,21 @@
 """
-sentry.tsdb.backend
-~~~~~~~~~~~~~~~~~~~
+sentry.tsdb.redis
+~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 from collections import defaultdict
 from django.conf import settings
 from django.utils import timezone
-from enum import Enum
 from nydus.db import create_cluster
 
-ONE_MINUTE = 60
-ONE_HOUR = ONE_MINUTE * 60
-ONE_DAY = ONE_HOUR * 24
+from sentry.tsdb.base import BaseTSDB
 
 
-ROLLUPS = (
-    # time in seconds, samples to keep
-    # (10, 30),  # 5 minutes at 10 seconds
-    # (ONE_MINUTE, 120),  # 2 hours at 1 minute
-    (ONE_HOUR, 24),  # 1 days at 1 hour
-    (ONE_DAY, 30),  # 30 days at 1 day
-)
-
-
-class TSDBModel(Enum):
-    project = 1
-    project_tag_key = 2
-    project_tag_value = 3
-    group = 4
-    group_tag_key = 5
-    group_tag_value = 6
-
-
-class RedisTSDB(object):
+class RedisTSDB(BaseTSDB):
     """
     A time series storage implementation which maps types + normalized epochs
     to hash buckets.
@@ -58,42 +38,23 @@ class RedisTSDB(object):
         }
     }
     """
-    def __init__(self, rollups=ROLLUPS, **options):
-        if not options:
-            # inherit default options from REDIS_OPTIONS
-            options = settings.SENTRY_REDIS_OPTIONS
+    def __init__(self, hosts=None, router=None, prefix='ts:', **kwargs):
+        # inherit default options from REDIS_OPTIONS
+        defaults = settings.SENTRY_REDIS_OPTIONS
 
-        options.setdefault('hosts', {
-            0: {},
-        })
-        options.setdefault('router', 'nydus.db.routers.keyvalue.PartitionRouter')
+        if hosts is None:
+            hosts = defaults.get('hosts', {0: {}})
+
+        if router is None:
+            router = defaults.get('router', 'nydus.db.routers.keyvalue.PartitionRouter')
+
         self.conn = create_cluster({
             'engine': 'nydus.db.backends.redis.Redis',
-            'router': options['router'],
-            'hosts': options['hosts'],
+            'router': router,
+            'hosts': hosts,
         })
-        self.rollups = rollups
-        self.prefix = options.get('prefix', 'ts:')
-
-    def normalize_to_epoch(self, timestamp, seconds):
-        """
-        Given a ``timestamp`` (datetime object) normalize the datetime object
-        ``timestamp`` to an epoch timestmap (integer).
-
-        i.e. if the rollup is minutes, the resulting timestamp would have
-        the seconds and microseconds rounded down.
-        """
-        epoch = int(timestamp.strftime('%s'))
-        return epoch - (epoch % seconds)
-
-    def get_optimal_rollup(self, start_timestamp, end_timestamp):
-        num_seconds = int(end_timestamp.strftime('%s')) - int(start_timestamp.strftime('%s'))
-
-        # calculate the highest rollup within time range
-        for rollup, samples in self.rollups:
-            if rollup * samples >= num_seconds:
-                return rollup
-        return self.rollups[-1][0]
+        self.prefix = prefix
+        super(RedisTSDB, self).__init__(**kwargs)
 
     def make_key(self, model, epoch):
         return '{0}:{1}:{2}'.format(self.prefix, model.value, epoch)

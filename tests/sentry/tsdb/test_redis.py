@@ -3,9 +3,8 @@ import pytz
 from datetime import datetime, timedelta
 
 from sentry.testutils import TestCase
-from sentry.tsdb.backend import (
-    RedisTSDB, TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
-)
+from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
+from sentry.tsdb.redis import RedisTSDB
 
 
 class RedisTSDBTest(TestCase):
