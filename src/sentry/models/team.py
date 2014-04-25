@@ -10,12 +10,20 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import RESERVED_TEAM_SLUGS
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
 from sentry.db.models.utils import slugify_instance
 from sentry.manager import TeamManager
 from sentry.utils.http import absolute_uri
+
+
+# TODO(dcramer): pull in enum library
+class TeamStatus(object):
+    VISIBLE = 0
+    PENDING_DELETION = 1
+    DELETION_IN_PROGRESS = 2
 
 
 class Team(Model):
@@ -25,6 +33,11 @@ class Team(Model):
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    status = BoundedPositiveIntegerField(default=0, choices=(
+        (TeamStatus.VISIBLE, _('Visible')),
+        (TeamStatus.PENDING_DELETION, _('Pending Deletion')),
+        (TeamStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
+    ))
     date_added = models.DateTimeField(default=timezone.now, null=True)
     members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.TeamMember', related_name='team_memberships')
 

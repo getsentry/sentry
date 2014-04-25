@@ -23,12 +23,6 @@ def get_db_engine(alias='default'):
     return value.rsplit('.', 1)[-1]
 
 
-def has_trending(alias='default'):
-    # we only support trend queries for postgres to db optimization
-    # issues in mysql, and lack of anything useful in sqlite
-    return settings.SENTRY_USE_TRENDING and get_db_engine('default').startswith('postgres')
-
-
 def has_charts(db):
     engine = get_db_engine(db)
     if engine.startswith('sqlite'):

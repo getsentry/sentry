@@ -27,7 +27,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     # TODO: TagKey and GroupTagKey need cleaned up
     from sentry.models import (
         Group, Event, GroupCountByMinute, EventMapping,
-        GroupTag, TagValue, ProjectCountByMinute, Alert,
+        GroupTagValue, TagValue, ProjectCountByMinute, Alert,
         Activity, LostPasswordHash)
     from sentry.search.django.models import SearchDocument
 
@@ -35,7 +35,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         (SearchDocument, 'date_changed'),
         (GroupCountByMinute, 'date'),
         (ProjectCountByMinute, 'date'),
-        (GroupTag, 'last_seen'),
+        (GroupTagValue, 'last_seen'),
         (Event, 'datetime'),
         (Activity, 'datetime'),
         (TagValue, 'last_seen'),

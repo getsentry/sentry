@@ -31,6 +31,7 @@ CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
+UNKNOWN_MODULE = '<unknown module>'
 CLEAN_MODULE_RE = re.compile(r"""^
 (?:/|  # Leading slashes
 (?:
@@ -354,7 +355,7 @@ def expand_javascript_source(data, **kwargs):
                 frame.function = last_state.name if last_state else state.name
                 frame.abs_path = abs_path
                 frame.filename = state.src
-                frame.module = generate_module(state.src) or '<unknown module>'
+                frame.module = generate_module(state.src)
         elif sourcemap in sourmap_idxs:
             frame.data = {
                 'sourcemap': sourcemap,
@@ -387,7 +388,9 @@ def generate_module(src):
 
     e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
     """
-    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0])
+    if not src:
+        return UNKNOWN_MODULE
+    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0]) or UNKNOWN_MODULE
 
 
 def generate_culprit(frame):

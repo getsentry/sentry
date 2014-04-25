@@ -11,7 +11,7 @@ import sys
 
 class ModuleProxyCache(dict):
     def __missing__(self, key):
-        if not '.' in key:
+        if '.' not in key:
             return __import__(key)
 
         module_name, class_name = key.rsplit('.', 1)

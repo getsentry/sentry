@@ -208,6 +208,7 @@ AUTHENTICATION_BACKENDS = (
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_COOKIE_NAME = "sentrysid"
 
 TWITTER_CONSUMER_KEY = ''
 TWITTER_CONSUMER_SECRET = ''
@@ -532,10 +533,6 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # accounts can only be created when someone is invited or added
 # manually.
 SENTRY_ALLOW_REGISTRATION = True
-
-# Enable trend results. These can be expensive and are calculated in real-time.
-# When disabled they will be replaced w/ a default priority sort.
-SENTRY_USE_TRENDING = True
 
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 SENTRY_ALLOW_ORIGIN = None

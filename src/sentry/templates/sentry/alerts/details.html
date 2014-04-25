@@ -16,27 +16,6 @@
             </h2>
         </div>
         {{ alert.message|linebreaks }}
-
-        <div class="page-header">
-            <h3>{% trans "Related Events" %} <small>{% trans "Trending at time of alert" %}</small></h3>
-        </div>
-        {% if related_group_list %}
-            <div id="event_list"></div>
-
-            <p><small>{% trans "Note: All events represent their current state, not their value at the time of this alert." %}</small></p>
-
-            <script>
-            $(function(){
-                new app.GroupListView({
-                    className: 'group-list small',
-                    members: {{ related_group_list|to_json:request|safe }},
-                    id: "event_list"
-                });
-            });
-            </script>
-        {% else %}
-            <p>{% trans "No trends are available for this report." %}</p>
-        {% endif %}
     </section>
 {% endblock %}
 

@@ -54,7 +54,7 @@ class RedisQuotaTest(TestCase):
         result = self.quota.is_rate_limited(self.project)
 
         assert not self._incr_project.called
-        assert result is False
+        assert not result.is_limited
 
     def test_enforces_project_quota(self):
         self.get_project_quota.return_value = 100
@@ -62,13 +62,13 @@ class RedisQuotaTest(TestCase):
 
         result = self.quota.is_rate_limited(self.project)
 
-        assert result is True
+        assert result.is_limited
 
         self._incr_project.return_value = (0, 0, 99)
 
         result = self.quota.is_rate_limited(self.project)
 
-        assert result is False
+        assert not result.is_limited
 
     def test_enforces_team_quota(self):
         self.get_team_quota.return_value = 100
@@ -76,13 +76,13 @@ class RedisQuotaTest(TestCase):
 
         result = self.quota.is_rate_limited(self.project)
 
-        assert result is True
+        assert result.is_limited
 
         self._incr_project.return_value = (0, 99, 0)
 
         result = self.quota.is_rate_limited(self.project)
 
-        assert result is False
+        assert not result.is_limited
 
     def test_enforces_system_quota(self):
         self.get_system_quota.return_value = 100
@@ -90,10 +90,10 @@ class RedisQuotaTest(TestCase):
 
         result = self.quota.is_rate_limited(self.project)
 
-        assert result is True
+        assert result.is_limited
 
         self._incr_project.return_value = (99, 0, 0)
 
         result = self.quota.is_rate_limited(self.project)
 
-        assert result is False
+        assert not result.is_limited

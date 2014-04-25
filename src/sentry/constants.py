@@ -34,8 +34,6 @@ SORT_OPTIONS = SortedDict((
     ('freq', _('Frequency')),
     ('tottime', _('Total Time Spent')),
     ('avgtime', _('Average Time Spent')),
-    ('accel_15', _('Trending: %(minutes)d minutes' % {'minutes': 15})),
-    ('accel_60', _('Trending: %(minutes)d minutes' % {'minutes': 60})),
 ))
 
 SORT_CLAUSES = {

@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import datetime
 import mock
-import pytest
 
 from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
@@ -14,7 +13,6 @@ from sentry.models import (
     Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
     Team, EventMapping, User, AccessGroup, GroupTagValue
 )
-from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
 
@@ -145,23 +143,6 @@ class SentryManagerTest(TestCase):
         res = results[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
-
-
-@pytest.mark.skipif('not has_trending()')
-class TrendsTest(TestCase):
-    def test_accelerated_works_at_all(self):
-        now = timezone.now() - datetime.timedelta(minutes=5)
-        project = Project.objects.all()[0]
-        group = Group.objects.create(status=0, project=project, message='foo', checksum='a' * 32)
-        group2 = Group.objects.create(status=0, project=project, message='foo', checksum='b' * 32)
-        GroupCountByMinute.objects.create(project=project, group=group, date=now, times_seen=50)
-        GroupCountByMinute.objects.create(project=project, group=group2, date=now, times_seen=40)
-        base_qs = Group.objects.filter(
-            status=0,
-        )
-
-        results = list(Group.objects.get_accelerated([project.id], base_qs)[:25])
-        self.assertEquals(results, [group, group2])
 
 
 class GetChecksumFromEventTest(TestCase):

@@ -8,11 +8,11 @@ sentry.templatetags.sentry_helpers
 # XXX: Import django-paging's template tags so we don't have to worry about
 #      INSTALLED_APPS
 
-import datetime
 import os.path
 import pytz
 
 from collections import namedtuple
+from datetime import timedelta
 from paging.helpers import paginate as paginate_func
 from pkg_resources import parse_version as Version
 from urllib import quote
@@ -154,7 +154,7 @@ def timesince(value, now=None):
         now = timezone.now()
     if not value:
         return _('never')
-    if value < (now - datetime.timedelta(days=5)):
+    if value < (now - timedelta(days=5)):
         return value.date()
     value = (' '.join(timesince(value, now).split(' ')[0:2])).strip(',')
     if value == _('0 minutes'):
@@ -350,15 +350,18 @@ def with_metadata(group_list, request):
 
 @register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
 def render_tag_widget(group, tag):
+    cutoff = timezone.now() - timedelta(days=7)
+
     total = GroupTagValue.objects.filter(
         group=group,
         key=tag,
+        last_seen__gte=cutoff,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 
     return {
         'title': tag.replace('_', ' ').title(),
         'tag_name': tag,
-        'unique_tags': list(group.get_unique_tags(tag)[:10]),
+        'unique_tags': list(group.get_unique_tags(tag, cutoff)[:10]),
         'total_count': total,
         'group': group,
     }

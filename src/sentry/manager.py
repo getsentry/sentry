@@ -176,15 +176,10 @@ class ChartMixin(object):
             date__gte=min_date,
         ).extra(
             select={'grouper': method},
-        )
-        if key:
-            chart_qs = chart_qs.values('grouper', key)
-        else:
-            chart_qs = chart_qs.values('grouper')
-
-        chart_qs = chart_qs.annotate(
+        ).annotate(
             num=Sum('times_seen'),
         )
+
         if key:
             chart_qs = chart_qs.values_list(key, 'grouper', 'num').order_by(key, 'grouper')
         else:
@@ -594,7 +589,7 @@ class GroupManager(BaseManager, ChartMixin):
         return group, is_new, is_sample
 
     def add_tags(self, group, tags):
-        from sentry.models import TagValue, GroupTag
+        from sentry.models import TagValue, GroupTagValue
 
         project = group.project
         date = group.last_seen
@@ -623,7 +618,7 @@ class GroupManager(BaseManager, ChartMixin):
                 'data': data,
             })
 
-            app.buffer.incr(GroupTag, {
+            app.buffer.incr(GroupTagValue, {
                 'times_seen': 1,
             }, {
                 'group': group,
@@ -640,77 +635,6 @@ class GroupManager(BaseManager, ChartMixin):
     @memoize
     def model_fields_clause(self):
         return ', '.join('sentry_groupedmessage."%s"' % (f.column,) for f in self.model._meta.fields)
-
-    def get_accelerated(self, project_ids, queryset=None, minutes=15):
-        if not project_ids:
-            return self.none()
-
-        if queryset is None:
-            queryset = self.filter(
-                project__in=project_ids,
-                status=STATUS_UNRESOLVED,
-            )
-        else:
-            queryset = queryset._clone()
-            queryset.query.select_related = False
-
-        normalization = float(MINUTE_NORMALIZATION)
-
-        assert minutes >= normalization
-
-        intervals = 8
-
-        engine = get_db_engine(queryset.db)
-        # We technically only support mysql and postgresql, since there seems to be no standard
-        # way to get the epoch from a datetime/interval
-        if engine.startswith('mysql'):
-            minute_clause = "interval %s minute"
-            epoch_clause = "unix_timestamp(utc_timestamp()) - unix_timestamp(mcbm.date)"
-            now_clause = 'utc_timestamp()'
-        else:
-            minute_clause = "interval '%s minutes'"
-            epoch_clause = "extract(epoch from now()) - extract(epoch from mcbm.date)"
-            now_clause = 'now()'
-
-        sql, params = queryset.query.get_compiler(queryset.db).as_sql()
-        before_select, after_select = str(sql).split('SELECT ', 1)
-        after_where = after_select.split(' WHERE ', 1)[1]
-
-        # Ensure we remove any ordering clause
-        after_where = after_where.split(' ORDER BY ')[0]
-
-        query = """
-        SELECT ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) / (COALESCE(z.rate, 0) + 1) as sort_value,
-               %(fields)s
-        FROM sentry_groupedmessage
-        INNER JOIN sentry_messagecountbyminute as mcbm
-            ON (sentry_groupedmessage.id = mcbm.group_id)
-        LEFT JOIN (SELECT a.group_id, (SUM(a.times_seen)) / COUNT(a.times_seen) / %(norm)f as rate
-            FROM sentry_messagecountbyminute as a
-            WHERE a.date >=  %(now)s - %(max_time)s
-            AND a.date < %(now)s - %(min_time)s
-            AND a.project_id IN (%(project_ids)s)
-            GROUP BY a.group_id) as z
-        ON z.group_id = mcbm.group_id
-        WHERE mcbm.date >= %(now)s - %(min_time)s
-        AND mcbm.date < %(now)s - %(offset_time)s
-        AND mcbm.times_seen > 0
-        AND ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) > (COALESCE(z.rate, 0) + 1)
-        AND %(after_where)s
-        GROUP BY z.rate, mcbm.times_seen, mcbm.date, %(fields)s
-        ORDER BY sort_value DESC
-        """ % dict(
-            fields=self.model_fields_clause,
-            after_where=after_where,
-            offset_time=minute_clause % (1,),
-            min_time=minute_clause % (minutes + 1,),
-            max_time=minute_clause % (minutes * intervals + 1,),
-            norm=normalization,
-            epoch_clause=epoch_clause,
-            now=now_clause,
-            project_ids=', '.join((str(int(x)) for x in project_ids)),
-        )
-        return RawQuerySet(self, query, params)
 
 
 class RawQuerySet(object):
@@ -774,6 +698,35 @@ class ProjectManager(BaseManager, ChartMixin):
 
         return sorted(projects, key=lambda x: x.name.lower())
 
+    def get_chart_data(self, instance, max_days=90, key=None):
+        if hasattr(instance, '_state'):
+            db = instance._state.db or 'default'
+        else:
+            db = 'default'
+
+        queryset = instance.projectcountbyminute_set
+
+        return self._get_chart_data(queryset, max_days, db, key=key)
+
+    def get_chart_data_for_group(self, instances, max_days=90, key=None):
+        if not instances:
+            if key is None:
+                return []
+            return {}
+
+        if hasattr(instances[0], '_state'):
+            db = instances[0]._state.db or 'default'
+        else:
+            db = 'default'
+
+        field = self.model.projectcountbyminute_set.related
+        column = field.field.name
+        queryset = field.model.objects.filter(**{
+            '%s__in' % column: instances,
+        })
+
+        return self._get_chart_data(queryset, max_days, db, key=key)
+
 
 class MetaManager(BaseManager):
     NOTSET = object()
@@ -805,7 +758,6 @@ class MetaManager(BaseManager):
         self.__metadata.pop(key, None)
 
     def set_value(self, key, value):
-        print key, value
         inst, _ = self.get_or_create(
             key=key,
             defaults={

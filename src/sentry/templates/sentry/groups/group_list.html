@@ -5,7 +5,7 @@
 {% load sentry_plugins %}
 
 {% block sidebar %}
-    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-chart' project.team.slug %}" data-days="1">
+    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-chart' project.team.slug project.slug %}" data-days="1">
         <div class="sparkline">
             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
             <span class="loading">{% trans "Loading historical data..." %}</span>
@@ -59,11 +59,6 @@
                 <li class="divider"></li>
                 <li{% ifequal sort 'tottime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=tottime">{{ SORT_OPTIONS.tottime }}</a></li>
                 <li{% ifequal sort 'avgtime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=avgtime">{{ SORT_OPTIONS.avgtime }}</a></li>
-                {% if HAS_TRENDING %}
-                    <li class="divider"></li>
-                    <li{% ifequal sort 'accel_15' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_15">{{ SORT_OPTIONS.accel_15 }}</a></li>
-                    <li{% ifequal sort 'accel_60' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_60">{{ SORT_OPTIONS.accel_60 }}</a></li>
-                {% endif %}
             </ul>
         </div>
         <div class="btn-group">
