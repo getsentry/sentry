@@ -216,8 +216,6 @@ class BaseManager(Manager):
                 logger.error('Cache response returned invalid value %r', retval)
                 return self.get(**kwargs)
 
-            assert getattr(retval, key) == value
-
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
             return retval
