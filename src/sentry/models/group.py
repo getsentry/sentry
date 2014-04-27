@@ -143,6 +143,7 @@ class Group(Model):
         return module, self.data['version']
 
     def get_unique_tags(self, tag, since=None):
+        # TODO(dcramer): this has zero test coverage and is a critical path
         from sentry.models import GroupTagValue
 
         queryset = GroupTagValue.objects.filter(
@@ -152,7 +153,7 @@ class Group(Model):
         )
         if since:
             queryset = queryset.filter(last_seen__gte=since)
-        queryset = queryset.values_list(
+        return queryset.values_list(
             'value',
             'times_seen',
             'first_seen',
