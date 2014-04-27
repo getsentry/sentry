@@ -161,13 +161,6 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data['event_id'] == uuid4.return_value.hex
 
-    def test_invalid_project_id(self):
-        with self.assertRaises(APIForbidden):
-            validate_data(self.project, {
-                'project': self.project.id + 1,
-                'message': 'foo',
-            })
-
     def test_unknown_attribute(self):
         data = validate_data(self.project, {
             'message': 'foo',
@@ -236,13 +229,6 @@ class ValidateDataTest(BaseAPITest):
             'level': 'foobar',
         })
         assert data['level'] == 40
-
-    def test_project_slug(self):
-        data = validate_data(self.project, {
-            'project': self.project.slug,
-            'message': 'foo',
-        })
-        assert data['project'] == self.project.id
 
     def test_tags_as_string(self):
         data = validate_data(self.project, {
