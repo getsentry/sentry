@@ -216,6 +216,12 @@ class BaseManager(Manager):
                 logger.error('Cache response returned invalid value %r', retval)
                 return self.get(**kwargs)
 
+            if key == pk_name and int(value) != retval.pk:
+                if settings.DEBUG:
+                    raise ValueError('Unexpected value returned from cache')
+                logger.error('Cache response returned invalid value %r', retval)
+                return self.get(**kwargs)
+
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
             return retval
