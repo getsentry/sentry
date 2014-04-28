@@ -28,3 +28,4 @@ quotas = get_instance(settings.SENTRY_QUOTAS, settings.SENTRY_QUOTA_OPTIONS)
 nodestore = get_instance(
     settings.SENTRY_NODESTORE, settings.SENTRY_NODESTORE_OPTIONS)
 search = get_instance(settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
+tsdb = get_instance(settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS)

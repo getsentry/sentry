@@ -573,6 +573,10 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_USE_SEARCH = True
 # SENTRY_INDEX_SEARCH = SENTRY_USE_SEARCH
 
+# Time-series storage backend
+SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
+SENTRY_TSDB_OPTIONS = {}
+
 SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.11/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
