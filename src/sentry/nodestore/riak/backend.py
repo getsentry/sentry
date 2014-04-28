@@ -40,7 +40,8 @@ class RiakNodeStorage(NodeStorage):
         return self.conn.bucket(self._bucket_name)
 
     def create(self, data):
-        obj = self.bucket.new(data=data)
+        node_id = self.generate_id()
+        obj = self.bucket.new(data=data, key=node_id)
         obj.store()
         return obj.key
 
