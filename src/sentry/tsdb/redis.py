@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from collections import defaultdict
 from django.conf import settings
 from django.utils import timezone
+from hashlib import md5
 from nydus.db import create_cluster
 
 from sentry.tsdb.base import BaseTSDB
@@ -59,6 +60,14 @@ class RedisTSDB(BaseTSDB):
     def make_key(self, model, epoch):
         return '{0}:{1}:{2}'.format(self.prefix, model.value, epoch)
 
+    def get_model_key(self, key):
+        # We specialize integers so that a pure int-map can be optimized by
+        # Redis, whereas long strings (say tag values) will store in a more
+        # efficient hashed format.
+        if not isinstance(key, (int, long)):
+            return md5(repr(key)).checksum()
+        return key
+
     def incr(self, model, key, timestamp=None, count=1):
         self.incr_multi([(model, key)], timestamp, count)
 
@@ -79,7 +88,7 @@ class RedisTSDB(BaseTSDB):
 
                 for model, key in items:
                     hash_key = make_key(model, epoch)
-                    conn.hincrby(hash_key, key, count)
+                    conn.hincrby(hash_key, self.get_model_key(key), count)
                     conn.expire(hash_key, rollup * max_values)
 
     def get_range(self, model, keys, start, end, rollup=None):
@@ -108,7 +117,8 @@ class RedisTSDB(BaseTSDB):
         results = []
         with self.conn.map() as conn:
             for epoch, hash_key in hash_keys:
-                results.append((epoch, keys, conn.hmget(hash_key, *keys)))
+                mapped_keys = [self.get_model_key(k) for k in keys]
+                results.append((epoch, keys, conn.hmget(hash_key, *mapped_keys)))
 
         results_by_key = defaultdict(dict)
         for epoch, keys, data in results:
