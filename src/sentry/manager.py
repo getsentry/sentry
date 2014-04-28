@@ -35,6 +35,7 @@ from sentry.db.models import BaseManager
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
+from sentry.tsdb.base import TSDBModel
 from sentry.utils.cache import cache, memoize
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
@@ -578,6 +579,11 @@ class GroupManager(BaseManager, ChartMixin):
         except Exception as e:
             logger.exception('Unable to record tags: %s' % (e,))
 
+        app.tsdb.incr_multi([
+            (TSDBModel.group, group.id),
+            (TSDBModel.project, project.id),
+        ])
+
         return group, is_new, is_sample
 
     def add_tags(self, group, tags):
@@ -585,6 +591,8 @@ class GroupManager(BaseManager, ChartMixin):
 
         project = group.project
         date = group.last_seen
+
+        tsdb_keys = []
 
         for tag_item in tags:
             if len(tag_item) == 2:
@@ -598,6 +606,13 @@ class GroupManager(BaseManager, ChartMixin):
             value = unicode(value)
             if len(value) > MAX_TAG_LENGTH:
                 continue
+
+            tsdb_id = u'%s=%s' % (key, value)
+
+            tsdb_keys.extend([
+                (TSDBModel.project_tag_value, tsdb_id),
+                (TSDBModel.group_tag_value, tsdb_id),
+            ])
 
             app.buffer.incr(TagValue, {
                 'times_seen': 1,
@@ -620,6 +635,8 @@ class GroupManager(BaseManager, ChartMixin):
             }, {
                 'last_seen': date,
             })
+
+        app.tsdb.incr_multi(tsdb_keys)
 
     def get_by_natural_key(self, project, logger, culprit, checksum):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
