@@ -8,6 +8,7 @@ sentry.nodestore.base
 
 from __future__ import absolute_import
 
+from base64 import b64encode
 from threading import local
 from uuid import uuid4
 
@@ -62,7 +63,7 @@ class NodeStorage(local):
             self.set(id=id, data=data)
 
     def generate_id(self):
-        return uuid4().hex
+        return b64encode(uuid4().bytes)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
