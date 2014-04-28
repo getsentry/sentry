@@ -373,14 +373,6 @@ class GroupManager(BaseManager, ChartMixin):
         checksum = data.pop('checksum')
         platform = data.pop('platform')
 
-        if 'sentry.interfaces.Exception' in data:
-            if 'values' not in data['sentry.interfaces.Exception']:
-                data['sentry.interfaces.Exception'] = {'values': [data['sentry.interfaces.Exception']]}
-
-            # convert stacktrace + exception into expanded exception
-            if 'sentry.interfaces.Stacktrace' in data:
-                data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
-
         kwargs = {
             'level': level,
             'message': message,
