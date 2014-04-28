@@ -7,6 +7,7 @@ sentry.models.event
 """
 import logging
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -139,11 +140,13 @@ class Event(Model):
                 continue
 
             try:
-                cls = import_string(key)
+                cls = import_string(settings.SENTRY_INTERFACES[key])
+            except KeyError:
+                continue
             except ImportError:
                 continue  # suppress invalid interfaces
 
-            value = safe_execute(cls, **data)
+            value = safe_execute(cls.to_python, data)
             if not value:
                 continue
 

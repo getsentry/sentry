@@ -73,10 +73,6 @@ class DjangoSearchBackend(SearchBackend):
             document.status = group.status
 
         context = defaultdict(list)
-        for interface in event.interfaces.itervalues():
-            for k, v in interface.get_search_context(event).iteritems():
-                context[k].extend(v)
-
         context['text'].extend([
             event.message,
             event.logger,

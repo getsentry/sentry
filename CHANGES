@@ -9,6 +9,7 @@ Backwards Incompatible Changes
 - The ``is_rate_limited`` plugin hook has been removed in favor of singular quota managers.
 - The trends feature has been removed until it can be reimplemented in a more scalable way.
 - NodeStore.generate_id() now returns a base64-encoded UUID.
+- The API for interfaces has been rewritten.
 
 Version 6.4.0
 -------------
