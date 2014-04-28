@@ -40,7 +40,7 @@ clean:
 	rm -r src/sentry/static/CACHE
 
 locale:
-	cd src/sentry && sentry makemessages -l en
+	cd src/sentry && sentry makemessages -i static -l en
 	cd src/sentry && sentry compilemessages
 
 update-transifex:
