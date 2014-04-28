@@ -507,15 +507,21 @@ SENTRY_SMTP_HOSTNAME = 'localhost'
 SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
-SENTRY_ALLOWED_INTERFACES = set([
-    'sentry.interfaces.Exception',
-    'sentry.interfaces.Message',
-    'sentry.interfaces.Stacktrace',
-    'sentry.interfaces.Template',
-    'sentry.interfaces.Query',
-    'sentry.interfaces.Http',
-    'sentry.interfaces.User',
-])
+SENTRY_INTERFACES = {
+    'exception': 'sentry.interfaces.exception.Exception',
+    'request': 'sentry.interfaces.http.Http',
+    'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
+    'template': 'sentry.interfaces.template.Template',
+    'user': 'sentry.interfaces.user.User',
+
+    'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
+    'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
+    'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
+    'sentry.interfaces.Template': 'sentry.interfaces.template.Template',
+    'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
+    'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
+    'sentry.interfaces.User': 'sentry.interfaces.user.User',
+}
 
 # Should users without 'sentry.add_project' permissions be allowed
 # to create new projects

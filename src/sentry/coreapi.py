@@ -37,14 +37,6 @@ logger = logging.getLogger('sentry.coreapi.errors')
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
-INTERFACE_ALIASES = {
-    'exception': 'sentry.interfaces.Exception',
-    'request': 'sentry.interfaces.Http',
-    'user': 'sentry.interfaces.User',
-    'stacktrace': 'sentry.interfaces.Stacktrace',
-    'template': 'sentry.interfaces.Template',
-}
-
 RESERVED_FIELDS = (
     'project',
     'event_id',
@@ -98,11 +90,13 @@ class APIRateLimited(APIError):
 
 
 def get_interface(name):
-    if name not in settings.SENTRY_ALLOWED_INTERFACES:
-        raise ValueError
+    try:
+        import_path = settings.SENTRY_INTERFACES[name]
+    except KeyError:
+        raise ValueError('Invalid interface name: %s' % (name,))
 
     try:
-        interface = import_string(name)
+        interface = import_string(import_path)
     except Exception:
         raise ValueError('Unable to load interface: %s' % (name,))
 
@@ -350,41 +344,31 @@ def validate_data(project, data, client=None):
         if k in RESERVED_FIELDS:
             continue
 
-        if not data[k]:
+        value = data.pop(k)
+
+        if not value:
             logger.info(
                 'Ignored empty interface value: %s', k,
                 **client_metadata(client, project))
-            del data[k]
             continue
 
-        import_path = INTERFACE_ALIASES.get(k, k)
-
-        if '.' not in import_path:
+        try:
+            interface = get_interface(k)
+        except ValueError:
             logger.info(
                 'Ignored unknown attribute: %s', k,
                 **client_metadata(client, project))
-            del data[k]
             continue
 
-        try:
-            interface = get_interface(import_path)
-        except ValueError:
+        if type(value) is not dict:
             logger.info(
-                'Invalid unknown attribute: %s', k,
-                **client_metadata(client, project))
-            del data[k]
+                'Invalid parameters for value: %s (dict expected, got %s)', k,
+                type(value), **client_metadata(client, project))
             continue
 
-        value = data.pop(k)
         try:
-            # HACK: exception allows you to pass the value as a list
-            # so let's try to actually support that
-            if isinstance(value, dict):
-                inst = interface(**value)
-            else:
-                inst = interface(value)
-            inst.validate()
-            data[import_path] = inst.serialize()
+            inst = interface.to_python(value)
+            data[k] = inst.to_json()
         except Exception as e:
             if isinstance(e, AssertionError):
                 log = logger.info

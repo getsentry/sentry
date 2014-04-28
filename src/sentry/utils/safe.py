@@ -84,20 +84,4 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
         value[key] = trim(value[key], **kwargs)
         if idx > max_items:
             del value[key]
-
-
-def trim_frames(stacktrace, max_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES):
-    # TODO: this doesnt account for cases where the client has already omitted
-    # frames
-    frames = stacktrace['frames']
-    frames_len = len(frames)
-
-    if frames_len <= max_frames:
-        return
-
-    half_max = max_frames / 2
-
-    stacktrace['frames_omitted'] = (half_max, frames_len - half_max)
-
-    for n in xrange(half_max, frames_len - half_max):
-        del frames[half_max]
+    return value
