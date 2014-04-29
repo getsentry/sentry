@@ -646,23 +646,6 @@ class GroupManager(BaseManager, ChartMixin):
         return ', '.join('sentry_groupedmessage."%s"' % (f.column,) for f in self.model._meta.fields)
 
 
-class RawQuerySet(object):
-    def __init__(self, queryset, query, params):
-        self.queryset = queryset
-        self.query = query
-        self.params = params
-
-    def __getitem__(self, k):
-        offset = k.start or 0
-        limit = k.stop - offset
-
-        limit_clause = ' LIMIT %d OFFSET %d' % (limit, offset)
-
-        query = self.query + limit_clause
-
-        return self.queryset.raw(query, self.params)
-
-
 class ProjectManager(BaseManager, ChartMixin):
     def get_for_user(self, user=None, access=None, hidden=False, team=None,
                      superuser=True):
