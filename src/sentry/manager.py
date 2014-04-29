@@ -636,7 +636,8 @@ class GroupManager(BaseManager, ChartMixin):
                 'last_seen': date,
             })
 
-        app.tsdb.incr_multi(tsdb_keys)
+        if tsdb_keys:
+            app.tsdb.incr_multi(tsdb_keys)
 
     def get_by_natural_key(self, project, logger, culprit, checksum):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
