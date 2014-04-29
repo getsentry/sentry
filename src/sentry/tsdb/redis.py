@@ -129,8 +129,6 @@ class RedisTSDB(BaseTSDB):
                 real_epoch = normalize_to_epoch(timestamp, rollup)
                 norm_epoch = normalize_to_rollup(timestamp, rollup)
 
-                print timestamp, rollup, norm_epoch
-
                 for key in keys:
                     model_key = self.get_model_key(key)
                     hash_key = make_key(model, norm_epoch, model_key)
