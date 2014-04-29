@@ -65,7 +65,7 @@ class RedisTSDB(BaseTSDB):
         # Redis, whereas long strings (say tag values) will store in a more
         # efficient hashed format.
         if not isinstance(key, (int, long)):
-            return md5(repr(key)).checksum()
+            return md5(repr(key)).hexdigest()
         return key
 
     def incr(self, model, key, timestamp=None, count=1):
