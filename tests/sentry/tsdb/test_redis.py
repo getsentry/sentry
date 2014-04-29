@@ -17,7 +17,7 @@ class RedisTSDBTest(TestCase):
             (ONE_MINUTE, 120),  # 2 hours at 1 minute
             (ONE_HOUR, 24),  # 1 days at 1 hour
             (ONE_DAY, 30),  # 30 days at 1 day
-        ))
+        ), vnodes=64)
         self.db.conn.flushdb()
 
     def test_normalize_to_epoch(self):
@@ -32,6 +32,13 @@ class RedisTSDBTest(TestCase):
         assert result == 1368890040
         result = normalize_to_epoch(timestamp + timedelta(seconds=70), 60)
         assert result == 1368890100
+
+    def test_make_key(self):
+        result = self.db.make_key(TSDBModel.project, 1368889980, 1)
+        assert result == 'ts:1:1368889980:1'
+
+        result = self.db.make_key(TSDBModel.project, 1368889980, 'foo')
+        assert result == 'ts:1:1368889980:33'
 
     def test_get_model_key(self):
         result = self.db.get_model_key(1)
