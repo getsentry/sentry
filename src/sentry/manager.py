@@ -521,6 +521,8 @@ class GroupManager(BaseManager, ChartMixin):
                 extra['message'] = event.message
             if group.level != event.level:
                 extra['level'] = event.level
+            if group.culprit != event.culprit:
+                extra['culprit'] = event.culprit
 
             if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
                 # Making things atomic
