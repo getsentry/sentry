@@ -30,7 +30,7 @@ from django_sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
 from django_sudo.utils import grant_sudo_privileges
 
 from sentry.constants import MODULE_ROOT
-from sentry.models import Option, ProjectOption
+from sentry.models import ProjectOption
 from sentry.utils import json
 
 from .fixtures import Fixtures
@@ -92,7 +92,6 @@ class BaseTestCase(Fixtures, Exam):
     def _pre_setup(self):
         cache.clear()
         ProjectOption.objects.clear_local_cache()
-        Option.objects.clear_local_cache()
         super(BaseTestCase, self)._pre_setup()
 
     def _makeMessage(self, data):
