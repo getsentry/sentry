@@ -33,6 +33,13 @@ class RedisTSDBTest(TestCase):
         result = normalize_to_epoch(timestamp + timedelta(seconds=70), 60)
         assert result == 1368890100
 
+    def test_get_model_key(self):
+        result = self.db.get_model_key(1)
+        assert result == 1
+
+        result = self.db.get_model_key('foo')
+        assert result == 'bf4e529197e56a48ae2737505b9736e4'
+
     def test_simple(self):
         timestamp = datetime(2013, 5, 18, 15, 13, 58, tzinfo=pytz.UTC)
         start = timestamp
