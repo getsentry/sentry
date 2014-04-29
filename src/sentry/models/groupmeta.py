@@ -9,7 +9,38 @@ sentry.models.groupmeta
 from django.db import models
 
 from sentry.db.models import Model, sane_repr
-from sentry.manager import InstanceMetaManager
+from sentry.db.models.manager import BaseManager
+
+
+class GroupMetaManager(BaseManager):
+    def get_value_bulk(self, instances, key):
+        return dict(self.filter(
+            group__in=instances,
+            key=key,
+        ).values_list('group', 'value'))
+
+    def get_value(self, instance, key, default=None):
+        try:
+            return self.get(
+                group=instance,
+                key=key,
+            )
+        except self.model.DoesNotExist:
+            return default
+
+    def unset_value(self, instance, key):
+        self.filter(group=instance, key=key).delete()
+
+    def set_value(self, instance, key, value):
+        inst, created = self.get_or_create(
+            group=instance,
+            key=key,
+            defaults={
+                'value': value,
+            },
+        )
+        if not created and inst.value != value:
+            inst.update(value=value)
 
 
 class GroupMeta(Model):
@@ -23,7 +54,7 @@ class GroupMeta(Model):
     key = models.CharField(max_length=64)
     value = models.TextField()
 
-    objects = InstanceMetaManager('group')
+    objects = GroupMetaManager()
 
     class Meta:
         app_label = 'sentry'
