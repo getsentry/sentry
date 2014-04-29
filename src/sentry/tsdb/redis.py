@@ -7,6 +7,7 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
+from binascii import crc32
 from collections import defaultdict
 from django.conf import settings
 from django.utils import timezone
@@ -26,7 +27,7 @@ class RedisTSDB(BaseTSDB):
     This ends up looking something like the following inside of Redis:
 
     {
-        "TSDBModel:epoch": {
+        "TSDBModel:epoch:shard": {
             "Key": Count
         }
     }
@@ -34,12 +35,16 @@ class RedisTSDB(BaseTSDB):
     In our case, this translates to:
 
     {
-        "Group:epoch": {
+        "Group:epoch:shard": {
             "GroupID": Count
         }
     }
+
+    - ``vnodes`` controls the shard distribution and should ideally be set to
+      the maximum number of physical hosts.
     """
-    def __init__(self, hosts=None, router=None, prefix='ts:', **kwargs):
+    def __init__(self, hosts=None, router=None, prefix='ts:', vnodes=64,
+                 **kwargs):
         # inherit default options from REDIS_OPTIONS
         defaults = settings.SENTRY_REDIS_OPTIONS
 
@@ -55,10 +60,16 @@ class RedisTSDB(BaseTSDB):
             'hosts': hosts,
         })
         self.prefix = prefix
+        self.vnodes = vnodes
         super(RedisTSDB, self).__init__(**kwargs)
 
-    def make_key(self, model, epoch):
-        return '{0}:{1}:{2}'.format(self.prefix, model.value, epoch)
+    def make_key(self, model, epoch, model_key):
+        if isinstance(model_key, (int, long)):
+            vnode = model_key % self.vnodes
+        else:
+            vnode = crc32(model_key) % self.vnodes
+
+        return '{0}{1}:{2}:{3}'.format(self.prefix, model.value, epoch, vnode)
 
     def get_model_key(self, key):
         # We specialize integers so that a pure int-map can be optimized by
@@ -87,8 +98,9 @@ class RedisTSDB(BaseTSDB):
                 epoch = normalize_to_epoch(timestamp, rollup)
 
                 for model, key in items:
-                    hash_key = make_key(model, epoch)
-                    conn.hincrby(hash_key, self.get_model_key(key), count)
+                    model_key = self.get_model_key(key)
+                    hash_key = make_key(model, epoch, model_key)
+                    conn.hincrby(hash_key, model_key, count)
                     conn.expire(hash_key, rollup * max_values)
 
     def get_range(self, model, keys, start, end, rollup=None):
@@ -110,20 +122,17 @@ class RedisTSDB(BaseTSDB):
         start_epoch = normalize_to_epoch(start, rollup)
         end_epoch = normalize_to_epoch(end, rollup)
 
-        hash_keys = []
-        for x in range(start_epoch, end_epoch + 1, rollup):
-            hash_keys.append((x, make_key(model, x)))
-
         results = []
         with self.conn.map() as conn:
-            for epoch, hash_key in hash_keys:
-                mapped_keys = [self.get_model_key(k) for k in keys]
-                results.append((epoch, keys, conn.hmget(hash_key, *mapped_keys)))
+            for epoch in range(start_epoch, end_epoch + 1, rollup):
+                for key in keys:
+                    model_key = self.get_model_key(key)
+                    hash_key = make_key(model, epoch, model_key)
+                    results.append((epoch, key, conn.hget(hash_key, model_key)))
 
         results_by_key = defaultdict(dict)
-        for epoch, keys, data in results:
-            for key, count in zip(keys, data):
-                results_by_key[key][epoch] = int(count or 0)
+        for epoch, key, count in results:
+            results_by_key[key][epoch] = int(count or 0)
 
         for key, points in results_by_key.iteritems():
             results_by_key[key] = sorted(points.items())
