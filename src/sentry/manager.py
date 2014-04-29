@@ -24,7 +24,6 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
-from raven.contrib.django.models import client as Raven
 from raven.utils.encoding import to_string
 
 from sentry import app
@@ -358,8 +357,6 @@ class GroupManager(BaseManager, ChartMixin):
         from sentry.models import Event, Project, EventMapping
 
         project = Project.objects.get_from_cache(id=project)
-
-        Raven.tags_context({'project': project.id})
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
