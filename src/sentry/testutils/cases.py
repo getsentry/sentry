@@ -91,8 +91,8 @@ class BaseTestCase(Fixtures, Exam):
 
     def _pre_setup(self):
         cache.clear()
-        ProjectOption.objects.clear_cache()
-        Option.objects.clear_cache()
+        ProjectOption.objects.clear_local_cache()
+        Option.objects.clear_local_cache()
         super(BaseTestCase, self)._pre_setup()
 
     def _makeMessage(self, data):

@@ -101,8 +101,12 @@ class BaseManager(Manager):
         """
         Given the cache is configured, connects the required signals for invalidation.
         """
+        post_save.connect(self.post_save, sender=sender, weak=False)
+        post_delete.connect(self.post_delete, sender=sender, weak=False)
+
         if not self.cache_fields:
             return
+
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
@@ -246,3 +250,13 @@ class BaseManager(Manager):
 
         for node in object_node_list:
             node.bind_data(node_results.get(node.id) or {})
+
+    def post_save(self, instance, **kwargs):
+        """
+        Triggered when a model bound to this manager is saved.
+        """
+
+    def post_delete(self, instance, **kwargs):
+        """
+        Triggered when a model bound to this manager is deleted.
+        """
