@@ -14,17 +14,22 @@ from sentry.db.models.manager import BaseManager
 
 class GroupMetaManager(BaseManager):
     def get_value_bulk(self, instances, key):
-        return dict(self.filter(
+        instance_map = dict((i.id, i) for i in instances)
+        queryset = self.filter(
             group__in=instances,
             key=key,
-        ).values_list('group', 'value'))
+        )
+        result = dict((i, None) for i in instances)
+        for obj in queryset:
+            result[instance_map[obj.group_id]] = obj.value
+        return result
 
     def get_value(self, instance, key, default=None):
         try:
             return self.get(
                 group=instance,
                 key=key,
-            )
+            ).value
         except self.model.DoesNotExist:
             return default
 
@@ -32,15 +37,13 @@ class GroupMetaManager(BaseManager):
         self.filter(group=instance, key=key).delete()
 
     def set_value(self, instance, key, value):
-        inst, created = self.get_or_create(
+        self.create_or_update(
             group=instance,
             key=key,
             defaults={
                 'value': value,
             },
         )
-        if not created and inst.value != value:
-            inst.update(value=value)
 
 
 class GroupMeta(Model):

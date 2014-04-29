@@ -251,6 +251,11 @@ class BaseManager(Manager):
         for node in object_node_list:
             node.bind_data(node_results.get(node.id) or {})
 
+    def uncache_object(self, instance_id):
+        pk_name = self.model._meta.pk.name
+        cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
+        cache.delete(cache_key)
+
     def post_save(self, instance, **kwargs):
         """
         Triggered when a model bound to this manager is saved.

@@ -37,10 +37,15 @@ class ProjectOptionManager(BaseManager):
         return '%s:%s' % (self.model._meta.db_table, instance_id)
 
     def get_value_bulk(self, instances, key):
-        return dict(self.filter(
+        instance_map = dict((i.id, i) for i in instances)
+        queryset = self.filter(
             project__in=instances,
             key=key,
-        ).values_list('project', 'value'))
+        )
+        result = dict((i, None) for i in instances)
+        for obj in queryset:
+            result[instance_map[obj.project_id]] = obj.value
+        return result
 
     def get_value(self, project, key, default=None):
         result = self.get_all_values(project)
