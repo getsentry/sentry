@@ -117,10 +117,10 @@ class RedisTSDB(BaseTSDB):
         normalize_to_rollup = self.normalize_to_rollup
         make_key = self.make_key
 
-        end = end + timedelta(seconds=1)
-
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
+
+        end = end + timedelta(seconds=1)
 
         results = []
         with self.conn.map() as conn:
