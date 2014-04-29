@@ -46,6 +46,14 @@ class BaseTSDB(object):
         epoch = int(timestamp.strftime('%s'))
         return epoch - (epoch % seconds)
 
+    def normalize_to_rollup(self, timestamp, seconds):
+        """
+        Given a ``timestamp`` (datetime object) normalize the datetime object
+        ``timestamp`` to an epoch rollup (integer).
+        """
+        epoch = int(timestamp.strftime('%s'))
+        return int(epoch / seconds)
+
     def get_optimal_rollup(self, start_timestamp, end_timestamp):
         """
         Identify the lowest granularity rollup available within the given time

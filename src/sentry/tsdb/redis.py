@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 from binascii import crc32
 from collections import defaultdict
+from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from hashlib import md5
@@ -89,17 +90,17 @@ class RedisTSDB(BaseTSDB):
         >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
         """
         make_key = self.make_key
-        normalize_to_epoch = self.normalize_to_epoch
+        normalize_to_rollup = self.normalize_to_rollup
         if timestamp is None:
             timestamp = timezone.now()
 
         with self.conn.map() as conn:
             for rollup, max_values in self.rollups:
-                epoch = normalize_to_epoch(timestamp, rollup)
+                norm_epoch = normalize_to_rollup(timestamp, rollup)
 
                 for model, key in items:
                     model_key = self.get_model_key(key)
-                    hash_key = make_key(model, epoch, model_key)
+                    hash_key = make_key(model, norm_epoch, model_key)
                     conn.hincrby(hash_key, model_key, count)
                     conn.expire(hash_key, rollup * max_values)
 
@@ -113,22 +114,29 @@ class RedisTSDB(BaseTSDB):
         >>>          end=now)
         """
         normalize_to_epoch = self.normalize_to_epoch
+        normalize_to_rollup = self.normalize_to_rollup
         make_key = self.make_key
+
+        end = end + timedelta(seconds=1)
 
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
 
-        # generate keys to fetch
-        start_epoch = normalize_to_epoch(start, rollup)
-        end_epoch = normalize_to_epoch(end, rollup)
-
         results = []
         with self.conn.map() as conn:
-            for epoch in range(start_epoch, end_epoch + 1, rollup):
+            timestamp = start
+            while timestamp < end:
+                real_epoch = normalize_to_epoch(timestamp, rollup)
+                norm_epoch = normalize_to_rollup(timestamp, rollup)
+
+                print timestamp, rollup, norm_epoch
+
                 for key in keys:
                     model_key = self.get_model_key(key)
-                    hash_key = make_key(model, epoch, model_key)
-                    results.append((epoch, key, conn.hget(hash_key, model_key)))
+                    hash_key = make_key(model, norm_epoch, model_key)
+                    results.append((real_epoch, key, conn.hget(hash_key, model_key)))
+
+                timestamp = timestamp + timedelta(seconds=rollup)
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
@@ -136,4 +144,4 @@ class RedisTSDB(BaseTSDB):
 
         for key, points in results_by_key.iteritems():
             results_by_key[key] = sorted(points.items())
-        return results_by_key
+        return dict(results_by_key)
