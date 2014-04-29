@@ -46,9 +46,16 @@ class RedisTSDBTest(TestCase):
 
         timestamp = datetime(2013, 5, 18, 18, 13, 58, tzinfo=pytz.UTC)
         end = timestamp
-        self.db.incr(TSDBModel.project, 1, timestamp, count=4)
+        self.db.incr_multi([
+            (TSDBModel.project, 1),
+            (TSDBModel.project, 2),
+        ], timestamp, count=4)
 
         results = self.db.get_range(TSDBModel.project, [1], start, end)
         assert results == {
             1: [(1368889200, 1), (1368892800, 3), (1368896400, 1), (1368900000, 4)],
+        }
+        results = self.db.get_range(TSDBModel.project, [2], start, end)
+        assert results == {
+            2: [(1368889200, 0), (1368892800, 0), (1368896400, 0), (1368900000, 4)],
         }
