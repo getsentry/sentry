@@ -17,10 +17,10 @@ def reset_options(prefix, project=None, user=None):
         UserOption.objects.clear_cache()
     elif project:
         ProjectOption.objects.filter(key__startswith='%s:' % (prefix,), project=project).delete()
-        ProjectOption.objects.clear_cache()
+        ProjectOption.objects.clear_local_cache()
     else:
         Option.objects.filter(key__startswith='%s:' % (prefix,)).delete()
-        Option.objects.clear_cache()
+        Option.objects.clear_local_cache()
 
 
 def set_option(key, value, project=None, user=None):
