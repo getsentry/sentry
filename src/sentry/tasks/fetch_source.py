@@ -352,7 +352,10 @@ def expand_javascript_source(data, **kwargs):
                 frame.colno = state.src_col
                 # The offending function is always the previous function in the stack
                 # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                frame.function = last_state.name if last_state else state.name
+                if last_state:
+                    frame.function = last_state.name or frame.function
+                else:
+                    frame.function = state.name or frame.function
                 frame.abs_path = abs_path
                 frame.filename = state.src
                 frame.module = generate_module(state.src)
