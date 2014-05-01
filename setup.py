@@ -80,7 +80,6 @@ install_requires = [
     'djangorestframework>=2.3.8,<2.4.0',
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<0.10.0',
-    'gevent>=1.0.0,<1.1.0',
     'gunicorn>=0.17.2,<0.18.0',
     'httpagentparser>=1.6.0,<1.7.0',
     'logan>=0.5.8.2,<0.6.0',
