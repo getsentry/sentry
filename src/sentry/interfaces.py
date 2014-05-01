@@ -219,6 +219,18 @@ class Interface(object):
             # },
         }
 
+    def get_type_name(self):
+        """
+        Passed into the JSON api as the name of this interface in the entry list.
+        """
+        return self.get_slug()
+
+    def get_json_context(self):
+        """
+        Passed into the JSON api as the body for this entry.
+        """
+        return self.serialize()
+
 
 class Message(Interface):
     """
@@ -1136,6 +1148,37 @@ class Http(Interface):
                 'url': [self.short_url],
             }
         }
+
+    def get_type_name(self):
+        return 'http_request'
+
+    def get_json_context(self):
+        data = self.data
+        headers_is_dict, headers = self._to_dict(self.headers)
+
+        # educated guess as to whether the body is normal POST data
+        if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded' and '=' in data:
+            _, data = self._to_dict(data)
+
+        context = {
+            'url': self.url,
+            'shortUrl': self.short_url,
+            'method': self.method,
+            'queryString': self.query_string or None,
+            'fragment': self.fragment or None,
+            'headers': self.headers or None,
+        }
+
+        # It's kind of silly we store this twice
+        _, cookies = self._to_dict(self.cookies)
+
+        context.update({
+            'cookies': cookies or None,
+            'env': self.env or None,
+            'body': data or None,
+        })
+
+        return context
 
 
 class Template(Interface):

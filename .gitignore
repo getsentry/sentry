@@ -19,3 +19,4 @@ pip-log.txt
 example/db.sqlite
 /src/sentry/static/CACHE/
 /wheelhouse
+/env

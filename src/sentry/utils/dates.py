@@ -17,6 +17,7 @@ DATE_TRUNC_GROUPERS = {
         'hour': 'hh24',
     },
     'default': {
+        'date': 'day',
         'hour': 'hour',
         'minute': 'minute',
     },
