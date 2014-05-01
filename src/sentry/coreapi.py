@@ -162,6 +162,9 @@ def project_from_auth_vars(auth_vars):
     if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
         raise APIForbidden('Invalid api key')
 
+    if not pk.roles.store:
+        raise APIForbidden('Key does not allow event storage access')
+
     project = Project.objects.get_from_cache(pk=pk.project_id)
 
     return project, pk.user
