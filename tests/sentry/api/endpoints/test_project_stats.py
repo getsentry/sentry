@@ -2,16 +2,16 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 
 
-class GroupDetailsTest(APITestCase):
+class ProjectStatsTest(APITestCase):
     def test_simple(self):
+        # TODO: ensure this test checks data
         self.login_as(user=self.user)
 
-        group = self.create_group()
+        project = self.create_project(owner=self.user)
 
-        url = reverse('sentry-api-0-group-details', kwargs={
-            'group_id': group.id,
+        url = reverse('sentry-api-0-project-stats', kwargs={
+            'project_id': project.id,
         })
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(group.id)

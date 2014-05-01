@@ -145,15 +145,11 @@ def can_remove_team_member(user, member):
 
 @requires_login
 def can_remove_team(user, team):
-    # projects with teams can never be removed
-    if team.project_set.exists():
-        return False
-
     if user.is_superuser:
         return True
 
     # must be an owner of the team
-    if not team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if team.owner != user:
         return False
 
     result = plugins.first('has_perm', user, 'remove_team', team)
