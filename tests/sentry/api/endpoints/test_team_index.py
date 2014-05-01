@@ -60,6 +60,17 @@ class TeamCreateTest(APITestCase):
         assert member.type == MEMBER_OWNER
 
     @patch('sentry.api.endpoints.team_index.can_create_teams', Mock(return_value=True))
+    def test_without_slug(self):
+        self.login_as(user=self.user)
+
+        resp = self.client.post(self.path, data={
+            'name': 'hello world',
+        })
+        assert resp.status_code == 201, resp.content
+        team = Team.objects.get(id=resp.data['id'])
+        assert team.slug == 'hello-world'
+
+    @patch('sentry.api.endpoints.team_index.can_create_teams', Mock(return_value=True))
     def test_superuser_can_set_owner(self):
         self.login_as(user=self.user)
 
