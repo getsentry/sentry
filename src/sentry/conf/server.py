@@ -312,10 +312,10 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'console': {
-            'level': 'WARNING',
             'class': 'logging.StreamHandler'
         },
         'sentry': {
+            'level': 'ERROR',
             'class': 'raven.contrib.django.handlers.SentryHandler',
         }
     },
@@ -324,13 +324,11 @@ LOGGING = {
             'format': '%(name)s %(levelname)s %(project_slug)s/%(team_slug)s %(message)s'
         }
     },
+    'root': {
+        'level': 'WARNING',
+        'handlers': ['console', 'sentry'],
+    },
     'loggers': {
-        '()': {
-            'handlers': ['console', 'sentry'],
-        },
-        'root': {
-            'handlers': ['console', 'sentry'],
-        },
         'sentry': {
             'level': 'ERROR',
             'handlers': ['console', 'sentry'],
@@ -343,6 +341,9 @@ LOGGING = {
             'level': 'ERROR',
             'handlers': ['console'],
             'propagate': False,
+        },
+        'static_compiler': {
+            'level': 'INFO',
         },
         'django.request': {
             'level': 'ERROR',
