@@ -122,13 +122,14 @@ def delete_group(object_id, **kwargs):
 def delete_objects(models, relation, limit=1000, logger=None):
     # This handles cascades properly
     # TODO: this doesn't clean up the index
+    has_more = False
     for model in models:
         if logger is not None:
             logger.info('Removing %r objects where %r', model, relation)
-        has_more = False
         for obj in model.objects.filter(**relation)[:limit]:
             obj.delete()
             has_more = True
 
         if has_more:
             return True
+    return has_more
