@@ -25,7 +25,10 @@ class ProjectKey(Model):
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     roles = BitField(flags=(
+        # access to post events to the store endpoint
         'store',
+
+        # read/write access to rest API
         'api',
     ), default=['store'])
 
