@@ -28,6 +28,7 @@ class Activity(Model):
     CREATE_ISSUE = 7
     NOTE = 8
     FIRST_SEEN = 9
+    DEPLOY = 10
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -40,6 +41,7 @@ class Activity(Model):
         (CREATE_ISSUE, 'create_issue'),
         (NOTE, 'note'),
         (FIRST_SEEN, 'first_seen'),
+        (DEPLOY, 'deploy'),
     )
 
     project = models.ForeignKey('sentry.Project')
