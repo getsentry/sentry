@@ -1,4 +1,6 @@
+from datetime import datetime
 from django.core.urlresolvers import reverse
+
 from sentry.testutils import APITestCase
 
 
@@ -10,10 +12,12 @@ class GroupEventsLatestTest(APITestCase):
         self.create_event(
             event_id='a',
             group=group,
+            datetime=datetime(2013, 8, 13, 3, 8, 25),
         )
         event_2 = self.create_event(
             event_id='b',
             group=group,
+            datetime=datetime(2013, 8, 13, 3, 8, 26),
         )
 
         url = reverse('sentry-api-0-group-events-latest', kwargs={
