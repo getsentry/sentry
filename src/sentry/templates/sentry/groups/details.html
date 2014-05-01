@@ -159,7 +159,8 @@
             href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id "latest" %}"{% endif %}{% else %}
             href="{% url 'sentry-group-events-json' group.team.slug project.slug group.id %}"{% endifequal %}
             >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
-            <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}">{% trans "Remove Event Data" %}</a></li>
+            <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}"
+                   onclick="return confirm('{% trans "Are you sure you wish to delete all data for this event?" %}');">{% trans "Remove Event Data" %}</a></li>
         </ul>
     {% endif %}
 
