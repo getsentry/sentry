@@ -8,11 +8,24 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
+from functools import wraps
+
 from sentry.tasks.base import instrumented_task
+
+
+def retry(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as exc:
+            wrapped.retry(exc=exc)
+    return wrapped
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
+@retry
 def delete_team(object_id, **kwargs):
     from sentry.models import (
         Team, TeamStatus, Project, AccessGroup, PendingTeamMember, TeamMember,
@@ -39,18 +52,16 @@ def delete_team(object_id, **kwargs):
         AccessGroup, PendingTeamMember, TeamMember,
     )
 
-    try:
-        has_more = delete_objects(model_list, relation={'team': t}, logger=logger)
-        if has_more:
-            delete_team.delay(object_id=object_id)
-            return
-        t.delete()
-    except Exception as exc:
-        delete_team.retry(exc=exc)
+    has_more = delete_objects(model_list, relation={'team': t}, logger=logger)
+    if has_more:
+        delete_team.delay(object_id=object_id)
+        return
+    t.delete()
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
+@retry
 def delete_project(object_id, **kwargs):
     from sentry.constants import STATUS_HIDDEN
     from sentry.models import (
@@ -75,18 +86,16 @@ def delete_project(object_id, **kwargs):
         Event, Group
     )
 
-    try:
-        has_more = delete_objects(model_list, relation={'project': p}, logger=logger)
-        if has_more:
-            delete_project.delay(object_id=object_id)
-            return
-        p.delete()
-    except Exception as exc:
-        delete_project.retry(exc=exc)
+    has_more = delete_objects(model_list, relation={'project': p}, logger=logger)
+    if has_more:
+        delete_project.delay(object_id=object_id)
+        return
+    p.delete()
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
+@retry
 def delete_group(object_id, **kwargs):
     from sentry.models import (
         Group, GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
@@ -103,14 +112,11 @@ def delete_group(object_id, **kwargs):
         GroupTagValue, GroupTagKey, GroupCountByMinute, EventMapping, Event
     )
 
-    try:
-        has_more = delete_objects(model_list, relation={'group': group}, logger=logger)
-        if has_more:
-            delete_group.delay(object_id=object_id)
-            return
-        group.delete()
-    except Exception as exc:
-        delete_group.retry(exc=exc)
+    has_more = delete_objects(model_list, relation={'group': group}, logger=logger)
+    if has_more:
+        delete_group.delay(object_id=object_id)
+        return
+    group.delete()
 
 
 def delete_objects(models, relation, limit=1000, logger=None):
