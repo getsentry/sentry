@@ -18,4 +18,4 @@ class DummyTSDB(BaseTSDB):
         pass
 
     def get_range(self, model, keys, start, end, rollup=None):
-        return {}
+        return dict((k, []) for k in keys)

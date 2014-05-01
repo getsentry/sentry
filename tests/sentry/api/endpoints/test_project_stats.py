@@ -15,3 +15,4 @@ class ProjectStatsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
+        assert type(response.data) == list

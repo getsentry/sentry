@@ -17,3 +17,5 @@ class TeamStatsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
+        assert project_1.id in response.data
+        assert project_2.id in response.data
