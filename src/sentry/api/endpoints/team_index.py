@@ -3,23 +3,32 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
-from sentry.models import Team
+from sentry.models import Team, User
 from sentry.permissions import can_create_teams
-from sentry.utils.functional import extract_lazy_object
 
 
-class TeamSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Team
-        fields = ('name', 'slug')
+class UserField(serializers.WritableField):
+    def to_native(self, obj):
+        return obj.username
+
+    def from_native(self, data):
+        if not data:
+            return None
+
+        try:
+            return User.objects.get(username__iexact=data)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Unable to find user')
+
+
+class TeamSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200, required=True)
+    slug = serializers.CharField(max_length=200, required=False)
+    owner = UserField(required=False, read_only=True)
 
 
 class TeamAdminSerializer(TeamSerializer):
-    owner = serializers.SlugRelatedField(slug_field='username', required=False)
-
-    class Meta:
-        model = Team
-        fields = ('name', 'slug', 'owner')
+    owner = UserField(required=False)
 
 
 class TeamIndexEndpoint(Endpoint):
@@ -31,14 +40,17 @@ class TeamIndexEndpoint(Endpoint):
         if not can_create_teams(request.user):
             return Response(status=403)
 
-        # HACK(dcramer): we want owner to be optional
-        team = Team(owner=extract_lazy_object(request.user))
         if request.user.is_superuser:
-            serializer = TeamAdminSerializer(team, data=request.DATA, partial=True)
+            serializer = TeamAdminSerializer(data=request.DATA)
         else:
-            serializer = TeamSerializer(team, data=request.DATA, partial=True)
+            serializer = TeamSerializer(data=request.DATA)
 
         if serializer.is_valid():
-            team = serializer.save()
+            result = serializer.object
+            team = Team.objects.create(
+                name=result['name'],
+                slug=result.get('slug'),
+                owner=result.get('owner') or request.user,
+            )
             return Response(serialize(team, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
