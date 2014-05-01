@@ -16,6 +16,7 @@ from django.utils import timezone
 from sentry.db.models import (
     Model, BaseManager, sane_repr
 )
+from sentry.db.models.fields import JSONListField
 
 
 class ProjectKey(Model):
@@ -23,6 +24,7 @@ class ProjectKey(Model):
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    roles = JSONListField(null=True)
 
     # For audits
     user_added = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
