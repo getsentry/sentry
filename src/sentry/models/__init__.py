@@ -14,3 +14,4 @@ import_submodules(globals(), __name__, __path__)
 
 add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
 add_introspection_rules([], ["^sentry\.db\.models\.fields\.pickle\.UnicodePickledObjectField"])
+add_introspection_rules([], ["^sentry\.db\.models\.fields\.jsonlist\.JSONListField"])
