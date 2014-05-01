@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+from sentry.utils.runner import configure
+configure()
+
+from sentry.models import User, Project, Team
+from sentry.utils.samples import create_sample_event
+
+user = User.objects.filter(is_superuser=True)[0]
+
+team, _ = Team.objects.get_or_create(
+    name='Earth', slug='earth',
+    defaults={
+        'owner': user,
+    },
+)
+
+project, _ = Project.objects.get_or_create(
+    team=team,
+    name='Backend',
+    slug='backend',
+    owner=team.owner,
+)
+
+create_sample_event(project, 'python')
+create_sample_event(project, 'javascript')
+
+Activity.objects.create(
+    type=Activity.DEPLOY,
+    project=project,,
+    ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+    user=user,
+    data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
+)
+
+create_sample_event(project, 'java')
