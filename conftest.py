@@ -73,7 +73,12 @@ def pytest_configure(config):
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
+    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
+
     settings.SENTRY_ALLOW_ORIGIN = '*'
+
+    settings.SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
+    settings.SENTRY_TSDB_OPTIONS = {}
 
     # django mail uses socket.getfqdn which doesnt play nice if our
     # networking isnt stable
@@ -82,3 +87,6 @@ def pytest_configure(config):
 
     from sentry.utils.runner import initialize_receivers
     initialize_receivers()
+
+    from sentry.testutils.cases import flush_redis
+    flush_redis()
