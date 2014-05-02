@@ -69,7 +69,7 @@ urlpatterns = patterns(
     url(r'^projects/(?P<project_id>\d+)/groups/$',
         ProjectGroupIndexEndpoint.as_view(),
         name='sentry-api-0-project-group-index'),
-    url(r'^projects/(?P<project_id>\d+)/groups/$',
+    url(r'^projects/(?P<project_id>\d+)/stats/$',
         ProjectStatsEndpoint.as_view(),
         name='sentry-api-0-project-stats'),
 
