@@ -16,7 +16,6 @@ class RedisQuotaTest(TestCase):
         inst = RedisQuota(hosts={
             0: {'db': 9}
         })
-        inst.conn.flushdb()
         return inst
 
     @patcher.object(RedisQuota, 'get_system_quota')
