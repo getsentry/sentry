@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from django.utils import timezone
 from pytz import utc
 from rest_framework.response import Response
 
@@ -28,7 +27,7 @@ class GroupStatsEndpoint(Endpoint):
         if end:
             end = datetime.fromtimestamp(float(end)).replace(tzinfo=utc)
         else:
-            end = timezone.now()
+            end = datetime.utcnow().replace(tzinfo=utc)
 
         start = request.GET.get('since')
         if start:
