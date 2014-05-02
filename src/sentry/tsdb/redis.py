@@ -108,6 +108,8 @@ class RedisTSDB(BaseTSDB):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
+        Start and end are both inclusive.
+
         >>> now = timezone.now()
         >>> get_keys(TimeSeriesModel.group, [1, 2, 3],
         >>>          start=now - timedelta(days=1),
@@ -120,12 +122,10 @@ class RedisTSDB(BaseTSDB):
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
 
-        end = end + timedelta(seconds=1)
-
         results = []
+        timestamp = end
         with self.conn.map() as conn:
-            timestamp = start
-            while timestamp < end:
+            while timestamp >= start:
                 real_epoch = normalize_to_epoch(timestamp, rollup)
                 norm_epoch = normalize_to_rollup(timestamp, rollup)
 
@@ -134,7 +134,7 @@ class RedisTSDB(BaseTSDB):
                     hash_key = make_key(model, norm_epoch, model_key)
                     results.append((real_epoch, key, conn.hget(hash_key, model_key)))
 
-                timestamp = timestamp + timedelta(seconds=rollup)
+                timestamp = timestamp - timedelta(seconds=rollup)
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:

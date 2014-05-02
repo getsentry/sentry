@@ -32,8 +32,22 @@ class TSDBModel(Enum):
 
 
 class BaseTSDB(object):
+    models = TSDBModel
+
     def __init__(self, rollups=ROLLUPS):
         self.rollups = rollups
+
+    def parse_resolution(self, value):
+        if value.endswith('h'):
+            return int(value[:-1]) * ONE_HOUR
+        elif value.endswith('d'):
+            return int(value[:-1]) * ONE_DAY
+        elif value.endswith('m'):
+            return int(value[:-1]) * ONE_MINUTE
+        elif value.endswith('s'):
+            return int(value[:-1])
+        else:
+            raise ValueError(value)
 
     def normalize_to_epoch(self, timestamp, seconds):
         """
