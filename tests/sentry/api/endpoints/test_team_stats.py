@@ -24,16 +24,7 @@ class TeamStatsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert project_1.id in response.data
-        assert response.data[project_1.id][-1][1] == 3, response.data
-        for point in response.data[project_1.id][:-1]:
+        assert response.data[-1][1] == 8, response.data
+        for point in response.data[:-1]:
             assert point[1] == 0
-        assert len(response.data[project_1.id]) == 24
-
-        assert project_2.id in response.data
-        assert response.data[project_2.id][-1][1] == 5, response.data
-        for point in response.data[project_2.id][:-1]:
-            assert point[1] == 0
-        assert len(response.data[project_2.id]) == 24
-
-        assert project_3.id not in response.data
+        assert len(response.data) == 24
