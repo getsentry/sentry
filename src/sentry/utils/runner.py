@@ -70,6 +70,23 @@ DATABASES = {
 # }
 
 ###########
+## Redis ##
+###########
+
+# Generic Redis configuration used as defaults for various things including:
+# Buffers, Quotas, TSDB
+
+SENTRY_REDIS_OPTIONS = {
+    'hosts': {
+        0: {
+            'host': '127.0.0.1',
+            'port': 6379,
+        }
+    }
+}
+
+
+###########
 ## Queue ##
 ###########
 
@@ -90,18 +107,25 @@ DATABASES = {
 # numbers of the same events being sent to the API in a short amount of time.
 # (read: if you send any kind of real data to Sentry, you should enable buffers)
 
-# You'll need to install the required dependencies for Redis buffers:
-#   pip install redis hiredis nydus
-#
-# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
-# SENTRY_REDIS_OPTIONS = {
-#     'hosts': {
-#         0: {
-#             'host': '127.0.0.1',
-#             'port': 6379,
-#         }
-#     }
-# }
+SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
+
+############
+## Quotas ##
+############
+
+# Quotas allow you to rate limit individual projects or the Sentry install as
+# a whole.
+
+SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
+
+##########
+## TSDB ##
+##########
+
+# The TSDB is used for building charts as well as making things like per-rate
+# alerts possible.
+
+SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
 ################
 ## Web Server ##
