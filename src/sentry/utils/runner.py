@@ -94,9 +94,8 @@ SENTRY_REDIS_OPTIONS = {
 # information on configuring your queue broker and workers. Sentry relies
 # on a Python framework called Celery to manage queues.
 
-# You can enable queueing of jobs by turning off the always eager setting:
-# CELERY_ALWAYS_EAGER = False
-# BROKER_URL = 'redis://localhost:6379'
+CELERY_ALWAYS_EAGER = False
+BROKER_URL = 'redis://localhost:6379'
 
 ####################
 ## Update Buffers ##
