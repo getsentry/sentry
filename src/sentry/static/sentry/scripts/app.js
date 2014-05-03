@@ -207,9 +207,15 @@
                     type: 'get',
                     dataType: 'json',
                     data: {
-                        days: 1
+                        since: new Date().getTime() / 1000 - 3600 * 24,
+                        resolution: '1h'
                     },
                     success: _.bind(function(data){
+                        for (var i = 0; i < data.length; i++) {
+                            // set timestamp to be in millis
+                            data[i][0] = data[i][0] * 1000;
+                        }
+
                         $.plot($el, [{
                                 data: data,
                                 color: '#ebeff3',
@@ -406,10 +412,14 @@
                 type: 'get',
                 dataType: 'json',
                 data: {
-                    days: 1,
-                    gid: this.sparkline.attr('data-group') || undefined
+                    since: new Date().getTime() / 1000 - 3600 * 24,
+                    resolution: '1h'
                 },
                 success: _.bind(function(data){
+                    for (var i = 0; i < data.length; i++) {
+                        // set timestamp to be in millis
+                        data[i][0] = data[i][0] * 1000;
+                    }
                     $.plot(this.sparkline, [{
                             data: data,
                             color: '#52566c',

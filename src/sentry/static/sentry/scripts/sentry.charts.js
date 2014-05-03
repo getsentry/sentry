@@ -68,13 +68,16 @@ if (Sentry === undefined) {
             type: 'get',
             dataType: 'json',
             data: {
-                days: 7,
-                gid: $sparkline.attr('data-group') || undefined
+                since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+                resolution: '1h'
             },
             success: function(data){
                 var inputs = [], avg, i, data_avg = [];
                 for (i = 0; i < data.length; i++) {
                     inputs.push(data[i][1]);
+
+                    // set timestamp to be in millis
+                    data[i][0] = data[i][0] * 1000;
                 }
                 avg = average(inputs);
 
