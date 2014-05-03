@@ -90,6 +90,8 @@ class BaseTSDB(object):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
+        Both ``start`` and ``end`` are inclusive.
+
         >>> now = timezone.now()
         >>> get_keys(TimeSeriesModel.group, [1, 2, 3],
         >>>          start=now - timedelta(days=1),
