@@ -12,14 +12,20 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
 
         assert_perm(team, request.user)
 
-        days = min(int(request.GET.get('days', 1)), 30)
-
         projects = Project.objects.get_for_user(request.user, team=team)
+
+        if not projects:
+            return Response([])
 
         data = tsdb.get_range(
             model=tsdb.models.project,
             keys=[p.id for p in projects],
             **self._parse_args(request)
-        )
+        ).values()
 
-        return Response(data)
+        summarized = []
+        for n in xrange(len(data[0])):
+            total = sum(d[n][1] for d in data)
+            summarized.append((data[0][n][0], total))
+
+        return Response(summarized)
