@@ -3,7 +3,7 @@ Quickstart
 
 Some basic prerequisites which you'll need in order to run Sentry:
 
-* Python 2.5, 2.6, or 2.7
+* Python 2.7
 * python-setuptools, python-dev
 * A real database (PostgreSQL is preferred, MySQL also works)
 * A UNIX-based operating system
