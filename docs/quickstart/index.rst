@@ -3,10 +3,11 @@ Quickstart
 
 Some basic prerequisites which you'll need in order to run Sentry:
 
+* A UNIX-based operating system
 * Python 2.7
 * python-setuptools, python-dev
 * A real database (PostgreSQL is preferred, MySQL also works)
-* A UNIX-based operating system
+* Redis
 
 The recommended configuration of Sentry involves setting up a separate web server to handle your error
 logging. This means that any number of Sentry clients simply pass on this information to your primary Sentry
@@ -96,14 +97,22 @@ These databases require additional packages, but Sentry provides a couple of met
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you're installing the Sentry source (e.g. from git), you'll simply need to run the ``make`` command to
-get all of the dependencies::
+If you're installing the Sentry source (e.g. from git), you'll need a couple of extra dependencies:
 
-  # all things should be this easy
-  make
+- node.js (npm)
+- git
+
+Once your system is prepared, simply run the ``make`` command to
+get all of the application dependencies:
+
+.. code-block:: bash
+
+  $ make develop
 
 Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
-like the following::
+like the following:
+
+.. code-block:: bash
 
   $ sentry
   usage: sentry [--config=/path/to/settings.py] [command] [options]
