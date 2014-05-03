@@ -11,15 +11,21 @@ from sentry.app import tsdb
 from sentry.models import Activity, User, Project, Team
 from sentry.utils.samples import create_sample_event
 
-def create_sample_time_series(group):
+def create_sample_time_series(event):
+    group = event.group
+
     now = datetime.utcnow().replace(tzinfo=utc)
 
     for _ in xrange(60):
-        tsdb.incr(tsdb.models.group, group.id, now, randint(1, 100))
+        count = randint(1, 10)
+        tsdb.incr(tsdb.models.project, group.project.id, now, count)
+        tsdb.incr(tsdb.models.group, group.id, now, count)
         now = now - timedelta(seconds=1)
 
     for _ in xrange(24 * 30):
-        tsdb.incr(tsdb.models.group, group.id, now, randint(1, 100))
+        count = randint(100, 1000)
+        tsdb.incr(tsdb.models.project, group.project.id, now, count)
+        tsdb.incr(tsdb.models.group, group.id, now, count)
         now = now - timedelta(hours=1)
 
 
@@ -39,11 +45,11 @@ project, _ = Project.objects.get_or_create(
     owner=team.owner,
 )
 
-group1 = create_sample_event(project, 'python')
-create_sample_time_series(group1)
+event1 = create_sample_event(project, 'python')
+create_sample_time_series(event1)
 
-group2 = create_sample_event(project, 'javascript')
-create_sample_time_series(group2)
+event2 = create_sample_event(project, 'javascript')
+create_sample_time_series(event2)
 
 Activity.objects.create(
     type=Activity.DEPLOY,
@@ -53,5 +59,5 @@ Activity.objects.create(
     data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
 )
 
-group3 = create_sample_event(project, 'java')
-create_sample_time_series(group3)
+event3 = create_sample_event(project, 'java')
+create_sample_time_series(event3)
