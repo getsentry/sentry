@@ -167,6 +167,35 @@ is not a fully supported database and should not be used in production**.
     }
 
 
+Configure Redis
+---------------
+
+Redis is used as the default implementation for various backend services, including the time-series
+storage, SQL update buffers, and rate limiting.
+
+We recommend running two separate Redis clusters: one for persistent data (TSDB) and one for temporal
+data (buffers, rate limits). This is because you can configure the nodes in very different ones to
+enable more aggressive/optimized LRU.
+
+That said, if you're running a small install you can probably get away with just setting up the defaults:
+
+.. code-block::
+
+    SENTRY_REDIS_OPTIONS = {
+        'hosts': {
+            0: {
+                'host': '127.0.0.1',
+                'port': 6379,
+            }
+        }
+    }
+
+All built-in Redis implementations (other than the queue) will use these default settings, but each
+individual service also will allow you to override it's cluster settings.
+
+See the individual documentation for :doc:`the queue <../queue/index>`, :doc:`update buffers <../buffer/index>`,
+:doc:`quotas <../quotas/index>`, and :doc:`time-series storage <../tsdb/index>` for more details.
+
 Configure Outbound Mail
 -----------------------
 
@@ -231,6 +260,9 @@ you can pass that via the --config option.
 
 You should now be able to test the web service by visiting `http://localhost:9000/`.
 
+.. note:: This doesn't run any workers in the background, so assuming queueing is enabled (default in 7.0.0+)
+          no asyncrhonous tasks will be running.
+
 Setup a Reverse Proxy
 ---------------------
 
@@ -294,10 +326,18 @@ folder and you're good to go.
 
   [program:sentry-web]
   directory=/www/sentry/
-  command=/www/sentry/bin/sentry start http
+  command=/www/sentry/bin/sentry start
   autostart=true
   autorestart=true
   redirect_stderr=true
+
+  [program:sentry-worker]
+  directory=/www/sentry/
+  command=/www/sentry/bin/sentry celery worker -B
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+
 
 Additional Utilities
 --------------------
@@ -397,23 +437,4 @@ First pop open your ``sentry.conf.py``, and add the following to the **very top*
 
 Now you'll have access to all of the default settings (Django and Sentry) to modify at your own will.
 
-Configuring Memcache
-~~~~~~~~~~~~~~~~~~~~
-
-You'll also want to consider configuring cache and buffer settings, which respectively require a cache server and a Redis
-server. While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
-own internal purposes:
-
-::
-
-  # You'll need to install django-pyblibmc for this example to work
-  CACHES = {
-      'default': {
-          'BACKEND': 'django_pylibmc.memcached.PyLibMCCache',
-          'LOCATION': 'localhost:11211',
-      }
-  }
-
-  SENTRY_CACHE_BACKEND = 'default'
-
-See :doc:`../buffer/index` for information on how to configure update buffers to improve performance on concurrent writes.
+We recommend going over all of the defaults in the generated settings file, and familiarizing yourself with how the system is setup.
