@@ -15,8 +15,7 @@ ONE_DAY = ONE_HOUR * 24
 
 ROLLUPS = (
     # time in seconds, samples to keep
-    # (10, 30),  # 5 minutes at 10 seconds
-    # (ONE_MINUTE, 120),  # 2 hours at 1 minute
+    (10, 30),  # 5 minute at 10 seconds
     (ONE_HOUR, ONE_DAY * 7),  # 1 days at 1 hour
     (ONE_DAY, 30),  # 30 days at 1 day
 )
