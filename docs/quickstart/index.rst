@@ -194,7 +194,7 @@ All built-in Redis implementations (other than the queue) will use these default
 individual service also will allow you to override it's cluster settings.
 
 See the individual documentation for :doc:`the queue <../queue/index>`, :doc:`update buffers <../buffer/index>`,
-:doc:`quotas <../quotas/index>`, and :doc:`time-series storage <../tsdb/index>` for more details.
+:doc:`quotas <../throttling/index>`, and :doc:`time-series storage <../tsdb/index>` for more details.
 
 Configure Outbound Mail
 -----------------------
