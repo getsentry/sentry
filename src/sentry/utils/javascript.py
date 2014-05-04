@@ -6,11 +6,12 @@ sentry.utils.javascript
 :license: BSD, see LICENSE for more details.
 """
 from collections import defaultdict
-
+from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from django.utils.html import escape
 
-from sentry.app import env
+from sentry.app import env, tsdb
 from sentry.constants import STATUS_RESOLVED, STATUS_MUTED, TAG_LABELS
 from sentry.models import (
     Group, GroupBookmark, GroupTagKey, GroupSeen, ProjectOption
@@ -88,10 +89,14 @@ class GroupTransformer(Transformer):
             seen_groups = {}
 
         if objects:
-            historical_data = Group.objects.get_chart_data_for_group(
-                instances=objects,
-                max_days=1,
-                key='group',
+            end = timezone.now()
+            start = end - timedelta(days=1)
+
+            historical_data = tsdb.get_range(
+                model=tsdb.models.group,
+                keys=[g.id for g in objects],
+                start=start,
+                end=end,
             )
         else:
             historical_data = {}
