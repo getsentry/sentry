@@ -24,6 +24,7 @@ socket.setdefaulttimeout(5)
 
 DEBUG = False
 TEMPLATE_DEBUG = True
+MAINTENANCE = False
 
 ADMINS = ()
 
@@ -111,6 +112,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -454,6 +456,11 @@ SENTRY_CACHE_BACKEND = 'default'
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
 )
+
+SENTRY_IGNORE_EXCEPTIONS = (
+    'OperationalError',
+)
+
 
 SENTRY_KEY = None
 
