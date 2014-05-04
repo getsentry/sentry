@@ -190,7 +190,7 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body).replace('\n', '<br>'),)
+        return '<pre>%s</pre>' % escape(body)
 
     def get_slug(self):
         return type(self).__name__.lower()
