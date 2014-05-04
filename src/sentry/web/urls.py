@@ -250,8 +250,6 @@ urlpatterns += patterns('',
         name='sentry-api-bookmark'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/clear/$', api.clear,
         name='sentry-api-clear'),
-    url(r'^api/(?P<team_slug>[\w_-]+)/(?:(?P<project_id>[\w_-]+)/)?chart/$', api.chart,
-        name='sentry-api-chart'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group,
         name='sentry-api-remove-group'),
 

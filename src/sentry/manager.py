@@ -8,17 +8,14 @@ sentry.manager
 
 from __future__ import absolute_import
 
-import datetime
 import hashlib
 import logging
-import time
 import warnings
 import uuid
 
 from django.conf import settings
 from django.contrib.auth.models import UserManager
 from django.db import transaction, IntegrityError
-from django.db.models import Sum
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
@@ -26,7 +23,7 @@ from raven.utils.encoding import to_string
 
 from sentry import app
 from sentry.constants import (
-    STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
+    STATUS_RESOLVED, STATUS_UNRESOLVED,
     LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH,
     MEMBER_USER
 )
@@ -36,8 +33,7 @@ from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.cache import memoize
-from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
-from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
+from sentry.utils.db import get_db_engine, attach_foreignkey
 from sentry.utils.safe import safe_execute, trim, trim_dict, trim_frames
 from sentry.utils.strings import strip
 
@@ -107,106 +103,7 @@ class UserManager(BaseManager, UserManager):
     pass
 
 
-class ChartMixin(object):
-    def get_chart_data_for_group(self, instances, max_days=90, key=None):
-        if not instances:
-            if key is None:
-                return []
-            return {}
-
-        if hasattr(instances[0], '_state'):
-            db = instances[0]._state.db or 'default'
-        else:
-            db = 'default'
-
-        field = self.model.groupcountbyminute_set.related
-        column = field.field.name
-        queryset = field.model.objects.filter(**{
-            '%s__in' % column: instances,
-        })
-
-        return self._get_chart_data(queryset, max_days, db, key=key)
-
-    def get_chart_data(self, instance, max_days=90, key=None):
-        if hasattr(instance, '_state'):
-            db = instance._state.db or 'default'
-        else:
-            db = 'default'
-
-        queryset = instance.groupcountbyminute_set
-
-        return self._get_chart_data(queryset, max_days, db, key=key)
-
-    def _get_chart_data(self, queryset, max_days=90, db='default', key=None):
-        if not has_charts(db):
-            if key is None:
-                return []
-            return {}
-
-        today = timezone.now().replace(microsecond=0, second=0)
-
-        # the last interval is not accurate, so we exclude it
-        # TODO: it'd be ideal to normalize the last datapoint so that we can include it
-        # and not have ~inaccurate data for up to MINUTE_NORMALIZATION
-        today -= datetime.timedelta(minutes=MINUTE_NORMALIZATION)
-
-        if max_days >= 14:
-            g_type = 'date'
-            d_type = 'days'
-            points = max_days
-            modifier = 1
-            today = today.replace(hour=0)
-        elif max_days >= 1:
-            g_type = 'hour'
-            d_type = 'hours'
-            points = max_days * 24
-            modifier = 1
-            today = today.replace(minute=0)
-        else:
-            g_type = 'minute'
-            d_type = 'minutes'
-            modifier = MINUTE_NORMALIZATION
-            points = max_days * 24 * (60 / modifier)
-
-        min_date = today - datetime.timedelta(days=max_days)
-
-        method = get_sql_date_trunc('date', db, grouper=g_type)
-
-        chart_qs = queryset.filter(
-            date__gte=min_date,
-        ).extra(
-            select={'grouper': method},
-        ).annotate(
-            num=Sum('times_seen'),
-        )
-
-        if key:
-            chart_qs = chart_qs.values_list(key, 'grouper', 'num').order_by(key, 'grouper')
-        else:
-            chart_qs = chart_qs.values_list('grouper', 'num').order_by('grouper')
-
-        if key is None:
-            rows = {None: dict(chart_qs)}
-        else:
-            rows = {}
-            for item, grouper, num in chart_qs:
-                if item not in rows:
-                    rows[item] = {}
-                rows[item][grouper] = num
-
-        results = {}
-        for item, tsdata in rows.iteritems():
-            results[item] = []
-            for point in xrange(points, -1, -1):
-                dt = today - datetime.timedelta(**{d_type: point * modifier})
-                results[item].append((int(time.mktime((dt).timetuple())) * 1000, tsdata.get(dt, 0)))
-
-        if key is None:
-            return results[None]
-        return results
-
-
-class GroupManager(BaseManager, ChartMixin):
+class GroupManager(BaseManager):
     use_for_related_fields = True
 
     def normalize_event_data(self, data):
@@ -490,8 +387,6 @@ class GroupManager(BaseManager, ChartMixin):
         return True
 
     def _create_group(self, event, tags=None, **kwargs):
-        from sentry.models import ProjectCountByMinute, GroupCountByMinute
-
         date = event.datetime
         time_spent = event.time_spent
         project = event.project
@@ -565,19 +460,6 @@ class GroupManager(BaseManager, ChartMixin):
             is_sample = True
 
         # Rounded down to the nearest interval
-        normalized_datetime = normalize_datetime(date)
-
-        app.buffer.incr(GroupCountByMinute, update_kwargs, {
-            'group': group,
-            'project': project,
-            'date': normalized_datetime,
-        })
-
-        app.buffer.incr(ProjectCountByMinute, update_kwargs, {
-            'project': project,
-            'date': normalized_datetime,
-        })
-
         try:
             self.add_tags(group, tags)
         except Exception as e:
@@ -651,7 +533,7 @@ class GroupManager(BaseManager, ChartMixin):
         return ', '.join('sentry_groupedmessage."%s"' % (f.column,) for f in self.model._meta.fields)
 
 
-class ProjectManager(BaseManager, ChartMixin):
+class ProjectManager(BaseManager):
     def get_for_user(self, user=None, access=None, hidden=False, team=None,
                      superuser=True):
         """
@@ -694,35 +576,6 @@ class ProjectManager(BaseManager, ChartMixin):
         attach_foreignkey(projects, self.model.team)
 
         return sorted(projects, key=lambda x: x.name.lower())
-
-    def get_chart_data(self, instance, max_days=90, key=None):
-        if hasattr(instance, '_state'):
-            db = instance._state.db or 'default'
-        else:
-            db = 'default'
-
-        queryset = instance.projectcountbyminute_set
-
-        return self._get_chart_data(queryset, max_days, db, key=key)
-
-    def get_chart_data_for_group(self, instances, max_days=90, key=None):
-        if not instances:
-            if key is None:
-                return []
-            return {}
-
-        if hasattr(instances[0], '_state'):
-            db = instances[0]._state.db or 'default'
-        else:
-            db = 'default'
-
-        field = self.model.projectcountbyminute_set.related
-        column = field.field.name
-        queryset = field.model.objects.filter(**{
-            '%s__in' % column: instances,
-        })
-
-        return self._get_chart_data(queryset, max_days, db, key=key)
 
 
 class TeamManager(BaseManager):

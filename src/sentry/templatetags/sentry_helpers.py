@@ -29,7 +29,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
 from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Team, Group, Option, GroupTagValue
+from sentry.models import Team, Option, GroupTagValue
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -332,14 +332,8 @@ def with_metadata(group_list, request):
     else:
         bookmarks = set()
 
-    if group_list:
-        historical_data = Group.objects.get_chart_data_for_group(
-            instances=group_list,
-            max_days=1,
-            key='group',
-        )
-    else:
-        historical_data = {}
+    # TODO(dcramer): this is obsolete and needs to pull from the tsdb backend
+    historical_data = {}
 
     for g in group_list:
         yield g, {
