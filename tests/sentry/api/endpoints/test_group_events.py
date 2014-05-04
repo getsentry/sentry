@@ -7,8 +7,8 @@ class GroupResolveTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        event_1 = self.create_event('a' * 40, group=group)
-        event_2 = self.create_event('b' * 40, group=group)
+        event_1 = self.create_event('a' * 32, group=group)
+        event_2 = self.create_event('b' * 32, group=group)
 
         url = reverse('sentry-api-0-group-events', kwargs={
             'group_id': group.id
