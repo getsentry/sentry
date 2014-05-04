@@ -88,7 +88,7 @@ def check_project_alerts(project_id, **kwargs):
     dev = math.mad(previous_data)
     previous_avg = (mean + dev * 2)
 
-    pct_increase = current_avg / previous_avg * 100
+    pct_increase = (current_avg / previous_avg * 100) - 100
 
     logger.info('Rate of events for project %d changed from %.2f to %2.f',
         project_id, previous_avg, current_avg)
