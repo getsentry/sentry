@@ -93,7 +93,7 @@ def check_project_alerts(project_id, **kwargs):
     logger.info('Rate of events for project %d changed from %.2f to %2.f',
         project_id, previous_avg, current_avg)
 
-    if pct_increase > threshold:
+    if pct_increase > threshold and current_avg > previous_avg:
         Alert.maybe_alert(
             project_id=project_id,
             message='Rate of events increased from %.2f to %.2f' % (previous_avg, current_avg),
