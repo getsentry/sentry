@@ -497,7 +497,6 @@ class GroupManager(BaseManager):
 
             tsdb_keys.extend([
                 (TSDBModel.project_tag_value, tsdb_id),
-                (TSDBModel.group_tag_value, tsdb_id),
             ])
 
             app.buffer.incr(TagValue, {
