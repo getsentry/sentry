@@ -76,14 +76,11 @@ class ProjectGroupIndexEndpoint(Endpoint):
             elif date_to:
                 group_list = group_list.filter(first_seen__lte=date_to)
         else:
-            if date_from and date_to:
-                group_list = group_list.filter(
-                    groupcountbyminute__date__gte=date_from,
-                    groupcountbyminute__date__lte=date_to,
-                )
-            elif date_from:
+            # TODO(dcramer): a date_to no longer makes a lot of sense, and will
+            # need corrected when search lands
+            if date_from:
                 group_list = group_list.filter(last_seen__gte=date_from)
-            elif date_to:
+            if date_to:
                 group_list = group_list.filter(last_seen__lte=date_to)
 
         sort = request.GET.get('sort') or request.session.get('streamsort')
