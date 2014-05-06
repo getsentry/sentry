@@ -11,7 +11,7 @@ from __future__ import absolute_import
 import riak
 import riak.resolver
 
-from time import time
+from time import sleep
 
 from sentry.nodestore.base import NodeStorage
 from sentry.utils.cache import memoize
@@ -24,8 +24,8 @@ def retry(attempts, func, *args, **kwargs):
     for _ in xrange(attempts):
         try:
             return func(*args, **kwargs)
-        except Exception as exc:
-            time.sleep(0.01)
+        except Exception:
+            sleep(0.01)
     raise
 
 
