@@ -85,7 +85,7 @@ def tag_value_details(request, team, project, key, value_id):
         project=project, key=key, id=value_id)
 
     event_list = Group.objects.filter(
-        project=project,
+        grouptag__project=project,
         grouptag__key=key,
         grouptag__value=tag_value.value,
     ).order_by('-score')
