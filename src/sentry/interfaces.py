@@ -375,10 +375,11 @@ class Frame(object):
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
         output = []
-        if self.module:
-            output.append(self.module)
-        elif self.filename and not self.is_url():
-            output.append(remove_filename_outliers(self.filename))
+        if not not self.is_url():
+            if self.module:
+                output.append(self.module)
+            elif self.filename:
+                output.append(remove_filename_outliers(self.filename))
 
         if self.context_line is None:
             can_use_context = False
