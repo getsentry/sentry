@@ -375,7 +375,7 @@ class Frame(object):
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
         output = []
-        if not not self.is_url():
+        if not self.is_url():
             if self.module:
                 output.append(self.module)
             elif self.filename:
