@@ -98,8 +98,8 @@ def _get_group_list(request, project):
     else:
         if date_from and date_to:
             event_list = event_list.filter(
-                groupcountbyminute__date__gte=date_from,
-                groupcountbyminute__date__lte=date_to,
+                first_seen__gte=date_from,
+                last_seen__lte=date_to,
             )
         elif date_from:
             event_list = event_list.filter(last_seen__gte=date_from)
