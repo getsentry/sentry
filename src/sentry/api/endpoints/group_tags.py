@@ -28,7 +28,6 @@ class GroupTagsEndpoint(Endpoint):
         for tag_key in tag_keys:
             queryset = GroupTagValue.objects.filter(
                 group=group,
-                project=group.project,
                 key=tag_key.key,
             )
 

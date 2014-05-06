@@ -487,10 +487,18 @@ def group_tag_list(request, team, project, group):
 
 @has_group_access
 def group_tag_details(request, team, project, group, tag_name):
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        order_by = '-last_seen'
+    elif sort == 'new':
+        order_by = '-first_seen'
+    else:
+        order_by = '-times_seen'
+
     return render_with_group_context(group, 'sentry/plugins/bases/tag/index.html', {
         'title': tag_name.replace('_', ' ').title(),
         'tag_name': tag_name,
-        'unique_tags': group.get_unique_tags(tag_name),
+        'unique_tags': group.get_unique_tags(tag_name, order_by=order_by),
         'page': 'tag_details',
     }, request)
 
