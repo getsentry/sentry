@@ -142,13 +142,12 @@ class Group(Model):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
-    def get_unique_tags(self, tag, since=None):
+    def get_unique_tags(self, tag, since=None, order_by='-times_seen'):
         # TODO(dcramer): this has zero test coverage and is a critical path
         from sentry.models import GroupTagValue
 
         queryset = GroupTagValue.objects.filter(
             group=self,
-            project=self.project,
             key=tag,
         )
         if since:
@@ -158,7 +157,7 @@ class Group(Model):
             'times_seen',
             'first_seen',
             'last_seen',
-        ).order_by('-times_seen')
+        ).order_by(order_by)
 
     def get_tags(self):
         from sentry.models import GroupTagKey
