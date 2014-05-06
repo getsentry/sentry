@@ -66,8 +66,7 @@ def delete_project(object_id, **kwargs):
     from sentry.constants import STATUS_HIDDEN
     from sentry.models import (
         Project, ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue,
-        GroupCountByMinute, ProjectCountByMinute, Activity, EventMapping,
-        Event, Group
+        Activity, EventMapping, Event, Group
     )
 
     try:
@@ -82,8 +81,7 @@ def delete_project(object_id, **kwargs):
 
     model_list = (
         ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue,
-        GroupCountByMinute, ProjectCountByMinute, Activity, EventMapping,
-        Event, Group
+        Activity, EventMapping, Event, Group
     )
 
     has_more = delete_objects(model_list, relation={'project': p}, logger=logger)
@@ -98,7 +96,7 @@ def delete_project(object_id, **kwargs):
 @retry
 def delete_group(object_id, **kwargs):
     from sentry.models import (
-        Group, GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
+        Group, GroupTagKey, GroupTagValue, EventMapping, Event
     )
 
     try:
@@ -109,7 +107,7 @@ def delete_group(object_id, **kwargs):
     logger = delete_group.get_logger()
 
     model_list = (
-        GroupTagValue, GroupTagKey, GroupCountByMinute, EventMapping, Event
+        GroupTagValue, GroupTagKey, EventMapping, Event
     )
 
     has_more = delete_objects(model_list, relation={'group': group}, logger=logger)
