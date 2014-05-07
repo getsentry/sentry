@@ -272,7 +272,6 @@ class GroupManager(BaseManager):
             'message': message,
             'platform': platform,
             'culprit': culprit or '',
-            'logger': logger_name,
         }
 
         event = Event(
@@ -292,6 +291,7 @@ class GroupManager(BaseManager):
 
         group_kwargs = kwargs.copy()
         group_kwargs.update({
+            'logger': logger_name,
             'level': level,
             'last_seen': date,
             'first_seen': date,

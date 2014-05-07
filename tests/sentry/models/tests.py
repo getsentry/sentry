@@ -138,8 +138,8 @@ class EventNodeStoreTest(TestCase):
         data = {'key': 'value'}
 
         query_bits = [
-            "INSERT INTO sentry_message (group_id, project_id, data, logger, message, checksum, datetime)",
-            "VALUES(%s, %s, %s, '', %s, %s, %s)",
+            "INSERT INTO sentry_message (group_id, project_id, data, message, checksum, datetime)",
+            "VALUES(%s, %s, %s, %s, %s, %s)",
         ]
         params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
 
