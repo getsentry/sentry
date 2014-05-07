@@ -25,7 +25,7 @@ def preprocess_event(data, **kwargs):
             try:
                 expand_javascript_source(data)
             except Exception as e:
-                logger.exception(u'Error fetching javascript source: %s', e)
+                logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
     finally:
         save_event.delay(data=data)
 
