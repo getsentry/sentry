@@ -79,8 +79,6 @@ class DjangoSearchBackend(SearchBackend):
 
         context['text'].extend([
             event.message,
-            event.logger,
-            event.server_name,
             event.culprit,
         ])
 
