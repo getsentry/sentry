@@ -11,7 +11,7 @@
 
         {{ event_list.paging }}
 
-        <ul class="events no-counts">
+        <ul class="events similar-events">
             {% for event in event_list.objects %}
                 {% include "sentry/partial/_event.html" %}
             {% endfor %}
