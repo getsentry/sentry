@@ -28,8 +28,6 @@ class Event(Model):
     group = models.ForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project = models.ForeignKey('sentry.Project', null=True)
-    logger = models.CharField(
-        max_length=64, blank=True, default='root', db_index=True)
     message = models.TextField()
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
@@ -171,7 +169,6 @@ class Event(Model):
         data['id'] = self.event_id
         data['checksum'] = self.checksum
         data['project'] = self.project.slug
-        data['logger'] = self.logger
         data['culprit'] = self.culprit
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
