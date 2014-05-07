@@ -45,7 +45,6 @@ class Event(Model):
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
-    site = models.CharField(max_length=128, db_index=True, null=True)
     data = NodeField(blank=True, null=True)
 
     objects = BaseManager()
