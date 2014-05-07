@@ -14,7 +14,6 @@ class EventSerializer(Serializer):
                 'slug': obj.project.slug,
             },
             'message': obj.message,
-            'culprit': obj.culprit,
             'checksum': obj.checksum,
             'platform': obj.platform,
             'dateCreated': obj.datetime,

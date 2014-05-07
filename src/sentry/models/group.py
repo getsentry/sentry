@@ -180,9 +180,6 @@ class Group(Model):
         message = strip(self.message)
         return '\n' in message or len(message) > 100
 
-    def message_top(self):
-        return self.title
-
     @property
     def title(self):
         culprit = strip(self.culprit)

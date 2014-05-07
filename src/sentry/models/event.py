@@ -10,7 +10,6 @@ from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
     BaseManager, sane_repr
@@ -29,9 +28,6 @@ class Event(Model):
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project = models.ForeignKey('sentry.Project', null=True)
     message = models.TextField()
-    culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
-        db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
@@ -63,11 +59,14 @@ class Event(Model):
         message = strip(self.message)
         return '\n' in message or len(message) > 100
 
-    def message_top(self):
-        culprit = strip(self.culprit)
-        if culprit:
-            return culprit
-        return self.error()
+    @property
+    def message_short(self):
+        message = strip(self.message)
+        if not message:
+            message = '<unlabeled message>'
+        else:
+            message = truncatechars(message.splitlines()[0], 100)
+        return message
 
     @property
     def team(self):
@@ -169,7 +168,6 @@ class Event(Model):
         data['id'] = self.event_id
         data['checksum'] = self.checksum
         data['project'] = self.project.slug
-        data['culprit'] = self.culprit
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         for k, v in sorted(self.data.iteritems()):

@@ -258,7 +258,7 @@ class GroupManager(BaseManager):
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
         message = data.pop('message')
-        culprit = data.pop('culprit')
+        culprit = data.pop('culprit') or ''
         level = data.pop('level')
         time_spent = data.pop('time_spent')
         logger_name = data.pop('logger')
@@ -271,7 +271,6 @@ class GroupManager(BaseManager):
         kwargs = {
             'message': message,
             'platform': platform,
-            'culprit': culprit or '',
         }
 
         event = Event(
@@ -291,6 +290,7 @@ class GroupManager(BaseManager):
 
         group_kwargs = kwargs.copy()
         group_kwargs.update({
+            'culprit': culprit,
             'logger': logger_name,
             'level': level,
             'last_seen': date,
@@ -415,8 +415,8 @@ class GroupManager(BaseManager):
                 extra['message'] = event.message
             if group.level != kwargs['level']:
                 extra['level'] = kwargs['level']
-            if group.culprit != event.culprit:
-                extra['culprit'] = event.culprit
+            if group.culprit != kwargs['culprit']:
+                extra['culprit'] = kwargs['culprit']
 
             if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
                 # Making things atomic
