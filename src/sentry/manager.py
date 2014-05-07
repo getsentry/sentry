@@ -269,7 +269,6 @@ class GroupManager(BaseManager):
         platform = data.pop('platform')
 
         kwargs = {
-            'level': level,
             'message': message,
             'platform': platform,
             'culprit': culprit or '',
@@ -293,6 +292,7 @@ class GroupManager(BaseManager):
 
         group_kwargs = kwargs.copy()
         group_kwargs.update({
+            'level': level,
             'last_seen': date,
             'first_seen': date,
             'time_spent_total': time_spent or 0,
@@ -413,8 +413,8 @@ class GroupManager(BaseManager):
             }
             if event.message and event.message != group.message:
                 extra['message'] = event.message
-            if group.level != event.level:
-                extra['level'] = event.level
+            if group.level != kwargs['level']:
+                extra['level'] = kwargs['level']
             if group.culprit != event.culprit:
                 extra['culprit'] = event.culprit
 
