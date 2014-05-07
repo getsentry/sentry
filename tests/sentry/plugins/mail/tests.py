@@ -42,7 +42,6 @@ class MailPluginTest(TestCase):
         event.project = self.project
         event.message = 'hello world'
         event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -69,7 +68,6 @@ class MailPluginTest(TestCase):
         event.project = self.project
         event.message = 'hello world'
         event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -96,7 +94,6 @@ class MailPluginTest(TestCase):
         event.project = self.project
         event.message = 'Soubor ji\xc5\xbe existuje'
         event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
