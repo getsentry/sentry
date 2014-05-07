@@ -10,6 +10,7 @@ Backwards Incompatible Changes
 - The trends feature has been removed until it can be reimplemented in a more scalable way.
 - NodeStore.generate_id() now returns a base64-encoded UUID.
 - GroupMeta.objects.get_value no longer errors when a value is missing.
+- sentry.plugins.sentry_sites has been removed
 
 Version 6.4.0
 -------------
