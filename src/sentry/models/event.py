@@ -177,3 +177,7 @@ class Event(Model):
     @property
     def size(self):
         return len(unicode(vars(self)))
+
+    # XXX(dcramer): compatibility with plugins
+    def get_level_display(self):
+        return self.group.get_level_display()
