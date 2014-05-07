@@ -26,6 +26,7 @@ from django.views.generic.base import View as BaseView
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
+from sentry.app import tsdb
 from sentry.constants import (
     MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
     EVENTS_PER_PAGE)
@@ -723,17 +724,28 @@ def get_stats(request, team=None, project=None):
         project_list = Project.objects.get_for_user(request.user, team=team)
 
     cutoff = datetime.timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
+
+    end = timezone.now()
+    start = end - cutoff
 
     # TODO(dcramer): this is used in an unreleased feature. reimplement it using
     # new API and tsdb
+    results = tsdb.get_range(
+        model=tsdb.models.project,
+        keys=[p.id for p in project_list],
+        start=start,
+        end=end,
+    )
     num_events = 0
+    for project, points in results.iteritems():
+        num_events += sum(p[1] for p in points)
 
     # XXX: This is too slow if large amounts of groups are resolved
+    # TODO(dcramer); move this into tsdb
     num_resolved = Group.objects.filter(
         project__in=project_list,
         status=STATUS_RESOLVED,
-        resolved_at__gte=cutoff_dt,
+        resolved_at__gte=start,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 
     data = {
