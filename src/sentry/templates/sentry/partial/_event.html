@@ -5,11 +5,7 @@
     <div class="details">
         <h3>
             <a href="{% url 'sentry-group-event' event.team.slug event.project.slug event.group_id event.pk %}">
-                {% if event.view %}
-                    {{ event.view }}
-                {% else %}
-                    {{ event.message_top }}
-                {% endif %}
+                {{ event.error }}
             </a>
         </h3>
         <div class="meta">

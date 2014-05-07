@@ -34,10 +34,7 @@ class SolrBackend(SearchBackend):
         group = event.group
 
         context = {
-            'text': [
-                event.message,
-                event.culprit
-            ],
+            'text': [event.message],
             'filters': defaultdict(list),
         }
         for interface in event.interfaces.itervalues():
