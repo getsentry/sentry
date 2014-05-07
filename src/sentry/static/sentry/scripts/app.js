@@ -389,7 +389,7 @@
             this.sparkline.height(this.sparkline.parent().height());
             this.stats = $('#stats');
 
-            _.bindAll(this, 'refreshStats');
+            _.bindAll(this, 'refreshStats', 'refreshSparkline');
 
             this.refreshSparkline();
             this.refreshStats();
@@ -420,6 +420,7 @@
                         // set timestamp to be in millis
                         data[i][0] = data[i][0] * 1000;
                     }
+                    this.sparkline.empty();
                     $.plot(this.sparkline, [{
                             data: data,
                             color: '#52566c',
@@ -446,6 +447,8 @@
                             }
                         }
                     );
+
+                    window.setTimeout(this.refreshSparkline, 10000);
                 }, this)
             });
         },
