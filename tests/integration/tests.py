@@ -162,7 +162,6 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
-        self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
@@ -175,7 +174,6 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.level, 40)
-        self.assertEquals(instance.site, 'not_a_real_site')
 
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
     def test_get_without_referer(self):
@@ -203,7 +201,6 @@ class SentryRemoteTest(TestCase):
 
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
-        self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
     def test_content_encoding_deflate(self):
