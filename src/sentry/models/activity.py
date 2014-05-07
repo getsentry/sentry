@@ -126,7 +126,7 @@ class Activity(Model):
         if subject_prefix:
             subject_prefix = subject_prefix.rstrip() + ' '
 
-        subject = '%s%s' % (subject_prefix, self.event.get_email_subject())
+        subject = '%s%s' % (subject_prefix, self.group.get_email_subject())
 
         context = {
             'text': self.data['text'],

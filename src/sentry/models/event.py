@@ -5,14 +5,12 @@ sentry.models.event
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import logging
-
 from django.db import models
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
     BaseManager, sane_repr
@@ -32,9 +30,6 @@ class Event(Model):
     project = models.ForeignKey('sentry.Project', null=True)
     logger = models.CharField(
         max_length=64, blank=True, default='root', db_index=True)
-    level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
-        db_index=True)
     message = models.TextField()
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
@@ -177,7 +172,6 @@ class Event(Model):
         data['checksum'] = self.checksum
         data['project'] = self.project.slug
         data['logger'] = self.logger
-        data['level'] = self.get_level_display()
         data['culprit'] = self.culprit
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
@@ -188,10 +182,3 @@ class Event(Model):
     @property
     def size(self):
         return len(unicode(vars(self)))
-
-    def get_email_subject(self):
-        return '[%s %s] %s: %s' % (
-            self.team.name.encode('utf-8'),
-            self.project.name.encode('utf-8'),
-            unicode(self.get_level_display()).upper().encode('utf-8'),
-            self.error().encode('utf-8').splitlines()[0])

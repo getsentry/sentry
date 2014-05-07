@@ -191,7 +191,6 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
 
         self.assertEquals(instance.message, 'hello')
-        self.assertEquals(instance.level, 40)
 
     def test_content_encoding_deflate(self):
         kwargs = {'message': 'hello'}

@@ -202,3 +202,11 @@ class Group(Model):
     @property
     def team(self):
         return self.project.team
+
+    def get_email_subject(self):
+        return '[%s %s] %s: %s' % (
+            self.team.name.encode('utf-8'),
+            self.project.name.encode('utf-8'),
+            unicode(self.get_level_display()).upper().encode('utf-8'),
+            self.message_short.encode('utf-8')
+        )

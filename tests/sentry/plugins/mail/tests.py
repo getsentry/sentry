@@ -109,12 +109,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -137,11 +138,12 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world\nfoo bar',
         )
 
         event = Event(
             group=group,
-            message='hello world\nfoo bar',
+            message=group.message,
             logger='root',
             project=self.project,
             datetime=group.last_seen,
