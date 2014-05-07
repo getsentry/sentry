@@ -279,8 +279,8 @@ urlpatterns += patterns('',
         name='sentry-api-search-projects'),
 
     # TV dashboard
-    # url(r'^(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
-    #     name='sentry-wall'),
+    url(r'^(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
+        name='sentry-wall'),
 
     # Team-wide alerts
     url(r'^(?P<team_slug>[\w_-]+)/show/alerts/$', alerts.alert_list,
