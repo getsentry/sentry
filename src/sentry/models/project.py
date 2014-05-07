@@ -85,8 +85,6 @@ class Project(Model):
             try:
                 other = Group.objects.get(
                     project=project,
-                    logger=group.logger,
-                    culprit=group.culprit,
                     checksum=group.checksum,
                 )
             except Group.DoesNotExist:
