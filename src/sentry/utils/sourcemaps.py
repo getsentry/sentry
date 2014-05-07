@@ -124,7 +124,11 @@ def sourcemap_to_index(sourcemap):
     for state in parse_sourcemap(smap):
         state_list.append(state)
         key_list.append((state.dst_line, state.dst_col))
-        src_list.add(state.src)
+
+        # Apparently it's possible to not have a src
+        # specified in the vlq segments
+        if state.src is not None:
+            src_list.add(state.src)
 
     return SourceMapIndex(state_list, key_list, src_list, content)
 
