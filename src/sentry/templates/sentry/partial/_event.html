@@ -5,7 +5,7 @@
     <div class="details">
         <h3>
             <a href="{% url 'sentry-group-event' event.team.slug event.project.slug event.group_id event.pk %}">
-                {{ event.error }}
+                {{ event.message_short }}
             </a>
         </h3>
         <div class="meta">
@@ -14,14 +14,6 @@
                 <span class="time-spent">{{ event.time_spent|duration }}</span>
             {% endif %}
         </div>
-        <p class="message" title="{{ event.message }}">
-            {% with event.get_version as version %}
-                {% if version %}
-                    <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
-                {% endif %}
-            {% endwith %}
-            {{ event.error }}
-        </p>
         <a href="{% url 'sentry-group-event' event.team.slug event.project.slug event.group_id event.pk %}" class="row_link"></a>
     </div>
 </li>

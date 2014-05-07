@@ -7417,9 +7417,21 @@ a.icon-share:hover {
   border-bottom: none;
   padding-bottom: 0;
 }
-.group-list.no-counts > li,
-.events.no-counts > li {
+.group-list.similar-events > li,
+.events.similar-events > li {
   padding-left: 20px;
+  min-height: 0;
+}
+.group-list.similar-events > li .meta,
+.events.similar-events > li .meta {
+  position: absolute;
+  top: 10px;
+  bottom: 0;
+  right: 20px;
+}
+.group-list.similar-events > li .row_link:hover,
+.events.similar-events > li .row_link:hover {
+  background: rgba(238, 238, 238, 0.1);
 }
 .group-list > li,
 .events > li {
