@@ -70,3 +70,11 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
             for obj in list(qs[:chunk_size]):
                 log.info("Removing %r", obj)
                 obj.delete()
+
+    # EventMapping is fairly expensive and is special cased as it's likely you
+    # won't need a reference to an event for nearly as long
+    if days > 7:
+        log.info("Removing expired values for %r", EventMapping)
+        EventMapping.objects.filter(
+            date_added__lte=timezone.now() - datetime.timedelta(days=7)
+        ).delete()
