@@ -67,7 +67,6 @@
     "fields": {
       "project": 1,
       "group": 2,
-      "server_name": "dcramer.local",
       "level": 30,
       "checksum": "ed77d1185670a58e7242fde014d980e9",
       "datetime": "2010-08-31 17:50:47Z",
@@ -83,7 +82,6 @@
     "fields": {
       "project": 1,
       "group": 3,
-      "server_name": "dcramer.local",
       "level": 40,
       "checksum": "ff554a446687e950d719b0c996f55953",
       "datetime": "2010-08-31 17:53:31Z",
@@ -99,7 +97,6 @@
     "fields": {
       "project": 1,
       "group": 3,
-      "server_name": "dcramer.local",
       "level": 40,
       "checksum": "ff554a446687e950d719b0c996f55953",
       "datetime": "2010-08-31 17:53:31Z",
@@ -115,7 +112,6 @@
     "fields": {
       "project": 1,
       "group": 3,
-      "server_name": "dcramer.local",
       "level": 40,
       "checksum": "ff554a446687e950d719b0c996f55953",
       "datetime": "2010-08-31 17:53:31Z",
@@ -131,7 +127,6 @@
     "fields": {
       "project": 1,
       "group": 4,
-      "server_name": "node.local",
       "level": 40,
       "checksum": "561fd84df24b5ff5c4b24cf3ab757b3b",
       "datetime": "2010-08-31 17:53:53Z",
@@ -147,7 +142,6 @@
     "fields": {
       "project": 1,
       "group": 4,
-      "server_name": "node.local",
       "level": 40,
       "checksum": "561fd84df24b5ff5c4b24cf3ab757b3b",
       "datetime": "2010-08-31 17:53:54Z",
@@ -163,7 +157,6 @@
     "fields": {
       "project": 1,
       "group": 4,
-      "server_name": "dcramer.local",
       "level": 40,
       "checksum": "561fd84df24b5ff5c4b24cf3ab757b3b",
       "datetime": "2010-08-31 17:53:54Z",
@@ -179,7 +172,6 @@
     "fields": {
       "project": 1,
       "group": 5,
-      "server_name": "dcramer.local",
       "level": 40,
       "checksum": "e27c40cb7b42d2752efc37f4f7ecfb12",
       "datetime": "2010-08-31 17:54:23Z",
@@ -195,7 +187,6 @@
     "fields": {
       "project": 1,
       "group": 5,
-      "server_name": "dcramer.local",
       "level": 40,
       "checksum": "e27c40cb7b42d2752efc37f4f7ecfb12",
       "datetime": "2010-08-31 17:54:23Z",
@@ -211,7 +202,6 @@
     "fields": {
       "project": 1,
       "group": 5,
-      "server_name": "dcramer.local",
       "level": 40,
       "checksum": "e27c40cb7b42d2752efc37f4f7ecfb12",
       "datetime": "2010-08-31 17:54:24Z",
