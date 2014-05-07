@@ -100,7 +100,7 @@ class Group(Model):
         return float(self.time_spent_total) / self.time_spent_count
 
     def natural_key(self):
-        return (self.project, self.logger, self.culprit, self.checksum)
+        return (self.project, self.checksum)
 
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
