@@ -8,6 +8,7 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
+from celery.task import current
 from functools import wraps
 
 from sentry.tasks.base import instrumented_task
@@ -19,7 +20,7 @@ def retry(func):
         try:
             return func(*args, **kwargs)
         except Exception as exc:
-            wrapped.retry(exc=exc)
+            current.retry(exc=exc)
     return wrapped
 
 
