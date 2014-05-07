@@ -280,7 +280,6 @@ class GroupManager(BaseManager):
             project=project,
             event_id=event_id,
             data=data,
-            server_name=server_name,
             time_spent=time_spent,
             datetime=date,
             **kwargs

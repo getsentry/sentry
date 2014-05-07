@@ -156,7 +156,6 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Logger': event.logger,
             'X-Sentry-Logger-Level': event.get_level_display(),
             'X-Sentry-Project': project.name,
-            'X-Sentry-Server': event.server_name,
             'X-Sentry-Reply-To': group_id_to_email(group.pk),
         }
 
