@@ -39,7 +39,7 @@ from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
-from sentry.utils.db import has_trending, get_db_engine
+from sentry.utils.db import get_db_engine
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
@@ -53,7 +53,7 @@ def _get_group_list(request, project):
     for cls in get_filters(Group, project):
         try:
             filters.append(cls(request, project))
-        except Exception, e:
+        except Exception as e:
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error initializing filter %r: %s', cls, e)
 
@@ -71,7 +71,7 @@ def _get_group_list(request, project):
             if not filter_.is_set():
                 continue
             event_list = filter_.get_query_set(event_list)
-        except Exception, e:
+        except Exception as e:
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error processing filter %r: %s', cls, e)
 
@@ -98,8 +98,8 @@ def _get_group_list(request, project):
     else:
         if date_from and date_to:
             event_list = event_list.filter(
-                groupcountbyminute__date__gte=date_from,
-                groupcountbyminute__date__lte=date_to,
+                first_seen__gte=date_from,
+                last_seen__lte=date_to,
             )
         elif date_from:
             event_list = event_list.filter(last_seen__gte=date_from)
@@ -113,9 +113,6 @@ def _get_group_list(request, project):
     # Save last sort in session
     if sort != request.session.get('streamsort'):
         request.session['streamsort'] = sort
-
-    if sort.startswith('accel_') and not has_trending():
-        sort = DEFAULT_SORT_OPTION
 
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
@@ -140,9 +137,6 @@ def _get_group_list(request, project):
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort == 'avgtime':
         event_list = event_list.filter(time_spent_count__gt=0)
-    elif sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(
-            [project.id], event_list, minutes=int(sort.split('_', 1)[1]))
 
     if score_clause:
         event_list = event_list.extra(
@@ -373,7 +367,6 @@ def group_list(request, team, project):
         'sort_label': sort_label,
         'filters': response['filters'],
         'SORT_OPTIONS': SORT_OPTIONS,
-        'HAS_TRENDING': has_trending(),
     }, request)
 
 
@@ -494,10 +487,18 @@ def group_tag_list(request, team, project, group):
 
 @has_group_access
 def group_tag_details(request, team, project, group, tag_name):
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        order_by = '-last_seen'
+    elif sort == 'new':
+        order_by = '-first_seen'
+    else:
+        order_by = '-times_seen'
+
     return render_with_group_context(group, 'sentry/plugins/bases/tag/index.html', {
         'title': tag_name.replace('_', ' ').title(),
         'tag_name': tag_name,
-        'unique_tags': group.get_unique_tags(tag_name),
+        'unique_tags': group.get_unique_tags(tag_name, order_by=order_by),
         'page': 'tag_details',
     }, request)
 

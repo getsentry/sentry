@@ -24,8 +24,8 @@ Users Guide
    queue/index
    buffer/index
    nodestore/index
-   udp_server/index
    throttling/index
+   tsdb/index
    performance/index
    cli/index
    client/index

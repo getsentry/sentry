@@ -75,12 +75,12 @@ class OsPlugin(UserAgentPlugin):
         if 'flavor' in ua:
             tag = ua['flavor']['name']
             if 'version' in ua['flavor']:
-                tag += ' ' + ua['version']
+                tag += ' ' + ua['flavor']['version']
         elif 'os' in ua:
             # Linux
             tag = ua['os']['name']
             if 'version' in ua['os']:
-                tag += ' ' + ua['version']
+                tag += ' ' + ua['os']['version']
             elif 'dist' in ua:
                 # Ubuntu
                 tag += ua['dist']['name']
@@ -88,5 +88,6 @@ class OsPlugin(UserAgentPlugin):
             return
 
         return tag
+
 
 register(OsPlugin)

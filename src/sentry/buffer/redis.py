@@ -89,6 +89,8 @@ class RedisBuffer(Buffer):
     def process_pending(self):
         for conn in self.conn.hosts.itervalues():
             keys = conn.zrange(self.pending_key, 0, -1)
+            if not keys:
+                continue
             for key in keys:
                 process_incr.apply_async(kwargs={
                     'key': key,

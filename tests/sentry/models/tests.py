@@ -2,22 +2,18 @@
 
 from __future__ import absolute_import
 
-import mock
-
 from datetime import timedelta
-from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db import connection
 from django.utils import timezone
 from exam import fixture
 
-from sentry.constants import MINUTE_NORMALIZATION
 from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
-    GroupTagValue, GroupCountByMinute, TagValue, PendingTeamMember,
-    LostPasswordHash, Alert, User, create_default_project)
+    GroupTagValue, TagValue, PendingTeamMember,
+    LostPasswordHash, User)
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
 from sentry.utils.strings import compress
@@ -37,13 +33,11 @@ class ProjectTest(TestCase):
         self.assertFalse(Group.objects.filter(project__isnull=True).exists())
         self.assertFalse(Event.objects.filter(project__isnull=True).exists())
         self.assertFalse(GroupTagValue.objects.filter(project__isnull=True).exists())
-        self.assertFalse(GroupCountByMinute.objects.filter(project__isnull=True).exists())
         self.assertFalse(TagValue.objects.filter(project__isnull=True).exists())
 
         self.assertEquals(project2.group_set.count(), 4)
         self.assertEquals(project2.event_set.count(), 10)
         assert not GroupTagValue.objects.filter(project=project2).exists()
-        assert not project2.groupcountbyminute_set.exists()
         assert not TagValue.objects.filter(project=project2).exists()
 
 
@@ -128,24 +122,6 @@ class LostPasswordTest(TestCase):
             assert url in msg.body
 
 
-class AlertTest(TestCase):
-    @fixture
-    def params(self):
-        return {
-            'project_id': self.project.id,
-            'message': 'This is a test message',
-        }
-
-    @mock.patch('sentry.models.alert.has_trending', mock.Mock(return_value=True))
-    @mock.patch('sentry.models.Group.objects.get_accelerated')
-    def test_does_add_trending_events(self, get_accelerated):
-        get_accelerated.return_value = [self.group]
-        alert = Alert.maybe_alert(**self.params)
-        assert alert is not None
-        get_accelerated.assert_called_once_with([self.project.id], minutes=MINUTE_NORMALIZATION)
-        assert list(alert.related_groups.all()) == [self.group]
-
-
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group
@@ -156,36 +132,14 @@ class GroupIsOverResolveAgeTest(TestCase):
         assert group.is_over_resolve_age() is False
 
 
-class CreateDefaultProjectTest(TestCase):
-    def test_simple(self):
-        user, _ = User.objects.get_or_create(is_superuser=True, defaults={
-            'username': 'test'
-        })
-        Team.objects.filter(project__id=settings.SENTRY_PROJECT).delete()
-        Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
-
-        create_default_project(created_models=[Project])
-
-        project = Project.objects.filter(id=settings.SENTRY_PROJECT)
-        assert project.exists() is True
-        project = project.get()
-        assert project.owner == user
-        assert project.public is False
-        assert project.name == 'Sentry (Internal)'
-        assert project.slug == 'sentry'
-        team = project.team
-        assert team.owner == user
-        assert team.slug == 'sentry'
-
-
 class EventNodeStoreTest(TestCase):
     def test_does_transition_data_to_node(self):
         group = self.group
         data = {'key': 'value'}
 
         query_bits = [
-            "INSERT INTO sentry_message (group_id, project_id, data, logger, level, message, checksum, datetime)",
-            "VALUES(%s, %s, %s, '', 0, %s, %s, %s)",
+            "INSERT INTO sentry_message (group_id, project_id, data, message, checksum, datetime)",
+            "VALUES(%s, %s, %s, %s, %s, %s)",
         ]
         params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
 

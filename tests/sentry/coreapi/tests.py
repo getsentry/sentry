@@ -5,12 +5,14 @@ from __future__ import absolute_import
 import mock
 
 from datetime import datetime
+from uuid import UUID
 
 from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.coreapi import (
     extract_auth_vars, project_from_auth_vars, APIForbidden, ensure_has_ip,
-    process_data_timestamp, validate_data, INTERFACE_ALIASES, get_interface)
+    process_data_timestamp, validate_data, INTERFACE_ALIASES, get_interface, APIError)
 from sentry.testutils import TestCase
 
 
@@ -142,31 +144,29 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data['project'] == self.project.id
 
-    @mock.patch('uuid.uuid4')
+    @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_empty_event_id(self, uuid4):
         data = validate_data(self.project, {
             'event_id': '',
         })
-        assert data['event_id'] == uuid4.return_value.hex
+        assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
 
-    @mock.patch('uuid.uuid4')
+    @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_missing_event_id(self, uuid4):
         data = validate_data(self.project, {})
-        assert data['event_id'] == uuid4.return_value.hex
+        assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
 
-    @mock.patch('uuid.uuid4')
+    @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_invalid_event_id(self, uuid4):
         data = validate_data(self.project, {
             'event_id': 'a' * 33,
         })
-        assert data['event_id'] == uuid4.return_value.hex
+        assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
 
-    def test_invalid_project_id(self):
-        with self.assertRaises(APIForbidden):
-            validate_data(self.project, {
-                'project': self.project.id + 1,
-                'message': 'foo',
-            })
+    def test_invalid_event_id_raises(self):
+        self.assertRaises(APIError, validate_data, self.project, {
+            'event_id': 1
+        })
 
     def test_unknown_attribute(self):
         data = validate_data(self.project, {
@@ -237,13 +237,6 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data['level'] == 40
 
-    def test_project_slug(self):
-        data = validate_data(self.project, {
-            'project': self.project.slug,
-            'message': 'foo',
-        })
-        assert data['project'] == self.project.id
-
     def test_tags_as_string(self):
         data = validate_data(self.project, {
             'message': 'foo',
@@ -271,6 +264,17 @@ class ValidateDataTest(BaseAPITest):
             'extra': 'bar',
         })
         assert 'extra' not in data
+
+    def test_invalid_culprit_raises(self):
+        self.assertRaises(APIError, validate_data, self.project, {
+            'culprit': 1
+        })
+
+    def test_long_culprit(self):
+        data = validate_data(self.project, {
+            'culprit': 'x' * (MAX_CULPRIT_LENGTH + 1)
+        })
+        assert len(data['culprit']) == MAX_CULPRIT_LENGTH
 
 
 class GetInterfaceTest(TestCase):

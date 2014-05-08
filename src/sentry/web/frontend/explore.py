@@ -25,7 +25,7 @@ SORT_OPTIONS = {
 def tag_list(request, team, project):
     tag_key_qs = sorted(TagKey.objects.filter(
         project=project
-    ).exclude(key__startswith='sentry:'), key=lambda x: x.get_label())
+    ), key=lambda x: x.get_label())
 
     tag_value_qs = TagValue.objects.filter(
         project=project).order_by('-times_seen')
@@ -33,12 +33,12 @@ def tag_list(request, team, project):
     # O(N) db access
     tag_list = []
     for tag_key in tag_key_qs:
-        tag_list.append((tag_key, [
-            (id, value, times_seen)
-            for (id, value, times_seen)
-            in tag_value_qs.filter(
-                key=tag_key.key).values_list('id', 'value', 'times_seen')[:5]
-        ]))
+        # prevent some excess queries by binding project
+        tag_key.project = project
+        tag_values = tag_value_qs.filter(key=tag_key.key)[:5]
+        for tag_value in tag_values:
+            tag_value.project = project
+        tag_list.append((tag_key, tag_values))
 
     return render_to_response('sentry/explore/tag_list.html', {
         'SECTION': 'explore',
@@ -50,10 +50,10 @@ def tag_list(request, team, project):
 
 @has_access
 def tag_value_list(request, team, project, key):
-    tag_key = TagKey.objects.get(
+    tag_key = TagKey.objects.select_related('project').get(
         project=project, key=key)
     tag_values_qs = TagValue.objects.filter(
-        project=project, key=key)
+        project=project, key=key).select_related('project')
 
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
@@ -85,6 +85,7 @@ def tag_value_details(request, team, project, key, value_id):
         project=project, key=key, id=value_id)
 
     event_list = Group.objects.filter(
+        grouptag__project=project,
         grouptag__key=key,
         grouptag__value=tag_value.value,
     ).order_by('-score')

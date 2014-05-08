@@ -11,7 +11,22 @@ from __future__ import absolute_import
 import riak
 import riak.resolver
 
+from time import sleep
+
 from sentry.nodestore.base import NodeStorage
+from sentry.utils.cache import memoize
+
+
+# Riak commonly has timeouts or non-200 HTTP errors. Being that almost
+# always our messages are immutable, it's safe to simply retry in many
+# cases
+def retry(attempts, func, *args, **kwargs):
+    for _ in xrange(attempts):
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            sleep(0.01)
+    raise
 
 
 class RiakNodeStorage(NodeStorage):
@@ -21,20 +36,32 @@ class RiakNodeStorage(NodeStorage):
     >>> RiakNodeStorage(nodes=[{'host':'127.0.0.1','http_port':8098}])
     """
     def __init__(self, nodes, bucket='nodes',
-                 resolver=riak.resolver.last_written_resolver, **kwargs):
-        self.conn = riak.RiakClient(
-            nodes=nodes, resolver=resolver, **kwargs)
-        self.bucket = self.conn.bucket(bucket)
-        super(RiakNodeStorage, self).__init__(**kwargs)
+                 resolver=riak.resolver.last_written_resolver,
+                 protocol='http'):
+        self._client_options = {
+            'nodes': nodes,
+            'resolver': resolver,
+            'protocol': protocol,
+        }
+        self._bucket_name = bucket
+
+    @memoize
+    def conn(self):
+        return riak.RiakClient(**self._client_options)
+
+    @memoize
+    def bucket(self):
+        return self.conn.bucket(self._bucket_name)
 
     def create(self, data):
-        obj = self.bucket.new(data=data)
-        obj.store()
+        node_id = self.generate_id()
+        obj = self.bucket.new(data=data, key=node_id)
+        retry(3, obj.store)
         return obj.key
 
     def delete(self, id):
         obj = self.bucket.new(key=id)
-        obj.delete()
+        retry(3, obj.delete)
 
     def get(self, id):
         # just fetch it from a random backend, we're not aiming for consistency
@@ -45,14 +72,19 @@ class RiakNodeStorage(NodeStorage):
 
     def get_multi(self, id_list, r=1):
         result = self.bucket.multiget(id_list)
-        return dict(
-            (obj.key, obj.data)
-            for obj in result
-        )
+
+        results = {}
+        for obj in result:
+            # errors return a tuple of (bucket, key, err)
+            if isinstance(obj, tuple):
+                err = obj[2]
+                raise type(err), err, None
+            results[obj.key] = obj.data
+        return results
 
     def set(self, id, data):
         obj = self.bucket.new(key=id, data=data)
-        obj.store()
+        retry(3, obj.store)
 
     def cleanup(self, cutoff_timestamp):
         # TODO(dcramer): we should either index timestamps or have this run

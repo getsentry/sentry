@@ -190,7 +190,7 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body).replace('\n', '<br>'),)
+        return '<pre>%s</pre>' % escape(body)
 
     def get_slug(self):
         return type(self).__name__.lower()
@@ -218,6 +218,18 @@ class Interface(object):
             #     'field": ['...'],
             # },
         }
+
+    def get_type_name(self):
+        """
+        Passed into the JSON api as the name of this interface in the entry list.
+        """
+        return self.get_slug()
+
+    def get_json_context(self):
+        """
+        Passed into the JSON api as the body for this entry.
+        """
+        return self.serialize()
 
 
 class Message(Interface):
@@ -363,12 +375,25 @@ class Frame(object):
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
         output = []
-        if self.module:
-            output.append(self.module)
-        elif self.filename and not self.is_url():
-            output.append(remove_filename_outliers(self.filename))
+        if not self.is_url():
+            if self.module:
+                output.append(self.module)
+            elif self.filename:
+                output.append(remove_filename_outliers(self.filename))
 
-        if self.context_line is not None:
+        if self.context_line is None:
+            can_use_context = False
+        elif len(self.context_line) > 120:
+            can_use_context = False
+        # XXX: deal with PHP anonymous functions (used for things like SQL
+        # queries and JSON data)
+        elif self.function and self.function.startswith('[Anonymous'):
+            can_use_context = True
+        else:
+            can_use_context = True
+
+        # XXX: hack around what appear to be non-useful lines of context
+        if can_use_context:
             output.append(self.context_line)
         elif not output:
             # If we were unable to achieve any context at this point
@@ -577,8 +602,14 @@ class Stacktrace(Interface):
         return output
 
     def get_hash(self):
+        frames = self.frames
+
+        # TODO(dcramer): this should apply only to JS
+        if len(frames) == 1 and frames[0].lineno == '1' and frames[0].function in ('?', None):
+            return []
+
         output = []
-        for frame in self.frames:
+        for frame in frames:
             output.extend(frame.get_hash())
         return output
 
@@ -865,10 +896,28 @@ class Exception(Interface):
         return data
 
     def get_hash(self):
-        return self.values[0].get_hash()
+        output = []
+        for value in self.values:
+            output.extend(value.get_hash())
+        return output
 
     def get_composite_hash(self, interfaces):
-        return self.values[0].get_composite_hash(interfaces)
+        # optimize around the fact that some exceptions might have stacktraces
+        # while others may not and we ALWAYS want stacktraces over values
+        output = []
+        for value in self.values:
+            if not value.stacktrace:
+                continue
+            stack_hash = value.stacktrace.get_hash()
+            if stack_hash:
+                output.extend(stack_hash)
+                output.append(value.type)
+
+        if not output:
+            for value in self.values:
+                output.extend(value.get_composite_hash(interfaces))
+
+        return output
 
     def get_context(self, event, is_public=False, **kwargs):
         newest_first = is_newest_frame_first(event)
@@ -919,7 +968,7 @@ class Exception(Interface):
 
         output = []
         for exc in self.values:
-            output.append('{0}: {1}\n'.format(exc.type, exc.value))
+            output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
             if exc.stacktrace:
                 output.append(exc.stacktrace.get_stacktrace(
                     event, system_frames=False, max_frames=5,
@@ -1029,11 +1078,6 @@ class Http(Interface):
         scheme, netloc, path, _, _ = urlparse.urlsplit(self.url)
         return urlparse.urlunsplit((scheme, netloc, path, None, None))
 
-    @property
-    def url_without_fragment(self):
-        scheme, netloc, path, query, _ = urlparse.urlsplit(self.url)
-        return urlparse.urlunsplit((scheme, netloc, path, query, None))
-
     def serialize(self):
         return {
             'url': self.url,
@@ -1105,6 +1149,37 @@ class Http(Interface):
                 'url': [self.short_url],
             }
         }
+
+    def get_type_name(self):
+        return 'http_request'
+
+    def get_json_context(self):
+        data = self.data
+        headers_is_dict, headers = self._to_dict(self.headers)
+
+        # educated guess as to whether the body is normal POST data
+        if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded' and '=' in data:
+            _, data = self._to_dict(data)
+
+        context = {
+            'url': self.url,
+            'shortUrl': self.short_url,
+            'method': self.method,
+            'queryString': self.query_string or None,
+            'fragment': self.fragment or None,
+            'headers': self.headers or None,
+        }
+
+        # It's kind of silly we store this twice
+        _, cookies = self._to_dict(self.cookies)
+
+        context.update({
+            'cookies': cookies or None,
+            'env': self.env or None,
+            'body': data or None,
+        })
+
+        return context
 
 
 class Template(Interface):

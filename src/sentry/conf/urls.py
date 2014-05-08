@@ -43,4 +43,6 @@ def handler500(request):
 
 urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^500/', handler500),
+    url(r'^404/', handler404),
 ) + web_urlpatterns

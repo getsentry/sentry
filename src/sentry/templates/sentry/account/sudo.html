@@ -1,0 +1,46 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirm Password" %} | {{ block.super }}{% endblock %}
+
+{% block wrapperclass %}windowed-small{% endblock %}
+
+{% block header %}
+    <header id="header">
+        <div class="navbar navbar-inverse">
+            <div class="navbar-inner">
+                <div class="container">
+                    <a id="logo" href="{% url 'sentry' %}">Sentry</a>
+                    <h2>Sentry</h2>
+                </div>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+{% block footer %}
+    {% blocktrans %}Help us keep your account safe by confirming your password.{% endblocktrans %}
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <form class="form-inline" action="" method="post">
+            {% csrf_token %}
+
+            {% if form.password.errors %}
+                <div class="help-block error">{% trans "Your password was not valid." %}</div>
+            {% endif %}
+
+            <div class="control-group">
+                <label class="control-label" for="id_password">
+                    Password: <a href="{% url 'sentry-account-recover' %}">(Recover Password)</a>
+                </label>
+                <div class="controls">
+                    <input type="password" name="password" placeholder="password" style="width: 225px;" id="id_password"> <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                </div>
+            </div>
+
+        </form>
+    </section>
+{% endblock %}

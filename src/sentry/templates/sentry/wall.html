@@ -23,7 +23,7 @@
     </div>
     <div class="container-fluid" id="chart">
         <div class="row-fluid">
-            <div class="chart" data-api-url="{% url 'sentry-api-chart' team.slug %}">
+            <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
                 <span class="loading">{% trans "Loading historical data..." %}</span>
             </div>
         </div>

@@ -5,6 +5,8 @@ sentry.web.frontend.events
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import urlparse
+
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -44,7 +46,7 @@ def replay_event(request, team, project, group, event_id):
         data = http.data
 
     initial = {
-        'url': http.url_without_fragment,
+        'url': urlparse.urldefrag(http.url)[0],
         'method': http.method,
         'headers': headers,
         'data': data,

@@ -38,7 +38,7 @@ class Command(BaseCommand):
     )
 
     def handle(self, service_name='http', address=None, upgrade=True, **options):
-        from sentry.services import http, udp, smtp
+        from sentry.services import http, smtp
 
         if address:
             if ':' in address:
@@ -52,7 +52,6 @@ class Command(BaseCommand):
 
         services = {
             'http': http.SentryHTTPServer,
-            'udp': udp.SentryUDPServer,
             'smtp': smtp.SentrySMTPServer,
         }
 

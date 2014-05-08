@@ -31,13 +31,18 @@ CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
-CLEAN_MODULE_RE = re.compile(r"""^(?:/|(?:
+UNKNOWN_MODULE = '<unknown module>'
+CLEAN_MODULE_RE = re.compile(r"""^
+(?:/|  # Leading slashes
+(?:
     (?:java)?scripts?|js|build|static|[_\.].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
     [a-f0-9]{40}       # sha1
-)/)+""", re.X | re.I)
+)/)+|
+(?:-[a-f0-9]{32,40}$)  # Ending in a commitish
+""", re.X | re.I)
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -265,23 +270,23 @@ def expand_javascript_source(data, **kwargs):
         # If we didn't have a colno, a sourcemap wont do us any good
         if filename not in sourcemap_capable:
             logger.debug('Not capable of sourcemap: %r', filename)
-            source_code[filename] = (result.body.splitlines(), None)
+            source_code[filename] = (result.body.splitlines(), None, None)
             continue
 
         sourcemap = discover_sourcemap(result)
 
         # TODO: we're currently running splitlines twice
         if not sourcemap:
-            source_code[filename] = (result.body.splitlines(), None)
+            source_code[filename] = (result.body.splitlines(), None, None)
             for f in frames:
-                if f.abs_path == filename:
+                if not f.module and f.abs_path == filename:
                     f.module = generate_module(filename)
             continue
         else:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
 
         sourcemap_key = hashlib.md5(sourcemap).hexdigest()
-        source_code[filename] = (result.body.splitlines(), sourcemap_key)
+        source_code[filename] = (result.body.splitlines(), sourcemap, sourcemap_key)
 
         if sourcemap in sourmap_idxs:
             continue
@@ -302,7 +307,7 @@ def expand_javascript_source(data, **kwargs):
             next_filename = urljoin(sourcemap, source)
             if next_filename not in done_file_list:
                 if index.content:
-                    source_code[next_filename] = (index.content[source], None)
+                    source_code[next_filename] = (index.content[source], None, None)
                     done_file_list.add(next_filename)
                 else:
                     pending_file_list.add(next_filename)
@@ -312,20 +317,20 @@ def expand_javascript_source(data, **kwargs):
     has_changes = False
     for frame in frames:
         try:
-            source, sourcemap = source_code[frame.abs_path]
+            source, sourcemap, sourcemap_key = source_code[frame.abs_path]
         except KeyError:
             # we must've failed pulling down the source
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if sourcemap in sourmap_idxs and frame.colno is not None:
-            index, relative_to = sourmap_idxs[sourcemap]
+        if sourcemap_key in sourmap_idxs and frame.colno is not None:
+            index, relative_to = sourmap_idxs[sourcemap_key]
             last_state = state
             state = find_source(index, frame.lineno, frame.colno)
             abs_path = urljoin(relative_to, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
-                source, _ = source_code[abs_path]
+                source, _, _ = source_code[abs_path]
             except KeyError:
                 frame.data = {
                     'sourcemap': sourcemap,
@@ -347,11 +352,14 @@ def expand_javascript_source(data, **kwargs):
                 frame.colno = state.src_col
                 # The offending function is always the previous function in the stack
                 # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                frame.function = last_state.name if last_state else state.name
+                if last_state:
+                    frame.function = last_state.name or frame.function
+                else:
+                    frame.function = state.name or frame.function
                 frame.abs_path = abs_path
                 frame.filename = state.src
-                frame.module = generate_module(state.src) or '<unknown module>'
-        elif sourcemap in sourmap_idxs:
+                frame.module = generate_module(state.src)
+        elif sourcemap_key in sourmap_idxs:
             frame.data = {
                 'sourcemap': sourcemap,
             }
@@ -367,10 +375,10 @@ def expand_javascript_source(data, **kwargs):
         for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
             exception['stacktrace'] = stacktrace.serialize()
 
-        # Attempt to fix the culrpit now that we have useful information
-        culprit_frame = stacktraces[0].frames[-1]
-        if culprit_frame.module and culprit_frame.function:
-            data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
+    # Attempt to fix the culrpit now that we have potentially useful information
+    culprit_frame = stacktraces[0].frames[-1]
+    if culprit_frame.module and culprit_frame.function:
+        data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
 
 
 def generate_module(src):
@@ -383,7 +391,9 @@ def generate_module(src):
 
     e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
     """
-    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0])
+    if not src:
+        return UNKNOWN_MODULE
+    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0]) or UNKNOWN_MODULE
 
 
 def generate_culprit(frame):

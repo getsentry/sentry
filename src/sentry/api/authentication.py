@@ -1,7 +1,7 @@
-from sentry.models import ProjectKey
-
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+
+from sentry.models import ProjectKey
 
 
 class KeyAuthentication(BasicAuthentication):
@@ -14,4 +14,12 @@ class KeyAuthentication(BasicAuthentication):
         if pk.secret_key != password:
             raise AuthenticationFailed('Invalid api key')
 
-        return (pk.user, pk)
+        if not pk.roles.api:
+            raise AuthenticationFailed('Key does not allow API access')
+
+        return (None, pk)
+
+
+class QuietBasicAuthentication(BasicAuthentication):
+    def authenticate_header(self, request):
+        return 'xBasic realm="%s"' % self.www_authenticate_realm

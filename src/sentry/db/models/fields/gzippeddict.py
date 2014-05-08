@@ -31,7 +31,7 @@ class GzippedDictField(models.TextField):
         if isinstance(value, basestring) and value:
             try:
                 value = pickle.loads(decompress(value))
-            except Exception, e:
+            except Exception as e:
                 logger.exception(e)
                 return {}
         elif not value:
@@ -42,6 +42,9 @@ class GzippedDictField(models.TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
+        # enforce unicode strings to guarantee consistency
+        if isinstance(value, str):
+            value = unicode(value)
         return compress(pickle.dumps(value))
 
     def value_to_string(self, obj):

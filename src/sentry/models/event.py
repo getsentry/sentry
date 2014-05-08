@@ -5,14 +5,11 @@ sentry.models.event
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import logging
-
 from django.db import models
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
     BaseManager, sane_repr
@@ -30,22 +27,12 @@ class Event(Model):
     group = models.ForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project = models.ForeignKey('sentry.Project', null=True)
-    logger = models.CharField(
-        max_length=64, blank=True, default='root', db_index=True)
-    level = BoundedPositiveIntegerField(
-        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
-        db_index=True)
     message = models.TextField()
-    culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
-        db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
-    server_name = models.CharField(max_length=128, db_index=True, null=True)
-    site = models.CharField(max_length=128, db_index=True, null=True)
     data = NodeField(blank=True, null=True)
 
     objects = BaseManager()
@@ -72,11 +59,14 @@ class Event(Model):
         message = strip(self.message)
         return '\n' in message or len(message) > 100
 
-    def message_top(self):
-        culprit = strip(self.culprit)
-        if culprit:
-            return culprit
-        return self.error()
+    @property
+    def message_short(self):
+        message = strip(self.message)
+        if not message:
+            message = '<unlabeled message>'
+        else:
+            message = truncatechars(message.splitlines()[0], 100)
+        return message
 
     @property
     def team(self):
@@ -178,9 +168,6 @@ class Event(Model):
         data['id'] = self.event_id
         data['checksum'] = self.checksum
         data['project'] = self.project.slug
-        data['logger'] = self.logger
-        data['level'] = self.get_level_display()
-        data['culprit'] = self.culprit
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         for k, v in sorted(self.data.iteritems()):
@@ -191,8 +178,6 @@ class Event(Model):
     def size(self):
         return len(unicode(vars(self)))
 
-    def get_email_subject(self):
-        return '[%s] %s: %s' % (
-            self.project.name.encode('utf-8'),
-            unicode(self.get_level_display()).upper().encode('utf-8'),
-            self.error().encode('utf-8').splitlines()[0])
+    # XXX(dcramer): compatibility with plugins
+    def get_level_display(self):
+        return self.group.get_level_display()
