@@ -13,9 +13,11 @@
         {% with form.first_name as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
-        {% with form.username as field %}
-            {{ field|as_crispy_field }}
-        {% endwith %}
+        {% if form.username %}
+            {% with form.username as field %}
+                {{ field|as_crispy_field }}
+            {% endwith %}
+        {% endif %}
         {% with form.email as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
