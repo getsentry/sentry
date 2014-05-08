@@ -17,7 +17,7 @@ class KeyAuthentication(BasicAuthentication):
         if not pk.roles.api:
             raise AuthenticationFailed('Key does not allow API access')
 
-        return (pk.user, pk)
+        return (None, pk)
 
 
 class QuietBasicAuthentication(BasicAuthentication):
