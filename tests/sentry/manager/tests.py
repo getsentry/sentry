@@ -4,17 +4,14 @@ from __future__ import absolute_import
 
 import datetime
 import mock
-import pytest
 
 from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import (
-    Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    Team, EventMapping, User, AccessGroup, GroupTagValue
+    Event, Group, Project, Team, EventMapping, User, AccessGroup, GroupTagValue
 )
-from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
 
@@ -92,28 +89,6 @@ class SentryManagerTest(TestCase):
         Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(Event.objects.count(), 1)
 
-    def test_does_update_groupcountbyminute(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = GroupCountByMinute.objects.filter(group=event.group)
-        self.assertTrue(inst.exists())
-        inst = inst.get()
-        self.assertEquals(inst.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = GroupCountByMinute.objects.get(group=event.group)
-        self.assertEquals(inst.times_seen, 2)
-
-    def test_does_update_projectcountbyminute(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = ProjectCountByMinute.objects.filter(project=event.project)
-        self.assertTrue(inst.exists())
-        inst = inst.get()
-        self.assertEquals(inst.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = ProjectCountByMinute.objects.get(project=event.project)
-        self.assertEquals(inst.times_seen, 2)
-
     def test_updates_group(self):
         Group.objects.from_kwargs(1, message='foo', checksum='a' * 32)
         event = Group.objects.from_kwargs(1, message='foo bar', checksum='a' * 32)
@@ -145,23 +120,6 @@ class SentryManagerTest(TestCase):
         res = results[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
-
-
-@pytest.mark.skipif('not has_trending()')
-class TrendsTest(TestCase):
-    def test_accelerated_works_at_all(self):
-        now = timezone.now() - datetime.timedelta(minutes=5)
-        project = Project.objects.all()[0]
-        group = Group.objects.create(status=0, project=project, message='foo', checksum='a' * 32)
-        group2 = Group.objects.create(status=0, project=project, message='foo', checksum='b' * 32)
-        GroupCountByMinute.objects.create(project=project, group=group, date=now, times_seen=50)
-        GroupCountByMinute.objects.create(project=project, group=group2, date=now, times_seen=40)
-        base_qs = Group.objects.filter(
-            status=0,
-        )
-
-        results = list(Group.objects.get_accelerated([project.id], base_qs)[:25])
-        self.assertEquals(results, [group, group2])
 
 
 class GetChecksumFromEventTest(TestCase):

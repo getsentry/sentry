@@ -1,0 +1,63 @@
+#!/usr/bin/env python
+
+from sentry.utils.runner import configure
+configure()
+
+from datetime import datetime, timedelta
+from pytz import utc
+from random import randint
+
+from sentry.app import tsdb
+from sentry.models import Activity, User, Project, Team
+from sentry.utils.samples import create_sample_event
+
+def create_sample_time_series(event):
+    group = event.group
+
+    now = datetime.utcnow().replace(tzinfo=utc)
+
+    for _ in xrange(60):
+        count = randint(1, 10)
+        tsdb.incr(tsdb.models.project, group.project.id, now, count)
+        tsdb.incr(tsdb.models.group, group.id, now, count)
+        now = now - timedelta(seconds=1)
+
+    for _ in xrange(24 * 30):
+        count = randint(100, 1000)
+        tsdb.incr(tsdb.models.project, group.project.id, now, count)
+        tsdb.incr(tsdb.models.group, group.id, now, count)
+        now = now - timedelta(hours=1)
+
+
+user = User.objects.filter(is_superuser=True)[0]
+
+team, _ = Team.objects.get_or_create(
+    name='Earth', slug='earth',
+    defaults={
+        'owner': user,
+    },
+)
+
+project, _ = Project.objects.get_or_create(
+    team=team,
+    name='Backend',
+    slug='backend',
+    owner=team.owner,
+)
+
+event1 = create_sample_event(project, 'python')
+create_sample_time_series(event1)
+
+event2 = create_sample_event(project, 'javascript')
+create_sample_time_series(event2)
+
+Activity.objects.create(
+    type=Activity.DEPLOY,
+    project=project,
+    ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+    user=user,
+    data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
+)
+
+event3 = create_sample_event(project, 'java')
+create_sample_time_series(event3)

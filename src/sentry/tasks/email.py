@@ -5,8 +5,12 @@ sentry.tasks.email
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+
+from __future__ import absolute_import
+
 import logging
-from celery.task import task
+
+from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +29,9 @@ def _get_user_from_email(group, email):
         return user
 
 
-@task(name='sentry.tasks.email.process_inbound_email', queue='email')
+@instrumented_task(
+    name='sentry.tasks.email.process_inbound_email',
+    queue='email')
 def process_inbound_email(mailfrom, group_id, payload):
     """
     """

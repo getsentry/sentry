@@ -77,12 +77,7 @@ class DjangoSearchBackend(SearchBackend):
             for k, v in interface.get_search_context(event).iteritems():
                 context[k].extend(v)
 
-        context['text'].extend([
-            event.message,
-            event.logger,
-            event.server_name,
-            event.culprit,
-        ])
+        context['text'].append(event.message)
 
         token_counts = defaultdict(lambda: defaultdict(int))
         for field, values in context.iteritems():

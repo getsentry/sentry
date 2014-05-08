@@ -169,7 +169,7 @@ class PermissionBase(TestCase):
         is Trueish.
         """
         if account:
-            self.assertTrue(self.client.login(username=account, password=account))
+            self.login_as(getattr(self, account))
         else:
             self.client.logout()
         resp = self.client.get(path)

@@ -1,70 +1,78 @@
 import mock
 from datetime import timedelta
 from django.utils import timezone
-from sentry.models import ProjectCountByMinute, Alert
+
+from sentry.app import tsdb
+from sentry.models import Alert
 from sentry.tasks.check_alerts import check_project_alerts, check_alerts
 from sentry.testutils import TestCase
-from sentry.utils.dates import normalize_datetime
 
 
 class BaseTestCase(TestCase):
-    def create_counts(self, when, amount, minute_offset=0, normalize=True):
-        date = when - timedelta(minutes=minute_offset)
-        if normalize:
-            date = normalize_datetime(date)
+    def create_counts(self, project, when, amount, offset=0):
+        date = when - timedelta(seconds=offset)
 
-        ProjectCountByMinute.objects.create(
-            project=self.project,
-            date=date,
-            times_seen=amount,
-        )
+        tsdb.incr(tsdb.models.project, project.id, date, amount)
 
 
 class CheckAlertsTest(BaseTestCase):
     @mock.patch('sentry.tasks.check_alerts.check_project_alerts')
     def test_does_fire_jobs(self, check_project_alerts):
-        when = timezone.now()
-        self.create_counts(when, 50, 5, normalize=False)
+        project = self.create_project()
 
-        with mock.patch('sentry.tasks.check_alerts.timezone.now') as now:
-            now.return_value = when
-            check_alerts()
-            now.assert_called_once_with()
+        check_alerts()
 
-        check_project_alerts.delay.assert_called_once_with(
-            project_id=self.project.id,
-            when=when - timedelta(minutes=1),
-            count=10,
+        check_project_alerts.delay.assert_any_call(
+            project_id=project.id,
             expires=120
         )
 
 
 class CheckProjectAlertsTest(BaseTestCase):
     def test_it_works(self):
+        project = self.create_project()
         now = timezone.now()
 
         # create some data with gaps
-        self.create_counts(now, 50)  # just now
-        self.create_counts(now, 73, 15)  # 15 minutes ago
-        self.create_counts(now, 100, 45)  # 45 minutes ago
-        self.create_counts(now, 90, 60)  # 60 minutes ago
-        self.create_counts(now, 95, 75)  # 75 minutes ago
-        self.create_counts(now, 130, 90)  # 90 minutes ago
-        self.create_counts(now, 150, 105)  # 105 minutes ago
-        self.create_counts(now, 100, 120)  # 120 minutes ago
+        for n in range(0, 50, 10):
+            self.create_counts(project, now, 2500, n)
 
-        # missing a data point, should fail
-        check_project_alerts(
-            project_id=self.project.id,
-            when=now,
-            count=100
-        )
-        assert not Alert.objects.filter(project=self.project).exists()
+        for n in range(50, 300, 10):
+            self.create_counts(project, now, 100, n)
 
-        self.create_counts(now, 73, 30)  # 15 minutes ago
         check_project_alerts(
-            project_id=self.project.id,
-            when=now,
-            count=100
+            project_id=project.id,
         )
-        assert Alert.objects.filter(project=self.project).exists()
+        assert Alert.objects.filter(project=project).exists()
+
+    def test_without_false_positive(self):
+        project = self.create_project()
+        now = timezone.now()
+
+        # create some data with gaps
+        for n in range(0, 300, 10):
+            self.create_counts(project, now, 100, n)
+
+        check_project_alerts(
+            project_id=project.id,
+        )
+        assert not Alert.objects.filter(project=project).exists()
+
+    def test_mostly_empty(self):
+        project = self.create_project()
+        now = timezone.now()
+
+        # create some data with gaps
+        for n in range(0, 100, 10):
+            self.create_counts(project, now, 500, n)
+
+        for n in range(100, 280, 10):
+            self.create_counts(project, now, 0, n)
+
+        for n in range(280, 300, 10):
+            self.create_counts(project, now, 200, n)
+
+        check_project_alerts(
+            project_id=project.id,
+        )
+        assert Alert.objects.filter(project=project).exists()

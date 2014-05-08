@@ -18,8 +18,8 @@
     <form class="btn-toolbar" method="GET" action="">
         <input type="text" name="uquery" value="{% if user_query %}{{ user_query }}{% endif %}" placeholder="search by email address">
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </form>
 
@@ -75,8 +75,8 @@
 
     <div class="btn-toolbar">
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 

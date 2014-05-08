@@ -6,11 +6,15 @@ sentry.tasks.store
 :license: BSD, see LICENSE for more details.
 """
 
-from celery.task import task
+from __future__ import absolute_import
+
 from django.conf import settings
+from sentry.tasks.base import instrumented_task
 
 
-@task(name='sentry.tasks.store.preprocess_event', queue='events')
+@instrumented_task(
+    name='sentry.tasks.store.preprocess_event',
+    queue='events')
 def preprocess_event(data, **kwargs):
     from sentry.tasks.fetch_source import expand_javascript_source
 
@@ -20,13 +24,15 @@ def preprocess_event(data, **kwargs):
         if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
             try:
                 expand_javascript_source(data)
-            except Exception, e:
-                logger.exception(u'Error fetching javascript source: %s', e)
+            except Exception as e:
+                logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
     finally:
         save_event.delay(data=data)
 
 
-@task(name='sentry.tasks.store.save_event', queue='events')
+@instrumented_task(
+    name='sentry.tasks.store.save_event',
+    queue='events')
 def save_event(data, **kwargs):
     """
     Saves an event to the database.
@@ -36,7 +42,9 @@ def save_event(data, **kwargs):
     Group.objects.save_data(data.pop('project'), data)
 
 
-@task(name='sentry.tasks.store.store_event', queue='events')
+@instrumented_task(
+    name='sentry.tasks.store.store_event',
+    queue='events')
 def store_event(data, **kwargs):
     """
     Saves an event to the database.

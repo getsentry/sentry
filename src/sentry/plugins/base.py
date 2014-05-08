@@ -76,7 +76,7 @@ class PluginManager(InstanceManager):
         for plugin in self.all():
             try:
                 result = getattr(plugin, func_name)(*args, **kwargs)
-            except Exception, e:
+            except Exception as e:
                 logger = logging.getLogger('sentry.plugins')
                 logger.error('Error processing %s() on %r: %s', func_name, plugin.__class__, e, extra={
                     'func_arg': args,
@@ -426,13 +426,6 @@ class IPlugin(local):
 
     # Server side signals which do not have request context
 
-    def is_rate_limited(self, project, **kwargs):
-        """
-        Return True if this project (or the system) is over any defined
-        quotas.
-        """
-        return False
-
     def has_perm(self, user, perm, *objects, **kwargs):
         """
         Given a user, a permission name, and an optional list of objects
@@ -527,6 +520,12 @@ class IPlugin(local):
         >>>     return [MySettingsForm]
         """
         return []
+
+    def is_testable(self, **kwargs):
+        """
+        Returns True if this plugin is able to be tested.
+        """
+        return hasattr(self, 'test_configuration')
 
 
 class Plugin(IPlugin):

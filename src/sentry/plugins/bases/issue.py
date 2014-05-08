@@ -173,7 +173,7 @@ class IssuePlugin(Plugin):
                     form_data=form.cleaned_data,
                     request=request,
                 )
-            except forms.ValidationError, e:
+            except forms.ValidationError as e:
                 form.errors['__all__'] = [u'Error creating issue: %s' % e]
 
         if form.is_valid():
@@ -218,7 +218,7 @@ class IssuePlugin(Plugin):
         if not self.is_configured(request=request, project=group.project):
             return tag_list
 
-        issue_id = self._cache.get(group.pk)
+        issue_id = self._cache.get(group)
         if not issue_id:
             return tag_list
 

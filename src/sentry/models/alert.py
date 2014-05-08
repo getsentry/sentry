@@ -13,13 +13,10 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import (
-    STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION
-)
+from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.db.models import (
     Model, GzippedDictField, BoundedPositiveIntegerField, sane_repr
 )
-from sentry.utils.db import has_trending
 from sentry.utils.http import absolute_uri
 
 
@@ -53,8 +50,6 @@ class Alert(Model):
 
     @classmethod
     def maybe_alert(cls, project_id, message, group_id=None):
-        from sentry.models import Group
-
         now = timezone.now()
         manager = cls.objects
         # We only create an alert based on:
@@ -62,13 +57,14 @@ class Alert(Model):
         # - an alert for the event hasn't been created in the last 60 minutes
 
         # TODO: there is a race condition if we're calling this function for the same project
-        if manager.filter(
-                project=project_id, datetime__gte=now - timedelta(minutes=60)).exists():
-            return
+        kwargs = {
+            'project_id': project_id,
+            'datetime__gte': now - timedelta(minutes=60),
+        }
+        if group_id:
+            kwargs['group'] = group_id
 
-        if manager.filter(
-                project=project_id, group=group_id,
-                datetime__gte=now - timedelta(minutes=60)).exists():
+        if manager.filter(**kwargs).exists():
             return
 
         alert = manager.create(
@@ -77,15 +73,6 @@ class Alert(Model):
             datetime=now,
             message=message,
         )
-
-        if not group_id and has_trending():
-            # Capture the top 5 trending events at the time of this error
-            related_groups = Group.objects.get_accelerated([project_id], minutes=MINUTE_NORMALIZATION)[:5]
-            for group in related_groups:
-                AlertRelatedGroup.objects.create(
-                    group=group,
-                    alert=alert,
-                )
 
         return alert
 

@@ -14,4 +14,3 @@ class ConsoleProcessor(Processor):
         print 'Received an event:'
         print '  ID:', event.event_id
         print '  Project:', event.project.name
-        print '  Logger:', event.logger

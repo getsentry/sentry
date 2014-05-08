@@ -7,7 +7,13 @@ sentry.quotas.base
 """
 from __future__ import absolute_import
 
+from collections import namedtuple
+from functools import partial
 from django.conf import settings
+
+RateLimit = namedtuple('RateLimit', ('is_limited', 'retry_after'))
+NotRateLimited = RateLimit(False, None)
+RateLimited = partial(RateLimit, is_limited=True)
 
 
 class Quota(object):
@@ -20,7 +26,10 @@ class Quota(object):
         pass
 
     def is_rate_limited(self, project):
-        return False
+        return NotRateLimited
+
+    def get_time_remaining(self):
+        return 0
 
     def translate_quota(self, quota, parent_quota):
         if quota.endswith('%'):

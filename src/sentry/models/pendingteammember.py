@@ -67,6 +67,6 @@ class PendingTeamMember(Model):
 
         try:
             msg.send([self.email])
-        except Exception, e:
+        except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)

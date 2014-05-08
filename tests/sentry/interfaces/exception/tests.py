@@ -85,6 +85,12 @@ class ExceptionTest(TestCase):
 ValueError: hello world
   File "foo/baz.py", line 1"""
 
+    def test_get_hash(self):
+        inst = self.interface
+
+        all_values = sum([v.get_hash() for v in inst.values], [])
+        assert inst.get_hash() == all_values
+
 
 class SingleExceptionTest(TestCase):
     @fixture

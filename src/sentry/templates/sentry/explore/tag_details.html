@@ -32,8 +32,8 @@
             </h2>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?p={{ event_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?p={{ event_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 
@@ -51,8 +51,8 @@
 
     <div class="btn-toolbar">
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?p={{ event_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?p={{ event_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 {% endblock %}

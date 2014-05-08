@@ -1,6 +1,10 @@
 from django.conf import settings
+import mock
+import sys
 import os
 import os.path
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 
 def pytest_configure(config):
@@ -68,3 +72,21 @@ def pytest_configure(config):
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
+
+    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
+
+    settings.SENTRY_ALLOW_ORIGIN = '*'
+
+    settings.SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
+    settings.SENTRY_TSDB_OPTIONS = {}
+
+    # django mail uses socket.getfqdn which doesnt play nice if our
+    # networking isnt stable
+    patcher = mock.patch('socket.getfqdn', return_value='localhost')
+    patcher.start()
+
+    from sentry.utils.runner import initialize_receivers
+    initialize_receivers()
+
+    from sentry.testutils.cases import flush_redis
+    flush_redis()

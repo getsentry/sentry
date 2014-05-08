@@ -11,7 +11,7 @@
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
         <li class="active">
-            <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Explore" %}</a>
+            <a href="{% url 'sentry-explore' project.team.slug project.slug %}">{% trans "Explore" %}</a>
         </li>
         {% if can_admin_team %}
             <li>
@@ -23,6 +23,15 @@
 
 {% block main %}
     <section class="body">
+        <div class="alert alert-block">
+            <p>The Explore feature is currently a draft, and may change without notice.</p>
+        </div>
     	{% block inner %}{% endblock %}
     </section>
+{% endblock %}
+
+{% block sidebar %}
+    <h6>{% trans "About Explore" %}</h6>
+    <p>Explore allows you to drill into the tagged data recorded at a project level. You can drill into each tag to quickly find outliers or events which have been recorded under a specific tagged value.</p>
+    <p>To learn more about sending tags, check the <a href="{% url 'sentry-project-client-help' project.team.slug project.slug %}">client documentation</a>.</p>
 {% endblock %}

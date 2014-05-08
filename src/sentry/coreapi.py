@@ -9,14 +9,15 @@ sentry.coreapi
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which aren't useful).
 
-from datetime import datetime, timedelta
 import base64
 import logging
 import uuid
 import zlib
 
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.encoding import smart_str
+from gzip import GzipFile
 
 from sentry.app import env
 from sentry.constants import (
@@ -27,6 +28,7 @@ from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
+from sentry.utils.compat import StringIO
 from sentry.utils.imports import import_string
 from sentry.utils.strings import decompress, truncatechars
 
@@ -90,6 +92,9 @@ class APITimestampExpired(APIError):
 class APIRateLimited(APIError):
     http_status = 429
     msg = 'Creation of this event was denied due to rate limiting.'
+
+    def __init__(self, retry_after=None):
+        self.retry_after = retry_after
 
 
 def get_interface(name):
@@ -157,9 +162,39 @@ def project_from_auth_vars(auth_vars):
     if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
         raise APIForbidden('Invalid api key')
 
+    if not pk.roles.store:
+        raise APIForbidden('Key does not allow event storage access')
+
     project = Project.objects.get_from_cache(pk=pk.project_id)
 
     return project, pk.user
+
+
+def decompress_deflate(encoded_data):
+    try:
+        return zlib.decompress(encoded_data)
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.info(e, **client_metadata(exception=e))
+        raise APIForbidden('Bad data decoding request (%s, %s)' % (
+            e.__class__.__name__, e))
+
+
+def decompress_gzip(encoded_data):
+    try:
+        fp = StringIO(encoded_data)
+        try:
+            f = GzipFile(fileobj=fp)
+            return f.read()
+        finally:
+            f.close()
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.info(e, **client_metadata(exception=e))
+        raise APIForbidden('Bad data decoding request (%s, %s)' % (
+            e.__class__.__name__, e))
 
 
 def decode_and_decompress_data(encoded_data):
@@ -168,7 +203,7 @@ def decode_and_decompress_data(encoded_data):
             return decompress(encoded_data)
         except zlib.error:
             return base64.b64decode(encoded_data)
-    except Exception, e:
+    except Exception as e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.info(e, **client_metadata(exception=e))
@@ -179,7 +214,7 @@ def decode_and_decompress_data(encoded_data):
 def safely_load_json_string(json_string):
     try:
         obj = json.loads(json_string)
-    except Exception, e:
+    except Exception as e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.info(e, **client_metadata(exception=e))
@@ -188,22 +223,6 @@ def safely_load_json_string(json_string):
 
     # XXX: ensure keys are coerced to strings
     return dict((smart_str(k), v) for k, v in obj.iteritems())
-
-
-def ensure_valid_project_id(desired_project, data, client=None):
-    # Confirm they're using either the master key, or their specified project
-    # matches with the signed project.
-    if desired_project and data.get('project'):
-        if str(data.get('project')) not in [str(desired_project.id), desired_project.slug]:
-            logger.info(
-                'Project ID mismatch: %s != %s', desired_project.id, desired_project.slug,
-                **client_metadata(client))
-            raise APIForbidden('Invalid credentials')
-        data['project'] = desired_project.id
-    elif not desired_project:
-        data['project'] = 1
-    elif not data.get('project'):
-        data['project'] = desired_project.id
 
 
 def process_data_timestamp(data, current_datetime=None):
@@ -238,7 +257,8 @@ def process_data_timestamp(data, current_datetime=None):
 
 
 def validate_data(project, data, client=None):
-    ensure_valid_project_id(project, data, client=client)
+    # TODO(dcramer): move project out of the data packet
+    data['project'] = project.id
 
     if not data.get('message'):
         data['message'] = '<no message value>'
@@ -251,7 +271,9 @@ def validate_data(project, data, client=None):
         data['message'] = truncatechars(
             data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
-    if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
+    if data.get('culprit'):
+        if not isinstance(data['culprit'], basestring):
+            raise APIError('Invalid value for culprit')
         logger.info(
             'Truncated value for culprit due to length (%d chars)',
             len(data['culprit']), **client_metadata(client, project))
@@ -259,6 +281,8 @@ def validate_data(project, data, client=None):
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
+    elif not isinstance(data['event_id'], basestring):
+        raise APIError('Invalid value for event_id')
     if len(data['event_id']) > 32:
         logger.info(
             'Discarded value for event_id due to length (%d chars)',
@@ -268,7 +292,7 @@ def validate_data(project, data, client=None):
     if 'timestamp' in data:
         try:
             process_data_timestamp(data)
-        except InvalidTimestamp, e:
+        except InvalidTimestamp as e:
             # Log the error, remove the timestamp, and continue
             logger.info(
                 'Discarded invalid value for timestamp: %r', data['timestamp'],
@@ -368,7 +392,7 @@ def validate_data(project, data, client=None):
                 inst = interface(value)
             inst.validate()
             data[import_path] = inst.serialize()
-        except Exception, e:
+        except Exception as e:
             if isinstance(e, AssertionError):
                 log = logger.info
             else:
@@ -381,7 +405,7 @@ def validate_data(project, data, client=None):
         # assume it's something like 'warning'
         try:
             data['level'] = LOG_LEVEL_REVERSE_MAP[level]
-        except KeyError, e:
+        except KeyError as e:
             logger.info(
                 'Discarded invalid logger value: %s', level,
                 **client_metadata(client, project, exception=e))

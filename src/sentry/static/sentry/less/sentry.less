@@ -589,19 +589,21 @@ h3 {
     .nav.counted-list {
       margin-bottom: 8px;
       list-style: none;
+
       &.counted-list {
         margin: 0 -45px 17px;
         li {
           position: relative;
           padding: 0 30px;
           a {
-            display: inline;
-            padding: 0;
+            padding: 0 50px 0 0;
             margin: 0;
             word-break: break-all;
           }
-          .count {
-            padding-right: 5px;
+          .progressbar {
+            padding: 5px 0;
+            > div {
+            }
           }
         }
       }
@@ -794,6 +796,20 @@ ul.tag-list {
 
   li {
     margin-bottom: 5px;
+    position: relative;
+
+    .progressbar {
+      padding: 5px 0;
+    }
+
+    &:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    span {
+      position: absolute;
+      right: 10px;
+    }
   }
 }
 
@@ -807,7 +823,6 @@ a.icon-share {
 }
 .progressbar {
   position: relative;
-  border: 1px solid lighten(@linkColor, 30%);
   min-height: 1.5em;
   line-height: 1.5em;
 
@@ -821,16 +836,23 @@ a.icon-share {
     position: absolute;
   }
 
+  > div {
+    .border-radius(4px);
+  }
+
   > a {
     left: 5px;
     position: relative;
     z-index: 1;
     padding-right: 60px;
     display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     span {
       position: absolute;
-      right: 5px;
+      right: 10px;
     }
   }
 
@@ -886,9 +908,19 @@ a.icon-share {
       padding-bottom: 0;
     }
   }
-  &.no-counts {
+  &.similar-events {
     > li {
       padding-left: 20px;
+      min-height: 0;
+      .meta {
+        position: absolute;
+        top: 10px;
+        bottom: 0;
+        right: 20px;
+      }
+      .row_link:hover {
+        background: rgba(238, 238, 238, 0.10);
+      }
     }
   }
 
@@ -2494,7 +2526,6 @@ table.vars {
   }
 }
 
-
 .windowed {
   background: #c8cbd0;
 
@@ -2521,6 +2552,9 @@ table.vars {
   }
 
   #content {
+    width: auto;
+    min-width: auto;
+
     &.with-left-sidebar {
       width: 900px;
       min-width: 900px;
@@ -2545,6 +2579,47 @@ table.vars {
       }
 
     }
+  }
+}
+
+.windowed-small {
+  background: #c8cbd0;
+
+  .outer-wrapper {
+    width: auto;
+    max-width: 400px;
+  }
+  footer, header {
+    text-align: center;
+    padding: 0;
+    min-width: 0;
+    width: auto;
+  }
+  footer {
+    padding: 10px 25px;
+    height: 60px;
+  }
+  header {
+    height: 40px;
+
+    h2 {
+      letter-spacing: -1px;
+      font-weight: bold;
+      font-size: 22px;
+      position: absolute;
+      left: 70px;
+      margin-top: 2px;
+      color: #fff;
+    }
+  }
+  #content {
+    .main, section.body {
+      min-width: 0;
+    }
+  }
+  .container {
+    width: auto;
+    min-width: 0;
   }
 }
 

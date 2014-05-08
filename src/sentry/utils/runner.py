@@ -6,12 +6,16 @@ sentry.utils.runner
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from logan.runner import run_app, configure_app
 
 import base64
 import os
 import pkg_resources
 import warnings
+
+USE_GEVENT = os.environ.get('USE_GEVENT')
 
 KEY_LENGTH = 40
 
@@ -66,6 +70,23 @@ DATABASES = {
 # }
 
 ###########
+## Redis ##
+###########
+
+# Generic Redis configuration used as defaults for various things including:
+# Buffers, Quotas, TSDB
+
+SENTRY_REDIS_OPTIONS = {
+    'hosts': {
+        0: {
+            'host': '127.0.0.1',
+            'port': 6379,
+        }
+    }
+}
+
+
+###########
 ## Queue ##
 ###########
 
@@ -73,9 +94,8 @@ DATABASES = {
 # information on configuring your queue broker and workers. Sentry relies
 # on a Python framework called Celery to manage queues.
 
-# You can enable queueing of jobs by turning off the always eager setting:
-# CELERY_ALWAYS_EAGER = False
-# BROKER_URL = 'redis://localhost:6379'
+CELERY_ALWAYS_EAGER = False
+BROKER_URL = 'redis://localhost:6379'
 
 ####################
 ## Update Buffers ##
@@ -86,18 +106,25 @@ DATABASES = {
 # numbers of the same events being sent to the API in a short amount of time.
 # (read: if you send any kind of real data to Sentry, you should enable buffers)
 
-# You'll need to install the required dependencies for Redis buffers:
-#   pip install redis hiredis nydus
-#
-# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
-# SENTRY_REDIS_OPTIONS = {
-#     'hosts': {
-#         0: {
-#             'host': '127.0.0.1',
-#             'port': 6379,
-#         }
-#     }
-# }
+SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
+
+############
+## Quotas ##
+############
+
+# Quotas allow you to rate limit individual projects or the Sentry install as
+# a whole.
+
+SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
+
+##########
+## TSDB ##
+##########
+
+# The TSDB is used for building charts as well as making things like per-rate
+# alerts possible.
+
+SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
 ################
 ## Web Server ##
@@ -217,9 +244,31 @@ def install_plugins(settings):
             register(plugin)
 
 
+def initialize_receivers():
+    # force signal registration
+    import sentry.receivers  # NOQA
+
+
+def initialize_gevent():
+    from gevent import monkey
+    monkey.patch_all()
+
+    try:
+        import psycopg2  # NOQA
+    except ImportError:
+        pass
+    else:
+        from sentry.utils.gevent import make_psycopg_green
+        make_psycopg_green()
+
+
 def initialize_app(config):
     from django.utils import timezone
     from sentry.app import env
+
+    if USE_GEVENT:
+        from django.db import connections
+        connections['default'].allow_thread_sharing = True
 
     env.data['config'] = config.get('config_path')
     env.data['start_date'] = timezone.now()
@@ -232,6 +281,8 @@ def initialize_app(config):
         config['settings'], 'social_auth', 'social_auth_association')
 
     apply_legacy_settings(config)
+
+    initialize_receivers()
 
 
 def apply_legacy_settings(config):
@@ -289,9 +340,10 @@ def skip_migration_if_applied(settings, app_name, table_name,
         skip_if_table_exists(migration.forwards), migration)
 
 
-def configure():
+def configure(config_path=None):
     configure_app(
         project='sentry',
+        config_path=config_path,
         default_config_path='~/.sentry/sentry.conf.py',
         default_settings='sentry.conf.server',
         settings_initializer=generate_settings,
@@ -301,6 +353,10 @@ def configure():
 
 
 def main():
+    if USE_GEVENT:
+        print "Configuring Sentry with gevent bindings"
+        initialize_gevent()
+
     run_app(
         project='sentry',
         default_config_path='~/.sentry/sentry.conf.py',

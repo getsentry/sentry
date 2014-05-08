@@ -41,8 +41,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -68,8 +66,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -95,8 +91,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'Soubor ji\xc5\xbe existuje'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -112,12 +106,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -130,7 +125,8 @@ class MailPluginTest(TestCase):
         self.assertEquals(kwargs.get('fail_silently'), False)
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('group'), group)
-        assert kwargs.get('subject') == u"[{0}] ERROR: hello world".format(self.project.name)
+        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+            self.team.name, self.project.name)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_multiline_error(self, _send_mail):
@@ -139,12 +135,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world\nfoo bar',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world\nfoo bar',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -154,7 +151,8 @@ class MailPluginTest(TestCase):
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{0}] ERROR: hello world".format(self.project.name)
+        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+            self.team.name, self.project.name)
 
     def test_get_sendable_users(self):
         from sentry.models import Project, UserOption, User
@@ -181,9 +179,29 @@ class MailPluginTest(TestCase):
                 sorted(self.plugin.get_sendable_users(project)))
 
         # disabled user2
-        UserOption.objects.create(key='mail:alert', value=0, project=project, user=user2)
+        UserOption.objects.create(key='mail:alert', value=0,
+                                  project=project, user=user2)
 
         assert user2.pk not in self.plugin.get_sendable_users(project)
+
+        user4 = User.objects.create(username='baz4', email='bar@example.com',
+                                    is_active=True)
+        project.team.member_set.get_or_create(user=user4)
+
+        assert user4.pk in self.plugin.get_sendable_users(project)
+
+        # disabled by default user4
+        uo1 = UserOption.objects.create(key='subscribe_by_default', value='0',
+                                  project=project, user=user4)
+
+        assert user4.pk not in self.plugin.get_sendable_users(project)
+
+        uo1.delete()
+
+        UserOption.objects.create(key='subscribe_by_default', value=u'0',
+                                  project=project, user=user4)
+
+        assert user4.pk not in self.plugin.get_sendable_users(project)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_on_alert(self, _send_mail):
@@ -193,5 +211,5 @@ class MailPluginTest(TestCase):
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{0}] ALERT: {1}".format(
-            self.project.name, alert.message)
+        assert kwargs.get('subject') == u"[{0} {1}] ALERT: {2}".format(
+            self.team.name, self.project.name, alert.message)

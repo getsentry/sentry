@@ -19,7 +19,7 @@
         {% block main %}
             <section class="body dashboard">
                 {% if project_list %}
-                    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-chart' team.slug %}">
+                    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
                         <div class="sparkline">
                             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
                             <span class="loading">{% trans "Loading historical data..." %}</span>

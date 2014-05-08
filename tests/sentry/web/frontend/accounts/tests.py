@@ -114,9 +114,9 @@ class SettingsTest(TestCase):
 
     def params(self, without=()):
         params = {
+            'username': 'foobar',
             'email': 'foo@example.com',
             'first_name': 'Foo bar',
-            'old_password': 'admin',
         }
         return dict((k, v) for k, v in params.iteritems() if k not in without)
 
@@ -148,15 +148,6 @@ class SettingsTest(TestCase):
         self.assertTemplateUsed('sentry/account/settings.html')
         assert 'form' in resp.context
         assert 'first_name' in resp.context['form'].errors
-
-    def test_requires_old_password(self):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, self.params(without=['old_password']))
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/settings.html')
-        assert 'form' in resp.context
-        assert 'old_password' in resp.context['form'].errors
 
     def test_minimum_valid_params(self):
         self.login_as(self.user)

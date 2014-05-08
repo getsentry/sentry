@@ -6,10 +6,14 @@ sentry.tasks.process_buffer
 :license: BSD, see LICENSE for more details.
 """
 
-from celery.task import task
+from __future__ import absolute_import
+
+from sentry.tasks.base import instrumented_task
 
 
-@task(name='sentry.tasks.process_buffer.process_pending', queue='counters')
+@instrumented_task(
+    name='sentry.tasks.process_buffer.process_pending',
+    queue='counters')
 def process_pending():
     """
     Process pending buffers.
@@ -19,7 +23,9 @@ def process_pending():
     app.buffer.process_pending()
 
 
-@task(name='sentry.tasks.process_buffer.process_incr', queue='counters')
+@instrumented_task(
+    name='sentry.tasks.process_buffer.process_incr',
+    queue='counters')
 def process_incr(**kwargs):
     """
     Processes a buffer event.

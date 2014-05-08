@@ -14,6 +14,12 @@ if (Sentry === undefined) {
         return r;
     };
 
+    var percentile = function(a, nth) {
+        a = a.sort();
+        a.slice(0, a.length - Math.floor(nth / a.length));
+        return average(a);
+    };
+
     var timeUnitSize = {
         "second": 1000,
         "minute": 60 * 1000,
@@ -68,18 +74,21 @@ if (Sentry === undefined) {
             type: 'get',
             dataType: 'json',
             data: {
-                days: 7,
-                gid: $sparkline.attr('data-group') || undefined
+                since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+                resolution: '1h'
             },
             success: function(data){
-                var inputs = [], avg, i, data_avg = [];
+                var inputs = [], avg, i, data_avg = [], p_95th;
                 for (i = 0; i < data.length; i++) {
                     inputs.push(data[i][1]);
+
+                    // set timestamp to be in millis
+                    data[i][0] = data[i][0] * 1000;
                 }
-                avg = average(inputs);
+                p_95th = percentile(inputs);
 
                 for (i = 0; i < data.length; i++) {
-                    data_avg.push([data[i][0], avg.deviation]);
+                    data_avg.push([data[i][0], p_95th.mean]);
                 }
 
                 var points = [

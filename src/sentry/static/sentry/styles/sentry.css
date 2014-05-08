@@ -5753,8 +5753,8 @@ a.badge:focus {
 .select2-container .select2-choice abbr {
   display: block;
   position: absolute;
-  right: 27px;
-  top: 12px;
+  right: 14px;
+  top: 10px;
   width: 12px;
   height: 12px;
   font-size: 1px;
@@ -5794,6 +5794,7 @@ a.badge:focus {
   background: #fff;
   color: #000;
   border-top: 0;
+  margin-top: -1px;
   position: absolute;
   top: 100%;
   z-index: 9999;
@@ -5829,7 +5830,18 @@ a.badge:focus {
   top: auto;
   bottom: -4px;
 }
+.select2-drop.select2-drop-above.select2-drop-active {
+  border-top: 1px solid #5897fb;
+}
+.select2-drop-auto-width {
+  border-top: 1px solid #aaa;
+  width: auto;
+}
+.select2-drop-auto-width .select2-search {
+  padding-top: 4px;
+}
 .select2-search {
+  position: relative;
   display: inline-block;
   white-space: nowrap;
   z-index: 10000;
@@ -6097,13 +6109,17 @@ disabled look for already selected choices in the results dropdown
 .select2-search-choice-close {
   display: block;
   position: absolute;
-  right: -35px;
+  right: 3px;
   top: 4px;
   width: 12px;
   height: 13px;
   font-size: 1px;
   background: url('../scripts/lib/select2/select2.png') right top no-repeat;
   outline: none;
+}
+html[dir="rtl"] .select2-search-choice-close {
+  right: auto;
+  left: 3px;
 }
 .select2-container-multi .select2-search-choice-close {
   left: 3px;
@@ -6141,6 +6157,17 @@ disabled look for already selected choices in the results dropdown
 .select2-offscreen {
   position: absolute;
   left: -10000px;
+}
+.select2-display-none {
+  display: none;
+}
+.select2-measure-scrollbar {
+  position: absolute;
+  top: -10000px;
+  left: -10000px;
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
 }
 /* Retina-ize icons */
 @media only screen and (-webkit-min-device-pixel-ratio: 1.5) {
@@ -7096,14 +7123,13 @@ h3 {
 }
 #content .sidebar .nav.nav-tabs.nav-stacked.counted-list li a,
 #content .sidebar .nav.counted-list.counted-list li a {
-  display: inline;
-  padding: 0;
+  padding: 0 50px 0 0;
   margin: 0;
   word-break: break-all;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .count,
-#content .sidebar .nav.counted-list.counted-list li .count {
-  padding-right: 5px;
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .progressbar,
+#content .sidebar .nav.counted-list.counted-list li .progressbar {
+  padding: 5px 0;
 }
 #content .sidebar .nav.nav-tabs.nav-stacked li,
 #content .sidebar .nav.counted-list li {
@@ -7318,6 +7344,17 @@ ul.tag-list {
 }
 ul.tag-list li {
   margin-bottom: 5px;
+  position: relative;
+}
+ul.tag-list li .progressbar {
+  padding: 5px 0;
+}
+ul.tag-list li:nth-child(even) {
+  background: #f9f9f9;
+}
+ul.tag-list li span {
+  position: absolute;
+  right: 10px;
 }
 a.icon-share {
   margin-top: 1px;
@@ -7331,7 +7368,6 @@ a.icon-share:hover {
 }
 .progressbar {
   position: relative;
-  border: 1px solid #c7def5;
   min-height: 1.5em;
   line-height: 1.5em;
 }
@@ -7344,16 +7380,24 @@ a.icon-share:hover {
   max-width: 100%;
   position: absolute;
 }
+.progressbar > div {
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+}
 .progressbar > a {
   left: 5px;
   position: relative;
   z-index: 1;
   padding-right: 60px;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .progressbar > a span {
   position: absolute;
-  right: 5px;
+  right: 10px;
 }
 .progressbar > div {
   background-color: #f2f8fd;
@@ -7400,9 +7444,21 @@ a.icon-share:hover {
   border-bottom: none;
   padding-bottom: 0;
 }
-.group-list.no-counts > li,
-.events.no-counts > li {
+.group-list.similar-events > li,
+.events.similar-events > li {
   padding-left: 20px;
+  min-height: 0;
+}
+.group-list.similar-events > li .meta,
+.events.similar-events > li .meta {
+  position: absolute;
+  top: 10px;
+  bottom: 0;
+  right: 20px;
+}
+.group-list.similar-events > li .row_link:hover,
+.events.similar-events > li .row_link:hover {
+  background: rgba(238, 238, 238, 0.1);
 }
 .group-list > li,
 .events > li {
@@ -9005,6 +9061,10 @@ table.vars table.vars th {
 .windowed .container {
   min-width: auto;
 }
+.windowed #content {
+  width: auto;
+  min-width: auto;
+}
 .windowed #content.with-left-sidebar {
   width: 900px;
   min-width: 900px;
@@ -9025,6 +9085,44 @@ table.vars table.vars th {
   margin-left: -250px;
 }
 .windowed #content.with-left-sidebar section.body {
+  min-width: 0;
+}
+.windowed-small {
+  background: #c8cbd0;
+}
+.windowed-small .outer-wrapper {
+  width: auto;
+  max-width: 400px;
+}
+.windowed-small footer,
+.windowed-small header {
+  text-align: center;
+  padding: 0;
+  min-width: 0;
+  width: auto;
+}
+.windowed-small footer {
+  padding: 10px 25px;
+  height: 60px;
+}
+.windowed-small header {
+  height: 40px;
+}
+.windowed-small header h2 {
+  letter-spacing: -1px;
+  font-weight: bold;
+  font-size: 22px;
+  position: absolute;
+  left: 70px;
+  margin-top: 2px;
+  color: #fff;
+}
+.windowed-small #content .main,
+.windowed-small #content section.body {
+  min-width: 0;
+}
+.windowed-small .container {
+  width: auto;
   min-width: 0;
 }
 .popover {

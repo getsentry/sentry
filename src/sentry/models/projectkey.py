@@ -6,6 +6,7 @@ sentry.models.projectkey
 :license: BSD, see LICENSE for more details.
 """
 
+from bitfield import BitField
 from urlparse import urlparse
 from uuid import uuid4
 
@@ -23,6 +24,13 @@ class ProjectKey(Model):
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    roles = BitField(flags=(
+        # access to post events to the store endpoint
+        'store',
+
+        # read/write access to rest API
+        'api',
+    ), default=['store'])
 
     # For audits
     user_added = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')

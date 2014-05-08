@@ -13,32 +13,35 @@ from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
+from django.http import (
+    HttpResponse, HttpResponseBadRequest,
+    HttpResponseForbidden, HttpResponseRedirect,
+)
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
+from sentry.app import tsdb
 from sentry.constants import (
     MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
     EVENTS_PER_PAGE)
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
-    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip)
-from sentry.exceptions import InvalidData
+    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
+    decompress_deflate, decompress_gzip)
+from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.models import (
-    Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
-    User)
+    Group, GroupBookmark, Project, TagValue, Activity, User)
+from sentry.signals import event_received
 from sentry.plugins import plugins
+from sentry.quotas.base import RateLimit
 from sentry.utils import json
-from sentry.utils.cache import cache
-from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -125,6 +128,8 @@ class APIView(BaseView):
             origin = self.get_request_origin(request)
 
             response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+        except InvalidRequest as e:
+            response = HttpResponseBadRequest(str(e), content_type='text/plain')
         except Exception:
             response = HttpResponse(status=500)
 
@@ -168,18 +173,19 @@ class APIView(BaseView):
 
         try:
             project = self._get_project_from_id(project_id)
-        except APIError, e:
-            return HttpResponse(str(e), content_type='text/plain', status=400)
+        except APIError as e:
+            raise InvalidRequest(str(e))
 
         if project:
             Raven.tags_context({'project': project.id})
 
         origin = self.get_request_origin(request)
         if origin is not None:
+            # This check is specific for clients who need CORS support
             if not project:
-                return HttpResponse('Your client must be upgraded for CORS support.')
-            elif not is_valid_origin(origin, project):
-                return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
+                raise InvalidRequest('Your client must be upgraded for CORS support.')
+            if not is_valid_origin(origin, project):
+                raise InvalidOrigin(origin)
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
@@ -187,12 +193,12 @@ class APIView(BaseView):
         else:
             try:
                 auth_vars = self._parse_header(request, project)
-            except APIError, e:
-                return HttpResponse(str(e), content_type='text/plain', status=400)
+            except APIError as e:
+                raise InvalidRequest(str(e))
 
             try:
                 project_, user = project_from_auth_vars(auth_vars)
-            except APIError, error:
+            except APIError as error:
                 return HttpResponse(unicode(error.msg), status=error.http_status)
             else:
                 if user:
@@ -201,27 +207,36 @@ class APIView(BaseView):
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
                 if not project_:
-                    return HttpResponse('Unable to identify project', content_type='text/plain', status=400)
+                    raise InvalidRequest('Unable to identify project')
                 project = project_
             elif project_ != project:
-                return HttpResponse('Project ID mismatch', content_type='text/plain', status=400)
+                raise InvalidRequest('Project ID mismatch')
             else:
                 Raven.tags_context({'project': project.id})
 
             auth = Auth(auth_vars, is_public=bool(origin))
 
             if auth.version >= 3:
-                if request.method == 'GET' and origin is None:
-                    return HttpResponse('Missing required Origin or Referer header', status=400)
-                # Version 3 enforces secret key for server side requests
-                if not auth.secret_key:
-                    return HttpResponse('Missing required attribute in authentication header: sentry_secret', status=400)
+                if request.method == 'GET':
+                    # GET only requires an Origin/Referer check
+                    # If an Origin isn't passed, it's possible that the project allows no origin,
+                    # so we need to explicitly check for that here. If Origin is not None,
+                    # it can be safely assumed that it was checked previously and it's ok.
+                    if origin is None and not is_valid_origin(origin, project):
+                        # Special case an error message for a None origin when None wasn't allowed
+                        raise InvalidRequest('Missing required Origin or Referer header')
+                else:
+                    # Version 3 enforces secret key for server side requests
+                    if not auth.secret_key:
+                        raise InvalidRequest('Missing required attribute in authentication header: sentry_secret')
 
             try:
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
-            except APIError, error:
+            except APIError as error:
                 response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
+                if isinstance(error, APIRateLimited) and error.retry_after is not None:
+                    response['Retry-After'] = str(error.retry_after)
 
         if origin:
             response['Access-Control-Allow-Origin'] = origin
@@ -269,7 +284,7 @@ class StoreView(APIView):
 
     """
     def post(self, request, project, auth, **kwargs):
-        data = request.raw_post_data
+        data = request.body
         response_or_event_id = self.process(request, project, auth, data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
@@ -288,24 +303,34 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, data, **kwargs):
-        if safe_execute(app.quotas.is_rate_limited, project=project):
-            raise APIRateLimited
-        for plugin in plugins.all():
-            if safe_execute(plugin.is_rate_limited, project=project):
-                raise APIRateLimited
+        event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
+
+        # TODO: improve this API (e.g. make RateLimit act on __ne__)
+        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project)
+        if isinstance(rate_limit, bool):
+            rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
+
+        if rate_limit is not None and rate_limit.is_limited:
+            raise APIRateLimited(rate_limit.retry_after)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
 
-        if not data.startswith('{'):
+        content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
+
+        if content_encoding == 'gzip':
+            data = decompress_gzip(data)
+        elif content_encoding == 'deflate':
+            data = decompress_deflate(data)
+        elif not data.startswith('{'):
             data = decode_and_decompress_data(data)
         data = safely_load_json_string(data)
 
         try:
             # mutates data
             validate_data(project, data, auth.client)
-        except InvalidData, e:
+        except InvalidData as e:
             raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
         # mutates data
@@ -436,7 +461,10 @@ def resolve_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_RESOLVED)
+    happened = group.update(
+        status=STATUS_RESOLVED,
+        resolved_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -458,7 +486,10 @@ def mute_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_MUTED)
+    happened = group.update(
+        status=STATUS_MUTED,
+        resolved_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -480,7 +511,10 @@ def unresolve_group(request, team, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_UNRESOLVED)
+    happened = group.update(
+        status=STATUS_UNRESOLVED,
+        active_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -554,9 +588,12 @@ def clear(request, team, project):
 
     # TODO: should we record some kind of global event in Activity?
     event_list = response['event_list']
-    happened = event_list.update(status=STATUS_RESOLVED)
+    rows_affected = event_list.update(status=STATUS_RESOLVED)
+    if rows_affected > 1000:
+        logger.warning(
+            'Large resolve on %s of %s rows', project.slug, rows_affected)
 
-    if happened:
+    if rows_affected:
         Activity.objects.create(
             project=project,
             type=Activity.SET_RESOLVED,
@@ -564,43 +601,6 @@ def clear(request, team, project):
         )
 
     data = []
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
-
-
-@vary_on_cookie
-@csrf_exempt
-@has_access
-def chart(request, team=None, project=None):
-    gid = request.REQUEST.get('gid')
-    days = int(request.REQUEST.get('days', '90'))
-    if gid:
-        try:
-            group = Group.objects.get(pk=gid)
-        except Group.DoesNotExist:
-            return HttpResponseForbidden()
-
-        data = Group.objects.get_chart_data(group, max_days=days)
-    elif project:
-        data = Project.objects.get_chart_data(project, max_days=days)
-    elif team:
-        cache_key = 'api.chart:team=%s,days=%s' % (team.id, days)
-
-        data = cache.get(cache_key)
-        if data is None:
-            project_list = list(Project.objects.filter(team=team))
-            data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
-            cache.set(cache_key, data, 300)
-    else:
-        cache_key = 'api.chart:user=%s,days=%s' % (request.user.id, days)
-
-        data = cache.get(cache_key)
-        if data is None:
-            project_list = Project.objects.get_for_user(request.user)
-            data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
-            cache.set(cache_key, data, 300)
-
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
     return response
@@ -625,18 +625,13 @@ def get_group_trends(request, team=None, project=None):
         status=0,
     )
 
-    if has_trending():
-        group_list = list(Group.objects.get_accelerated(project_dict, base_qs, minutes=(
-            minutes
-        ))[:limit])
-    else:
-        cutoff = datetime.timedelta(minutes=minutes)
-        cutoff_dt = timezone.now() - cutoff
+    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff_dt = timezone.now() - cutoff
 
-        group_list = list(base_qs.filter(
-            status=STATUS_UNRESOLVED,
-            last_seen__gte=cutoff_dt
-        ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
+    group_list = list(base_qs.filter(
+        status=STATUS_UNRESOLVED,
+        last_seen__gte=cutoff_dt
+    ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
@@ -729,18 +724,28 @@ def get_stats(request, team=None, project=None):
         project_list = Project.objects.get_for_user(request.user, team=team)
 
     cutoff = datetime.timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
 
-    num_events = ProjectCountByMinute.objects.filter(
-        project__in=project_list,
-        date__gte=cutoff_dt,
-    ).aggregate(t=Sum('times_seen'))['t'] or 0
+    end = timezone.now()
+    start = end - cutoff
+
+    # TODO(dcramer): this is used in an unreleased feature. reimplement it using
+    # new API and tsdb
+    results = tsdb.get_range(
+        model=tsdb.models.project,
+        keys=[p.id for p in project_list],
+        start=start,
+        end=end,
+    )
+    num_events = 0
+    for project, points in results.iteritems():
+        num_events += sum(p[1] for p in points)
 
     # XXX: This is too slow if large amounts of groups are resolved
+    # TODO(dcramer); move this into tsdb
     num_resolved = Group.objects.filter(
         project__in=project_list,
         status=STATUS_RESOLVED,
-        resolved_at__gte=cutoff_dt,
+        resolved_at__gte=start,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 
     data = {
