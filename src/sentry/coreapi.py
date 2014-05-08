@@ -281,7 +281,7 @@ def validate_data(project, data, client=None):
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
-    if not isinstance(data['event_id'], basestring):
+    elif not isinstance(data['event_id'], basestring):
         raise APIError('Invalid value for event_id')
     if len(data['event_id']) > 32:
         logger.info(
