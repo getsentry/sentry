@@ -271,7 +271,9 @@ def validate_data(project, data, client=None):
         data['message'] = truncatechars(
             data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
-    if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
+    if data.get('culprit'):
+        if not isinstance(data['culprit'], basestring):
+            raise APIError('Invalid value for culprit')
         logger.info(
             'Truncated value for culprit due to length (%d chars)',
             len(data['culprit']), **client_metadata(client, project))
@@ -279,6 +281,8 @@ def validate_data(project, data, client=None):
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
+    if not isinstance(data['event_id'], basestring):
+        raise APIError('Invalid value for event_id')
     if len(data['event_id']) > 32:
         logger.info(
             'Discarded value for event_id due to length (%d chars)',
