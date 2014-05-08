@@ -176,7 +176,7 @@ class GroupTransformer(Transformer):
             'isPublic': obj.is_public,
             'score': getattr(obj, 'sort_value', 0),
             'project': {
-                'name': obj.project.name,
+                'name': escape(obj.project.name),
                 'slug': obj.project.slug,
             },
             'version': version,
