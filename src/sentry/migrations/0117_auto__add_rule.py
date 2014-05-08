@@ -18,9 +18,11 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['Rule'])
 
+
     def backwards(self, orm):
         # Deleting model 'Rule'
         db.delete_table('sentry_rule')
+
 
     models = {
         'sentry.accessgroup': {
@@ -68,20 +70,15 @@ class Migration(SchemaMigration):
         'sentry.event': {
             'Meta': {'unique_together': "(('project', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'"},
             'checksum': ('django.db.models.fields.CharField', [], {'max_length': '32', 'db_index': 'True'}),
-            'culprit': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'db_column': "'view'", 'blank': 'True'}),
             'data': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
             'event_id': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True', 'db_column': "'message_id'"}),
             'group': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'event_set'", 'null': 'True', 'to': "orm['sentry.Group']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'level': ('django.db.models.fields.PositiveIntegerField', [], {'default': '40', 'db_index': 'True', 'blank': 'True'}),
-            'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
             'num_comments': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'null': 'True'}),
             'platform': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
-            'server_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_index': 'True'}),
-            'site': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_index': 'True'}),
             'time_spent': ('django.db.models.fields.IntegerField', [], {'null': 'True'})
         },
         'sentry.eventmapping': {
@@ -121,16 +118,6 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bookmark_set'", 'to': "orm['sentry.Project']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_bookmark_set'", 'to': "orm['sentry.User']"})
-        },
-        'sentry.groupcountbyminute': {
-            'Meta': {'unique_together': "(('project', 'group', 'date'),)", 'object_name': 'GroupCountByMinute', 'db_table': "'sentry_messagecountbyminute'"},
-            'date': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True'}),
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
-            'time_spent_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'time_spent_total': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         },
         'sentry.groupmeta': {
             'Meta': {'unique_together': "(('group', 'key'),)", 'object_name': 'GroupMeta'},
@@ -177,7 +164,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Option'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
-            'value': ('picklefield.fields.PickledObjectField', [], {})
+            'value': ('sentry.db.models.fields.pickle.UnicodePickledObjectField', [], {})
         },
         'sentry.pendingteammember': {
             'Meta': {'unique_together': "(('team', 'email'),)", 'object_name': 'PendingTeamMember'},
@@ -199,21 +186,13 @@ class Migration(SchemaMigration):
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Team']", 'null': 'True'})
         },
-        'sentry.projectcountbyminute': {
-            'Meta': {'unique_together': "(('project', 'date'),)", 'object_name': 'ProjectCountByMinute'},
-            'date': ('django.db.models.fields.DateTimeField', [], {}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
-            'time_spent_count': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'time_spent_total': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
-            'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
-        },
         'sentry.projectkey': {
             'Meta': {'object_name': 'ProjectKey'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'null': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'key_set'", 'to': "orm['sentry.Project']"}),
             'public_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
+            'roles': ('django.db.models.fields.BigIntegerField', [], {'default': '1'}),
             'secret_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True'}),
             'user_added': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'keys_added_set'", 'null': 'True', 'to': "orm['sentry.User']"})
@@ -223,7 +202,7 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
-            'value': ('picklefield.fields.PickledObjectField', [], {})
+            'value': ('sentry.db.models.fields.pickle.UnicodePickledObjectField', [], {})
         },
         'sentry.rule': {
             'Meta': {'object_name': 'Rule'},
@@ -259,7 +238,8 @@ class Migration(SchemaMigration):
             'members': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'team_memberships'", 'symmetrical': 'False', 'through': "orm['sentry.TeamMember']", 'to': "orm['sentry.User']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.User']"}),
-            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50'})
+            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50'}),
+            'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         },
         'sentry.teammember': {
             'Meta': {'unique_together': "(('team', 'user'),)", 'object_name': 'TeamMember'},
@@ -289,7 +269,7 @@ class Migration(SchemaMigration):
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.User']"}),
-            'value': ('picklefield.fields.PickledObjectField', [], {})
+            'value': ('sentry.db.models.fields.pickle.UnicodePickledObjectField', [], {})
         }
     }
 
