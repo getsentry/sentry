@@ -179,7 +179,7 @@ enable more aggressive/optimized LRU.
 
 That said, if you're running a small install you can probably get away with just setting up the defaults:
 
-.. code-block::
+::
 
     SENTRY_REDIS_OPTIONS = {
         'hosts': {
