@@ -543,7 +543,7 @@ The client should send the following upstream for ``tags``::
 
 You should also provide relevant contextual interfaces. These should last for the lifecycle of a request, and the general interface is "bind some kind of context", and then at the end of a request lifecycle, clear any present context.
 
-This interface consists of *_context methods, as well as a "clear context" method. The following is an example API which is implemented in most clients:
+This interface consists of \*_context methods, as well as a "clear context" method. The following is an example API which is implemented in most clients:
 
 ::
 

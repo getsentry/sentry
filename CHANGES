@@ -673,7 +673,7 @@ Version 2.3.0
 Version 2.2.5
 -------------
 
-* The |date filter now forces things to UTC (it assumes local time).
+* The \|date filter now forces things to UTC (it assumes local time).
 * Event templates have been updated to resemble groups.
 
 Version 2.2.4
