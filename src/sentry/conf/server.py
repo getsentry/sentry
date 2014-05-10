@@ -604,7 +604,7 @@ SENTRY_MAX_VARIABLE_SIZE = 512
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 
-# For various attributes we dont limit the entire attribute on size, but the
+# For various attributes we don't limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of
 # keys
 SENTRY_MAX_DICTIONARY_ITEMS = 50

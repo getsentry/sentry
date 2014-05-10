@@ -138,7 +138,7 @@ class AccountSettingsForm(forms.Form):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
-        # dont show username field if its the same as their email address
+        # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
             del self.fields['username']
 

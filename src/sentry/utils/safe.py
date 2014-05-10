@@ -87,7 +87,7 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
 
 
 def trim_frames(stacktrace, max_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES):
-    # TODO: this doesnt account for cases where the client has already omitted
+    # TODO: this doesn't account for cases where the client has already omitted
     # frames
     frames = stacktrace['frames']
     frames_len = len(frames)

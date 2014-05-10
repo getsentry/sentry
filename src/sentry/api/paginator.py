@@ -85,10 +85,10 @@ class Paginator(object):
             results = [r for r in reversed(results[:limit + 1])]
             num_results = len(results)
         elif cursor_offset or offset:
-            # It's likely that theres a previous page if they passed us either offset values
+            # It's likely that there's a previous page if they passed us either offset values
             has_prev = True
         else:
-            # we dont know
+            # we don't know
             has_prev = False
 
         # Default cursor if not present
@@ -135,7 +135,7 @@ class Paginator(object):
             else:
                 i = 0
 
-            # if we iterated every result and the offset didnt change, we need
+            # if we iterated every result and the offset didn't change, we need
             # to simply add the current offset to our total results (visible)
             if prev_cursor_offset == cursor_offset:
                 prev_offset = offset + i
@@ -149,7 +149,7 @@ class Paginator(object):
         # Truncate the list to our original result size now that we've determined the next page
         results = results[:limit]
 
-        # XXX: We convert datetimes to unix_time and bump 7 decimal places so we dont
+        # XXX: We convert datetimes to unix_time and bump 7 decimal places so we don't
         # have to worry about float point restrictions. This conversion is also handled
         # in the CursorTimestamp validator
         if isinstance(next_cursor_offset, datetime.datetime):
