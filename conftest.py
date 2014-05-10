@@ -80,8 +80,8 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
 
-    # django mail uses socket.getfqdn which doesnt play nice if our
-    # networking isnt stable
+    # django mail uses socket.getfqdn which doesn't play nice if our
+    # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
