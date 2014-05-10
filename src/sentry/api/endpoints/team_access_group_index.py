@@ -49,7 +49,7 @@ class TeamAccessGroupIndexEndpoint(Endpoint):
     def get(self, request, team_id):
         team = Team.objects.get_from_cache(id=team_id)
 
-        assert_perm(team, request.user)
+        assert_perm(team, request.user, request.auth)
 
         data = sorted(AccessGroup.objects.filter(team=team), key=lambda x: x.name)
 
@@ -58,7 +58,7 @@ class TeamAccessGroupIndexEndpoint(Endpoint):
     def post(self, request, team_id):
         team = Team.objects.get_from_cache(id=team_id)
 
-        assert_perm(team, request.user, MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         serializer = AccessGroupSerializer(data=request.DATA)
 

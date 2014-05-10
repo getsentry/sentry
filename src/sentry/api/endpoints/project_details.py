@@ -22,7 +22,7 @@ class ProjectDetailsEndpoint(Endpoint):
     def get(self, request, project_id):
         project = Project.objects.get(id=project_id)
 
-        assert_perm(project, request.user)
+        assert_perm(project, request.user, request.auth)
 
         data = serialize(project, request.user)
         data['options'] = {
@@ -36,7 +36,7 @@ class ProjectDetailsEndpoint(Endpoint):
     def put(self, request, project_id):
         project = Project.objects.get(id=project_id)
 
-        assert_perm(project, request.user, access=MEMBER_ADMIN)
+        assert_perm(project, request.user, request.auth, access=MEMBER_ADMIN)
 
         serializer = ProjectSerializer(project, data=request.DATA, partial=True)
 

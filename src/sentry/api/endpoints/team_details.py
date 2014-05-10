@@ -31,7 +31,7 @@ class TeamDetailsEndpoint(Endpoint):
     def get(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user)
+        assert_perm(team, request.user, request.auth)
 
         return Response(serialize(team, request.user))
 
@@ -39,7 +39,7 @@ class TeamDetailsEndpoint(Endpoint):
     def put(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user, access=MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         # TODO(dcramer): this permission logic is duplicated from the
         # transformer
@@ -65,7 +65,7 @@ class TeamDetailsEndpoint(Endpoint):
     def delete(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user, access=MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         if team.project_set.filter(id=settings.SENTRY_PROJECT).exists():
             return Response('{"error": "Cannot remove team containing default project."}',

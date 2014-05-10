@@ -28,7 +28,7 @@ class EventDetailsEndpoint(Endpoint):
             id=event_id
         )
 
-        assert_perm(event, request.user)
+        assert_perm(event, request.user, request.auth)
 
         Event.objects.bind_nodes([event], 'data')
 

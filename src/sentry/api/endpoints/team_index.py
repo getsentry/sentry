@@ -33,7 +33,10 @@ class TeamAdminSerializer(TeamSerializer):
 
 class TeamIndexEndpoint(Endpoint):
     def get(self, request):
-        teams = Team.objects.get_for_user(request.user).values()
+        if request.auth:
+            teams = [request.auth.project.team]
+        else:
+            teams = Team.objects.get_for_user(request.user).values()
         return Response(serialize(teams, request.user))
 
     def post(self, request):

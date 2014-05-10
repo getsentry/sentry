@@ -11,7 +11,7 @@ class GroupBookmarkEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         bookmark = GroupBookmark(
             project=group.project,

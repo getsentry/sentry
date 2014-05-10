@@ -19,7 +19,7 @@ class TeamProjectIndexEndpoint(Endpoint):
     def get(self, request, team_id):
         team = Team.objects.get_from_cache(id=team_id)
 
-        assert_perm(team, request.user)
+        assert_perm(team, request.user, request.auth)
 
         results = list(Project.objects.get_for_user(request.user, team=team))
 
@@ -28,7 +28,7 @@ class TeamProjectIndexEndpoint(Endpoint):
     def post(self, request, team_id):
         team = Team.objects.get_from_cache(id=team_id)
 
-        assert_perm(team, request.user, MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         if not can_create_projects(request.user, team=team_id):
             return Response(status=403)

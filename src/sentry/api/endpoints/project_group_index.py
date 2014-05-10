@@ -27,7 +27,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
             id=project_id,
         )
 
-        assert_perm(project, request.user)
+        assert_perm(project, request.user, request.auth)
 
         group_list = Group.objects.all()
 
