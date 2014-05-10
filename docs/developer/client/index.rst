@@ -338,7 +338,7 @@ See :doc:`../interfaces/index` for information on Sentry's builtin interfaces an
 Authentication
 --------------
 
-An authentication header is expected to be sent along with the message body, which acts as as an ownership identifier::
+An authentication header is expected to be sent along with the message body, which acts as an ownership identifier::
 
     X-Sentry-Auth: Sentry sentry_version=5,
     sentry_client=<client version, arbitrary>,

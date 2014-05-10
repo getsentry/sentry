@@ -8,5 +8,5 @@ sentry.testutils.asserts
 
 
 def assert_date_resembles(one, two):
-    # this is mostly intended to handle discrepencies between mysql/postgres
+    # this is mostly intended to handle discrepancies between mysql/postgres
     assert one.replace(microsecond=0) == two.replace(microsecond=0)

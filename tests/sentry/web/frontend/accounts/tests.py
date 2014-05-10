@@ -287,7 +287,7 @@ class RecoverPasswordTest(TestCase):
 
     def test_invalid_username(self):
         resp = self.client.post(self.path, {
-            'user': 'nonexistant'
+            'user': 'nonexistent'
         })
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/account/recover/index.html')

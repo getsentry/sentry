@@ -626,7 +626,7 @@ class Stacktrace(Interface):
         if len(frames) == system_frames:
             system_frames = 0
 
-        # if theres no system frames, pretend they're all part of the app
+        # if there's no system frames, pretend they're all part of the app
         if not system_frames:
             for frame in frames:
                 frame['in_app'] = True
