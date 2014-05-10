@@ -418,7 +418,7 @@ def group(request, team, project, group, event_id=None):
     for item in activity_qs.filter(group=group)[:20]:
         sig = (item.event_id, item.type, item.ident, item.user_id)
         # TODO: we could just generate a signature (hash(text)) for notes
-        # so theres no special casing
+        # so there's no special casing
         if item.type == Activity.NOTE:
             activity.append(item)
         elif sig not in activity_items:

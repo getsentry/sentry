@@ -50,7 +50,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.project_id, 1)
 
     def test_valid_timestamp_without_tz(self):
-        # TODO: this doesnt error, but it will throw a warning. What should we do?
+        # TODO: this doesn't error, but it will throw a warning. What should we do?
         with self.settings(USE_TZ=True):
             date = datetime.datetime.utcnow()
             event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
@@ -85,7 +85,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.project_id, 1)
         self.assertEquals(Event.objects.count(), 1)
 
-        # ensure that calling it again doesnt raise a db error
+        # ensure that calling it again doesn't raise a db error
         Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(Event.objects.count(), 1)
 

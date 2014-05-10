@@ -107,7 +107,7 @@ class RangeQuerySetWrapper(object):
 class EverythingCollector(Collector):
     """
     More or less identical to the default Django collector except we always
-    return relations (even when they shouldnt matter).
+    return relations (even when they shouldn't matter).
     """
     def collect(self, objs, source=None, nullable=False, collect_related=True,
                 source_attr=None, reverse_dependency=False):
