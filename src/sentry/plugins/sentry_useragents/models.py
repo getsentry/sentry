@@ -63,7 +63,6 @@ class BrowserPlugin(UserAgentPlugin):
 
         return tag
 
-
 register(BrowserPlugin)
 
 
@@ -94,8 +93,8 @@ class OsPlugin(UserAgentPlugin):
 
         return tag
 
-
 register(OsPlugin)
+
 
 class DevicePlugin(UserAgentPlugin):
     """
