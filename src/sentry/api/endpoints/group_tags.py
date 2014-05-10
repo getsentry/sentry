@@ -11,7 +11,7 @@ class GroupTagsEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         def percent(total, this):
             return int(this / total * 100)

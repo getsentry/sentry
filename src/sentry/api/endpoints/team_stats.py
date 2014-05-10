@@ -10,7 +10,7 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
     def get(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user)
+        assert_perm(team, request.user, request.auth)
 
         projects = Project.objects.get_for_user(request.user, team=team)
 

@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -17,7 +18,7 @@ class KeyAuthentication(BasicAuthentication):
         if not pk.roles.api:
             raise AuthenticationFailed('Key does not allow API access')
 
-        return (None, pk)
+        return (AnonymousUser(), pk)
 
 
 class QuietBasicAuthentication(BasicAuthentication):

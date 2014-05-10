@@ -9,7 +9,7 @@ class TeamMemberIndexEndpoint(Endpoint):
     def get(self, request, team_id):
         team = Team.objects.get_from_cache(id=team_id)
 
-        assert_perm(team, request.user)
+        assert_perm(team, request.user, request.auth)
 
         member_list = serialize(
             list(team.member_set.select_related('user')),

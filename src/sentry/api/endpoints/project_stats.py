@@ -12,7 +12,7 @@ class ProjectStatsEndpoint(BaseStatsEndpoint):
             id=project_id,
         )
 
-        assert_perm(project, request.user)
+        assert_perm(project, request.user, request.auth)
 
         data = tsdb.get_range(
             model=tsdb.models.project,

@@ -47,7 +47,7 @@ class GroupDetailsEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         data = serialize(group, request.user)
 

@@ -10,7 +10,7 @@ class GroupEventsEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         events = Event.objects.filter(
             group=group

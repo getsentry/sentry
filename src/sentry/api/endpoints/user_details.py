@@ -23,7 +23,7 @@ class UserDetailsEndpoint(Endpoint):
 
         user = User.objects.get(id=user_id)
 
-        assert_perm(user, request.user)
+        assert_perm(user, request.user, request.auth)
 
         teams = Team.objects.get_for_user(user, with_projects=True)
 
@@ -41,7 +41,7 @@ class UserDetailsEndpoint(Endpoint):
 
         user = User.objects.get(id=user_id)
 
-        assert_perm(user, request.user)
+        assert_perm(user, request.user, request.auth)
 
         serializer = UserSerializer(user, data=request.DATA, partial=True)
 

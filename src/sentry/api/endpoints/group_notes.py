@@ -21,7 +21,7 @@ class GroupNotesEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         notes = Activity.objects.filter(
             group=group,
@@ -40,7 +40,7 @@ class GroupNotesEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         form = NewNoteForm(request.DATA)
         if not form.is_valid():
