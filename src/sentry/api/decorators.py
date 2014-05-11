@@ -1,7 +1,7 @@
 import json
 
 from django.http import HttpResponse
-from django_sudo.utils import has_sudo_privileges
+from sudo.utils import has_sudo_privileges
 from functools import wraps
 
 

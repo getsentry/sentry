@@ -27,8 +27,8 @@ from django.utils.importlib import import_module
 from exam import Exam
 from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
-from django_sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
-from django_sudo.utils import grant_sudo_privileges
+from sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
+from sudo.utils import grant_sudo_privileges
 
 from sentry.constants import MODULE_ROOT
 from sentry.models import ProjectOption
