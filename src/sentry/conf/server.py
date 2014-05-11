@@ -169,7 +169,7 @@ INSTALLED_APPS = (
     'social_auth',
     'south',
     'static_compiler',
-    'django_sudo',
+    'sudo',
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
