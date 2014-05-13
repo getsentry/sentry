@@ -152,15 +152,26 @@ class NewAccessGroupMemberForm(forms.Form):
 
 
 class NewAccessGroupProjectForm(forms.Form):
-    project = forms.CharField(label=_('Project'), widget=forms.TextInput(attrs={'placeholder': _('slug')}))
+    project = forms.TypedChoiceField(choices=(), coerce=int)
 
     def __init__(self, group, *args, **kwargs):
         super(NewAccessGroupProjectForm, self).__init__(*args, **kwargs)
         self.group = group
+        self.project_list = dict(
+            (p.id, p) for p in Project.objects.filter(
+                team=group.team,
+            )
+        )
+        self.fields['project'].choices = [
+            (k, p.name) for k, p in sorted(self.project_list.iteritems())
+        ]
+        self.fields['project'].widget.choices = self.fields['project'].choices
 
     def clean_project(self):
-        value = self.cleaned_data['project']
+        value = self.cleaned_data.get('project')
+        if not value:
+            return None
         try:
-            return Project.objects.get(team=self.group.team, slug=value)
-        except Project.DoesNotExist:
-            raise forms.ValidationError(_('Invalid project slug'))
+            return self.project_list[value]
+        except KeyError:
+            raise forms.ValidationError(_('Invalid project'))

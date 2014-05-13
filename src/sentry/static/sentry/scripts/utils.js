@@ -159,21 +159,6 @@
             });
         },
 
-        makeSearchableProjectsInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchProjectsUrl(), _.bind(function(data){
-                var results = [];
-                $(data.results).each(_.bind(function(_, val){
-                    results.push({
-                        id: val.slug,
-                        text: this.escape(val.name) + '<br>' + val.slug
-                    });
-                }, this));
-                return results;
-            }, {
-                escapeMarkup: function(s) { return s; }
-            }, this));
-        },
-
         makeSearchableTagsInput: function(el, options) {
             var $el = $(el);
             $el.select2({
