@@ -160,7 +160,7 @@
         },
 
         makeSearchableProjectsInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchProjectsUrl(), function(data){
+            this.makeSearchableInput(el, this.getSearchProjectsUrl(), _.bind(function(data){
                 var results = [];
                 $(data.results).each(_.bind(function(_, val){
                     results.push({
@@ -171,7 +171,7 @@
                 return results;
             }, {
                 escapeMarkup: function(s) { return s; }
-            });
+            }, this));
         },
 
         makeSearchableTagsInput: function(el, options) {
