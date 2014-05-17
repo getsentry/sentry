@@ -372,7 +372,7 @@ class AccessGroupProjectsTest(BaseAccessGroupTest):
     def test_does_add_member(self):
         project = Project.objects.create(team=self.team, name='Sample')
         resp = self.client.post(self.path, {
-            'project': project.slug
+            'project': project.id
         })
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + self.path
