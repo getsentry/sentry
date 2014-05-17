@@ -1,14 +1,13 @@
 import json
 
 from django.http import HttpResponse
-from sudo.utils import has_sudo_privileges
 from functools import wraps
 
 
 def sudo_required(func):
     @wraps(func)
     def wrapped(self, request, *args, **kwargs):
-        if not has_sudo_privileges(request):
+        if not request.is_sudo():
             # TODO(dcramer): support some kind of auth flow to allow this
             # externally
             data = {

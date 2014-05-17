@@ -68,6 +68,13 @@ def pytest_configure(config):
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
 
+    # Replace real sudo middleware with our mock sudo middleware
+    # to assert that the user is always in sudo mode
+    middleware = list(settings.MIDDLEWARE_CLASSES)
+    sudo = middleware.index('sentry.middleware.sudo.SudoMiddleware')
+    middleware[sudo] = 'tests.middleware.SudoMiddleware'
+    settings.MIDDLEWARE_CLASSES = tuple(middleware)
+
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
