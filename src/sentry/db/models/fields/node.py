@@ -15,6 +15,8 @@ import warnings
 from django.db import models
 from django.db.models.signals import post_delete
 
+import six
+
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
@@ -94,7 +96,7 @@ class NodeField(GzippedDictField):
         app.nodestore.delete(value.id)
 
     def to_python(self, value):
-        if isinstance(value, basestring) and value:
+        if isinstance(value, six.string_types) and value:
             try:
                 value = pickle.loads(decompress(value))
             except Exception as e:

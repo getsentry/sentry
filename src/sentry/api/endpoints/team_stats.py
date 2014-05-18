@@ -1,5 +1,7 @@
 from rest_framework.response import Response
 
+from six.moves import range
+
 from sentry.app import tsdb
 from sentry.api.base import BaseStatsEndpoint
 from sentry.api.permissions import assert_perm
@@ -24,7 +26,7 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
         ).values()
 
         summarized = []
-        for n in xrange(len(data[0])):
+        for n in range(len(data[0])):
             total = sum(d[n][1] for d in data)
             summarized.append((data[0][n][0], total))
 

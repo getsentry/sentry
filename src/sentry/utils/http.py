@@ -10,6 +10,8 @@ from urlparse import urlparse, urljoin
 
 from django.conf import settings
 
+import six
+
 
 def absolute_uri(url=None):
     if not url:
@@ -34,12 +36,12 @@ def safe_urlencode(params, doseq=0):
     for k, v in params:
         k = k.encode("utf-8")
 
-        if isinstance(v, basestring):
+        if isinstance(v, six.string_types):
             new_params.append((k, v.encode("utf-8")))
         elif isinstance(v, (list, tuple)):
             new_params.append((k, [i.encode("utf-8") for i in v]))
         else:
-            new_params.append((k, unicode(v)))
+            new_params.append((k, six.text_type(v)))
 
     return urllib.urlencode(new_params, doseq)
 
