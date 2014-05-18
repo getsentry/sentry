@@ -64,6 +64,6 @@ class LostPasswordHash(Model):
 
         try:
             msg.send([self.user.email])
-        except Exception as e:
+        except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
