@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import datetime
-from south.db import db
+from __future__ import print_function
+
 from south.v2 import DataMigration
-from django.db import models
+
 
 class Migration(DataMigration):
 
@@ -25,7 +25,7 @@ class Migration(DataMigration):
             if not matches:
                 continue
 
-            print "Merging duplicate events for %r" % (group,)
+            print("Merging duplicate events for %r" % (group,))
 
             updates = defaultdict(int)
             updates.update({

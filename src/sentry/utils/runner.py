@@ -6,7 +6,7 @@ sentry.utils.runner
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from logan.runner import run_app, configure_app
 
@@ -354,7 +354,7 @@ def configure(config_path=None):
 
 def main():
     if USE_GEVENT:
-        print "Configuring Sentry with gevent bindings"
+        print("Configuring Sentry with gevent bindings")
         initialize_gevent()
 
     run_app(
