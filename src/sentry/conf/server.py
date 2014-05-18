@@ -316,6 +316,9 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler'
         },
+        'null': {
+            'class': 'logging.NullHandler',
+        },
         'sentry': {
             'level': 'ERROR',
             'class': 'raven.contrib.django.handlers.SentryHandler',
@@ -350,6 +353,11 @@ LOGGING = {
         'django.request': {
             'level': 'ERROR',
             'handlers': ['console'],
+            'propagate': False,
+        },
+        'toronado.cssutils': {
+            'level': 'ERROR',
+            'handlers': ['null'],
             'propagate': False,
         },
     }

@@ -86,7 +86,6 @@ install_requires = [
     'logan>=0.5.8.2,<0.6.0',
     'nydus>=0.10.7,<0.11.0',
     'Pygments>=1.6.0,<1.7.0',
-    'pynliner>=0.4.0,<0.6.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
     'raven>=4.0.2',
@@ -94,6 +93,7 @@ install_requires = [
     'simplejson>=3.1.0,<3.4.0',
     'setproctitle>=1.1.7,<1.2.0',
     'South==0.8.2',
+    'toronado>=0.0.4,<0.1.0',
     'urllib3>=1.7.1,<1.8.0',
 ]
 
