@@ -5,7 +5,10 @@ sentry.management.commands.repair
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import print_function
+
 from django.core.management.base import BaseCommand
+
 from optparse import make_option
 
 
@@ -27,14 +30,14 @@ class Command(BaseCommand):
             owner = None
 
         if owner:
-            print "Assigning ownerless projects to %s" % owner.username
+            print("Assigning ownerless projects to %s" % owner.username)
             # Assign unowned projects
             for project in Project.objects.filter(owner__isnull=True):
                 update(project, owner=owner)
-                print "* Changed owner of %s" % project
+                print("* Changed owner of %s" % project)
 
         # Create teams for any projects that are missing them
-        print "Creating missing teams on projects"
+        print("Creating missing teams on projects")
         for project in Project.objects.filter(team__isnull=True, owner__isnull=False):
             team = Team(
                 name=project.name,
@@ -54,10 +57,10 @@ class Command(BaseCommand):
             team.save()
 
             update(project, team=team)
-            print "* Created team %s for %s" % (team, project)
+            print("* Created team %s for %s" % (team, project))
 
         # Create missing project keys
-        print "Creating missing project keys"
+        print("Creating missing project keys")
         for team in Team.objects.all():
             for member in team.member_set.select_related('user'):
                 for project in team.project_set.all():
@@ -70,4 +73,4 @@ class Command(BaseCommand):
                         pass
                     else:
                         if created:
-                            print "* Created key for %s on %s" % (member.user.username, project)
+                            print("* Created key for %s on %s" % (member.user.username, project))
