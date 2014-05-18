@@ -21,6 +21,8 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
+import six
+
 from sentry.app import env
 from sentry.models import Team, Project, User
 from sentry.plugins import plugins
@@ -335,7 +337,7 @@ def status_mail(request):
                 fail_silently=False
             )
         except Exception as e:
-            form.errors['__all__'] = [unicode(e)]
+            form.errors['__all__'] = [six.text_type(e)]
 
     return render_to_response('sentry/admin/status/mail.html', {
         'form': form,

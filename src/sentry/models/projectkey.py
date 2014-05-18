@@ -14,6 +14,8 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+import six
+
 from sentry.db.models import (
     Model, BaseManager, sane_repr
 )
@@ -48,7 +50,7 @@ class ProjectKey(Model):
     __repr__ = sane_repr('project_id', 'user_id', 'public_key')
 
     def __unicode__(self):
-        return unicode(self.public_key)
+        return six.text_type(self.public_key)
 
     @classmethod
     def generate_api_key(cls):

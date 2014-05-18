@@ -10,10 +10,14 @@ from __future__ import absolute_import
 from binascii import crc32
 from collections import defaultdict
 from datetime import timedelta
+from hashlib import md5
+
 from django.conf import settings
 from django.utils import timezone
-from hashlib import md5
+
 from nydus.db import create_cluster
+
+import six
 
 from sentry.tsdb.base import BaseTSDB
 
@@ -65,7 +69,7 @@ class RedisTSDB(BaseTSDB):
         super(RedisTSDB, self).__init__(**kwargs)
 
     def make_key(self, model, epoch, model_key):
-        if isinstance(model_key, (int, long)):
+        if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
             vnode = crc32(model_key) % self.vnodes
@@ -76,7 +80,7 @@ class RedisTSDB(BaseTSDB):
         # We specialize integers so that a pure int-map can be optimized by
         # Redis, whereas long strings (say tag values) will store in a more
         # efficient hashed format.
-        if not isinstance(key, (int, long)):
+        if not isinstance(key, six.integer_types):
             return md5(repr(key)).hexdigest()
         return key
 

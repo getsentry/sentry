@@ -19,6 +19,8 @@ from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
+import six
+
 from raven.utils.encoding import to_string
 
 from sentry import app
@@ -109,7 +111,7 @@ class GroupManager(BaseManager):
     def normalize_event_data(self, data):
         # TODO(dcramer): store http.env.REMOTE_ADDR as user.ip
         # First we pull out our top-level (non-data attr) kwargs
-        if not isinstance(data.get('level'), (basestring, int)):
+        if not isinstance(data.get('level'), (six.string_types, int)):
             data['level'] = logging.ERROR
         elif data['level'] not in LOG_LEVELS:
             data['level'] = logging.ERROR
@@ -487,7 +489,7 @@ class GroupManager(BaseManager):
             if not value:
                 continue
 
-            value = unicode(value)
+            value = six.text_type(value)
             if len(value) > MAX_TAG_LENGTH:
                 continue
 

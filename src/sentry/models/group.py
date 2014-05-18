@@ -16,6 +16,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+import six
+
 from sentry.constants import (
     LOG_LEVELS, STATUS_LEVELS, MAX_CULPRIT_LENGTH, STATUS_RESOLVED,
     STATUS_UNRESOLVED, STATUS_MUTED
@@ -204,6 +206,6 @@ class Group(Model):
         return '[%s %s] %s: %s' % (
             self.team.name.encode('utf-8'),
             self.project.name.encode('utf-8'),
-            unicode(self.get_level_display()).upper().encode('utf-8'),
+            six.text_type(self.get_level_display()).upper().encode('utf-8'),
             self.message_short.encode('utf-8')
         )

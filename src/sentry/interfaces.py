@@ -13,17 +13,18 @@ import itertools
 import re
 import urlparse
 import warnings
+from urllib import urlencode
 
 from pygments import highlight
-# from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
 from pygments.lexers import TextLexer
 from pygments.formatters import HtmlFormatter
-from urllib import urlencode
 
 from django.http import QueryDict
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+
+import six
 
 from sentry.app import env
 from sentry.models import UserOption
@@ -1062,7 +1063,7 @@ class Http(Interface):
         #  a=b&c=d
         # and
         #  a=b; c=d
-        if isinstance(self.cookies, basestring):
+        if isinstance(self.cookies, six.string_types):
             self.cookies = dict(urlparse.parse_qsl(self.cookies, keep_blank_values=True))
         # if cookies were [also] included in headers we
         # strip them out
