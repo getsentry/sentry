@@ -72,7 +72,7 @@ def pprint(value, break_after=10):
 
 @register.filter
 def is_url(value):
-    if not isinstance(value, six.string_tyeps):
+    if not isinstance(value, six.string_types):
         return False
     if not value.startswith(('http://', 'https://')):
         return False
