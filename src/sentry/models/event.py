@@ -10,6 +10,8 @@ from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
+import six
+
 from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
     BaseManager, sane_repr
@@ -176,7 +178,7 @@ class Event(Model):
 
     @property
     def size(self):
-        return len(unicode(vars(self)))
+        return len(six.text_type(vars(self)))
 
     # XXX(dcramer): compatibility with plugins
     def get_level_display(self):

@@ -13,6 +13,9 @@ from django.db import transaction
 
 from sentry.utils.strings import truncatechars
 
+import six
+from six.moves import range
+
 
 def safe_execute(func, *args, **kwargs):
     try:
@@ -55,7 +58,7 @@ def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
         for k, v in value.iteritems():
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
-            _size += len(unicode(trim_v)) + 1
+            _size += len(six.text_type(trim_v)) + 1
             if _size >= max_size:
                 break
 
@@ -65,11 +68,11 @@ def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
         for v in value:
             trim_v = trim(v, _size=_size, **options)
             result.append(trim_v)
-            _size += len(unicode(trim_v))
+            _size += len(six.text_type(trim_v))
             if _size >= max_size:
                 break
 
-    elif isinstance(value, basestring):
+    elif isinstance(value, six.string_types):
         result = truncatechars(value, max_size - _size)
 
     else:
@@ -99,5 +102,5 @@ def trim_frames(stacktrace, max_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES):
 
     stacktrace['frames_omitted'] = (half_max, frames_len - half_max)
 
-    for n in xrange(half_max, frames_len - half_max):
+    for n in range(half_max, frames_len - half_max):
         del frames[half_max]
