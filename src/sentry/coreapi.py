@@ -13,11 +13,13 @@ import base64
 import logging
 import uuid
 import zlib
+from gzip import GzipFile
 
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.encoding import smart_str
-from gzip import GzipFile
+
+import six
 
 from sentry.app import env
 from sentry.constants import (
@@ -262,7 +264,7 @@ def validate_data(project, data, client=None):
 
     if not data.get('message'):
         data['message'] = '<no message value>'
-    elif not isinstance(data['message'], basestring):
+    elif not isinstance(data['message'], six.string_types):
         raise APIError('Invalid value for message')
     elif len(data['message']) > settings.SENTRY_MAX_MESSAGE_LENGTH:
         logger.info(
@@ -272,7 +274,7 @@ def validate_data(project, data, client=None):
             data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     if data.get('culprit'):
-        if not isinstance(data['culprit'], basestring):
+        if not isinstance(data['culprit'], six.string_types):
             raise APIError('Invalid value for culprit')
         logger.info(
             'Truncated value for culprit due to length (%d chars)',
@@ -281,7 +283,7 @@ def validate_data(project, data, client=None):
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
-    elif not isinstance(data['event_id'], basestring):
+    elif not isinstance(data['event_id'], six.string_types):
         raise APIError('Invalid value for event_id')
     if len(data['event_id']) > 32:
         logger.info(
@@ -331,17 +333,17 @@ def validate_data(project, data, client=None):
                             pair, **client_metadata(client, project))
                 continue
 
-            if not isinstance(k, basestring):
+            if not isinstance(k, six.string_types):
                 try:
-                    k = unicode(k)
+                    k = six.text_type(k)
                 except Exception:
                     logger.info('Discarded invalid tag key: %r',
                                 type(k), **client_metadata(client, project))
                     continue
 
-            if not isinstance(v, basestring):
+            if not isinstance(v, six.string_types):
                 try:
-                    v = unicode(v)
+                    v = six.text_type(v)
                 except Exception:
                     logger.info('Discarded invalid tag value: %s=%r',
                                 k, type(v), **client_metadata(client, project))
@@ -401,7 +403,7 @@ def validate_data(project, data, client=None):
                 **client_metadata(client, project, exception=e, extra={'value': value}))
 
     level = data.get('level') or DEFAULT_LOG_LEVEL
-    if isinstance(level, basestring) and not level.isdigit():
+    if isinstance(level, six.string_types) and not level.isdigit():
         # assume it's something like 'warning'
         try:
             data['level'] = LOG_LEVEL_REVERSE_MAP[level]

@@ -28,6 +28,9 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
+import six
+from six.moves import range
+
 from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
 from sentry.models import Team, Option, GroupTagValue
 from sentry.web.helpers import group_is_public
@@ -63,13 +66,13 @@ def pprint(value, break_after=10):
 
     value = to_unicode(value)
     return mark_safe(u'<span></span>'.join(
-        [escape(value[i:(i + break_after)]) for i in xrange(0, len(value), break_after)]
+        [escape(value[i:(i + break_after)]) for i in range(0, len(value), break_after)]
     ))
 
 
 @register.filter
 def is_url(value):
-    if not isinstance(value, basestring):
+    if not isinstance(value, six.string_tyeps):
         return False
     if not value.startswith(('http://', 'https://')):
         return False

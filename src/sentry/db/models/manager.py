@@ -20,6 +20,8 @@ from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_str
 
+import six
+
 from sentry.utils.cache import cache
 
 from .query import create_or_update
@@ -43,7 +45,7 @@ def __prep_value(model, key, value):
     if isinstance(value, Model):
         value = value.pk
     else:
-        value = unicode(value)
+        value = six.text_type(value)
     return value
 
 

@@ -23,7 +23,7 @@ from sentry.utils.cache import memoize
 # always our messages are immutable, it's safe to simply retry in many
 # cases
 def retry(attempts, func, *args, **kwargs):
-    for _ in xrange(attempts):
+    for _ in range(attempts):
         try:
             return func(*args, **kwargs)
         except Exception:

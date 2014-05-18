@@ -6,7 +6,11 @@ sentry.permissions
 :license: BSD, see LICENSE for more details.
 """
 from functools import wraps
+
 from django.conf import settings
+
+import six
+
 from sentry.constants import MEMBER_OWNER
 from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
@@ -21,7 +25,7 @@ class Permission(object):
         return self.name
 
     def __eq__(self, other):
-        return unicode(self) == unicode(other)
+        return six.text_type(self) == six.text_type(other)
 
 
 class Permissions(object):
