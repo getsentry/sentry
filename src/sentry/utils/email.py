@@ -84,7 +84,7 @@ class MessageBuilder(object):
             html_body = self._html_body
 
         if html_body is not None:
-            return toronado.from_string(html_body)
+            return inline_css(html_body)
 
     @cached_property
     def txt_body(self):
@@ -187,3 +187,7 @@ class MessageBuilder(object):
     def send_all(self, messages, fail_silently=False):
         connection = get_connection(fail_silently=fail_silently)
         return connection.send_messages(messages)
+
+
+def inline_css(html):
+    return toronado.from_string(html)
