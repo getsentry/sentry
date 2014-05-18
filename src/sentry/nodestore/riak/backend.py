@@ -11,6 +11,8 @@ from __future__ import absolute_import
 import riak
 import riak.resolver
 
+import six
+
 from time import sleep
 
 from sentry.nodestore.base import NodeStorage
@@ -78,7 +80,7 @@ class RiakNodeStorage(NodeStorage):
             # errors return a tuple of (bucket, key, err)
             if isinstance(obj, tuple):
                 err = obj[2]
-                raise type(err), err, None
+                six.reraise(type(err), err)
             results[obj.key] = obj.data
         return results
 
