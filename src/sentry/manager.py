@@ -170,6 +170,9 @@ class GroupManager(BaseManager):
         # TODO(dcramer): find a better place for this logic
         if 'sentry.interfaces.Exception' in data:
             if 'values' not in data['sentry.interfaces.Exception']:
+                if 'sentry.interfaces.Stacktrace' in data:
+                    data['sentry.interfaces.Exception']['stacktrace'] = \
+                        data.pop('sentry.interfaces.Stacktrace')
                 data['sentry.interfaces.Exception'] = {
                     'values': [data['sentry.interfaces.Exception']]
                 }
