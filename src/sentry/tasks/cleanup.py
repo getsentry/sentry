@@ -80,6 +80,7 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
                 worker_pool.add(obj.id, delete_object, [obj])
                 count += 1
             worker_pool.join()
+            del worker_pool
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
