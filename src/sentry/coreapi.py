@@ -368,7 +368,7 @@ def validate_data(project, data, client=None):
 
         try:
             inst = interface.to_python(value)
-            data[interface.get_path()] = inst.to_json()
+            data[inst.get_path()] = inst.to_json()
         except Exception as e:
             if isinstance(e, AssertionError):
                 log = logger.info
