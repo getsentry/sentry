@@ -64,14 +64,9 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
     except NotImplementedError:
         log.warning("Node backend does not support cleanup operation")
 
-    if project:
-        project_id = project.id
-    else:
-        project_id = '*'
-
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
-        log.info("Removing %s for days=%s project=%s", model.__name__, days, project_id)
+        log.info("Removing %s for days=%s project=%s", model.__name__, days, project or '*')
         qs = model.objects.filter(**{'%s__lte' % (date_col,): ts})
         if project:
             qs = qs.filter(project=project)
