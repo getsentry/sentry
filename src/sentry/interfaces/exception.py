@@ -37,7 +37,7 @@ class SingleException(Interface):
 
     @classmethod
     def to_python(cls, data):
-        assert data['value']
+        assert data.get('value') is not None
 
         if data.get('stacktrace'):
             stacktrace = Stacktrace.to_python(data['stacktrace'])
