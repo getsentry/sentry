@@ -449,6 +449,8 @@ REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
+
 STATSD_CLIENT = 'django_statsd.clients.null'
 
 # Sentry and Raven configuration
