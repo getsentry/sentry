@@ -73,6 +73,7 @@ install_requires = [
     'django-crispy-forms>=1.2.3,<1.3.0',
     'django-paging>=0.2.5,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
+    'django-recaptcha>=1.0.0,<1.1.0',
     'django-social-auth>=0.7.28,<0.8.0',
     'django-static-compiler>=0.3.0,<0.4.0',
     'django-statsd-mozilla>=0.3.8.0,<0.3.9.0',

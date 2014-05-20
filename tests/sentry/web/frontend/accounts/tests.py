@@ -34,8 +34,9 @@ class LoginTest(TestCase):
             'password': 'bizbar',
         })
         assert resp.status_code == 200
-        assert resp.context['form'].errors['__all__'] == \
-            [u'Please enter a correct username and password. Note that both fields may be case-sensitive.']
+        assert resp.context['form'].errors['__all__'] == [
+            u'Please enter a correct username and password. Note that both fields may be case-sensitive.'
+        ]
 
     def test_valid_credentials(self):
         # load it once for test cookie
