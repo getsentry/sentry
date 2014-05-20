@@ -369,11 +369,16 @@ def validate_data(project, data, client=None):
                 **client_metadata(client, project))
             continue
 
-        if type(value) is not dict:
-            logger.info(
-                'Invalid parameters for value: %s (dict expected, got %s)', k,
-                type(value), **client_metadata(client, project))
-            continue
+        if type(value) != dict:
+            # HACK(dcramer): the exception interface supports a list as the
+            # value. We should change this in a new protocol version.
+            if type(value) in (list, tuple):
+                value = {'values': value}
+            else:
+                logger.info(
+                    'Invalid parameters for value: %s', k,
+                    type(value), **client_metadata(client, project))
+                continue
 
         try:
             inst = interface.to_python(value)
