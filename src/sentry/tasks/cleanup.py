@@ -52,7 +52,7 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
 
     ts = timezone.now() - datetime.timedelta(days=days)
 
-    log.info("Removing expired values for %r", LostPasswordHash)
+    log.info("Removing expired values for LostPasswordHash")
     LostPasswordHash.objects.filter(
         date_added__lte=timezone.now() - datetime.timedelta(days=1)
     ).delete()
@@ -66,7 +66,7 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
-        log.info("Removing %s for days=%s project=%r", model.__name__, days, project or '*')
+        log.info("Removing %s for days=%s project=%s", model.__name__, days, project.id or '*')
         qs = model.objects.filter(**{'%s__lte' % (date_col,): ts})
         if project:
             qs = qs.filter(project=project)
@@ -75,17 +75,21 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
         count = 0
         while qs.exists():
             log.info("Removing %s chunk %d", model.__name__, count)
-            worker_pool = ThreadPool(workers=concurrency)
-            for obj in list(qs[:chunk_size]):
-                worker_pool.add(obj.id, delete_object, [obj])
-                count += 1
-            worker_pool.join()
-            del worker_pool
+            if concurrency > 1:
+                worker_pool = ThreadPool(workers=concurrency)
+                for obj in list(qs[:chunk_size]):
+                    worker_pool.add(obj.id, delete_object, [obj])
+                    count += 1
+                worker_pool.join()
+                del worker_pool
+            else:
+                for obj in list(qs[:chunk_size]):
+                    delete_object(obj)
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
     if days > 7:
-        log.info("Removing expired values for %r", EventMapping)
+        log.info("Removing expired values for EventMapping")
         EventMapping.objects.filter(
             date_added__lte=timezone.now() - datetime.timedelta(days=7)
         ).delete()
