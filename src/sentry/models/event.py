@@ -5,7 +5,6 @@ sentry.models.event
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -15,8 +14,8 @@ from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
     BaseManager, sane_repr
 )
+from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
-from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars, strip
 
@@ -126,15 +125,10 @@ class Event(Model):
     def interfaces(self):
         result = []
         for key, data in self.data.iteritems():
-            if '.' not in key:
-                continue
-
             try:
-                cls = import_string(settings.SENTRY_INTERFACES[key])
-            except KeyError:
+                cls = get_interface(key)
+            except ValueError:
                 continue
-            except ImportError:
-                continue  # suppress invalid interfaces
 
             value = safe_execute(cls.to_python, data)
             if not value:
