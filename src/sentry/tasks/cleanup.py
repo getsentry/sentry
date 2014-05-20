@@ -77,13 +77,13 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
             log.info("Removing %s chunk %d", model.__name__, count)
             if concurrency > 1:
                 worker_pool = ThreadPool(workers=concurrency)
-                for obj in list(qs[:chunk_size]):
+                for obj in qs[:chunk_size].iterator():
                     worker_pool.add(obj.id, delete_object, [obj])
                     count += 1
                 worker_pool.join()
                 del worker_pool
             else:
-                for obj in list(qs[:chunk_size]):
+                for obj in qs[:chunk_size].iterator():
                     delete_object(obj)
 
     # EventMapping is fairly expensive and is special cased as it's likely you
