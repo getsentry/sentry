@@ -5,8 +5,6 @@ sentry.models.event
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import six
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -181,7 +179,10 @@ class Event(Model):
 
     @property
     def size(self):
-        return len(six.text_type(vars(self)))
+        data_len = len(self.message)
+        for value in self.data.itervalues():
+            data_len += len(repr(value))
+        return data_len
 
     # XXX(dcramer): compatibility with plugins
     def get_level_display(self):
