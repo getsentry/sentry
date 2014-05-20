@@ -1,4 +1,4 @@
-@import url("../bootstrap/less/bootstrap.less");
+@import url("../vendor/bootstrap/less/bootstrap.less");
 @import url("fonts.less");
 @import url("datepicker.less");
 @import url("github.less");
@@ -10,6 +10,9 @@
 @grayDark: #404f60;
 @gray: #465262;
 @navbarInverseLinkBackgroundActive: #333;
+@orange: #fb4226;
+@black: #111;
+@white: #fff;
 
 @linkColor: #4593DE;
 
@@ -23,9 +26,9 @@
 
 body {
   margin: 0;
-  font-family: @baseFontFamily;
-  font-size: @baseFontSize;
-  line-height: @baseLineHeight;
+  font-family: @font-family-base;
+  font-size: @font-size-base;
+  line-height: @line-height-base;
   color: @gray;
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
@@ -90,7 +93,7 @@ h3 {
     text-shadow: none;
     padding-left: 0;
     .clearfix();
-    .border-radius(0);
+    border-radius: 0;
     background: #465262;
     border: 0;
     .box-shadow(none);
@@ -175,10 +178,10 @@ h3 {
       margin: 0;
       background: darken(#465262, 10%);
       .box-shadow(none);
-      .border-radius(0);
+      border-radius: 0;
       border-top: none;
       color: #fff;
-      .border-radius(0 0 6px 6px);
+      border-radius: 0 0 6px 6px;
 
       h6 {
         color: darken(#e4e8ed, 30%);
@@ -226,7 +229,7 @@ h3 {
       }
       .btn {
         margin: 0;
-        .border-radius(0 4px 4px 0);
+        border-radius: 0 4px 4px 0;
         width: 40px;
         right: 10px;
         top: 10px;
@@ -312,7 +315,7 @@ h3 {
         background: none !important;
         color: #fff;
 
-        .border-radius(3px);
+        border-radius: 3px;
         .box-shadow(none);
       }
 
@@ -320,8 +323,8 @@ h3 {
       &.active:hover > a,
       &.active:focus > a {
         padding: 2px 7px;
-        border: 1px solid @navbarInverseSearchBorder;
-        color: @navbarInverseLinkColorActive;
+        border: 1px solid @navbar-inverse-border;
+        color: @navbar-inverse-link-active-color;
         #gradient > .vertical(rgba(0,0,0, .1), rgba(0,0,0, .3));
         @shadow: inset 0 1px 0px rgba(255,255,255,.15), 0 1px 2px rgba(0,0,0,.1);
         .box-shadow(@shadow);
@@ -333,9 +336,11 @@ h3 {
 #search input[type=text] {
   width: 212px;
   border: 0;
-  .border-radius(3px);
+  border-radius: 3px;
   .box-shadow(0 2px 0 rgba(205, 216, 227, .32));
-  .background-clip(padding-box);
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
   -moz-background-clip: padding;
   background-color: #fff;
   display: block;
@@ -366,7 +371,7 @@ h3 {
       height: 18px;
       color: darken(#858f97, 10);
       width: 194px;
-      .border-radius(5px);
+      border-radius: 5px;
       padding: 5px 10px;
       border: none;
       font-weight: 500;
@@ -400,7 +405,7 @@ h3 {
       width: 28px;
       height: 28px;
       position: relative;
-      .border-radius(3px);
+      border-radius: 3px;
       .box-shadow(0 2px 0 rgba(185, 200, 215, .26));
 
       i {
@@ -434,7 +439,7 @@ h3 {
           padding-top: 7px;
           padding-bottom: 9px;
           color: darken(#85909a, 10);
-          .border-radius(6px 6px 0 0);
+          border-radius: 6px 6px 0 0;
         }
       }
     }
@@ -476,7 +481,7 @@ h3 {
       .nav a {
         padding: 5px 15px;
         margin: 0;
-        .border-radius(4px);
+        border-radius: 4px;
       }
     }
     section.body {
@@ -577,7 +582,7 @@ h3 {
       padding: 3px 15px;
       margin: 0 -15px 2px;
       font-weight: bold;
-      line-height: @baseLineHeight;
+      line-height: @line-height-base;
     }
 
     dl {
@@ -837,7 +842,7 @@ a.icon-share {
   }
 
   > div {
-    .border-radius(4px);
+    border-radius: 4px;
   }
 
   > a {
@@ -886,7 +891,7 @@ a.icon-share {
       left: 0;
       right: 1px;
       background: #dfe3e9;
-      .border-radius(3px 3px 0 0);
+      border-radius: 3px 3px 0 0;
       border: 1px solid #dfe3e9;
       min-width: 1px;
       height: 0;
@@ -1002,7 +1007,7 @@ a.icon-share {
       position: absolute;
       left: 23px;
       .square(60px);
-      .border-radius(60px);
+      border-radius: 60px;
       line-height: 60px;
       background: #cfd3da;
       text-align: center;
@@ -1204,7 +1209,7 @@ a.icon-share {
         width: 36px;
         height: 36px;
         line-height: 38px;
-        .border-radius(36px);
+        border-radius: 36px;
       }
 
       .actions {
@@ -1269,7 +1274,7 @@ code {
   width: auto;
   overflow: hidden;
   object {
-    .border-radius(3px);
+    border-radius: 3px;
     position: absolute;
     left: 8px;
     top: 7px;
@@ -1290,7 +1295,7 @@ td .clippy {
 div.commands:hover {
   .opacity(100);
   a {
-    color: @infoText;
+    color: @state-info-text;
   }
 }
 
@@ -1415,7 +1420,7 @@ ul.traceback {
     }
 
     // .context li {
-    //   color: darken(@infoText, 20%);
+    //   color: darken(@state-info-text, 20%);
     //   background: lighten(@infoBackground, 5%);
     //   pre {
     //     color: inherit;
@@ -1460,7 +1465,7 @@ ol.context {
   cursor: pointer;
   margin: 0;
   list-style-position: inside;
-  .border-radius(3px);
+  border-radius: 3px;
 
   > li {
     padding-left: 20px;
@@ -1492,15 +1497,15 @@ ol.context {
   }
 
   > li:first-child {
-      .border-radius(4px 4px 0 0);
+      border-radius: 4px 4px 0 0;
   }
 
   > li:last-child {
-      .border-radius(4px 4px 0 0);
+      border-radius: 4px 4px 0 0;
   }
 
   li.closed {
-    .border-radius(4px);
+    border-radius: 4px;
   }
 
   &:hover {
@@ -1535,7 +1540,7 @@ ol.context-line {
   > li {
     display: inline-block;
     background: #f9f9f9;
-    .border-radius(8px);
+    border-radius: 8px;
     padding-top: 2px;
     padding-bottom: 2px;
     margin-bottom: 10px;
@@ -1610,7 +1615,7 @@ small {
     line-height: 15px;
   }
   .note {
-    color: @grayLight;
+    color: @gray-light;
     line-height: 30px;
   }
 }
@@ -1675,10 +1680,10 @@ section.body .page-header:first-child {
   padding: 10px;
   margin-bottom: 10px;
   display: inline-block;
-  .border-radius(3px);
+  border-radius: 3px;
 }
 .image img {
-  .border-radius(3px);
+  border-radius: 3px;
   display: block;
 }
 
@@ -1689,9 +1694,11 @@ section.body .page-header:first-child {
   padding: 15px 15px 0px;
   z-index:900;
   background-color: @white;
-  .border-radius(4px);
+  border-radius: 4px;
   .box-shadow(0 0 0 2px rgba(70,82,98,.43));
-  .background-clip(padding-box);
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
   form {
     margin-bottom: 15px;
   }
@@ -1750,11 +1757,11 @@ section.body .page-header:first-child {
 }
 
 #messages .alert {
-  .border-radius(0);
+  border-radius: 0;
 }
 
 .alert {
-  .border-radius(4px);
+  border-radius: 4px;
   text-shadow: none;
   background: #ffc01a;
   color: #fff;
@@ -1851,7 +1858,7 @@ section.body .page-header:first-child {
           margin: 0;
           font-weight: 600;
 
-          .border-radius(30px);
+          border-radius: 30px;
           .transition(none);
           &:hover,
           &:focus {
@@ -1956,7 +1963,7 @@ section.body .page-header:first-child {
     display: block;
     .square(54px);
     background: #27ce8a;
-    .border-radius(10px);
+    border-radius: 10px;
     color: #fff;
     top: -9px;
     left: -82px;
@@ -1990,7 +1997,7 @@ section.body .page-header:first-child {
 
 .btn {
   background: #eff3f7;
-  .border-radius(4px);
+  border-radius: 4px;
   .box-shadow(none);
   border: none;
   color: #666d73;
@@ -2057,7 +2064,7 @@ section.body {
     padding: 6px 8px;
     font-size: 15px;
     .box-shadow(inset 0 2px 0 rgba(0,0,0, .04));
-    .border-radius(5px);
+    border-radius: 5px;
   }
 }
 table.table td input,
@@ -2088,9 +2095,11 @@ table.table td .select2-container {
 .dropdown-menu {
   top: 33px;
   border: none;
-  .border-radius(4px);
+  border-radius: 4px;
   .box-shadow(0 0 0 2px rgba(70,82,98,.43));
-  .background-clip(padding-box);
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
 
   li a {
     .transition(none);
@@ -2261,13 +2270,13 @@ table.vars {
         background-size: 16px 16px;
         background-repeat: no-repeat;
         background-position: center center;
-        .border-radius(16px);
+        border-radius: 16px;
 
         img {
           width: 16px;
           height: 16px;
           display: block;
-          .border-radius(16px);
+          border-radius: 16px;
         }
 
         &.sentry {
@@ -2297,7 +2306,7 @@ table.vars {
     background: #eff3f7;
     color: #666d73;
     border: 1px solid #eff3f7;
-    .border-radius(4px);
+    border-radius: 4px;
 
     .icon-comment {
       .opacity(50);
@@ -2306,7 +2315,7 @@ table.vars {
     &.selected {
       z-index: 1001;
       border-color: darken(#eff3f7, 10%);
-      .border-radius(4px 4px 0 0);
+      border-radius: 4px 4px 0 0;
       border-bottom-color: #eff3f7;
     }
 
@@ -2354,7 +2363,7 @@ table.vars {
     width: 32px;
     line-height: 32px;
     text-align: center;
-    .border-radius(32px);
+    border-radius: 32px;
     border: 1px solid #ddd;
     font-size: 15px;
     color: #aaa;
@@ -2364,7 +2373,7 @@ table.vars {
       width: 100%;
       height: 32px;
       width: 32px;
-      .border-radius(32px);
+      border-radius: 32px;
     }
   }
 }
@@ -2392,7 +2401,7 @@ table.vars {
         min-height: 81px;
         border: 5px solid #DEE3E9;
         position: relative;
-        .border-radius(7px);
+        border-radius: 7px;
 
         .loading {
           display: none;
@@ -2483,15 +2492,15 @@ table.vars {
     margin-top: 30px;
     margin-bottom: 30px;
     .box-shadow(0 0 0 2px rgba(0,0,0, .03));
-    .border-radius(9px);
+    border-radius: 9px;
   }
 
   .navbar .navbar-inner {
-    .border-radius(7px 7px 0 0);
+    border-radius: 7px 7px 0 0;
   }
 
   footer {
-    .border-radius(0 0 7px 7px);
+    border-radius: 0 0 7px 7px;
   }
 }
 
@@ -2504,15 +2513,15 @@ table.vars {
     margin-top: 30px;
     margin-bottom: 30px;
     .box-shadow(0 0 0 2px rgba(0,0,0, .03));
-    .border-radius(9px);
+    border-radius: 9px;
   }
 
   .navbar .navbar-inner {
-    .border-radius(7px 7px 0 0);
+    border-radius: 7px 7px 0 0;
   }
 
   footer {
-    .border-radius(0 0 7px 7px);
+    border-radius: 0 0 7px 7px;
     padding: 30px 30px;
   }
 
@@ -2614,9 +2623,9 @@ table.vars {
 }
 
 #flotTip {
-  background-color: @tooltipBackground;
-  .border-radius(@baseBorderRadius);
+  background-color: @tooltip-bg;
+  border-radius: @border-radius-base;
   max-width: 200px;
   padding: 8px;
-  color: @tooltipColor;
+  color: @tooltip-color;
 }
