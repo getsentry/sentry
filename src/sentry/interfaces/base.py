@@ -19,6 +19,11 @@ class Interface(object):
             return False
         return self._data == other._data
 
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if not hasattr(self, '_data'):
+            self._data = {}
+
     def __getattr__(self, name):
         return self._data[name]
 
