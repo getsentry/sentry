@@ -25,6 +25,7 @@ Users Guide
    buffer/index
    nodestore/index
    throttling/index
+   tsdb/index
    performance/index
    cli/index
    client/index

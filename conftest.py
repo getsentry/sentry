@@ -68,17 +68,32 @@ def pytest_configure(config):
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
 
+    # Replace real sudo middleware with our mock sudo middleware
+    # to assert that the user is always in sudo mode
+    middleware = list(settings.MIDDLEWARE_CLASSES)
+    sudo = middleware.index('sentry.middleware.sudo.SudoMiddleware')
+    middleware[sudo] = 'tests.middleware.SudoMiddleware'
+    settings.MIDDLEWARE_CLASSES = tuple(middleware)
+
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
+    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
+
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
-    # django mail uses socket.getfqdn which doesnt play nice if our
-    # networking isnt stable
+    settings.SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
+    settings.SENTRY_TSDB_OPTIONS = {}
+
+    # django mail uses socket.getfqdn which doesn't play nice if our
+    # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
     from sentry.utils.runner import initialize_receivers
     initialize_receivers()
+
+    from sentry.testutils.cases import flush_redis
+    flush_redis()

@@ -5,7 +5,7 @@
 {% load sentry_plugins %}
 
 {% block sidebar %}
-    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-chart' project.team.slug project.slug %}" data-days="1">
+    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-project-stats' project.id %}" data-days="1">
         <div class="sparkline">
             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
             <span class="loading">{% trans "Loading historical data..." %}</span>

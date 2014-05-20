@@ -8,11 +8,16 @@ sentry.tasks.check_alerts
 
 from __future__ import absolute_import, division
 
-from datetime import timedelta
-from django.utils import timezone
-from sentry.constants import MINUTE_NORMALIZATION
+import logging
+
+from datetime import datetime, timedelta
+from pytz import utc
+
 from sentry.tasks.base import instrumented_task
 from sentry.utils import math
+
+
+logger = logging.getLogger('alerts')
 
 
 def fsteps(start, stop, steps):
@@ -28,76 +33,68 @@ def check_alerts(**kwargs):
     Iterates all current keys and fires additional tasks to check each individual
     project's alert settings.
     """
-    from sentry.models import ProjectCountByMinute
+    from sentry.models import Project
 
-    now = timezone.now()
-    # we want at least a 60 second window of events
-    max_date = now - timedelta(minutes=1)
-    min_date = max_date - timedelta(minutes=MINUTE_NORMALIZATION)
-
-    # find each project which has data for the last interval
-    # TODO: we could force more work on the db by eliminating onces which don't
-    # have the full aggregate we need
-    qs = ProjectCountByMinute.objects.filter(
-        date__lte=max_date,
-        date__gt=min_date,
-    ).values_list('project_id', 'date', 'times_seen')
-    for project_id, date, count in qs:
-        if not count:
-            continue  # shouldnt happen
-        normalized_count = int(count / ((now - date).seconds / 60))
+    # TODO(dcramer): we'd rather limit this to projects which we know are 'active'
+    # this could be done using a similar strategy to our update buffer flushing
+    for project_id in Project.objects.values_list('id', flat=True):
         check_project_alerts.delay(
             project_id=project_id,
-            when=max_date,
-            count=normalized_count,
             expires=120,
         )
 
 
 @instrumented_task(name='sentry.tasks.check_alerts.check_project_alerts', queue='alerts')
-def check_project_alerts(project_id, when, count, **kwargs):
+def check_project_alerts(project_id, **kwargs):
     """
     Given 'when' and 'count', which should signify recent times we compare it to
     historical data for this project and if over a given threshold, create an
     alert.
     """
+    from sentry.app import tsdb
     from sentry.constants import DEFAULT_ALERT_PROJECT_THRESHOLD
-    from sentry.models import ProjectCountByMinute, ProjectOption, Alert
+    from sentry.models import ProjectOption, Alert
 
-    # TODO: make this use the cache
     threshold, min_events = ProjectOption.objects.get_value(
         project_id, 'alert:threshold', DEFAULT_ALERT_PROJECT_THRESHOLD)
 
     if not threshold and min_events:
         return
 
-    if min_events > count:
+    end = datetime.now().replace(tzinfo=utc) - timedelta(seconds=10)
+    start = end - timedelta(minutes=5)
+
+    results = [v for _, v in tsdb.get_range(
+        tsdb.models.project,
+        [project_id],
+        start=start,
+        end=end,
+        rollup=10,
+    )[project_id]]
+
+    half_intervals = int(len(results) / 2)
+    previous_data, current_data = results[:half_intervals], results[half_intervals:]
+    current_avg = sum(current_data) / len(current_data)
+
+    # if there first few points within previous data are empty, assume that the
+    # project hasn't been active long enough for rates to be valid
+    if not any(previous_data[:3]):
         return
 
-    # number of 15 minute intervals to capture
-    intervals = 8
-
-    max_date = when - timedelta(minutes=MINUTE_NORMALIZATION)
-    min_date = max_date - timedelta(minutes=(intervals * MINUTE_NORMALIZATION))
-
-    # get historical data
-    data = list(ProjectCountByMinute.objects.filter(
-        project=project_id,
-        date__lte=max_date,
-        date__gt=min_date,
-    ).values_list('times_seen', flat=True))
-
-    # Bail if we don't have enough data points
-    if len(data) != intervals:
+    if min_events > current_avg:
         return
 
-    mean = math.mean(data)
-    dev = math.mad(data)
-    previous = (mean + dev * 2) / MINUTE_NORMALIZATION
+    mean = math.mean(previous_data)
+    dev = math.mad(previous_data)
+    previous_avg = (mean + dev * 2)
 
-    pct_increase = count / previous * 100
-    if pct_increase > threshold:
+    pct_increase = (current_avg / previous_avg * 100) - 100
+
+    logger.info('Rate of events for project %d changed from %.2f to %2.f',
+        project_id, previous_avg, current_avg)
+
+    if pct_increase > threshold and current_avg > previous_avg:
         Alert.maybe_alert(
             project_id=project_id,
-            message='Rate of events per minute increased from %d to %d (+%d%%)' % (previous, count, pct_increase),
+            message='Rate of events increased from %.2f to %.2f' % (previous_avg, current_avg),
         )

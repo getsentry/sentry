@@ -36,7 +36,7 @@ class BufferTest(TestCase):
         group = Group.objects.create(project=Project(id=1))
         columns = {'times_seen': 1}
         filters = {'pk': group.pk}
-        # strip micrseconds because MySQL doesnt seem to handle them correctly
+        # strip micrseconds because MySQL doesn't seem to handle them correctly
         the_date = (timezone.now() + timedelta(days=5)).replace(microsecond=0)
         self.buf.process(Group, columns, filters, {'last_seen': the_date})
         group_ = Group.objects.get(pk=group.pk)

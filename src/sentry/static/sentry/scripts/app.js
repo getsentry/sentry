@@ -207,9 +207,15 @@
                     type: 'get',
                     dataType: 'json',
                     data: {
-                        days: 1
+                        since: new Date().getTime() / 1000 - 3600 * 24,
+                        resolution: '1h'
                     },
                     success: _.bind(function(data){
+                        for (var i = 0; i < data.length; i++) {
+                            // set timestamp to be in millis
+                            data[i][0] = data[i][0] * 1000;
+                        }
+
                         $.plot($el, [{
                                 data: data,
                                 color: '#ebeff3',
@@ -383,7 +389,7 @@
             this.sparkline.height(this.sparkline.parent().height());
             this.stats = $('#stats');
 
-            _.bindAll(this, 'refreshStats');
+            _.bindAll(this, 'refreshStats', 'refreshSparkline');
 
             this.refreshSparkline();
             this.refreshStats();
@@ -406,10 +412,15 @@
                 type: 'get',
                 dataType: 'json',
                 data: {
-                    days: 1,
-                    gid: this.sparkline.attr('data-group') || undefined
+                    since: new Date().getTime() / 1000 - 3600 * 24,
+                    resolution: '1h'
                 },
                 success: _.bind(function(data){
+                    for (var i = 0; i < data.length; i++) {
+                        // set timestamp to be in millis
+                        data[i][0] = data[i][0] * 1000;
+                    }
+                    this.sparkline.empty();
                     $.plot(this.sparkline, [{
                             data: data,
                             color: '#52566c',
@@ -436,6 +447,8 @@
                             }
                         }
                     );
+
+                    window.setTimeout(this.refreshSparkline, 10000);
                 }, this)
             });
         },
@@ -500,14 +513,6 @@
             BasePage.prototype.initialize.apply(this, arguments);
 
             app.utils.makeSearchableUsersInput('form input[name=user]');
-        }
-    });
-
-    app.AccessGroupProjectsPage = BasePage.extend({
-        initialize: function(){
-            BasePage.prototype.initialize.apply(this, arguments);
-
-            app.utils.makeSearchableProjectsInput('form input[name=project]');
         }
     });
 

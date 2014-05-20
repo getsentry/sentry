@@ -5753,8 +5753,8 @@ a.badge:focus {
 .select2-container .select2-choice abbr {
   display: block;
   position: absolute;
-  right: 27px;
-  top: 12px;
+  right: 14px;
+  top: 10px;
   width: 12px;
   height: 12px;
   font-size: 1px;
@@ -5794,6 +5794,7 @@ a.badge:focus {
   background: #fff;
   color: #000;
   border-top: 0;
+  margin-top: -1px;
   position: absolute;
   top: 100%;
   z-index: 9999;
@@ -5829,7 +5830,18 @@ a.badge:focus {
   top: auto;
   bottom: -4px;
 }
+.select2-drop.select2-drop-above.select2-drop-active {
+  border-top: 1px solid #5897fb;
+}
+.select2-drop-auto-width {
+  border-top: 1px solid #aaa;
+  width: auto;
+}
+.select2-drop-auto-width .select2-search {
+  padding-top: 4px;
+}
 .select2-search {
+  position: relative;
   display: inline-block;
   white-space: nowrap;
   z-index: 10000;
@@ -6097,13 +6109,17 @@ disabled look for already selected choices in the results dropdown
 .select2-search-choice-close {
   display: block;
   position: absolute;
-  right: -35px;
+  right: 3px;
   top: 4px;
   width: 12px;
   height: 13px;
   font-size: 1px;
   background: url('../scripts/lib/select2/select2.png') right top no-repeat;
   outline: none;
+}
+html[dir="rtl"] .select2-search-choice-close {
+  right: auto;
+  left: 3px;
 }
 .select2-container-multi .select2-search-choice-close {
   left: 3px;
@@ -6141,6 +6157,17 @@ disabled look for already selected choices in the results dropdown
 .select2-offscreen {
   position: absolute;
   left: -10000px;
+}
+.select2-display-none {
+  display: none;
+}
+.select2-measure-scrollbar {
+  position: absolute;
+  top: -10000px;
+  left: -10000px;
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
 }
 /* Retina-ize icons */
 @media only screen and (-webkit-min-device-pixel-ratio: 1.5) {
@@ -7417,9 +7444,21 @@ a.icon-share:hover {
   border-bottom: none;
   padding-bottom: 0;
 }
-.group-list.no-counts > li,
-.events.no-counts > li {
+.group-list.similar-events > li,
+.events.similar-events > li {
   padding-left: 20px;
+  min-height: 0;
+}
+.group-list.similar-events > li .meta,
+.events.similar-events > li .meta {
+  position: absolute;
+  top: 10px;
+  bottom: 0;
+  right: 20px;
+}
+.group-list.similar-events > li .row_link:hover,
+.events.similar-events > li .row_link:hover {
+  background: rgba(238, 238, 238, 0.1);
 }
 .group-list > li,
 .events > li {

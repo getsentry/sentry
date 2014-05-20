@@ -6,11 +6,99 @@ sentry.models.projectoption
 :license: BSD, see LICENSE for more details.
 """
 
+from celery.signals import task_postrun
+from django.core.signals import request_finished
 from django.db import models
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import UnicodePickledObjectField
-from sentry.manager import InstanceMetaManager
+from sentry.db.models.manager import BaseManager
+from sentry.utils.cache import cache
+
+
+class ProjectOptionManager(BaseManager):
+    def __init__(self, *args, **kwargs):
+        super(ProjectOptionManager, self).__init__(*args, **kwargs)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
+        self.__cache = {}
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        d.pop('_ProjectOptionManager__cache', None)
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__cache = {}
+
+    def _make_key(self, instance_id):
+        return '%s:%s' % (self.model._meta.db_table, instance_id)
+
+    def get_value_bulk(self, instances, key):
+        instance_map = dict((i.id, i) for i in instances)
+        queryset = self.filter(
+            project__in=instances,
+            key=key,
+        )
+        result = dict((i, None) for i in instances)
+        for obj in queryset:
+            result[instance_map[obj.project_id]] = obj.value
+        return result
+
+    def get_value(self, project, key, default=None):
+        result = self.get_all_values(project)
+        return result.get(key, default)
+
+    def unset_value(self, project, key):
+        self.filter(project=project, key=key).delete()
+        self.reload_cache(project)
+
+    def set_value(self, project, key, value):
+        self.create_or_update(
+            project=project,
+            key=key,
+            defaults={
+                'value': value,
+            },
+        )
+        self.reload_cache(project.id)
+
+    def get_all_values(self, project):
+        if isinstance(project, models.Model):
+            project_id = project.id
+        else:
+            project_id = project
+
+        if project_id not in self.__cache:
+            cache_key = self._make_key(project_id)
+            result = cache.get(cache_key)
+            if result is None:
+                result = self.reload_cache(project_id)
+            else:
+                self.__cache[project_id] = result
+        return self.__cache.get(project_id, {})
+
+    def clear_local_cache(self, **kwargs):
+        self.__cache = {}
+
+    def reload_cache(self, project_id):
+        cache_key = self._make_key(project_id)
+        result = dict(
+            (i.key, i.value)
+            for i in self.filter(project=project_id)
+        )
+        cache.set(cache_key, result)
+        if project_id in self.__cache:
+            self.__cache[project_id] = result
+        return result
+
+    def post_save(self, instance, **kwargs):
+        self.reload_cache(instance.project_id)
+
+    def post_delete(self, instance, **kwargs):
+        self.reload_cache(instance.project_id)
 
 
 class ProjectOption(Model):
@@ -24,7 +112,7 @@ class ProjectOption(Model):
     key = models.CharField(max_length=64)
     value = UnicodePickledObjectField()
 
-    objects = InstanceMetaManager('project')
+    objects = ProjectOptionManager()
 
     class Meta:
         app_label = 'sentry'

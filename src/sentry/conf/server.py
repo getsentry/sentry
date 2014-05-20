@@ -24,6 +24,7 @@ socket.setdefaulttimeout(5)
 
 DEBUG = False
 TEMPLATE_DEBUG = True
+MAINTENANCE = False
 
 ADMINS = ()
 
@@ -111,6 +112,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -167,7 +169,7 @@ INSTALLED_APPS = (
     'social_auth',
     'south',
     'static_compiler',
-    'django_sudo',
+    'sudo',
 )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
@@ -312,10 +314,10 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'console': {
-            'level': 'WARNING',
             'class': 'logging.StreamHandler'
         },
         'sentry': {
+            'level': 'ERROR',
             'class': 'raven.contrib.django.handlers.SentryHandler',
         }
     },
@@ -324,13 +326,11 @@ LOGGING = {
             'format': '%(name)s %(levelname)s %(project_slug)s/%(team_slug)s %(message)s'
         }
     },
+    'root': {
+        'level': 'WARNING',
+        'handlers': ['console', 'sentry'],
+    },
     'loggers': {
-        '()': {
-            'handlers': ['console', 'sentry'],
-        },
-        'root': {
-            'handlers': ['console', 'sentry'],
-        },
         'sentry': {
             'level': 'ERROR',
             'handlers': ['console', 'sentry'],
@@ -344,9 +344,16 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'static_compiler': {
+            'level': 'INFO',
+        },
         'django.request': {
             'level': 'ERROR',
             'handlers': ['console'],
+            'propagate': False,
+        },
+        'toronado.cssutils': {
+            'level': 'ERROR',
             'propagate': False,
         },
     }
@@ -425,10 +432,10 @@ SENTRY_STATIC_BUNDLES = {
         },
     },
     "postcompilers": {
-        "*.js": ["node_modules/uglify-js/bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],
+        "*.js": ["node_modules/.bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],
     },
     "preprocessors": {
-        "*.less": ["node_modules/less/bin/lessc {input} {output}"],
+        "*.less": ["node_modules/.bin/lessc {input} {output}"],
     },
 }
 
@@ -453,6 +460,11 @@ SENTRY_CACHE_BACKEND = 'default'
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
 )
+
+SENTRY_IGNORE_EXCEPTIONS = (
+    'OperationalError',
+)
+
 
 SENTRY_KEY = None
 
@@ -583,7 +595,7 @@ SENTRY_USE_SEARCH = True
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
-SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.11/jquery,native/raven.min.js'
+SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.14/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -602,7 +614,7 @@ SENTRY_MAX_VARIABLE_SIZE = 512
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 
-# For various attributes we dont limit the entire attribute on size, but the
+# For various attributes we don't limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of
 # keys
 SENTRY_MAX_DICTIONARY_ITEMS = 50

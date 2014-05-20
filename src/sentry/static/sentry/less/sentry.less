@@ -908,9 +908,19 @@ a.icon-share {
       padding-bottom: 0;
     }
   }
-  &.no-counts {
+  &.similar-events {
     > li {
       padding-left: 20px;
+      min-height: 0;
+      .meta {
+        position: absolute;
+        top: 10px;
+        bottom: 0;
+        right: 20px;
+      }
+      .row_link:hover {
+        background: rgba(238, 238, 238, 0.10);
+      }
     }
   }
 

@@ -15,10 +15,9 @@ ONE_DAY = ONE_HOUR * 24
 
 ROLLUPS = (
     # time in seconds, samples to keep
-    # (10, 30),  # 5 minutes at 10 seconds
-    # (ONE_MINUTE, 120),  # 2 hours at 1 minute
-    (ONE_HOUR, 24),  # 1 days at 1 hour
-    (ONE_DAY, 30),  # 30 days at 1 day
+    (10, 30),  # 5 minute at 10 seconds
+    (ONE_HOUR, ONE_DAY * 7),  # 1 days at 1 hour
+    # (ONE_DAY, 30),  # 30 days at 1 day
 )
 
 
@@ -32,6 +31,8 @@ class TSDBModel(Enum):
 
 
 class BaseTSDB(object):
+    models = TSDBModel
+
     def __init__(self, rollups=ROLLUPS):
         self.rollups = rollups
 
@@ -45,6 +46,14 @@ class BaseTSDB(object):
         """
         epoch = int(timestamp.strftime('%s'))
         return epoch - (epoch % seconds)
+
+    def normalize_to_rollup(self, timestamp, seconds):
+        """
+        Given a ``timestamp`` (datetime object) normalize the datetime object
+        ``timestamp`` to an epoch rollup (integer).
+        """
+        epoch = int(timestamp.strftime('%s'))
+        return int(epoch / seconds)
 
     def get_optimal_rollup(self, start_timestamp, end_timestamp):
         """
@@ -79,6 +88,8 @@ class BaseTSDB(object):
     def get_range(self, model, keys, start, end, rollup=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
+
+        Both ``start`` and ``end`` are inclusive.
 
         >>> now = timezone.now()
         >>> get_keys(TimeSeriesModel.group, [1, 2, 3],

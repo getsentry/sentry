@@ -155,45 +155,34 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(group.last_seen, timestamp)
 
     def test_ungzipped_data(self):
-        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local',
-                  'level': 40, 'site': 'not_a_real_site'}
+        kwargs = {'message': 'hello'}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200)
         instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
-        self.assertEquals(instance.server_name, 'not_dcramer.local')
-        self.assertEquals(instance.site, 'not_a_real_site')
-        self.assertEquals(instance.level, 40)
 
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
     def test_correct_data_with_get(self):
-        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local',
-                  'level': 40, 'site': 'not_a_real_site'}
+        kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
         instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
-        self.assertEquals(instance.server_name, 'not_dcramer.local')
-        self.assertEquals(instance.level, 40)
-        self.assertEquals(instance.site, 'not_a_real_site')
 
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
     def test_get_without_referer(self):
-        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local',
-                  'level': 40, 'site': 'not_a_real_site'}
+        kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
         self.assertEquals(resp.status_code, 400, resp.content)
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
-        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local',
-                  'level': 40, 'site': 'not_a_real_site'}
+        kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
         self.assertEquals(resp.status_code, 200, resp.content)
 
     def test_signature(self):
-        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local',
-                  'level': 40, 'site': 'not_a_real_site'}
+        kwargs = {'message': 'hello'}
 
         resp = self._postWithSignature(kwargs)
 
@@ -202,9 +191,6 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
 
         self.assertEquals(instance.message, 'hello')
-        self.assertEquals(instance.server_name, 'not_dcramer.local')
-        self.assertEquals(instance.site, 'not_a_real_site')
-        self.assertEquals(instance.level, 40)
 
     def test_content_encoding_deflate(self):
         kwargs = {'message': 'hello'}

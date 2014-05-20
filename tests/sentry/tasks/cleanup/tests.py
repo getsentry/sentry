@@ -3,15 +3,11 @@
 from __future__ import absolute_import
 
 from celery.task import Task
-from sentry.models import (Event, Group, GroupCountByMinute,
-    GroupTagValue, ProjectCountByMinute, TagValue, TagKey)
+from sentry.models import Event, Group, GroupTagValue, TagValue, TagKey
 from sentry.tasks.cleanup import cleanup
 from sentry.testutils import TestCase
 
-ALL_MODELS = (
-    Event, Group, ProjectCountByMinute, GroupCountByMinute, GroupTagValue,
-    TagValue, TagKey
-)
+ALL_MODELS = (Event, Group, GroupTagValue, TagValue, TagKey)
 
 
 class SentryCleanupTest(TestCase):

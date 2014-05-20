@@ -14,6 +14,8 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm as AuthenticationForm_
 from django.utils.translation import ugettext_lazy as _
 
+from six.moves import range
+
 from sentry.constants import LANGUAGES
 from sentry.models import UserOption, User
 from sentry.utils.auth import find_users
@@ -27,7 +29,7 @@ def _get_timezone_choices():
         results.append((int(offset), tz, '(GMT%s) %s' % (offset, tz)))
     results.sort()
 
-    for i in xrange(len(results)):
+    for i in range(len(results)):
         results[i] = results[i][1:]
     return results
 
@@ -138,7 +140,7 @@ class AccountSettingsForm(forms.Form):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
-        # dont show username field if its the same as their email address
+        # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
             del self.fields['username']
 

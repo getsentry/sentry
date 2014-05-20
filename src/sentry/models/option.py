@@ -10,7 +10,28 @@ from django.db import models
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import UnicodePickledObjectField
-from sentry.manager import MetaManager
+from sentry.db.models.manager import BaseManager
+
+
+class OptionManager(BaseManager):
+    def get_value(self, key, default=None):
+        try:
+            return self.get_from_cache(key=key).value
+        except self.model.DoesNotExist:
+            return default
+
+    def unset_value(self, key):
+        self.filter(key=key).delete()
+
+    def set_value(self, key, value):
+        instance, created = self.get_or_create(
+            key=key,
+            defaults={
+                'value': value,
+            }
+        )
+        if not created and value != instance.value:
+            instance.update(value=value)
 
 
 class Option(Model):
@@ -24,7 +45,7 @@ class Option(Model):
     key = models.CharField(max_length=64, unique=True)
     value = UnicodePickledObjectField()
 
-    objects = MetaManager(cache_fields=[
+    objects = OptionManager(cache_fields=[
         'key',
     ])
 

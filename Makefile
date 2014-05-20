@@ -80,14 +80,14 @@ test-js:
 
 test-python:
 	@echo "--> Running Python tests"
-	python setup.py -q test || exit 1
+	py.test tests || exit 1
 	@echo ""
 
 lint: lint-python lint-js
 
 lint-python:
 	@echo "--> Linting Python files"
-	PYFLAKES_NODOCTEST=1 flake8 src/sentry
+	PYFLAKES_NODOCTEST=1 flake8 src/sentry tests
 	@echo ""
 
 lint-js:

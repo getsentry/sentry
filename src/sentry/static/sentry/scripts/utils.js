@@ -98,8 +98,8 @@
             return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/tags/search/';
         },
 
-        makeSearchableInput: function(el, url, callback) {
-            $(el).select2({
+        makeSearchableInput: function(el, url, callback, options) {
+            $(el).select2($.extend({
                 allowClear: true,
                 width: 'element',
                 initSelection: function (el, callback) {
@@ -120,7 +120,7 @@
                         return {results: callback(data)};
                     }
                 }
-            });
+            }, options || {}));
         },
 
         escape: function(str) {
@@ -144,7 +144,7 @@
                     });
                 }, this));
 
-                if ($(results).filter(function(){
+                if (data.query && $(results).filter(function(){
                     return this.id.localeCompare(data.query) === 0;
                 }).length === 0) {
                     results.push({
@@ -154,19 +154,8 @@
                 }
 
                 return results;
-            }, this));
-        },
-
-        makeSearchableProjectsInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchProjectsUrl(), function(data){
-                var results = [];
-                $(data.results).each(function(_, val){
-                    results.push({
-                        id: val.slug,
-                        text: val.name + '<br>' + val.slug
-                    });
-                });
-                return results;
+            }, this), {
+                escapeMarkup: function(s) { return s; }
             });
         },
 
@@ -183,6 +172,7 @@
                     var values = $el.val().split(',');
                     var results = [];
                     $.each(values, function(_, val) {
+                        if (val === '') return;
                         results.push({id: val, text: val});
                     });
                     callback(results);
@@ -208,7 +198,7 @@
                             });
                         });
 
-                        if ($(results).filter(function(){
+                        if (data.query && $(results).filter(function(){
                             return this.id.localeCompare(data.query) === 0;
                         }).length === 0) {
                             results.push({id:data.query, text:data.query});
@@ -254,5 +244,4 @@
         }, 5000);
     });
 
-    $.fn.select2.defaults.escapeMarkup = function(s) { return s; };
 }(app, jQuery, _, moment));

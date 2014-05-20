@@ -69,6 +69,9 @@ urlpatterns += patterns('',
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
+    # API
+    url(r'^api/0/', include('sentry.api.urls')),
+
     # Account
     url(r'^login/$', accounts.login,
         name='sentry-login'),
@@ -78,7 +81,7 @@ urlpatterns += patterns('',
         name='sentry-logout'),
     url(r'^register/$', accounts.register,
         name='sentry-register'),
-    url(r'^account/sudo/$', 'django_sudo.views.sudo',
+    url(r'^account/sudo/$', 'sudo.views.sudo',
         {'template_name': 'sentry/account/sudo.html'},
         name='sentry-sudo'),
     url(r'^account/recover/$', accounts.recover,
@@ -247,8 +250,6 @@ urlpatterns += patterns('',
         name='sentry-api-bookmark'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/clear/$', api.clear,
         name='sentry-api-clear'),
-    url(r'^api/(?P<team_slug>[\w_-]+)/(?:(?P<project_id>[\w_-]+)/)?chart/$', api.chart,
-        name='sentry-api-chart'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group,
         name='sentry-api-remove-group'),
 
@@ -276,8 +277,6 @@ urlpatterns += patterns('',
         name='sentry-api-search-users'),
     url(r'^api/(?P<team_slug>[\w_-]+)/projects/search/$', api.search_projects,
         name='sentry-api-search-projects'),
-
-    url(r'^api/0/', include('sentry.api.urls')),
 
     # TV dashboard
     url(r'^(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,

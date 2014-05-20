@@ -199,16 +199,7 @@ def plugin_config(plugin, project, request):
         prefix=plugin_key
     )
     if form.is_valid():
-        if 'action_save' in request.POST:
-            for field, value in form.cleaned_data.iteritems():
-                key = '%s:%s' % (plugin_key, field)
-                if project:
-                    ProjectOption.objects.set_value(project, key, value)
-                else:
-                    Option.objects.set_value(key, value)
-
-            return ('redirect', None)
-        elif 'action_test' in request.POST and plugin.is_testable():
+        if 'action_test' in request.POST and plugin.is_testable():
             try:
                 test_results = plugin.test_configuration(project)
             except Exception as exc:
@@ -218,6 +209,15 @@ def plugin_config(plugin, project, request):
                     test_results = exc
             if test_results is None:
                 test_results = 'No errors returned'
+        else:
+            for field, value in form.cleaned_data.iteritems():
+                key = '%s:%s' % (plugin_key, field)
+                if project:
+                    ProjectOption.objects.set_value(project, key, value)
+                else:
+                    Option.objects.set_value(key, value)
+
+            return ('redirect', None)
 
     # TODO(mattrobenolt): Reliably determine if a plugin is configured
     # if hasattr(plugin, 'is_configured'):

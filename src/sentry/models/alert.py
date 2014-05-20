@@ -57,13 +57,14 @@ class Alert(Model):
         # - an alert for the event hasn't been created in the last 60 minutes
 
         # TODO: there is a race condition if we're calling this function for the same project
-        if manager.filter(
-                project=project_id, datetime__gte=now - timedelta(minutes=60)).exists():
-            return
+        kwargs = {
+            'project_id': project_id,
+            'datetime__gte': now - timedelta(minutes=60),
+        }
+        if group_id:
+            kwargs['group'] = group_id
 
-        if manager.filter(
-                project=project_id, group=group_id,
-                datetime__gte=now - timedelta(minutes=60)).exists():
+        if manager.filter(**kwargs).exists():
             return
 
         alert = manager.create(

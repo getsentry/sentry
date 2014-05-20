@@ -92,11 +92,13 @@ STATUS_LEVELS = (
     (STATUS_MUTED, _('Muted')),
 )
 
-MEMBER_OWNER = 0
+MEMBER_ADMIN = 0
 MEMBER_USER = 50
 MEMBER_SYSTEM = 100
+MEMBER_OWNER = MEMBER_ADMIN  # backwards compat
+
 MEMBER_TYPES = (
-    (MEMBER_OWNER, _('Admin')),
+    (MEMBER_ADMIN, _('Admin')),
     (MEMBER_USER, _('User')),
     (MEMBER_SYSTEM, _('System Agent')),
 )
@@ -188,8 +190,8 @@ DEFAULT_LOG_LEVEL = 'error'
 DEFAULT_LOGGER_NAME = 'root'
 
 # Default alerting threshold values
-DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 100)  # 500%, 100 events
-DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 100)  # 1000%, 100 events
+DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
+DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 
 # The maximum number of events which can be requested as JSON
 MAX_JSON_RESULTS = 1000

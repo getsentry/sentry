@@ -41,8 +41,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -68,8 +66,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -95,8 +91,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'Soubor ji\xc5\xbe existuje'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -112,12 +106,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -140,12 +135,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world\nfoo bar',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world\nfoo bar',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )

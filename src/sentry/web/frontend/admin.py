@@ -16,13 +16,15 @@ from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Count
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
+import six
+
 from sentry.app import env
-from sentry.models import Team, Project, GroupCountByMinute, User
+from sentry.models import Team, Project, User
 from sentry.plugins import plugins
 from sentry.utils.http import absolute_uri
 from sentry.web.forms import (
@@ -68,11 +70,6 @@ def manage_projects(request):
         order_by = '-date_added'
     elif sort == 'name':
         order_by = 'name'
-    elif sort == 'events':
-        project_list = project_list.annotate(
-            events=Sum('projectcountbyminute__times_seen'),
-        ).filter(projectcountbyminute__date__gte=timezone.now() - datetime.timedelta(days=1))
-        order_by = '-events'
 
     project_list = project_list.order_by(order_by)
 
@@ -340,7 +337,7 @@ def status_mail(request):
                 fail_silently=False
             )
         except Exception as e:
-            form.errors['__all__'] = [unicode(e)]
+            form.errors['__all__'] = [six.text_type(e)]
 
     return render_to_response('sentry/admin/status/mail.html', {
         'form': form,
@@ -355,15 +352,12 @@ def status_mail(request):
 
 @requires_admin
 def stats(request):
+    new_projects = Project.objects.filter(
+        date_added__gte=timezone.now() - datetime.timedelta(hours=24),
+    ).count()
     statistics = (
         ('Projects', Project.objects.count()),
-        ('Projects (24h)', Project.objects.filter(
-            date_added__gte=timezone.now() - datetime.timedelta(hours=24),
-        ).count()),
-        ('Events', GroupCountByMinute.objects.aggregate(x=Sum('times_seen'))['x'] or 0),
-        ('Events (24h)', GroupCountByMinute.objects.filter(
-            date__gte=timezone.now() - datetime.timedelta(hours=24),
-        ).aggregate(x=Sum('times_seen'))['x'] or 0)
+        ('Projects (24h)', new_projects),
     )
 
     return render_to_response('sentry/admin/stats.html', {

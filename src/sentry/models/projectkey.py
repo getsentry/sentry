@@ -6,12 +6,15 @@ sentry.models.projectkey
 :license: BSD, see LICENSE for more details.
 """
 
+from bitfield import BitField
 from urlparse import urlparse
 from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+
+import six
 
 from sentry.db.models import (
     Model, BaseManager, sane_repr
@@ -23,6 +26,13 @@ class ProjectKey(Model):
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    roles = BitField(flags=(
+        # access to post events to the store endpoint
+        'store',
+
+        # read/write access to rest API
+        'api',
+    ), default=['store'])
 
     # For audits
     user_added = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
@@ -40,7 +50,7 @@ class ProjectKey(Model):
     __repr__ = sane_repr('project_id', 'user_id', 'public_key')
 
     def __unicode__(self):
-        return unicode(self.public_key)
+        return six.text_type(self.public_key)
 
     @classmethod
     def generate_api_key(cls):

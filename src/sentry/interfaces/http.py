@@ -165,5 +165,8 @@ class Http(Interface):
 
         return render_to_string('sentry/partial/interfaces/http.html', context)
 
+    def get_alias(self):
+        return 'request'
+
     def get_title(self):
         return _('Request')
