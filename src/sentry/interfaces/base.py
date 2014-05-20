@@ -38,7 +38,10 @@ class Interface(object):
         return cls(data)
 
     def to_json(self):
-        return self._data.copy()
+        return dict(
+            (k, v) for k, v in self._data.iteritems()
+            if v is not None
+        )
 
     def get_alias(self):
         return self.get_slug()

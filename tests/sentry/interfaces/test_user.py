@@ -26,9 +26,7 @@ class UserTest(TestCase):
     def test_serialize_behavior(self):
         assert self.interface.to_json() == {
             'id': 1,
-            'username': None,
             'email': 'lol@example.com',
-            'ip_address': None,
             'data': {'favorite_color': 'brown'}
         }
 
