@@ -7995,18 +7995,7 @@ ol.context > li {
   font-family: monospace;
   color: rgba(0, 0, 0, 0.75);
   background-color: #f8f8f8;
-}
-ol.context > li div {
-  display: inline;
-}
-ol.context > li pre {
-  background-color: inherit;
-  color: rgba(0, 0, 0, 0.5);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  display: inline;
-  line-height: 24px;
+  line-height: 22px;
   font-size: 12px;
   white-space: pre;
   white-space: pre-wrap;
