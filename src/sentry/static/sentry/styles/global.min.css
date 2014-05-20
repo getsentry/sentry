@@ -7016,12 +7016,10 @@ h3 {
   -webkit-transition: margin-top 0.1s ease;
   transition: margin-top 0.1s ease;
 }
-#header {
-  height: 56px;
-}
 .navbar {
   position: relative;
   margin-bottom: 0;
+  border-radius: 0;
 }
 .navbar .navbar-inner {
   color: #bfc6cf;
@@ -7051,7 +7049,7 @@ h3 {
   clear: both;
 }
 .navbar .navbar-inner .container {
-  padding: 8px 10px 0 30px;
+  padding: 8px 30px 0 30px;
 }
 .navbar #logo {
   font-size: 22px;
@@ -7146,6 +7144,7 @@ h3 {
 }
 .navbar #team-banner .dropdown-menu .project-list {
   margin: 0;
+  padding: 0;
 }
 .navbar #team-banner .dropdown-menu .project-list li {
   margin: 0;
@@ -7242,6 +7241,7 @@ h3 {
 }
 .navbar .nav > li {
   margin: 0 0 0 35px;
+  float: left;
 }
 .navbar .nav > li > a {
   color: #bfc6cf;
@@ -7257,6 +7257,10 @@ h3 {
 .navbar .nav > li > .dropdown-toggle .caret {
   border-top-color: #b3b9c1 !important;
   border-bottom-color: #b3b9c1 !important;
+}
+.navbar .nav > li > .dropdown-menu {
+  left: auto;
+  right: 0;
 }
 .navbar .nav > li > .dropdown-menu a {
   -webkit-transition: none;
@@ -7299,7 +7303,7 @@ h3 {
   overflow: hidden;
   white-space: nowrap;
   position: relative;
-  height: 22px;
+  height: 36px;
   padding: 3px 14px;
   color: #757f87;
   text-decoration: none;
@@ -7326,8 +7330,12 @@ h3 {
 .toolbar:after {
   clear: both;
 }
+.toolbar .container {
+  padding-left: 0;
+  padding-right: 0;
+}
 .toolbar div.pull-right {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
 }
 .toolbar .navbar-search {
   margin: 13px 0 0 10px;
@@ -7382,8 +7390,8 @@ h3 {
   background-image: none;
   position: relative;
   font-size: 16px;
-  top: 4px;
-  left: -1px;
+  top: 3px;
+  left: 0;
 }
 .toolbar .nav {
   margin: 0 0 0 -14px;
@@ -7395,19 +7403,22 @@ h3 {
   font-size: 15px;
   font-weight: 500;
   color: #85909a;
-  height: 27px;
-  line-height: 27px;
+  height: 47px;
+  line-height: 26px;
   padding-left: 15px;
   padding-right: 15px;
 }
 .toolbar .nav > li.active a {
-  padding-top: 7px;
+  padding-top: 9px;
   padding-bottom: 9px;
   color: #6b7781;
   border-radius: 6px 6px 0 0;
 }
 #content {
   background: #fff;
+}
+#content .container {
+  padding: 0;
 }
 #content.with-sidebar {
   background: #ffffff url(../images/dashboard/sidebar-bg.png) top right repeat-y;
@@ -7437,7 +7448,7 @@ h3 {
   display: block;
   margin-right: 0;
   margin-top: 5px;
-  margin-left: -250px;
+  margin-left: -220px;
 }
 #content.with-left-sidebar .sidebar .nav a {
   padding: 5px 15px;
@@ -7546,7 +7557,7 @@ h3 {
 }
 #content .sidebar {
   position: relative;
-  width: 240px;
+  width: 300px;
   float: left;
   padding: 18px 30px;
   display: none;
@@ -7629,10 +7640,6 @@ h3 {
 }
 #content .sidebar .nav-list {
   margin: 0 -29px 8px -30px;
-}
-#content .sidebar .nav-list li.nav-header {
-  padding-left: 30px;
-  padding-right: 30px;
 }
 #content .sidebar .nav-list li a {
   padding: 5px 30px;
