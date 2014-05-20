@@ -7020,6 +7020,7 @@ h3 {
   position: relative;
   margin-bottom: 0;
   border-radius: 0;
+  border: 0;
 }
 .navbar .navbar-inner {
   color: #bfc6cf;
@@ -7398,21 +7399,22 @@ h3 {
   font-size: 15px;
   height: 46px;
   padding-top: 5px;
+  border: 0;
 }
 .toolbar .nav > li > a {
   font-size: 15px;
   font-weight: 500;
   color: #85909a;
   height: 47px;
-  line-height: 26px;
+  line-height: 44px;
   padding-left: 15px;
   padding-right: 15px;
+  padding-top: 0;
 }
 .toolbar .nav > li.active a {
-  padding-top: 9px;
-  padding-bottom: 9px;
   color: #6b7781;
   border-radius: 6px 6px 0 0;
+  border: 0;
 }
 #content {
   background: #fff;
@@ -7504,7 +7506,7 @@ h3 {
 #content .btn-toolbar {
   margin: 0;
   list-style: none;
-  padding: 15px 20px 15px 30px;
+  padding: 15px 20px 15px 25px;
   border-bottom: 2px solid #f2f4f7;
 }
 #content .btn-toolbar:before,
@@ -7525,6 +7527,10 @@ h3 {
 }
 #content .btn-toolbar .btn-group .btn {
   float: none;
+  min-height: 36px;
+}
+#content .btn-toolbar .btn-group .btn.realtime-play {
+  padding-top: 8px;
 }
 #content .btn-toolbar .btn-group .dropdown-toggle small {
   color: #888;
@@ -7608,6 +7614,9 @@ h3 {
   margin-left: 0;
   padding-left: 0;
 }
+#content .sidebar .nav.nav-tabs.nav-stacked {
+  border: 0;
+}
 #content .sidebar .nav.nav-tabs.nav-stacked li {
   position: relative;
   margin: 0 0 1px;
@@ -7628,6 +7637,7 @@ h3 {
   color: #909aa3;
   border: none;
   padding: 10px 14px;
+  border-radius: 0;
 }
 #content .sidebar .nav.nav-tabs.nav-stacked li a:hover {
   color: #7d858d;
@@ -7637,6 +7647,12 @@ h3 {
   color: #4593de;
   -webkit-box-shadow: none;
   box-shadow: none;
+}
+#content .sidebar .nav.nav-tabs.nav-stacked li:first-child a {
+  border-radius: 4px 4px 0 0;
+}
+#content .sidebar .nav.nav-tabs.nav-stacked li:last-child a {
+  border-radius: 0 0 4px 4px;
 }
 #content .sidebar .nav-list {
   margin: 0 -29px 8px -30px;
@@ -8583,7 +8599,7 @@ small {
 .form-actions {
   border-top: 1px solid #eff1f4;
   background: none;
-  padding: 30px 0 0;
+  padding: 30px 0;
 }
 .form-actions p {
   padding: 6px 10px;
