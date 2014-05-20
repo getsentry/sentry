@@ -153,6 +153,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
 
+    'captcha',
     'crispy_forms',
     'djcelery',
     'gunicorn',
@@ -448,6 +449,13 @@ if os.path.exists(NPM_ROOT):
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
+
+# django-recaptcha
+
+RECAPTCHA_PUBLIC_KEY = None
+RECAPTCHA_PRIVATE_KEY = None
+
+# django-statsd
 
 STATSD_CLIENT = 'django_statsd.clients.null'
 
