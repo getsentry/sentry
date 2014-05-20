@@ -412,6 +412,9 @@ class Stacktrace(Interface):
             'frames_omitted': self.frames_omitted,
         }
 
+    def get_path(self):
+        return 'sentry.interfaces.Stacktrace'
+
     def has_app_frames(self):
         return any(f.in_app is not None for f in self.frames)
 

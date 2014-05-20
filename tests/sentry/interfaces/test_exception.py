@@ -31,6 +31,9 @@ class ExceptionTest(TestCase):
             }]},
         }]))
 
+    def test_path(self):
+        assert self.interface.get_path() == 'sentry.interfaces.Exception'
+
     def test_args_as_keyword_args(self):
         inst = Exception.to_python(dict(values=[{
             'type': 'ValueError',

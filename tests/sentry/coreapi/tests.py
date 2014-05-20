@@ -180,7 +180,7 @@ class ValidateDataTest(BaseAPITest):
         })
         assert 'tests.manager.tests.DummyInterface' not in data
 
-    def test_doesnt_expand_list(self):
+    def test_does_expand_list(self):
         data = validate_data(self.project, {
             'message': 'foo',
             'exception': [{
@@ -189,7 +189,7 @@ class ValidateDataTest(BaseAPITest):
                 'module': 'foo.bar',
             }]
         })
-        assert 'sentry.interfaces.Exception' not in data
+        assert 'sentry.interfaces.Exception' in data
 
     def test_log_level_as_string(self):
         data = validate_data(self.project, {

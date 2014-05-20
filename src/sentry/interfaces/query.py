@@ -33,3 +33,6 @@ class Query(Interface):
 
     def get_hash(self):
         return [self.query]
+
+    def get_path(self):
+        return 'sentry.interfaces.Query'

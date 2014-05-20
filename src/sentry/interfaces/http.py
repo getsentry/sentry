@@ -126,6 +126,9 @@ class Http(Interface):
 
         return cls(**kwargs)
 
+    def get_path(self):
+        return 'sentry.interfaces.Http'
+
     @property
     def full_url(self):
         url = self.url
