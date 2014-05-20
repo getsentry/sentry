@@ -168,14 +168,11 @@ class GroupManager(BaseManager):
             data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
         # TODO(dcramer): find a better place for this logic
-        if 'sentry.interfaces.Exception' in data:
-            if 'values' not in data['sentry.interfaces.Exception']:
-                if 'sentry.interfaces.Stacktrace' in data:
-                    data['sentry.interfaces.Exception']['stacktrace'] = \
-                        data.pop('sentry.interfaces.Stacktrace')
-                data['sentry.interfaces.Exception'] = {
-                    'values': [data['sentry.interfaces.Exception']]
-                }
+        exception = data.get('sentry.interfaces.Exception')
+        stacktrace = data.get('sentry.interfaces.Stacktrace')
+        if exception and len(exception['values']) == 1 and stacktrace:
+            exception['values'][0]['stacktrace'] = stacktrace
+            del data['sentry.interfaces.Stacktrace']
 
         if 'sentry.interfaces.Http' in data:
             # default the culprit to the url
