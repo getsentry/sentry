@@ -17,7 +17,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 
-from django_sudo.decorators import sudo_required
+from sudo.decorators import sudo_required
 
 from sentry.constants import MEMBER_USER
 from sentry.models import Project, UserOption, LostPasswordHash

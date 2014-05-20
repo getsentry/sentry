@@ -20,7 +20,7 @@
 
                 {% if group|has_charts %}
                     <div class="module">
-                        <div id="chart" class="chart" data-api-url="{% url 'sentry-api-chart' project.team.slug project.slug %}" data-group="{{ group.id|safe }}">
+                        <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-group-stats' group.id %}">
                             <div class="sparkline">
                                 <span class="loading">{% trans "Loading historical data..." %}</span>
                                 <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
@@ -159,7 +159,8 @@
             href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id "latest" %}"{% endif %}{% else %}
             href="{% url 'sentry-group-events-json' group.team.slug project.slug group.id %}"{% endifequal %}
             >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
-            <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}">{% trans "Remove Event Data" %}</a></li>
+            <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}"
+                   onclick="return confirm('{% trans "Are you sure you wish to delete all data for this event?" %}');">{% trans "Remove Event Data" %}</a></li>
         </ul>
     {% endif %}
 

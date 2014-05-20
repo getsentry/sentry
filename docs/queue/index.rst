@@ -19,7 +19,7 @@ which is the worker manager process of the Celery library.
 
     sentry celery worker -B
 
-.. note:: You will need to run both celery workers and celerybeat. In our example, the -B flag runs a beat instance (in addition to the worker), but in production you may want to run them seperately.
+.. note:: You will need to run both celery workers and celerybeat. In our example, the -B flag runs a beat instance (in addition to the worker), but in production you may want to run them separately.
 
 We again recommend running this as a service. Below is an example configuration with supervisor:
 

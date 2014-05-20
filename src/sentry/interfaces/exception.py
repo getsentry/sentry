@@ -66,6 +66,9 @@ class SingleException(Interface):
             'stacktrace': stacktrace,
         }
 
+    def get_alias(self):
+        return 'exception'
+
     def get_hash(self):
         output = None
         if self.stacktrace:
@@ -166,6 +169,9 @@ class Exception(Interface):
         for value in self.values:
             output.extend(value.get_hash())
         return output
+
+    def get_alias(self):
+        return 'exception'
 
     def get_composite_hash(self, interfaces):
         # optimize around the fact that some exceptions might have stacktraces

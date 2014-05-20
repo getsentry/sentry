@@ -1,99 +1,63 @@
-from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext_lazy as _
-
-from sentry.api.base import BaseView
-from sentry.constants import STATUS_RESOLVED, STATUS_MUTED, STATUS_UNRESOLVED
-from sentry.models import Group, Activity
-from sentry.web.decorators import has_access
-from sentry.utils.javascript import transform
-
-from rest_framework import serializers, status
 from rest_framework.response import Response
 
-
-class StatusField(serializers.WritableField):
-    choices = {
-        'resolved': STATUS_RESOLVED,
-        'unresolved': STATUS_UNRESOLVED,
-        'muted': STATUS_MUTED,
-    }
-    default_error_messages = {
-        'invalid_choice': _('Select a valid choice. %(value)s is not one of '
-                            'the available choices.'),
-    }
-
-    _rev_choice_map = dict((v, k) for k, v in choices.iteritems())
-
-    def validate(self, value):
-        """
-        Validates that the input is in self.choices.
-        """
-        super(StatusField, self).validate(value)
-        if value and value not in self._rev_choice_map:
-            raise serializers.ValidationError(
-                self.error_messages['invalid_choice'] % {'value': value})
-
-    def to_native(self, value):
-        return self._rev_choice_map[value]
-
-    def from_native(self, value):
-        return self.choices[value]
+from sentry.api.base import Endpoint
+from sentry.api.permissions import assert_perm
+from sentry.api.serializers import serialize
+from sentry.models import Activity, Group, GroupSeen
 
 
-class GroupSerializer(serializers.ModelSerializer):
-    status = StatusField()
+class GroupDetailsEndpoint(Endpoint):
+    def _get_activity(self, request, group, num=7):
+        activity_items = set()
+        activity = []
+        activity_qs = Activity.objects.filter(
+            group=group,
+        ).order_by('-datetime').select_related('user')
+        # we select excess so we can filter dupes
+        for item in activity_qs[:num * 2]:
+            sig = (item.event_id, item.type, item.ident, item.user_id)
+            # TODO: we could just generate a signature (hash(text)) for notes
+            # so there's no special casing
+            if item.type == Activity.NOTE:
+                activity.append(item)
+            elif sig not in activity_items:
+                activity_items.add(sig)
+                activity.append(item)
 
-    class Meta:
-        model = Group
-        fields = ('id', 'status', 'times_seen', 'last_seen', 'first_seen', 'resolved_at', 'active_at')
-        read_only_fields = ('id', 'times_seen', 'last_seen', 'first_seen', 'resolved_at', 'active_at')
+        activity.append(Activity(
+            project=group.project,
+            group=group,
+            type=Activity.FIRST_SEEN,
+            datetime=group.first_seen,
+        ))
 
+        return activity[:num]
 
-class GroupDetailsView(BaseView):
-    @method_decorator(has_access)
-    def get(self, request, team, project, group_id):
+    def _get_seen_by(self, request, group):
+        seen_by = sorted([
+            (gs.user, gs.last_seen)
+            for gs in GroupSeen.objects.filter(
+                group=group
+            ).select_related('user')
+        ], key=lambda ls: ls[1], reverse=True)
+        return [s[0] for s in seen_by]
+
+    def get(self, request, group_id):
         group = Group.objects.get(
             id=group_id,
-            project=project,
-        )
-        serializer = GroupSerializer(group)
-
-        return Response(serializer.data)
-
-    @method_decorator(has_access)
-    def put(self, request, team, project, group_id):
-        group = Group.objects.get(
-            id=group_id,
-            project=project,
         )
 
-        serializer = GroupSerializer(group, data=request.DATA)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        assert_perm(group, request.user, request.auth)
 
-        now = timezone.now()
+        data = serialize(group, request.user)
 
-        # It's important that we ensure state changes are atomic and that we
-        # dont create multiple activity transactions
-        if request.DATA.get('status') == 'resolved':
-            group.resolved_at = now
+        # TODO: these probably should be another endpoint
+        activity = self._get_activity(request, group, num=7)
+        seen_by = self._get_seen_by(request, group)
 
-            happened = Group.objects.filter(
-                id=group.id,
-            ).exclude(status=STATUS_RESOLVED).update(
-                status=STATUS_RESOLVED,
-                resolved_at=now,
-            )
+        data.update({
+            'activity': serialize(activity, request.user),
+            'seenBy': serialize(seen_by, request.user),
+        })
 
-            if happened:
-                Activity.objects.create(
-                    project=project,
-                    group=group,
-                    type=Activity.SET_RESOLVED,
-                    user=request.user,
-                )
-
-        serializer.save()
-
-        return Response(transform(group, request))
+        return Response(data)

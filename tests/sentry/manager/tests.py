@@ -9,8 +9,7 @@ from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.manager import get_checksum_from_event
 from sentry.models import (
-    Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    Team, EventMapping, User, AccessGroup, GroupTagValue
+    Event, Group, Project, Team, EventMapping, User, AccessGroup, GroupTagValue
 )
 from sentry.testutils import TestCase
 
@@ -45,7 +44,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.project_id, 1)
 
     def test_valid_timestamp_without_tz(self):
-        # TODO: this doesnt error, but it will throw a warning. What should we do?
+        # TODO: this doesn't error, but it will throw a warning. What should we do?
         with self.settings(USE_TZ=True):
             date = datetime.datetime.utcnow()
             event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
@@ -80,31 +79,9 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.project_id, 1)
         self.assertEquals(Event.objects.count(), 1)
 
-        # ensure that calling it again doesnt raise a db error
+        # ensure that calling it again doesn't raise a db error
         Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(Event.objects.count(), 1)
-
-    def test_does_update_groupcountbyminute(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = GroupCountByMinute.objects.filter(group=event.group)
-        self.assertTrue(inst.exists())
-        inst = inst.get()
-        self.assertEquals(inst.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = GroupCountByMinute.objects.get(group=event.group)
-        self.assertEquals(inst.times_seen, 2)
-
-    def test_does_update_projectcountbyminute(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = ProjectCountByMinute.objects.filter(project=event.project)
-        self.assertTrue(inst.exists())
-        inst = inst.get()
-        self.assertEquals(inst.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo')
-        inst = ProjectCountByMinute.objects.get(project=event.project)
-        self.assertEquals(inst.times_seen, 2)
 
     def test_updates_group(self):
         Group.objects.from_kwargs(1, message='foo', checksum='a' * 32)

@@ -21,12 +21,14 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
+
+import six
 
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
+from sentry.app import tsdb
 from sentry.constants import (
     MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
     EVENTS_PER_PAGE)
@@ -37,13 +39,11 @@ from sentry.coreapi import (
     decompress_deflate, decompress_gzip)
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.models import (
-    Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
-    User)
+    Group, GroupBookmark, Project, TagValue, Activity, User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json
-from sentry.utils.cache import cache
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -201,7 +201,7 @@ class APIView(BaseView):
             try:
                 project_, user = project_from_auth_vars(auth_vars)
             except APIError as error:
-                return HttpResponse(unicode(error.msg), status=error.http_status)
+                return HttpResponse(six.text_type(error.msg), status=error.http_status)
             else:
                 if user:
                     request.user = user
@@ -236,7 +236,7 @@ class APIView(BaseView):
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
             except APIError as error:
-                response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
+                response = HttpResponse(six.text_type(error.msg), content_type='text/plain', status=error.http_status)
                 if isinstance(error, APIRateLimited) and error.retry_after is not None:
                     response['Retry-After'] = str(error.retry_after)
 
@@ -333,7 +333,7 @@ class StoreView(APIView):
             # mutates data
             validate_data(project, data, auth.client)
         except InvalidData as e:
-            raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
+            raise APIError(u'Invalid data: %s (%s)' % (six.text_type(e), type(e)))
 
         # mutates data
         Group.objects.normalize_event_data(data)
@@ -608,43 +608,6 @@ def clear(request, team, project):
     return response
 
 
-@vary_on_cookie
-@csrf_exempt
-@has_access
-def chart(request, team=None, project=None):
-    gid = request.REQUEST.get('gid')
-    days = int(request.REQUEST.get('days', '90'))
-    if gid:
-        try:
-            group = Group.objects.get(pk=gid)
-        except Group.DoesNotExist:
-            return HttpResponseForbidden()
-
-        data = Group.objects.get_chart_data(group, max_days=days)
-    elif project:
-        data = Project.objects.get_chart_data(project, max_days=days)
-    elif team:
-        cache_key = 'api.chart:team=%s,days=%s' % (team.id, days)
-
-        data = cache.get(cache_key)
-        if data is None:
-            project_list = list(Project.objects.filter(team=team))
-            data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
-            cache.set(cache_key, data, 300)
-    else:
-        cache_key = 'api.chart:user=%s,days=%s' % (request.user.id, days)
-
-        data = cache.get(cache_key)
-        if data is None:
-            project_list = Project.objects.get_for_user(request.user)
-            data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
-            cache.set(cache_key, data, 300)
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
-
-
 @never_cache
 @csrf_exempt
 @has_access
@@ -763,18 +726,28 @@ def get_stats(request, team=None, project=None):
         project_list = Project.objects.get_for_user(request.user, team=team)
 
     cutoff = datetime.timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
 
-    num_events = ProjectCountByMinute.objects.filter(
-        project__in=project_list,
-        date__gte=cutoff_dt,
-    ).aggregate(t=Sum('times_seen'))['t'] or 0
+    end = timezone.now()
+    start = end - cutoff
+
+    # TODO(dcramer): this is used in an unreleased feature. reimplement it using
+    # new API and tsdb
+    results = tsdb.get_range(
+        model=tsdb.models.project,
+        keys=[p.id for p in project_list],
+        start=start,
+        end=end,
+    )
+    num_events = 0
+    for project, points in results.iteritems():
+        num_events += sum(p[1] for p in points)
 
     # XXX: This is too slow if large amounts of groups are resolved
+    # TODO(dcramer); move this into tsdb
     num_resolved = Group.objects.filter(
         project__in=project_list,
         status=STATUS_RESOLVED,
-        resolved_at__gte=cutoff_dt,
+        resolved_at__gte=start,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 
     data = {

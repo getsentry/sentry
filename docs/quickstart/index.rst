@@ -3,10 +3,11 @@ Quickstart
 
 Some basic prerequisites which you'll need in order to run Sentry:
 
-* Python 2.5, 2.6, or 2.7
-* python-setuptools, python-dev
-* A real database (PostgreSQL is preferred, MySQL also works)
 * A UNIX-based operating system
+* Python 2.7
+* python-setuptools, python-dev, libxslt1-dev, libxml2-dev
+* A real database (PostgreSQL is preferred, MySQL also works)
+* Redis
 
 The recommended configuration of Sentry involves setting up a separate web server to handle your error
 logging. This means that any number of Sentry clients simply pass on this information to your primary Sentry
@@ -96,14 +97,22 @@ These databases require additional packages, but Sentry provides a couple of met
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you're installing the Sentry source (e.g. from git), you'll simply need to run the ``make`` command to
-get all of the dependencies::
+If you're installing the Sentry source (e.g. from git), you'll need a couple of extra dependencies:
 
-  # all things should be this easy
-  make
+- node.js (npm)
+- git
+
+Once your system is prepared, simply run the ``make`` command to
+get all of the application dependencies:
+
+.. code-block:: bash
+
+  $ make develop
 
 Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
-like the following::
+like the following:
+
+.. code-block:: bash
 
   $ sentry
   usage: sentry [--config=/path/to/settings.py] [command] [options]
@@ -158,11 +167,42 @@ is not a fully supported database and should not be used in production**.
     }
 
 
+Configure Redis
+---------------
+
+Redis is used as the default implementation for various backend services, including the time-series
+storage, SQL update buffers, and rate limiting.
+
+We recommend running two separate Redis clusters: one for persistent data (TSDB) and one for temporal
+data (buffers, rate limits). This is because you can configure the nodes in very different ones to
+enable more aggressive/optimized LRU.
+
+That said, if you're running a small install you can probably get away with just setting up the defaults:
+
+::
+
+    SENTRY_REDIS_OPTIONS = {
+        'hosts': {
+            0: {
+                'host': '127.0.0.1',
+                'port': 6379,
+            }
+        }
+    }
+
+All built-in Redis implementations (other than the queue) will use these default settings, but each
+individual service also will allow you to override it's cluster settings.
+
+See the individual documentation for :doc:`the queue <../queue/index>`, :doc:`update buffers <../buffer/index>`,
+:doc:`quotas <../throttling/index>`, and :doc:`time-series storage <../tsdb/index>` for more details.
+
 Configure Outbound Mail
 -----------------------
 
 Several settings exist as part of the Django framework which will configure your outbound mail server. For the
-standard implementation, using a simple SMTP server, you can simply configure the following::
+standard implementation, using a simple SMTP server, you can simply configure the following:
+
+.. code-block:: python
 
     EMAIL_HOST = 'localhost'
     EMAIL_HOST_PASSWORD = ''
@@ -180,25 +220,29 @@ Running Migrations
 Sentry provides an easy way to run migrations on the database on version upgrades. Before running it for
 the first time you'll need to make sure you've created the database:
 
-::
+.. code-block:: bash
 
     # If you're using Postgres, and kept the database ``NAME`` as ``sentry``
-    createdb -E utf-8 sentry
+    $ createdb -E utf-8 sentry
 
-Once done, you can create the initial schema using the ``upgrade`` command::
+Once done, you can create the initial schema using the ``upgrade`` command:
 
-    sentry --config=/etc/sentry.conf.py upgrade
+.. code-block:: python
+
+    $ sentry --config=/etc/sentry.conf.py upgrade
 
 **It's very important that you create the default superuser through the upgrade process. If you do not, there is
 a good chance you'll see issues in your initial install.**
 
-If you did not create the user on the first run, you can correct this by doing the following::
+If you did not create the user on the first run, you can correct this by doing the following:
+
+.. code-block:: bash
 
     # create a new user
-    sentry --config=/etc/sentry.conf.py createsuperuser
+    $ sentry --config=/etc/sentry.conf.py createsuperuser
 
     # run the automated repair script
-    sentry --config=/etc/sentry.conf.py repair --owner=<username>
+    $ sentry --config=/etc/sentry.conf.py repair --owner=<username>
 
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
@@ -221,6 +265,9 @@ you can pass that via the --config option.
   sentry --config=/etc/sentry.conf.py start
 
 You should now be able to test the web service by visiting `http://localhost:9000/`.
+
+.. note:: This doesn't run any workers in the background, so assuming queueing is enabled (default in 7.0.0+)
+          no asyncrhonous tasks will be running.
 
 Setup a Reverse Proxy
 ---------------------
@@ -265,7 +312,7 @@ If you are planning to use SSL, you will also need to ensure that you've
 enabled detection within the reverse proxy (see the instructions above), as
 well as within the Sentry configuration:
 
-::
+.. code-block:: python
 
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -285,10 +332,18 @@ folder and you're good to go.
 
   [program:sentry-web]
   directory=/www/sentry/
-  command=/www/sentry/bin/sentry start http
+  command=/www/sentry/bin/sentry start
   autostart=true
   autorestart=true
   redirect_stderr=true
+
+  [program:sentry-worker]
+  directory=/www/sentry/
+  command=/www/sentry/bin/sentry celery worker -B
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+
 
 Additional Utilities
 --------------------
@@ -314,7 +369,7 @@ slightly better).
 Enabling Social Auth
 --------------------
 
-Most of the time it doesnt really matter **how** someone authenticates to the service, so much as it that they do. In
+Most of the time it doesn't really matter **how** someone authenticates to the service, so much as it that they do. In
 these cases, Sentry provides tight integrated with several large social services, including: Twitter, Facebook, Google,
 and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a
 couple values in your ``sentry.conf.py`` file.
@@ -328,7 +383,9 @@ Twitter
 ~~~~~~~
 
 Register an application at http://twitter.com/apps/new. Take the values given on the page, and configure
-the following::
+the following:
+
+.. code-block:: python
 
   TWITTER_CONSUMER_KEY = ''
   TWITTER_CONSUMER_SECRET = ''
@@ -340,7 +397,9 @@ Facebook
 
 Register an application at http://developers.facebook.com/setup/. You'll also need to make sure you select the "Website
 with Facebook Login" and fill in the Site URL field (just use the website's URL you're install Sentry on). Take the
-values given on the page, and configure the following::
+values given on the page, and configure the following:
+
+.. code-block:: python
 
   FACEBOOK_APP_ID = ''
   FACEBOOK_API_SECRET = ''
@@ -349,7 +408,9 @@ Google
 ~~~~~~
 
 Register an application at http://code.google.com/apis/accounts/docs/OAuth2.html#Registering. Take the values given on the page, and configure
-the following::
+the following:
+
+.. code-block:: python
 
   GOOGLE_OAUTH2_CLIENT_ID = ''
   GOOGLE_OAUTH2_CLIENT_SECRET = ''
@@ -358,7 +419,9 @@ GitHub
 ~~~~~~
 
 Register an application at https://github.com/settings/applications/new. Take the values given on the page, and configure
-the following::
+the following:
+
+.. code-block:: python
 
   GITHUB_APP_ID = ''
   GITHUB_API_SECRET = ''
@@ -370,7 +433,9 @@ Trello
 ~~~~~~
 
 Generate an application key at https://trello.com/1/appKey/generate. Take the values given on the page, and configure
-the following::
+the following:
+
+.. code-block:: python
 
   TRELLO_API_KEY = ''
   TRELLO_API_SECRET = ''
@@ -382,29 +447,12 @@ There are several applications you may want to add to the default Sentry install
 is a bit outside of the scope of normal (locked down) installs, as typically you'll host things on your internal network. That
 said, you'll first need to understand how you can modify the default settings.
 
-First pop open your ``sentry.conf.py``, and add the following to the **very top** of the file::
+First pop open your ``sentry.conf.py``, and add the following to the **very top** of the file:
+
+.. code-block:: python
 
   from sentry.conf.server import *
 
 Now you'll have access to all of the default settings (Django and Sentry) to modify at your own will.
 
-Configuring Memcache
-~~~~~~~~~~~~~~~~~~~~
-
-You'll also want to consider configuring cache and buffer settings, which respectively require a cache server and a Redis
-server. While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
-own internal purposes:
-
-::
-
-  # You'll need to install django-pyblibmc for this example to work
-  CACHES = {
-      'default': {
-          'BACKEND': 'django_pylibmc.memcached.PyLibMCCache',
-          'LOCATION': 'localhost:11211',
-      }
-  }
-
-  SENTRY_CACHE_BACKEND = 'default'
-
-See :doc:`../buffer/index` for information on how to configure update buffers to improve performance on concurrent writes.
+We recommend going over all of the defaults in the generated settings file, and familiarizing yourself with how the system is setup.

@@ -98,8 +98,8 @@ def _get_group_list(request, project):
     else:
         if date_from and date_to:
             event_list = event_list.filter(
-                groupcountbyminute__date__gte=date_from,
-                groupcountbyminute__date__lte=date_to,
+                first_seen__gte=date_from,
+                last_seen__lte=date_to,
             )
         elif date_from:
             event_list = event_list.filter(last_seen__gte=date_from)
@@ -418,7 +418,7 @@ def group(request, team, project, group, event_id=None):
     for item in activity_qs.filter(group=group)[:20]:
         sig = (item.event_id, item.type, item.ident, item.user_id)
         # TODO: we could just generate a signature (hash(text)) for notes
-        # so theres no special casing
+        # so there's no special casing
         if item.type == Activity.NOTE:
             activity.append(item)
         elif sig not in activity_items:
@@ -487,10 +487,18 @@ def group_tag_list(request, team, project, group):
 
 @has_group_access
 def group_tag_details(request, team, project, group, tag_name):
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        order_by = '-last_seen'
+    elif sort == 'new':
+        order_by = '-first_seen'
+    else:
+        order_by = '-times_seen'
+
     return render_with_group_context(group, 'sentry/plugins/bases/tag/index.html', {
         'title': tag_name.replace('_', ' ').title(),
         'tag_name': tag_name,
-        'unique_tags': group.get_unique_tags(tag_name),
+        'unique_tags': group.get_unique_tags(tag_name, order_by=order_by),
         'page': 'tag_details',
     }, request)
 

@@ -75,7 +75,7 @@ class Project(Model):
 
     def merge_to(self, project):
         from sentry.models import (
-            Group, GroupCountByMinute, GroupTagValue, Event, TagValue
+            Group, GroupTagValue, Event, TagValue
         )
 
         if not isinstance(project, Project):
@@ -85,13 +85,11 @@ class Project(Model):
             try:
                 other = Group.objects.get(
                     project=project,
-                    logger=group.logger,
-                    culprit=group.culprit,
                     checksum=group.checksum,
                 )
             except Group.DoesNotExist:
                 group.update(project=project)
-                for model in (Event, GroupTagValue, GroupCountByMinute):
+                for model in (Event, GroupTagValue):
                     model.objects.filter(project=self, group=group).update(project=project)
             else:
                 Event.objects.filter(group=group).update(group=other)
@@ -106,24 +104,6 @@ class Project(Model):
                     )
                     if not created:
                         obj2.update(times_seen=F('times_seen') + obj.times_seen)
-
-                for obj in GroupCountByMinute.objects.filter(group=group):
-                    obj2, created = GroupCountByMinute.objects.get_or_create(
-                        project=project,
-                        group=group,
-                        date=obj.date,
-                        defaults={
-                            'times_seen': obj.times_seen,
-                            'time_spent_total': obj.time_spent_total,
-                            'time_spent_count': obj.time_spent_count,
-                        }
-                    )
-                    if not created:
-                        obj2.update(
-                            times_seen=F('times_seen') + obj.times_seen,
-                            time_spent_total=F('time_spent_total') + obj.time_spent_total,
-                            time_spent_count=F('time_spent_count') + obj.time_spent_count,
-                        )
 
         for fv in TagValue.objects.filter(project=self):
             TagValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)

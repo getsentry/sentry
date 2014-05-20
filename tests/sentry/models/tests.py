@@ -12,7 +12,7 @@ from exam import fixture
 from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
-    GroupTagValue, GroupCountByMinute, TagValue, PendingTeamMember,
+    GroupTagValue, TagValue, PendingTeamMember,
     LostPasswordHash, User)
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
@@ -33,13 +33,11 @@ class ProjectTest(TestCase):
         self.assertFalse(Group.objects.filter(project__isnull=True).exists())
         self.assertFalse(Event.objects.filter(project__isnull=True).exists())
         self.assertFalse(GroupTagValue.objects.filter(project__isnull=True).exists())
-        self.assertFalse(GroupCountByMinute.objects.filter(project__isnull=True).exists())
         self.assertFalse(TagValue.objects.filter(project__isnull=True).exists())
 
         self.assertEquals(project2.group_set.count(), 4)
         self.assertEquals(project2.event_set.count(), 10)
         assert not GroupTagValue.objects.filter(project=project2).exists()
-        assert not project2.groupcountbyminute_set.exists()
         assert not TagValue.objects.filter(project=project2).exists()
 
 
@@ -140,8 +138,8 @@ class EventNodeStoreTest(TestCase):
         data = {'key': 'value'}
 
         query_bits = [
-            "INSERT INTO sentry_message (group_id, project_id, data, logger, level, message, checksum, datetime)",
-            "VALUES(%s, %s, %s, '', 0, %s, %s, %s)",
+            "INSERT INTO sentry_message (group_id, project_id, data, message, checksum, datetime)",
+            "VALUES(%s, %s, %s, %s, %s, %s)",
         ]
         params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
 

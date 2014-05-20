@@ -11,7 +11,8 @@ Enabling Quotas
 
 Sentry provides a built-in quota mechanism to limit on per-project and system-wide basis.
 
-By default, quotas are not enabled. To enable them, you'll need to configure a Redis instance:
+As of version 7.0.0, quotas are enabled by default and configured to use the Redis backend. To
+adjust the settings or the backend, you can use the following settings:
 
 .. code-block:: python
 

@@ -137,7 +137,7 @@ class MailPlugin(NotificationPlugin):
                 continue
             interface_list.append((interface.get_title(), mark_safe(body)))
 
-        subject = event.get_email_subject()
+        subject = group.get_email_subject()
 
         link = group.get_absolute_url()
 
@@ -153,11 +153,10 @@ class MailPlugin(NotificationPlugin):
         }
 
         headers = {
-            'X-Sentry-Logger': event.logger,
-            'X-Sentry-Logger-Level': event.get_level_display(),
+            'X-Sentry-Logger': group.logger,
+            'X-Sentry-Logger-Level': group.get_level_display(),
             'X-Sentry-Project': project.name,
-            'X-Sentry-Server': event.server_name,
-            'X-Sentry-Reply-To': group_id_to_email(group.pk),
+            'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
         self._send_mail(

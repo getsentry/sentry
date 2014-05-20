@@ -11,8 +11,23 @@ from django.db import models
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
 from sentry.db.models import Model, BoundedPositiveIntegerField, sane_repr
-from sentry.manager import TagKeyManager
+from sentry.db.models.manager import BaseManager
+from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
+
+
+class TagKeyManager(BaseManager):
+    def _get_cache_key(self, project_id):
+        return 'filterkey:all:%s' % project_id
+
+    def all_keys(self, project):
+        # TODO: cache invalidation via post_save/post_delete signals much like BaseManager
+        key = self._get_cache_key(project.id)
+        result = cache.get(key)
+        if result is None:
+            result = list(self.filter(project=project).values_list('key', flat=True))
+            cache.set(key, result, 60)
+        return result
 
 
 class TagKey(Model):

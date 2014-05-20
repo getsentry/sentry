@@ -28,6 +28,7 @@ class Activity(Model):
     CREATE_ISSUE = 7
     NOTE = 8
     FIRST_SEEN = 9
+    DEPLOY = 10
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -40,6 +41,7 @@ class Activity(Model):
         (CREATE_ISSUE, 'create_issue'),
         (NOTE, 'note'),
         (FIRST_SEEN, 'first_seen'),
+        (DEPLOY, 'deploy'),
     )
 
     project = models.ForeignKey('sentry.Project')
@@ -124,7 +126,7 @@ class Activity(Model):
         if subject_prefix:
             subject_prefix = subject_prefix.rstrip() + ' '
 
-        subject = '%s%s' % (subject_prefix, self.event.get_email_subject())
+        subject = '%s%s' % (subject_prefix, self.group.get_email_subject())
 
         context = {
             'text': self.data['text'],

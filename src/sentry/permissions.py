@@ -6,7 +6,11 @@ sentry.permissions
 :license: BSD, see LICENSE for more details.
 """
 from functools import wraps
+
 from django.conf import settings
+
+import six
+
 from sentry.constants import MEMBER_OWNER
 from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
@@ -21,7 +25,7 @@ class Permission(object):
         return self.name
 
     def __eq__(self, other):
-        return unicode(self) == unicode(other)
+        return six.text_type(self) == six.text_type(other)
 
 
 class Permissions(object):
@@ -145,15 +149,11 @@ def can_remove_team_member(user, member):
 
 @requires_login
 def can_remove_team(user, team):
-    # projects with teams can never be removed
-    if team.project_set.exists():
-        return False
-
     if user.is_superuser:
         return True
 
     # must be an owner of the team
-    if not team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if team.owner != user:
         return False
 
     result = plugins.first('has_perm', user, 'remove_team', team)

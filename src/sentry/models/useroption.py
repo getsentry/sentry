@@ -6,13 +6,87 @@ sentry.models.useroption
 :license: BSD, see LICENSE for more details.
 """
 
-
+from celery.signals import task_postrun
+from django.core.signals import request_finished
 from django.conf import settings
 from django.db import models
 
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import UnicodePickledObjectField
-from sentry.manager import UserOptionManager
+from sentry.db.models.manager import BaseManager
+
+
+class UserOptionManager(BaseManager):
+    def __init__(self, *args, **kwargs):
+        super(UserOptionManager, self).__init__(*args, **kwargs)
+        task_postrun.connect(self.clear_cache)
+        request_finished.connect(self.clear_cache)
+        self.__metadata = {}
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        d.pop('_UserOptionManager__metadata', None)
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__metadata = {}
+
+    def get_value(self, user, project, key, default=None):
+        result = self.get_all_values(user, project)
+        return result.get(key, default)
+
+    def unset_value(self, user, project, key):
+        self.filter(user=user, project=project, key=key).delete()
+        if not hasattr(self, '_metadata'):
+            return
+        if project:
+            metakey = (user.pk, project.pk)
+        else:
+            metakey = (user.pk, None)
+        if metakey not in self.__metadata:
+            return
+        self.__metadata[metakey].pop(key, None)
+
+    def set_value(self, user, project, key, value):
+        inst, created = self.get_or_create(
+            user=user,
+            project=project,
+            key=key,
+            defaults={
+                'value': value,
+            },
+        )
+        if not created and inst.value != value:
+            inst.update(value=value)
+
+        if project:
+            metakey = (user.pk, project.pk)
+        else:
+            metakey = (user.pk, None)
+        if metakey not in self.__metadata:
+            return
+        self.__metadata[metakey][key] = value
+
+    def get_all_values(self, user, project):
+        if project:
+            metakey = (user.pk, project.pk)
+        else:
+            metakey = (user.pk, None)
+        if metakey not in self.__metadata:
+            result = dict(
+                (i.key, i.value) for i in
+                self.filter(
+                    user=user,
+                    project=project,
+                )
+            )
+            self.__metadata[metakey] = result
+        return self.__metadata.get(metakey, {})
+
+    def clear_cache(self, **kwargs):
+        self.__metadata = {}
 
 
 class UserOption(Model):

@@ -10,6 +10,8 @@ import zlib
 
 from django.utils.encoding import smart_unicode
 
+import six
+
 
 def truncatechars(value, arg):
     """
@@ -41,6 +43,6 @@ def gunzip(value):
 def strip(value):
     if not value:
         return ''
-    if not isinstance(value, basestring):
+    if not isinstance(value, six.string_types):
         return smart_unicode(value)  # fuck it
     return smart_unicode(value).strip()

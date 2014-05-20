@@ -10,6 +10,8 @@ Backwards Incompatible Changes
 - The trends feature has been removed until it can be reimplemented in a more scalable way.
 - NodeStore.generate_id() now returns a base64-encoded UUID.
 - The API for interfaces has been rewritten.
+- GroupMeta.objects.get_value no longer errors when a value is missing.
+- sentry.plugins.sentry_sites has been removed
 
 Version 6.4.0
 -------------
@@ -672,7 +674,7 @@ Version 2.3.0
 Version 2.2.5
 -------------
 
-* The |date filter now forces things to UTC (it assumes local time).
+* The \|date filter now forces things to UTC (it assumes local time).
 * Event templates have been updated to resemble groups.
 
 Version 2.2.4

@@ -26,15 +26,13 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     from sentry import app
     # TODO: TagKey and GroupTagKey need cleaned up
     from sentry.models import (
-        Group, Event, GroupCountByMinute, EventMapping,
-        GroupTagValue, TagValue, ProjectCountByMinute, Alert,
+        Group, Event, EventMapping,
+        GroupTagValue, TagValue, Alert,
         Activity, LostPasswordHash)
     from sentry.search.django.models import SearchDocument
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
-        (GroupCountByMinute, 'date'),
-        (ProjectCountByMinute, 'date'),
         (GroupTagValue, 'last_seen'),
         (Event, 'datetime'),
         (Activity, 'datetime'),
@@ -72,3 +70,11 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
             for obj in list(qs[:chunk_size]):
                 log.info("Removing %r", obj)
                 obj.delete()
+
+    # EventMapping is fairly expensive and is special cased as it's likely you
+    # won't need a reference to an event for nearly as long
+    if days > 7:
+        log.info("Removing expired values for %r", EventMapping)
+        EventMapping.objects.filter(
+            date_added__lte=timezone.now() - datetime.timedelta(days=7)
+        ).delete()

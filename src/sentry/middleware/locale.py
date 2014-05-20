@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.app import env
 from sentry.models import UserOption
+from sentry.utils.safe import safe_execute
 
 
 class SentryLocaleMiddleware(object):
@@ -26,9 +27,12 @@ class SentryLocaleMiddleware(object):
         # bind request to env
         env.request = request
 
-        self.load_user_conf(request)
+        safe_execute(self.load_user_conf, request)
 
     def load_user_conf(self, request):
+        if settings.MAINTENANCE:
+            return
+
         if not request.user.is_authenticated():
             return
 

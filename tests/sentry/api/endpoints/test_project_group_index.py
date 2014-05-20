@@ -7,8 +7,8 @@ class GroupIndexTest(APITestCase):
         self.create_group(checksum='a' * 32)
         self.create_group(checksum='b' * 32)
 
-        self.client.force_authenticate(user=self.user)
-        url = reverse('sentry-api-0-group-list', kwargs={
-            'project_id': self.project.id, 'team_slug': self.team.slug})
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-group-index', kwargs={
+            'project_id': self.project.id})
         response = self.client.get(url, format='json')
         assert response.status_code == 200

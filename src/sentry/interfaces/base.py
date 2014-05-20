@@ -35,6 +35,9 @@ class Interface(object):
     def to_json(self):
         return self._data.copy()
 
+    def get_alias(self):
+        return self.get_slug()
+
     def get_composite_hash(self, interfaces):
         return self.get_hash()
 
