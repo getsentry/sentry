@@ -117,14 +117,16 @@ class Exception(Interface):
     You can also optionally bind a stacktrace interface to an exception. The
     spec is identical to ``sentry.interfaces.Stacktrace``.
 
-    >>> [{
-    >>>     "type": "ValueError",
-    >>>     "value": "My exception value",
-    >>>     "module": "__builtins__"
-    >>>     "stacktrace": {
-    >>>         # see sentry.interfaces.Stacktrace
-    >>>     }
-    >>> }]
+    >>> {
+    >>>     "values": [{
+    >>>         "type": "ValueError",
+    >>>         "value": "My exception value",
+    >>>         "module": "__builtins__"
+    >>>         "stacktrace": {
+    >>>             # see sentry.interfaces.Stacktrace
+    >>>         }
+    >>>     }]
+    >>> }
 
     Values should be sent oldest to newest, this includes both the stacktrace
     and the exception itself.
