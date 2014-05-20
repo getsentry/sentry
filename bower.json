@@ -1,0 +1,11 @@
+{
+  "name": "sentry",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/getsentry/sentry.git"
+  },
+  "private": true,
+  "dependencies": {
+    "bootstrap": "~3.1.1"
+  }
+}
