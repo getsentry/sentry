@@ -1,5 +1,22 @@
+from django.conf import settings
 from django.utils.html import escape
 from django.utils.translation import ugettext as _
+
+from sentry.utils.imports import import_string
+
+
+def get_interface(name):
+    try:
+        import_path = settings.SENTRY_INTERFACES[name]
+    except KeyError:
+        raise ValueError('Invalid interface name: %s' % (name,))
+
+    try:
+        interface = import_string(import_path)
+    except Exception:
+        raise ValueError('Unable to load interface: %s' % (name,))
+
+    return interface
 
 
 class Interface(object):
@@ -43,6 +60,9 @@ class Interface(object):
         return dict(
             (k, v) for k, v in self._data.iteritems() if v
         )
+
+    def get_path(self):
+        return '%s.%s' % (self.__module__, self.__name__)
 
     def get_alias(self):
         return self.get_slug()

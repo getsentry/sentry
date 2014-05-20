@@ -26,12 +26,12 @@ from sentry.constants import (
     DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH)
 from sentry.exceptions import InvalidTimestamp
+from sentry.interfaces.base import get_interface
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
-from sentry.utils.imports import import_string
 from sentry.utils.strings import decompress, truncatechars
 
 
@@ -89,20 +89,6 @@ class APIRateLimited(APIError):
 
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
-
-
-def get_interface(name):
-    try:
-        import_path = settings.SENTRY_INTERFACES[name]
-    except KeyError:
-        raise ValueError('Invalid interface name: %s' % (name,))
-
-    try:
-        interface = import_string(import_path)
-    except Exception:
-        raise ValueError('Unable to load interface: %s' % (name,))
-
-    return interface
 
 
 def client_metadata(client=None, project=None, exception=None, tags=None, extra=None):
@@ -382,7 +368,7 @@ def validate_data(project, data, client=None):
 
         try:
             inst = interface.to_python(value)
-            data[k] = inst.to_json()
+            data[interface.get_path()] = inst.to_json()
         except Exception as e:
             if isinstance(e, AssertionError):
                 log = logger.info
