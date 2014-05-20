@@ -102,7 +102,7 @@ class Http(Interface):
             body = trim_dict(dict(enumerate(body)))
         elif isinstance(body, dict):
             body = trim_dict(body)
-        else:
+        elif body:
             body = trim(body, 2048)
             if headers.get('Content-Type') == cls.FORM_TYPE and '=' in body:
                 body = dict(parse_qsl(body))
