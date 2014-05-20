@@ -38,9 +38,10 @@ class Interface(object):
         return cls(data)
 
     def to_json(self):
+        # eliminate empty values for serialization to compress the keyspace
+        # and save (seriously) ridiculous amounts of bytes
         return dict(
-            (k, v) for k, v in self._data.iteritems()
-            if v is not None
+            (k, v) for k, v in self._data.iteritems() if v
         )
 
     def get_alias(self):
