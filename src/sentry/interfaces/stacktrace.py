@@ -153,6 +153,8 @@ class Frame(Interface):
         context_locals = data.get('vars') or {}
         if isinstance(context_locals, (list, tuple)):
             context_locals = dict(enumerate(context_locals))
+        elif not isinstance(context_locals, dict):
+            context_locals = {}
         context_locals = trim_dict(context_locals)
 
         # extra data is used purely by internal systems,
