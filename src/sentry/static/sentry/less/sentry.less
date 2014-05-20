@@ -81,13 +81,10 @@ h3 {
   .transition(margin-top .1s ease);
 }
 
-#header {
-  height: 56px;
-}
-
 .navbar {
   position: relative;
   margin-bottom: 0;
+  border-radius: 0;
   .navbar-inner {
     color: #bfc6cf;
     text-shadow: none;
@@ -100,7 +97,7 @@ h3 {
     height: 56px;
 
     .container {
-      padding: 8px 10px 0 30px;
+      padding: 8px 30px 0 30px;
     }
   }
 
@@ -197,6 +194,7 @@ h3 {
       }
       .project-list {
         margin: 0;
+        padding: 0;
         li {
           margin: 0;
           display: inline-block;
@@ -287,6 +285,7 @@ h3 {
 
     > li {
       margin: 0 0 0 35px;
+      float: left;
       > a {
         color: #bfc6cf;
         text-shadow: none;
@@ -304,6 +303,8 @@ h3 {
         }
       }
       > .dropdown-menu {
+        left: auto;
+        right: 0;
         a {
           .transition(none);
         }
@@ -347,7 +348,7 @@ h3 {
   overflow: hidden;
   white-space: nowrap;
   position: relative;
-  height: 22px;
+  height: 36px;
   padding: 3px 14px;
   color: #757f87;
   text-decoration: none;
@@ -360,8 +361,13 @@ h3 {
   padding: 0 30px;
   height: 52px;
 
+  .container {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   div.pull-right {
-    margin: 12px 0 0;
+    margin: 8px 0 0;
   }
 
   .navbar-search {
@@ -412,8 +418,8 @@ h3 {
         background-image: none;
         position: relative;
         font-size: 16px;
-        top: 4px;
-        left: -1px;
+        top: 3px;
+        left: 0;
       }
     }
   }
@@ -429,14 +435,14 @@ h3 {
         font-size: 15px;
         font-weight: 500;
         color: #85909a;
-        height: 27px;
-        line-height: 27px;
+        height: 47px;
+        line-height: 26px;
         padding-left: 15px;
         padding-right: 15px;
       }
       &.active {
         a {
-          padding-top: 7px;
+          padding-top: 9px;
           padding-bottom: 9px;
           color: darken(#85909a, 10);
           border-radius: 6px 6px 0 0;
@@ -448,6 +454,10 @@ h3 {
 
 #content {
   background: #fff;
+
+  .container {
+    padding: 0;
+  }
 
   &.with-sidebar {
     background: #fff url(../images/dashboard/sidebar-bg.png) top right repeat-y;
@@ -477,7 +487,7 @@ h3 {
       display: block;
       margin-right: 0;
       margin-top: 5px;
-      margin-left: -250px;
+      margin-left: -220px;
       .nav a {
         padding: 5px 15px;
         margin: 0;
@@ -566,7 +576,7 @@ h3 {
 
   .sidebar {
     position: relative;
-    width: 240px;
+    width: 300px;
     float: left;
     padding: 18px 30px;
     display: none;
@@ -650,10 +660,6 @@ h3 {
       }
     }
     .nav-list {
-      li.nav-header {
-        padding-left: 30px;
-        padding-right: 30px;
-      }
       margin: 0 -29px 8px -30px;
       li a {
         padding: 5px 30px;
