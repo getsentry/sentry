@@ -54,6 +54,9 @@ class User(Interface):
         kwargs['data'] = trim_dict(data.pop('data', data))
         return cls(**kwargs)
 
+    def get_path(self):
+        return 'sentry.interfaces.User'
+
     def get_hash(self):
         return []
 

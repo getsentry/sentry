@@ -69,6 +69,9 @@ class SingleException(Interface):
     def get_alias(self):
         return 'exception'
 
+    def get_path(self):
+        return 'sentry.interfaces.Exception'
+
     def get_hash(self):
         output = None
         if self.stacktrace:
@@ -166,14 +169,17 @@ class Exception(Interface):
     def __len__(self):
         return len(self.values)
 
+    def get_alias(self):
+        return 'exception'
+
+    def get_path(self):
+        return 'sentry.interfaces.Exception'
+
     def get_hash(self):
         output = []
         for value in self.values:
             output.extend(value.get_hash())
         return output
-
-    def get_alias(self):
-        return 'exception'
 
     def get_composite_hash(self, interfaces):
         # optimize around the fact that some exceptions might have stacktraces

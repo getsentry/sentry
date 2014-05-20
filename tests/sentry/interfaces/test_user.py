@@ -23,6 +23,9 @@ class UserTest(TestCase):
             favorite_color='brown',
         ))
 
+    def test_path(self):
+        assert self.interface.get_path() == 'sentry.interfaces.User'
+
     def test_serialize_behavior(self):
         assert self.interface.to_json() == {
             'id': 1,

@@ -62,7 +62,8 @@ class Interface(object):
         )
 
     def get_path(self):
-        return '%s.%s' % (self.__module__, self.__name__)
+        cls = type(self)
+        return '%s.%s' % (cls.__module__, cls.__name__)
 
     def get_alias(self):
         return self.get_slug()
