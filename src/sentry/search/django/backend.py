@@ -56,8 +56,8 @@ class DjangoSearchBackend(SearchBackend):
         elif date_filter == 'last_seen':
             if date_from and date_to:
                 queryset = queryset.filter(
-                    groupcountbyminute__date__gte=date_from,
-                    groupcountbyminute__date__lte=date_to,
+                    first_seen__gte=date_from,
+                    last_seen__lte=date_to,
                 )
             elif date_from:
                 queryset = queryset.filter(last_seen__gte=date_from)
