@@ -6,11 +6,11 @@ sentry.testutils.skips
 :license: BSD, see LICENSE for more details.
 """
 
+import socket
 import pytest
 
 
 def riak_is_available():
-    import socket
     try:
         socket.create_connection(('127.0.0.1', 8098), 1.0)
     except socket.error:
@@ -25,7 +25,6 @@ requires_riak = pytest.mark.skipif(
 
 
 def cassandra_is_available():
-    import socket
     try:
         socket.create_connection(('127.0.0.1', 9042), 1.0)
     except socket.error:
@@ -37,3 +36,17 @@ def cassandra_is_available():
 requires_cassandra = pytest.mark.skipif(
     lambda x: not cassandra_is_available(),
     reason="requires cassandra server running")
+
+
+def elastic_search_is_available():
+    try:
+        socket.create_connection(('127.0.0.1', 9200), 1.0)
+    except socket.error:
+        return False
+    else:
+        return True
+
+
+requires_elastic_search = pytest.mark.skipif(
+    lambda x: not elastic_search_is_available(),
+    reason="requires elastic search server running")

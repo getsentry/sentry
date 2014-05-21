@@ -310,8 +310,7 @@ class GroupManager(BaseManager):
                 is_regression=is_regression,
             )
 
-        if getattr(settings, 'SENTRY_INDEX_SEARCH', settings.SENTRY_USE_SEARCH):
-            index_event.delay(event)
+        index_event.delay(event)
 
         # TODO: move this to the queue
         if is_new and not raw:

@@ -473,7 +473,6 @@ SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
 )
 
-
 SENTRY_KEY = None
 
 # Absolute URL to the sentry root directory. Should not include a trailing slash.

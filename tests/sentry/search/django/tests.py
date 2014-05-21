@@ -5,36 +5,31 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.search.django.backend import DjangoSearchBackend
-from sentry.testutils import TestCase, assert_date_resembles
+from sentry.testutils import TestCase
 
 
-class SearchIndexTest(TestCase):
+class DjangoSearchTest(TestCase):
     @fixture
     def backend(self):
         return DjangoSearchBackend()
 
-    def test_index_behavior(self):
-        event = self.event
+    def test_simple(self):
+        project = self.project
+        group1 = self.create_group(
+            project=project,
+            checksum='a' * 40,
+            message='foo',
+        )
+        group2 = self.create_group(
+            project=project,
+            checksum='b' * 40,
+            message='bar',
+        )
 
-        doc = self.backend.index(event.group, event)
-        assert doc.project == event.project
-        assert doc.group == event.group
-        assert doc.total_events == 1
-        assert_date_resembles(doc.date_added, event.group.first_seen)
-        assert_date_resembles(doc.date_changed, event.group.last_seen)
-
-        doc = self.backend.index(event.group, event)
-        assert doc.project == event.project
-        assert doc.group == event.group
-        assert doc.total_events == 2
-        assert_date_resembles(doc.date_added, event.group.first_seen)
-        assert_date_resembles(doc.date_changed, event.group.last_seen)
-
-    def test_search(self):
-        event = self.event
-        doc = self.backend.index(event.group, event)
-
-        results = self.backend.query(event.project, event.message.upper())
+        results = self.backend.query(project, query='foo')
         assert len(results) == 1
-        [res] = results
-        assert res.id == doc.id
+        assert results[0] == group1
+
+        results = self.backend.query(project, query='bar')
+        assert len(results) == 1
+        assert results[0] == group2
