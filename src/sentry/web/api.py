@@ -583,7 +583,7 @@ def bookmark(request, team, project):
 @has_access(MEMBER_USER)
 @never_cache
 def clear(request, team, project):
-    queryset = Group.query.filter(
+    queryset = Group.objects.filter(
         project=project,
         status=STATUS_UNRESOLVED,
     )
