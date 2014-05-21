@@ -105,6 +105,11 @@ class Fixtures(object):
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('message', kwargs['group'].message)
         kwargs.setdefault('data', LEGACY_DATA)
+        if kwargs.get('tags'):
+            tags = kwargs.pop('tags')
+            if isinstance(tags, dict):
+                tags = tags.items()
+            kwargs['data']['tags'] = tags
 
         return Event.objects.create(
             event_id=event_id,

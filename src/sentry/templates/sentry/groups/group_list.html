@@ -3,6 +3,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
+{% load sentry_stream_filters %}
 
 {% block sidebar %}
     <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-project-stats' project.id %}" data-days="1">
@@ -24,7 +25,7 @@
             </div>
         {% endif %}
 
-        {% for filter in filters %}
+        {% for filter in project|get_filters:request %}
             {% if filter.show_label %}
                 <h6>{% trans filter.label %}</h6>
             {% endif %}

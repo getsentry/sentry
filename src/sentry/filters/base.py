@@ -29,9 +29,13 @@ class Filter(object):
     show_label = True
     max_choices = 50
 
-    def __init__(self, request, project):
+    def __init__(self, request, project, label=None, column=None):
         self.request = request
         self.project = project
+        if label is not None:
+            self.label = label
+        if column is not None:
+            self.column = column
 
     def is_set(self):
         return bool(self.get_value())
@@ -71,10 +75,6 @@ class Filter(object):
             cache.set(key, result, 60)
         return SortedDict((l, l) for l in result)
 
-    def get_query_set(self, queryset):
-        kwargs = {self.column: self.get_value()}
-        return queryset.filter(**kwargs)
-
     def process(self, data):
         """``self.request`` is not available within this method"""
         return data
@@ -82,13 +82,3 @@ class Filter(object):
     def render(self):
         widget = self.get_widget()
         return widget.render(self.get_value())
-
-
-class TagFilter(Filter):
-    def get_query_set(self, queryset):
-        col, val = self.get_column(), self.get_value()
-        queryset = queryset.filter(**dict(
-            grouptag__key=col,
-            grouptag__value=val,
-        ))
-        return queryset.distinct()
