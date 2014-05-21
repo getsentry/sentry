@@ -50,7 +50,7 @@ def _get_group_list(request, project):
         try:
             group_id = EventMapping.objects.filter(
                 project=project, event_id=query
-            ).values('group', flat=True)[0]
+            ).values_list('group', flat=True)[0]
         except EventMapping.DoesNotExist:
             pass
         else:
