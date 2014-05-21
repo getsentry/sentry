@@ -45,21 +45,7 @@ def _get_group_list(request, project):
     }
 
     query = request.GET.get('query')
-    if query and uuid_re.match(query):
-        # Forward to event if it exists
-        try:
-            group_id = EventMapping.objects.filter(
-                project=project, event_id=query
-            ).values_list('group', flat=True)[0]
-        except EventMapping.DoesNotExist:
-            pass
-        else:
-            return HttpResponseRedirect(reverse('sentry-group', kwargs={
-                'project_id': project.slug,
-                'team_slug': project.team.slug,
-                'group_id': group_id,
-            }))
-    elif query:
+    if query:
         query_kwargs['query'] = query
 
     status = request.GET.get('status', '0')
@@ -216,10 +202,28 @@ def group_list(request, team, project):
     except (TypeError, ValueError):
         page = 1
 
+    query = request.GET.get('query')
+    if query and uuid_re.match(query):
+        # Forward to event if it exists
+        try:
+            group_id = EventMapping.objects.filter(
+                project=project, event_id=query
+            ).values_list('group', flat=True)[0]
+        except EventMapping.DoesNotExist:
+            pass
+        else:
+            return HttpResponseRedirect(reverse('sentry-group', kwargs={
+                'project_id': project.slug,
+                'team_slug': project.team.slug,
+                'group_id': group_id,
+            }))
+
     response = _get_group_list(
         request=request,
         project=project,
     )
+    if isinstance(response, HttpResponse):
+        return response
 
     # XXX: this is duplicate in _get_group_list
     sort_label = SORT_OPTIONS[response['sort']]
