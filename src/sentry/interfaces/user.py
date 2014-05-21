@@ -47,7 +47,7 @@ class User(Interface):
 
         extra_data = data.pop('data', data)
         if not isinstance(extra_data, dict):
-            extra_data = None
+            extra_data = {}
 
         kwargs = {
             'id': trim(data.pop('id', None), 128),
