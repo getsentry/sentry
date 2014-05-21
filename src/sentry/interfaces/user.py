@@ -45,13 +45,18 @@ class User(Interface):
     def to_python(cls, data):
         data = data.copy()
 
+        extra_data = data.pop('data', data)
+        if not isinstance(extra_data, dict):
+            extra_data = None
+
         kwargs = {
             'id': trim(data.pop('id', None), 128),
             'email': trim(data.pop('email', None), 128),
             'username': trim(data.pop('username', None), 128),
             'ip_address': validate_ip(data.pop('ip_address', None), False),
         }
-        kwargs['data'] = trim_dict(data.pop('data', data))
+
+        kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
 
     def get_path(self):
