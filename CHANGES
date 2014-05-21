@@ -13,6 +13,7 @@ Backwards Incompatible Changes
 - The API for interfaces has been rewritten.
 - GroupMeta.objects.get_value no longer errors when a value is missing.
 - sentry.plugins.sentry_sites has been removed
+- The Search API has been rewritten and now powers the entire stream.
 
 Version 6.4.0
 -------------
