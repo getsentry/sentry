@@ -5,6 +5,8 @@ sentry.models.event
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import warnings
+
 from django.db import models
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -180,4 +182,34 @@ class Event(Model):
 
     # XXX(dcramer): compatibility with plugins
     def get_level_display(self):
+        warnings.warn('Event.get_level_display is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
         return self.group.get_level_display()
+
+    @property
+    def level(self):
+        warnings.warn('Event.level is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
+        return self.group.level
+
+    @property
+    def logger(self):
+        warnings.warn('Event.logger is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
+        return self.tags.get('logger')
+
+    @property
+    def site(self):
+        warnings.warn('Event.site is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
+        return self.tags.get('site')
+
+    @property
+    def server_name(self):
+        warnings.warn('Event.server_name is deprecated. Use Event.tags instead.')
+        return self.tags.get('server_name')
+
+    @property
+    def culprit(self):
+        warnings.warn('Event.culprit is deprecated. Use Event.tags instead.')
+        return self.tags.get('culprit')
