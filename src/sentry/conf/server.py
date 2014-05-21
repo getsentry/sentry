@@ -594,10 +594,6 @@ SENTRY_SEARCH_OPTIONS = {}
 #     'timeout': 5,
 # }
 
-# Enable search within the frontend
-SENTRY_USE_SEARCH = True
-# SENTRY_INDEX_SEARCH = SENTRY_USE_SEARCH
-
 # Time-series storage backend
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
