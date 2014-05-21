@@ -5,8 +5,10 @@ from __future__ import absolute_import
 from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.search.elastic_search.backend import ElasticSearchBackend
 from sentry.testutils import TestCase
+from sentry.testutils.skips import requires_elastic_search
 
 
+@requires_elastic_search
 class ElasticSearchTest(TestCase):
     def setUp(self):
         from elasticsearch import Elasticsearch

@@ -20,7 +20,7 @@ def riak_is_available():
 
 
 requires_riak = pytest.mark.skipif(
-    lambda x: not riak_is_available(),
+    not riak_is_available(),
     reason="requires riak server running")
 
 
@@ -34,7 +34,7 @@ def cassandra_is_available():
 
 
 requires_cassandra = pytest.mark.skipif(
-    lambda x: not cassandra_is_available(),
+    not cassandra_is_available(),
     reason="requires cassandra server running")
 
 
@@ -48,5 +48,5 @@ def elastic_search_is_available():
 
 
 requires_elastic_search = pytest.mark.skipif(
-    lambda x: not elastic_search_is_available(),
+    not elastic_search_is_available(),
     reason="requires elastic search server running")
