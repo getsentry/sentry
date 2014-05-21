@@ -105,6 +105,15 @@ class ElasticSearchBackend(SearchBackend):
                 },
             }})
 
+        if date_to or date_from:
+            # TODO(dcramer):
+            raise NotImplementedError
+
+        if bookmarked_by:
+            # TODO(dcramer): we could store an array on each event similar to how
+            # we are doing tags?
+            raise NotImplementedError
+
         results = self.backend.search(
             index=self.index_prefix + 'sentry-1',
             doc_type='group',
