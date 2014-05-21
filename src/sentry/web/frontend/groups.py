@@ -64,7 +64,7 @@ def _get_group_list(request, project):
 
     status = request.GET.get('status', '0')
     if status:
-        query_kwargs['status'] = int(request.GET['status'])
+        query_kwargs['status'] = int(status)
 
     if request.user.is_authenticated() and request.GET.get('bookmarks'):
         query_kwargs['bookmarked_by'] = request.user
