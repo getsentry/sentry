@@ -61,7 +61,7 @@ class SearchBackend(object):
 
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, sort_by='date', date_filter='last_seen',
-              date_from=None, date_to=None, cursor=None):
+              date_from=None, date_to=None, cursor=None, limit=100):
         raise NotImplementedError
 
     def upgrade(self):
