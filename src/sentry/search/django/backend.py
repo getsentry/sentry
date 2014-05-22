@@ -103,4 +103,4 @@ class DjangoSearchBackend(SearchBackend):
                 )
 
         # HACK:
-        return SearchResult(instances=queryset[:limit])
+        return SearchResult(instances=list(queryset[:limit]))
