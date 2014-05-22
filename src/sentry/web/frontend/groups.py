@@ -209,7 +209,7 @@ def group_list(request, team, project):
             group_id = EventMapping.objects.filter(
                 project=project, event_id=query
             ).values_list('group', flat=True)[0]
-        except EventMapping.DoesNotExist:
+        except IndexError:
             pass
         else:
             return HttpResponseRedirect(reverse('sentry-group', kwargs={
