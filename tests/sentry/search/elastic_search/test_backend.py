@@ -55,8 +55,8 @@ class ElasticSearchTest(TestCase):
             }
         )
 
-        self.backend.index(group1, event1)
-        self.backend.index(group2, event2)
+        self.backend.index(event1)
+        self.backend.index(event2)
 
         self.conn.indices.refresh(index='test-sentry-1')
 

@@ -48,7 +48,9 @@ class ElasticSearchBackend(SearchBackend):
     def _get_index(self, group):
         return self.index_prefix + 'sentry-1'
 
-    def index(self, group, event):
+    def index(self, event):
+        group = event.group
+
         data = {
             'message': group.message,
             'project_id': group.project_id,
