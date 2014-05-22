@@ -104,7 +104,7 @@ class Fixtures(object):
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('message', kwargs['group'].message)
-        kwargs.setdefault('data', LEGACY_DATA)
+        kwargs.setdefault('data', LEGACY_DATA.copy())
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
