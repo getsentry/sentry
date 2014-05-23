@@ -83,6 +83,9 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
         elif match == 'any':
             if not any(condition_matches(project, c, **child_kwargs) for c in condition_list):
                 continue
+        elif match == 'none':
+            if any(condition_matches(project, c, **child_kwargs) for c in condition_list):
+                continue
         else:
             rules_logger.error('Unsupported action_match %r for rule %d',
                                match, rule.id)
