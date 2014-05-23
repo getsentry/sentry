@@ -38,10 +38,18 @@ class ProjectAdmin(admin.ModelAdmin):
 admin.site.register(Project, ProjectAdmin)
 
 
+class TeamMemberInline(admin.TabularInline):
+    model = Team.members.through
+    extra = 1
+
+    raw_id_fields = ('user',)
+
+
 class TeamAdmin(admin.ModelAdmin):
     list_display = ('name', 'owner', 'slug')
     search_fields = ('name', 'owner__username', 'owner__email', 'slug')
     raw_id_fields = ('owner',)
+    inlines = (TeamMemberInline,)
 
 admin.site.register(Team, TeamAdmin)
 
