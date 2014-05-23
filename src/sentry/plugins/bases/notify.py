@@ -89,6 +89,7 @@ class NotificationPlugin(Plugin):
         if not send_to:
             return False
 
+        # TODO(dcramer): remove this in favor of rules
         allowed_tags = project.get_option('notifcation:tags', {})
         if allowed_tags:
             tags = event.data.get('tags', ())

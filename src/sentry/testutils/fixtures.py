@@ -7,13 +7,11 @@ sentry.testutils.fixtures
 """
 from __future__ import unicode_literals
 
-from uuid import uuid4
-
-from exam import fixture
+import six
 
 from django.utils.text import slugify
-
-import six
+from exam import fixture
+from uuid import uuid4
 
 from sentry.models import Activity, Event, Group, Project, Team, User
 from sentry.utils.compat import pickle
@@ -99,11 +97,13 @@ class Fixtures(object):
 
         return user
 
-    def create_event(self, event_id, **kwargs):
+    def create_event(self, event_id=None, **kwargs):
         if 'group' not in kwargs:
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('message', kwargs['group'].message)
+        if event_id is None:
+            event_id = uuid4().hex
         kwargs.setdefault('data', LEGACY_DATA.copy())
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
