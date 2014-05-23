@@ -8888,7 +8888,7 @@ section.body .page-header:first-child {
   margin: 0;
 }
 .dashboard .empty-message:after {
-  display: ;
+  display: none;
 }
 .dashboard .empty-message h2 {
   font-size: 16px;
