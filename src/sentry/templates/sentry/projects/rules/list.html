@@ -12,6 +12,7 @@
             <thead>
                 <tr>
                     <th>Rule</th>
+                    <th style="width:100px;">
                 </tr>
             </thead>
             <tbody>
@@ -19,6 +20,10 @@
                     <tr>
                         <td>
                             <a href="{% url 'sentry-edit-project-rule' project.team.slug project.slug rule.id %}">{{ rule.label }}</a>
+                        </td>
+                        <td>
+                            <a href="{% url 'sentry-remove-project-rule' project.team.slug project.slug rule.id %}"
+                               onclick="confirm('Are you sure you want to remove this rule?')">Delete</a>
                         </td>
                     </tr>
                 {% endfor %}
