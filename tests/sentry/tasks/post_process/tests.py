@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-import mock
+from mock import Mock, patch
 
 from sentry.models import Group, Rule
 from sentry.testutils import TestCase
@@ -13,7 +13,8 @@ from sentry.tasks.post_process import (
 
 
 class PostProcessGroupTest(TestCase):
-    @mock.patch('sentry.tasks.post_process.record_affected_code')
+    @patch('sentry.tasks.post_process.record_affected_code')
+    @patch('sentry.tasks.post_process.get_rules', Mock(return_value=[]))
     def test_record_affected_code(self, mock_record_affected_code):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -43,7 +44,8 @@ class PostProcessGroupTest(TestCase):
             event=event,
         )
 
-    @mock.patch('sentry.tasks.post_process.record_affected_user')
+    @patch('sentry.tasks.post_process.record_affected_user')
+    @patch('sentry.tasks.post_process.get_rules', Mock(return_value=[]))
     def test_record_affected_user(self, mock_record_affected_user):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -73,8 +75,8 @@ class PostProcessGroupTest(TestCase):
             event=event,
         )
 
-    @mock.patch('sentry.tasks.post_process.execute_rule')
-    @mock.patch('sentry.tasks.post_process.get_rules')
+    @patch('sentry.tasks.post_process.execute_rule')
+    @patch('sentry.tasks.post_process.get_rules')
     def test_execute_rule(self, mock_get_rules, mock_execute_rule):
         action_id = 'sentry.rules.actions.notify_event.NotifyEventAction'
         condition_id = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'
@@ -120,7 +122,7 @@ class PostProcessGroupTest(TestCase):
 
 
 class ExecuteRuleTest(TestCase):
-    @mock.patch('sentry.tasks.post_process.rules')
+    @patch('sentry.tasks.post_process.rules')
     def test_simple(self, mock_rules):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
@@ -160,7 +162,7 @@ class RecordAffectedUserTest(TestCase):
             },
         })
 
-        with mock.patch.object(Group.objects, 'add_tags') as add_tags:
+        with patch.object(Group.objects, 'add_tags') as add_tags:
             record_affected_user(group=event.group, event=event)
 
             add_tags.assert_called_once(event.group, [
@@ -191,7 +193,7 @@ class RecordAffectedCodeTest(TestCase):
             },
         })
 
-        with mock.patch.object(Group.objects, 'add_tags') as add_tags:
+        with patch.object(Group.objects, 'add_tags') as add_tags:
             record_affected_code(group=event.group, event=event)
 
             add_tags.assert_called_once_with(event.group, [
