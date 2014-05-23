@@ -8,19 +8,15 @@ sentry.rules.actions.notify_event
 
 from __future__ import absolute_import
 
+from sentry.plugins import plugins
 from sentry.rules.actions.base import EventAction
+from sentry.utils.safe import safe_execute
 
 
 class NotifyEventAction(EventAction):
     label = 'Send a notification'
 
-    def notify(self, event):
-        # TODO: fire off plugin notifications
-        pass
-
     def after(self, event, **kwargs):
-        if self.should_notify(event):
-            self.notify(event)
-
-    def passes(self, event, **kwargs):
-        raise NotImplementedError
+        for plugin in plugins.for_project(event.project):
+            if hasattr(plugin, 'notify_users'):
+                safe_execute(plugin.notify_users, group=event.group, event=event)

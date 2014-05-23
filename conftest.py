@@ -65,6 +65,7 @@ def pytest_configure(config):
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_KEY = 'abc123'
     settings.SENTRY_PUBLIC = False
+
     # This speeds up the tests considerably, pbkdf2 is by design, slow.
     settings.PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',

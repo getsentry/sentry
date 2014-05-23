@@ -12,5 +12,5 @@ from sentry.rules.base import RuleBase
 class EventCondition(RuleBase):
     rule_type = 'condition/event'
 
-    def passes(self, event, is_new, is_regression, **kwargs):
+    def passes(self, event, is_new, is_regression, is_sample, **kwargs):
         raise NotImplementedError
