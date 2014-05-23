@@ -16,6 +16,7 @@ from hashlib import md5
 from sentry.plugins import plugins
 from sentry.rules import rules
 from sentry.tasks.base import instrumented_task
+from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 
 
@@ -32,11 +33,15 @@ def condition_matches(project, condition, **kwargs):
     return safe_execute(condition_inst.passes, **kwargs)
 
 
-# TODO(dcramer): cache this
 def get_rules(project):
     from sentry.models import Rule
 
-    return list(Rule.objects.filter(project=project))
+    cache_key = 'project:%d:rules' % (project.id,)
+    rules_list = cache.get(cache_key)
+    if rules_list is None:
+        rules_list = list(Rule.objects.filter(project=project))
+        cache.set(cache_key, rules_list, 60)
+    return rules_list
 
 
 @instrumented_task(
