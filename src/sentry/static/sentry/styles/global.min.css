@@ -6967,8 +6967,8 @@ html[dir="rtl"] .select2-search-choice-close {
 body {
   margin: 0;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.42857143;
+  font-size: 13px;
+  line-height: 20px;
   color: #465262;
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
@@ -7827,7 +7827,7 @@ footer .btn:active {
 }
 ul.tag-list {
   list-style: none;
-  margin-left: 0;
+  padding-left: 0;
   margin-bottom: 15px;
 }
 ul.tag-list li {
@@ -9322,7 +9322,7 @@ table.vars table.vars th {
 }
 .team-index .body .team-list {
   list-style: none;
-  margin-left: 0;
+  padding-left: 0;
 }
 .team-index .body .team-list > li {
   display: block;
@@ -9373,7 +9373,7 @@ table.vars table.vars th {
   position: relative;
   min-height: 56px;
   overflow: hidden;
-  margin-left: 0;
+  padding-left: 0;
   list-style: circle;
 }
 .team-index .body .team-list > li > ul > li {
