@@ -7551,10 +7551,13 @@ h3 {
   border-bottom: 0;
   text-align: center;
 }
+#content section.body .event-toolbar .prev {
+  margin-left: 0;
+}
 #content section.body .event-toolbar .next span,
 #content section.body .event-toolbar .prev span {
   display: inline-block;
-  top: 5px;
+  top: -1px;
 }
 #content section.body .event-toolbar h4 {
   line-height: 20px;
@@ -8358,7 +8361,7 @@ div.commands a span {
 }
 ul.traceback {
   list-style-type: none;
-  margin-left: 0;
+  padding-left: 0;
   margin-bottom: 0;
 }
 .traceback > h3 {
@@ -8525,7 +8528,7 @@ ol.context-line > li > span {
   margin-bottom: 0;
 }
 .mini-tag-list {
-  margin-left: 0;
+  padding-left: 0;
   margin-bottom: 10px;
 }
 .mini-tag-list > li {
@@ -9200,6 +9203,7 @@ table.vars table.vars th {
 .activity > ul {
   list-style: none;
   margin: 0 0 20px;
+  padding-left: 0;
 }
 .activity > ul > li {
   margin-bottom: 5px;

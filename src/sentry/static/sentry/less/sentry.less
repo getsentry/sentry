@@ -567,10 +567,14 @@ h3 {
     border-bottom: 0;
     text-align: center;
 
+    .prev {
+      margin-left: 0;
+    }
+
     .next span,
     .prev span {
       display: inline-block;
-      top: 5px;
+      top: -1px;
     }
 
     h4 {
@@ -1348,7 +1352,7 @@ div.commands {
 
 ul.traceback {
   list-style-type: none;
-  margin-left: 0;
+  padding-left: 0;
   margin-bottom: 0;
 }
 
@@ -1565,7 +1569,7 @@ ol.context-line {
 }
 
 .mini-tag-list {
-  margin-left: 0;
+  padding-left: 0;
   margin-bottom: 10px;
   > li {
     display: inline-block;
@@ -2283,6 +2287,7 @@ table.vars {
   > ul {
     list-style: none;
     margin: 0 0 20px;
+    padding-left: 0;
 
     > li {
       margin-bottom: 5px;
