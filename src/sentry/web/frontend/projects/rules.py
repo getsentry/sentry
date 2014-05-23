@@ -103,7 +103,11 @@ def list_rules(request, team, project):
 @csrf_protect
 def create_or_edit_rule(request, team, project, rule_id=None):
     if rule_id:
-        rule = Rule.objects.get(project=project, id=rule_id)
+        try:
+            rule = Rule.objects.get(project=project, id=rule_id)
+        except Rule.DoesNotExist:
+            path = reverse('sentry-project-rules', args=[team.slug, project.slug])
+            return HttpResponseRedirect(path)
     else:
         rule = Rule(project=project)
 
@@ -171,3 +175,21 @@ def create_or_edit_rule(request, team, project, rule_id=None):
     })
 
     return render_to_response('sentry/projects/rules/new.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def remove_rule(request, team, project, rule_id):
+    path = reverse('sentry-project-rules', args=[team.slug, project.slug])
+
+    try:
+        rule = Rule.objects.get(project=project, id=rule_id)
+    except Rule.DoesNotExist:
+        return HttpResponseRedirect(path)
+
+    rule.delete()
+
+    messages.add_message(request, messages.SUCCESS,
+        _('The rule was removed.'))
+
+    return HttpResponseRedirect(path)
