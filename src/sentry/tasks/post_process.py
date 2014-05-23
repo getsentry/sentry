@@ -105,6 +105,8 @@ def execute_rule(rule_id, event, **kwargs):
 
     rule = Rule.objects.get(id=rule_id)
     project = Project.objects.get_from_cache(id=event.project_id)
+    event.project = project
+    event.group.project = project
 
     for action in rule.data.get('actions', ()):
         action_cls = rules.get(action['id'])
