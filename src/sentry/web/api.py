@@ -23,6 +23,8 @@ from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 
+import six
+
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
@@ -199,7 +201,7 @@ class APIView(BaseView):
             try:
                 project_, user = project_from_auth_vars(auth_vars)
             except APIError as error:
-                return HttpResponse(unicode(error.msg), status=error.http_status)
+                return HttpResponse(six.text_type(error.msg), status=error.http_status)
             else:
                 if user:
                     request.user = user
@@ -234,7 +236,7 @@ class APIView(BaseView):
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
             except APIError as error:
-                response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
+                response = HttpResponse(six.text_type(error.msg), content_type='text/plain', status=error.http_status)
                 if isinstance(error, APIRateLimited) and error.retry_after is not None:
                     response['Retry-After'] = str(error.retry_after)
 
@@ -331,7 +333,7 @@ class StoreView(APIView):
             # mutates data
             validate_data(project, data, auth.client)
         except InvalidData as e:
-            raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
+            raise APIError(u'Invalid data: %s (%s)' % (six.text_type(e), type(e)))
 
         # mutates data
         Group.objects.normalize_event_data(data)
@@ -581,14 +583,11 @@ def bookmark(request, team, project):
 @has_access(MEMBER_USER)
 @never_cache
 def clear(request, team, project):
-    response = _get_group_list(
-        request=request,
+    queryset = Group.objects.filter(
         project=project,
+        status=STATUS_UNRESOLVED,
     )
-
-    # TODO: should we record some kind of global event in Activity?
-    event_list = response['event_list']
-    rows_affected = event_list.update(status=STATUS_RESOLVED)
+    rows_affected = queryset.update(status=STATUS_RESOLVED)
     if rows_affected > 1000:
         logger.warning(
             'Large resolve on %s of %s rows', project.slug, rows_affected)

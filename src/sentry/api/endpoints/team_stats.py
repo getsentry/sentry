@@ -1,5 +1,7 @@
 from rest_framework.response import Response
 
+from six.moves import range
+
 from sentry.app import tsdb
 from sentry.api.base import BaseStatsEndpoint
 from sentry.api.permissions import assert_perm
@@ -10,7 +12,7 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
     def get(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user)
+        assert_perm(team, request.user, request.auth)
 
         projects = Project.objects.get_for_user(request.user, team=team)
 
@@ -24,7 +26,7 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
         ).values()
 
         summarized = []
-        for n in xrange(len(data[0])):
+        for n in range(len(data[0])):
             total = sum(d[n][1] for d in data)
             summarized.append((data[0][n][0], total))
 

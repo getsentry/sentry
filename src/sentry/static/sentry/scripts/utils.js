@@ -159,21 +159,6 @@
             });
         },
 
-        makeSearchableProjectsInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchProjectsUrl(), function(data){
-                var results = [];
-                $(data.results).each(function(_, val){
-                    results.push({
-                        id: val.slug,
-                        text: this.escape(val.name) + '<br>' + val.slug
-                    });
-                });
-                return results;
-            }, {
-                escapeMarkup: function(s) { return s; }
-            });
-        },
-
         makeSearchableTagsInput: function(el, options) {
             var $el = $(el);
             $el.select2({

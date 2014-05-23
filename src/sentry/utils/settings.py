@@ -9,6 +9,8 @@ sentry.utils.imports
 import inspect
 import sys
 
+import six
+
 from sentry.utils.imports import import_string
 
 PACKAGES = {
@@ -42,7 +44,7 @@ def reraise_as(new_exception_or_type):
     new_exception.__cause__ = e_value
 
     try:
-        raise new_type, new_exception, e_traceback
+        six.reraise(new_type, new_exception, e_traceback)
     finally:
         del e_traceback
 

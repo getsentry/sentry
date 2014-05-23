@@ -99,7 +99,6 @@ def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
-        'HAS_SEARCH': settings.SENTRY_USE_SEARCH,
         'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
         'URL_PREFIX': settings.SENTRY_URL_PREFIX,
         'PLUGINS': plugins,

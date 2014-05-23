@@ -22,9 +22,9 @@ With that in mind, we recommend the following changes to (some) default configur
 Web Server
 ----------
 
-Switching off of the default Sentry worker model and to uWSGI + emporer mode can yield very good results.
+Switching off of the default Sentry worker model and to uWSGI + emperor mode can yield very good results.
 
-If you're using supervisord, you can easily implement emporer mode and uWSGI yourself by doing something along the lines of:
+If you're using supervisord, you can easily implement emperor mode and uWSGI yourself by doing something along the lines of:
 
 ::
 
@@ -101,7 +101,7 @@ Once you're running multiple processes, you'll of course need to also configure 
 	  }
 	}
 
-See uWSGI's official documentation for emporer mode details.
+See uWSGI's official documentation for emperor mode details.
 
 
 Celery

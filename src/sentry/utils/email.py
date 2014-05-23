@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes
 from django.utils.functional import cached_property
 
 from email.utils import parseaddr
-from pynliner import Pynliner
+import toronado
 
 from sentry.web.helpers import render_to_string
 
@@ -84,7 +84,7 @@ class MessageBuilder(object):
             html_body = self._html_body
 
         if html_body is not None:
-            return UnicodeSafePynliner().from_string(html_body).run()
+            return inline_css(html_body)
 
     @cached_property
     def txt_body(self):
@@ -189,12 +189,5 @@ class MessageBuilder(object):
         return connection.send_messages(messages)
 
 
-class UnicodeSafePynliner(Pynliner):
-    def _get_output(self):
-        """
-        Generate Unicode string of `self.soup` and set it to `self.output`
-
-        Returns self.output
-        """
-        self.output = unicode(self.soup)
-        return self.output
+def inline_css(html):
+    return toronado.from_string(html)

@@ -24,7 +24,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<b>hello world</b>',
+            '<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -46,7 +46,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<b>hello world</b>',
+            '<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -103,7 +103,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<b>hello world</b>',
+            '<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -128,6 +128,6 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<b>hello world</b>',
+            '<html><body><b>hello world</b></body></html>',
             'text/html',
         )

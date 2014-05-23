@@ -6,8 +6,8 @@
 
 {% block page_header %}
     <div class="pull-right">
-        <form action="{% url 'sentry-search' project.team.slug project.slug %}" id="search">
-            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "Search query or event ID" %}{% else %}{% trans "Event ID" %}{% endif %}" />
+        <form action="{% url 'sentry-stream' project.team.slug project.slug %}" id="search">
+            <input type="text" name="query" value="{% if query %}{{ query }}{% endif %}" placeholder="{% trans "Search query or event ID" %}" />
         </form>
     </div>
 

@@ -11,7 +11,7 @@ class GroupDeleteEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         group.delete()
 

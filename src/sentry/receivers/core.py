@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from django.conf import settings
 from django.contrib.auth.signals import user_logged_in
 from django.db.models.signals import post_syncdb, post_save, pre_delete
@@ -40,7 +42,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         create_team_and_keys_for_project(project, created=True)
 
     if verbosity > 0:
-        print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
+        print('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
 
 
 def set_sentry_version(latest=None, **kwargs):

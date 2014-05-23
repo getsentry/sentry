@@ -14,7 +14,7 @@ class GroupMarkSeenEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         instance, created = create_or_update(
             GroupSeen,

@@ -338,7 +338,7 @@ See :doc:`../interfaces/index` for information on Sentry's builtin interfaces an
 Authentication
 --------------
 
-An authentication header is expected to be sent along with the message body, which acts as as an ownership identifier::
+An authentication header is expected to be sent along with the message body, which acts as an ownership identifier::
 
     X-Sentry-Auth: Sentry sentry_version=5,
     sentry_client=<client version, arbitrary>,
@@ -543,7 +543,7 @@ The client should send the following upstream for ``tags``::
 
 You should also provide relevant contextual interfaces. These should last for the lifecycle of a request, and the general interface is "bind some kind of context", and then at the end of a request lifecycle, clear any present context.
 
-This interface consists of *_context methods, as well as a "clear context" method. The following is an example API which is implemented in most clients:
+This interface consists of \*_context methods, as well as a "clear context" method. The following is an example API which is implemented in most clients:
 
 ::
 

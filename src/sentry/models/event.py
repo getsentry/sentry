@@ -5,6 +5,8 @@ sentry.models.event
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import warnings
+
 from django.db import models
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -14,8 +16,8 @@ from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
     BaseManager, sane_repr
 )
+from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
-from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars, strip
 
@@ -125,15 +127,12 @@ class Event(Model):
     def interfaces(self):
         result = []
         for key, data in self.data.iteritems():
-            if '.' not in key:
+            try:
+                cls = get_interface(key)
+            except ValueError:
                 continue
 
-            try:
-                cls = import_string(key)
-            except ImportError:
-                continue  # suppress invalid interfaces
-
-            value = safe_execute(cls, **data)
+            value = safe_execute(cls.to_python, data)
             if not value:
                 continue
 
@@ -176,8 +175,41 @@ class Event(Model):
 
     @property
     def size(self):
-        return len(unicode(vars(self)))
+        data_len = len(self.message)
+        for value in self.data.itervalues():
+            data_len += len(repr(value))
+        return data_len
 
     # XXX(dcramer): compatibility with plugins
     def get_level_display(self):
+        warnings.warn('Event.get_level_display is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
         return self.group.get_level_display()
+
+    @property
+    def level(self):
+        warnings.warn('Event.level is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
+        return self.group.level
+
+    @property
+    def logger(self):
+        warnings.warn('Event.logger is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
+        return self.tags.get('logger')
+
+    @property
+    def site(self):
+        warnings.warn('Event.site is deprecated. Use Event.tags instead.',
+                      DeprecationWarning)
+        return self.tags.get('site')
+
+    @property
+    def server_name(self):
+        warnings.warn('Event.server_name is deprecated. Use Event.tags instead.')
+        return self.tags.get('server_name')
+
+    @property
+    def culprit(self):
+        warnings.warn('Event.culprit is deprecated. Use Event.tags instead.')
+        return self.tags.get('culprit')

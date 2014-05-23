@@ -14,6 +14,8 @@ def pytest_configure(config):
     if not settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
+    os.environ['RECAPTCHA_TESTING'] = 'True'
+
     test_db = os.environ.get('DB', 'sqlite')
     if test_db == 'mysql':
         settings.DATABASES['default'].update({
@@ -68,6 +70,13 @@ def pytest_configure(config):
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
 
+    # Replace real sudo middleware with our mock sudo middleware
+    # to assert that the user is always in sudo mode
+    middleware = list(settings.MIDDLEWARE_CLASSES)
+    sudo = middleware.index('sentry.middleware.sudo.SudoMiddleware')
+    middleware[sudo] = 'tests.middleware.SudoMiddleware'
+    settings.MIDDLEWARE_CLASSES = tuple(middleware)
+
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
@@ -80,8 +89,11 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
 
-    # django mail uses socket.getfqdn which doesnt play nice if our
-    # networking isnt stable
+    settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
+    settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
+
+    # django mail uses socket.getfqdn which doesn't play nice if our
+    # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 

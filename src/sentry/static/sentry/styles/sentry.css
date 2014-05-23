@@ -5914,6 +5914,16 @@ a.badge:focus {
 .select2-dropdown-open .select2-choice div b {
   background-position: -18px 1px;
 }
+.select2-hidden-accessible {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
 /* results */
 .select2-results {
   margin: 4px 4px 4px 0;
@@ -7995,18 +8005,7 @@ ol.context > li {
   font-family: monospace;
   color: rgba(0, 0, 0, 0.75);
   background-color: #f8f8f8;
-}
-ol.context > li div {
-  display: inline;
-}
-ol.context > li pre {
-  background-color: inherit;
-  color: rgba(0, 0, 0, 0.5);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  display: inline;
-  line-height: 24px;
+  line-height: 22px;
   font-size: 12px;
   white-space: pre;
   white-space: pre-wrap;
