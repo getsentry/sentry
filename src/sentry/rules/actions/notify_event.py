@@ -17,6 +17,15 @@ class NotifyEventAction(EventAction):
     label = 'Send a notification'
 
     def after(self, event, **kwargs):
+        from sentry.plugins.bases.notify import NotificationPlugin
+
+        group = event.group
+
         for plugin in plugins.for_project(event.project):
-            if hasattr(plugin, 'notify_users'):
-                safe_execute(plugin.notify_users, group=event.group, event=event)
+            if not isinstance(plugin, NotificationPlugin):
+                continue
+
+            if not safe_execute(plugin.should_notify, group, event):
+                continue
+
+            safe_execute(plugin.notify_users, group=group, event=event)
