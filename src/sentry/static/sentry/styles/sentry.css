@@ -7450,7 +7450,7 @@ h3 {
   display: block;
   margin-right: 0;
   margin-top: 5px;
-  margin-left: -220px;
+  margin-left: -230px;
 }
 #content.with-left-sidebar .sidebar .nav a {
   padding: 5px 15px;
@@ -7580,6 +7580,14 @@ h3 {
   font-weight: bold;
   line-height: 1.42857143;
 }
+#content .sidebar .nav-header {
+  text-transform: uppercase;
+  padding: 3px 15px;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 20px;
+  color: #999999;
+}
 #content .sidebar dl {
   margin-top: 0px;
   margin-bottom: 8px;
@@ -7662,6 +7670,7 @@ h3 {
 }
 #content .sidebar .nav-list li.active a {
   background-color: #56AFE8;
+  color: #fff;
 }
 #content .sidebar .filter {
   margin-bottom: 17px;
