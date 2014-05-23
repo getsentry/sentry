@@ -27,7 +27,7 @@ def create_default_rules(instance, created=True, **kwargs):
         label='Send a notification for regressions',
         data={
             'conditions': [
-                {'id': 'sentry.rules.conditions.first_seen_event.RegressionEventCondition'},
+                {'id': 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
             ],
             'actions': [
                 {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'},
