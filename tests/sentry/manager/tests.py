@@ -7,17 +7,11 @@ import mock
 
 from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import (
     Event, Group, Project, Team, EventMapping, User, AccessGroup, GroupTagValue
 )
 from sentry.testutils import TestCase
-
-
-class DummyInterface(Interface):
-    def __init__(self, baz):
-        self.baz = baz
 
 
 class SentryManagerTest(TestCase):
@@ -50,7 +44,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.project_id, 1)
 
     def test_valid_timestamp_without_tz(self):
-        # TODO: this doesnt error, but it will throw a warning. What should we do?
+        # TODO: this doesn't error, but it will throw a warning. What should we do?
         with self.settings(USE_TZ=True):
             date = datetime.datetime.utcnow()
             event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
@@ -85,7 +79,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.project_id, 1)
         self.assertEquals(Event.objects.count(), 1)
 
-        # ensure that calling it again doesnt raise a db error
+        # ensure that calling it again doesn't raise a db error
         Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(Event.objects.count(), 1)
 
@@ -123,8 +117,8 @@ class SentryManagerTest(TestCase):
 
 
 class GetChecksumFromEventTest(TestCase):
-    @mock.patch('sentry.interfaces.Stacktrace.get_composite_hash')
-    @mock.patch('sentry.interfaces.Http.get_composite_hash')
+    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_composite_hash')
+    @mock.patch('sentry.interfaces.http.Http.get_composite_hash')
     def test_stacktrace_wins_over_http(self, http_comp_hash, stack_comp_hash):
         # this was a regression, and a very important one
         http_comp_hash.return_value = ['baz']

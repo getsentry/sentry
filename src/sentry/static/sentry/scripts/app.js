@@ -516,14 +516,6 @@
         }
     });
 
-    app.AccessGroupProjectsPage = BasePage.extend({
-        initialize: function(){
-            BasePage.prototype.initialize.apply(this, arguments);
-
-            app.utils.makeSearchableProjectsInput('form input[name=project]');
-        }
-    });
-
     app.TeamDetailsPage = BasePage.extend({
         initialize: function(){
             BasePage.prototype.initialize.apply(this, arguments);

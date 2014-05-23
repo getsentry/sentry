@@ -85,7 +85,7 @@ class ExpandJavascriptSourceTest(TestCase):
         assert frame['post_context'] == ['o', ' ', 'w', 'o', 'r']
 
         frame = frame_list[1]
-        assert frame['pre_context'] == []
+        assert not frame.get('pre_context')
         assert frame['context_line'] == 'h'
         assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
 
@@ -117,9 +117,9 @@ class ExpandJavascriptSourceTest(TestCase):
 
         frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
         frame = frame_list[0]
-        assert frame['pre_context'] == []
+        assert not frame.get('pre_context')
         assert frame['context_line'] == 'console.log("hello, World!")'
-        assert frame['post_context'] == []
+        assert not frame.get('post_context')
 
 
 class GenerateModuleTest(TestCase):

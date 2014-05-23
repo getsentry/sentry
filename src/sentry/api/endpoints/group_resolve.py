@@ -14,7 +14,7 @@ class GroupResolveEndpoint(Endpoint):
             id=group_id,
         )
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         now = timezone.now()
 

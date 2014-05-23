@@ -10,7 +10,7 @@ class GroupEventsLatestEndpoint(Endpoint):
     def get(self, request, group_id):
         group = Group.objects.get(id=group_id)
 
-        assert_perm(group, request.user)
+        assert_perm(group, request.user, request.auth)
 
         event = group.get_latest_event()
 

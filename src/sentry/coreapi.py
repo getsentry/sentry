@@ -13,37 +13,31 @@ import base64
 import logging
 import uuid
 import zlib
+from gzip import GzipFile
 
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.encoding import smart_str
-from gzip import GzipFile
+
+import six
 
 from sentry.app import env
 from sentry.constants import (
     DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH)
 from sentry.exceptions import InvalidTimestamp
+from sentry.interfaces.base import get_interface
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
-from sentry.utils.imports import import_string
 from sentry.utils.strings import decompress, truncatechars
 
 
 logger = logging.getLogger('sentry.coreapi.errors')
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
-
-INTERFACE_ALIASES = {
-    'exception': 'sentry.interfaces.Exception',
-    'request': 'sentry.interfaces.Http',
-    'user': 'sentry.interfaces.User',
-    'stacktrace': 'sentry.interfaces.Stacktrace',
-    'template': 'sentry.interfaces.Template',
-}
 
 RESERVED_FIELDS = (
     'project',
@@ -95,18 +89,6 @@ class APIRateLimited(APIError):
 
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
-
-
-def get_interface(name):
-    if name not in settings.SENTRY_ALLOWED_INTERFACES:
-        raise ValueError
-
-    try:
-        interface = import_string(name)
-    except Exception:
-        raise ValueError('Unable to load interface: %s' % (name,))
-
-    return interface
 
 
 def client_metadata(client=None, project=None, exception=None, tags=None, extra=None):
@@ -262,7 +244,7 @@ def validate_data(project, data, client=None):
 
     if not data.get('message'):
         data['message'] = '<no message value>'
-    elif not isinstance(data['message'], basestring):
+    elif not isinstance(data['message'], six.string_types):
         raise APIError('Invalid value for message')
     elif len(data['message']) > settings.SENTRY_MAX_MESSAGE_LENGTH:
         logger.info(
@@ -272,7 +254,7 @@ def validate_data(project, data, client=None):
             data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     if data.get('culprit'):
-        if not isinstance(data['culprit'], basestring):
+        if not isinstance(data['culprit'], six.string_types):
             raise APIError('Invalid value for culprit')
         logger.info(
             'Truncated value for culprit due to length (%d chars)',
@@ -281,7 +263,7 @@ def validate_data(project, data, client=None):
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
-    elif not isinstance(data['event_id'], basestring):
+    elif not isinstance(data['event_id'], six.string_types):
         raise APIError('Invalid value for event_id')
     if len(data['event_id']) > 32:
         logger.info(
@@ -331,17 +313,17 @@ def validate_data(project, data, client=None):
                             pair, **client_metadata(client, project))
                 continue
 
-            if not isinstance(k, basestring):
+            if not isinstance(k, six.string_types):
                 try:
-                    k = unicode(k)
+                    k = six.text_type(k)
                 except Exception:
                     logger.info('Discarded invalid tag key: %r',
                                 type(k), **client_metadata(client, project))
                     continue
 
-            if not isinstance(v, basestring):
+            if not isinstance(v, six.string_types):
                 try:
-                    v = unicode(v)
+                    v = six.text_type(v)
                 except Exception:
                     logger.info('Discarded invalid tag value: %s=%r',
                                 k, type(v), **client_metadata(client, project))
@@ -357,41 +339,36 @@ def validate_data(project, data, client=None):
         if k in RESERVED_FIELDS:
             continue
 
-        if not data[k]:
+        value = data.pop(k)
+
+        if not value:
             logger.info(
                 'Ignored empty interface value: %s', k,
                 **client_metadata(client, project))
-            del data[k]
             continue
 
-        import_path = INTERFACE_ALIASES.get(k, k)
-
-        if '.' not in import_path:
+        try:
+            interface = get_interface(k)
+        except ValueError:
             logger.info(
                 'Ignored unknown attribute: %s', k,
                 **client_metadata(client, project))
-            del data[k]
             continue
 
-        try:
-            interface = get_interface(import_path)
-        except ValueError:
-            logger.info(
-                'Invalid unknown attribute: %s', k,
-                **client_metadata(client, project))
-            del data[k]
-            continue
-
-        value = data.pop(k)
-        try:
-            # HACK: exception allows you to pass the value as a list
-            # so let's try to actually support that
-            if isinstance(value, dict):
-                inst = interface(**value)
+        if type(value) != dict:
+            # HACK(dcramer): the exception interface supports a list as the
+            # value. We should change this in a new protocol version.
+            if type(value) in (list, tuple):
+                value = {'values': value}
             else:
-                inst = interface(value)
-            inst.validate()
-            data[import_path] = inst.serialize()
+                logger.info(
+                    'Invalid parameters for value: %s', k,
+                    type(value), **client_metadata(client, project))
+                continue
+
+        try:
+            inst = interface.to_python(value)
+            data[inst.get_path()] = inst.to_json()
         except Exception as e:
             if isinstance(e, AssertionError):
                 log = logger.info
@@ -401,7 +378,7 @@ def validate_data(project, data, client=None):
                 **client_metadata(client, project, exception=e, extra={'value': value}))
 
     level = data.get('level') or DEFAULT_LOG_LEVEL
-    if isinstance(level, basestring) and not level.isdigit():
+    if isinstance(level, six.string_types) and not level.isdigit():
         # assume it's something like 'warning'
         try:
             data['level'] = LOG_LEVEL_REVERSE_MAP[level]

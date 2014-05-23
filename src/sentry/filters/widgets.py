@@ -12,6 +12,8 @@ __all__ = ('Widget', 'TextWidget', 'ChoiceWidget')
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 
+import six
+
 
 class Widget(object):
     def __init__(self, filter, request):
@@ -59,7 +61,7 @@ class ChoiceWidget(TextWidget):
                 column=column,
             ))
         for key, val in choices:
-            key = unicode(key)
+            key = six.text_type(key)
             output.append(u'<option%(active)s value="%(key)s">%(value)s</option>' % dict(
                 active=value == key and ' selected="selected"' or '',
                 column=column,

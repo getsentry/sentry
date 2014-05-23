@@ -12,6 +12,8 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+import six
+
 from sentry.models import User
 
 # Special case origins that don't fit the normal regex pattern, but are valid
@@ -40,7 +42,7 @@ class UserField(CharField):
                 attrs = {}
             if 'placeholder' not in attrs:
                 attrs['placeholder'] = 'username'
-            if isinstance(value, (int, long)):
+            if isinstance(value, six.integer_types):
                 value = User.objects.get(id=value).username
             return super(UserField.widget, self).render(name, value, attrs)
 

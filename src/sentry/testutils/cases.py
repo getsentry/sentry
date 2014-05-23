@@ -27,8 +27,6 @@ from django.utils.importlib import import_module
 from exam import Exam
 from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
-from django_sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
-from django_sudo.utils import grant_sudo_privileges
 
 from sentry.constants import MODULE_ROOT
 from sentry.models import ProjectOption
@@ -74,7 +72,6 @@ class BaseTestCase(Fixtures, Exam):
 
         login(request, user)
         request.user = user
-        sudo_token = grant_sudo_privileges(request)
 
         # Save the session values.
         request.session.save()
@@ -90,7 +87,6 @@ class BaseTestCase(Fixtures, Exam):
             'expires': None,
         }
         self.client.cookies[session_cookie].update(cookie_data)
-        self.client.cookies[SUDO_COOKIE_NAME] = sudo_token
 
     def login(self):
         self.login_as(self.user)

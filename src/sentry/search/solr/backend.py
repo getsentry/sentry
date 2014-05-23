@@ -37,13 +37,6 @@ class SolrBackend(SearchBackend):
             'text': [event.message],
             'filters': defaultdict(list),
         }
-        for interface in event.interfaces.itervalues():
-            for k, v in interface.get_search_context(event).iteritems():
-                if k == 'text':
-                    context[k].extend(v)
-                elif k == 'filters':
-                    for f_k, f_v in v.iteritems():
-                        context[k][f_k].extend(f_v)
 
         tags = []
         for k, v in context['filters'].iteritems():

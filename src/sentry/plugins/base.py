@@ -499,17 +499,6 @@ class IPlugin(local):
         >>>     return [('tag-name', 'tag-value')]
         """
 
-    def get_filters(self, project=None, **kwargs):
-        """
-        Provides additional filters to the builtins.
-
-        Must return an iterable.
-
-        >>> def get_filters(self, project, **kwargs):
-        >>>     return [MyFilterClass]
-        """
-        return []
-
     def get_notification_forms(self, **kwargs):
         """
         Provides additional UserOption forms for the Notification Settings page.
