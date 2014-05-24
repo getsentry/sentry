@@ -84,6 +84,9 @@ class NotificationPlugin(Plugin):
         return member_set
 
     def should_notify(self, group, event):
+        if group.is_muted():
+            return False
+
         project = group.project
         send_to = self.get_sendable_users(project)
         if not send_to:
