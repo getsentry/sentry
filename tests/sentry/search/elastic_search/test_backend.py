@@ -134,6 +134,11 @@ class ElasticSearchTest(TestCase):
         assert len(results) == 0
 
     @pytest.mark.xfail
+    def test_limit(self):
+        results = self.backend.query(self.project1, limit=1)
+        assert len(results) == 1
+
+    @pytest.mark.xfail
     def test_first_seen_date_filter(self):
         backend = self.create_backend()
 
