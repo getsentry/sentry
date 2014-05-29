@@ -83,8 +83,8 @@ class ElasticSearchBackend(SearchBackend):
 
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, sort_by='date', date_filter='last_seen',
-              date_from=None, date_to=None, cursor=None, limit=100):
-        # TODO(dcramer): implement limit
+              date_from=None, date_to=None, offset=0, limit=100):
+
         query_body = {
             'filter': {
                 'and': [
@@ -133,7 +133,8 @@ class ElasticSearchBackend(SearchBackend):
 
         if bookmarked_by:
             # TODO(dcramer): we could store an array on each event similar to how
-            # we are doing tags?
+            # we are doing tags? should we just make bookmarked events a special
+            # thing that isn't searchable?
             raise NotImplementedError
 
         if sort_by == 'date':
@@ -158,11 +159,15 @@ class ElasticSearchBackend(SearchBackend):
                 'query': {'filtered': query_body},
                 'sort': sort_clause,
                 'size': limit,
+                'from': offset,
             },
         )
         if not results.get('hits'):
             return SearchResult([])
-        return SearchResult([int(n['_id']) for n in results['hits']['hits']])
+
+        instance_ids = [int(n['_id']) for n in results['hits']['hits']]
+
+        return SearchResult(instance_ids)
 
     def upgrade(self):
         self.backend.indices.put_template(
