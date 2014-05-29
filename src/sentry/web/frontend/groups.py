@@ -21,7 +21,8 @@ from django.utils import timezone
 
 from sentry import app
 from sentry.constants import (
-    SORT_OPTIONS, MEMBER_USER, MAX_JSON_RESULTS, DEFAULT_SORT_OPTION
+    SORT_OPTIONS, MEMBER_USER, MAX_JSON_RESULTS, DEFAULT_SORT_OPTION,
+    EVENTS_PER_PAGE
 )
 from sentry.db.models import create_or_update
 from sentry.models import (
@@ -91,9 +92,9 @@ def _get_group_list(request, project):
     if date_filter:
         query_kwargs['date_filter'] = date_filter
 
-    cursor = request.GET.get('cursor', request.GET.get('c'))
-    if cursor:
-        query_kwargs['cursor'] = cursor
+    # HACK(dcramer): this should be removed once the pagination component
+    # is abstracted from the paginator tag
+    query_kwargs['limit'] = EVENTS_PER_PAGE + 2
 
     results = app.search.query(**query_kwargs)
 
