@@ -528,6 +528,7 @@ SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
+    'logentry': 'sentry.interfaces.message.Message',
     'request': 'sentry.interfaces.http.Http',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
     'template': 'sentry.interfaces.template.Template',
