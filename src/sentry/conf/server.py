@@ -531,6 +531,7 @@ SENTRY_INTERFACES = {
     'request': 'sentry.interfaces.http.Http',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
     'template': 'sentry.interfaces.template.Template',
+    'query': 'sentry.interfaces.query.Query',
     'user': 'sentry.interfaces.user.User',
 
     'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
