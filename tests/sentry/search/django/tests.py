@@ -55,8 +55,6 @@ class DjangoSearchBackendTest(TestCase):
             }
         )
 
-        print self.event1.data['tags'], self.event2.data['tags']
-
         for key, value in self.event1.data['tags']:
             GroupTagValue.objects.create(
                 group=self.group1,

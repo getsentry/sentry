@@ -117,14 +117,27 @@ class ElasticSearchBackend(SearchBackend):
             # we are doing tags?
             raise NotImplementedError
 
+        if sort_by == 'date':
+            sort_clause = [{'last_seen': {'order': 'desc'}}]
+        elif sort_by == 'new':
+            sort_clause = [{'first_seen': {'order': 'desc'}}]
+        elif sort_by == 'priority':
+            sort_clause = [{'score': {'order': 'desc'}}]
+        elif sort_by == 'freq':
+            sort_clause = [{'times_seen': {'order': 'desc'}}]
+        elif sort_by == 'tottime':
+            raise NotImplementedError
+        elif sort_by == 'avgtime':
+            raise NotImplementedError
+        else:
+            raise ValueError('Invalid sort_by: %s' % (sort_by,))
+
         results = self.backend.search(
             index=self.index_prefix + 'sentry-1',
             doc_type='group',
             body={
                 'query': {'filtered': query_body},
-                'sort': [
-                    {'last_seen': {'order': 'desc'}},
-                ],
+                'sort': sort_clause,
             },
         )
         if not results.get('hits'):
