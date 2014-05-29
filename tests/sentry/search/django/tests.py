@@ -116,6 +116,10 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project2)
         assert len(results) == 0
 
+    def test_limit(self):
+        results = self.backend.query(self.project1, limit=1)
+        assert len(results) == 1
+
     def test_first_seen_date_filter(self):
         backend = self.create_backend()
 
