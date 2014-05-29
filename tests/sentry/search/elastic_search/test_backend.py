@@ -39,6 +39,7 @@ class ElasticSearchTest(TestCase):
             project=self.project1,
             checksum='a' * 40,
             message='foo',
+            times_seen=5,
             status=STATUS_UNRESOLVED,
             last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386),
@@ -56,6 +57,7 @@ class ElasticSearchTest(TestCase):
             project=self.project1,
             checksum='b' * 40,
             message='bar',
+            times_seen=10,
             status=STATUS_RESOLVED,
             last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
@@ -108,6 +110,11 @@ class ElasticSearchTest(TestCase):
         assert results[1] == self.group2
 
         results = self.backend.query(self.project1, sort_by='new')
+        assert len(results) == 2
+        assert results[0] == self.group2
+        assert results[1] == self.group1
+
+        results = self.backend.query(self.project1, sort_by='freq')
         assert len(results) == 2
         assert results[0] == self.group2
         assert results[1] == self.group1
