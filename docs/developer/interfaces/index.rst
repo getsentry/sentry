@@ -29,6 +29,8 @@ The mapping is as follows::
 * 'stacktrace' => 'sentry.interfaces.Stacktrace'
 * 'template' => 'sentry.interfaces.Template'
 
+For the canonical names, please see the ``get_alias`` method on each individual Interface.
+
 Provided Interfaces
 -------------------
 
