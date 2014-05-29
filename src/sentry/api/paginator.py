@@ -49,7 +49,7 @@ class Paginator(object):
             else:
                 results = results.order_by('-%s' % self.key)
 
-        if cursor_offset and self.should_filter:
+        if cursor_offset:
             if asc:
                 results = results.filter(**{'%s__gte' % self.key: cursor_offset})
             else:
