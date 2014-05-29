@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.models import GroupTagValue
@@ -115,3 +115,33 @@ class DjangoSearchBackendTest(TestCase):
     def test_project(self):
         results = self.backend.query(self.project2)
         assert len(results) == 0
+
+    def test_first_seen_date_filter(self):
+        backend = self.create_backend()
+
+        results = self.backend.query(
+            self.project1, date_from=self.group2.first_seen,
+            date_filter='first_seen')
+        assert len(results) == 1
+        assert results[0] == self.group2
+
+        results = self.backend.query(
+            self.project1, date_to=self.group1.first_seen + timedelta(minutes=1),
+            date_filter='first_seen')
+        assert len(results) == 1
+        assert results[0] == self.group1
+
+    def test_last_seen_date_filter(self):
+        backend = self.create_backend()
+
+        results = self.backend.query(
+            self.project1, date_from=self.group1.last_seen,
+            date_filter='last_seen')
+        assert len(results) == 1
+        assert results[0] == self.group1
+
+        results = self.backend.query(
+            self.project1, date_to=self.group1.last_seen - timedelta(minutes=1),
+            date_filter='last_seen')
+        assert len(results) == 1
+        assert results[0] == self.group2
