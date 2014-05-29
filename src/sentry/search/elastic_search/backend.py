@@ -56,6 +56,8 @@ class ElasticSearchBackend(SearchBackend):
             'project_id': group.project_id,
             'first_seen': group.first_seen,
             'last_seen': group.last_seen,
+            'times_seen': group.times_seen,
+            'score': group.score,
             'status': group.status,
         }
 
