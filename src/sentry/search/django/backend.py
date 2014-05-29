@@ -49,7 +49,12 @@ class DjangoSearchBackend(SearchBackend):
                 ))
 
         if date_filter == 'first_seen':
-            if date_from:
+            if date_from and date_to:
+                queryset = queryset.filter(
+                    first_seen__gte=date_from,
+                    first_seen__lte=date_to,
+                )
+            elif date_from:
                 queryset = queryset.filter(first_seen__gte=date_from)
             elif date_to:
                 queryset = queryset.filter(first_seen__lte=date_to)
