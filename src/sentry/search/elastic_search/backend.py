@@ -110,9 +110,26 @@ class ElasticSearchBackend(SearchBackend):
                 },
             }})
 
-        if date_to or date_from:
-            # TODO(dcramer):
-            raise NotImplementedError
+        # TODO(dcramer): filter might be too expensive here, need to confirm
+        if date_to and date_from:
+            query_body['filter']['and'].append({
+                'range': {date_filter: {
+                    'gte': date_from,
+                    'lte': date_to,
+                }}
+            })
+        elif date_from:
+            query_body['filter']['and'].append({
+                'range': {date_filter: {
+                    'gte': date_from,
+                }}
+            })
+        elif date_to:
+            query_body['filter']['and'].append({
+                'range': {date_filter: {
+                    'lte': date_to,
+                }}
+            })
 
         if bookmarked_by:
             # TODO(dcramer): we could store an array on each event similar to how
@@ -140,6 +157,7 @@ class ElasticSearchBackend(SearchBackend):
             body={
                 'query': {'filtered': query_body},
                 'sort': sort_clause,
+                'size': limit,
             },
         )
         if not results.get('hits'):

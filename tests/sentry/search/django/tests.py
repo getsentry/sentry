@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 
 from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
-from sentry.models import GroupTagValue
+from sentry.models import GroupBookmark, GroupTagValue
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase
 
@@ -70,6 +70,12 @@ class DjangoSearchBackendTest(TestCase):
                 value=value,
             )
 
+        GroupBookmark.objects.create(
+            user=self.user,
+            group=self.group2,
+            project=self.group2.project,
+        )
+
         self.backend.index(self.event1)
         self.backend.index(self.event2)
 
@@ -119,6 +125,11 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project1, tags={'env': 'example.com'})
         assert len(results) == 0
 
+    def test_bookmarked_by(self):
+        results = self.backend.query(self.project1, bookmarked_by=self.user)
+        assert len(results) == 1
+        assert results[0] == self.group2
+
     def test_project(self):
         results = self.backend.query(self.project2)
         assert len(results) == 0
@@ -142,6 +153,15 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 1
         assert results[0] == self.group1
 
+        results = self.backend.query(
+            self.project1,
+            date_from=self.group1.first_seen,
+            date_to=self.group1.first_seen + timedelta(minutes=1),
+            date_filter='first_seen',
+        )
+        assert len(results) == 1
+        assert results[0] == self.group1
+
     def test_last_seen_date_filter(self):
         backend = self.create_backend()
 
@@ -152,7 +172,17 @@ class DjangoSearchBackendTest(TestCase):
         assert results[0] == self.group1
 
         results = self.backend.query(
-            self.project1, date_to=self.group1.last_seen - timedelta(minutes=1),
+            self.project1,
+            date_to=self.group1.last_seen - timedelta(minutes=1),
             date_filter='last_seen')
+        assert len(results) == 1
+        assert results[0] == self.group2
+
+        results = self.backend.query(
+            self.project1,
+            date_from=self.group2.last_seen,
+            date_to=self.group1.last_seen - timedelta(minutes=1),
+            date_filter='last_seen',
+        )
         assert len(results) == 1
         assert results[0] == self.group2
