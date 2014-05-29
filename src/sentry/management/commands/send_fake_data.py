@@ -11,7 +11,7 @@ import itertools
 import random
 import time
 
-from django.core.management.base import BaseCommand, make_option
+from django.core.management.base import BaseCommand, CommandError, make_option
 
 
 def funcs():
@@ -22,6 +22,7 @@ def funcs():
         NotImplementedError('This feature is not implemented'),
         ZeroDivisionError('Your math doesn\'t work'),
         Exception('An unknown exception'),
+        KeyError('index does not exist'),
     ])
     loggers = itertools.cycle(['root', 'foo', 'foo.bar'])
     emails = itertools.cycle(['foo@example.com', 'bar@example.com', 'baz@example.com'])
@@ -55,11 +56,27 @@ class Command(BaseCommand):
     help = 'Sends fake data to the internal Sentry project'
 
     option_list = BaseCommand.option_list + (
+        make_option('--project', dest='project', help="project ID or team-slug/project-slug"),
         make_option('--num', dest='num_events', type=int),
     )
 
     def handle(self, **options):
+        from django.conf import settings
         from raven.contrib.django.models import client
+        from sentry.models import Project
+
+        if not options['project']:
+            project = Project.objects.get(id=settings.SENTRY_PROJECT)
+        else:
+            if options['project'].isdigit():
+                project = Project.objects.get(id=options['project'])
+            elif '/' in options['project']:
+                t_slug, p_slug = options['project'].split('/', 1)
+                project = Project.objects.get(slug=p_slug, team__slug=t_slug)
+            else:
+                raise CommandError('Project must be specified as team-slug/project-slug or a project id')
+
+        client.project = project.id
 
         self.stdout.write('Preparing to send events. Ctrl-C to exit.')
 
