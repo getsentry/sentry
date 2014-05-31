@@ -7517,6 +7517,39 @@ footer a:hover {
   background-color: #2598e1;
   border-color: #1a7ebe;
 }
+.search {
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
+.search form {
+  display: block;
+  position: relative;
+}
+.search .icon-search {
+  color: #8E8E97;
+  position: absolute;
+  top: 15px;
+  left: 17px;
+}
+.search .form-control {
+  box-shadow: none;
+  height: 44px;
+  line-height: 44px;
+  padding-left: 42px;
+  border: 3px solid #f2f4f6;
+  font-size: 14px;
+}
+.search .advanced-toggle {
+  color: inherit;
+  opacity: .4;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.search .advanced-toggle:hover {
+  opacity: 1;
+  text-decoration: none;
+}
 .chart {
   position: relative;
   max-height: 200px;
