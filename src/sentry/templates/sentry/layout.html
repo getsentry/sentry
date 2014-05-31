@@ -119,19 +119,11 @@
             </header>
         {% endblock %}
         {% block page_header_block %}
-            <section id="page-header" class="toolbar">
+            <div class="toolbar">
                 <div class="container">
-                    {% block page_header %}
-                        {% if team %}
-                            <div class="dashboard-btn">
-                                <a href="{% url 'sentry' team.slug %}" title="{% trans "Dashboard" %}">
-                                    <i aria-hidden="true" class="icon-list"></i>
-                                </a>
-                            </div>
-                        {% endif %}
-                    {% endblock %}
+                    {% block page_header %}{% endblock %}
                 </div>
-            </section>
+            </div>
         {% endblock %}
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
