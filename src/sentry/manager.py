@@ -25,9 +25,8 @@ from raven.utils.encoding import to_string
 
 from sentry import app
 from sentry.constants import (
-    STATUS_RESOLVED, STATUS_UNRESOLVED,
-    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH,
-    MEMBER_USER
+    STATUS_RESOLVED, STATUS_UNRESOLVED, MEMBER_USER, LOG_LEVELS,
+    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
 )
 from sentry.db.models import BaseManager
 from sentry.processors.base import send_group_processors
@@ -36,13 +35,11 @@ from sentry.tasks.index import index_event
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.cache import memoize
 from sentry.utils.db import get_db_engine, attach_foreignkey
-from sentry.utils.safe import safe_execute, trim, trim_dict, trim_frames
-from sentry.utils.strings import strip
+from sentry.utils.safe import safe_execute, trim, trim_dict
 
 logger = logging.getLogger('sentry.errors')
 
 UNSAVED = dict()
-MAX_TAG_LENGTH = 200
 
 
 def get_checksum_from_event(event):
@@ -170,72 +167,23 @@ class GroupManager(BaseManager):
         trim_dict(
             data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
-        # TODO: each interface should describe its own normalization logic
-        if 'sentry.interfaces.Exception' in data:
-            if 'values' not in data['sentry.interfaces.Exception']:
-                data['sentry.interfaces.Exception'] = {
-                    'values': [data['sentry.interfaces.Exception']]
-                }
-
-            # convert stacktrace + exception into expanded exception
-            if 'sentry.interfaces.Stacktrace' in data:
-                data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
-
-            for exc_data in data['sentry.interfaces.Exception']['values']:
-                for key in ('type', 'module', 'value'):
-                    value = exc_data.get(key)
-                    if value:
-                        exc_data[key] = trim(value)
-
-                if exc_data.get('stacktrace'):
-                    trim_frames(exc_data['stacktrace'])
-                    for frame in exc_data['stacktrace']['frames']:
-                        stack_vars = frame.get('vars', {})
-                        trim_dict(stack_vars)
-                        for key, value in frame.iteritems():
-                            if key not in ('vars', 'data'):
-                                frame[key] = trim(value)
-
-        if 'sentry.interfaces.Stacktrace' in data:
-            trim_frames(data['sentry.interfaces.Stacktrace'])
-            for frame in data['sentry.interfaces.Stacktrace']['frames']:
-                stack_vars = frame.get('vars', {})
-                trim_dict(stack_vars)
-                for key, value in frame.iteritems():
-                    if key not in ('vars', 'data'):
-                        frame[key] = trim(value)
-
-        if 'sentry.interfaces.Message' in data:
-            msg_data = data['sentry.interfaces.Message']
-            trim(msg_data['message'], 1024)
-            if msg_data.get('params'):
-                msg_data['params'] = trim(msg_data['params'])
+        # TODO(dcramer): find a better place for this logic
+        exception = data.get('sentry.interfaces.Exception')
+        stacktrace = data.get('sentry.interfaces.Stacktrace')
+        if exception and len(exception['values']) == 1 and stacktrace:
+            exception['values'][0]['stacktrace'] = stacktrace
+            del data['sentry.interfaces.Stacktrace']
 
         if 'sentry.interfaces.Http' in data:
-            http_data = data['sentry.interfaces.Http']
-            for key in ('cookies', 'querystring', 'headers', 'env', 'url'):
-                value = http_data.get(key)
-                if not value:
-                    continue
-
-                if type(value) == dict:
-                    trim_dict(value)
-                else:
-                    http_data[key] = trim(value)
-
-            value = http_data.get('data')
-            if value:
-                http_data['data'] = trim(value, 2048)
-
             # default the culprit to the url
             if not data['culprit']:
-                data['culprit'] = strip(http_data.get('url'))
+                data['culprit'] = data['sentry.interfaces.Http']['url']
 
         if data['culprit']:
-            data['culprit'] = trim(strip(data['culprit']), MAX_CULPRIT_LENGTH)
+            data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
         if data['message']:
-            data['message'] = strip(data['message'])
+            data['message'] = trim(data['message'], 2048)
 
         return data
 
@@ -362,8 +310,7 @@ class GroupManager(BaseManager):
                 is_regression=is_regression,
             )
 
-        if getattr(settings, 'SENTRY_INDEX_SEARCH', settings.SENTRY_USE_SEARCH):
-            index_event.delay(event)
+        index_event.delay(event)
 
         # TODO: move this to the queue
         if is_new and not raw:
@@ -490,7 +437,7 @@ class GroupManager(BaseManager):
                 continue
 
             value = six.text_type(value)
-            if len(value) > MAX_TAG_LENGTH:
+            if len(value) > MAX_TAG_VALUE_LENGTH:
                 continue
 
             tsdb_id = u'%s=%s' % (key, value)

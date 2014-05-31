@@ -194,3 +194,10 @@ class ProjectQuotasForm(forms.Form):
         ProjectOption.objects.set_value(
             self.project, 'quotas:per_minute', self.cleaned_data['per_minute'] or ''
         )
+
+
+class NewRuleForm(forms.Form):
+    label = forms.CharField(
+        label=_('Label'),
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. My Custom Rule'}),
+    )

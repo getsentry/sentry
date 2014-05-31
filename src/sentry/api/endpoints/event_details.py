@@ -15,8 +15,8 @@ class EventDetailsEndpoint(Endpoint):
         interface_list = []
         for interface in event.interfaces.itervalues():
             entry = {
-                'data': interface.get_json_context(),
-                'type': interface.get_type_name(),
+                'data': interface.to_json(),
+                'type': interface.get_alias(),
             }
             interface_list.append((interface, entry))
         interface_list.sort(key=lambda x: x[0].get_display_score(), reverse=True)

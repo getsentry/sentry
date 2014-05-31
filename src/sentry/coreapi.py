@@ -26,26 +26,18 @@ from sentry.constants import (
     DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH)
 from sentry.exceptions import InvalidTimestamp
+from sentry.interfaces.base import get_interface
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
-from sentry.utils.imports import import_string
 from sentry.utils.strings import decompress, truncatechars
 
 
 logger = logging.getLogger('sentry.coreapi.errors')
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
-
-INTERFACE_ALIASES = {
-    'exception': 'sentry.interfaces.Exception',
-    'request': 'sentry.interfaces.Http',
-    'user': 'sentry.interfaces.User',
-    'stacktrace': 'sentry.interfaces.Stacktrace',
-    'template': 'sentry.interfaces.Template',
-}
 
 RESERVED_FIELDS = (
     'project',
@@ -97,18 +89,6 @@ class APIRateLimited(APIError):
 
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
-
-
-def get_interface(name):
-    if name not in settings.SENTRY_ALLOWED_INTERFACES:
-        raise ValueError
-
-    try:
-        interface = import_string(name)
-    except Exception:
-        raise ValueError('Unable to load interface: %s' % (name,))
-
-    return interface
 
 
 def client_metadata(client=None, project=None, exception=None, tags=None, extra=None):
@@ -359,41 +339,36 @@ def validate_data(project, data, client=None):
         if k in RESERVED_FIELDS:
             continue
 
-        if not data[k]:
+        value = data.pop(k)
+
+        if not value:
             logger.info(
                 'Ignored empty interface value: %s', k,
                 **client_metadata(client, project))
-            del data[k]
             continue
 
-        import_path = INTERFACE_ALIASES.get(k, k)
-
-        if '.' not in import_path:
+        try:
+            interface = get_interface(k)
+        except ValueError:
             logger.info(
                 'Ignored unknown attribute: %s', k,
                 **client_metadata(client, project))
-            del data[k]
             continue
 
-        try:
-            interface = get_interface(import_path)
-        except ValueError:
-            logger.info(
-                'Invalid unknown attribute: %s', k,
-                **client_metadata(client, project))
-            del data[k]
-            continue
-
-        value = data.pop(k)
-        try:
-            # HACK: exception allows you to pass the value as a list
-            # so let's try to actually support that
-            if isinstance(value, dict):
-                inst = interface(**value)
+        if type(value) != dict:
+            # HACK(dcramer): the exception interface supports a list as the
+            # value. We should change this in a new protocol version.
+            if type(value) in (list, tuple):
+                value = {'values': value}
             else:
-                inst = interface(value)
-            inst.validate()
-            data[import_path] = inst.serialize()
+                logger.info(
+                    'Invalid parameters for value: %s', k,
+                    type(value), **client_metadata(client, project))
+                continue
+
+        try:
+            inst = interface.to_python(value)
+            data[inst.get_path()] = inst.to_json()
         except Exception as e:
             if isinstance(e, AssertionError):
                 log = logger.info

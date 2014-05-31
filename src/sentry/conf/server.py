@@ -153,6 +153,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
 
+    'captcha',
     'crispy_forms',
     'djcelery',
     'gunicorn',
@@ -451,6 +452,13 @@ REST_FRAMEWORK = {
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
+# django-recaptcha
+
+RECAPTCHA_PUBLIC_KEY = None
+RECAPTCHA_PRIVATE_KEY = None
+
+# django-statsd
+
 STATSD_CLIENT = 'django_statsd.clients.null'
 
 # Sentry and Raven configuration
@@ -466,7 +474,6 @@ SENTRY_FILTERS = (
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
 )
-
 
 SENTRY_KEY = None
 
@@ -521,15 +528,23 @@ SENTRY_SMTP_HOSTNAME = 'localhost'
 SENTRY_SMTP_HOST = 'localhost'
 SENTRY_SMTP_PORT = 1025
 
-SENTRY_ALLOWED_INTERFACES = set([
-    'sentry.interfaces.Exception',
-    'sentry.interfaces.Message',
-    'sentry.interfaces.Stacktrace',
-    'sentry.interfaces.Template',
-    'sentry.interfaces.Query',
-    'sentry.interfaces.Http',
-    'sentry.interfaces.User',
-])
+SENTRY_INTERFACES = {
+    'exception': 'sentry.interfaces.exception.Exception',
+    'logentry': 'sentry.interfaces.message.Message',
+    'request': 'sentry.interfaces.http.Http',
+    'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
+    'template': 'sentry.interfaces.template.Template',
+    'query': 'sentry.interfaces.query.Query',
+    'user': 'sentry.interfaces.user.User',
+
+    'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
+    'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
+    'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
+    'sentry.interfaces.Template': 'sentry.interfaces.template.Template',
+    'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
+    'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
+    'sentry.interfaces.User': 'sentry.interfaces.user.User',
+}
 
 # Should users without 'sentry.add_project' permissions be allowed
 # to create new projects
@@ -583,10 +598,6 @@ SENTRY_SEARCH_OPTIONS = {}
 #     'timeout': 5,
 # }
 
-# Enable search within the frontend
-SENTRY_USE_SEARCH = True
-# SENTRY_INDEX_SEARCH = SENTRY_USE_SEARCH
-
 # Time-series storage backend
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
@@ -616,7 +627,7 @@ SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 10
-SENTRY_MAX_STACKTRACE_FRAMES = 50
+SENTRY_MAX_STACKTRACE_FRAMES = 25
 
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'

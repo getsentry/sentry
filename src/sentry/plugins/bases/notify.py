@@ -84,11 +84,15 @@ class NotificationPlugin(Plugin):
         return member_set
 
     def should_notify(self, group, event):
+        if group.is_muted():
+            return False
+
         project = group.project
         send_to = self.get_sendable_users(project)
         if not send_to:
             return False
 
+        # TODO(dcramer): remove this in favor of rules
         allowed_tags = project.get_option('notifcation:tags', {})
         if allowed_tags:
             tags = event.data.get('tags', ())
@@ -103,16 +107,6 @@ class NotificationPlugin(Plugin):
         event = create_sample_event(project, default='python')
         return self.post_process(event.group, event, is_new=True, is_sample=False)
 
-    # plugin hooks
-
-    def post_process(self, group, event, is_new, is_sample, **kwargs):
-        if not is_new:
-            return
-
-        if not self.should_notify(group, event):
-            return
-
-        return self.notify_users(group, event)
 
 # Backwards-compatibility
 NotifyConfigurationForm = NotificationConfigurationForm

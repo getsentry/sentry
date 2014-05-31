@@ -218,7 +218,8 @@
             var $this = $(this),
                 options = {
                     width: 'element',
-                    allowClear: false
+                    allowClear: false,
+                    minimumResultsForSearch: 10
                 };
 
             if ($this.attr('data-allowClear')) {

@@ -8,9 +8,13 @@ Backwards Incompatible Changes
 - The UDP server has been removed. Threaded/async models are the preferred replacement.
 - The ``is_rate_limited`` plugin hook has been removed in favor of singular quota managers.
 - The trends feature has been removed until it can be reimplemented in a more scalable way.
+- Filters have been removed. Integrations should use the tagging infrastructure instead.
 - NodeStore.generate_id() now returns a base64-encoded UUID.
+- The API for interfaces has been rewritten.
 - GroupMeta.objects.get_value no longer errors when a value is missing.
 - sentry.plugins.sentry_sites has been removed
+- The Search API has been rewritten and now powers the entire stream.
+- Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
 
 Version 6.4.0
 -------------

@@ -583,14 +583,11 @@ def bookmark(request, team, project):
 @has_access(MEMBER_USER)
 @never_cache
 def clear(request, team, project):
-    response = _get_group_list(
-        request=request,
+    queryset = Group.objects.filter(
         project=project,
+        status=STATUS_UNRESOLVED,
     )
-
-    # TODO: should we record some kind of global event in Activity?
-    event_list = response['event_list']
-    rows_affected = event_list.update(status=STATUS_RESOLVED)
+    rows_affected = queryset.update(status=STATUS_RESOLVED)
     if rows_affected > 1000:
         logger.warning(
             'Large resolve on %s of %s rows', project.slug, rows_affected)

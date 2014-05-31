@@ -3,10 +3,10 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from exam import before, fixture
+from exam import fixture
 
 from sentry.constants import MEMBER_USER
-from sentry.models import Group, Project, TeamMember, Team, User
+from sentry.models import Project, TeamMember, Team, User
 from sentry.testutils import TestCase
 
 
@@ -347,31 +347,3 @@ class RemoveTeamMemberTest(PermissionBase):
 
     def test_member_cannot_load(self):
         self._assertPerm(self.path, self.template, self.member.username, False)
-
-
-class SentrySearchTest(TestCase):
-    @before
-    def login_user(self):
-        self.login_as(self.user)
-
-    @fixture
-    def path(self):
-        return reverse('sentry-search', kwargs={'team_slug': self.team.slug, 'project_id': self.project.id})
-
-    def test_checksum_query(self):
-        checksum = 'a' * 32
-        group = Group.objects.create(
-            project=self.project,
-            logger='root',
-            culprit='a',
-            checksum=checksum,
-            message='hi',
-        )
-
-        response = self.client.get(self.path, {'q': '%s$%s' % (checksum, checksum)})
-        self.assertEquals(response.status_code, 302)
-        self.assertEquals(response['Location'], 'http://testserver%s' % (reverse('sentry-group', kwargs={
-            'project_id': group.project.slug,
-            'team_slug': group.team.slug,
-            'group_id': group.id,
-        }),))

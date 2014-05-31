@@ -216,11 +216,11 @@ def expand_javascript_source(data, **kwargs):
 
     Mutates the input ``data`` with expanded context if available.
     """
-    from sentry.interfaces import Stacktrace
+    from sentry.interfaces.stacktrace import Stacktrace
 
     try:
         stacktraces = [
-            Stacktrace(**e['stacktrace'])
+            Stacktrace.to_python(e['stacktrace'])
             for e in data['sentry.interfaces.Exception']['values']
             if e.get('stacktrace')
         ]
@@ -373,7 +373,7 @@ def expand_javascript_source(data, **kwargs):
     if has_changes:
         logger.debug('Updating stacktraces with expanded source context')
         for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
-            exception['stacktrace'] = stacktrace.serialize()
+            exception['stacktrace'] = stacktrace.to_json()
 
     # Attempt to fix the culrpit now that we have potentially useful information
     culprit_frame = stacktraces[0].frames[-1]
