@@ -8,7 +8,7 @@ from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry.interfaces import Stacktrace
+from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import Alert, Event, Group, AccessGroup
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase

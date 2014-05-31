@@ -37,7 +37,11 @@ setup-git:
 build: locale
 
 clean:
-	rm -r src/sentry/static/CACHE
+	@echo "--> Cleaning static cache"
+	rm -rf src/sentry/static/CACHE
+	@echo "--> Cleaning pyc files"
+	find . -name "*.pyc" -delete
+	@echo ""
 
 locale:
 	cd src/sentry && sentry makemessages -i static -l en

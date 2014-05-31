@@ -3,6 +3,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
+{% load sentry_stream_filters %}
 
 {% block sidebar %}
     <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-project-stats' project.id %}" data-days="1">
@@ -24,7 +25,7 @@
             </div>
         {% endif %}
 
-        {% for filter in filters %}
+        {% for filter in project|get_filters:request %}
             {% if filter.show_label %}
                 <h6>{% trans filter.label %}</h6>
             {% endif %}
@@ -42,7 +43,7 @@
 
     <div class="stream-actions">
         <div class="btn-group">
-            <a class="btn btn-default" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i> {% trans "Resolve Feed" %}</a>
+            <a class="btn btn-default" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i> {% trans "Resolve All Events" %}</a>
         </div>
         <div class="btn-group">
             <a class="btn btn-default realtime-play" data-action="pause" data-pause-label="{% trans "Pause Updates" %}" data-play-label="{% trans "Enable Updates" %}" href="javascript:void(0)">

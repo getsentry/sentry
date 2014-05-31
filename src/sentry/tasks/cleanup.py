@@ -6,11 +6,16 @@ sentry.tasks.cleanup
 :license: BSD, see LICENSE for more details.
 """
 
+from nydus.utils import ThreadPool
 from sentry.tasks.base import instrumented_task
 
 
+def delete_object(item):
+    item.delete()
+
+
 @instrumented_task(name='sentry.tasks.cleanup.cleanup', queue='cleanup')
-def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
+def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
     """
     Deletes a portion of the trailing data in Sentry based on
     their creation dates. For example, if ``days`` is 30, this
@@ -47,7 +52,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
 
     ts = timezone.now() - datetime.timedelta(days=days)
 
-    log.info("Removing expired values for %r", LostPasswordHash)
+    log.info("Removing expired values for LostPasswordHash")
     LostPasswordHash.objects.filter(
         date_added__lte=timezone.now() - datetime.timedelta(days=1)
     ).delete()
@@ -61,20 +66,30 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
-        log.info("Removing %r for days=%s project=%r", model, days, project or '*')
+        log.info("Removing %s for days=%s project=%s", model.__name__, days, project or '*')
         qs = model.objects.filter(**{'%s__lte' % (date_col,): ts})
         if project:
             qs = qs.filter(project=project)
         # XXX: we step through because the deletion collector will pull all relations into memory
+
+        count = 0
         while qs.exists():
-            for obj in list(qs[:chunk_size]):
-                log.info("Removing %r", obj)
-                obj.delete()
+            log.info("Removing %s chunk %d", model.__name__, count)
+            if concurrency > 1:
+                worker_pool = ThreadPool(workers=concurrency)
+                for obj in qs[:chunk_size].iterator():
+                    worker_pool.add(obj.id, delete_object, [obj])
+                    count += 1
+                worker_pool.join()
+                del worker_pool
+            else:
+                for obj in qs[:chunk_size].iterator():
+                    delete_object(obj)
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
     if days > 7:
-        log.info("Removing expired values for %r", EventMapping)
+        log.info("Removing expired values for EventMapping")
         EventMapping.objects.filter(
             date_added__lte=timezone.now() - datetime.timedelta(days=7)
         ).delete()

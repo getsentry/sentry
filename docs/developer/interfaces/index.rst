@@ -29,19 +29,21 @@ The mapping is as follows::
 * 'stacktrace' => 'sentry.interfaces.Stacktrace'
 * 'template' => 'sentry.interfaces.Template'
 
+For the canonical names, please see the ``get_path`` method on each individual Interface.
+
 Provided Interfaces
 -------------------
 
-.. autoclass:: sentry.interfaces.Message
+.. autoclass:: sentry.interfaces.message.Message
 
-.. autoclass:: sentry.interfaces.Exception
+.. autoclass:: sentry.interfaces.exception.Exception
 
-.. autoclass:: sentry.interfaces.Stacktrace
+.. autoclass:: sentry.interfaces.stacktrace.Stacktrace
 
-.. autoclass:: sentry.interfaces.Template
+.. autoclass:: sentry.interfaces.template.Template
 
-.. autoclass:: sentry.interfaces.Http
+.. autoclass:: sentry.interfaces.http.Http
 
-.. autoclass:: sentry.interfaces.User
+.. autoclass:: sentry.interfaces.user.User
 
-.. autoclass:: sentry.interfaces.Query
+.. autoclass:: sentry.interfaces.query.Query

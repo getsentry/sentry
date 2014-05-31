@@ -15,4 +15,4 @@ from sentry.tasks.base import instrumented_task
 def index_event(event, **kwargs):
     from sentry import app
 
-    app.search.index(event.group, event)
+    app.search.index(event)

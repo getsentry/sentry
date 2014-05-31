@@ -12,10 +12,8 @@ TODO: Move all events.py views into here, and rename this file to events.
 from __future__ import division
 
 import datetime
-import logging
 import re
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
@@ -23,15 +21,10 @@ from django.utils import timezone
 
 from sentry import app
 from sentry.constants import (
-    SORT_OPTIONS, SEARCH_SORT_OPTIONS, SORT_CLAUSES,
-    MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
-    SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES,
-    ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES,
-    MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES, DEFAULT_SORT_OPTION,
-    SEARCH_DEFAULT_SORT_OPTION, MAX_JSON_RESULTS
+    SORT_OPTIONS, MEMBER_USER, MAX_JSON_RESULTS, DEFAULT_SORT_OPTION,
+    EVENTS_PER_PAGE
 )
 from sentry.db.models import create_or_update
-from sentry.filters import get_filters
 from sentry.models import (
     Project, Group, Event, Activity, EventMapping, TagKey, GroupSeen
 )
@@ -39,7 +32,6 @@ from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
-from sentry.utils.db import get_db_engine
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
@@ -49,40 +41,45 @@ event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$
 
 
 def _get_group_list(request, project):
-    filters = []
-    for cls in get_filters(Group, project):
-        try:
-            filters.append(cls(request, project))
-        except Exception as e:
-            logger = logging.getLogger('sentry.filters')
-            logger.exception('Error initializing filter %r: %s', cls, e)
+    query_kwargs = {
+        'project': project,
+    }
 
-    event_list = Group.objects
+    query = request.GET.get('query')
+    if query:
+        query_kwargs['query'] = query
+
+    status = request.GET.get('status', '0')
+    if status:
+        query_kwargs['status'] = int(status)
+
     if request.user.is_authenticated() and request.GET.get('bookmarks'):
-        event_list = event_list.filter(
-            bookmark_set__project=project,
-            bookmark_set__user=request.user,
-        )
-    else:
-        event_list = event_list.filter(project=project)
+        query_kwargs['bookmarked_by'] = request.user
 
-    for filter_ in filters:
-        try:
-            if not filter_.is_set():
-                continue
-            event_list = filter_.get_query_set(event_list)
-        except Exception as e:
-            logger = logging.getLogger('sentry.filters')
-            logger.exception('Error processing filter %r: %s', cls, e)
+    sort_by = request.GET.get('sort') or request.session.get('streamsort')
+    if sort_by is None:
+        sort_by = DEFAULT_SORT_OPTION
+
+    # Save last sort in session
+    if sort_by != request.session.get('streamsort'):
+        request.session['streamsort'] = sort_by
+
+    query_kwargs['sort_by'] = sort_by
+
+    tags = {}
+    for tag_key in TagKey.objects.all_keys(project):
+        if request.GET.get(tag_key):
+            tags[tag_key] = request.GET[tag_key]
+    if tags:
+        query_kwargs['tags'] = tags
 
     date_from = request.GET.get('df')
     time_from = request.GET.get('tf')
     date_to = request.GET.get('dt')
     time_to = request.GET.get('tt')
-    date_type = request.GET.get('date_type')
+    date_filter = request.GET.get('date_type')
 
     today = timezone.now()
-
     # date format is Y-m-d
     if any(x is not None for x in [date_from, time_from, date_to, time_to]):
         date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
@@ -90,78 +87,24 @@ def _get_group_list(request, project):
         date_from = today - datetime.timedelta(days=5)
         date_to = None
 
-    if date_type == 'first_seen':
-        if date_from:
-            event_list = event_list.filter(first_seen__gte=date_from)
-        elif date_to:
-            event_list = event_list.filter(first_seen__lte=date_to)
-    else:
-        if date_from and date_to:
-            event_list = event_list.filter(
-                first_seen__gte=date_from,
-                last_seen__lte=date_to,
-            )
-        elif date_from:
-            event_list = event_list.filter(last_seen__gte=date_from)
-        elif date_to:
-            event_list = event_list.filter(last_seen__lte=date_to)
+    query_kwargs['date_from'] = date_from
+    query_kwargs['date_to'] = date_to
+    if date_filter:
+        query_kwargs['date_filter'] = date_filter
 
-    sort = request.GET.get('sort') or request.session.get('streamsort')
-    if sort not in SORT_OPTIONS:
-        sort = DEFAULT_SORT_OPTION
+    # HACK(dcramer): this should be removed once the pagination component
+    # is abstracted from the paginator tag
+    query_kwargs['limit'] = EVENTS_PER_PAGE + 2
 
-    # Save last sort in session
-    if sort != request.session.get('streamsort'):
-        request.session['streamsort'] = sort
-
-    engine = get_db_engine('default')
-    if engine.startswith('sqlite'):
-        score_clause = SQLITE_SORT_CLAUSES.get(sort)
-        filter_clause = SQLITE_SCORE_CLAUSES.get(sort)
-    elif engine.startswith('mysql'):
-        score_clause = MYSQL_SORT_CLAUSES.get(sort)
-        filter_clause = MYSQL_SCORE_CLAUSES.get(sort)
-    elif engine.startswith('oracle'):
-        score_clause = ORACLE_SORT_CLAUSES.get(sort)
-        filter_clause = ORACLE_SCORE_CLAUSES.get(sort)
-    elif engine in ('django_pytds', 'sqlserver_ado', 'sql_server.pyodbc'):
-        score_clause = MSSQL_SORT_CLAUSES.get(sort)
-        filter_clause = MSSQL_SCORE_CLAUSES.get(sort)
-    else:
-        score_clause = SORT_CLAUSES.get(sort)
-        filter_clause = SCORE_CLAUSES.get(sort)
-
-    # IMPORTANT: All filters must already be applied once we reach this point
-
-    if sort == 'tottime':
-        event_list = event_list.filter(time_spent_count__gt=0)
-    elif sort == 'avgtime':
-        event_list = event_list.filter(time_spent_count__gt=0)
-
-    if score_clause:
-        event_list = event_list.extra(
-            select={'sort_value': score_clause},
-        )
-        # HACK: don't sort by the same column twice
-        if sort == 'date':
-            event_list = event_list.order_by('-last_seen')
-        else:
-            event_list = event_list.order_by('-sort_value', '-last_seen')
-        cursor = request.GET.get('cursor', request.GET.get('c'))
-        if cursor:
-            event_list = event_list.extra(
-                where=['%s > %%s' % filter_clause],
-                params=[float(cursor)],
-            )
+    results = app.search.query(**query_kwargs)
 
     return {
-        'filters': filters,
-        'event_list': event_list,
+        'event_list': results,
         'date_from': date_from,
         'date_to': date_to,
         'today': today,
-        'sort': sort,
-        'date_type': date_type
+        'sort': sort_by,
+        'date_type': date_filter,
     }
 
 
@@ -254,100 +197,34 @@ def wall_display(request, team):
 
 @login_required
 @has_access
-def search(request, team, project):
-    query = request.GET.get('q', '').strip()
-
-    if not query:
-        return HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
-
-    sort = request.GET.get('sort')
-    if sort not in SEARCH_SORT_OPTIONS:
-        sort = SEARCH_DEFAULT_SORT_OPTION
-    sort_label = SEARCH_SORT_OPTIONS[sort]
-
-    result = event_re.match(query)
-    if result:
-        # Forward to aggregate if it exists
-        # event_id = result.group(1)
-        checksum = result.group(2)
-        try:
-            group = Group.objects.filter(project=project, checksum=checksum)[0]
-        except IndexError:
-            return render_to_response('sentry/invalid_message_id.html', {
-                'team': team,
-                'project': project,
-            }, request)
-        else:
-            return HttpResponseRedirect(reverse('sentry-group', kwargs={
-                'project_id': group.project.slug,
-                'team_slug': group.team.slug,
-                'group_id': group.id,
-            }))
-    elif uuid_re.match(query):
-        # Forward to event if it exists
-        try:
-            group_id = EventMapping.objects.get(
-                project=project, event_id=query
-            ).group_id
-        except EventMapping.DoesNotExist:
-            try:
-                event = Event.objects.get(project=project, event_id=query)
-            except Event.DoesNotExist:
-                return render_to_response('sentry/invalid_message_id.html', {
-                    'team': team,
-                    'project': project,
-                }, request)
-            else:
-                return HttpResponseRedirect(reverse('sentry-group-event', kwargs={
-                    'project_id': project.slug,
-                    'team_slug': team.slug,
-                    'group_id': event.group.id,
-                    'event_id': event.id,
-                }))
-        else:
-            return HttpResponseRedirect(reverse('sentry-group', kwargs={
-                'project_id': project.slug,
-                'team_slug': team.slug,
-                'group_id': group_id,
-            }))
-    elif not settings.SENTRY_USE_SEARCH:
-        event_list = Group.objects.none()
-        # return render_to_response('sentry/invalid_message_id.html', {
-        #         'project': project,
-        #     }, request)
-    else:
-        documents = list(app.search.query(project, query, sort_by=sort))
-        groups = Group.objects.in_bulk([d.group_id for d in documents])
-
-        event_list = []
-        for doc in documents:
-            try:
-                event_list.append(groups[doc.group_id])
-            except KeyError:
-                continue
-
-    return render_to_response('sentry/search.html', {
-        'team': project.team,
-        'project': project,
-        'event_list': event_list,
-        'query': query,
-        'sort': sort,
-        'sort_label': sort_label,
-    }, request)
-
-
-@login_required
-@has_access
 def group_list(request, team, project):
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
         page = 1
 
+    query = request.GET.get('query')
+    if query and uuid_re.match(query):
+        # Forward to event if it exists
+        try:
+            group_id = EventMapping.objects.filter(
+                project=project, event_id=query
+            ).values_list('group', flat=True)[0]
+        except IndexError:
+            pass
+        else:
+            return HttpResponseRedirect(reverse('sentry-group', kwargs={
+                'project_id': project.slug,
+                'team_slug': project.team.slug,
+                'group_id': group_id,
+            }))
+
     response = _get_group_list(
         request=request,
         project=project,
     )
+    if isinstance(response, HttpResponse):
+        return response
 
     # XXX: this is duplicate in _get_group_list
     sort_label = SORT_OPTIONS[response['sort']]
@@ -365,7 +242,6 @@ def group_list(request, team, project):
         'today': response['today'],
         'sort': response['sort'],
         'sort_label': sort_label,
-        'filters': response['filters'],
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
 

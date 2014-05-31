@@ -14,6 +14,8 @@ def pytest_configure(config):
     if not settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
+    os.environ['RECAPTCHA_TESTING'] = 'True'
+
     test_db = os.environ.get('DB', 'sqlite')
     if test_db == 'mysql':
         settings.DATABASES['default'].update({
@@ -63,6 +65,7 @@ def pytest_configure(config):
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_KEY = 'abc123'
     settings.SENTRY_PUBLIC = False
+
     # This speeds up the tests considerably, pbkdf2 is by design, slow.
     settings.PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',
@@ -86,6 +89,9 @@ def pytest_configure(config):
 
     settings.SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
+
+    settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
+    settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable

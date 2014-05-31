@@ -227,7 +227,7 @@ def install_plugins(settings):
             import sys
             import traceback
 
-            print >> sys.stderr, "Failed to load app %r:\n%s" % (ep.name, traceback.format_exc())
+            sys.stderr.write("Failed to load app %r:\n%s\n" % (ep.name, traceback.format_exc()))
         else:
             installed_apps.append(ep.module_name)
     settings.INSTALLED_APPS = tuple(installed_apps)
@@ -239,7 +239,7 @@ def install_plugins(settings):
             import sys
             import traceback
 
-            print >> sys.stderr, "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc())
+            sys.stderr.write("Failed to load plugin %r:\n%s\n" % (ep.name, traceback.format_exc()))
         else:
             register(plugin)
 
