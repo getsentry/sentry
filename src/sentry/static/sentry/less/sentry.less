@@ -29,7 +29,7 @@ body {
   font-family: @font-family-base;
   font-size: 13px;
   line-height: 20px;
-  color: @gray;
+  color: #454C50;
   -webkit-font-smoothing: antialiased;
   font-family: "Avenir Next", "Avenir", "Helvetica Neue", helvetica, sans-serif;
 }
@@ -73,257 +73,133 @@ h3 {
 
 /* =============================  Layout  ============================== */
 
-.navbar {
-  position: relative;
-  margin-bottom: 0;
-  border-radius: 0;
-  border: 0;
-  .navbar-inner {
-    color: #bfc6cf;
-    text-shadow: none;
-    padding-left: 0;
-    .clearfix();
-    border-radius: 0;
-    background: #465262;
-    border: 0;
-    .box-shadow(none);
-    height: 56px;
-
-    .container {
-      padding-top: 8px;
-      position: relative;
-    }
-  }
-
-  #logo {
-    font-size: 22px;
-    color: #eef5fc;
-    font-weight: bold;
-    float: left;
-    display: block;
-    text-indent: -1000em;
-    width: 25px;
-    height: 25px;
-    margin: 7px 0 0 2px;
-    letter-spacing: -1px;
-    text-decoration: none;
-    background: url('../images/logomark.png') center center no-repeat;
-    background-size: 25px 25px;
+header {
+  background: #465262;
+  color: #fff;
+  padding: 20px 0;
+  margin: 0 0 30px;
+  a {
+    color: #fff;
     &:hover {
-      color: lighten(#eef5fc, 10);
+      color: #fff;
+      text-decoration: none;
     }
   }
 
-  h1,
-  #team-banner > a {
-    position: relative;
-    letter-spacing: -1px;
-    font-weight: bold;
+  .icon-sentry-logo {
+    float: left;
+    margin: 2px 12px 0 0;
     font-size: 22px;
-    color: #eef5fc;
-    max-width: 430px;
-    height: 56px;
-    line-height: 56px;
-    padding: 0 25px 0 10px;
-    display: inline-block;
-    cursor: pointer;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    .caret {
-      position: absolute;
-      right: 10px;
-      top: 27px;
-      border-top-color: #b3b9c1 !important;
-      border-bottom-color: #b3b9c1 !important;
+  }
+
+  .user-avatar {
+    width: 22px;
+    border-radius: 3px;
+    position: relative;
+    top: -2px;
+  }
+
+  .user-nav {
+    margin-top: 4px;
+    margin-bottom: 0;
+    .clearfix();
+    .dropdown-menu {
+      left: auto;
+      right: 0;
+    }
+    > li {
+      list-style: none;
+      float: left;
+      margin-left: 30px;
+      a {
+        font-size: 15px;
+      }
+    }
+    [class^="icon-"], [class*=" icon-"] {
+      position: relative;
+      top: 1px;
+      margin-right: 4px;
     }
   }
 
-  h1,
-  #team-banner {
-    display: block;
-    text-decoration: none;
-    position: absolute;
-    left: 43px;
-    top: 0px;
-    width: auto;
-    z-index: 20000;
-    max-width: 550px;
-  }
-  #team-banner {
-    > a small {
-      font-weight: normal;
-      font-size: 18px;
-      margin-left: 5px;
-      color: #dde5ec;
-    }
-    &.open > a.dropdown-toggle {
-      background: darken(#465262, 10%);
-    }
+  .project-dropdown {
+    float: left;
+    position: relative;
+
     .dropdown-menu {
+      width: 540px;
       max-height: 400px;
       overflow: auto;
-      top: 0px;
-      position: relative;
-      min-height: 50px;
-      padding: 10px;
-      margin: 0;
-      background: darken(#465262, 10%);
-      .box-shadow(none);
-      border-radius: 0;
-      border-top: none;
-      color: #fff;
-      border-radius: 0 0 6px 6px;
+      padding: 0;
 
-      h6 {
-        color: darken(#e4e8ed, 30%);
-        letter-spacing: 0.1px;
-        font-size: 12px;
-        line-height: 26px;
-        font-weight: 600;
-        text-transform: uppercase;
-        a {
-          color: inherit;
-          .transition(none);
+      .team {
+        border-bottom: 2px solid #f1f2f3;
+        padding: 15px 15px 0;
+        &:last-child {
+          border-bottom: 0;
         }
       }
-      .project-list {
-        margin: 0;
-        padding: 0;
-        li {
-          margin: 0;
-          display: inline-block;
-          font-size: 15px;
-          a {
-            color: darken(#e4e8ed, 6);
-            width: 160px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding: 3px 3px 3px 0;
-            display: inline-block;
-            font-weight: 400;
 
-            &:hover {
-              color: #fff !important;
-              background: transparent;
+      h5 {
+        margin-bottom: 10px;
+        a {
+          color: @gray;
+          &:hover {
+            color: @gray-dark;
+          }
+        }
+      }
+
+      ul {
+        .clearfix;
+        .list-unstyled;
+
+        li {
+          width: 31%;
+          float: left;
+          margin: 0 10px 10px 0;
+          min-height: 24px;
+          a {
+            display: block;
+            .text-overflow;
+          }
+          &.active {
+            a {
+              position: relative;
+              color: @gray;
+              background: rgba(0, 0, 0, 0.04);
+              border-radius: 5px;
+              padding: 2px 7px;
+              left: -5px;
             }
           }
-          &.active a {
-            color: #fff;
-            background: inherit;
-          }
         }
       }
 
-      input[type=text] {
-        width: 380px;
-        padding-right: 40px;
-      }
-      .btn {
-        margin: 0;
-        border-radius: 0 4px 4px 0;
-        width: 40px;
-        right: 10px;
-        top: 10px;
-        position: absolute;
+      a {
+        color: @link-color;
+        &:hover {
+          color: @link-hover-color;
+        }
       }
 
     }
-  }
-
-  #team-nav {
-    position: absolute;
-    top: 0;
-    left: 124px;
-    ul {
-      .clearfix();
-      margin: 0;
-      li {
-        list-style-type: none;
-        float: left;
-        a {
-          text-decoration: none;
-          display: block;
-          font-size: 16px;
-          font-weight: bold;
-          color: #8f97a3;
-          height: 60px;
-          width: 120px;
-          text-align: center;
-          line-height: 60px;
-          .box-shadow(inset -1px 0 0 rgba(0,0,0, .15));
-
-          &:hover {
-            color: lighten(#8f97a3, 16);
-          }
-        }
-
-        &.active {
-          a {
-            color: darken(#8f97a3, 10);
-            height: 61px;
-            background: #dee3e9;
-            .box-shadow(none);
-          }
-        }
-
-        &:first-child {
-          .box-shadow(~"inset 1px 0 0 rgba(0,0,0, .15)");
-        }
-      }
+    .team-name {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      z-index: 2;
+      position: relative;
+      line-height: 1.5;
     }
-  }
 
-  .nav {
-    margin: 7px 0 0 10px;
+    .project-name {
+      font-weight: 400;
+      color: #B5B9C0;
+    }
 
-    > li {
-      margin: 0 0 0 35px;
-      float: left;
-      > a {
-        color: #bfc6cf;
-        text-shadow: none;
-        display: block;
-        padding: 3px 0;
-        font-size: 14px;
-        font-weight: bold;
-      }
-
-      > .dropdown-toggle {
-        background: inherit !important;
-        .caret {
-          border-top-color: #b3b9c1 !important;
-          border-bottom-color: #b3b9c1 !important;
-        }
-      }
-      > .dropdown-menu {
-        left: auto;
-        right: 0;
-        a {
-          .transition(none);
-        }
-      }
-      &.active > a,
-      &.active:hover > a,
-      &:hover > a,
-      &:focus > a {
-        background: none !important;
-        color: #fff;
-
-        border-radius: 3px;
-        .box-shadow(none);
-      }
-
-      &.active > a,
-      &.active:hover > a,
-      &.active:focus > a {
-        padding: 2px 7px;
-        border: 1px solid @navbar-inverse-border;
-        color: @navbar-inverse-link-active-color;
-        #gradient > .vertical(rgba(0,0,0, .1), rgba(0,0,0, .3));
-        @shadow: inset 0 1px 0px rgba(255,255,255,.15), 0 1px 2px rgba(0,0,0,.1);
-        .box-shadow(@shadow);
-      }
+    .icon-arrow-down {
+      top: 0;
     }
   }
 }

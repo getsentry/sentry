@@ -6969,7 +6969,7 @@ body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 13px;
   line-height: 20px;
-  color: #465262;
+  color: #454C50;
   -webkit-font-smoothing: antialiased;
   font-family: "Avenir Next", "Avenir", "Helvetica Neue", helvetica, sans-serif;
 }
@@ -7008,280 +7008,154 @@ h3 {
   font-size: 18px;
 }
 /* =============================  Layout  ============================== */
-.navbar {
-  position: relative;
-  margin-bottom: 0;
-  border-radius: 0;
-  border: 0;
-}
-.navbar .navbar-inner {
-  color: #bfc6cf;
-  text-shadow: none;
-  padding-left: 0;
-  border-radius: 0;
+header {
   background: #465262;
-  border: 0;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-  height: 56px;
-}
-.navbar .navbar-inner:before,
-.navbar .navbar-inner:after {
-  content: " ";
-  display: table;
-}
-.navbar .navbar-inner:after {
-  clear: both;
-}
-.navbar .navbar-inner:before,
-.navbar .navbar-inner:after {
-  content: " ";
-  display: table;
-}
-.navbar .navbar-inner:after {
-  clear: both;
-}
-.navbar .navbar-inner .container {
-  padding-top: 8px;
-  position: relative;
-}
-.navbar #logo {
-  font-size: 22px;
-  color: #eef5fc;
-  font-weight: bold;
-  float: left;
-  display: block;
-  text-indent: -1000em;
-  width: 25px;
-  height: 25px;
-  margin: 7px 0 0 2px;
-  letter-spacing: -1px;
-  text-decoration: none;
-  background: url('../images/logomark.png') center center no-repeat;
-  background-size: 25px 25px;
-}
-.navbar #logo:hover {
-  color: #ffffff;
-}
-.navbar h1,
-.navbar #team-banner > a {
-  position: relative;
-  letter-spacing: -1px;
-  font-weight: bold;
-  font-size: 22px;
-  color: #eef5fc;
-  max-width: 430px;
-  height: 56px;
-  line-height: 56px;
-  padding: 0 25px 0 10px;
-  display: inline-block;
-  cursor: pointer;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.navbar h1 .caret,
-.navbar #team-banner > a .caret {
-  position: absolute;
-  right: 10px;
-  top: 27px;
-  border-top-color: #b3b9c1 !important;
-  border-bottom-color: #b3b9c1 !important;
-}
-.navbar h1,
-.navbar #team-banner {
-  display: block;
-  text-decoration: none;
-  position: absolute;
-  left: 43px;
-  top: 0px;
-  width: auto;
-  z-index: 20000;
-  max-width: 550px;
-}
-.navbar #team-banner > a small {
-  font-weight: normal;
-  font-size: 18px;
-  margin-left: 5px;
-  color: #dde5ec;
-}
-.navbar #team-banner.open > a.dropdown-toggle {
-  background: #313944;
-}
-.navbar #team-banner .dropdown-menu {
-  max-height: 400px;
-  overflow: auto;
-  top: 0px;
-  position: relative;
-  min-height: 50px;
-  padding: 10px;
-  margin: 0;
-  background: #313944;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-  border-radius: 0;
-  border-top: none;
   color: #fff;
-  border-radius: 0 0 6px 6px;
+  padding: 20px 0;
+  margin: 0 0 30px;
 }
-.navbar #team-banner .dropdown-menu h6 {
-  color: #889ab0;
-  letter-spacing: 0.1px;
-  font-size: 12px;
-  line-height: 26px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-.navbar #team-banner .dropdown-menu h6 a {
-  color: inherit;
-  -webkit-transition: none;
-  transition: none;
-}
-.navbar #team-banner .dropdown-menu .project-list {
-  margin: 0;
-  padding: 0;
-}
-.navbar #team-banner .dropdown-menu .project-list li {
-  margin: 0;
-  display: inline-block;
-  font-size: 15px;
-}
-.navbar #team-banner .dropdown-menu .project-list li a {
-  color: #d2d8e1;
-  width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 3px 3px 3px 0;
-  display: inline-block;
-  font-weight: 400;
-}
-.navbar #team-banner .dropdown-menu .project-list li a:hover {
-  color: #fff !important;
-  background: transparent;
-}
-.navbar #team-banner .dropdown-menu .project-list li.active a {
+header a {
   color: #fff;
-  background: inherit;
 }
-.navbar #team-banner .dropdown-menu input[type=text] {
-  width: 380px;
-  padding-right: 40px;
-}
-.navbar #team-banner .dropdown-menu .btn {
-  margin: 0;
-  border-radius: 0 4px 4px 0;
-  width: 40px;
-  right: 10px;
-  top: 10px;
-  position: absolute;
-}
-.navbar #team-nav {
-  position: absolute;
-  top: 0;
-  left: 124px;
-}
-.navbar #team-nav ul {
-  margin: 0;
-}
-.navbar #team-nav ul:before,
-.navbar #team-nav ul:after {
-  content: " ";
-  display: table;
-}
-.navbar #team-nav ul:after {
-  clear: both;
-}
-.navbar #team-nav ul:before,
-.navbar #team-nav ul:after {
-  content: " ";
-  display: table;
-}
-.navbar #team-nav ul:after {
-  clear: both;
-}
-.navbar #team-nav ul li {
-  list-style-type: none;
-  float: left;
-}
-.navbar #team-nav ul li a {
+header a:hover {
+  color: #fff;
   text-decoration: none;
-  display: block;
-  font-size: 16px;
-  font-weight: bold;
-  color: #8f97a3;
-  height: 60px;
-  width: 120px;
-  text-align: center;
-  line-height: 60px;
-  -webkit-box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
-  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
 }
-.navbar #team-nav ul li a:hover {
-  color: #bcc1c8;
-}
-.navbar #team-nav ul li.active a {
-  color: #737d8c;
-  height: 61px;
-  background: #dee3e9;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-}
-.navbar #team-nav ul li:first-child {
-  -webkit-box-shadow: inset 1px 0 0 rgba(0,0,0, .15);
-  box-shadow: inset 1px 0 0 rgba(0,0,0, .15);
-}
-.navbar .nav {
-  margin: 7px 0 0 10px;
-}
-.navbar .nav > li {
-  margin: 0 0 0 35px;
+header .icon-sentry-logo {
   float: left;
+  margin: 2px 12px 0 0;
+  font-size: 22px;
 }
-.navbar .nav > li > a {
-  color: #bfc6cf;
-  text-shadow: none;
-  display: block;
-  padding: 3px 0;
-  font-size: 14px;
-  font-weight: bold;
+header .user-avatar {
+  width: 22px;
+  border-radius: 3px;
+  position: relative;
+  top: -2px;
 }
-.navbar .nav > li > .dropdown-toggle {
-  background: inherit !important;
+header .user-nav {
+  margin-top: 4px;
+  margin-bottom: 0;
 }
-.navbar .nav > li > .dropdown-toggle .caret {
-  border-top-color: #b3b9c1 !important;
-  border-bottom-color: #b3b9c1 !important;
+header .user-nav:before,
+header .user-nav:after {
+  content: " ";
+  display: table;
 }
-.navbar .nav > li > .dropdown-menu {
+header .user-nav:after {
+  clear: both;
+}
+header .user-nav:before,
+header .user-nav:after {
+  content: " ";
+  display: table;
+}
+header .user-nav:after {
+  clear: both;
+}
+header .user-nav .dropdown-menu {
   left: auto;
   right: 0;
 }
-.navbar .nav > li > .dropdown-menu a {
-  -webkit-transition: none;
-  transition: none;
+header .user-nav > li {
+  list-style: none;
+  float: left;
+  margin-left: 30px;
 }
-.navbar .nav > li.active > a,
-.navbar .nav > li.active:hover > a,
-.navbar .nav > li:hover > a,
-.navbar .nav > li:focus > a {
-  background: none !important;
-  color: #fff;
-  border-radius: 3px;
-  -webkit-box-shadow: none;
-  box-shadow: none;
+header .user-nav > li a {
+  font-size: 15px;
 }
-.navbar .nav > li.active > a,
-.navbar .nav > li.active:hover > a,
-.navbar .nav > li.active:focus > a {
+header .user-nav [class^="icon-"],
+header .user-nav [class*=" icon-"] {
+  position: relative;
+  top: 1px;
+  margin-right: 4px;
+}
+header .project-dropdown {
+  float: left;
+  position: relative;
+}
+header .project-dropdown .dropdown-menu {
+  width: 540px;
+  max-height: 400px;
+  overflow: auto;
+  padding: 0;
+}
+header .project-dropdown .dropdown-menu .team {
+  border-bottom: 2px solid #f1f2f3;
+  padding: 15px 15px 0;
+}
+header .project-dropdown .dropdown-menu .team:last-child {
+  border-bottom: 0;
+}
+header .project-dropdown .dropdown-menu h5 {
+  margin-bottom: 10px;
+}
+header .project-dropdown .dropdown-menu h5 a {
+  color: #465262;
+}
+header .project-dropdown .dropdown-menu h5 a:hover {
+  color: #333333;
+}
+header .project-dropdown .dropdown-menu ul {
+  padding-left: 0;
+  list-style: none;
+}
+header .project-dropdown .dropdown-menu ul:before,
+header .project-dropdown .dropdown-menu ul:after {
+  content: " ";
+  display: table;
+}
+header .project-dropdown .dropdown-menu ul:after {
+  clear: both;
+}
+header .project-dropdown .dropdown-menu ul:before,
+header .project-dropdown .dropdown-menu ul:after {
+  content: " ";
+  display: table;
+}
+header .project-dropdown .dropdown-menu ul:after {
+  clear: both;
+}
+header .project-dropdown .dropdown-menu ul li {
+  width: 31%;
+  float: left;
+  margin: 0 10px 10px 0;
+  min-height: 24px;
+}
+header .project-dropdown .dropdown-menu ul li a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+header .project-dropdown .dropdown-menu ul li.active a {
+  position: relative;
+  color: #465262;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 5px;
   padding: 2px 7px;
-  border: 1px solid #080808;
-  color: #ffffff;
-  background-image: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.3) 100%);
-  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.3) 100%);
-  background-repeat: repeat-x;
-  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#1a000000', endColorstr='#4d000000', GradientType=0);
-  -webkit-box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
-  box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+  left: -5px;
+}
+header .project-dropdown .dropdown-menu a {
+  color: #428bca;
+}
+header .project-dropdown .dropdown-menu a:hover {
+  color: #2a6496;
+}
+header .project-dropdown .team-name {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  z-index: 2;
+  position: relative;
+  line-height: 1.5;
+}
+header .project-dropdown .project-name {
+  font-weight: 400;
+  color: #B5B9C0;
+}
+header .project-dropdown .icon-arrow-down {
+  top: 0;
 }
 #search input[type=text] {
   width: 212px;
