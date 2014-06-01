@@ -45,7 +45,7 @@
                 <label>{% trans "DSN (Public)" %}</label>
                 <div class="help-text">{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Use your public DSN with insecure clients such as <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</div>
                 <div class="controls">
-                    <code class="clippy">{{ key.dsn_private }}</code>
+                    <code class="clippy">{{ key.dsn_public }}</code>
                 </div>
             </div>
             <div class="control-group">
