@@ -219,6 +219,22 @@ def can_add_project_key(user, project):
 
 
 @requires_login
+def can_edit_project_key(user, project):
+    if user.is_superuser:
+        return True
+
+    # must be an owner of the team
+    if project.team and not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+        return False
+
+    result = plugins.first('has_perm', user, 'edit_project_key', project)
+    if result is False:
+        return False
+
+    return True
+
+
+@requires_login
 def can_remove_project_key(user, key):
     if user.is_superuser:
         return True
