@@ -80,6 +80,10 @@ h3 {
   text-align: right;
 }
 
+.align-center {
+  text-align: center;
+}
+
 // standardize icon size
 
 .icon-arrow-down, .icon-arrow-right, .icon-arrow-left {
@@ -150,7 +154,6 @@ header {
     [class^="icon-"], [class*=" icon-"] {
       position: relative;
       top: 1px;
-      margin-right: 4px;
     }
   }
 
@@ -548,6 +551,20 @@ footer {
   }
 }
 
+.btn-group .btn + .btn {
+  margin-left: -2px;
+}
+
+.btn-group.open .dropdown-toggle {
+  background-color: #e3e3e3 !important;
+  .box-shadow(none);
+}
+
+.btn.disabled {
+  color: #ccc;
+  border-color: #ddd;
+}
+
 // Search
 
 .search {
@@ -723,16 +740,47 @@ a.icon-share {
   }
 }
 
-.stream-actions {
-  .clearfix();
-  position: relative;
-  border-bottom: 3px solid #F8F9FA;
+.group-header {
+  display: table;
   margin-top: -4px;
-  padding: 0 0 15px 40px;
+  width: 100%;
+}
+
+.stream-actions {
+  display: table-row;
+
   .checkbox {
     position: absolute;
-    left: 14px;
+    left: 16px;
     top: -1px;
+  }
+  .icon-bookmark {
+    position: relative;
+    top: 2px;
+  }
+
+  .icon-checkmark, .icon-pause {
+    position: relative;
+    top: 1px;
+  }
+  .stream-actions-cell {
+    display: table-cell;
+    position: relative;
+    border-bottom: 3px solid #F8F9FA;
+    padding: 0 0 15px;
+  }
+
+  .stream-actions-left {
+    padding-left: 42px;
+  }
+
+  .stream-actions-occurrences {
+    width: 12%;
+    padding-left: 30px;
+  }
+  .stream-actions-users {
+    width: 12%;
+    padding-left: 30px;
   }
 }
 
@@ -745,7 +793,7 @@ a.icon-share {
   .group {
     display: table-row;
 
-    &.level-error .event-details:after {
+    .event-details:after {
       position: absolute;
       content: "";
       top: -3px;
@@ -753,7 +801,10 @@ a.icon-share {
       bottom: -3px;
       left: 0;
       width: 4px;
-      background: @sentry-orange;
+      background: #54adff;
+    }
+    &.seen .event-details:after {
+      background: #fff;
     }
   }
 
@@ -778,12 +829,13 @@ a.icon-share {
 
   .checkbox {
     position: absolute;
-    left: 14px;
+    left: 16px;
     top: 4px;
   }
 
   .event-details {
-    padding-left: 40px;
+    width: 76%;
+    padding-left: 42px;
     h3 {
       font-size: 16px;
       line-height: 1.2;
@@ -828,6 +880,8 @@ a.icon-share {
 
   .event-users, .event-occurrences {
     vertical-align: middle;
+    padding-left: 30px;
+    width: 12%;
     span {
       color: #949ea4;
       font-size: 20px;
@@ -1945,23 +1999,17 @@ table.table td .select2-container {
   text-shadow: none;
 }
 
-.btn-group.open .dropdown-toggle {
-  background-color: darken(#ecf0f4, 4) !important;
-  .box-shadow(none);
-}
-
 .dropdown-menu {
-  top: 33px;
+  top: 40px;
   border: none;
   border-radius: 4px;
-  .box-shadow(0 0 0 2px rgba(70,82,98,.43));
+  .box-shadow(0 0 0 2px rgba(0,0,0,.43));
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
 
   li a {
     .transition(none);
-    font-weight: bold;
     color: #878e94;
 
     &:hover {

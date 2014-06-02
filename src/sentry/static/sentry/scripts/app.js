@@ -168,12 +168,10 @@
                 $.removeCookie('pausestream');
                 this.control.removeClass('realtime-pause');
                 this.control.addClass('realtime-play');
-                this.control.html(this.control.attr('data-pause-label'));
             } else {
                 $.cookie('pausestream', '1', {expires: 7});
                 this.control.addClass('realtime-pause');
                 this.control.removeClass('realtime-play');
-                this.control.html(this.control.attr('data-play-label'));
             }
         }
 

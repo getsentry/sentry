@@ -65,7 +65,7 @@
             '<div class="hidden-md hidden-sm hidden-xs event-graph align-right event-cell">' +
                 '<span class="sparkline"></span>' +
             '</div>' +
-            '<div class="hidden-xs event-occurrences align-right event-cell"><span><%= app.utils.formatNumber(count) %></span></div>' +
+            '<div class="hidden-xs event-occurrences align-center event-cell"><span><%= app.utils.formatNumber(count) %></span></div>' +
             '<div class="hidden-xs event-users align-right event-cell"><span>209</span></div>'
     };
 }(app));

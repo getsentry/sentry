@@ -7066,6 +7066,9 @@ h3 {
 .align-right {
   text-align: right;
 }
+.align-center {
+  text-align: center;
+}
 .icon-arrow-down,
 .icon-arrow-right,
 .icon-arrow-left {
@@ -7146,7 +7149,6 @@ header .user-nav [class^="icon-"],
 header .user-nav [class*=" icon-"] {
   position: relative;
   top: 1px;
-  margin-right: 4px;
 }
 header .project-dropdown {
   float: left;
@@ -7569,6 +7571,18 @@ footer a:hover {
   background-color: #2598e1;
   border-color: #1a7ebe;
 }
+.btn-group .btn + .btn {
+  margin-left: -2px;
+}
+.btn-group.open .dropdown-toggle {
+  background-color: #e3e3e3 !important;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+.btn.disabled {
+  color: #ccc;
+  border-color: #ddd;
+}
 .search {
   width: 320px;
   margin-top: -2px;
@@ -7721,32 +7735,44 @@ a.icon-share:hover {
   overflow: hidden;
   text-indent: -9999px;
 }
-.stream-actions {
-  position: relative;
-  border-bottom: 3px solid #F8F9FA;
+.group-header {
+  display: table;
   margin-top: -4px;
-  padding: 0 0 15px 40px;
+  width: 100%;
 }
-.stream-actions:before,
-.stream-actions:after {
-  content: " ";
-  display: table;
-}
-.stream-actions:after {
-  clear: both;
-}
-.stream-actions:before,
-.stream-actions:after {
-  content: " ";
-  display: table;
-}
-.stream-actions:after {
-  clear: both;
+.stream-actions {
+  display: table-row;
 }
 .stream-actions .checkbox {
   position: absolute;
-  left: 14px;
+  left: 16px;
   top: -1px;
+}
+.stream-actions .icon-bookmark {
+  position: relative;
+  top: 2px;
+}
+.stream-actions .icon-checkmark,
+.stream-actions .icon-pause {
+  position: relative;
+  top: 1px;
+}
+.stream-actions .stream-actions-cell {
+  display: table-cell;
+  position: relative;
+  border-bottom: 3px solid #F8F9FA;
+  padding: 0 0 15px;
+}
+.stream-actions .stream-actions-left {
+  padding-left: 42px;
+}
+.stream-actions .stream-actions-occurrences {
+  width: 12%;
+  padding-left: 30px;
+}
+.stream-actions .stream-actions-users {
+  width: 12%;
+  padding-left: 30px;
 }
 .group-list,
 .events {
@@ -7760,8 +7786,8 @@ a.icon-share:hover {
 .events .group {
   display: table-row;
 }
-.group-list .group.level-error .event-details:after,
-.events .group.level-error .event-details:after {
+.group-list .group .event-details:after,
+.events .group .event-details:after {
   position: absolute;
   content: "";
   top: -3px;
@@ -7769,7 +7795,11 @@ a.icon-share:hover {
   bottom: -3px;
   left: 0;
   width: 4px;
-  background: #fb4226;
+  background: #54adff;
+}
+.group-list .group.seen .event-details:after,
+.events .group.seen .event-details:after {
+  background: #fff;
 }
 .group-list .event-cell,
 .events .event-cell {
@@ -7793,12 +7823,13 @@ a.icon-share:hover {
 .group-list .checkbox,
 .events .checkbox {
   position: absolute;
-  left: 14px;
+  left: 16px;
   top: 4px;
 }
 .group-list .event-details,
 .events .event-details {
-  padding-left: 40px;
+  width: 76%;
+  padding-left: 42px;
 }
 .group-list .event-details h3,
 .events .event-details h3 {
@@ -7847,6 +7878,8 @@ a.icon-share:hover {
 .group-list .event-occurrences,
 .events .event-occurrences {
   vertical-align: middle;
+  padding-left: 30px;
+  width: 12%;
 }
 .group-list .event-users span,
 .events .event-users span,
@@ -8549,17 +8582,12 @@ table.table td .select2-container {
   font-size: 14px;
   text-shadow: none;
 }
-.btn-group.open .dropdown-toggle {
-  background-color: #dfe6ed !important;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-}
 .dropdown-menu {
-  top: 33px;
+  top: 40px;
   border: none;
   border-radius: 4px;
-  -webkit-box-shadow: 0 0 0 2px rgba(70, 82, 98, 0.43);
-  box-shadow: 0 0 0 2px rgba(70, 82, 98, 0.43);
+  -webkit-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.43);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.43);
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
@@ -8567,7 +8595,6 @@ table.table td .select2-container {
 .dropdown-menu li a {
   -webkit-transition: none;
   transition: none;
-  font-weight: bold;
   color: #878e94;
 }
 .dropdown-menu li a:hover {
