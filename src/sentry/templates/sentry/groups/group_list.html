@@ -42,6 +42,9 @@
     {% querystring from request without since as since_querystring %}
 
     <div class="stream-actions">
+        <div class="checkbox">
+            <input type="checkbox">
+        </div>
         <div class="btn-group">
             <a class="btn btn-default" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i> {% trans "Resolve All Events" %}</a>
         </div>
