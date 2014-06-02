@@ -41,46 +41,54 @@
     {% querystring from request without sort as sort_querystring %}
     {% querystring from request without since as since_querystring %}
 
-    <div class="stream-actions">
-        <div class="checkbox">
-            <input type="checkbox">
-        </div>
-        <div class="btn-group">
-            <a class="btn btn-default" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i> {% trans "Resolve All Events" %}</a>
-        </div>
-        <div class="btn-group">
-            <a class="btn btn-default realtime-play" data-action="pause" data-pause-label="{% trans "Pause Updates" %}" data-play-label="{% trans "Enable Updates" %}" href="javascript:void(0)">
-                {% trans "Pause Updates" %}
-            </a>
-        </div>
-        <div class="btn-group">
-            <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span aria-hidden="true" class="icon-arrow-down"></span></a>
-            <ul class="dropdown-menu">
-                <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
-                <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
-                <li{% ifequal sort 'new' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=new">{{ SORT_OPTIONS.new }}</a></li>
-                <li{% ifequal sort 'freq' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=freq">{{ SORT_OPTIONS.freq }}</a></li>
-                <li class="divider"></li>
-                <li{% ifequal sort 'tottime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=tottime">{{ SORT_OPTIONS.tottime }}</a></li>
-                <li{% ifequal sort 'avgtime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=avgtime">{{ SORT_OPTIONS.avgtime }}</a></li>
-            </ul>
-        </div>
-        <div class="btn-group">
-            <a href="#" class="btn btn-default dropdown-toggle" onclick="$('#daterange').toggle(); return false;">
-                {% if from_date %}
-                    {% if not to_date %}
-                        Since: {{ from_date|date:"M jS" }}
+    <div class="group-header">
+      <div class="stream-actions">
+        <div class="stream-actions-left stream-actions-cell">
+            <div class="checkbox">
+                <input type="checkbox">
+            </div>
+            <div class="btn-group">
+                <a class="btn btn-default" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i></a>
+                <a href="#" class="btn btn-default"><span class="icon icon-bookmark"></span></a>
+            </div>
+            <div class="btn-group">
+                <a class="btn btn-default realtime-play" data-action="pause" data-pause-label="{% trans "Pause Updates" %}" data-play-label="{% trans "Enable Updates" %}" href="javascript:void(0)">
+                    <span class="icon icon-pause"></span>
+                </a>
+            </div>
+            <div class="btn-group">
+                <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span aria-hidden="true" class="icon-arrow-down"></span></a>
+                <ul class="dropdown-menu">
+                    <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
+                    <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
+                    <li{% ifequal sort 'new' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=new">{{ SORT_OPTIONS.new }}</a></li>
+                    <li{% ifequal sort 'freq' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=freq">{{ SORT_OPTIONS.freq }}</a></li>
+                    <li class="divider"></li>
+                    <li{% ifequal sort 'tottime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=tottime">{{ SORT_OPTIONS.tottime }}</a></li>
+                    <li{% ifequal sort 'avgtime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=avgtime">{{ SORT_OPTIONS.avgtime }}</a></li>
+                </ul>
+            </div>
+            <div class="btn-group">
+                <a href="#" class="btn btn-default dropdown-toggle" onclick="$('#daterange').toggle(); return false;">
+                    {% if from_date %}
+                        {% if not to_date %}
+                            Since: {{ from_date|date:"M jS" }}
+                        {% else %}
+                            Between: {{ from_date|date:"M jS" }} <small>and</small> {{ to_date|date:"M jS" }}
+                        {% endif %}
                     {% else %}
-                        Between: {{ from_date|date:"M jS" }} <small>and</small> {{ to_date|date:"M jS" }}
+                        {% if to_date %}
+                            Before: {{ to_date|date:"M jS" }}
+                        {% else %}
+                            Between: The Past <small>and</small> The Present
+                        {% endif %}
                     {% endif %}
-                {% else %}
-                    {% if to_date %}
-                        Before: {{ to_date|date:"M jS" }}
-                    {% else %}
-                        Between: The Past <small>and</small> The Present
-                    {% endif %}
-                {% endif %}
-             <i aria-hidden="true" class="icon-arrow-down"></i></a>
+                 <span aria-hidden="true" class="icon-arrow-down"></span></a>
+            </div>
+          </div>
+            <div class="stream-actions-chart stream-actions-cell"></div>
+            <div class="stream-actions-occurrences stream-actions-cell align-center hidden-xs"> events</div>
+            <div class="stream-actions-users stream-actions-cell align-right hidden-xs"> users</div>
         </div>
     </div>
 
@@ -136,8 +144,8 @@
     <div class="stream-pagination">
         <div class="btn-group pull-right">
           {% spaceless %}
-            <a class="btn btn-default prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span class="icon-arrow-left"></span></a>
-            <a class="btn btn-default next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span class="icon-arrow-right"></span></a>
+            <a class="btn btn-default btn-lg prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span class="icon-arrow-left"></span></a>
+            <a class="btn btn-default btn-lg next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span class="icon-arrow-right"></span></a>
           {% endspaceless %}
         </div>
     </div>
