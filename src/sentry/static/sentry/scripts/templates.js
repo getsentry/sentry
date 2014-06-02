@@ -62,6 +62,7 @@
                     '<span class="message"><%= message %></span>' +
                 '</div>' +
             '</div>' +
+            '<div class="event-assignee event-cell"><img src="http://github.com/benvinegar.png" class="avatar"></div>' +
             '<div class="hidden-md hidden-sm hidden-xs event-graph align-right event-cell">' +
                 '<span class="sparkline"></span>' +
             '</div>' +
