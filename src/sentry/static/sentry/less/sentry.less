@@ -13,6 +13,7 @@
 @orange: #fb4226;
 @black: #111;
 @white: #fff;
+@sentry-orange: #fb4226;
 
 @linkColor: #4593DE;
 
@@ -39,7 +40,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .container {
-  width: 960px;
+  max-width: 960px;
 }
 
 // LINKS
@@ -73,6 +74,10 @@ h2 {
 h3 {
   line-height: 27px;
   font-size: 18px;
+}
+
+.align-right {
+  text-align: right;
 }
 
 /* =============================  Layout  ============================== */
@@ -213,11 +218,6 @@ header {
   margin: -10px 0 20px;
 }
 
-.stream-actions {
-  .clearfix();
-  margin: 0 0 18px;
-}
-
 .nav-tabs {
   border-bottom: 3px solid #f1f2f3;
   li {
@@ -281,7 +281,6 @@ header {
     position: relative;
   }
   .main {
-    min-width: 786px;
     width: 100%;
     position: relative;
     float: left;
@@ -701,337 +700,499 @@ a.icon-share {
   }
 }
 
+.stream-actions {
+  .clearfix();
+  position: relative;
+  border-bottom: 3px solid #F8F9FA;
+  margin-top: -4px;
+  padding: 0 0 15px 30px;
+  .checkbox {
+    position: absolute;
+    left: 4px;
+    top: -1px;
+  }
+}
+
 .group-list, .events {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  .list-unstyled;
+  .list-unstyled;
+  margin-bottom: 20px;
+  display: table;
+  width: 100%;
+  .group {
+    display: table-row;
+    padding: 16px 0 16px 26px;
 
-  &.events-detail {
-    li {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-  }
-  &.similar-events {
-    > li {
-      padding-left: 20px;
-      min-height: 0;
-      .meta {
-        position: absolute;
-        top: 10px;
-        bottom: 0;
-        right: 20px;
-      }
-      .row_link:hover {
-        background: rgba(238, 238, 238, 0.10);
-      }
-    }
-  }
-
-  > li {
-    position: relative;
-    padding: 10px 30px 10px 74px;
-    position: relative;
-    border-bottom: 2px solid #f2f4f7;
-    min-height: 60px; /* count height */
-
-    a {
-      .transition(none);
-    }
-
-    &:first-child {
-      border-top-width: 1px;
-    }
-
-    &:hover {
-      .actions a {
-        color: darken(#e7e9ed, 6);
-      }
-    }
-
-    &.empty {
-      border: 0;
-      padding-left: 30px;
-      &:hover {
-        .reset-filter();
-        background-image: none;
-        background-color: inherit;
-      }
-    }
-
-    &.with-sparkline {
-      .message {
-        padding-right: 129px;
-      }
-      .meta {
-        right: 155px;
-      }
-    }
-
-    &.seen {
-      h3 {
-        font-weight: normal;
-
-        a {
-          color: #898f98;
-        }
-      }
-    }
-
-    h3 {
-      margin: 0;
-      font-size: 16px;
-      line-height: 20px;
-      font-weight: 500;
-      width: 85%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-
-      a {
-        color: #465262;
-        &:hover {
-          color: #000;
-        }
-      }
-      span {
-        margin-left: 10px;
-        font-weight: 300;
-        padding: 0 5px;
-        font-size: 13px;
-      }
-    }
-    .count {
-      color: #fff;
+    &.level-alert:after {
       position: absolute;
+      content: "";
+      top: -3px;
+      right: 0;
+      bottom: -3px;
       left: 0;
-      .square(60px);
-      border-radius: 60px;
-      line-height: 60px;
-      background: #cfd3da;
-      text-align: center;
-      font-size: 17px;
-      font-weight: bold;
-      letter-spacing: -1px;
-      overflow: hidden;
-
-      span {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 100%;
-        text-align: center;
-        line-height: inherit;
-        display: block;
-      }
+      width: 4px;
+      background: @sentry-orange;
     }
-    .message {
-      color: #898f98;
-      margin-bottom: 0;
-      font-size: 14px;
-      padding-right: 24px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+  }
 
-      .tag {
-        .pull-right;
-      }
-    }
+  .event-cell {
+    position: relative;
+    display: table-cell;
+    border-bottom: 3px solid #F8F9FA;
+    padding: 15px 0;
+  }
 
-    .meta {
-      color: #b6bcc2;
-      font-size: 12px;
+  .deploy {
+    background: lighten(#F8F9FA, 1.25);
+    font-size: 12px;
+    text-align: center;
+    border-bottom: 3px solid #F8F9FA;
+    padding: 5px 0;
+  }
+
+  .row {
+    margin: 0;
+  }
+
+  .checkbox {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+  }
+
+  .event-details {
+    padding-left: 30px;
+    h3 {
+      font-size: 16px;
+      line-height: 1.2;
+      letter-spacing: -0.25;
+      margin: 0 0 3px;
       a {
         color: inherit;
-        &:hover {
-          text-decoration: underline;
-          color: #000;
-        }
       }
     }
 
-    .tag,
-    .annotation {
-      margin-left: 10px;
-    }
-    .tag-users,
-    .annotation {
-      margin-right: 10px;
-      margin-left: 0;
-      position: relative;
-      background: #f9f9f9;
-      padding: 0 5px;
-      line-height: 20px;
-      height: 20px;
-      min-width: 20px;
-      text-align: right;
-      float: left;
-      display: block;
-      color: #666;
+    .event-message {
+      text-overflow: ellipsis;
+      white-space: nowrap;
       overflow: hidden;
-
-      span {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        right: 5px;
-        height: 100%;
-        text-align: center;
-        line-height: inherit;
-        display: block;
-      }
-
-      i {
-        padding-right: 25px;
-        font-style: normal;
-        color: #aaa;
-      }
-    }
-    .tag-project {
-      display: none;
-    }
-    .sparkline {
-      position: absolute;
-      right: 50px;
-      top: 18px;
-      display: inline-block;
-      width: 100px;
-      height: 52px;
-
-      > span {
-        position: relative;
-        float: left;
-        width: 3px;
-      }
-    }
-    .actions {
-      position: absolute;
-      right: 2px;
-      top: 17px;
-      list-style-type: none;
-      margin: 0;
-      padding: 0;
-      li {
-        margin-bottom: 13px;
-        font-size: 14px;
-        line-height: 18px;
-        text-align: center;
-        display: block;
-        width: 20px;
-        height: 20px;
-        > a {
-          font-size: 19px;
-          color: #e7e9ed;
-          &:hover {
-            color: darken(#e7e9ed, 6);
-            text-decoration: none;
-          }
-          i {
-            background-image: none;
-          }
-        }
-        .checked, .checked:hover {
-          color: #f6de2f;
-        }
-
-        .bookmarked {
-          color: @orange;
-        }
-
-        .disabled {
-          color: @gray;
-        }
-      }
     }
 
-    .row_link {
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      position: absolute;
+    p {
+      line-height: 1.4;
+      color: #79858C;
+      margin-bottom: 0;
     }
 
-    &.level-debug .count {}
-    &.level-info .count { background: #2788ce; }
-    &.level-warning .count { background: #f18500; }
-    &.level-error .count { background: #f43f20; }
-    &.level-fatal .count { background: #d20f2a; }
+    h3 a, p {
+      display: block;
+      max-width: 100%;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
 
-    &.resolved {
-      h3 {
-        text-decoration: line-through;
-      }
-      .count {
-        background: #cfd3da;
-      }
-      .icon-checkmark {
-        color: #27ce8a;
-      }
+    .event-meta {
+      color: lighten(#79858C, 10);
     }
   }
-  &.small {
-    > li {
-      min-height: 30px;
-      padding: 14px 14px 14px 50px;
 
-      &.empty {
-        padding-left: 0px;
-      }
+  .event-graph {
+    figure {
+      height: 40px;
+      margin: 0;
+    }
+  }
 
-      &:last-child {
-        border-bottom: none;
-      }
+  .event-users, .event-occurrences {
+    vertical-align: middle;
+    span {
+      color: #949ea4;
+      font-size: 20px;
+      display: inline-block;
+    }
+  }
 
-      h3 {
-        margin: 0;
-        font-size: 14px;
-        line-height: 18px;
-      }
+  .event-header {
+    padding-top: 0;
+    padding-bottom: 20px;
+    border-color: darken(#F8F9FA, 2);
+    .checkbox {
+      top: -5px;
+    }
 
-      .message {
-        line-height: 18px;
-        font-size: 12px;
-        .tag {
-          display: none;
+    .icon-checkmark, .icon-pause {
+      position: relative;
+      top: 1px;
+    }
+
+    .icon-bookmark {
+      position: relative;
+      top: 2px;
+    }
+
+    .graph {
+      ul {
+        .list-unstyled;
+        .clearfix;
+        float: right;
+        li {
+          float: left;
+          margin: 0 0 0 10px;
+          &.active a {
+            font-weight: 500;
+            color: @gray-dark;
+          }
+        }
+
+        a {
+          color: #949ea4;
         }
       }
-      .meta {
-        line-height: 18px;
-        font-size: 12px;
-      }
+    }
 
-      .count {
-        left: 0;
-        font-size: 12px;
-        width: 36px;
-        height: 36px;
-        line-height: 38px;
-        border-radius: 36px;
-      }
+    .event-graph, .event-occurrences, .event-users {
+      padding-top: 6px;
+    }
 
-      .actions {
-        display: none;
-      }
-
-      .sparkline {
-        right: 10px;
-        height: 30px;
-        top: 20px;
-      }
-
-      .tag, .meta {
-
-      }
-
-      .tag-project {
-        display: inline-block;
-      }
-
+    strong {
+      display: inline-block;
+      padding-top: 6px;
     }
   }
 }
+
+// .group-list, .events {
+//   margin: 0;
+//   padding: 0;
+//   list-style: none;
+//
+//   &.events-detail {
+//     li {
+//       border-bottom: none;
+//       padding-bottom: 0;
+//     }
+//   }
+//   &.similar-events {
+//     > li {
+//       padding-left: 20px;
+//       min-height: 0;
+//       .meta {
+//         position: absolute;
+//         top: 10px;
+//         bottom: 0;
+//         right: 20px;
+//       }
+//       .row_link:hover {
+//         background: rgba(238, 238, 238, 0.10);
+//       }
+//     }
+//   }
+//
+//   > li {
+//     position: relative;
+//     padding: 10px 30px 10px 74px;
+//     position: relative;
+//     border-bottom: 2px solid #f2f4f7;
+//     min-height: 60px; /* count height */
+//
+//     a {
+//       .transition(none);
+//     }
+//
+//     &:first-child {
+//       border-top-width: 1px;
+//     }
+//
+//     &:hover {
+//       .actions a {
+//         color: darken(#e7e9ed, 6);
+//       }
+//     }
+//
+//     &.empty {
+//       border: 0;
+//       padding-left: 30px;
+//       &:hover {
+//         .reset-filter();
+//         background-image: none;
+//         background-color: inherit;
+//       }
+//     }
+//
+//     &.with-sparkline {
+//       .message {
+//         padding-right: 129px;
+//       }
+//       .meta {
+//         right: 155px;
+//       }
+//     }
+//
+//     &.seen {
+//       h3 {
+//         font-weight: normal;
+//
+//         a {
+//           color: #898f98;
+//         }
+//       }
+//     }
+//
+//     h3 {
+//       margin: 0;
+//       font-size: 16px;
+//       line-height: 20px;
+//       font-weight: 500;
+//       width: 85%;
+//       white-space: nowrap;
+//       overflow: hidden;
+//       text-overflow: ellipsis;
+//
+//       a {
+//         color: #465262;
+//         &:hover {
+//           color: #000;
+//         }
+//       }
+//       span {
+//         margin-left: 10px;
+//         font-weight: 300;
+//         padding: 0 5px;
+//         font-size: 13px;
+//       }
+//     }
+//     .count {
+//       color: #fff;
+//       position: absolute;
+//       left: 0;
+//       .square(60px);
+//       border-radius: 60px;
+//       line-height: 60px;
+//       background: #cfd3da;
+//       text-align: center;
+//       font-size: 17px;
+//       font-weight: bold;
+//       letter-spacing: -1px;
+//       overflow: hidden;
+//
+//       span {
+//         position: absolute;
+//         left: 0;
+//         right: 0;
+//         height: 100%;
+//         text-align: center;
+//         line-height: inherit;
+//         display: block;
+//       }
+//     }
+//     .message {
+//       color: #898f98;
+//       margin-bottom: 0;
+//       font-size: 14px;
+//       padding-right: 24px;
+//       white-space: nowrap;
+//       overflow: hidden;
+//       text-overflow: ellipsis;
+//
+//       .tag {
+//         .pull-right;
+//       }
+//     }
+//
+//     .meta {
+//       color: #b6bcc2;
+//       font-size: 12px;
+//       a {
+//         color: inherit;
+//         &:hover {
+//           text-decoration: underline;
+//           color: #000;
+//         }
+//       }
+//     }
+//
+//     .tag,
+//     .annotation {
+//       margin-left: 10px;
+//     }
+//     .tag-users,
+//     .annotation {
+//       margin-right: 10px;
+//       margin-left: 0;
+//       position: relative;
+//       background: #f9f9f9;
+//       padding: 0 5px;
+//       line-height: 20px;
+//       height: 20px;
+//       min-width: 20px;
+//       text-align: right;
+//       float: left;
+//       display: block;
+//       color: #666;
+//       overflow: hidden;
+//
+//       span {
+//         position: absolute;
+//         top: 0;
+//         bottom: 0;
+//         right: 5px;
+//         height: 100%;
+//         text-align: center;
+//         line-height: inherit;
+//         display: block;
+//       }
+//
+//       i {
+//         padding-right: 25px;
+//         font-style: normal;
+//         color: #aaa;
+//       }
+//     }
+//     .tag-project {
+//       display: none;
+//     }
+//     .sparkline {
+//       position: absolute;
+//       right: 50px;
+//       top: 18px;
+//       display: inline-block;
+//       width: 100px;
+//       height: 52px;
+//
+//       > span {
+//         position: relative;
+//         float: left;
+//         width: 3px;
+//       }
+//     }
+//     .actions {
+//       position: absolute;
+//       right: 2px;
+//       top: 17px;
+//       list-style-type: none;
+//       margin: 0;
+//       padding: 0;
+//       li {
+//         margin-bottom: 13px;
+//         font-size: 14px;
+//         line-height: 18px;
+//         text-align: center;
+//         display: block;
+//         width: 20px;
+//         height: 20px;
+//         > a {
+//           font-size: 19px;
+//           color: #e7e9ed;
+//           &:hover {
+//             color: darken(#e7e9ed, 6);
+//             text-decoration: none;
+//           }
+//           i {
+//             background-image: none;
+//           }
+//         }
+//         .checked, .checked:hover {
+//           color: #f6de2f;
+//         }
+//
+//         .bookmarked {
+//           color: @orange;
+//         }
+//
+//         .disabled {
+//           color: @gray;
+//         }
+//       }
+//     }
+//
+//     .row_link {
+//       top: 0;
+//       left: 0;
+//       width: 100%;
+//       height: 100%;
+//       position: absolute;
+//     }
+//
+//     &.level-debug .count {}
+//     &.level-info .count { background: #2788ce; }
+//     &.level-warning .count { background: #f18500; }
+//     &.level-error .count { background: #f43f20; }
+//     &.level-fatal .count { background: #d20f2a; }
+//
+//     &.resolved {
+//       h3 {
+//         text-decoration: line-through;
+//       }
+//       .count {
+//         background: #cfd3da;
+//       }
+//       .icon-checkmark {
+//         color: #27ce8a;
+//       }
+//     }
+//   }
+//   &.small {
+//     > li {
+//       min-height: 30px;
+//       padding: 14px 14px 14px 50px;
+//
+//       &.empty {
+//         padding-left: 0px;
+//       }
+//
+//       &:last-child {
+//         border-bottom: none;
+//       }
+//
+//       h3 {
+//         margin: 0;
+//         font-size: 14px;
+//         line-height: 18px;
+//       }
+//
+//       .message {
+//         line-height: 18px;
+//         font-size: 12px;
+//         .tag {
+//           display: none;
+//         }
+//       }
+//       .meta {
+//         line-height: 18px;
+//         font-size: 12px;
+//       }
+//
+//       .count {
+//         left: 0;
+//         font-size: 12px;
+//         width: 36px;
+//         height: 36px;
+//         line-height: 38px;
+//         border-radius: 36px;
+//       }
+//
+//       .actions {
+//         display: none;
+//       }
+//
+//       .sparkline {
+//         right: 10px;
+//         height: 30px;
+//         top: 20px;
+//       }
+//
+//       .tag, .meta {
+//
+//       }
+//
+//       .tag-project {
+//         display: inline-block;
+//       }
+//
+//     }
+//   }
+// }
 
 .inactive .group-list > li:hover {
   .reset-filter();
