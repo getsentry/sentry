@@ -195,6 +195,7 @@ header {
       z-index: 2;
       position: relative;
       line-height: 1.5;
+      cursor: pointer;
     }
 
     .project-name {
@@ -222,6 +223,7 @@ header {
   li {
     margin-bottom: -3px;
     > a {
+      font-size: 14px;
       color: #4c5459;
       font-weight: 600;
       margin-right: 5px;
@@ -527,8 +529,8 @@ footer {
 // Search
 
 .search {
-  margin-top: -10px;
-  margin-bottom: 20px;
+  width: 300px;
+  margin-top: -2px;
 
   form {
     display: block;
@@ -541,19 +543,20 @@ footer {
     left: 17px;
   }
   .form-control {
+    padding: 7px 70px 7px 14px;
     box-shadow: none;
-    height: 44px;
-    line-height: 44px;
-    padding-left: 42px;
-    border: 3px solid #f2f4f6;
+    // border: 3px solid #f2f4f6;
+    border: 0;
     font-size: 14px;
+    background: #f8f8f8;
   }
   .advanced-toggle {
     color: inherit;
     opacity: .4;
     position: absolute;
-    top: 12px;
+    top: 8px;
     right: 12px;
+    font-size: 11px;
     &:hover {
       opacity: 1;
       text-decoration: none;

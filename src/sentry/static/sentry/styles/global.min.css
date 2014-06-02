@@ -7167,6 +7167,7 @@ header .project-dropdown .team-name {
   z-index: 2;
   position: relative;
   line-height: 1.5;
+  cursor: pointer;
 }
 header .project-dropdown .project-name {
   font-weight: 400;
@@ -7204,6 +7205,7 @@ header .project-dropdown .icon-arrow-down {
   margin-bottom: -3px;
 }
 .nav-tabs li > a {
+  font-size: 14px;
   color: #4c5459;
   font-weight: 600;
   margin-right: 5px;
@@ -7528,8 +7530,8 @@ footer a:hover {
   border-color: #1a7ebe;
 }
 .search {
-  margin-top: -10px;
-  margin-bottom: 20px;
+  width: 300px;
+  margin-top: -2px;
 }
 .search form {
   display: block;
@@ -7542,19 +7544,19 @@ footer a:hover {
   left: 17px;
 }
 .search .form-control {
+  padding: 7px 70px 7px 14px;
   box-shadow: none;
-  height: 44px;
-  line-height: 44px;
-  padding-left: 42px;
-  border: 3px solid #f2f4f6;
+  border: 0;
   font-size: 14px;
+  background: #f8f8f8;
 }
 .search .advanced-toggle {
   color: inherit;
   opacity: .4;
   position: absolute;
-  top: 12px;
+  top: 8px;
   right: 12px;
+  font-size: 11px;
 }
 .search .advanced-toggle:hover {
   opacity: 1;
