@@ -80,6 +80,29 @@ h3 {
   text-align: right;
 }
 
+// standardize icon size
+
+.icon-arrow-down, .icon-arrow-right, .icon-arrow-left {
+  font-size: 16px !important;
+  position: relative;
+  top: 3px;
+}
+
+.back-button.icon-arrow-left {
+  font-size: 48px !important;
+  position: absolute;
+  left: -60px;
+  top: -1px;
+}
+
+.btn-sm {
+  .icon-arrow-down, .icon-arrow-right, .icon-arrow-left {
+    font-size: 14px !important;
+    top: 2px;
+  }
+}
+
+
 /* =============================  Layout  ============================== */
 
 header {
@@ -528,7 +551,7 @@ footer {
 // Search
 
 .search {
-  width: 300px;
+  width: 320px;
   margin-top: -2px;
 
   form {
@@ -538,11 +561,11 @@ footer {
   .icon-search {
     color: #8E8E97;
     position: absolute;
-    top: 15px;
-    left: 17px;
+    top: 10px;
+    left: 12px;
   }
   .form-control {
-    padding: 7px 70px 7px 14px;
+    padding: 7px 70px 7px 34px;
     box-shadow: none;
     // border: 3px solid #f2f4f6;
     border: 0;
@@ -705,10 +728,10 @@ a.icon-share {
   position: relative;
   border-bottom: 3px solid #F8F9FA;
   margin-top: -4px;
-  padding: 0 0 15px 30px;
+  padding: 0 0 15px 40px;
   .checkbox {
     position: absolute;
-    left: 4px;
+    left: 14px;
     top: -1px;
   }
 }
@@ -721,9 +744,8 @@ a.icon-share {
   width: 100%;
   .group {
     display: table-row;
-    padding: 16px 0 16px 26px;
 
-    &.level-alert:after {
+    &.level-error .event-details:after {
       position: absolute;
       content: "";
       top: -3px;
@@ -756,12 +778,12 @@ a.icon-share {
 
   .checkbox {
     position: absolute;
-    left: 4px;
+    left: 14px;
     top: 4px;
   }
 
   .event-details {
-    padding-left: 30px;
+    padding-left: 40px;
     h3 {
       font-size: 16px;
       line-height: 1.2;
@@ -809,55 +831,6 @@ a.icon-share {
     span {
       color: #949ea4;
       font-size: 20px;
-      display: inline-block;
-    }
-  }
-
-  .event-header {
-    padding-top: 0;
-    padding-bottom: 20px;
-    border-color: darken(#F8F9FA, 2);
-    .checkbox {
-      top: -5px;
-    }
-
-    .icon-checkmark, .icon-pause {
-      position: relative;
-      top: 1px;
-    }
-
-    .icon-bookmark {
-      position: relative;
-      top: 2px;
-    }
-
-    .graph {
-      ul {
-        .list-unstyled;
-        .clearfix;
-        float: right;
-        li {
-          float: left;
-          margin: 0 0 0 10px;
-          &.active a {
-            font-weight: 500;
-            color: @gray-dark;
-          }
-        }
-
-        a {
-          color: #949ea4;
-        }
-      }
-    }
-
-    .event-graph, .event-occurrences, .event-users {
-      padding-top: 6px;
-    }
-
-    strong {
-      display: inline-block;
-      padding-top: 6px;
     }
   }
 }
@@ -2005,13 +1978,6 @@ table.table td .select2-container {
   .divider {
     margin: 9px 1px 4px;
   }
-}
-
-.icon-arrow-down:before {
-  font-size: 10px;
-  position: relative;
-  top: -2px;
-  left: 4px;
 }
 
 .select2-container .select2-choice div b {

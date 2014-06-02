@@ -54,7 +54,7 @@
             </a>
         </div>
         <div class="btn-group">
-            <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <i aria-hidden="true" class="icon-arrow-down"></i></a>
+            <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span aria-hidden="true" class="icon-arrow-down"></span></a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
@@ -81,12 +81,6 @@
                     {% endif %}
                 {% endif %}
              <i aria-hidden="true" class="icon-arrow-down"></i></a>
-        </div>
-        <div class="btn-group pull-right">
-          {% spaceless %}
-            <a class="btn btn-default prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn btn-default next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
-          {% endspaceless %}
         </div>
     </div>
 
@@ -139,11 +133,11 @@
 
     <div id="event_list"></div>
 
-    <div class="stream-actions">
+    <div class="stream-pagination">
         <div class="btn-group pull-right">
           {% spaceless %}
-            <a class="btn btn-default prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn btn-default next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
+            <a class="btn btn-default prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span class="icon-arrow-left"></span></a>
+            <a class="btn btn-default next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span class="icon-arrow-right"></span></a>
           {% endspaceless %}
         </div>
     </div>
