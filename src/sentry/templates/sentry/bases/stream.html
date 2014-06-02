@@ -6,7 +6,18 @@
 
 {% block page_header %}
     {{ block.super }}
-    <!-- <ul class="nav nav-tabs project-nav">
+    <ul class="nav nav-tabs project-nav">
+        <li class="pull-right">
+            <div class="search">
+                <form>
+                    <div>
+                        <input type="text" class="form-control" placeholder="Search query or event id...">
+                        <span class="icon-search"></span>
+                        <a href="#" class="advanced-toggle">Advanced</a>
+                    </div>
+                </form>
+            </div>
+        </li>
         <li class="active">
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
@@ -20,14 +31,5 @@
                 </a>
             </li>
         {% endif %}
-    </ul> -->
-    <div class="search">
-        <form>
-            <div>
-                <input type="text" class="form-control" placeholder="Search query or event id...">
-                <span class="icon-search"></span>
-                <a href="#" class="advanced-toggle">Advanced</a>
-            </div>
-        </form>
-    </div>
+    </ul>
 {% endblock %}
