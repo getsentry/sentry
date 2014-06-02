@@ -7870,6 +7870,11 @@ a.icon-share:hover {
 .events .event-details .event-meta {
   color: #949ea4;
 }
+.group-list .event-assignee,
+.events .event-assignee {
+  width: 32px;
+  padding: 0 30px;
+}
 .group-list .event-graph,
 .events .event-graph {
   width: 100px;
