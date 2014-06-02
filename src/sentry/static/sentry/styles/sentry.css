@@ -7714,7 +7714,7 @@ a.icon-share:hover {
 .sparkline > a {
   position: relative;
   float: left;
-  height: 100%;
+  height: 20px;
   display: block;
 }
 .sparkline > a:hover > span {
@@ -7728,7 +7728,6 @@ a.icon-share:hover {
   left: 0;
   right: 1px;
   background: #dfe3e9;
-  border-radius: 3px 3px 0 0;
   border: 1px solid #dfe3e9;
   min-width: 1px;
   height: 0;
@@ -7766,12 +7765,15 @@ a.icon-share:hover {
 .stream-actions .stream-actions-left {
   padding-left: 42px;
 }
+.stream-actions .stream-actions-graph {
+  width: 100px;
+}
 .stream-actions .stream-actions-occurrences {
-  width: 12%;
+  width: 100px;
   padding-left: 30px;
 }
 .stream-actions .stream-actions-users {
-  width: 12%;
+  width: 100px;
   padding-left: 30px;
 }
 .group-list,
@@ -7807,6 +7809,7 @@ a.icon-share:hover {
   display: table-cell;
   border-bottom: 3px solid #F8F9FA;
   padding: 15px 0;
+  vertical-align: middle;
 }
 .group-list .deploy,
 .events .deploy {
@@ -7828,7 +7831,6 @@ a.icon-share:hover {
 }
 .group-list .event-details,
 .events .event-details {
-  width: 76%;
   padding-left: 42px;
 }
 .group-list .event-details h3,
@@ -7868,10 +7870,10 @@ a.icon-share:hover {
 .events .event-details .event-meta {
   color: #949ea4;
 }
-.group-list .event-graph figure,
-.events .event-graph figure {
-  height: 40px;
-  margin: 0;
+.group-list .event-graph,
+.events .event-graph {
+  width: 100px;
+  margin-left: 30px;
 }
 .group-list .event-users,
 .events .event-users,
@@ -7879,7 +7881,7 @@ a.icon-share:hover {
 .events .event-occurrences {
   vertical-align: middle;
   padding-left: 30px;
-  width: 12%;
+  width: 100px;
 }
 .group-list .event-users span,
 .events .event-users span,
