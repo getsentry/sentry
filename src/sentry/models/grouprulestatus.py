@@ -22,5 +22,6 @@ class GroupRuleStatus(Model):
     class Meta:
         db_table = 'sentry_grouprulestatus'
         app_label = 'sentry'
+        unique_together = (('rule', 'group'),)
 
     __repr__ = sane_repr('rule_id', 'group_id', 'status')
