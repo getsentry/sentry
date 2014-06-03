@@ -189,6 +189,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+    'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
