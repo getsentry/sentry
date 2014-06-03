@@ -264,21 +264,38 @@
             $('#chart').height('150px');
             Sentry.charts.render('#chart');
 
-            $('#public-status .action').click(function(){
-                var $this = $(this);
-                $.ajax({
-                    url: $this.attr('data-api-url'),
-                    type: 'post',
-                    success: function(group){
-                        var selector = (group.isPublic ? 'true' : 'false');
-                        var nselector = (group.isPublic ? 'false' : 'true');
-                        $('#public-status span[data-public="' + selector + '"]').show();
-                        $('#public-status span[data-public="' + nselector + '"]').hide();
-                    },
-                    error: function(){
-                        window.alert('There was an error changing the public status');
-                    }
-                });
+            $('.share-link').popover({
+                html: true,
+                placement: 'left',
+                container: document.body,
+                title: 'Share Event',
+                content: function(){
+                    var $this = $(this);
+                    var $content = $('<form class="share-form"></form>');
+                    var $urlel = $('<code class="clippy">' + $this.data('share-url') + '</code>');
+                    $urlel.clippy({
+                        clippy_path: app.config.clippyPath,
+                        keep_text: true
+                    });
+                    $content.append($urlel);
+                    $content.append($('<label class="checkbox"><input type="checkbox"> Allow anonymous users to view this event.</label>'));
+
+                    $content.find('input[type=checkbox]').change(function(){
+                        var url = $this.data($(this).is(':checked') ? 'public-url' : 'private-url');
+                        $.ajax({
+                            url: url,
+                            type: 'post',
+                            success: function(group){
+                                $this.data('public', group.isPublic ? 'true' : 'false');
+                            },
+                            error: function(){
+                                window.alert('There was an error changing the public status');
+                            }
+                        });
+                    }).attr('checked', $this.data('public') == 'true');
+
+                    return $content;
+                }
             });
 
             $('.add-note-btn').click(function(e){

@@ -28,6 +28,7 @@
             {% if request.LANGUAGE_CODE %}
                 moment.lang('{{ request.LANGUAGE_CODE }}');
             {% endif %}
+            app.config.clippyPath = '{% url 'sentry-media' "sentry" "clippy.swf" %}';
             app.config.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
             app.config.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
             app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
@@ -178,7 +179,7 @@
         <script type="text/javascript">
         $(function(){
             $('.clippy').clippy({
-                clippy_path: '{% url 'sentry-media' "sentry" "clippy.swf" %}',
+                clippy_path: app.config.clippyPath,
                 keep_text: true
             });
             $('input[data-toggle="datepicker"]').datepicker();

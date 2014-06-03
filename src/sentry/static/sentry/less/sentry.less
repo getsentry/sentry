@@ -70,6 +70,29 @@ h3 {
   font-size: 18px;
 }
 
+// POPOVERS
+
+.popover {
+  width: auto;
+  min-width: 236px;
+  max-width: 600px;
+}
+.popover * {
+  font-size: 11px;
+  line-height: 14px;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.popover-title {
+  font-size: 10px;
+  background: #56AFE8;
+  color: #fff;
+}
+.popover-title,
+.popover-content {
+  padding: 4px 10px;
+}
+
 /* =============================  Layout  ============================== */
 
 .outer-wrapper {
@@ -2393,6 +2416,27 @@ table.vars {
   }
 }
 
+.share-form {
+  position: relative;
+  max-width: 400px;
+
+  * {
+    font-size: 12px;
+    line-height: 20px;
+  }
+
+  code {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  label.checkbox {
+    padding: 0 5px 0 29px;
+  }
+}
+
 .team-index {
   #page-header {
     display: none;
@@ -2614,27 +2658,6 @@ table.vars {
     width: auto;
     min-width: 0;
   }
-}
-
-.popover {
-  width: auto;
-  min-width: 236px;
-  max-width: 600px;
-}
-.popover * {
-  font-size: 11px;
-  line-height: 14px;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-.popover-title {
-  font-size: 10px;
-  background: #56AFE8;
-  color: #fff;
-}
-.popover-title,
-.popover-content {
-  padding: 4px 10px;
 }
 
 .rule-list {
