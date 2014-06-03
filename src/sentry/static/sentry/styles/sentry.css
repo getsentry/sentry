@@ -8543,6 +8543,12 @@ section.body .page-header:first-child {
   top: 1px;
   left: -1px;
 }
+.btn.disabled,
+.btn[disabled] {
+  background: #ecf0f4;
+  opacity: 0.35;
+  filter: alpha(opacity=35);
+}
 .btn .caret {
   border-top-color: #a4adb7;
   border-bottom-color: #a4adb7;
@@ -8567,6 +8573,10 @@ section.body .page-header:first-child {
 .btn.btn-primary:hover {
   background: #49a9e6;
   border-color: #458fbc;
+}
+.btn.btn-primary.disabled,
+.btn.btn-primary[disabled] {
+  background: #56AFE8;
 }
 .btn.btn-danger {
   background: #da4f49;
@@ -8608,12 +8618,6 @@ section.body .uneditable-input {
 table.table td input,
 table.table td .select2-container {
   margin-bottom: 0;
-}
-.btn.disabled,
-.btn[disabled] {
-  background: #ecf0f4;
-  opacity: 0.35;
-  filter: alpha(opacity=35);
 }
 .navbar-inverse .nav .active > a,
 .navbar-inverse .nav .active > a:hover,

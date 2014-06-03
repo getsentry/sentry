@@ -269,12 +269,6 @@ def group(request, team, project, group, event_id=None):
     else:
         add_note_form = NewNoteForm()
 
-    activity_qs = Activity.objects.order_by('-datetime').select_related('user')
-    # if event_id:
-    #     activity_qs = activity_qs.filter(
-    #         Q(event=event) | Q(event__isnull=True),
-    #     )
-
     if project in Project.objects.get_for_user(
             request.user, team=team, superuser=False):
         # update that the user has seen this group
@@ -288,10 +282,14 @@ def group(request, team, project, group, event_id=None):
             }
         )
 
+    activity_qs = Activity.objects.filter(
+        group=group,
+    ).order_by('-datetime').select_related('user')
+
     # filter out dupe activity items
     activity_items = set()
     activity = []
-    for item in activity_qs.filter(group=group)[:20]:
+    for item in activity_qs[:20]:
         sig = (item.event_id, item.type, item.ident, item.user_id)
         # TODO: we could just generate a signature (hash(text)) for notes
         # so there's no special casing

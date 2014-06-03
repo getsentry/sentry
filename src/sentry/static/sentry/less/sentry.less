@@ -2027,6 +2027,11 @@ section.body .page-header:first-child {
     left: -1px;
   }
 
+  &.disabled, &[disabled] {
+    background: #ecf0f4;
+    .opacity(35);
+  }
+
   .caret {
     border-top-color: #a4adb7;
     border-bottom-color: #a4adb7;
@@ -2050,6 +2055,10 @@ section.body .page-header:first-child {
     &:hover {
       background: darken(#56AFE8, 3);
       border-color: darken(#589ac3, 5);
+    }
+
+    &.disabled, &[disabled] {
+      background: #56AFE8;
     }
   }
 
@@ -2079,11 +2088,6 @@ section.body {
 table.table td input,
 table.table td .select2-container {
   margin-bottom: 0;
-}
-
-.btn.disabled, .btn[disabled] {
-  background: #ecf0f4;
-  .opacity(35);
 }
 
 .navbar-inverse .nav .active > a, .navbar-inverse .nav .active > a:hover, .navbar-inverse .nav .active > a:focus {
