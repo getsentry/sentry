@@ -317,7 +317,7 @@
             $('.add-note-form').submit(function(el){
                 var $this = $(this);
                 $this.find('button[type=submit]').attr('disabled', true).addClass('disabled');
-                $this.find('textarea').attr('disabled', true);
+                $this.find('textarea').addClass('disabled');
             });
 
             var $event_nav = $('#event_nav');
