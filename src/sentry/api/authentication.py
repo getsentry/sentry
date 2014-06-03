@@ -10,7 +10,7 @@ class KeyAuthentication(BasicAuthentication):
         try:
             pk = ProjectKey.objects.get_from_cache(public_key=userid)
         except ProjectKey.DoesNotExist:
-            raise AuthenticationFailed('Invalid api key. The project doesn\'t')
+            raise AuthenticationFailed('Invalid api key. The project doesn\'t exists')
 
         if pk.secret_key != password:
             raise AuthenticationFailed('Invalid api secret key')
