@@ -29,6 +29,7 @@ class Activity(Model):
     NOTE = 8
     FIRST_SEEN = 9
     DEPLOY = 10
+    ASSIGNED = 11
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -42,6 +43,7 @@ class Activity(Model):
         (NOTE, 'note'),
         (FIRST_SEEN, 'first_seen'),
         (DEPLOY, 'deploy'),
+        (ASSIGNED, 'assigned'),
     )
 
     project = models.ForeignKey('sentry.Project')
