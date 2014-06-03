@@ -120,6 +120,34 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
+        # ensure we dont execute again since the object hasnt changed state
+        post_process_group(
+            group=group,
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+        )
+
+        assert len(mock_execute_rule.mock_calls) == 1
+
+        # and finally test the behavior of cycling back to new
+        post_process_group(
+            group=group,
+            event=event,
+            is_new=False,
+            is_regression=False,
+            is_sample=False,
+        )
+        post_process_group(
+            group=group,
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+        )
+        assert len(mock_execute_rule.mock_calls) == 2
+
 
 class ExecuteRuleTest(TestCase):
     @patch('sentry.tasks.post_process.rules')
