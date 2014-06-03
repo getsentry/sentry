@@ -87,7 +87,7 @@ def pytest_configure(config):
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
-    settings.SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
+    settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
 
     settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
@@ -103,3 +103,8 @@ def pytest_configure(config):
 
     from sentry.testutils.cases import flush_redis
     flush_redis()
+
+
+def pytest_runtest_teardown(item):
+    from sentry.app import tsdb
+    tsdb.flush()
