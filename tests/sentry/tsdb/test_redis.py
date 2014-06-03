@@ -73,3 +73,9 @@ class RedisTSDBTest(TestCase):
         assert results == {
             2: [(1368889200, 0), (1368892800, 0), (1368896400, 0), (1368900000, 4)],
         }
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], start, end)
+        assert results == {
+            1: 9,
+            2: 4,
+        }
