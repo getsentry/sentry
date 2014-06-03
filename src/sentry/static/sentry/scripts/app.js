@@ -314,6 +314,12 @@
                 }
             });
 
+            $('.add-note-form').submit(function(el){
+                var $this = $(this);
+                $this.find('button[type=submit]').attr('disabled', true).addClass('disabled');
+                $this.find('textarea').attr('disabled', true);
+            });
+
             var $event_nav = $('#event_nav');
             if ($event_nav.length > 0) {
                 var $window = $(window);
