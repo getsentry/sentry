@@ -223,6 +223,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 class RuleTestCase(TestCase):
     rule_cls = None
 
+    def get_event(self):
+        return self.event
+
     def get_rule(self, data=None):
         return self.rule_cls(
             project=self.project,
