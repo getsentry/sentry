@@ -72,7 +72,6 @@ class NewNoteForm(forms.Form):
             type=Activity.NOTE, user=user,
             data=self.cleaned_data
         )
-        print 'saving'
         activity.send_notification()
 
         return activity
