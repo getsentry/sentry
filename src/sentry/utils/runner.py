@@ -56,20 +56,6 @@ DATABASES = {
 # configuring the CACHES and Redis settings
 
 ###########
-## CACHE ##
-###########
-
-# You'll need to install the required dependencies for Memcached:
-#   pip install python-memcached
-#
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-#         'LOCATION': ['127.0.0.1:11211'],
-#     }
-# }
-
-###########
 ## Redis ##
 ###########
 
@@ -85,6 +71,25 @@ SENTRY_REDIS_OPTIONS = {
     }
 }
 
+###########
+## CACHE ##
+###########
+
+# If you wish to use memcached, install the dependencies and adjust the config
+# as shown:
+#
+#   pip install python-memcached
+#
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+#         'LOCATION': ['127.0.0.1:11211'],
+#     }
+# }
+#
+# SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
+
+SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 
 ###########
 ## Queue ##
