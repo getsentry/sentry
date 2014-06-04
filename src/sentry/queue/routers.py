@@ -1,6 +1,7 @@
 import itertools
 
-from django.conf import settings
+from celery import current_app
+
 
 COUNTER_TASKS = set([
     'sentry.tasks.process_buffer.process_pending',
@@ -15,21 +16,23 @@ TRIGGER_TASKS = set([
     'sentry.tasks.post_process.record_affected_code',
 ])
 
-COUNTER_QUEUES = itertools.cycle([
-    q for q in settings.CELERY_QUEUES
-    if q.startswith('counters-')
-])
-
-TRIGGER_QUEUES = itertools.cycle([
-    q for q in settings.CELERY_QUEUES
-    if q.startswith('triggers-')
-])
-
 
 class SplitQueueRouter(object):
-    def route_for_task(self, task, args=None, kwargs=None):
-        if task == COUNTER_TASKS:
-            return {'queue': COUNTER_QUEUES.next()}
-        if task == TRIGGER_TASKS:
-            return {'queue': TRIGGER_QUEUES.next()}
+    def __init__(self):
+        queues = current_app.conf['CELERY_QUEUES']
+        self.counter_queues = itertools.cycle([
+            q.name for q in queues
+            if q.name.startswith('counters-')
+        ])
+
+        self.trigger_queues = itertools.cycle([
+            q.name for q in queues
+            if q.name.startswith('triggers-')
+        ])
+
+    def route_for_task(self, task, *args, **kwargs):
+        if task in COUNTER_TASKS:
+            return {'queue': self.counter_queues.next()}
+        if task in TRIGGER_TASKS:
+            return {'queue': self.trigger_queues.next()}
         return None
