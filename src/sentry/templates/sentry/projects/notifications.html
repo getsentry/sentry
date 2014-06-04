@@ -17,7 +17,8 @@
             <h3>{% trans "Events" %}</h3>
         </div>
 
-        <p>{% trans "Sentry will automatically notify you whenever an event is first seen, or its state changes from resolved to unresolved." %}</p>
+        {% url 'sentry-project-rules' team.slug project.slug as link %}
+        <p>{% blocktrans %}Sentry will notify you based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
 
         <div class="page-header">
             <h3>{% trans "General" %}</h3>
