@@ -41,30 +41,6 @@
             {{ field|as_crispy_field }}
         {% endfor %}
 
-        <div class="page-header">
-            <h3>{% trans "Tags" %}</h3>
-        </div>
-        {% if tag_forms %}
-            <p>{% trans "Tag restrictions are based on your global notification rules. If tags are specified, notifications will be sent when they match any of the restrictions." %}</p>
-
-            <table class="table table-striped" id="tag_list">
-                <colgroup>
-                    <col style="width:130px">
-                </colgroup>
-                <tbody>
-                    {% for tag_form in tag_forms %}
-                        <tr>
-                            <th style="vertical-align:middle">{{ tag_form.values.label|titlize }}</th>
-                            <td style="vertical-align:middle">{{ tag_form.values }}
-                                {{ tag_form|as_crispy_errors }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>{% trans "We have not yet recorded any tags for this project." %}</p>
-        {% endif %}
-
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>

@@ -143,20 +143,6 @@ class NotificationSettingsForm(forms.Form):
         help_text=_('Choose a custom prefix for emails from this project.'))
 
 
-class NotificationTagValuesForm(forms.Form):
-    values = forms.CharField(required=False)
-
-    def __init__(self, project, tag, *args, **kwargs):
-        self.project = project
-        self.tag = tag
-        super(NotificationTagValuesForm, self).__init__(*args, **kwargs)
-        self.fields['values'].label = self.tag
-        self.fields['values'].widget.attrs['data-tag'] = self.tag
-
-    def clean_values(self):
-        return set(filter(bool, self.cleaned_data.get('values').split(',')))
-
-
 class ProjectQuotasForm(forms.Form):
     per_minute = forms.CharField(
         label=_('Maximum events per minute'),

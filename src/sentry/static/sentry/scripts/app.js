@@ -625,11 +625,6 @@
                     snap: true
                 });
             }, this));
-
-            $("#tag_list input").each(function(_, el){
-                $(el).addClass('span6');
-                app.utils.makeSearchableTagsInput(el);
-            });
         },
 
         formatThreshold: function formatThreshold(value) {
