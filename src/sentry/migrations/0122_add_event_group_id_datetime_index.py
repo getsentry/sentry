@@ -8,12 +8,13 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        db.create_index('sentry_event', ['group_id', 'datetime'])
-        db.delete_index('sentry_event', ['group_id'])
+        db.create_index('sentry_message', ['group_id', 'datetime'])
+        db.delete_index('sentry_message', ['group_id'])
 
     def backwards(self, orm):
-        db.create_index('sentry_event', ['group_id'])
-        db.delete_index('sentry_event', ['group_id', 'datetime'])
+        db.create_index('sentry_message', ['group_id'])
+        db.delete_index('sentry_message', ['group_id', 'datetime'])
+
 
     models = {
         'sentry.accessgroup': {
@@ -116,6 +117,15 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'value': ('django.db.models.fields.TextField', [], {})
+        },
+        'sentry.grouprulestatus': {
+            'Meta': {'unique_together': "(('rule', 'group'),)", 'object_name': 'GroupRuleStatus'},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'rule': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Rule']"}),
+            'status': ('django.db.models.fields.PositiveSmallIntegerField', [], {'default': '0'})
         },
         'sentry.groupseen': {
             'Meta': {'unique_together': "(('user', 'group'),)", 'object_name': 'GroupSeen'},
