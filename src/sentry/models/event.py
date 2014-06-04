@@ -45,6 +45,9 @@ class Event(Model):
         verbose_name = _('message')
         verbose_name_plural = _('messages')
         unique_together = ('project', 'event_id')
+        index_together = (
+            ('group', 'event_id', 'datetime'),
+        )
 
     __repr__ = sane_repr('project_id', 'group_id', 'checksum')
 
