@@ -14,5 +14,5 @@ from sentry.rules.conditions.base import EventCondition
 class RegressionEventCondition(EventCondition):
     label = 'An event changes state from resolved to unresolved'
 
-    def passes(self, event, is_regression, **kwargs):
-        return is_regression
+    def passes(self, event, state):
+        return state.is_regression

@@ -15,7 +15,7 @@ from hashlib import md5
 
 from sentry.constants import STATUS_ACTIVE, STATUS_INACTIVE
 from sentry.plugins import plugins
-from sentry.rules import rules
+from sentry.rules import EventState, rules
 from sentry.tasks.base import instrumented_task
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
@@ -24,14 +24,14 @@ from sentry.utils.safe import safe_execute
 rules_logger = logging.getLogger('sentry.errors.rules')
 
 
-def condition_matches(project, condition, **kwargs):
+def condition_matches(project, condition, event, state):
     condition_cls = rules.get(condition['id'])
     if condition_cls is None:
         rules_logger.error('Unregistered condition %r', condition['id'])
         return
 
     condition_inst = condition_cls(project)
-    return safe_execute(condition_inst.passes, **kwargs)
+    return safe_execute(condition_inst.passes, event, state)
 
 
 def get_rules(project):
@@ -80,63 +80,70 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
         if not condition_list:
             continue
 
+        # TODO(dcramer): this might not make sense for other rule actions
+        # so we should find a way to abstract this into actions
+        # TODO(dcramer): this isnt the most efficient query pattern for this
+        rule_status, _ = GroupRuleStatus.objects.get_or_create(
+            rule=rule,
+            group=group,
+            defaults={
+                'project': group.project,
+                'status': STATUS_INACTIVE,
+            },
+        )
+
+        state = EventState(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_sample=is_sample,
+            rule_is_active=rule_status.status == STATUS_ACTIVE,
+        )
+
+        condition_iter = (
+            condition_matches(project, c, event, state)
+            for c in condition_list
+        )
+
         passed = True
         if match == 'all':
-            if not all(condition_matches(project, c, **child_kwargs) for c in condition_list):
+            if not all(condition_iter):
                 passed = False
         elif match == 'any':
-            if not any(condition_matches(project, c, **child_kwargs) for c in condition_list):
+            if not any(condition_iter):
                 passed = False
         elif match == 'none':
-            if any(condition_matches(project, c, **child_kwargs) for c in condition_list):
+            if any(condition_iter):
                 passed = False
         else:
             rules_logger.error('Unsupported action_match %r for rule %d',
                                match, rule.id)
             continue
 
-        # TODO(dcramer): this might not make sense for other rule actions
-        # so we should find a way to abstract this into actions
-        # TODO(dcramer): this isnt the most efficient query pattern for this
-        rule_status, created = GroupRuleStatus.objects.get_or_create(
-            rule=rule,
-            group=group,
-            defaults={
-                'project': group.project,
-                'status': STATUS_ACTIVE if passed else STATUS_INACTIVE,
-            },
-        )
+        if passed and rule_status.status == STATUS_INACTIVE:
+            # we only fire if we're able to say that the state has changed
+            GroupRuleStatus.objects.filter(
+                id=rule.id,
+                status=STATUS_INACTIVE,
+            ).update(status=STATUS_ACTIVE)
+        elif not passed and rule_status.status == STATUS_ACTIVE:
+            # update the state to suggest this rule can fire again
+            GroupRuleStatus.objects.filter(
+                id=rule.id,
+                status=STATUS_ACTIVE,
+            ).update(status=STATUS_INACTIVE)
 
         if passed:
-            if rule_status.status == STATUS_INACTIVE:
-                # we only fire if we're able to say that the state has changed
-                should_fire = GroupRuleStatus.objects.filter(
-                    status=STATUS_INACTIVE,
-                    id=rule_status.id,
-                ).update(status=STATUS_ACTIVE)
-            else:
-                should_fire = False
-
-        else:
-            should_fire = False
-            if rule_status.status == STATUS_ACTIVE:
-                # update the state to suggest this rule can fire again
-                GroupRuleStatus.objects.filter(
-                    status=STATUS_ACTIVE,
-                    id=rule_status.id,
-                ).update(status=STATUS_INACTIVE)
-
-        if should_fire:
             execute_rule.delay(
                 rule_id=rule.id,
-                **child_kwargs
+                event=event,
+                state=state,
             )
 
 
 @instrumented_task(
     name='sentry.tasks.post_process.execute_rule',
     queue='triggers')
-def execute_rule(rule_id, event, **kwargs):
+def execute_rule(rule_id, event, state):
     """
     Fires post processing hooks for a rule.
     """
@@ -154,7 +161,7 @@ def execute_rule(rule_id, event, **kwargs):
             continue
 
         action_inst = action_cls(project)
-        safe_execute(action_inst.after, event=event, **kwargs)
+        safe_execute(action_inst.after, event=event, state=state)
 
 
 @instrumented_task(
