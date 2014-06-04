@@ -135,14 +135,14 @@ def extract_auth_vars(request):
 def project_from_auth_vars(auth_vars):
     api_key = auth_vars.get('sentry_key')
     if not api_key:
-        raise APIForbidden('Invalid api key')
+        raise APIForbidden('Invalid api key (not providen)')
     try:
         pk = ProjectKey.objects.get_from_cache(public_key=api_key)
     except ProjectKey.DoesNotExist:
-        raise APIForbidden('Invalid api key')
+        raise APIForbidden('Invalid api key (project for key %s doesn\'t exists' % api_key)
 
     if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
-        raise APIForbidden('Invalid api key')
+        raise APIForbidden('Invalid api secret key')
 
     if not pk.roles.store:
         raise APIForbidden('Key does not allow event storage access')
