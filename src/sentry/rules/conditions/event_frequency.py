@@ -52,6 +52,9 @@ class EventFrequencyCondition(EventCondition):
         interval = self.get_option('interval')
         value = int(self.get_option('value'))
 
+        if not (interval and value):
+            return False
+
         current_value = self.get_rate(event, interval)
 
         return current_value > value

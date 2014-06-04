@@ -44,6 +44,9 @@ class TaggedEventCondition(EventCondition):
         match = self.get_option('match')
         value = self.get_option('value')
 
+        if not (key and match and value):
+            return False
+
         tags = (v for k, v in event.get_tags() if k == key)
 
         if match == MatchType.EQUAL:
