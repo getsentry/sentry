@@ -591,6 +591,10 @@ SENTRY_REDIS_OPTIONS = {}
 SENTRY_BUFFER = 'sentry.buffer.Buffer'
 SENTRY_BUFFER_OPTIONS = {}
 
+# Cache backend
+SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
+SENTRY_CACHE_OPTIONS = {}
+
 # Quota backend
 SENTRY_QUOTAS = 'sentry.quotas.Quota'
 SENTRY_QUOTA_OPTIONS = {}
