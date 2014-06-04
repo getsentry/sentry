@@ -30,6 +30,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.constants import MODULE_ROOT
 from sentry.models import ProjectOption
+from sentry.rules import EventState
 from sentry.utils import json
 
 from .fixtures import Fixtures
@@ -237,11 +238,17 @@ class RuleTestCase(TestCase):
             event = self.event
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
-        assert rule.passes(event, **kwargs) is True
+        kwargs.setdefault('is_sample', True)
+        kwargs.setdefault('rule_is_active', False)
+        state = EventState(**kwargs)
+        assert rule.passes(event, state) is True
 
     def assertDoesNotPass(self, rule, event=None, **kwargs):
         if event is None:
             event = self.event
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
-        assert rule.passes(event, **kwargs) is False
+        kwargs.setdefault('is_sample', True)
+        kwargs.setdefault('rule_is_active', False)
+        state = EventState(**kwargs)
+        assert rule.passes(event, state) is False

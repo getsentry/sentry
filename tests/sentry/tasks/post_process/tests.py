@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from mock import Mock, patch
 
 from sentry.models import Group, Rule
+from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.tasks.post_process import (
     execute_rule, post_process_group, record_affected_user,
@@ -102,6 +103,8 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
+        mock_get_rules.assert_called_once_with(self.project)
+
         assert not mock_execute_rule.delay.called
 
         post_process_group(
@@ -112,15 +115,8 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
-        mock_execute_rule.delay.assert_called_once_with(
-            rule_id=1,
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-        )
+        assert len(mock_execute_rule.delay.mock_calls) == 1
 
-        # ensure we dont execute again since the object hasnt changed state
         post_process_group(
             group=group,
             event=event,
@@ -129,24 +125,7 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
-        assert len(mock_execute_rule.mock_calls) == 1
-
-        # and finally test the behavior of cycling back to new
-        post_process_group(
-            group=group,
-            event=event,
-            is_new=False,
-            is_regression=False,
-            is_sample=False,
-        )
-        post_process_group(
-            group=group,
-            event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=False,
-        )
-        assert len(mock_execute_rule.mock_calls) == 2
+        assert len(mock_execute_rule.delay.mock_calls) == 2
 
 
 class ExecuteRuleTest(TestCase):
@@ -163,12 +142,17 @@ class ExecuteRuleTest(TestCase):
             }
         )
 
-        execute_rule(
-            rule_id=rule.id,
-            event=event,
+        state = EventState(
             is_new=True,
             is_regression=False,
             is_sample=True,
+            rule_is_active=False,
+        )
+
+        execute_rule(
+            rule_id=rule.id,
+            event=event,
+            state=state,
         )
 
         mock_rules.get.assert_called_once_with('a.rule.id')
@@ -176,9 +160,7 @@ class ExecuteRuleTest(TestCase):
         mock_rule_inst.assert_called_once_with(self.project)
         mock_rule_inst.return_value.after.assert_called_once_with(
             event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=True,
+            state=state,
         )
 
 
