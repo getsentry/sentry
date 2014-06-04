@@ -22,7 +22,7 @@ class DjangoSearchBackendTest(TestCase):
 
         self.group1 = self.create_group(
             project=self.project1,
-            checksum='a' * 40,
+            checksum='a' * 32,
             message='foo',
             times_seen=5,
             status=STATUS_UNRESOLVED,
@@ -30,7 +30,7 @@ class DjangoSearchBackendTest(TestCase):
             first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386),
         )
         self.event1 = self.create_event(
-            event_id='a' * 40,
+            event_id='a' * 32,
             group=self.group1,
             tags={
                 'server': 'example.com',
@@ -40,7 +40,7 @@ class DjangoSearchBackendTest(TestCase):
 
         self.group2 = self.create_group(
             project=self.project1,
-            checksum='b' * 40,
+            checksum='b' * 32,
             message='bar',
             times_seen=10,
             status=STATUS_RESOLVED,
@@ -48,7 +48,7 @@ class DjangoSearchBackendTest(TestCase):
             first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
         )
         self.event2 = self.create_event(
-            event_id='b' * 40,
+            event_id='b' * 32,
             group=self.group2,
             tags={
                 'server': 'example.com',
