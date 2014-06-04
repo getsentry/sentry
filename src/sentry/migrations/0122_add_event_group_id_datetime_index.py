@@ -9,7 +9,10 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         db.create_index('sentry_message', ['group_id', 'datetime'])
-        db.delete_index('sentry_message', ['group_id'])
+        try:
+            db.delete_index('sentry_message', ['group_id'])
+        except Exception:
+            pass
 
     def backwards(self, orm):
         db.create_index('sentry_message', ['group_id'])
