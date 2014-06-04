@@ -97,7 +97,7 @@ class NotificationPlugin(Plugin):
     def test_configuration(self, project):
         from sentry.utils.samples import create_sample_event
         event = create_sample_event(project, default='python')
-        return self.notify_users(event.group, event, fail_silentty=False)
+        return self.notify_users(event.group, event, fail_silently=False)
 
 
 # Backwards-compatibility
