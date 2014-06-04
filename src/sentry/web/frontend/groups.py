@@ -94,17 +94,35 @@ def _get_group_list(request, project):
 
     # HACK(dcramer): this should be removed once the pagination component
     # is abstracted from the paginator tag
-    query_kwargs['limit'] = EVENTS_PER_PAGE + 2
+    try:
+        page = int(request.GET.get('p', 1))
+    except TypeError:
+        page = 1
+
+    query_kwargs['offset'] = (page - 1) * EVENTS_PER_PAGE
+    query_kwargs['limit'] = EVENTS_PER_PAGE + 1
 
     results = app.search.query(**query_kwargs)
 
+    if len(results) == query_kwargs['limit']:
+        next_page = page + 1
+    else:
+        next_page = None
+
+    if page > 1:
+        prev_page = page - 1
+    else:
+        prev_page = None
+
     return {
-        'event_list': results,
+        'event_list': results[:EVENTS_PER_PAGE],
         'date_from': date_from,
         'date_to': date_to,
         'today': today,
         'sort': sort_by,
         'date_type': date_filter,
+        'previous_page': prev_page,
+        'next_page': next_page,
     }
 
 
@@ -231,6 +249,11 @@ def group_list(request, team, project):
 
     has_realtime = page == 1
 
+    query_dict = request.GET.copy()
+    if 'p' in query_dict:
+        del query_dict['p']
+    pageless_query_string = query_dict.urlencode()
+
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'project': project,
@@ -239,8 +262,11 @@ def group_list(request, team, project):
         'date_type': response['date_type'],
         'has_realtime': has_realtime,
         'event_list': response['event_list'],
+        'previous_page': response['previous_page'],
+        'next_page': response['next_page'],
         'today': response['today'],
         'sort': response['sort'],
+        'pageless_query_string': pageless_query_string,
         'sort_label': sort_label,
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
