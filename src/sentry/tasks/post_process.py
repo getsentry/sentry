@@ -46,8 +46,7 @@ def get_rules(project):
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.post_process_group',
-    queue='triggers')
+    name='sentry.tasks.post_process.post_process_group')
 def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -141,8 +140,7 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.execute_rule',
-    queue='triggers')
+    name='sentry.tasks.post_process.execute_rule')
 def execute_rule(rule_id, event, state):
     """
     Fires post processing hooks for a rule.
@@ -166,7 +164,6 @@ def execute_rule(rule_id, event, state):
 
 @instrumented_task(
     name='sentry.tasks.post_process.plugin_post_process_group',
-    queue='triggers',
     stat_suffix=lambda plugin_slug, *a, **k: plugin_slug)
 def plugin_post_process_group(plugin_slug, group, **kwargs):
     """
@@ -177,8 +174,7 @@ def plugin_post_process_group(plugin_slug, group, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.record_affected_user',
-    queue='triggers')
+    name='sentry.tasks.post_process.record_affected_user')
 def record_affected_user(group, event, **kwargs):
     from sentry.models import Group
 
@@ -203,8 +199,7 @@ def record_affected_user(group, event, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.record_affected_code',
-    queue='triggers')
+    name='sentry.tasks.post_process.record_affected_code')
 def record_affected_code(group, event, **kwargs):
     from sentry.models import Group
 

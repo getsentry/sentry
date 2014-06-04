@@ -12,8 +12,7 @@ from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(
-    name='sentry.tasks.process_buffer.process_pending',
-    queue='counters')
+    name='sentry.tasks.process_buffer.process_pending')
 def process_pending():
     """
     Process pending buffers.
@@ -24,8 +23,7 @@ def process_pending():
 
 
 @instrumented_task(
-    name='sentry.tasks.process_buffer.process_incr',
-    queue='counters')
+    name='sentry.tasks.process_buffer.process_incr')
 def process_incr(**kwargs):
     """
     Processes a buffer event.
