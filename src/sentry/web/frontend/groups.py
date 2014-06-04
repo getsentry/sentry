@@ -96,7 +96,7 @@ def _get_group_list(request, project):
     # is abstracted from the paginator tag
     try:
         page = int(request.GET.get('p', 1))
-    except TypeError:
+    except (ValueError, TypeError):
         page = 1
 
     query_kwargs['offset'] = (page - 1) * EVENTS_PER_PAGE
