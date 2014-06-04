@@ -290,6 +290,8 @@ CELERY_QUEUES = [
     Queue('events', routing_key='events'),
     Queue('update', routing_key='update'),
     Queue('email', routing_key='email'),
+    Queue('counters', routing_key='counters'),
+    Queue('triggers', routing_key='triggers'),
 ]
 
 CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
