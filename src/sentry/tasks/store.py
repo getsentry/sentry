@@ -33,6 +33,8 @@ def preprocess_event(cache_key=None, data=None, **kwargs):
                 logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
             cache.set(cache_key, data, 3600)
     finally:
+        if cache_key:
+            data = None
         save_event.delay(cache_key=cache_key, data=data)
 
 
