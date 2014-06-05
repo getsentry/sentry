@@ -31,8 +31,6 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    timeout = getattr(settings, 'SENTRY_MAIL_TIMEOUT', 3)
-
     def _send_mail(self, subject, template=None, html_template=None, body=None,
                    project=None, group=None, headers=None, context=None,
                    fail_silently=False):
@@ -52,10 +50,7 @@ class MailPlugin(NotificationPlugin):
             reference=group,
         )
         msg.add_users(send_to, project=project)
-        return msg.send(
-            timeout=self.timeout,
-            fail_silently=fail_silently,
-        )
+        return msg.send(fail_silently=fail_silently)
 
     def send_test_mail(self, project=None):
         self._send_mail(
