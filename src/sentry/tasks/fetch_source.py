@@ -18,8 +18,8 @@ from collections import namedtuple
 from simplejson import JSONDecodeError
 from urlparse import urljoin, urlsplit
 
+from sentry.app import cache
 from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
-from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 from sentry.utils.strings import truncatechars
 
@@ -168,7 +168,7 @@ def fetch_url(url):
     if result is None:
         result = fetch_url_content(url)
 
-        cache.set(cache_key, result, 30)
+        cache.set(cache_key, result, 60)
 
     if result == BAD_SOURCE:
         return result
