@@ -55,22 +55,23 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
 
     project = Project.objects.get_from_cache(id=group.project_id)
 
-    child_kwargs = {
-        'event': event,
-        'is_new': is_new,
-        'is_regression': is_regression,
-        'is_sample': is_sample,
-    }
-
     if settings.SENTRY_ENABLE_EXPLORE_CODE:
-        record_affected_code.delay(group=group, event=event)
+        record_affected_code.delay(event=event)
 
     if settings.SENTRY_ENABLE_EXPLORE_USERS:
-        record_affected_user.delay(group=group, event=event)
+        record_affected_user.delay(event=event)
 
     for plugin in plugins.for_project(project):
-        plugin_post_process_group.delay(
-            plugin.slug, group=group, **child_kwargs)
+        plugin_post_process_group.apply_async(
+            kwargs={
+                'plugin_slug': plugin.slug,
+                'event': event,
+                'is_new': is_new,
+                'is_regresion': is_regression,
+                'is_sample': is_sample,
+            },
+            expires=120,
+        )
 
     for rule in get_rules(project):
         match = rule.data.get('action_match', 'all')
@@ -132,10 +133,13 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
             ).update(status=STATUS_INACTIVE)
 
         if passed:
-            execute_rule.delay(
-                rule_id=rule.id,
-                event=event,
-                state=state,
+            execute_rule.apply_async(
+                kwargs={
+                    'rule_id': rule.id,
+                    'event': event,
+                    'state': state,
+                },
+                expires=120,
             )
 
 
@@ -165,17 +169,17 @@ def execute_rule(rule_id, event, state):
 @instrumented_task(
     name='sentry.tasks.post_process.plugin_post_process_group',
     stat_suffix=lambda plugin_slug, *a, **k: plugin_slug)
-def plugin_post_process_group(plugin_slug, group, **kwargs):
+def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
     plugin = plugins.get(plugin_slug)
-    safe_execute(plugin.post_process, group=group, **kwargs)
+    safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
 
 
 @instrumented_task(
     name='sentry.tasks.post_process.record_affected_user')
-def record_affected_user(group, event, **kwargs):
+def record_affected_user(event, **kwargs):
     from sentry.models import Group
 
     if not settings.SENTRY_ENABLE_EXPLORE_USERS:
@@ -187,7 +191,7 @@ def record_affected_user(group, event, **kwargs):
 
     user_data = event.data.get('sentry.interfaces.User', {})
 
-    Group.objects.add_tags(group, [
+    Group.objects.add_tags(event.group, [
         ('sentry:user', user_ident, {
             'id': user_data.get('id'),
             'email': user_data.get('email'),
@@ -200,7 +204,7 @@ def record_affected_user(group, event, **kwargs):
 
 @instrumented_task(
     name='sentry.tasks.post_process.record_affected_code')
-def record_affected_code(group, event, **kwargs):
+def record_affected_code(event, **kwargs):
     from sentry.models import Group
 
     if not settings.SENTRY_ENABLE_EXPLORE_CODE:
@@ -241,4 +245,4 @@ def record_affected_code(group, event, **kwargs):
                 ))
 
     if tags:
-        Group.objects.add_tags(group, tags)
+        Group.objects.add_tags(event.group, tags)
