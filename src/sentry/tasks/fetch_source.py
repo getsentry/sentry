@@ -17,9 +17,9 @@ from collections import namedtuple
 from simplejson import JSONDecodeError
 from urlparse import urljoin, urlsplit
 
-from sentry.app import cache
 from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
 from sentry.http import safe_urlopen
+from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 from sentry.utils.strings import truncatechars
 
