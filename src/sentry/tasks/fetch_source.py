@@ -119,12 +119,9 @@ def fetch_url_content(url):
     """
     Pull down a URL, returning a tuple (url, headers, body).
     """
-    import sentry
-
     try:
         req = safe_urlopen(url, headers=[
             ('Accept-Encoding', 'gzip'),
-            ('User-Agent', 'Sentry/%s' % sentry.VERSION),
         ], allow_redirects=True, timeout=SOURCE_FETCH_TIMEOUT)
         headers = dict(req.headers)
         body = req.read()
