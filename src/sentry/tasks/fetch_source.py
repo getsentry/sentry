@@ -167,8 +167,11 @@ def fetch_url(url):
     result = cache.get(cache_key)
     if result is None:
         result = fetch_url_content(url)
-
-        cache.set(cache_key, result, 60)
+        if result == BAD_SOURCE:
+            timeout = 300
+        else:
+            timeout = 60
+        cache.set(cache_key, result, timeout)
 
     if result == BAD_SOURCE:
         return result
