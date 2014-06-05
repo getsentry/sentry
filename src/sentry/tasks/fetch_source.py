@@ -15,7 +15,7 @@ import base64
 from os.path import splitext
 from collections import namedtuple
 from simplejson import JSONDecodeError
-from urlparse import urljoin, urlsplit
+from urlparse import urlparse, urljoin, urlsplit
 
 from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
 from sentry.http import safe_urlopen
@@ -161,12 +161,22 @@ def fetch_url(url):
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is None:
+        # lock down domains that are problematic
+        domain = urlparse(url).netloc
+        domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
+        domain_result = cache.get(domain_key)
+        if domain_result:
+            return BAD_SOURCE
+
         result = fetch_url_content(url)
         if result == BAD_SOURCE:
             timeout = 300
         else:
             timeout = 60
         cache.set(cache_key, result, timeout)
+
+        if result == BAD_SOURCE:
+            cache.set(domain_key, 1, timeout)
 
     if result == BAD_SOURCE:
         return result
