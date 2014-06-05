@@ -674,6 +674,9 @@ SENTRY_MAX_STACKTRACE_FRAMES = 25
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 
+# Timeout (in seconds) for fetching remote source files (e.g. JS)
+SENTRY_SOURCE_FETCH_TIMEOUT = 5
+
 SENTRY_DISALLOWED_IPS = (
     '10.0.0.0/8',
     '172.16.0.0/12',
