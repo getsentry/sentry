@@ -16,6 +16,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+import six
+
 from sentry.constants import (
     LOG_LEVELS, STATUS_LEVELS, MAX_CULPRIT_LENGTH, STATUS_RESOLVED,
     STATUS_UNRESOLVED, STATUS_MUTED
@@ -89,23 +91,6 @@ class Group(Model):
             self.message = self.message.splitlines()[0][:255]
         super(Group, self).save(*args, **kwargs)
 
-    def delete(self):
-        from sentry.models import (
-            GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
-        )
-        model_list = (
-            GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
-        )
-        for model in model_list:
-            logging.info('Removing %r objects where group=%s', model, self.id)
-            has_results = True
-            while has_results:
-                has_results = False
-                for obj in model.objects.filter(group=self)[:1000]:
-                    obj.delete()
-                    has_results = True
-        super(Group, self).delete()
-
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-group', args=[
             self.team.slug, self.project.slug, self.id]))
@@ -117,7 +102,7 @@ class Group(Model):
         return float(self.time_spent_total) / self.time_spent_count
 
     def natural_key(self):
-        return (self.project, self.logger, self.culprit, self.checksum)
+        return (self.project, self.checksum)
 
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
@@ -159,19 +144,22 @@ class Group(Model):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
-    def get_unique_tags(self, tag):
+    def get_unique_tags(self, tag, since=None, order_by='-times_seen'):
+        # TODO(dcramer): this has zero test coverage and is a critical path
         from sentry.models import GroupTagValue
 
-        return GroupTagValue.objects.filter(
+        queryset = GroupTagValue.objects.filter(
             group=self,
-            project=self.project,
             key=tag,
-        ).values_list(
+        )
+        if since:
+            queryset = queryset.filter(last_seen__gte=since)
+        return queryset.values_list(
             'value',
             'times_seen',
             'first_seen',
             'last_seen',
-        ).order_by('-times_seen')
+        ).order_by(order_by)
 
     def get_tags(self):
         from sentry.models import GroupTagKey
@@ -194,9 +182,6 @@ class Group(Model):
         message = strip(self.message)
         return '\n' in message or len(message) > 100
 
-    def message_top(self):
-        return self.title
-
     @property
     def title(self):
         culprit = strip(self.culprit)
@@ -216,3 +201,11 @@ class Group(Model):
     @property
     def team(self):
         return self.project.team
+
+    def get_email_subject(self):
+        return '[%s %s] %s: %s' % (
+            self.team.name.encode('utf-8'),
+            self.project.name.encode('utf-8'),
+            six.text_type(self.get_level_display()).upper().encode('utf-8'),
+            self.message_short.encode('utf-8')
+        )

@@ -11,7 +11,7 @@ from django_statsd.clients import statsd
 from functools import wraps
 
 
-def instrumented_task(name, queue, stat_suffix=None, **kwargs):
+def instrumented_task(name, stat_suffix=None, **kwargs):
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
@@ -21,5 +21,5 @@ def instrumented_task(name, queue, stat_suffix=None, **kwargs):
             with statsd.timer(statsd_key):
                 result = func(*args, **kwargs)
             return result
-        return task(name=name, queue=queue, **kwargs)(_wrapped)
+        return task(name=name, **kwargs)(_wrapped)
     return wrapped

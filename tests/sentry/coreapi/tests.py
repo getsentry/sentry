@@ -5,12 +5,15 @@ from __future__ import absolute_import
 import mock
 
 from datetime import datetime
+from uuid import UUID
 
 from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.coreapi import (
     extract_auth_vars, project_from_auth_vars, APIForbidden, ensure_has_ip,
-    process_data_timestamp, validate_data, INTERFACE_ALIASES, get_interface)
+    process_data_timestamp, validate_data, get_interface, APIError
+)
 from sentry.testutils import TestCase
 
 
@@ -20,23 +23,6 @@ class BaseAPITest(TestCase):
         self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
-
-
-class InterfaceAliasesTest(BaseAPITest):
-    def test_http(self):
-        assert INTERFACE_ALIASES['request'] == 'sentry.interfaces.Http'
-
-    def test_user(self):
-        assert INTERFACE_ALIASES['user'] == 'sentry.interfaces.User'
-
-    def test_exception(self):
-        assert INTERFACE_ALIASES['exception'] == 'sentry.interfaces.Exception'
-
-    def test_stacktrace(self):
-        assert INTERFACE_ALIASES['stacktrace'] == 'sentry.interfaces.Stacktrace'
-
-    def test_template(self):
-        assert INTERFACE_ALIASES['template'] == 'sentry.interfaces.Template'
 
 
 class ExtractAuthVarsTest(BaseAPITest):
@@ -142,31 +128,29 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data['project'] == self.project.id
 
-    @mock.patch('uuid.uuid4')
+    @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_empty_event_id(self, uuid4):
         data = validate_data(self.project, {
             'event_id': '',
         })
-        assert data['event_id'] == uuid4.return_value.hex
+        assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
 
-    @mock.patch('uuid.uuid4')
+    @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_missing_event_id(self, uuid4):
         data = validate_data(self.project, {})
-        assert data['event_id'] == uuid4.return_value.hex
+        assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
 
-    @mock.patch('uuid.uuid4')
+    @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_invalid_event_id(self, uuid4):
         data = validate_data(self.project, {
             'event_id': 'a' * 33,
         })
-        assert data['event_id'] == uuid4.return_value.hex
+        assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
 
-    def test_invalid_project_id(self):
-        with self.assertRaises(APIForbidden):
-            validate_data(self.project, {
-                'project': self.project.id + 1,
-                'message': 'foo',
-            })
+    def test_invalid_event_id_raises(self):
+        self.assertRaises(APIError, validate_data, self.project, {
+            'event_id': 1
+        })
 
     def test_unknown_attribute(self):
         data = validate_data(self.project, {
@@ -196,23 +180,7 @@ class ValidateDataTest(BaseAPITest):
         })
         assert 'tests.manager.tests.DummyInterface' not in data
 
-    @mock.patch('sentry.coreapi.import_string')
-    def test_an_alias_maps_correctly(self, import_string):
-        alias, full_path = INTERFACE_ALIASES.items()[0]
-
-        result = validate_data(self.project, {
-            'project': self.project.id,
-            'message': 'foo',
-            alias: {'foo': 'bar'},
-        })
-        import_string.assert_called_once_with(full_path)
-        interface = import_string.return_value
-        interface.assert_called_once_with(foo='bar')
-        assert alias not in result
-        assert full_path in result
-        assert result[full_path] == interface.return_value.serialize.return_value
-
-    def test_doesnt_expand_list(self):
+    def test_does_expand_list(self):
         data = validate_data(self.project, {
             'message': 'foo',
             'exception': [{
@@ -236,13 +204,6 @@ class ValidateDataTest(BaseAPITest):
             'level': 'foobar',
         })
         assert data['level'] == 40
-
-    def test_project_slug(self):
-        data = validate_data(self.project, {
-            'project': self.project.slug,
-            'message': 'foo',
-        })
-        assert data['project'] == self.project.id
 
     def test_tags_as_string(self):
         data = validate_data(self.project, {
@@ -272,6 +233,17 @@ class ValidateDataTest(BaseAPITest):
         })
         assert 'extra' not in data
 
+    def test_invalid_culprit_raises(self):
+        self.assertRaises(APIError, validate_data, self.project, {
+            'culprit': 1
+        })
+
+    def test_long_culprit(self):
+        data = validate_data(self.project, {
+            'culprit': 'x' * (MAX_CULPRIT_LENGTH + 1)
+        })
+        assert len(data['culprit']) == MAX_CULPRIT_LENGTH
+
 
 class GetInterfaceTest(TestCase):
     def test_does_not_let_through_disallowed_name(self):
@@ -279,8 +251,10 @@ class GetInterfaceTest(TestCase):
             get_interface('subprocess')
 
     def test_allows_http(self):
-        from sentry.interfaces import Http
+        from sentry.interfaces.http import Http
         result = get_interface('sentry.interfaces.Http')
+        assert result is Http
+        result = get_interface('request')
         assert result is Http
 
 

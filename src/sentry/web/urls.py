@@ -27,6 +27,7 @@ import sentry.web.frontend.projects.notifications
 import sentry.web.frontend.projects.plugins
 import sentry.web.frontend.projects.quotas
 import sentry.web.frontend.projects.remove
+import sentry.web.frontend.projects.rules
 import sentry.web.frontend.projects.settings
 import sentry.web.frontend.projects.tags
 
@@ -60,8 +61,17 @@ if settings.DEBUG:
     )
 
 urlpatterns += patterns('',
+    # Store endpoints first since they are the most active
+    url(r'^api/store/$', api.StoreView.as_view(),
+        name='sentry-api-store'),
+    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(),
+        name='sentry-api-store'),
+
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
+
+    # API
+    url(r'^api/0/', include('sentry.api.urls')),
 
     # Account
     url(r'^login/$', accounts.login,
@@ -72,6 +82,9 @@ urlpatterns += patterns('',
         name='sentry-logout'),
     url(r'^register/$', accounts.register,
         name='sentry-register'),
+    url(r'^account/sudo/$', 'sudo.views.sudo',
+        {'template_name': 'sentry/account/sudo.html'},
+        name='sentry-sudo'),
     url(r'^account/recover/$', accounts.recover,
         name='sentry-account-recover'),
     url(r'^account/recover/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$', accounts.recover_confirm,
@@ -149,6 +162,9 @@ urlpatterns += patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/new/$',
         sentry.web.frontend.projects.keys.new_project_key,
         name='sentry-new-project-key'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/(?P<key_id>\d+)/edit/$',
+        sentry.web.frontend.projects.keys.edit_project_key,
+        name='sentry-edit-project-key'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/(?P<key_id>\d+)/remove/$',
         sentry.web.frontend.projects.keys.remove_project_key,
         name='sentry-remove-project-key'),
@@ -184,6 +200,19 @@ urlpatterns += patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/notifications/$',
         sentry.web.frontend.projects.notifications.notification_settings,
         name='sentry-project-notifications'),
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/$',
+        sentry.web.frontend.projects.rules.list_rules,
+        name='sentry-project-rules'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/(?P<rule_id>\d+)/edit/$',
+        sentry.web.frontend.projects.rules.create_or_edit_rule,
+        name='sentry-edit-project-rule'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/(?P<rule_id>\d+)/remove/$',
+        sentry.web.frontend.projects.rules.remove_rule,
+        name='sentry-remove-project-rule'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/new/$',
+        sentry.web.frontend.projects.rules.create_or_edit_rule,
+        name='sentry-new-project-rule'),
 
     # Generic
     url(r'^$', generic.dashboard,
@@ -223,17 +252,11 @@ urlpatterns += patterns('',
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
         name='sentry-admin-configure-plugin'),
 
-    # API / JS
+    # crossdomain.xml
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
         name='sentry-api-crossdomain-xml-index'),
-    url(r'^api/store/$', api.StoreView.as_view(),
-        name='sentry-api-store'),
-
-    # Client API endpoints. MUST NOT BE CHANGED
     url(r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$', api.crossdomain_xml,
         name='sentry-api-crossdomain-xml'),
-    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(),
-        name='sentry-api-store'),
 
     # Generic API
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/poll/$', api.poll,
@@ -244,8 +267,6 @@ urlpatterns += patterns('',
         name='sentry-api-bookmark'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/clear/$', api.clear,
         name='sentry-api-clear'),
-    url(r'^api/(?P<team_slug>[\w_-]+)/(?:(?P<project_id>[\w_-]+)/)?chart/$', api.chart,
-        name='sentry-api-chart'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group,
         name='sentry-api-remove-group'),
 
@@ -273,8 +294,6 @@ urlpatterns += patterns('',
         name='sentry-api-search-users'),
     url(r'^api/(?P<team_slug>[\w_-]+)/projects/search/$', api.search_projects,
         name='sentry-api-search-projects'),
-
-    url(r'^api/0/', include('sentry.api.urls')),
 
     # TV dashboard
     url(r'^(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
@@ -326,8 +345,6 @@ urlpatterns += patterns('',
         name='sentry-group-tags'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', groups.group_tag_details,
         name='sentry-group-tag-details'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/search/$', groups.search,
-        name='sentry-search'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/$', alerts.alert_list,
         name='sentry-alerts'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/(?P<alert_id>\d+)/$', alerts.alert_details,

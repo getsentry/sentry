@@ -8,14 +8,14 @@ sentry.web.forms
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.interfaces import Http
+from sentry.constants import HTTP_METHODS
 from sentry.models import User, Activity
 from sentry.web.forms.fields import RadioFieldRenderer
 
 
 class ReplayForm(forms.Form):
     url = forms.URLField(widget=forms.TextInput(attrs={'class': 'span8'}))
-    method = forms.ChoiceField(choices=((k, k) for k in Http.METHODS))
+    method = forms.ChoiceField(choices=((k, k) for k in HTTP_METHODS))
     data = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
     headers = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
 

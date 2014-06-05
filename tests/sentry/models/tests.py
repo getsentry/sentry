@@ -2,8 +2,6 @@
 
 from __future__ import absolute_import
 
-import mock
-
 from datetime import timedelta
 from django.core import mail
 from django.core.urlresolvers import reverse
@@ -11,12 +9,11 @@ from django.db import connection
 from django.utils import timezone
 from exam import fixture
 
-from sentry.constants import MINUTE_NORMALIZATION
 from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
-    GroupTagValue, GroupCountByMinute, TagValue, PendingTeamMember,
-    LostPasswordHash, Alert, User)
+    GroupTagValue, TagValue, PendingTeamMember,
+    LostPasswordHash, User)
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
 from sentry.utils.strings import compress
@@ -36,13 +33,11 @@ class ProjectTest(TestCase):
         self.assertFalse(Group.objects.filter(project__isnull=True).exists())
         self.assertFalse(Event.objects.filter(project__isnull=True).exists())
         self.assertFalse(GroupTagValue.objects.filter(project__isnull=True).exists())
-        self.assertFalse(GroupCountByMinute.objects.filter(project__isnull=True).exists())
         self.assertFalse(TagValue.objects.filter(project__isnull=True).exists())
 
         self.assertEquals(project2.group_set.count(), 4)
         self.assertEquals(project2.event_set.count(), 10)
         assert not GroupTagValue.objects.filter(project=project2).exists()
-        assert not project2.groupcountbyminute_set.exists()
         assert not TagValue.objects.filter(project=project2).exists()
 
 
@@ -127,24 +122,6 @@ class LostPasswordTest(TestCase):
             assert url in msg.body
 
 
-class AlertTest(TestCase):
-    @fixture
-    def params(self):
-        return {
-            'project_id': self.project.id,
-            'message': 'This is a test message',
-        }
-
-    @mock.patch('sentry.models.alert.has_trending', mock.Mock(return_value=True))
-    @mock.patch('sentry.models.Group.objects.get_accelerated')
-    def test_does_add_trending_events(self, get_accelerated):
-        get_accelerated.return_value = [self.group]
-        alert = Alert.maybe_alert(**self.params)
-        assert alert is not None
-        get_accelerated.assert_called_once_with([self.project.id], minutes=MINUTE_NORMALIZATION)
-        assert list(alert.related_groups.all()) == [self.group]
-
-
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group
@@ -161,8 +138,8 @@ class EventNodeStoreTest(TestCase):
         data = {'key': 'value'}
 
         query_bits = [
-            "INSERT INTO sentry_message (group_id, project_id, data, logger, level, message, checksum, datetime)",
-            "VALUES(%s, %s, %s, '', 0, %s, %s, %s)",
+            "INSERT INTO sentry_message (group_id, project_id, data, message, checksum, datetime)",
+            "VALUES(%s, %s, %s, %s, %s, %s)",
         ]
         params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
 

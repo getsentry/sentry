@@ -8,10 +8,12 @@ sentry.utils
 
 from django.utils.encoding import force_unicode
 
+import six
+
 
 def to_unicode(value):
     try:
-        value = unicode(force_unicode(value))
+        value = six.text_type(force_unicode(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = '(Error decoding value)'
     except Exception:  # in some cases we get a different exception

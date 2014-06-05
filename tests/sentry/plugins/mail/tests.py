@@ -8,7 +8,7 @@ from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry.interfaces import Stacktrace
+from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import Alert, Event, Group, AccessGroup
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
@@ -41,8 +41,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -68,8 +66,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -95,8 +91,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'Soubor ji\xc5\xbe existuje'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -112,12 +106,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -140,12 +135,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world\nfoo bar',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world\nfoo bar',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -195,7 +191,14 @@ class MailPluginTest(TestCase):
         assert user4.pk in self.plugin.get_sendable_users(project)
 
         # disabled by default user4
-        UserOption.objects.create(key='subscribe_by_default', value='0',
+        uo1 = UserOption.objects.create(key='subscribe_by_default', value='0',
+                                  project=project, user=user4)
+
+        assert user4.pk not in self.plugin.get_sendable_users(project)
+
+        uo1.delete()
+
+        UserOption.objects.create(key='subscribe_by_default', value=u'0',
                                   project=project, user=user4)
 
         assert user4.pk not in self.plugin.get_sendable_users(project)

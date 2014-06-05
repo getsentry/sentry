@@ -34,8 +34,9 @@ class LoginTest(TestCase):
             'password': 'bizbar',
         })
         assert resp.status_code == 200
-        assert resp.context['form'].errors['__all__'] == \
-            [u'Please enter a correct username and password. Note that both fields may be case-sensitive.']
+        assert resp.context['form'].errors['__all__'] == [
+            u'Please enter a correct username and password. Note that both fields may be case-sensitive.'
+        ]
 
     def test_valid_credentials(self):
         # load it once for test cookie
@@ -117,7 +118,6 @@ class SettingsTest(TestCase):
             'username': 'foobar',
             'email': 'foo@example.com',
             'first_name': 'Foo bar',
-            'old_password': 'admin',
         }
         return dict((k, v) for k, v in params.iteritems() if k not in without)
 
@@ -149,15 +149,6 @@ class SettingsTest(TestCase):
         self.assertTemplateUsed('sentry/account/settings.html')
         assert 'form' in resp.context
         assert 'first_name' in resp.context['form'].errors
-
-    def test_requires_old_password(self):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, self.params(without=['old_password']))
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/settings.html')
-        assert 'form' in resp.context
-        assert 'old_password' in resp.context['form'].errors
 
     def test_minimum_valid_params(self):
         self.login_as(self.user)
@@ -297,7 +288,7 @@ class RecoverPasswordTest(TestCase):
 
     def test_invalid_username(self):
         resp = self.client.post(self.path, {
-            'user': 'nonexistant'
+            'user': 'nonexistent'
         })
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/account/recover/index.html')

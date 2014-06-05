@@ -6,7 +6,7 @@ sentry.db.models.manager
 :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import with_statement
+from __future__ import absolute_import
 
 import hashlib
 import logging
@@ -19,6 +19,8 @@ from django.db.models import Manager, Model
 from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_str
+
+import six
 
 from sentry.utils.cache import cache
 
@@ -43,7 +45,7 @@ def __prep_value(model, key, value):
     if isinstance(value, Model):
         value = value.pk
     else:
-        value = unicode(value)
+        value = six.text_type(value)
     return value
 
 
@@ -101,8 +103,12 @@ class BaseManager(Manager):
         """
         Given the cache is configured, connects the required signals for invalidation.
         """
+        post_save.connect(self.post_save, sender=sender, weak=False)
+        post_delete.connect(self.post_delete, sender=sender, weak=False)
+
         if not self.cache_fields:
             return
+
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
@@ -216,6 +222,12 @@ class BaseManager(Manager):
                 logger.error('Cache response returned invalid value %r', retval)
                 return self.get(**kwargs)
 
+            if key == pk_name and int(value) != retval.pk:
+                if settings.DEBUG:
+                    raise ValueError('Unexpected value returned from cache')
+                logger.error('Cache response returned invalid value %r', retval)
+                return self.get(**kwargs)
+
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
             return retval
@@ -240,3 +252,18 @@ class BaseManager(Manager):
 
         for node in object_node_list:
             node.bind_data(node_results.get(node.id) or {})
+
+    def uncache_object(self, instance_id):
+        pk_name = self.model._meta.pk.name
+        cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
+        cache.delete(cache_key)
+
+    def post_save(self, instance, **kwargs):
+        """
+        Triggered when a model bound to this manager is saved.
+        """
+
+    def post_delete(self, instance, **kwargs):
+        """
+        Triggered when a model bound to this manager is deleted.
+        """

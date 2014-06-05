@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset="utf-8" />
         <style type="text/css">
         body, .main {
             width: 100%;
@@ -15,12 +16,8 @@
             font-weight: 200;
         }
         pre {
-           word-break: break-all;
-           word-wrap: break-word;
            white-space: pre;
            white-space: pre-wrap;
-           white-space: -moz-pre-wrap;
-           white-space: -o-pre-wrap;
            margin-bottom: 15px;
         }
         a {
@@ -76,8 +73,6 @@
             margin: 4px 0;
             font-weight: normal;
             border-radius: 4px;
-            -moz-border-radius: 4px;
-            -webkit-border-radius: 4px;
         }
         .header h1 {
             margin: 0;
@@ -155,8 +150,6 @@
             margin-right: 10px;
             margin-bottom: 5px;
             border-radius: 4px;
-            -moz-border-radius: 4px;
-            -webkit-border-radius: 4px;
         }
         .tag-list li strong {
             font-weight: 200;
@@ -179,7 +172,7 @@
             width: 85%;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
+            /*text-overflow: ellipsis;*/
         }
 
         .event h3 a {
@@ -192,8 +185,6 @@
             width: 60px;
             height: 60px;
             border-radius: 60px;
-            -webkit-border-radius: 60px;
-            -moz-border-radius: 60px;
             line-height: 60px;
             background: #cfd3da;
             text-align: center;
@@ -223,7 +214,7 @@
             padding-right: 24px;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
+            /*text-overflow: ellipsis;*/
         }
         .event .meta {
             color: #b6bcc2;

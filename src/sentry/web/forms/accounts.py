@@ -8,16 +8,47 @@ sentry.web.forms.accounts
 
 import pytz
 
+from captcha.fields import ReCaptchaField
 from datetime import datetime
-
 from django import forms
-from django.contrib.auth import authenticate
-from django.contrib.auth.forms import AuthenticationForm as AuthenticationForm_
+from django.conf import settings
+from django.contrib.auth import authenticate, get_user_model
+from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
+from six.moves import range
 
-from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
+from sentry.constants import LANGUAGES
 from sentry.models import UserOption, User
 from sentry.utils.auth import find_users
+
+
+# at runtime we decide whether we should support recaptcha
+# TODO(dcramer): there **must** be a better way to do this
+if settings.RECAPTCHA_PUBLIC_KEY:
+    class CaptchaForm(forms.Form):
+        def __init__(self, *args, **kwargs):
+            captcha = kwargs.pop('captcha', True)
+            super(CaptchaForm, self).__init__(*args, **kwargs)
+            if captcha:
+                self.fields['captcha'] = ReCaptchaField()
+
+    class CaptchaModelForm(forms.ModelForm):
+        def __init__(self, *args, **kwargs):
+            captcha = kwargs.pop('captcha', True)
+            super(CaptchaModelForm, self).__init__(*args, **kwargs)
+            if captcha:
+                self.fields['captcha'] = ReCaptchaField()
+
+else:
+    class CaptchaForm(forms.Form):
+        def __init__(self, *args, **kwargs):
+            kwargs.pop('captcha', None)
+            super(CaptchaForm, self).__init__(*args, **kwargs)
+
+    class CaptchaModelForm(forms.ModelForm):
+        def __init__(self, *args, **kwargs):
+            kwargs.pop('captcha', None)
+            super(CaptchaModelForm, self).__init__(*args, **kwargs)
 
 
 def _get_timezone_choices():
@@ -28,19 +59,74 @@ def _get_timezone_choices():
         results.append((int(offset), tz, '(GMT%s) %s' % (offset, tz)))
     results.sort()
 
-    for i in xrange(len(results)):
+    for i in range(len(results)):
         results[i] = results[i][1:]
     return results
 
 TIMEZONE_CHOICES = _get_timezone_choices()
 
 
-class AuthenticationForm(AuthenticationForm_):
+class AuthenticationForm(CaptchaForm):
     username = forms.CharField(
         label=_('Username or email'), max_length=128)
+    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput)
+
+    error_messages = {
+        'invalid_login': _("Please enter a correct %(username)s and password. "
+                           "Note that both fields may be case-sensitive."),
+        'no_cookies': _("Your Web browser doesn't appear to have cookies "
+                        "enabled. Cookies are required for logging in."),
+        'inactive': _("This account is inactive."),
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        """
+        If request is passed in, the form will validate that cookies are
+        enabled. Note that the request (a HttpRequest object) must have set a
+        cookie with the key TEST_COOKIE_NAME and value TEST_COOKIE_VALUE before
+        running this validation.
+        """
+        self.request = request
+        self.user_cache = None
+        super(AuthenticationForm, self).__init__(*args, **kwargs)
+
+        # Set the label for the "username" field.
+        UserModel = get_user_model()
+        self.username_field = UserModel._meta.get_field(UserModel.USERNAME_FIELD)
+        if not self.fields['username'].label:
+            self.fields['username'].label = capfirst(self.username_field.verbose_name)
+
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if username and password:
+            self.user_cache = authenticate(username=username,
+                                           password=password)
+            if self.user_cache is None:
+                raise forms.ValidationError(
+                    self.error_messages['invalid_login'] % {
+                        'username': self.username_field.verbose_name
+                    })
+            elif not self.user_cache.is_active:
+                raise forms.ValidationError(self.error_messages['inactive'])
+        self.check_for_test_cookie()
+        return self.cleaned_data
+
+    def check_for_test_cookie(self):
+        if self.request and not self.request.session.test_cookie_worked():
+            raise forms.ValidationError(self.error_messages['no_cookies'])
+
+    def get_user_id(self):
+        if self.user_cache:
+            return self.user_cache.id
+        return None
+
+    def get_user(self):
+        return self.user_cache
 
 
-class RegistrationForm(forms.ModelForm):
+class RegistrationForm(CaptchaModelForm):
     username = forms.EmailField(
         label=_('Email'), max_length=128,
         widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}))
@@ -66,6 +152,25 @@ class RegistrationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class RecoverPasswordForm(CaptchaForm):
+    user = forms.CharField(label=_('Username or email'))
+
+    def clean_user(self):
+        value = self.cleaned_data.get('user')
+        if value:
+            users = find_users(value)
+            if not users:
+                raise forms.ValidationError(_("We were unable to find a matching user."))
+            if len(users) > 1:
+                raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
+            return users[0]
+        return None
+
+
+class ChangePasswordRecoverForm(forms.Form):
+    password = forms.CharField(widget=forms.PasswordInput())
 
 
 class NotificationSettingsForm(forms.Form):
@@ -130,7 +235,6 @@ class NotificationSettingsForm(forms.Form):
 
 
 class AccountSettingsForm(forms.Form):
-    old_password = forms.CharField(label=_('Current password'), widget=forms.PasswordInput)
     username = forms.CharField(label=_('Username'), max_length=128)
     email = forms.EmailField(label=_('Email'))
     first_name = forms.CharField(required=True, label=_('Name'), max_length=30)
@@ -140,28 +244,15 @@ class AccountSettingsForm(forms.Form):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
-        # dont show username field if its the same as their email address
+        # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
             del self.fields['username']
-
-        # HACK: don't require current password if they don't have one
-        if self.user.password in EMPTY_PASSWORD_VALUES:
-            del self.fields['old_password']
 
     def clean_username(self):
         value = self.cleaned_data['username']
         if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
             raise forms.ValidationError(_("That username is already in use."))
         return value
-
-    def clean_old_password(self):
-        """
-        Validates that the old_password field is correct.
-        """
-        old_password = self.cleaned_data["old_password"]
-        if not isinstance(authenticate(username=self.user.username, password=old_password), User):
-            raise forms.ValidationError(_("Your old password was entered incorrectly. Please enter it again."))
-        return old_password
 
     def save(self, commit=True):
         if self.cleaned_data.get('new_password'):
@@ -232,25 +323,6 @@ class AppearanceSettingsForm(forms.Form):
         )
 
         return self.user
-
-
-class RecoverPasswordForm(forms.Form):
-    user = forms.CharField(label=_('Username or email'))
-
-    def clean_user(self):
-        value = self.cleaned_data.get('user')
-        if value:
-            users = find_users(value)
-            if not users:
-                raise forms.ValidationError(_("We were unable to find a matching user."))
-            if len(users) > 1:
-                raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
-            return users[0]
-        return None
-
-
-class ChangePasswordRecoverForm(forms.Form):
-    password = forms.CharField(widget=forms.PasswordInput())
 
 
 class ProjectEmailOptionsForm(forms.Form):

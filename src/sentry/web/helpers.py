@@ -16,7 +16,7 @@ from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
-from sentry.constants import MEMBER_OWNER, EVENTS_PER_PAGE, STATUS_HIDDEN
+from sentry.constants import EVENTS_PER_PAGE, STATUS_HIDDEN
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 
 logger = logging.getLogger('sentry.errors')
@@ -99,7 +99,6 @@ def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
-        'HAS_SEARCH': settings.SENTRY_USE_SEARCH,
         'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
         'URL_PREFIX': settings.SENTRY_URL_PREFIX,
         'PLUGINS': plugins,
@@ -113,11 +112,6 @@ def get_default_context(request, existing_context=None, team=None):
         context.update({
             'request': request,
         })
-        if team:
-            # TODO: remove this extra query
-            context.update({
-                'can_admin_team': [team in Team.objects.get_for_user(request.user, MEMBER_OWNER)],
-            })
 
         if not existing_context or 'TEAM_LIST' not in existing_context:
             context['TEAM_LIST'] = Team.objects.get_for_user(
@@ -181,6 +175,8 @@ def plugin_config(plugin, project, request):
         form_class = plugin.site_conf_form
         template = plugin.site_conf_template
 
+    test_results = None
+
     initials = plugin.get_form_initial(project)
     for field in form_class.base_fields:
         key = '%s:%s' % (plugin_key, field)
@@ -197,14 +193,32 @@ def plugin_config(plugin, project, request):
         prefix=plugin_key
     )
     if form.is_valid():
-        for field, value in form.cleaned_data.iteritems():
-            key = '%s:%s' % (plugin_key, field)
-            if project:
-                ProjectOption.objects.set_value(project, key, value)
-            else:
-                Option.objects.set_value(key, value)
+        if 'action_test' in request.POST and plugin.is_testable():
+            try:
+                test_results = plugin.test_configuration(project)
+            except Exception as exc:
+                if hasattr(exc, 'read') and callable(exc.read):
+                    test_results = '%s\n%s' % (exc, exc.read())
+                else:
+                    test_results = exc
+            if test_results is None:
+                test_results = 'No errors returned'
+        else:
+            for field, value in form.cleaned_data.iteritems():
+                key = '%s:%s' % (plugin_key, field)
+                if project:
+                    ProjectOption.objects.set_value(project, key, value)
+                else:
+                    Option.objects.set_value(key, value)
 
-        return ('redirect', None)
+            return ('redirect', None)
+
+    # TODO(mattrobenolt): Reliably determine if a plugin is configured
+    # if hasattr(plugin, 'is_configured'):
+    #     is_configured = plugin.is_configured(project)
+    # else:
+    #     is_configured = True
+    is_configured = True
 
     from django.template.loader import render_to_string
     return ('display', mark_safe(render_to_string(template, {
@@ -212,6 +226,8 @@ def plugin_config(plugin, project, request):
         'request': request,
         'plugin': plugin,
         'plugin_description': plugin.get_description() or '',
+        'plugin_test_results': test_results,
+        'plugin_is_configured': is_configured,
     }, context_instance=RequestContext(request))))
 
 

@@ -85,7 +85,7 @@ class ExpandJavascriptSourceTest(TestCase):
         assert frame['post_context'] == ['o', ' ', 'w', 'o', 'r']
 
         frame = frame_list[1]
-        assert frame['pre_context'] == []
+        assert not frame.get('pre_context')
         assert frame['context_line'] == 'h'
         assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
 
@@ -117,13 +117,14 @@ class ExpandJavascriptSourceTest(TestCase):
 
         frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
         frame = frame_list[0]
-        assert frame['pre_context'] == []
+        assert not frame.get('pre_context')
         assert frame['context_line'] == 'console.log("hello, World!")'
-        assert frame['post_context'] == []
+        assert not frame.get('post_context')
 
 
 class GenerateModuleTest(TestCase):
     def test_simple(self):
+        assert generate_module(None) == '<unknown module>'
         assert generate_module('http://example.com/foo.js') == 'foo'
         assert generate_module('http://example.com/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/js/foo/bar.js') == 'foo/bar'
@@ -138,6 +139,7 @@ class GenerateModuleTest(TestCase):
         assert generate_module('http://example.com/7d6d00eae0ceccdc7ee689659585d95f/foo/bar.js') == 'foo/bar'
         assert generate_module('/foo/bar.js') == 'foo/bar'
         assert generate_module('../../foo/bar.js') == 'foo/bar'
+        assert generate_module('/foo/bar-7d6d00eae0ceccdc7ee689659585d95f.js') == 'foo/bar'
 
 
 class FetchBase64SourcemapTest(TestCase):

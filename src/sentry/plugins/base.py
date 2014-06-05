@@ -16,10 +16,12 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
 from nydus.db import create_cluster
+from threading import local
+from time import time
 
+from sentry.quotas.base import RateLimited, NotRateLimited
 from sentry.utils.managers import InstanceManager
 from sentry.utils.safe import safe_execute
-from threading import local
 
 
 class Response(object):
@@ -429,13 +431,6 @@ class IPlugin(local):
 
     # Server side signals which do not have request context
 
-    def is_rate_limited(self, project, **kwargs):
-        """
-        Return True if this project (or the system) is over any defined
-        quotas.
-        """
-        return False
-
     def has_perm(self, user, perm, *objects, **kwargs):
         """
         Given a user, a permission name, and an optional list of objects
@@ -509,17 +504,6 @@ class IPlugin(local):
         >>>     return [('tag-name', 'tag-value')]
         """
 
-    def get_filters(self, project=None, **kwargs):
-        """
-        Provides additional filters to the builtins.
-
-        Must return an iterable.
-
-        >>> def get_filters(self, project, **kwargs):
-        >>>     return [MyFilterClass]
-        """
-        return []
-
     def get_notification_forms(self, **kwargs):
         """
         Provides additional UserOption forms for the Notification Settings page.
@@ -530,6 +514,12 @@ class IPlugin(local):
         >>>     return [MySettingsForm]
         """
         return []
+
+    def is_testable(self, **kwargs):
+        """
+        Returns True if this plugin is able to be tested.
+        """
+        return hasattr(self, 'test_configuration')
 
 
 class Plugin(IPlugin):
@@ -568,20 +558,20 @@ class RateLimitingMixin(object):
         system_quota = self.get_system_quota()
 
         if not (proj_quota or system_quota or team_quota):
-            return False
+            return NotRateLimited
 
         sys_result, team_result, proj_result = self._incr_project(project)
 
         if proj_quota and proj_result > proj_quota:
-            return True
+            return RateLimited(retry_after=self.get_time_remaining())
 
         if team_quota and team_result > team_quota:
-            return True
+            return RateLimited(retry_after=self.get_time_remaining())
 
         if system_quota and sys_result > system_quota:
-            return True
+            return RateLimited(retry_after=self.get_time_remaining())
 
-        return False
+        return NotRateLimited
 
     def get_system_key(self):
         """
@@ -622,6 +612,9 @@ class RateLimitingMixin(object):
         """
         return 0
 
+    def get_time_remaining(self):
+        return int(self.ttl - (time() - int(time() / self.ttl) * self.ttl))
+
     def _incr_project(self, project):
         if project.team:
             try:
@@ -638,6 +631,7 @@ class RateLimitingMixin(object):
         except NotImplementedError:
             proj_key = None
             proj_result = 0
+
         try:
             sys_key = self.get_system_key()
         except NotImplementedError:
@@ -645,13 +639,15 @@ class RateLimitingMixin(object):
             sys_result = 0
 
         with self.conn.map() as conn:
-            if proj_key is not None:
+            if proj_key:
                 proj_result = conn.incr(proj_key)
                 conn.expire(proj_key, self.ttl)
-            if sys_key is not None:
+
+            if sys_key:
                 sys_result = conn.incr(sys_key)
                 conn.expire(sys_key, self.ttl)
-            if team_key is not None:
+
+            if team_key:
                 team_result = conn.incr(team_key)
                 conn.expire(team_key, self.ttl)
 

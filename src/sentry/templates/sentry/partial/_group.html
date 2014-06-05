@@ -8,11 +8,7 @@
     <div class="details">
         <h3>
             <a href="{% url 'sentry-group' group.team.slug group.project.slug group.pk %}">
-                {% if group.view %}
-                    {{ group.view }}
-                {% else %}
-                    {{ group.message_top }}
-                {% endif %}
+                {{ group.title }}
             </a>
         </h3>
         <p class="message" title="{{ group.message }}">

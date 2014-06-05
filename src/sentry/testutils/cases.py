@@ -25,14 +25,31 @@ from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 from django.utils.importlib import import_module
 from exam import Exam
+from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.constants import MODULE_ROOT
-from sentry.models import Option, ProjectOption
+from sentry.models import ProjectOption
+from sentry.rules import EventState
 from sentry.utils import json
 
 from .fixtures import Fixtures
 from .helpers import get_auth_header
+
+
+def create_redis_conn():
+    options = {
+        'engine': 'nydus.db.backends.redis.Redis',
+    }
+    options.update(settings.SENTRY_REDIS_OPTIONS)
+
+    return create_cluster(options)
+
+_redis_conn = create_redis_conn()
+
+
+def flush_redis():
+    _redis_conn.flushdb()
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -55,6 +72,7 @@ class BaseTestCase(Fixtures, Exam):
             request.session = engine.SessionStore()
 
         login(request, user)
+        request.user = user
 
         # Save the session values.
         request.session.save()
@@ -86,9 +104,12 @@ class BaseTestCase(Fixtures, Exam):
 
     def _pre_setup(self):
         cache.clear()
-        ProjectOption.objects.clear_cache()
-        Option.objects.clear_cache()
+        ProjectOption.objects.clear_local_cache()
         super(BaseTestCase, self)._pre_setup()
+
+    def _post_teardown(self):
+        flush_redis()
+        super(BaseTestCase, self)._post_teardown()
 
     def _makeMessage(self, data):
         return json.dumps(data)
@@ -198,3 +219,36 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
     pass
+
+
+class RuleTestCase(TestCase):
+    rule_cls = None
+
+    def get_event(self):
+        return self.event
+
+    def get_rule(self, data=None):
+        return self.rule_cls(
+            project=self.project,
+            data=data or {},
+        )
+
+    def assertPasses(self, rule, event=None, **kwargs):
+        if event is None:
+            event = self.event
+        kwargs.setdefault('is_new', True)
+        kwargs.setdefault('is_regression', True)
+        kwargs.setdefault('is_sample', True)
+        kwargs.setdefault('rule_is_active', False)
+        state = EventState(**kwargs)
+        assert rule.passes(event, state) is True
+
+    def assertDoesNotPass(self, rule, event=None, **kwargs):
+        if event is None:
+            event = self.event
+        kwargs.setdefault('is_new', True)
+        kwargs.setdefault('is_regression', True)
+        kwargs.setdefault('is_sample', True)
+        kwargs.setdefault('rule_is_active', False)
+        state = EventState(**kwargs)
+        assert rule.passes(event, state) is False

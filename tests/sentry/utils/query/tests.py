@@ -25,5 +25,5 @@ class MergeIntoTest(TestCase):
         assert Project.objects.get(id=project_2.id).owner == user_2
         assert list(ag.members.all()) == [user_2]
 
-        # make sure we didnt remove the instance
+        # make sure we didn't remove the instance
         assert User.objects.filter(id=user_1.id).exists()

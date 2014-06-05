@@ -14,7 +14,6 @@ class RedisBufferTest(TestCase):
         self.buf = RedisBuffer(hosts={
             0: {'db': 9}
         })
-        self.buf.conn.flushdb()
 
     def test_default_host_is_local(self):
         buf = RedisBuffer()

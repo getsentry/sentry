@@ -64,7 +64,7 @@ class NotificationPlugin(RateLimitingMixin, Plugin):
         conf_key = self.get_conf_key()
 
         alert_settings = dict(
-            (o.user_id, o.value)
+            (o.user_id, int(o.value))
             for o in UserOption.objects.filter(
                 project=project,
                 key='%s:alert' % conf_key,
@@ -98,31 +98,23 @@ class NotificationPlugin(RateLimitingMixin, Plugin):
         return member_set
 
     def should_notify(self, group, event):
+        if group.is_muted():
+            return False
+
         project = group.project
         send_to = self.get_sendable_users(project)
         if not send_to:
             return False
 
-        allowed_tags = project.get_option('notifcation:tags', {})
-        if allowed_tags:
-            tags = event.data.get('tags', ())
-            if not tags:
-                return False
-            if not any(v in allowed_tags.get(k, ()) for k, v in tags):
-                return False
-
         return not self.is_rate_limited(project)
 
-    ## plugin hooks
+    def test_configuration(self, project):
+        from sentry.utils.samples import create_sample_event
 
-    def post_process(self, group, event, is_new, is_sample, **kwargs):
-        if not is_new:
-            return
+        event = create_sample_event(project, default='python')
 
-        if not self.should_notify(group, event):
-            return
+        return self.notify_users(event.group, event, fail_silently=False)
 
-        self.notify_users(group, event)
 
 # Backwards-compatibility
 NotifyConfigurationForm = NotificationConfigurationForm

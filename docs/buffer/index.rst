@@ -14,10 +14,11 @@ Choosing a Backend
 
 To specify a backend, simply modify the ``SENTRY_BUFFER`` and ``SENTRY_BUFFER_OPTIONS`` values in your configuration:
 
-::
+.. code-block:: python
 
     SENTRY_BUFFER = 'sentry.buffer.base.Buffer'
     SENTRY_BUFFER_OPTIONS = {}
+
 
 The Redis Backend
 -----------------
@@ -25,15 +26,9 @@ The Redis Backend
 Configuring the Redis backend **requires the queue** or you won't see any gains (in fact you'll just negatively
 impact your performance).
 
-The first thing you will need to do is install a few additional required packages:
+Configuration is fairly straight forward:
 
-::
-
-    pip install redis hiredis nydus
-
-Finally, configure the buffer options:
-
-::
+.. code-block:: python
 
     SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
     SENTRY_BUFFER_OPTIONS = {
