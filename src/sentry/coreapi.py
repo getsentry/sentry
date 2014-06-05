@@ -235,6 +235,8 @@ def process_data_timestamp(data, current_datetime=None):
     if data['timestamp'] < current_datetime - timedelta(days=30):
         raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
 
+    data['timestamp'] = float(data['timestamp'].strftime('%s'))
+
     return data
 
 

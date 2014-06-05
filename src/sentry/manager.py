@@ -10,17 +10,16 @@ from __future__ import absolute_import
 
 import hashlib
 import logging
+import six
 import warnings
 import uuid
 
+from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import UserManager
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
-
-import six
-
 from raven.utils.encoding import to_string
 
 from sentry import app
@@ -125,13 +124,16 @@ class GroupManager(BaseManager):
         if not timestamp:
             timestamp = timezone.now()
 
-        # We must convert date to local time so Django doesn't mess it up
-        # based on TIME_ZONE
-        if settings.TIME_ZONE:
-            if not timezone.is_aware(timestamp):
-                timestamp = timestamp.replace(tzinfo=timezone.utc)
-        elif timezone.is_aware(timestamp):
-            timestamp = timestamp.replace(tzinfo=None)
+        if isinstance(timestamp, datetime):
+            # We must convert date to local time so Django doesn't mess it up
+            # based on TIME_ZONE
+            if settings.TIME_ZONE:
+                if not timezone.is_aware(timestamp):
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+            elif timezone.is_aware(timestamp):
+                timestamp = timestamp.replace(tzinfo=None)
+            timestamp = float(timestamp.strftime('%s'))
+
         data['timestamp'] = timestamp
 
         if not data.get('event_id'):
@@ -214,9 +216,11 @@ class GroupManager(BaseManager):
         logger_name = data.pop('logger')
         server_name = data.pop('server_name')
         site = data.pop('site')
-        date = data.pop('timestamp')
         checksum = data.pop('checksum')
         platform = data.pop('platform')
+
+        date = datetime.fromtimestamp(data.pop('timestamp'))
+        date = date.replace(tzinfo=timezone.utc)
 
         kwargs = {
             'message': message,
