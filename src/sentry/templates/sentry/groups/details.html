@@ -141,10 +141,9 @@
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
         {% endif %}
-        <li><a {% ifequal page 'event_list' %}{% if event %}
+        <li><a {% if event.id %}
         href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id event.id %}"{% else %}
-        href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id "latest" %}"{% endif %}{% else %}
-        href="{% url 'sentry-group-events-json' group.team.slug project.slug group.id %}"{% endifequal %}
+        href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id 'latest' %}"{% endif %}
         >{% trans "Raw JSON Data" %}</a></li>
         {% if can_admin_event %}
             <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}"

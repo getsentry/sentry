@@ -158,9 +158,6 @@ DEFAULT_LOGGER_NAME = 'root'
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 
-# The maximum number of events which can be requested as JSON
-MAX_JSON_RESULTS = 1000
-
 # Default paginator value
 EVENTS_PER_PAGE = 15
 
