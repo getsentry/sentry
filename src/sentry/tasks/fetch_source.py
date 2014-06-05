@@ -10,7 +10,6 @@ import itertools
 import logging
 import hashlib
 import re
-import urllib2
 import zlib
 import base64
 from os.path import splitext
@@ -20,6 +19,7 @@ from urlparse import urljoin, urlsplit
 
 from sentry.app import cache
 from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
+from sentry.http import safe_urlopen
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 from sentry.utils.strings import truncatechars
 
@@ -122,12 +122,10 @@ def fetch_url_content(url):
     import sentry
 
     try:
-        opener = urllib2.build_opener()
-        opener.addheaders = [
+        req = safe_urlopen(url, headers=[
             ('Accept-Encoding', 'gzip'),
             ('User-Agent', 'Sentry/%s' % sentry.VERSION),
-        ]
-        req = opener.open(url, timeout=SOURCE_FETCH_TIMEOUT)
+        ], allow_redirects=True, timeout=SOURCE_FETCH_TIMEOUT)
         headers = dict(req.headers)
         body = req.read()
         if headers.get('content-encoding') == 'gzip':

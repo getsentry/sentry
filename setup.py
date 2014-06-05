@@ -84,7 +84,7 @@ install_requires = [
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<0.10.0',
     'gunicorn>=0.17.2,<0.18.0',
-    'ua-parser>=0.3.5',
+    'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
     'nydus>=0.10.7,<0.11.0',
     'Pygments>=1.6.0,<1.7.0',
@@ -97,6 +97,7 @@ install_requires = [
     'setproctitle>=1.1.7,<1.2.0',
     'South==0.8.2',
     'toronado>=0.0.4,<0.1.0',
+    'ua-parser>=0.3.5',
     'urllib3>=1.7.1,<1.8.0',
 ]
 
