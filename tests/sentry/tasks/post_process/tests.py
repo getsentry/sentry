@@ -41,7 +41,6 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_record_affected_code.delay.assert_called_once_with(
-            group=group,
             event=event,
         )
 
@@ -72,7 +71,6 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_record_affected_user.delay.assert_called_once_with(
-            group=group,
             event=event,
         )
 
@@ -105,7 +103,7 @@ class PostProcessGroupTest(TestCase):
 
         mock_get_rules.assert_called_once_with(self.project)
 
-        assert not mock_execute_rule.delay.called
+        assert not mock_execute_rule.apply_async.called
 
         post_process_group(
             group=group,
@@ -115,7 +113,7 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
-        assert len(mock_execute_rule.delay.mock_calls) == 1
+        assert len(mock_execute_rule.apply_async.mock_calls) == 1
 
         post_process_group(
             group=group,
@@ -125,7 +123,7 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
-        assert len(mock_execute_rule.delay.mock_calls) == 2
+        assert len(mock_execute_rule.apply_async.mock_calls) == 2
 
 
 class ExecuteRuleTest(TestCase):
@@ -173,7 +171,7 @@ class RecordAffectedUserTest(TestCase):
         })
 
         with patch.object(Group.objects, 'add_tags') as add_tags:
-            record_affected_user(group=event.group, event=event)
+            record_affected_user(event=event)
 
             add_tags.assert_called_once(event.group, [
                 ('sentry:user', 'email:foo@example.com', {
@@ -204,7 +202,7 @@ class RecordAffectedCodeTest(TestCase):
         })
 
         with patch.object(Group.objects, 'add_tags') as add_tags:
-            record_affected_code(group=event.group, event=event)
+            record_affected_code(event=event)
 
             add_tags.assert_called_once_with(event.group, [
                 ('sentry:filename', '1effb24729ae4c43efa36b460511136a', {
