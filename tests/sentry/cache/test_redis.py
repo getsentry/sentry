@@ -13,10 +13,10 @@ class RedisCacheTest(TestCase):
         })
 
     def test_integration(self):
-        self.backend.set('foo', 'bar', 50)
+        self.backend.set('foo', {'foo': 'bar'}, 50)
 
         result = self.backend.get('foo')
-        assert result == 'bar'
+        assert result == {'foo': 'bar'}
 
         self.backend.delete('foo')
 

@@ -12,6 +12,8 @@ from django.conf import settings
 from nydus.db import create_cluster
 from threading import local
 
+from sentry.utils import json
+
 
 class RedisCache(local):
     key_expire = 60 * 60  # 1 hour
@@ -33,11 +35,14 @@ class RedisCache(local):
 
     def set(self, key, value, timeout):
         with self.conn.map() as conn:
-            conn.set(key, value)
+            conn.set(key, json.dumps(value))
             conn.expire(key, timeout)
 
     def delete(self, key):
         self.conn.delete(key)
 
     def get(self, key):
-        return self.conn.get(key)
+        result = self.conn.get(key)
+        if result is not None:
+            result = json.loads(result)
+        return result
