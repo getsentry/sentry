@@ -30,7 +30,7 @@ def condition_matches(project, condition, event, state):
         rules_logger.error('Unregistered condition %r', condition['id'])
         return
 
-    condition_inst = condition_cls(project)
+    condition_inst = condition_cls(project, data=condition)
     return safe_execute(condition_inst.passes, event, state)
 
 
