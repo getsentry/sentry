@@ -49,4 +49,8 @@ def save_event(cache_key=None, data=None, **kwargs):
     if cache_key:
         data = cache.get(cache_key)
 
-    Group.objects.save_data(data.pop('project'), data)
+    try:
+        Group.objects.save_data(data.pop('project'), data)
+    finally:
+        if cache_key:
+            cache.delete(cache_key)
