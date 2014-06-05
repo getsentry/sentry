@@ -50,7 +50,10 @@ class EventFrequencyCondition(EventCondition):
             return False
 
         interval = self.get_option('interval')
-        value = int(self.get_option('value'))
+        try:
+            value = int(self.get_option('value'))
+        except (TypeError, ValueError):
+            return False
 
         if not (interval and value):
             return False
