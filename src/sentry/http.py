@@ -16,7 +16,7 @@ from ipaddr import IPNetwork
 from urlparse import urlparse
 
 
-DISALLOWED_IPS = map(IPNetwork, settings.SENTRY_DISALLOWED_IPS)
+DISALLOWED_IPS = set((IPNetwork(i) for i in settings.SENTRY_DISALLOWED_IPS))
 
 
 class NoRedirectionHandler(urllib2.HTTPErrorProcessor):
