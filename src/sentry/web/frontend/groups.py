@@ -21,8 +21,7 @@ from django.utils import timezone
 
 from sentry import app
 from sentry.constants import (
-    SORT_OPTIONS, MEMBER_USER, MAX_JSON_RESULTS, DEFAULT_SORT_OPTION,
-    EVENTS_PER_PAGE
+    SORT_OPTIONS, MEMBER_USER, DEFAULT_SORT_OPTION, EVENTS_PER_PAGE
 )
 from sentry.db.models import create_or_update
 from sentry.models import (
@@ -414,25 +413,6 @@ def group_event_list(request, team, project, group):
         'event_list': event_list,
         'page': 'event_list',
     }, request)
-
-
-@has_access(MEMBER_USER)
-def group_event_list_json(request, team, project, group_id):
-    group = get_object_or_404(Group, id=group_id, project=project)
-
-    limit = request.GET.get('limit', MAX_JSON_RESULTS)
-    try:
-        limit = int(limit)
-    except ValueError:
-        return HttpResponse('non numeric limit', status=400, mimetype='text/plain')
-    if limit > MAX_JSON_RESULTS:
-        return HttpResponse("too many objects requested", mimetype='text/plain', status=400)
-
-    events = group.event_set.order_by('-id')[:limit]
-
-    Event.objects.bind_nodes(events, 'data')
-
-    return HttpResponse(json.dumps([event.as_dict() for event in events]), mimetype='application/json')
 
 
 @has_access(MEMBER_USER)
