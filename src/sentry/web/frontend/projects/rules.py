@@ -116,18 +116,19 @@ def create_or_edit_rule(request, team, project, rule_id=None):
         'action_match': rule.data.get('action_match'),
     }
 
-    for num, node in enumerate(rule.data.get('conditions', [])):
-        prefix = 'condition[%d]' % (num,)
-        for key, value in node.iteritems():
-            form_data[prefix + '[' + key + ']'] = value
+    if request.POST:
+        for key, value in request.POST.iteritems():
+            form_data[key] = value
+    else:
+        for num, node in enumerate(rule.data.get('conditions', [])):
+            prefix = 'condition[%d]' % (num,)
+            for key, value in node.iteritems():
+                form_data[prefix + '[' + key + ']'] = value
 
-    for num, node in enumerate(rule.data.get('actions', [])):
-        prefix = 'action[%d]' % (num,)
-        for key, value in node.iteritems():
-            form_data[prefix + '[' + key + ']'] = value
-
-    for key, value in request.POST.iteritems():
-        form_data[key] = value
+        for num, node in enumerate(rule.data.get('actions', [])):
+            prefix = 'action[%d]' % (num,)
+            for key, value in node.iteritems():
+                form_data[prefix + '[' + key + ']'] = value
 
     validator = RuleFormValidator(project, form_data)
     if request.POST and validator.is_valid():
