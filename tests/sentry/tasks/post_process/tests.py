@@ -22,7 +22,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_CODE=False):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -33,7 +32,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_CODE=True):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -52,7 +50,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_USERS=False):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -63,7 +60,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_USERS=True):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -94,7 +90,6 @@ class PostProcessGroupTest(TestCase):
         ]
 
         post_process_group(
-            group=group,
             event=event,
             is_new=False,
             is_regression=False,
@@ -106,7 +101,6 @@ class PostProcessGroupTest(TestCase):
         assert not mock_execute_rule.apply_async.called
 
         post_process_group(
-            group=group,
             event=event,
             is_new=True,
             is_regression=False,
@@ -116,7 +110,6 @@ class PostProcessGroupTest(TestCase):
         assert len(mock_execute_rule.apply_async.mock_calls) == 1
 
         post_process_group(
-            group=group,
             event=event,
             is_new=True,
             is_regression=False,

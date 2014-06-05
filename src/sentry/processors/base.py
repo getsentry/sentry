@@ -13,4 +13,4 @@ __all__ = ('send_group_processors',)
 
 
 def send_group_processors(group, event, **kwargs):
-    post_process_group.delay(group=group, event=event, **kwargs)
+    post_process_group.delay(event=event, **kwargs)

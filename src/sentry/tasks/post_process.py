@@ -47,13 +47,13 @@ def get_rules(project):
 
 @instrumented_task(
     name='sentry.tasks.post_process.post_process_group')
-def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs):
+def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     """
     Fires post processing hooks for a group.
     """
     from sentry.models import GroupRuleStatus, Project
 
-    project = Project.objects.get_from_cache(id=group.project_id)
+    project = Project.objects.get_from_cache(id=event.group.project_id)
 
     if settings.SENTRY_ENABLE_EXPLORE_CODE:
         record_affected_code.delay(event=event)
@@ -85,9 +85,9 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
         # TODO(dcramer): this isnt the most efficient query pattern for this
         rule_status, _ = GroupRuleStatus.objects.get_or_create(
             rule=rule,
-            group=group,
+            group=event.group,
             defaults={
-                'project': group.project,
+                'project': project,
                 'status': STATUS_INACTIVE,
             },
         )
