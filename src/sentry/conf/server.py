@@ -310,14 +310,25 @@ CELERYBEAT_SCHEDULE = {
     'check-alerts': {
         'task': 'sentry.tasks.check_alerts',
         'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+            'queue': 'alerts',
+        }
     },
     'check-version': {
         'task': 'sentry.tasks.check_update',
         'schedule': timedelta(hours=1),
+        'options': {
+            'expires': 3600,
+        },
     },
     'flush-buffers': {
         'task': 'sentry.tasks.process_buffer.process_pending',
         'schedule': timedelta(seconds=10),
+        'options': {
+            'expires': 10,
+            'queue': 'counters-0',
+        }
     },
 }
 
