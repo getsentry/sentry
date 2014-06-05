@@ -69,7 +69,7 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
         record_affected_user.delay(group=group, event=event)
 
     for plugin in plugins.for_project(project):
-        plugin_post_process_group.delay(
+        plugin_post_process_group(
             plugin.slug, group=group, **child_kwargs)
 
     for rule in get_rules(project):
@@ -132,7 +132,7 @@ def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs)
             ).update(status=STATUS_INACTIVE)
 
         if passed:
-            execute_rule.delay(
+            execute_rule(
                 rule_id=rule.id,
                 event=event,
                 state=state,
