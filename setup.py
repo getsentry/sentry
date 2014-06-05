@@ -66,11 +66,11 @@ tests_require = [
 
 install_requires = [
     'BeautifulSoup>=3.2.1,<3.3.0',
-    'celery>=3.1.11,<3.2.0',
+    'celery>=3.0.15,<3.1.0',
     'cssutils>=0.9.9,<0.10.0',
     'Django>=1.5.8,<1.6',
     'django-bitfield>=1.7.0,<1.8.0',
-    'django-celery>=3.1.10,<3.2.0',
+    'django-celery>=3.0.11,<3.1.0',
     'django-crispy-forms>=1.2.3,<1.3.0',
     'django-paging>=0.2.5,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
