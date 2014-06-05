@@ -179,6 +179,7 @@ def fetch_url(url):
 
         if result == BAD_SOURCE:
             cache.set(domain_key, 1, timeout)
+            logger.warning('Disabling sources to %s for %ss', domain, timeout)
 
     if result == BAD_SOURCE:
         return result
