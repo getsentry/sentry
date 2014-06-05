@@ -5,6 +5,8 @@ sentry.plugins.bases.notify
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import logging
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -94,11 +96,17 @@ class NotificationPlugin(Plugin):
         if not send_to:
             return False
 
-        return ratelimiter.is_limited(
+        rate_limited = ratelimiter.is_limited(
             project=project,
             key=self.get_conf_key(),
             limit=15,
         )
+
+        if rate_limited:
+            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+            logger.info('Notification dropped due to rate limiting')
+
+        return not rate_limited
 
     def test_configuration(self, project):
         from sentry.utils.samples import create_sample_event
