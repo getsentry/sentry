@@ -279,7 +279,18 @@ CELERY_DEFAULT_EXCHANGE = "default"
 CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
-
+CELERY_IMPORTS = (
+    'sentry.tasks.check_alerts',
+    'sentry.tasks.check_update',
+    'sentry.tasks.cleanup',
+    'sentry.tasks.deletion',
+    'sentry.tasks.email',
+    'sentry.tasks.fetch_source',
+    'sentry.tasks.index',
+    'sentry.tasks.store',
+    'sentry.tasks.post_process',
+    'sentry.tasks.process_buffer',
+)
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
