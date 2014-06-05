@@ -12,12 +12,14 @@ import hashlib
 import re
 import zlib
 import base64
-from os.path import splitext
+
+from django.conf import settings
 from collections import namedtuple
+from os.path import splitext
 from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
 
-from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.http import safe_urlopen
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
@@ -122,7 +124,7 @@ def fetch_url_content(url):
     try:
         req = safe_urlopen(url, headers=[
             ('Accept-Encoding', 'gzip'),
-        ], allow_redirects=True, timeout=SOURCE_FETCH_TIMEOUT)
+        ], allow_redirects=True, timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
         headers = dict(req.headers)
         body = req.read()
         if headers.get('content-encoding') == 'gzip':
