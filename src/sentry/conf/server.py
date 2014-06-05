@@ -596,6 +596,10 @@ SENTRY_CACHE_OPTIONS = {}
 SENTRY_QUOTAS = 'sentry.quotas.Quota'
 SENTRY_QUOTA_OPTIONS = {}
 
+# Rate limiting backend
+SENTRY_RATELIMITER = 'sentry.ratelimits.base.RateLimiter'
+SENTRY_RATELIMITER_OPTIONS = {}
+
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
 

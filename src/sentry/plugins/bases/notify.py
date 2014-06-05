@@ -7,6 +7,8 @@ sentry.plugins.bases.notify
 """
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+
+from sentry.app import ratelimiter
 from sentry.plugins import Plugin
 from sentry.models import UserOption, AccessGroup
 
@@ -92,7 +94,11 @@ class NotificationPlugin(Plugin):
         if not send_to:
             return False
 
-        return True
+        return ratelimiter.is_limited(
+            project=project,
+            key=self.get_conf_key(),
+            limit=15,
+        )
 
     def test_configuration(self, project):
         from sentry.utils.samples import create_sample_event

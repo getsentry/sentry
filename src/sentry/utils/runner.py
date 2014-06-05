@@ -72,7 +72,7 @@ SENTRY_REDIS_OPTIONS = {
 }
 
 ###########
-## CACHE ##
+## Cache ##
 ###########
 
 # If you wish to use memcached, install the dependencies and adjust the config
@@ -101,6 +101,12 @@ SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 
 CELERY_ALWAYS_EAGER = False
 BROKER_URL = 'redis://localhost:6379'
+
+#################
+## Rate Limits ##
+#################
+
+SENTRY_RATELIMITER = 'sentry.ratelimits.redis.RedisRateLimiter'
 
 ####################
 ## Update Buffers ##
