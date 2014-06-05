@@ -23,6 +23,9 @@ def preprocess_event(cache_key=None, data=None, **kwargs):
     if cache_key:
         data = cache.get(cache_key)
 
+    if data is None:
+        return
+
     logger = preprocess_event.get_logger()
 
     try:
@@ -50,6 +53,9 @@ def save_event(cache_key=None, data=None, **kwargs):
 
     if cache_key:
         data = cache.get(cache_key)
+
+    if data is None:
+        return
 
     try:
         Group.objects.save_data(data.pop('project'), data)
