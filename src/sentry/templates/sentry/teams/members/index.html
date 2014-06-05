@@ -23,7 +23,7 @@
         <colgroup>
             <col/>
             <col width="100px"/>
-            <col width="90px"/>
+            <col width="100px"/>
         </colgroup>
         <thead>
             <tr>
@@ -72,14 +72,13 @@
             <colgroup>
                 <col/>
                 <col width="100px"/>
-                <col width="90px"/>
-                <col width="90px"/>
+                <col width="200px"/>
             </colgroup>
             <thead>
                 <tr>
                     <th>{% trans "User" %}</th>
                     <th style="text-align:center">{% trans "Access" %}</th>
-                    <th style="text-align:center" colspan="2">{% trans "Actions" %}</th>
+                    <th style="text-align:center">{% trans "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -93,8 +92,6 @@
                         </td>
                         <td style="text-align:center;">
                             <a href="{% url 'sentry-remove-pending-team-member' team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
-                        </td>
-                        <td style="text-align:center;">
                             <a href="{% url 'sentry-reinvite-pending-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
                         </td>
                     </tr>
