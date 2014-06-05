@@ -38,7 +38,7 @@ def is_valid_url(url):
     return True
 
 
-def safe_urlopen(url, data, headers=(), user_agent='sentry/%s' % sentry.VERSION,
+def safe_urlopen(url, data=None, headers=(), user_agent='sentry/%s' % sentry.VERSION,
                  allow_redirects=False, timeout=30):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
