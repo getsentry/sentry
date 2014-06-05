@@ -130,6 +130,9 @@ class MailPlugin(NotificationPlugin):
     def notify_users(self, group, event, fail_silently=False):
         project = group.project
 
+        if self.is_rate_limited(project):
+            return
+
         interface_list = []
         for interface in event.interfaces.itervalues():
             body = interface.to_email_html(event)

@@ -6,17 +6,22 @@ sentry.plugins.base
 :license: BSD, see LICENSE for more details.
 """
 
-__all__ = ('Plugin', 'plugins', 'register', 'unregister')
+__all__ = ('Plugin', 'RateLimitingMixin', 'plugins', 'register', 'unregister')
 
 import logging
 
+from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
+from nydus.db import create_cluster
+from threading import local
+from time import time
+
+from sentry.quotas.base import RateLimited, NotRateLimited
 from sentry.utils.managers import InstanceManager
 from sentry.utils.safe import safe_execute
-from threading import local
 
 
 class Response(object):
@@ -524,3 +529,126 @@ class Plugin(IPlugin):
     it will happen, or happen more than once.
     """
     __metaclass__ = PluginMount
+
+
+class RateLimitingMixin(object):
+    """
+    A mixin that provides rate limiting capabilities with Redis.
+    """
+    ttl = 60
+
+    def __init__(self, **options):
+        if not options:
+            # inherit default options from REDIS_OPTIONS
+            options = settings.SENTRY_REDIS_OPTIONS
+        options.setdefault('hosts', {0: {}})
+        options.setdefault('router', 'nydus.db.routers.keyvalue.PartitionRouter')
+        self.conn = create_cluster({
+            'engine': 'nydus.db.backends.redis.Redis',
+            'router': options['router'],
+            'hosts': options['hosts'],
+        })
+
+    def is_rate_limited(self, project):
+        proj_quota = self.get_project_quota(project)
+        if project.team:
+            team_quota = self.get_team_quota(project.team)
+        else:
+            team_quota = 0
+        system_quota = self.get_system_quota()
+
+        if not (proj_quota or system_quota or team_quota):
+            return NotRateLimited
+
+        sys_result, team_result, proj_result = self._incr_project(project)
+
+        if proj_quota and proj_result > proj_quota:
+            return RateLimited(retry_after=self.get_time_remaining())
+
+        if team_quota and team_result > team_quota:
+            return RateLimited(retry_after=self.get_time_remaining())
+
+        if system_quota and sys_result > system_quota:
+            return RateLimited(retry_after=self.get_time_remaining())
+
+        return NotRateLimited
+
+    def get_system_key(self):
+        """
+        Implement to provide system-wide rate limits
+        """
+        raise NotImplementedError
+
+    def get_system_quota(self):
+        """
+        Number of events system-wide per minute.
+        0 means no rate limits applied.
+        """
+        return 0
+
+    def get_project_key(self, project):
+        """
+        Implement to provide project-wide rate limits
+        """
+        raise NotImplementedError
+
+    def get_project_quota(self, project):
+        """
+        Number of events per project per minute
+        0 means no rate limits applied.
+        """
+        return 0
+
+    def get_team_key(self, team):
+        """
+        Implement to provide team-wide rate limits
+        """
+        raise NotImplementedError
+
+    def get_team_quota(self, team):
+        """
+        Number of events per minute per team
+        0 means no rate limits applied.
+        """
+        return 0
+
+    def get_time_remaining(self):
+        return int(self.ttl - (time() - int(time() / self.ttl) * self.ttl))
+
+    def _incr_project(self, project):
+        if project.team:
+            try:
+                team_key = self.get_team_key(project.team)
+            except NotImplementedError:
+                team_key = None
+                team_result = 0
+        else:
+            team_key = None
+            team_result = 0
+
+        try:
+            proj_key = self.get_project_key(project)
+        except NotImplementedError:
+            proj_key = None
+            proj_result = 0
+
+        try:
+            sys_key = self.get_system_key()
+        except NotImplementedError:
+            sys_key = None
+            sys_result = 0
+
+        with self.conn.map() as conn:
+            if proj_key:
+                proj_result = conn.incr(proj_key)
+                conn.expire(proj_key, self.ttl)
+
+            if sys_key:
+                sys_result = conn.incr(sys_key)
+                conn.expire(sys_key, self.ttl)
+
+            if team_key:
+                team_result = conn.incr(team_key)
+                conn.expire(team_key, self.ttl)
+
+        return int(sys_result), int(team_result), int(proj_result)
