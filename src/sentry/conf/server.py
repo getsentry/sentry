@@ -298,8 +298,7 @@ def create_partitioned_queues(name):
     for num in range(4):
         CELERY_QUEUES.append(Queue(
             '{0}-{1}'.format(name, num),
-            exchange=Exchange(name, type='direct'),
-            routing_key=name,
+            exchange=Exchange(name, type='direct')
         ))
 
 create_partitioned_queues('counters')
