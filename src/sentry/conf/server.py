@@ -674,6 +674,12 @@ SENTRY_MAX_STACKTRACE_FRAMES = 25
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 
+SENTRY_DISALLOWED_IPS = (
+    '10.0.0.0/8',
+    '172.16.0.0/12',
+    '192.168.0.0/16',
+)
+
 # Configure celery
 import djcelery
 djcelery.setup_loader()

@@ -5,12 +5,12 @@ sentry.utils.http
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import urllib
-from urlparse import urlparse, urljoin
-
-from django.conf import settings
 
 import six
+import urllib
+
+from django.conf import settings
+from urlparse import urlparse, urljoin
 
 
 def absolute_uri(url=None):
