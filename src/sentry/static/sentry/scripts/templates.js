@@ -39,7 +39,7 @@
                 '<ul class="actions">' +
                     '<% if (canResolve) { %>' +
                         '<li>' +
-                            '<a href="#" data-action="resolve">' +
+                            '<a href="#" data-action="resolve" title="Resolve">' +
                                 '<i aria-hidden="true" class="icon-checkmark"></i>' +
                             '</a>' +
                         '</li>' +
