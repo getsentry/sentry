@@ -17,6 +17,7 @@ from collections import namedtuple
 from os.path import splitext
 from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
+from urllib2 import HTTPError
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.http import safe_urlopen, safe_urlread
@@ -135,6 +136,8 @@ def fetch_url(url):
         try:
             request = safe_urlopen(url, allow_redirects=True,
                                    timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
+        except HTTPError:
+            result = BAD_SOURCE
         except Exception:
             # it's likely we've failed due to a timeout, dns, etc so let's
             # ensure we can't cascade the failure by pinning this for 5 minutes
@@ -142,19 +145,15 @@ def fetch_url(url):
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
             return BAD_SOURCE
-
-        try:
-            body = safe_urlread(request)
-        except Exception:
-            result = BAD_SOURCE
         else:
-            result = (dict(request.headers), body)
+            try:
+                body = safe_urlread(request)
+            except Exception:
+                result = BAD_SOURCE
+            else:
+                result = (dict(request.headers), body)
 
-        if result == BAD_SOURCE:
-            timeout = 300
-        else:
-            timeout = 60
-        cache.set(cache_key, result, timeout)
+        cache.set(cache_key, result, 60)
 
     if result == BAD_SOURCE:
         return result
