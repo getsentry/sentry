@@ -121,7 +121,7 @@ def fetch_url(url):
     Attempts to fetch from the cache.
     """
 
-    cache_key = 'fetch_url:v2:%s' % (
+    cache_key = 'source:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is None:
@@ -133,8 +133,8 @@ def fetch_url(url):
             return BAD_SOURCE
 
         try:
-            req = safe_urlopen(url, allow_redirects=True,
-                               timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
+            request = safe_urlopen(url, allow_redirects=True,
+                                   timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
         except Exception:
             # it's likely we've failed due to a timeout, dns, etc so let's
             # ensure we can't cascade the failure by pinning this for 5 minutes
@@ -144,9 +144,11 @@ def fetch_url(url):
             return BAD_SOURCE
 
         try:
-            result = safe_urlread(req)
+            body = safe_urlread(request)
         except Exception:
             result = BAD_SOURCE
+        else:
+            result = (dict(request.headers), body)
 
         if result == BAD_SOURCE:
             timeout = 300
@@ -157,7 +159,7 @@ def fetch_url(url):
     if result == BAD_SOURCE:
         return result
 
-    return UrlResult(*result)
+    return UrlResult(url, *result)
 
 
 def fetch_sourcemap(url):
