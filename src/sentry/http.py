@@ -42,7 +42,10 @@ def is_valid_url(url):
     Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
     """
     parsed = urlparse(url)
-    ip_network = IPNetwork(socket.gethostbyname(parsed.hostname))
+    ip_address = socket.gethostbyname(parsed.hostname)
+    if ip_address is None:
+        return False
+    ip_network = IPNetwork(ip_address)
     for addr in DISALLOWED_IPS:
         if ip_network in addr:
             return False
