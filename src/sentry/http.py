@@ -6,15 +6,26 @@ sentry.utils.http
 :license: BSD, see LICENSE for more details.
 """
 
+import re
 import sentry
 import socket
 import urllib2
+import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from ipaddr import IPNetwork
 from urlparse import urlparse
 
+CHARSET_RE = re.compile(r'charset=(\S+)')
+
+DEFAULT_ENCODING = 'utf-8'
+
+DEFAULT_HEADERS = (
+    ('Accept-Encoding', 'gzip'),
+)
+
+DEFAULT_USER_AGENT = 'sentry/%s' % sentry.VERSION
 
 DISALLOWED_IPS = set((IPNetwork(i) for i in settings.SENTRY_DISALLOWED_IPS))
 
@@ -38,8 +49,9 @@ def is_valid_url(url):
     return True
 
 
-def safe_urlopen(url, data=None, headers=(), user_agent='sentry/%s' % sentry.VERSION,
-                 allow_redirects=False, timeout=30):
+def safe_urlopen(url, data=None, headers=DEFAULT_HEADERS,
+                 user_agent=DEFAULT_USER_AGENT, allow_redirects=False,
+                 timeout=30):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
@@ -59,3 +71,28 @@ def safe_urlopen(url, data=None, headers=(), user_agent='sentry/%s' % sentry.VER
     opener = urllib2.build_opener(*handlers)
 
     return opener.open(req, timeout=timeout)
+
+
+def safe_urlread(request):
+    headers = dict(request.headers)
+
+    body = request.read()
+
+    if headers.get('content-encoding') == 'gzip':
+        # Content doesn't *have* to respect the Accept-Encoding header
+        # and may send gzipped data regardless.
+        # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
+        body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
+
+    try:
+        content_type = headers['content-type']
+    except KeyError:
+        # If there is no content_type header at all, quickly assume default utf-8 encoding
+        encoding = DEFAULT_ENCODING
+    else:
+        try:
+            encoding = CHARSET_RE.search(content_type).group(1)
+        except AttributeError:
+            encoding = DEFAULT_ENCODING
+
+    return body.decode(encoding).rstrip('\n')

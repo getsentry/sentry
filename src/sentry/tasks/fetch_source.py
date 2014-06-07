@@ -10,7 +10,6 @@ import itertools
 import logging
 import hashlib
 import re
-import zlib
 import base64
 
 from django.conf import settings
@@ -20,7 +19,7 @@ from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
 
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.http import safe_urlopen
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 from sentry.utils.strings import truncatechars
@@ -29,8 +28,6 @@ from sentry.utils.strings import truncatechars
 BAD_SOURCE = -1
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
-CHARSET_RE = re.compile(r'charset=(\S+)')
-DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 UNKNOWN_MODULE = '<unknown module>'
@@ -117,41 +114,6 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_url_content(url):
-    """
-    Pull down a URL, returning a tuple (url, headers, body).
-    """
-    try:
-        req = safe_urlopen(url, headers=[
-            ('Accept-Encoding', 'gzip'),
-        ], allow_redirects=True, timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
-        headers = dict(req.headers)
-        body = req.read()
-        if headers.get('content-encoding') == 'gzip':
-            # Content doesn't *have* to respect the Accept-Encoding header
-            # and may send gzipped data regardless.
-            # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
-            body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
-
-        try:
-            content_type = headers['content-type']
-        except KeyError:
-            # If there is no content_type header at all, quickly assume default utf-8 encoding
-            encoding = DEFAULT_ENCODING
-        else:
-            try:
-                encoding = CHARSET_RE.search(content_type).group(1)
-            except AttributeError:
-                encoding = DEFAULT_ENCODING
-
-        body = body.decode(encoding).rstrip('\n')
-    except Exception:
-        logging.info('Failed fetching %r', url, exc_info=True)
-        return BAD_SOURCE
-
-    return (url, headers, body)
-
-
 def fetch_url(url):
     """
     Pull down a URL, returning a UrlResult object.
@@ -170,16 +132,27 @@ def fetch_url(url):
         if domain_result:
             return BAD_SOURCE
 
-        result = fetch_url_content(url)
+        try:
+            req = safe_urlopen(url, allow_redirects=True,
+                               timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
+        except Exception:
+            # it's likely we've failed due to a timeout, dns, etc so let's
+            # ensure we can't cascade the failure by pinning this for 5 minutes
+            cache.set(domain_key, 1, 300)
+            logger.warning('Disabling sources to %s for %ss', domain, 300,
+                           exc_info=True)
+            return BAD_SOURCE
+
+        try:
+            result = safe_urlread(req)
+        except Exception:
+            result = BAD_SOURCE
+
         if result == BAD_SOURCE:
             timeout = 300
         else:
             timeout = 60
         cache.set(cache_key, result, timeout)
-
-        if result == BAD_SOURCE:
-            cache.set(domain_key, 1, timeout)
-            logger.warning('Disabling sources to %s for %ss', domain, timeout)
 
     if result == BAD_SOURCE:
         return result
