@@ -40,7 +40,7 @@ class HttpTest(TestCase):
             url='http://example.com',
             query_string='foo=bar',
             fragment='foobar',
-            headers={'biz': 'baz'},
+            headers={'x-foo-bar': 'baz'},
             cookies={'foo': 'bar'},
             env={'bing': 'bong'},
             data='hello world',
@@ -49,7 +49,7 @@ class HttpTest(TestCase):
         assert result.query_string == 'foo=bar'
         assert result.fragment == 'foobar'
         assert result.cookies == {'foo': 'bar'}
-        assert result.headers == {'biz': 'baz'}
+        assert result.headers == {'X-Foo-Bar': 'baz'}
         assert result.env == {'bing': 'bong'}
         assert result.data == 'hello world'
 
