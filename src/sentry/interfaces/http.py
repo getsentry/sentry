@@ -99,8 +99,11 @@ class Http(Interface):
         headers = data.get('headers')
         if headers:
             headers = format_headers(headers)
-            if 'Cookie' in headers and not cookies:
-                cookies = headers.pop('Cookie')
+            if 'Cookie' in headers:
+                if not cookies:
+                    cookies = headers.pop('Cookie')
+                else:
+                    del headers['Cookie']
             headers = trim_dict(headers)
         else:
             headers = {}
