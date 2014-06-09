@@ -1324,9 +1324,7 @@ ul.traceback {
   }
 }
 .traceback > p {
-  color: #666;
-  font-size: 0.9em;
-  margin-left: 15px;
+
 }
 .traceback > .traceback {
   margin-top: 10px;
@@ -1464,7 +1462,7 @@ ol.context {
     padding-left: 20px;
     font-family: monospace;
     color: rgba(0,0,0,.75);
-    background-color: #f8f8f8;
+    background-color: #f1f2f3;
     line-height: 22px;
     font-size: 12px;
     white-space: pre;
@@ -1472,7 +1470,8 @@ ol.context {
     word-wrap: break-word;
   }
   > li.active {
-    background-color: #dee3e9;
+    background-color: #f1f2f3;
+    
     pre {
       color: @black;
     }
@@ -1483,7 +1482,7 @@ ol.context {
   }
 
   > li:last-child {
-      border-radius: 4px 4px 0 0;
+      border-radius: 0 0 4px 4px;
   }
 
   li.closed {
@@ -1509,11 +1508,32 @@ ol.context-line {
 
 // Generic module stuff
 
-.module {
-  margin-bottom: 20px;
-}
-.module-content table pre {
-  margin-bottom: 0;
+.box {
+  border: 3px solid #f1f2f3;
+  border-radius: 7px;
+  margin: 0 0 30px;
+  .box-header {
+    padding: 10px 14px;
+    border-bottom: 3px solid #f1f2f3;
+    background: lighten(#f1f2f3, 4.4);
+    border-radius: 4px 4px 0 0;
+
+    h3,h4,h5 {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .btn {
+      position: relative;
+      top: -3px;
+      right: -6px;
+    }
+  }
+  .box-content {
+    &.with-padding {
+      padding: 15px 15px 5px;
+    }
+  }
 }
 
 .mini-tag-list {
@@ -1977,18 +1997,6 @@ section.body .page-header:first-child {
   }
 }
 
-
-section.body {
-  textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"], input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input {
-    height: auto;
-    line-height: auto;
-    border: 2px solid #c3c8ce;
-    padding: 6px 8px;
-    font-size: 15px;
-    .box-shadow(inset 0 2px 0 rgba(0,0,0, .04));
-    border-radius: 5px;
-  }
-}
 table.table td input,
 table.table td .select2-container {
   margin-bottom: 0;
@@ -2053,6 +2061,8 @@ table.table td .select2-container {
 
 
 table.table {
+  table-layout: fixed;
+  margin-bottom: 0;
   th {
     vertical-align: top;
   }
@@ -2086,15 +2096,22 @@ table.table, table.vars {
 }
 
 table.vars {
+  margin-top: -5px;
+
+  tr:first-child td, tr:first-child th {
+    border-top: 0 !important;
+  }
+
   td, th {
-    padding: 10px;
+    padding: 10px 0 !important;
     border: 0;
     vertical-align: top;
+    border-top: 2px solid #f1f2f3 !important;
   }
   td table {
     border-top: 0;
-    margin-top: -5px;
-    margin-bottom: -5px;
+    margin-top: -10px;
+    margin-bottom: -10px;
   }
   thead th,
   thead td {
@@ -2102,27 +2119,10 @@ table.vars {
   }
   tbody > tr:nth-child(odd) > td,
   tbody > tr:nth-child(odd) > th {
-    background-color: #F4F6F9;
+    background-color: #fff;
   }
   tbody > tr:nth-child(even) > td,
   tbody > tr:nth-child(even) > th {
-    background-color: #fff;
-  }
-  table.vars {
-    td, th {
-      padding: 5px 10px;
-    }
-
-  }
-}
-
-.table-striped {
-  tbody tr:nth-child(odd) td,
-  tbody tr:nth-child(odd) th {
-    background-color: #F4F6F9;
-  }
-  tbody tr:nth-child(even) td,
-  tbody tr:nth-child(even) th {
     background-color: #fff;
   }
 }

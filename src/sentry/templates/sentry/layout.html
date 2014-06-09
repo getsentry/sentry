@@ -134,7 +134,8 @@
                     {% endblock %}
 
                     {% block content %}
-                        <div class="main">
+                    <div class="row">
+                        <div class="col-xs-9">
                             {% block alerts %}
                                 {% include "sentry/partial/alerts.html" %}
                             {% endblock %}
@@ -143,10 +144,11 @@
                             {% endblock %}
                         </div>
 
-                        <div class="sidebar">
+                        <div class="col-xs-3">
                             {% block sidebar %}
                             {% endblock %}
                         </div>
+                    </div>
                     {% endblock %}
 
                     {% block content_after %}
