@@ -2,19 +2,21 @@
 {% load sentry_helpers %}
 
 {% if tags %}
-    <div id="tags">
-        <div class="page-header">
-            <h2>Tags</h2>
+    <div id="tags" class="box">
+        <div class="box-header">
+            <h3>Tags</h3>
         </div>
-        <ul class="mini-tag-list">
-            {% for tag_key, tag_value in tags %}
-                <li>
-                    <strong>{{ tag_key }}</strong>
-                    <em>=</em>
-                    <span><a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
-                </li>
-            {% endfor %}
-        </ul>
+        <div class="box-content with-padding">
+            <ul class="mini-tag-list">
+                {% for tag_key, tag_value in tags %}
+                    <li>
+                        <strong>{{ tag_key }}</strong>
+                        <em>=</em>
+                        <span><a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
     </div>
 {% endif %}
 
@@ -36,20 +38,22 @@
 {% endif %}
 
 {% if version_data %}
-    <div id="versions">
-        <div class="page-header">
-            <h2>{% trans "Package Versions" %}</h2>
+    <div id="versions" class="box">
+        <div class="box-header">
+            <h3>{% trans "Package Versions" %}</h3>
         </div>
-        <table class="table table-striped">
-            <colgroup>
-                <col style="width:130px">
-            </colgroup>
-            {% for k, v in version_data.iteritems|as_sorted %}
-                <tr>
-                    <th class="key">{{ k }}</th>
-                    <td class="values"><code>{{ v }}</code></td>
-                </tr>
-            {% endfor %}
-        </table>
+        <div class="box-content with-padding">
+            <table class="table table-striped">
+                <colgroup>
+                    <col style="width:130px">
+                </colgroup>
+                {% for k, v in version_data.iteritems|as_sorted %}
+                    <tr>
+                        <th class="key">{{ k }}</th>
+                        <td class="values"><code>{{ v }}</code></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
 {% endif %}

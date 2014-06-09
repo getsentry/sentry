@@ -7,6 +7,8 @@
 
 {% block title %}{% if event %}{{ event.error }}{% else %}{{ group.message }}{% endif %} | {{ block.super }}{% endblock %}
 
+{% block page_header %}{% endblock %}
+
 {% block main %}
     {% handle_before_events request group %}
 
@@ -14,12 +16,12 @@
         <div id="event_list" class="inactive"></div>
     </div>
 
-    <section class="body">
-        {% block inner %}
-            {% with event|get_rendered_interfaces:request as interface_list %}
+    {% block inner %}
+        {% with event|get_rendered_interfaces:request as interface_list %}
 
-                {% if group|has_charts %}
-                    <div class="module">
+            {% if group|has_charts %}
+                <div class="box">
+                    <div class="box-content with-padding">
                         <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-group-stats' group.id %}">
                             <div class="sparkline">
                                 <span class="loading">{% trans "Loading historical data..." %}</span>
@@ -27,9 +29,14 @@
                             </div>
                         </div>
                     </div>
-                {% endif %}
+                </div>
+            {% endif %}
 
-                <div class="activity" id="activity">
+            <div class="box">
+                <div class="box-header">
+                    <h3>Activity</h3>
+                </div>
+                <div class="activity box-content with-padding" id="activity">
                     <ul>
                         {% for item in activity %}
                             {% with item|render_activity as out %}
@@ -49,29 +56,31 @@
                         </fieldset>
                     </form>
                 </div>
+            </div>
 
-                <div class="btn-toolbar event-toolbar">
-                    <!-- We switch the ordering of events here as it makes more sense visually -->
-                    <a class="btn pull-left prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Event" %}</a>
-                    <a class="btn pull-right next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Event" %} <span></span></a>
-                    <h4>
-                    Event at <span title="{{ event.datetime }}">{% localized_datetime event.datetime %}</span> [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
-                </div>
+            <div class="btn-toolbar event-toolbar">
+                <!-- We switch the ordering of events here as it makes more sense visually -->
+                <a class="btn pull-left prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Event" %}</a>
+                <a class="btn pull-right next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Event" %} <span></span></a>
+                <h4>
+                Event at <span title="{{ event.datetime }}">{% localized_datetime event.datetime %}</span> [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
+            </div>
+            {% comment %}
+            {% include "sentry/partial/event_nav.html" %}
+            {% endcomment %}
 
-                {% include "sentry/partial/event_nav.html" %}
+            {% if group.is_muted %}
+                <div class="alert alert-info">This event has been muted. You will not be notified of any changes and it will not show up in the default feed.</div>
+            {% endif %}
 
-                {% if group.is_muted %}
-                    <div class="alert alert-info">This event has been muted. You will not be notified of any changes and it will not show up in the default feed.</div>
-                {% endif %}
+            {% if event.has_two_part_message %}
+                <pre id="full-message">{{ event.message }}</pre>
+            {% endif %}
 
-                {% if event.has_two_part_message %}
-                    <pre id="full-message">{{ event.message }}</pre>
-                {% endif %}
+            {% include "sentry/partial/_event_details.html" %}
+        {% endwith %}
+    {% endblock %}
 
-                {% include "sentry/partial/_event_details.html" %}
-            {% endwith %}
-        {% endblock %}
-    </section>
 {% endblock %}
 
 {% block sidebar %}

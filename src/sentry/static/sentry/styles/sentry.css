@@ -7979,11 +7979,6 @@ ul.traceback {
 .traceback > h3 span {
   font-weight: bold;
 }
-.traceback > p {
-  color: #666;
-  font-size: 0.9em;
-  margin-left: 15px;
-}
 .traceback > .traceback {
   margin-top: 10px;
 }
@@ -8087,7 +8082,7 @@ ol.context > li {
   padding-left: 20px;
   font-family: monospace;
   color: rgba(0, 0, 0, 0.75);
-  background-color: #f8f8f8;
+  background-color: #f1f2f3;
   line-height: 22px;
   font-size: 12px;
   white-space: pre;
@@ -8095,7 +8090,7 @@ ol.context > li {
   word-wrap: break-word;
 }
 ol.context > li.active {
-  background-color: #dee3e9;
+  background-color: #f1f2f3;
 }
 ol.context > li.active pre {
   color: #111111;
@@ -8104,7 +8099,7 @@ ol.context > li:first-child {
   border-radius: 4px 4px 0 0;
 }
 ol.context > li:last-child {
-  border-radius: 4px 4px 0 0;
+  border-radius: 0 0 4px 4px;
 }
 ol.context li.closed {
   border-radius: 4px;
@@ -8118,11 +8113,30 @@ ol.context:hover li.active {
 ol.context-line > li > span {
   float: right;
 }
-.module {
-  margin-bottom: 20px;
+.box {
+  border: 3px solid #f1f2f3;
+  border-radius: 7px;
+  margin: 0 0 30px;
 }
-.module-content table pre {
-  margin-bottom: 0;
+.box .box-header {
+  padding: 10px 14px;
+  border-bottom: 3px solid #f1f2f3;
+  background: #fdfdfd;
+  border-radius: 4px 4px 0 0;
+}
+.box .box-header h3,
+.box .box-header h4,
+.box .box-header h5 {
+  font-size: 14px;
+  margin: 0;
+}
+.box .box-header .btn {
+  position: relative;
+  top: -3px;
+  right: -6px;
+}
+.box .box-content.with-padding {
+  padding: 15px 15px 5px;
 }
 .mini-tag-list {
   padding-left: 0;
@@ -8547,31 +8561,6 @@ section.body .page-header:first-child {
 .empty-message p.links a {
   margin: 0 12px 0 0;
 }
-section.body textarea,
-section.body input[type="text"],
-section.body input[type="password"],
-section.body input[type="datetime"],
-section.body input[type="datetime-local"],
-section.body input[type="date"],
-section.body input[type="month"],
-section.body input[type="time"],
-section.body input[type="week"],
-section.body input[type="number"],
-section.body input[type="email"],
-section.body input[type="url"],
-section.body input[type="search"],
-section.body input[type="tel"],
-section.body input[type="color"],
-section.body .uneditable-input {
-  height: auto;
-  line-height: auto;
-  border: 2px solid #c3c8ce;
-  padding: 6px 8px;
-  font-size: 15px;
-  -webkit-box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04);
-  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04);
-  border-radius: 5px;
-}
 table.table td input,
 table.table td .select2-container {
   margin-bottom: 0;
@@ -8631,6 +8620,10 @@ table.table td .select2-container {
   -webkit-font-smoothing: antialiased;
   content: "\e003";
 }
+table.table {
+  table-layout: fixed;
+  margin-bottom: 0;
+}
 table.table th {
   vertical-align: top;
 }
@@ -8664,16 +8657,24 @@ table.vars td.code > pre {
   border: 0;
   margin-bottom: 0;
 }
+table.vars {
+  margin-top: -5px;
+}
+table.vars tr:first-child td,
+table.vars tr:first-child th {
+  border-top: 0 !important;
+}
 table.vars td,
 table.vars th {
-  padding: 10px;
+  padding: 10px 0 !important;
   border: 0;
   vertical-align: top;
+  border-top: 2px solid #f1f2f3 !important;
 }
 table.vars td table {
   border-top: 0;
-  margin-top: -5px;
-  margin-bottom: -5px;
+  margin-top: -10px;
+  margin-bottom: -10px;
 }
 table.vars thead th,
 table.vars thead td {
@@ -8681,22 +8682,10 @@ table.vars thead td {
 }
 table.vars tbody > tr:nth-child(odd) > td,
 table.vars tbody > tr:nth-child(odd) > th {
-  background-color: #F4F6F9;
+  background-color: #fff;
 }
 table.vars tbody > tr:nth-child(even) > td,
 table.vars tbody > tr:nth-child(even) > th {
-  background-color: #fff;
-}
-table.vars table.vars td,
-table.vars table.vars th {
-  padding: 5px 10px;
-}
-.table-striped tbody tr:nth-child(odd) td,
-.table-striped tbody tr:nth-child(odd) th {
-  background-color: #F4F6F9;
-}
-.table-striped tbody tr:nth-child(even) td,
-.table-striped tbody tr:nth-child(even) th {
   background-color: #fff;
 }
 .activity {
