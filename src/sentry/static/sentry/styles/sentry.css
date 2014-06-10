@@ -6339,7 +6339,7 @@ button.close {
   z-index: 10;
   border: 2px solid #e9eaea;
   background: #ffffff;
-  margin: -1px 0 0 0;
+  margin: -2px 0 0 0;
   border-top: 0 none;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -6371,7 +6371,7 @@ button.close {
   cursor: default;
 }
 .selectize-dropdown .active {
-  background-color: #f7f7f7;
+  background-color: #f1f6f7;
   color: #495c68;
 }
 .selectize-dropdown .active.create {
@@ -6417,6 +6417,14 @@ button.close {
 .selectize-control .selectize-input.disabled {
   opacity: 0.5;
   background-color: #fafafa;
+}
+.selectize-control.form-control {
+  border: 0;
+  padding: 0;
+  height: auto;
+}
+.selectize-dropdown.form-control {
+  padding: 2px 0;
 }
 .highlight .hll {
   background-color: #ffffcc;
@@ -7037,6 +7045,11 @@ footer a:hover {
   color: #333;
 }
 /* =============================  Modules  ============================== */
+.form-control {
+  box-shadow: none;
+  height: auto;
+  border: 2px solid #e9eaea;
+}
 .btn {
   border: 2px solid transparent;
   font-weight: 600;
