@@ -113,56 +113,6 @@
             });
         },
 
-        initFilters: function(){
-            $('.filter').each(_.bind(function(_, el){
-                var $filter = $(el);
-                var $input = $filter.find('input[type=text]');
-                if ($input.length > 0) {
-                    $input.select2({
-                        initSelection: function (el, callback) {
-                            var $el = $(el);
-                            callback({id: $el.val(), text: $el.val()});
-                        },
-                        allowClear: true,
-                        minimumInputLength: 3,
-                        ajax: {
-                            url: app.utils.getSearchTagsUrl(),
-                            dataType: 'json',
-                            data: function (term, page) {
-                                return {
-                                    query: term,
-                                    quietMillis: 300,
-                                    name: $input.attr('name'),
-                                    limit: 10
-                                };
-                            },
-                            results: function (data, page) {
-                                var results = [];
-                                $(data.results).each(function(_, val){
-                                    results.push({
-                                        id: app.utils.escape(val),
-                                        text: app.utils.escape(val)
-                                    });
-                                });
-                                return {results: results};
-                            }
-                        }
-                    });
-                } else {
-                    $input = $filter.find('select').select2({
-                        allowClear: true
-                    });
-                }
-                if ($input.length > 0) {
-                    $input.on('change', function(e){
-                        var query = app.utils.getQueryParams();
-                        query[e.target.name] = e.val;
-                        window.location.href = '?' + $.param(query);
-                    });
-                }
-            }, this));
-        },
-
         updateStreamOptions: function(){
             if (this.options.realtime){
                 $.removeCookie('pausestream');
@@ -660,12 +610,6 @@
     app.NewProjectRulePage = BasePage.extend({
 
         initialize: function(data){
-            var select2_options = {
-                width: 'element',
-                allowClear: false,
-                minimumResultsForSearch: 10
-            };
-
             BasePage.prototype.initialize.apply(this, arguments);
 
             _.bindAll(this, 'addAction', 'addCondition', 'parseFormData');
@@ -706,8 +650,8 @@
                 this.conditions_by_id[condition.id] = condition;
             }, this));
 
-            this.action_sel.select2(select2_options);
-            this.condition_sel.select2(select2_options);
+            this.action_sel.selectize();
+            this.condition_sel.selectize();
 
             this.action_sel.change(_.bind(function(){
                 this.addAction(this.action_sel.val());
@@ -771,20 +715,7 @@
                 row.addClass('error');
             }
 
-            html.find('select').each(function(){
-                var $this = $(this),
-                    options = {
-                        width: 'element',
-                        allowClear: false,
-                        minimumResultsForSearch: 10
-                    };
-
-                if ($this.attr('data-allowClear')) {
-                    options.allowClear = $this.attr('data-allowClear');
-                }
-
-                $this.select2(options);
-            });
+            html.find('select').selectize();
 
             // we need to update the id of all form elements
             html.find('input, select, textarea').each(function(_, el){
@@ -802,7 +733,7 @@
                 return false;
             });
 
-            this.condition_sel.data("select2").clear();
+            this.condition_sel.data("selectize").clear();
             this.condition_table.show();
         },
 
@@ -822,20 +753,7 @@
                 row.addClass('error');
             }
 
-            html.find('select').each(function(){
-                var $this = $(this),
-                    options = {
-                        width: 'element',
-                        allowClear: false,
-                        minimumResultsForSearch: 10
-                    };
-
-                if ($this.attr('data-allowClear')) {
-                    options.allowClear = $this.attr('data-allowClear');
-                }
-
-                $this.select2(options);
-            });
+            html.find('select').selectize();
 
             // we need to update the id of all form elements
             html.find('input, select, textarea').each(function(_, el){
@@ -853,7 +771,7 @@
                 return false;
             });
 
-            this.action_sel.data("select2").clear();
+            this.action_sel.data("selectize").clear();
             this.action_table.show();
         }
 
