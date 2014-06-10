@@ -13,8 +13,9 @@ import logging
 from django.conf import settings
 from hashlib import md5
 
+from sentry.constants import STATUS_ACTIVE, STATUS_INACTIVE
 from sentry.plugins import plugins
-from sentry.rules import rules
+from sentry.rules import EventState, rules
 from sentry.tasks.base import instrumented_task
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
@@ -23,14 +24,14 @@ from sentry.utils.safe import safe_execute
 rules_logger = logging.getLogger('sentry.errors.rules')
 
 
-def condition_matches(project, condition, **kwargs):
+def condition_matches(project, condition, event, state):
     condition_cls = rules.get(condition['id'])
     if condition_cls is None:
         rules_logger.error('Unregistered condition %r', condition['id'])
         return
 
-    condition_inst = condition_cls(project)
-    return safe_execute(condition_inst.passes, **kwargs)
+    condition_inst = condition_cls(project, data=condition)
+    return safe_execute(condition_inst.passes, event, state)
 
 
 def get_rules(project):
@@ -45,62 +46,106 @@ def get_rules(project):
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.post_process_group',
-    queue='triggers')
-def post_process_group(group, event, is_new, is_regression, is_sample, **kwargs):
+    name='sentry.tasks.post_process.post_process_group')
+def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    from sentry.models import Project
+    from sentry.models import GroupRuleStatus, Project
 
-    project = Project.objects.get_from_cache(id=group.project_id)
-
-    child_kwargs = {
-        'event': event,
-        'is_new': is_new,
-        'is_regression': is_regression,
-        'is_sample': is_sample,
-    }
+    project = Project.objects.get_from_cache(id=event.group.project_id)
 
     if settings.SENTRY_ENABLE_EXPLORE_CODE:
-        record_affected_code.delay(group=group, event=event)
+        record_affected_code.delay(event=event)
 
     if settings.SENTRY_ENABLE_EXPLORE_USERS:
-        record_affected_user.delay(group=group, event=event)
+        record_affected_user.delay(event=event)
 
     for plugin in plugins.for_project(project):
-        plugin_post_process_group.delay(
-            plugin.slug, group=group, **child_kwargs)
+        plugin_post_process_group.apply_async(
+            kwargs={
+                'plugin_slug': plugin.slug,
+                'event': event,
+                'is_new': is_new,
+                'is_regresion': is_regression,
+                'is_sample': is_sample,
+            },
+            expires=120,
+        )
 
     for rule in get_rules(project):
         match = rule.data.get('action_match', 'all')
         condition_list = rule.data.get('conditions', ())
+
         if not condition_list:
-            pass
-        elif match == 'all':
-            if not all(condition_matches(project, c, **child_kwargs) for c in condition_list):
-                continue
+            continue
+
+        # TODO(dcramer): this might not make sense for other rule actions
+        # so we should find a way to abstract this into actions
+        # TODO(dcramer): this isnt the most efficient query pattern for this
+        rule_status, _ = GroupRuleStatus.objects.get_or_create(
+            rule=rule,
+            group=event.group,
+            defaults={
+                'project': project,
+                'status': STATUS_INACTIVE,
+            },
+        )
+
+        state = EventState(
+            is_new=is_new,
+            is_regression=is_regression,
+            is_sample=is_sample,
+            rule_is_active=rule_status.status == STATUS_ACTIVE,
+        )
+
+        condition_iter = (
+            condition_matches(project, c, event, state)
+            for c in condition_list
+        )
+
+        passed = True
+        if match == 'all':
+            if not all(condition_iter):
+                passed = False
         elif match == 'any':
-            if not any(condition_matches(project, c, **child_kwargs) for c in condition_list):
-                continue
+            if not any(condition_iter):
+                passed = False
         elif match == 'none':
-            if any(condition_matches(project, c, **child_kwargs) for c in condition_list):
-                continue
+            if any(condition_iter):
+                passed = False
         else:
             rules_logger.error('Unsupported action_match %r for rule %d',
                                match, rule.id)
             continue
 
-        execute_rule.delay(
-            rule_id=rule.id,
-            **child_kwargs
-        )
+        if passed and rule_status.status == STATUS_INACTIVE:
+            # we only fire if we're able to say that the state has changed
+            GroupRuleStatus.objects.filter(
+                id=rule.id,
+                status=STATUS_INACTIVE,
+            ).update(status=STATUS_ACTIVE)
+        elif not passed and rule_status.status == STATUS_ACTIVE:
+            # update the state to suggest this rule can fire again
+            GroupRuleStatus.objects.filter(
+                id=rule.id,
+                status=STATUS_ACTIVE,
+            ).update(status=STATUS_INACTIVE)
+
+        if passed:
+            execute_rule.apply_async(
+                kwargs={
+                    'rule_id': rule.id,
+                    'event': event,
+                    'state': state,
+                },
+                expires=120,
+            )
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.execute_rule',
-    queue='triggers')
-def execute_rule(rule_id, event, **kwargs):
+    name='sentry.tasks.post_process.execute_rule')
+def execute_rule(rule_id, event, state):
     """
     Fires post processing hooks for a rule.
     """
@@ -118,25 +163,23 @@ def execute_rule(rule_id, event, **kwargs):
             continue
 
         action_inst = action_cls(project)
-        safe_execute(action_inst.after, event=event, **kwargs)
+        safe_execute(action_inst.after, event=event, state=state)
 
 
 @instrumented_task(
     name='sentry.tasks.post_process.plugin_post_process_group',
-    queue='triggers',
     stat_suffix=lambda plugin_slug, *a, **k: plugin_slug)
-def plugin_post_process_group(plugin_slug, group, **kwargs):
+def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
     plugin = plugins.get(plugin_slug)
-    safe_execute(plugin.post_process, group=group, **kwargs)
+    safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.record_affected_user',
-    queue='triggers')
-def record_affected_user(group, event, **kwargs):
+    name='sentry.tasks.post_process.record_affected_user')
+def record_affected_user(event, **kwargs):
     from sentry.models import Group
 
     if not settings.SENTRY_ENABLE_EXPLORE_USERS:
@@ -148,7 +191,7 @@ def record_affected_user(group, event, **kwargs):
 
     user_data = event.data.get('sentry.interfaces.User', {})
 
-    Group.objects.add_tags(group, [
+    Group.objects.add_tags(event.group, [
         ('sentry:user', user_ident, {
             'id': user_data.get('id'),
             'email': user_data.get('email'),
@@ -160,9 +203,8 @@ def record_affected_user(group, event, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.post_process.record_affected_code',
-    queue='triggers')
-def record_affected_code(group, event, **kwargs):
+    name='sentry.tasks.post_process.record_affected_code')
+def record_affected_code(event, **kwargs):
     from sentry.models import Group
 
     if not settings.SENTRY_ENABLE_EXPLORE_CODE:
@@ -203,4 +245,4 @@ def record_affected_code(group, event, **kwargs):
                 ))
 
     if tags:
-        Group.objects.add_tags(group, tags)
+        Group.objects.add_tags(event.group, tags)

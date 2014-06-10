@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from mock import Mock, patch
 
 from sentry.models import Group, Rule
+from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.tasks.post_process import (
     execute_rule, post_process_group, record_affected_user,
@@ -21,7 +22,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_CODE=False):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -32,7 +32,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_CODE=True):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -40,7 +39,6 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_record_affected_code.delay.assert_called_once_with(
-            group=group,
             event=event,
         )
 
@@ -52,7 +50,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_USERS=False):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -63,7 +60,6 @@ class PostProcessGroupTest(TestCase):
 
         with self.settings(SENTRY_ENABLE_EXPLORE_USERS=True):
             post_process_group(
-                group=group,
                 event=event,
                 is_new=True,
                 is_regression=False,
@@ -71,7 +67,6 @@ class PostProcessGroupTest(TestCase):
             )
 
         mock_record_affected_user.delay.assert_called_once_with(
-            group=group,
             event=event,
         )
 
@@ -95,30 +90,33 @@ class PostProcessGroupTest(TestCase):
         ]
 
         post_process_group(
-            group=group,
             event=event,
             is_new=False,
             is_regression=False,
             is_sample=False,
         )
 
-        assert not mock_execute_rule.delay.called
+        mock_get_rules.assert_called_once_with(self.project)
+
+        assert not mock_execute_rule.apply_async.called
 
         post_process_group(
-            group=group,
             event=event,
             is_new=True,
             is_regression=False,
             is_sample=False,
         )
 
-        mock_execute_rule.delay.assert_called_once_with(
-            rule_id=1,
+        assert len(mock_execute_rule.apply_async.mock_calls) == 1
+
+        post_process_group(
             event=event,
             is_new=True,
             is_regression=False,
             is_sample=False,
         )
+
+        assert len(mock_execute_rule.apply_async.mock_calls) == 2
 
 
 class ExecuteRuleTest(TestCase):
@@ -135,12 +133,17 @@ class ExecuteRuleTest(TestCase):
             }
         )
 
-        execute_rule(
-            rule_id=rule.id,
-            event=event,
+        state = EventState(
             is_new=True,
             is_regression=False,
             is_sample=True,
+            rule_is_active=False,
+        )
+
+        execute_rule(
+            rule_id=rule.id,
+            event=event,
+            state=state,
         )
 
         mock_rules.get.assert_called_once_with('a.rule.id')
@@ -148,9 +151,7 @@ class ExecuteRuleTest(TestCase):
         mock_rule_inst.assert_called_once_with(self.project)
         mock_rule_inst.return_value.after.assert_called_once_with(
             event=event,
-            is_new=True,
-            is_regression=False,
-            is_sample=True,
+            state=state,
         )
 
 
@@ -163,7 +164,7 @@ class RecordAffectedUserTest(TestCase):
         })
 
         with patch.object(Group.objects, 'add_tags') as add_tags:
-            record_affected_user(group=event.group, event=event)
+            record_affected_user(event=event)
 
             add_tags.assert_called_once(event.group, [
                 ('sentry:user', 'email:foo@example.com', {
@@ -194,7 +195,7 @@ class RecordAffectedCodeTest(TestCase):
         })
 
         with patch.object(Group.objects, 'add_tags') as add_tags:
-            record_affected_code(group=event.group, event=event)
+            record_affected_code(event=event)
 
             add_tags.assert_called_once_with(event.group, [
                 ('sentry:filename', '1effb24729ae4c43efa36b460511136a', {

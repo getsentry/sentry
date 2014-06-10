@@ -19,7 +19,6 @@
         <colgroup>
             <col/>
             <col width="100px"/>
-            <col width="100px"/>
         </colgroup>
         <thead>
             <tr>
@@ -31,7 +30,11 @@
             {% for key in key_list %}
                 <tr>
                     <td>
-                        <strong>{{ key.public_key }}</strong> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}<br>
+                        {% if key.label %}
+                            <a href="{% url 'sentry-edit-project-key' project.team.slug project.slug key.id %}">{{ key.label }}</a>
+                        {% else %}
+                            <a href="{% url 'sentry-edit-project-key' project.team.slug project.slug key.id %}">{{ key.public_key }}</a> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}
+                        {% endif %}<br>
                         <code class="clippy">{{ key.dsn_private }}</code><br>
                         {% if key.user_added %}
                             <small>Added by {{ key.user_added.email }} ({{ key.date_added|timesince }})</small>

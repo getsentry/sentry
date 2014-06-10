@@ -18,6 +18,13 @@ from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 
 
+def format_headers(value):
+    return dict(
+        (k.title(), v)
+        for k, v in value.iteritems()
+    )
+
+
 class Http(Interface):
     """
     The Request information is stored in the Http interface. Two arguments
@@ -91,8 +98,12 @@ class Http(Interface):
         # strip them out
         headers = data.get('headers')
         if headers:
-            if 'Cookie' in headers and not cookies:
-                cookies = headers.pop('Cookie')
+            headers = format_headers(headers)
+            if 'Cookie' in headers:
+                if not cookies:
+                    cookies = headers.pop('Cookie')
+                else:
+                    del headers['Cookie']
             headers = trim_dict(headers)
         else:
             headers = {}

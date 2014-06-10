@@ -5,8 +5,12 @@ sentry.plugins.bases.notify
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import logging
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+
+from sentry.app import ratelimiter
 from sentry.plugins import Plugin
 from sentry.models import UserOption, AccessGroup
 
@@ -92,20 +96,22 @@ class NotificationPlugin(Plugin):
         if not send_to:
             return False
 
-        # TODO(dcramer): remove this in favor of rules
-        allowed_tags = project.get_option('notifcation:tags', {})
-        if allowed_tags:
-            tags = event.data.get('tags', ())
-            if not tags:
-                return False
-            if not any(v in allowed_tags.get(k, ()) for k, v in tags):
-                return False
-        return True
+        rate_limited = ratelimiter.is_limited(
+            project=project,
+            key=self.get_conf_key(),
+            limit=15,
+        )
+
+        if rate_limited:
+            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+            logger.info('Notification for project %s dropped due to rate limiting', project.id)
+
+        return not rate_limited
 
     def test_configuration(self, project):
         from sentry.utils.samples import create_sample_event
         event = create_sample_event(project, default='python')
-        return self.post_process(event.group, event, is_new=True, is_sample=False)
+        return self.notify_users(event.group, event, fail_silently=False)
 
 
 # Backwards-compatibility

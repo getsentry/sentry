@@ -21,8 +21,7 @@ from django.utils import timezone
 
 from sentry import app
 from sentry.constants import (
-    SORT_OPTIONS, MEMBER_USER, MAX_JSON_RESULTS, DEFAULT_SORT_OPTION,
-    EVENTS_PER_PAGE
+    SORT_OPTIONS, MEMBER_USER, DEFAULT_SORT_OPTION, EVENTS_PER_PAGE
 )
 from sentry.db.models import create_or_update
 from sentry.models import (
@@ -94,17 +93,35 @@ def _get_group_list(request, project):
 
     # HACK(dcramer): this should be removed once the pagination component
     # is abstracted from the paginator tag
-    query_kwargs['limit'] = EVENTS_PER_PAGE + 2
+    try:
+        page = int(request.GET.get('p', 1))
+    except (ValueError, TypeError):
+        page = 1
+
+    query_kwargs['offset'] = (page - 1) * EVENTS_PER_PAGE
+    query_kwargs['limit'] = EVENTS_PER_PAGE + 1
 
     results = app.search.query(**query_kwargs)
 
+    if len(results) == query_kwargs['limit']:
+        next_page = page + 1
+    else:
+        next_page = None
+
+    if page > 1:
+        prev_page = page - 1
+    else:
+        prev_page = None
+
     return {
-        'event_list': results,
+        'event_list': results[:EVENTS_PER_PAGE],
         'date_from': date_from,
         'date_to': date_to,
         'today': today,
         'sort': sort_by,
         'date_type': date_filter,
+        'previous_page': prev_page,
+        'next_page': next_page,
     }
 
 
@@ -231,6 +248,11 @@ def group_list(request, team, project):
 
     has_realtime = page == 1
 
+    query_dict = request.GET.copy()
+    if 'p' in query_dict:
+        del query_dict['p']
+    pageless_query_string = query_dict.urlencode()
+
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'project': project,
@@ -239,8 +261,11 @@ def group_list(request, team, project):
         'date_type': response['date_type'],
         'has_realtime': has_realtime,
         'event_list': response['event_list'],
+        'previous_page': response['previous_page'],
+        'next_page': response['next_page'],
         'today': response['today'],
         'sort': response['sort'],
+        'pageless_query_string': pageless_query_string,
         'sort_label': sort_label,
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
@@ -269,12 +294,6 @@ def group(request, team, project, group, event_id=None):
     else:
         add_note_form = NewNoteForm()
 
-    activity_qs = Activity.objects.order_by('-datetime').select_related('user')
-    # if event_id:
-    #     activity_qs = activity_qs.filter(
-    #         Q(event=event) | Q(event__isnull=True),
-    #     )
-
     if project in Project.objects.get_for_user(
             request.user, team=team, superuser=False):
         # update that the user has seen this group
@@ -288,10 +307,14 @@ def group(request, team, project, group, event_id=None):
             }
         )
 
+    activity_qs = Activity.objects.filter(
+        group=group,
+    ).order_by('-datetime').select_related('user')
+
     # filter out dupe activity items
     activity_items = set()
     activity = []
-    for item in activity_qs.filter(group=group)[:20]:
+    for item in activity_qs[:20]:
         sig = (item.event_id, item.type, item.ident, item.user_id)
         # TODO: we could just generate a signature (hash(text)) for notes
         # so there's no special casing
@@ -390,25 +413,6 @@ def group_event_list(request, team, project, group):
         'event_list': event_list,
         'page': 'event_list',
     }, request)
-
-
-@has_access(MEMBER_USER)
-def group_event_list_json(request, team, project, group_id):
-    group = get_object_or_404(Group, id=group_id, project=project)
-
-    limit = request.GET.get('limit', MAX_JSON_RESULTS)
-    try:
-        limit = int(limit)
-    except ValueError:
-        return HttpResponse('non numeric limit', status=400, mimetype='text/plain')
-    if limit > MAX_JSON_RESULTS:
-        return HttpResponse("too many objects requested", mimetype='text/plain', status=400)
-
-    events = group.event_set.order_by('-id')[:limit]
-
-    Event.objects.bind_nodes(events, 'data')
-
-    return HttpResponse(json.dumps([event.as_dict() for event in events]), mimetype='application/json')
 
 
 @has_access(MEMBER_USER)

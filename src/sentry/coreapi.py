@@ -21,7 +21,7 @@ from django.utils.encoding import smart_str
 
 import six
 
-from sentry.app import env
+from sentry.app import cache, env
 from sentry.constants import (
     DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH)
@@ -235,6 +235,8 @@ def process_data_timestamp(data, current_datetime=None):
     if data['timestamp'] < current_datetime - timedelta(days=30):
         raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
 
+    data['timestamp'] = float(data['timestamp'].strftime('%s'))
+
     return data
 
 
@@ -403,4 +405,6 @@ def ensure_has_ip(data, ip_address):
 
 
 def insert_data_to_database(data):
-    preprocess_event.delay(data=data)
+    cache_key = 'e:{0}'.format(data['event_id'])
+    cache.set(cache_key, data, timeout=3600)
+    preprocess_event.delay(cache_key=cache_key)

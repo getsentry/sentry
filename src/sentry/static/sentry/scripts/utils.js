@@ -157,57 +157,6 @@
             }, this), {
                 escapeMarkup: function(s) { return s; }
             });
-        },
-
-        makeSearchableTagsInput: function(el, options) {
-            var $el = $(el);
-            $el.select2({
-                multiple: true,
-                tokenSeperators: [","],
-                minimumInputLength: 3,
-                allowClear: true,
-                width: 'element',
-                initSelection: function (el, callback) {
-                    var $el = $(el);
-                    var values = $el.val().split(',');
-                    var results = [];
-                    $.each(values, function(_, val) {
-                        if (val === '') return;
-                        results.push({id: val, text: val});
-                    });
-                    callback(results);
-                },
-                ajax: {
-                    url: this.getSearchTagsUrl(),
-                    dataType: 'json',
-                    data: function (term, page) {
-                        return {
-                            query: term,
-                            quietMillis: 300,
-                            name: $el.data('tag'),
-                            limit: 10
-                        };
-                    },
-                    results: function(data, page) {
-                        var results = [];
-
-                        $(data.results).each(function(_, val){
-                            results.push({
-                                id: val,
-                                text: val
-                            });
-                        });
-
-                        if (data.query && $(results).filter(function(){
-                            return this.id.localeCompare(data.query) === 0;
-                        }).length === 0) {
-                            results.push({id:data.query, text:data.query});
-                        }
-
-                        return {results: results};
-                    }
-                }
-            });
         }
 
     };
