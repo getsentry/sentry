@@ -5,38 +5,7 @@
 {% load sentry_plugins %}
 {% load sentry_stream_filters %}
 
-{% block sidebar %}
-    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-project-stats' project.id %}" data-days="1">
-        <div class="sparkline">
-            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-            <span class="loading">{% trans "Loading historical data..." %}</span>
-        </div>
-    </div>
-
-    <form method="get">
-        {% if request.user.is_authenticated %}
-            {% querystring from request without bookmarks as bookmark_querystring %}
-            <h6>{% trans "Bookmarks" %}</h6>
-            <div class="filter">
-                <ul class="nav nav-tabs nav-stacked filter-list">
-                    <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
-                    <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
-                </ul>
-            </div>
-        {% endif %}
-
-        {% for filter in project|get_filters:request %}
-            {% if filter.show_label %}
-                <h6>{% trans filter.label %}</h6>
-            {% endif %}
-            <div class="filter">
-                {{ filter.render }}
-            </div>
-        {% endfor %}
-    </form>
-{% endblock %}
-
-{% block main %}
+{% block content %}
     {% querystring from request without sort as sort_querystring %}
     {% querystring from request without since as since_querystring %}
 
