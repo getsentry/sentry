@@ -5,6 +5,7 @@
 {% load sentry_plugins %}
 {% load sentry_stream_filters %}
 
+
 {% block content %}
     {% querystring from request without sort as sort_querystring %}
     {% querystring from request without since as since_querystring %}

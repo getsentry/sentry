@@ -1,4 +1,4 @@
-{% extends "sentry/groups/group_list.html" %}
+{% extends "sentry/bases/stream.html" %}
 
 {% load i18n %}
 {% load sentry_activity %}
@@ -17,10 +17,6 @@
 
 {% block main %}
     {% handle_before_events request group %}
-
-    <div id="details">
-        <div id="event_list" class="inactive"></div>
-    </div>
 
     {% block inner %}
         {% with event|get_rendered_interfaces:request as interface_list %}
