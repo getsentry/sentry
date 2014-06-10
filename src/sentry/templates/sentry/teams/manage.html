@@ -10,46 +10,50 @@
 {% block bodyclass %}{% endblock %}
 
 {% block main %}
-    <section class="body">
-        {% block inner %}
-            <div class="page-header">
-                <h2>{% trans "Team Details" %}</h2>
-            </div>
-            <form class="form-stacked" action="" method="post">
-                {% csrf_token %}
 
-                {% if form.errors %}
-                    <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-                {% endif %}
+  {% block inner %}
+  <div class="box">
+      <div class="box-header">
+          <h3>{% trans "Team Details" %}</h3>
+      </div>
+      <div class="box-content with-padding">
+          <form class="form-stacked" action="" method="post">
+              {% csrf_token %}
 
-                {{ form|as_crispy_errors }}
+              {% if form.errors %}
+                  <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+              {% endif %}
 
-                <fieldset>
-                    {% for field in form %}
-                        {% if field.name != 'owner' %}
-                            {{ field|as_crispy_field }}
-                        {% endif %}
-                    {% endfor %}
-                </fieldset>
+              {{ form|as_crispy_errors }}
 
-                {% if form.owner %}
-                    <fieldset>
-                        <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
-                        {{ form.owner|as_crispy_field }}
-                    </fieldset>
-                {% endif %}
+              <fieldset>
+                  {% for field in form %}
+                      {% if field.name != 'owner' %}
+                          {{ field|as_crispy_field }}
+                      {% endif %}
+                  {% endfor %}
+              </fieldset>
 
-                <fieldset class="form-actions">
-                    <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-                    {% if can_remove_team %}
-                        <a href="{% url 'sentry-remove-team' team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
-                    {% else %}
-                        <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
-                    {% endif %}
-                </fieldset>
-            </form>
-        {% endblock %}
-    </section>
+              {% if form.owner %}
+                  <fieldset>
+                      <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
+                      {{ form.owner|as_crispy_field }}
+                  </fieldset>
+              {% endif %}
+
+              <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                  {% if can_remove_team %}
+                      <a href="{% url 'sentry-remove-team' team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
+                  {% else %}
+                      <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
+                  {% endif %}
+              </div>
+          </form>
+      </div>
+  </div>
+  {% endblock %}
+
 
     <script type="text/javascript">
     new app.TeamDetailsPage();

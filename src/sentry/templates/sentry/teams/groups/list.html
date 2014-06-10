@@ -4,19 +4,21 @@
 {% load sentry_helpers %}
 
 {% block sidebar %}
-    <h6>{% trans "About Access Groups" %}</h6>
+    <h4>{% trans "About Access Groups" %}</h4>
     <p>{% blocktrans %}This page lists access groups within your team. An access group is an alternative to using team-wide membership, which allows you to restrict access to only specific projects.{% endblocktrans %}</p>
 {% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}
 
 {% block inner %}
-    <div class="page-header">
+<div class="box">
+    <div class="box-header">
         {% if can_add_group %}
-            <a href="{% url 'sentry-new-access-group' team.slug %}" class="btn pull-right btn-primary">{% trans "New Access Group" %}</a>
+            <a href="{% url 'sentry-new-access-group' team.slug %}" class="btn pull-right btn-primary btn-sm">{% trans "New Access Group" %}</a>
         {% endif %}
-        <h2>{% trans "Access Groups" %}</h2>
+        <h3>{% trans "Access Groups" %}</h3>
     </div>
+    <div class="box-content with-padding">
     {% if group_list %}
         <table class="table table-striped">
             <colgroup>
@@ -44,4 +46,6 @@
     {% else %}
         <p>{% trans "You have not created any access groups yet." %}</p>
     {% endif %}
+    </div>
+</div>
 {% endblock %}
