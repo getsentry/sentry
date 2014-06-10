@@ -6,6 +6,7 @@
   },
   "private": true,
   "dependencies": {
-    "bootstrap": "~3.1.1"
+    "bootstrap": "~3.1.1",
+    "selectize": "~0.10.1"
   }
 }
