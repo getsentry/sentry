@@ -22,9 +22,9 @@ class CheckAlertsTest(BaseTestCase):
 
         check_alerts()
 
-        check_project_alerts.delay.assert_any_call(
-            project_id=project.id,
-            expires=120
+        check_project_alerts.apply_async.assert_any_call(
+            kwargs=dict(project_id=project.id),
+            expires=120,
         )
 
 

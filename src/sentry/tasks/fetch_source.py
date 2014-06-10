@@ -10,15 +10,17 @@ import itertools
 import logging
 import hashlib
 import re
-import urllib2
-import zlib
 import base64
-from os.path import splitext
-from collections import namedtuple
-from simplejson import JSONDecodeError
-from urlparse import urljoin, urlsplit
 
-from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
+from django.conf import settings
+from collections import namedtuple
+from os.path import splitext
+from simplejson import JSONDecodeError
+from urlparse import urlparse, urljoin, urlsplit
+from urllib2 import HTTPError
+
+from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 from sentry.utils.strings import truncatechars
@@ -27,8 +29,6 @@ from sentry.utils.strings import truncatechars
 BAD_SOURCE = -1
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
-CHARSET_RE = re.compile(r'charset=(\S+)')
-DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 UNKNOWN_MODULE = '<unknown module>'
@@ -115,46 +115,6 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_url_content(url):
-    """
-    Pull down a URL, returning a tuple (url, headers, body).
-    """
-    import sentry
-
-    try:
-        opener = urllib2.build_opener()
-        opener.addheaders = [
-            ('Accept-Encoding', 'gzip'),
-            ('User-Agent', 'Sentry/%s' % sentry.VERSION),
-        ]
-        req = opener.open(url, timeout=SOURCE_FETCH_TIMEOUT)
-        headers = dict(req.headers)
-        body = req.read()
-        if headers.get('content-encoding') == 'gzip':
-            # Content doesn't *have* to respect the Accept-Encoding header
-            # and may send gzipped data regardless.
-            # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
-            body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
-
-        try:
-            content_type = headers['content-type']
-        except KeyError:
-            # If there is no content_type header at all, quickly assume default utf-8 encoding
-            encoding = DEFAULT_ENCODING
-        else:
-            try:
-                encoding = CHARSET_RE.search(content_type).group(1)
-            except AttributeError:
-                encoding = DEFAULT_ENCODING
-
-        body = body.decode(encoding).rstrip('\n')
-    except Exception:
-        logging.info('Failed fetching %r', url, exc_info=True)
-        return BAD_SOURCE
-
-    return (url, headers, body)
-
-
 def fetch_url(url):
     """
     Pull down a URL, returning a UrlResult object.
@@ -162,18 +122,43 @@ def fetch_url(url):
     Attempts to fetch from the cache.
     """
 
-    cache_key = 'fetch_url:v2:%s' % (
+    cache_key = 'source:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is None:
-        result = fetch_url_content(url)
+        # lock down domains that are problematic
+        domain = urlparse(url).netloc
+        domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
+        domain_result = cache.get(domain_key)
+        if domain_result:
+            return BAD_SOURCE
 
-        cache.set(cache_key, result, 30)
+        try:
+            request = safe_urlopen(url, allow_redirects=True,
+                                   timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
+        except HTTPError:
+            result = BAD_SOURCE
+        except Exception:
+            # it's likely we've failed due to a timeout, dns, etc so let's
+            # ensure we can't cascade the failure by pinning this for 5 minutes
+            cache.set(domain_key, 1, 300)
+            logger.warning('Disabling sources to %s for %ss', domain, 300,
+                           exc_info=True)
+            return BAD_SOURCE
+        else:
+            try:
+                body = safe_urlread(request)
+            except Exception:
+                result = BAD_SOURCE
+            else:
+                result = (dict(request.headers), body)
+
+        cache.set(cache_key, result, 60)
 
     if result == BAD_SOURCE:
         return result
 
-    return UrlResult(*result)
+    return UrlResult(url, *result)
 
 
 def fetch_sourcemap(url):

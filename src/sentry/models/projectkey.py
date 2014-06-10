@@ -23,15 +23,16 @@ from sentry.db.models import (
 
 class ProjectKey(Model):
     project = models.ForeignKey('sentry.Project', related_name='key_set')
+    label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     roles = BitField(flags=(
         # access to post events to the store endpoint
-        'store',
+        ('store', 'Event API access'),
 
         # read/write access to rest API
-        'api',
+        ('api', 'Web API access'),
     ), default=['store'])
 
     # For audits

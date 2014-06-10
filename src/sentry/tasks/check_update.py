@@ -13,8 +13,8 @@ import logging
 
 from simplejson import JSONDecodeError
 
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
 
 PYPI_URL = 'https://pypi.python.org/pypi/sentry/json'
 
@@ -28,17 +28,17 @@ def check_update():
     """
     from sentry.receivers import set_sentry_version
 
-    result = fetch_url_content(PYPI_URL)
-
-    if result == BAD_SOURCE:
+    try:
+        request = safe_urlopen(PYPI_URL)
+        result = safe_urlread(request)
+    except Exception:
+        logger.warning('Failed update info of latest version Sentry', exc_info=True)
         return
 
     try:
-        (_, _, body) = result
-
-        version = json.loads(body)['info']['version']
+        version = json.loads(result)['info']['version']
         set_sentry_version(version)
     except JSONDecodeError:
         logger.warning('Failed parsing data json from PYPI')
     except Exception:
-        logger.warning('Failed update info of latest version Sentry')
+        logger.warning('Failed update info of latest version Sentry', exc_info=True)

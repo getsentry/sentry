@@ -87,7 +87,7 @@ class ProcessDataTimestampTest(BaseAPITest):
             'timestamp': '2012-01-01T10:30:45'
         }, current_datetime=d)
         self.assertTrue('timestamp' in data)
-        self.assertEquals(data['timestamp'], d)
+        self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_iso_timestamp_with_ms(self):
         d = datetime(2012, 01, 01, 10, 30, 45, 434000)
@@ -95,7 +95,7 @@ class ProcessDataTimestampTest(BaseAPITest):
             'timestamp': '2012-01-01T10:30:45.434'
         }, current_datetime=d)
         self.assertTrue('timestamp' in data)
-        self.assertEquals(data['timestamp'], d)
+        self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_timestamp_iso_timestamp_with_Z(self):
         d = datetime(2012, 01, 01, 10, 30, 45)
@@ -103,7 +103,7 @@ class ProcessDataTimestampTest(BaseAPITest):
             'timestamp': '2012-01-01T10:30:45Z'
         }, current_datetime=d)
         self.assertTrue('timestamp' in data)
-        self.assertEquals(data['timestamp'], d)
+        self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_invalid_timestamp(self):
         self.assertRaises(InvalidTimestamp, process_data_timestamp, {

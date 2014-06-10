@@ -44,7 +44,8 @@ class Event(Model):
         db_table = 'sentry_message'
         verbose_name = _('message')
         verbose_name_plural = _('messages')
-        unique_together = ('project', 'event_id')
+        unique_together = (('project', 'event_id'),)
+        index_together = (('group', 'datetime'),)
 
     __repr__ = sane_repr('project_id', 'group_id', 'checksum')
 

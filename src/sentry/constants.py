@@ -45,6 +45,9 @@ SEARCH_SORT_OPTIONS = SortedDict((
 STATUS_VISIBLE = 0
 STATUS_HIDDEN = 1
 
+STATUS_ACTIVE = 0
+STATUS_INACTIVE = 1
+
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_MUTED = 2
@@ -155,9 +158,6 @@ DEFAULT_LOGGER_NAME = 'root'
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 
-# The maximum number of events which can be requested as JSON
-MAX_JSON_RESULTS = 1000
-
 # Default paginator value
 EVENTS_PER_PAGE = 15
 
@@ -167,9 +167,6 @@ DEFAULT_SORT_OPTION = 'date'
 # Setup languages for only available locales
 LANGUAGE_MAP = dict(settings.LANGUAGES)
 LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
-
-# Timeout (in seconds) for fetching remote source files (e.g. JS)
-SOURCE_FETCH_TIMEOUT = 5
 
 # TODO(dcramer): We eventually want to make this user-editable
 TAG_LABELS = {
@@ -189,6 +186,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+    'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
 )
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH

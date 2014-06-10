@@ -264,7 +264,7 @@ SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Ke
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 
 # Queue configuration
-from kombu import Queue
+from kombu import Exchange, Queue
 
 BROKER_URL = "django://"
 
@@ -279,31 +279,67 @@ CELERY_DEFAULT_EXCHANGE = "default"
 CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
-CELERY_QUEUES = (
+CELERY_IMPORTS = (
+    'sentry.tasks.check_alerts',
+    'sentry.tasks.check_update',
+    'sentry.tasks.cleanup',
+    'sentry.tasks.deletion',
+    'sentry.tasks.email',
+    'sentry.tasks.fetch_source',
+    'sentry.tasks.index',
+    'sentry.tasks.store',
+    'sentry.tasks.post_process',
+    'sentry.tasks.process_buffer',
+)
+CELERY_QUEUES = [
     Queue('default', routing_key='default'),
-    Queue('celery', routing_key='celery'),
     Queue('alerts', routing_key='alerts'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('sourcemaps', routing_key='sourcemaps'),
     Queue('search', routing_key='search'),
-    Queue('counters', routing_key='counters'),
     Queue('events', routing_key='events'),
-    Queue('triggers', routing_key='triggers'),
     Queue('update', routing_key='update'),
     Queue('email', routing_key='email'),
-)
+]
+
+CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
+
+
+def create_partitioned_queues(name):
+    exchange = Exchange(name, type='direct')
+    for num in range(1):
+        CELERY_QUEUES.append(Queue(
+            '{0}-{1}'.format(name, num),
+            exchange=exchange,
+        ))
+
+create_partitioned_queues('counters')
+create_partitioned_queues('triggers')
+
+
 CELERYBEAT_SCHEDULE = {
     'check-alerts': {
         'task': 'sentry.tasks.check_alerts',
         'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+            'queue': 'alerts',
+        }
     },
     'check-version': {
         'task': 'sentry.tasks.check_update',
         'schedule': timedelta(hours=1),
+        'options': {
+            'expires': 3600,
+        },
     },
     'flush-buffers': {
         'task': 'sentry.tasks.process_buffer.process_pending',
         'schedule': timedelta(seconds=10),
+        'options': {
+            'expires': 10,
+            'queue': 'counters-0',
+        }
     },
 }
 
@@ -576,9 +612,17 @@ SENTRY_REDIS_OPTIONS = {}
 SENTRY_BUFFER = 'sentry.buffer.Buffer'
 SENTRY_BUFFER_OPTIONS = {}
 
+# Cache backend
+SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
+SENTRY_CACHE_OPTIONS = {}
+
 # Quota backend
 SENTRY_QUOTAS = 'sentry.quotas.Quota'
 SENTRY_QUOTA_OPTIONS = {}
+
+# Rate limiting backend
+SENTRY_RATELIMITER = 'sentry.ratelimits.base.RateLimiter'
+SENTRY_RATELIMITER_OPTIONS = {}
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
@@ -631,6 +675,28 @@ SENTRY_MAX_STACKTRACE_FRAMES = 25
 
 # Gravatar service base url
 SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
+
+# Timeout (in seconds) for fetching remote source files (e.g. JS)
+SENTRY_SOURCE_FETCH_TIMEOUT = 5
+
+# http://en.wikipedia.org/wiki/Reserved_IP_addresses
+SENTRY_DISALLOWED_IPS = (
+    '0.0.0.0/8',
+    '10.0.0.0/8',
+    '100.64.0.0/10',
+    '127.0.0.0/8',
+    '169.254.0.0/16',
+    '172.16.0.0/12',
+    '192.0.0.0/29',
+    '192.0.2.0/24',
+    '192.88.99.0/24',
+    '192.168.0.0/16',
+    '198.18.0.0/15',
+    '198.51.100.0/24',
+    '224.0.0.0/4',
+    '240.0.0.0/4',
+    '255.255.255.255/32',
+)
 
 # Configure celery
 import djcelery

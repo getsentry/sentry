@@ -16,7 +16,7 @@ from sentry.utils.safe import safe_execute
 class NotifyEventAction(EventAction):
     label = 'Send a notification'
 
-    def after(self, event, **kwargs):
+    def after(self, event, state):
         from sentry.plugins.bases.notify import NotificationPlugin
 
         group = event.group

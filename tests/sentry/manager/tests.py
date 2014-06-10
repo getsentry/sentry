@@ -2,10 +2,8 @@
 
 from __future__ import absolute_import
 
-import datetime
 import mock
 
-from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.manager import get_checksum_from_event
 from sentry.models import (
@@ -42,15 +40,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.group.last_seen, event.datetime)
         self.assertEquals(event.message, 'foo')
         self.assertEquals(event.project_id, 1)
-
-    def test_valid_timestamp_without_tz(self):
-        # TODO: this doesn't error, but it will throw a warning. What should we do?
-        with self.settings(USE_TZ=True):
-            date = datetime.datetime.utcnow()
-            event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
-            self.assertEquals(event.message, 'foo')
-            self.assertEquals(event.project_id, 1)
-            self.assertEquals(event.datetime, date.replace(tzinfo=timezone.utc))
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')

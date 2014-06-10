@@ -91,9 +91,19 @@ class BaseTSDB(object):
 
         Both ``start`` and ``end`` are inclusive.
 
+        Returns a mapping of key => [(timestamp, count), ...].
+
         >>> now = timezone.now()
         >>> get_keys(TimeSeriesModel.group, [1, 2, 3],
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
         raise NotImplementedError
+
+    def get_sums(self, model, keys, start, end, rollup=None):
+        range_set = self.get_range(model, keys, start, end, rollup)
+        sum_set = dict(
+            (key, sum(p for _, p in points))
+            for (key, points) in range_set.iteritems()
+        )
+        return sum_set

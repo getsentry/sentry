@@ -37,7 +37,6 @@
 {% endblock %}
 
 {% block main %}
-    {% paginator event_list from request as event_list per_page EVENTS_PER_PAGE %}
     {% querystring from request without sort as sort_querystring %}
     {% querystring from request without since as since_querystring %}
 
@@ -143,17 +142,32 @@
 
     <div class="stream-pagination">
         <div class="btn-group pull-right">
-          {% spaceless %}
-            <a class="btn btn-default btn-lg prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span class="icon-arrow-left"></span></a>
-            <a class="btn btn-default btn-lg next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span class="icon-arrow-right"></span></a>
-          {% endspaceless %}
+            {% spaceless %}
+                {% if previous_page %}
+                    <a class="btn btn-default btn-lg prev" href="?{{ pageless_query_string|escape }}&amp;p={{ previous_page }}">
+                        <span title="{% trans "Previous" %}" class="icon-arrow-left"></span>
+                    </a>
+                {% else %}
+                    <a class="btn btn-default btn-lg prev disabled">
+                        <span title="{% trans "Previous" %}" class="icon-arrow-left"></span>
+                    </a>
+                {% endif %}
+                {% if next_page %}
+                    <a class="btn btn-default btn-lg next" href="?{{ pageless_query_string|escape }}&amp;p={{ next_page }}">
+                        <span title="{% trans "Next" %}" class="icon-arrow-right"></span></a>
+                {% else %}
+                    <a class="btn btn-default btn-lg next disabled">
+                        <span calss="{% trans "Next" %}" class="icon-arrow-right"></span>
+                    </a>
+                {% endif %}
+            {% endspaceless %}
         </div>
     </div>
 
     <script>
     $(function(){
         new app.StreamPage({
-            groups: {{ event_list.paginator.objects|to_json:request|safe }},
+            groups: {{ event_list|to_json:request|safe }},
             canStream: {{ has_realtime|to_json|safe }},
             realtime: true
         });

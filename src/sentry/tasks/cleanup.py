@@ -31,13 +31,14 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
     from sentry import app
     # TODO: TagKey and GroupTagKey need cleaned up
     from sentry.models import (
-        Group, Event, EventMapping,
+        Group, GroupRuleStatus, Event, EventMapping,
         GroupTagValue, TagValue, Alert,
         Activity, LostPasswordHash)
     from sentry.search.django.models import SearchDocument
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
+        (GroupRuleStatus, 'date_added'),
         (GroupTagValue, 'last_seen'),
         (Event, 'datetime'),
         (Activity, 'datetime'),

@@ -38,8 +38,8 @@ def check_alerts(**kwargs):
     # TODO(dcramer): we'd rather limit this to projects which we know are 'active'
     # this could be done using a similar strategy to our update buffer flushing
     for project_id in Project.objects.values_list('id', flat=True):
-        check_project_alerts.delay(
-            project_id=project_id,
+        check_project_alerts.apply_async(
+            kwargs={'project_id': project_id},
             expires=120,
         )
 

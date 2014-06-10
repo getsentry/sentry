@@ -16,7 +16,7 @@ from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
-from sentry.constants import MEMBER_OWNER, EVENTS_PER_PAGE, STATUS_HIDDEN
+from sentry.constants import EVENTS_PER_PAGE, STATUS_HIDDEN
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 
 logger = logging.getLogger('sentry.errors')
@@ -112,11 +112,6 @@ def get_default_context(request, existing_context=None, team=None):
         context.update({
             'request': request,
         })
-        if team:
-            # TODO: remove this extra query
-            context.update({
-                'can_admin_team': [team in Team.objects.get_for_user(request.user, MEMBER_OWNER)],
-            })
 
         if not existing_context or 'TEAM_LIST' not in existing_context:
             context['TEAM_LIST'] = Team.objects.get_for_user(
