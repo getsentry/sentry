@@ -4,9 +4,11 @@
 
 {% block title %}{{ team.name }} | {{ block.super }}{% endblock %}
 
+{% block wrapperclass %}team-settings{% endblock %}
+
 {% block page_header %}
     <div class="pull-right">
-        <a class="btn btn-primary" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
+        <a class="btn btn-default btn-sm" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
     </div>
 
     <ul class="nav nav-tabs">

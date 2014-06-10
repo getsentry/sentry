@@ -3,13 +3,15 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block inner %}
-    <div class="page-header">
+{% block content %}
+<div class="box">
+    <div class="box-header">
         {% if can_add_project %}
-            <a href="{% url 'sentry-new-project' team.slug %}" class="btn pull-right btn-primary">{% trans "New Project" %}</a>
+            <a href="{% url 'sentry-new-project' team.slug %}" class="btn pull-right btn-primary btn-sm">{% trans "New Project" %}</a>
         {% endif %}
-        <h2>{% trans "Projects" %}</h2>
+        <h3>{% trans "Projects" %}</h3>
     </div>
+    <div class="box-content with-padding">
     {% if project_list %}
         <table class="table table-striped">
             <colgroup>
@@ -26,7 +28,7 @@
                 {% for project in project_list %}
                     <tr>
                         <td>
-                            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a>
+                            <strong><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a></strong>
                             {% if project.status == STATUS_HIDDEN %}
                                 (pending deletion)
                             {% endif %}<br>
@@ -42,4 +44,6 @@
     {% else %}
         <p>{% trans "There are no projects managed by this team." %}</p>
     {% endif %}
+    </div>
+</div>
 {% endblock %}
