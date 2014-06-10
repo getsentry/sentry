@@ -8948,38 +8948,12 @@ table.vars tbody > tr:nth-child(even) > th {
   min-width: 0;
 }
 .windowed-small {
-  background: #c8cbd0;
+  padding-top: 100px;
 }
-.windowed-small .outer-wrapper {
+.windowed-small .container {
   width: auto;
-  max-width: 400px;
-}
-.windowed-small footer,
-.windowed-small header {
-  text-align: center;
-  padding: 0;
-  min-width: 0;
-  width: auto;
-}
-.windowed-small footer {
-  padding: 10px 25px;
-  height: 60px;
-}
-.windowed-small header {
-  height: 40px;
-}
-.windowed-small header h2 {
-  letter-spacing: -1px;
-  font-weight: bold;
-  font-size: 22px;
-  position: absolute;
-  left: 70px;
-  margin-top: 2px;
-  color: #fff;
-}
-.windowed-small #content .main,
-.windowed-small #content section.body {
-  min-width: 0;
+  max-width: 500px;
+  margin: 0 auto;
 }
 .popover {
   width: auto;
