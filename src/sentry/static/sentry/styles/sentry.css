@@ -8029,8 +8029,8 @@ li.empty {
   position: relative;
 }
 .empty-message:after {
-  font-family: 'sentry';
-  content: "\2713";
+  font-family: 'sentry-simple';
+  content: "\e60a";
   position: absolute;
   display: block;
   width: 54px;
