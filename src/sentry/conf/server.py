@@ -436,7 +436,7 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/scripts/lib/json2.js",
                 "sentry/scripts/lib/underscore.js",
                 "sentry/scripts/lib/backbone.js",
-                "sentry/scripts/lib/select2/select2.js",
+                "sentry/vendor/selectize/dist/js/standalone/selectize.js",
             ],
         },
         "sentry/scripts/bootstrap.min.js": {

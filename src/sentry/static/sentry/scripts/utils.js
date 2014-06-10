@@ -99,26 +99,21 @@
         },
 
         makeSearchableInput: function(el, url, callback, options) {
-            $(el).select2($.extend({
-                allowClear: true,
-                width: 'element',
-                initSelection: function (el, callback) {
-                    var $el = $(el);
-                    callback({id: $el.val(), text: $el.val()});
-                },
-                ajax: {
-                    url: url,
-                    dataType: 'json',
-                    data: function (term, page) {
-                        return {
-                            query: term,
-                            limit: 10
-                        };
-                    },
-                    results: function(data, page) {
-                        var results = callback(data);
-                        return {results: callback(data)};
-                    }
+            $(el).selectize($.extend({
+                create: true,
+                maxItems: 1,
+                load: function(query, cb) {
+                    $.ajax({
+                        url: url + '?limit=10&query=' + encodeURIComponent(query),
+                        type: 'GET',
+                        dataType: 'json',
+                        error: function() {
+                            callback();
+                        },
+                        success: function(res) {
+                            cb(callback(res));
+                        }
+                    });
                 }
             }, options || {}));
         },
@@ -162,20 +157,10 @@
     };
 
     $(function(){
-        // Change all select boxes to select2 elements.
+        // Change all select boxes to selectize elements.
         $('.body select').each(function(){
-            var $this = $(this),
-                options = {
-                    width: 'element',
-                    allowClear: false,
-                    minimumResultsForSearch: 10
-                };
-
-            if ($this.attr('data-allowClear')) {
-                options.allowClear = $this.attr('data-allowClear');
-            }
-
-            $this.select2(options);
+            var $this = $(this);
+            $this.selectize();
         });
 
         // Update date strings periodically
