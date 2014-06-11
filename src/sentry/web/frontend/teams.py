@@ -129,6 +129,21 @@ def manage_team(request, team):
 
 @has_access(MEMBER_OWNER)
 @csrf_protect
+def transfer_team(request, team):
+    if not can_remove_team(request.user, team):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    context = csrf(request)
+    context.update({
+        'page': 'settings',
+        'SUBSECTION': 'transfer',
+    })
+
+    return render_with_team_context(team, 'sentry/teams/manage-ownership.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
 def remove_team(request, team):
     if not can_remove_team(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))
@@ -149,7 +164,7 @@ def remove_team(request, team):
     context.update({
         'page': 'settings',
         'form': form,
-        'SUBSECTION': 'settings',
+        'SUBSECTION': 'delete',
     })
 
     return render_with_team_context(team, 'sentry/teams/remove.html', context, request)
