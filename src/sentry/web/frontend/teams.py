@@ -81,9 +81,7 @@ def manage_team(request, team):
     if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = EditTeamForm(request.POST or None, initial={
-        'owner': team.owner,
-    }, instance=team)
+    form = EditTeamForm(request.POST or None, instance=team)
     if form.is_valid():
         team = form.save()
         messages.add_message(request, messages.SUCCESS,
@@ -93,7 +91,6 @@ def manage_team(request, team):
 
     context = csrf(request)
     context.update({
-        'can_remove_team': can_remove_team(request.user, team),
         'page': 'details',
         'form': form,
         'SUBSECTION': 'settings',
