@@ -4,6 +4,7 @@ define([
   'moment',
 
   'app/controllers/default',
+  'app/controllers/deleteTeam',
   'app/controllers/manageTeamOwnership',
   'app/controllers/projectStream',
   'app/controllers/teamDashboard',
