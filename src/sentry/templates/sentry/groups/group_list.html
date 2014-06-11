@@ -135,7 +135,7 @@
     </div>
 
     <script>
-    $(function(){
+    require(['config', 'app/init'], function(_, app){
         new app.StreamPage({
             groups: {{ event_list|to_json:request|safe }},
             canStream: {{ has_realtime|to_json|safe }},
@@ -143,5 +143,4 @@
         });
     });
     </script>
-
 {% endblock %}

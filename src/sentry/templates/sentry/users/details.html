@@ -47,7 +47,7 @@
     <div id="event_list"></div>
 
     <script>
-    $(function(){
+    require(['config', 'app/init'], function(_, app){
         new app.GroupListView({
             className: 'group-list',
             members: {{ event_list.paginator.objects|to_json:request|safe }},

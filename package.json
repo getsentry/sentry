@@ -7,13 +7,21 @@
   },
   "dependencies": {
     "bower": "~1.2.7",
-    "less": "1.7.0",
-    "phantomjs": "1.9.x",
     "chai": "1.7.x",
+    "jshint": "~2.5.0",
+    "less": "1.7.0",
     "mocha": "1.9.x",
     "mocha-phantomjs": "3.0.x",
-    "jshint": "~2.5.0",
+    "phantomjs": "1.9.x",
     "uglify-js": "2.2.4"
   },
-  "private": true
+  "private": true,
+  "APIMethod": "stub",
+  "proxyURL": "http://localhost:8000",
+  "scripts": {
+    "start": "grunt server",
+    "build": "grunt build:debug",
+    "test": "grunt test:ci",
+    "postinstall": "bower install"
+  }
 }

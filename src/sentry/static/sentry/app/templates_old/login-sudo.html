@@ -1,0 +1,18 @@
+<div class="panel panel-default" style="margin-bottom:0">
+    <div class="panel-heading">
+        Confirm Password
+    </div>
+    <div class="panel-body">
+        <form role="form" name="form">
+            <div class="form-group">
+              <img src="{{userData.avatarUrl}}"> Help us keep your account safe by confirming your password.
+            </div>
+
+            <div form-field="authForm.password"></div>
+
+            <button class="btn btn-primary"
+                    ng-click="saveForm()"
+                    ng-disabled="form.$invalid">Confirm</button>
+        </form>
+    </div>
+</div>

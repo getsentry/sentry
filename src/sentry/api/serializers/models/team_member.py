@@ -4,7 +4,7 @@ from sentry.models import TeamMember
 
 @register(TeamMember)
 class TeamMemberSerializer(Serializer):
-    def serialize(self, obj, user):
+    def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
             'email': obj.user.email,

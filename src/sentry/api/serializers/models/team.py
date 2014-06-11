@@ -5,22 +5,29 @@ from sentry.models import Team
 
 @register(Team)
 class TeamSerializer(Serializer):
-    def attach_metadata(self, objects, user):
+    def get_attrs(self, item_list, user):
         team_map = Team.objects.get_for_user(user)
-        for team in objects:
-            try:
-                team.access_type = team_map[team.slug].access_type
-            except KeyError:
-                team.access_type = None
 
-    def serialize(self, obj, user):
+        result = {}
+        for team in item_list:
+            try:
+                access_type = team_map[team.slug].access_type
+            except KeyError:
+                access_type = None
+
+            result[team] = {
+                'access_type': access_type,
+            }
+        return result
+
+    def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
             'slug': obj.slug,
             'name': obj.name,
             'dateCreated': obj.date_added,
             'permission': {
-                'edit': obj.access_type == MEMBER_OWNER or user.is_superuser,
+                'edit': attrs['access_type'] == MEMBER_OWNER or user.is_superuser,
                 'admin': obj.owner_id == user.id or user.is_superuser,
             }
         }

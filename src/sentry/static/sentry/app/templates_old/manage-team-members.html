@@ -1,0 +1,18 @@
+<table class="table table-settings">
+    <colgroup>
+        <col/>
+        <col width="150px"/>
+    </colgroup>
+    <thead>
+        <tr>
+            <th><h4>User</h4></th>
+            <th style="text-align:left;">Access</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr ng-repeat="member in memberList">
+            <td>{{member.email}} <small ng-if="member.pending">Pending</small></td>
+            <td style="text-align:left">{{member.access}}</td>
+        </tr>
+    </tbody>
+</table>

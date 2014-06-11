@@ -50,7 +50,7 @@
     </div>
 
     <script>
-    $(function(){
+    require(['config', 'app/init'], function(_, app){
         new app.WallPage();
     });
     </script>

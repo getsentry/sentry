@@ -20,7 +20,7 @@
     }
     </style>
     <script>
-    $(function(){
+    require(['config', 'app/init'], function(_, app){
         $('form a[data-toggle=change-target-value]').click(function(){
             var $this = $(this);
             var $target = $('#' + $this.data('target'));
@@ -35,7 +35,7 @@
     });
     </script>
 
-    <form action="" method="post">
+    <form action="." method="post">
         {% csrf_token %}
 
         <p>{% blocktrans %}Notifications are generally sent when a new event is

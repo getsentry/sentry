@@ -11,7 +11,7 @@
     </div>
     {% if form %}
         <p>{% blocktrans %}Each event in Sentry may be annotated with various tags (key and value pairs). For more information on how send additional tags, see your client's documentation.{% endblocktrans %}</p>
-        <form action="" method="post">
+        <form action="." method="post">
             {% csrf_token %}
             {{ form|as_crispy_errors }}
 

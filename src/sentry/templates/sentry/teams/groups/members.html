@@ -44,7 +44,7 @@
         <p>{% trans "There are no members assigned to this group." %}
     {% endif %}
 
-    <form action="" method="post" class="form-search">
+    <form action="." method="post" class="form-search">
         {% csrf_token %}
         {{ form|as_crispy_errors }}
 

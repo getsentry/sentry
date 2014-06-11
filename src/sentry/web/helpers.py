@@ -10,12 +10,14 @@ import logging
 import warnings
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
+from sentry.api.serializers.base import serialize
 from sentry.constants import EVENTS_PER_PAGE, STATUS_HIDDEN
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 
@@ -105,10 +107,18 @@ def get_default_context(request, existing_context=None, team=None):
         'STATUS_HIDDEN': STATUS_HIDDEN,
     }
 
-    if request:
-        if existing_context and not team and 'team' in existing_context:
+    if existing_context:
+        if team is None and 'team' in existing_context:
             team = existing_context['team']
 
+        if 'project' in existing_context:
+            project = existing_context['project']
+        else:
+            project = None
+    else:
+        project = None
+
+    if request:
         context.update({
             'request': request,
         })
@@ -123,6 +133,15 @@ def get_default_context(request, existing_context=None, team=None):
                 if t == team:
                     context['PROJECT_LIST'] = p_list
                     break
+
+        user = request.user
+    else:
+        user = AnonymousUser()
+
+    if team:
+        context['selectedTeam'] = serialize(team, user)
+    if project:
+        context['selectedProject'] = serialize(project, user)
 
     return context
 

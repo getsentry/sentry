@@ -6,21 +6,30 @@ from sentry.utils.db import attach_foreignkey
 
 @register(Project)
 class ProjectSerializer(Serializer):
-    def attach_metadata(self, objects, user):
+    def get_attrs(self, item_list, user):
         team_map = dict(
             (t.id, t) for t in Team.objects.get_for_user(user).itervalues()
         )
-        for project in objects:
+
+        result = {}
+        for project in item_list:
             try:
                 team = team_map[project.team_id]
-                project.access_type = team.access_type
-                project.team = team
             except KeyError:
-                project.access_type = None
+                access_type = None
+            else:
+                project.team = team
+                access_type = team.access_type
 
-        attach_foreignkey(objects, Project.team)
+            result[project] = {
+                'access_type': access_type,
+            }
 
-    def serialize(self, obj, user):
+        attach_foreignkey(item_list, Project.team)
+
+        return result
+
+    def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
             'slug': obj.slug,
@@ -28,7 +37,7 @@ class ProjectSerializer(Serializer):
             'isPublic': obj.public,
             'dateCreated': obj.date_added,
             'permission': {
-                'edit': obj.access_type == MEMBER_OWNER or user.is_superuser,
+                'edit': attrs['access_type'] == MEMBER_OWNER or user.is_superuser,
             },
         }
         if obj.team:

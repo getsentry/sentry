@@ -4,7 +4,7 @@ from sentry.models import AccessGroup
 
 @register(AccessGroup)
 class AccessGroupSerializer(Serializer):
-    def serialize(self, obj, user):
+    def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
             'name': obj.name,

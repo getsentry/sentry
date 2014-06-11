@@ -264,7 +264,8 @@ def notification_settings(request):
             request.POST or None,
             prefix='project-%s' % (project.id,)
         ))
-        for project in sorted(project_list, key=lambda x: (x.team.name, x.name))
+        for project in sorted(project_list, key=lambda x: (
+            x.team.name if x.team else None, x.name))
     ]
 
     ext_forms = []

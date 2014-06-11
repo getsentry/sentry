@@ -1,0 +1,118 @@
+{{ partial "team/project/project-nav" }}
+<section id="stream">
+    <div class="row">
+        <div id="main" class="col-sm-12">
+            <ul class="events">
+                <li class="event event-header">
+                    <div class="row">
+                        <div class="col-xs-6 details">
+                            <div class="checkbox">
+                                <input type="checkbox">
+                            </div>
+                            <div class="btn-group">
+                                <a href="#" class="btn btn-default btn-sm"><span class="icon-checkmark"></span></a>
+                                <a href="#" class="btn btn-default btn-sm"><span class="icon-bookmark"></span></a>
+                            </div>
+                            <a href="#" class="btn btn-default btn-sm"><span class="icon-pause"></span></a>
+                            <div class="btn-group">
+                                <div class="btn-group">
+                                  <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+                                    Sort by: Last seen <span class="icon-arrow-down"></span>
+                                  </button>
+                                  <ul class="dropdown-menu" role="menu">
+                                    <li><a href="#">Priority</a></li>
+                                    <li><a href="#">Last seen</a></li>
+                                    <li><a href="#">First seen</a></li>
+                                    <li><a href="#">Frequency</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href="#">Total time spent</a></li>
+                                    <li><a href="#">Average time spent</a></li>
+                                  </ul>
+                                </div>
+                                <div class="btn-group">
+                                  <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+                                    Since: Jan 18th <span class="icon-arrow-down"></span>
+                                  </button>
+                                  <ul class="dropdown-menu" role="menu">
+                                    <li><a href="#">Priority</a></li>
+                                    <li><a href="#">Last seen</a></li>
+                                    <li><a href="#">First seen</a></li>
+                                    <li><a href="#">Frequency</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href="#">Total time spent</a></li>
+                                    <li><a href="#">Average time spent</a></li>
+                                  </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xs-2 graph align-right">
+                            <ul>
+                                <li class="active"><a href="#">24h</a></li>
+                                <li><a href="#">2w</a></li>
+                                <li><a href="#">1m</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-xs-2 occurrences align-right">occurrences</div>
+                        <div class="col-xs-2 users align-right">users</div>
+                    </div>
+                </li>
+                <li class="deploy">
+                    <code>master</code> deployed by <a href="#">ckj</a> at 2014-02-23 06:13:31 UTC
+                </li>
+                {{#each}}
+                <li class="event">
+                    <div class="row">
+                        <div class="col-xs-6 details">
+                            <div class="checkbox">
+                                <input type="checkbox">
+                            </div>
+                            <h3>{{#link-to 'team.project.group' id}}{{title}}{{/link-to}}</h3>
+                            <div class="meta">
+                                <time>3 days ago</time> &middot;
+                                <span class="message">{{culprit}}</span>
+                            </div>
+                        </div>
+                        <div class="col-xs-2 graph align-right">
+                            {{bar-chart width="100%" height="100%" data=historicalData}}
+                        </div>
+                        <div class="col-xs-2 occurrences align-right"><span>{{format-number count}}</span></div>
+                        <div class="col-xs-2 users align-right"><span>209</span></div>
+                    </div>
+                </li>
+                {{/each}}
+            </ul>
+            <div class="stream-actions">
+                <div class="btn-group pull-right">
+                    <button type="button" class="btn btn-default"><span class="icon-arrow-left"></span></button>
+                    <button type="button" class="btn btn-default"><span class="icon-arrow-right"></span></button>
+                </div>
+            </div>
+        </div>
+        {{!-- <div id="sidebar" class="col-sm-3">
+            <ul class="nav nav-pills nav-stacked">
+              <li class="active"><a href="#">All</a></li>
+              <li><a href="#">Bookmarked</a></li>
+            </ul>
+            <div class="filter">
+                <h6><label for="status">Status</label></h6>
+                <p>
+                {{ view Ember.Selectize id="status"
+                   contentBinding="statusChoices"
+                   optionValuePath="content.id"
+                   optionLabelPath="content.name"
+                   placeholder="Choose a status..." }}
+                </p>
+            </div>
+            <div class="filter">
+                <h6><label for="client">Client</label></h6>
+                <p>
+                {{ view Ember.Selectize id="client"
+                   contentBinding="statusChoices"
+                   optionValuePath="content.id"
+                   optionLabelPath="content.name"
+                   placeholder="Choose a client..." }}
+                </p>
+            </div>
+        </div> --}}
+    </div>
+</section>

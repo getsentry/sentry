@@ -1,0 +1,66 @@
+<a ui-sref="project.stream()"><span class="icon-arrow-left back-button"></span></a>
+<section class="group-detail">
+  <div class="row">
+      <div class="col-xs-9 details">
+        <h3>{{selectedGroup.title}}</h3>
+        <div class="meta">
+            <time time-since="selectedGroup.lastSeen"></time> &middot;
+            <span class="message">{{selectedGroup.culprit}}</span>
+        </div>
+      </div>
+      <div class="col-xs-3 occurrences">
+        <div class="row">
+          <div class="col-xs-6 occurences align-right"><span class="count">{{selectedGroup.count|formatNumber}}</span> occurences</div>
+          <div class="col-xs-6 users align-right"><span class="count">209</span> users</div>
+        </div>
+      </div>
+  </div>
+  <div class="seen-by">
+    <ul>
+      <li>Seen by</li>
+      <li ng-repeat="user in selectedGroup.seenBy">
+        <a href="#"><img src="{{user.avatarUrl}}" /></a>
+      </ul>
+    </ul>
+  </div>
+  <div class="group-actions">
+    <div class="btn-group">
+      <a href="#" class="btn btn-default btn-sm"><span class="icon-checkmark"></span></a>
+      <a href="#" class="btn btn-default btn-sm"><span class="icon-bookmark"></span></a>
+    </div>
+    <div class="btn-group">
+      <a href="#" class="btn btn-default btn-sm"><span class="icon-trash"></span></a>
+    </div>
+    <div class="btn-group">
+      <a href="#" class="btn btn-default btn-sm">More <span class="icon-arrow-down"></span></a>
+    </div>
+  </div>
+</section>
+
+<section class="group-body">
+  <div class="row">
+      <div class="col-sm-9">
+          <section ui-view>
+            <div ng-include="'partials/event-details.html'"></div>
+          </section>
+      </div>
+      <div class="col-sm-3">
+          <div class="box">
+              <div class="box-content graph">
+                  <ul class="nav nav-links">
+                    <li ng-class="chartNumDays == 1 ? 'active' : ''"><a href="javascript:void(0)" ng-click="chartNumDays = 1">24h</a></li>
+                    <li ng-class="chartNumDays == 14 ? 'active' : ''"><a href="javascript:void(0)" ng-click="chartNumDays = 14">2w</a></li>
+                    <li ng-class="chartNumDays == 30 ? 'active' : ''"><a href="javascript:void(0)" ng-click="chartNumDays = 30">30d</a></li>
+                  </ul>
+                  <barchart ng-if="historicalGroupData" ng-model="historicalGroupData" width="100%" height="60" style="display:block"></barchart>
+              </div>
+            </div>
+
+          <ul class="nav nav-pills nav-stacked">
+              <li ui-sref-active="active"><a ui-sref="event({event_id: 'latest'})">Overview</a></li>
+              <li ui-sref-active="active"><a ui-sref="group.tags()">Tags</a></li>
+              <li><a href="#">Similar events</a></li>
+          </ul>
+      </div>
+  </div>
+</section>

@@ -64,11 +64,11 @@
 
 {% block content_after %}
     <script type="text/javascript">
-    $(function(){
+    require(['config', 'app/init'], function(_, app){
         new app.DashboardPage({
             realtime: false,
             stream: false
         });
-    })
+    });
     </script>
 {% endblock %}

@@ -10,11 +10,14 @@ sentry.templatetags.sentry_helpers
 
 import os.path
 import pytz
+import six
+
 
 from collections import namedtuple
 from datetime import timedelta
 from paging.helpers import paginate as paginate_func
 from pkg_resources import parse_version as Version
+from six.moves import range
 from urllib import quote
 
 from django import template
@@ -28,13 +31,11 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
-import six
-from six.moves import range
-
+from sentry.api.serializers import serialize as serialize_func
 from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
 from sentry.models import Team, Option, GroupTagValue
 from sentry.web.helpers import group_is_public
-from sentry.utils import to_unicode
+from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.javascript import to_json
@@ -134,6 +135,14 @@ def to_str(data):
 @register.filter
 def is_none(value):
     return value is None
+
+
+@register.simple_tag(takes_context=True)
+def serialize(context, value):
+    value = serialize_func(value, context['request'].user)
+    value = json.dumps(value)
+    value = value.replace('<', '&lt;').replace('>', '&gt;')
+    return mark_safe(value)
 
 
 @register.simple_tag(takes_context=True)
@@ -466,7 +475,7 @@ def recent_alerts(context, project, asvar):
 
 
 @register.filter
-def reorder_teams(team_list, team):
+def reorder_teams(team_list, team=None):
     pending = []
     for t, p_list in team_list:
         if t == team:

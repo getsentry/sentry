@@ -8,7 +8,7 @@
 
 {% block main %}
     <section class="body">
-        <form class="form-stacked" action="" method="post">
+        <form class="form-stacked" action="." method="post">
             {% csrf_token %}
             <div class="alert alert-block alert-error">
                 <p>{% trans "Are you sure you wish to revoke this user's access? <strong>This change is permanent and will revoke their API keys immediately.</strong>" %}</p>

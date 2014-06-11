@@ -1,0 +1,55 @@
+{{ partial "team/project/project-nav" }}
+{{#link-to 'team.project.explore'}}<span class="icon-arrow-left back-button"></span>{{/link-to}}
+<ol class="breadcrumb">
+  <li><a href="#">OS</a></li>
+  <li class="active">MacOS</li>
+</ol>
+<div class="row">
+    <div class="col-sm-9">
+        <ul class="events">
+            {{#each}}
+            <li class="event">
+                <div class="row">
+                    <div class="col-xs-8 details">
+                        <div class="checkbox">
+                            <input type="checkbox">
+                        </div>
+                        <h3>{{#link-to 'team.project.group' id}}{{title}}{{/link-to}}</h3>
+                        <div class="meta">
+                            <time>3 days ago</time> &middot;
+                            <span class="message">{{culprit}}</span>
+                        </div>
+                    </div>
+                    <div class="col-xs-2 graph align-right">
+                        {{bar-chart width="100%" height="100%" data=historicalData}}
+                    </div>
+                    <div class="col-xs-1 occurrences align-right"><span>{{format-number count}}</span></div>
+                    <div class="col-xs-1 users align-right"><span>209</span></div>
+                </div>
+            </li>
+            {{/each}}
+        </ul>
+    </div>
+    <div class="col-sm-3">
+        <table class="table table-striped table-borderless">
+            <tbody>
+                <tr>
+                    <td><strong>Key</strong></td>
+                    <td class="align-right">OS</td>
+                </tr>
+                <tr>
+                    <td><strong>First seen</strong></td>
+                    <td class="align-right">July 29, 2013</td>
+                </tr>
+                <tr>
+                    <td><strong>Last seen</strong></td>
+                    <td class="align-right">yesterday</td>
+                </tr>
+                <tr>
+                    <td><strong>Other values</strong></td>
+                    <td class="align-right">3</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
