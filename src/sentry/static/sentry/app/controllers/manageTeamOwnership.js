@@ -21,7 +21,7 @@ define([
       this.$http.put('/api/0/teams/' + this.selectedTeam.id + '/', {
         'owner': this.$scope.newOwner
       }).success(function(data){
-        window.location.href = '/account/teams/';
+        window.location.href = '/';
       });
     }
   });

@@ -23,7 +23,7 @@ define([
         method: 'DELETE',
         url: '/api/0/teams/' + this.selectedTeam.id + '/'
       }).success(function(data){
-        window.location.href = '/account/teams/';
+        window.location.href = '/';
       });
     }
   });
