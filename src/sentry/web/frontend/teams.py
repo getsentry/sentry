@@ -25,7 +25,7 @@ from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (
     NewTeamForm, NewTeamAdminForm,
-    EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm,
+    EditTeamForm, EditTeamMemberForm, NewTeamMemberForm,
     InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
@@ -81,36 +81,11 @@ def manage_team(request, team):
     if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
-    can_admin_team = request.user == team.owner or request.user.is_superuser
-
-    if can_admin_team:
-        form_cls = EditTeamAdminForm
-    else:
-        form_cls = EditTeamForm
-
-    form = form_cls(request.POST or None, initial={
+    form = EditTeamForm(request.POST or None, initial={
         'owner': team.owner,
     }, instance=team)
-
-    # XXX: form.is_valid() changes the foreignkey
-    original_owner = team.owner
     if form.is_valid():
-
         team = form.save()
-        if team.owner != original_owner:
-            # Update access for new membership if it's changed
-            # (e.g. member used to be USER, but is now OWNER)
-            TeamMember.objects.create_or_update(
-                user=team.owner,
-                team=team,
-                defaults={
-                    'type': MEMBER_OWNER,
-                }
-            )
-            team.project_set.update(
-                owner=team.owner,
-            )
-
         messages.add_message(request, messages.SUCCESS,
             _('Changes to your team were saved.'))
 

@@ -109,29 +109,11 @@ class ManageTeamTest(BaseTeamTest):
         resp = self.client.post(self.path, {
             'name': 'bar',
             'slug': self.team.slug,
-            'owner': self.team.owner.username,
         })
         assert resp.status_code == 302
         self.assertEquals(resp['Location'], 'http://testserver' + self.path)
         team = Team.objects.get(pk=self.team.pk)
         self.assertEquals(team.name, 'bar')
-
-    def test_superuser_can_set_owner(self):
-        resp = self.client.post(self.path, {
-            'name': self.team.name,
-            'slug': self.team.slug,
-            'owner': self.user2.username,
-        })
-        assert resp.status_code == 302
-
-        team = Team.objects.get(id=self.team.id)
-
-        assert team.owner == self.user2
-
-        members = [(t.user, t.type) for t in self.team.member_set.all()]
-
-        assert (self.user2, MEMBER_OWNER) in members
-        assert (self.user, MEMBER_OWNER) in members
 
 
 class RemoveTeamTest(BaseTeamTest):
