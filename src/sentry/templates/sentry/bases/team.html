@@ -27,10 +27,10 @@
         {% if selectedTeam.permission.admin %}
             <li class="divider"></li>
             <li{% if SUBSECTION == 'transfer' %} class="active"{% endif %}>
-                <a>{% trans "Transfer Ownership" %}</a>
+                <a href="{% url 'sentry-transfer-team' team.slug %}">{% trans "Transfer Ownership" %}</a>
             </li>
             <li{% if SUBSECTION == 'delete' %} class="active"{% endif %}>
-                <a>{% trans "Delete Team" %}</a>
+                <a href="{% url 'sentry-remove-team' team.slug %}">{% trans "Delete Team" %}</a>
             </li>
         {% endif %}
     </ul>
