@@ -1,7 +1,10 @@
 {% load i18n %}
+{% load sentry_api %}
 {% load sentry_helpers %}
 {% load static_compiler %}
+
 {% get_sentry_version %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -20,29 +23,28 @@
         <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
         <![endif]-->
         {% block scripts %}
-            {% staticbundle 'sentry/scripts/lib.min.js' %}
-            {% staticbundle 'sentry/scripts/bootstrap.min.js' %}
-            {% staticbundle 'sentry/scripts/global.min.js' %}
-            {% staticbundle 'sentry/scripts/legacy.min.js' %}
-            <script type="text/javascript">
-            {% if request.LANGUAGE_CODE %}
-                moment.lang('{{ request.LANGUAGE_CODE }}');
-            {% endif %}
-            app.config.clippyPath = '{% url 'sentry-media' "sentry" "clippy.swf" %}';
-            app.config.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
-            app.config.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
-            app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
-            {% if project %}
-                app.config.projectId = {{ project.slug|to_json|safe }};
-                app.config.teamId = {{ project.team.slug|to_json|safe }};
-            {% elif team %}
-                app.config.projectId = null;
-                app.config.teamId = {{ team.slug|to_json|safe }};
+            <script>
+            window.SentryConfig = {};
+            window.SentryConfig.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
+            window.SentryConfig.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
+            window.SentryConfig.urlPrefix = {{ URL_PREFIX|to_json|safe }};
+            window.SentryConfig.lang = {{ request.LANGUAGE_CODE|to_json|safe }};
+            {% if selectedProject %}
+                window.SentryConfig.selectedProject = {% convert_to_json selectedProject %}
             {% else %}
-                app.config.projectId = null;
-                app.config.teamId = null;
+                window.SentryConfig.selectedProject = null;
+            {% endif %}
+            {% if selectedTeam %}
+                window.SentryConfig.selectedTeam = {% convert_to_json selectedTeam %}
+            {% else %}
+                window.SentryConfig.selectedTeam = null;
             {% endif %}
             </script>
+
+            <script src="{% url 'sentry-media' 'sentry' 'config.js' %}"></script>
+            <script data-main="{% url 'sentry-media' 'sentry' 'main' %}"
+                    src="{% url 'sentry-media' 'sentry' 'vendor/requirejs/require.js' %}"></script>
+            <script src="{% url 'sentry-media' 'sentry' 'vendor/raven/raven.js' %}"></script>
         {% endblock %}
 
         {% block meta %}
@@ -125,7 +127,9 @@
                 </div>
             </div>
         {% endblock %}
-        <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
+        <section id="content"
+                 ng-controller="{% block controller %}DefaultCtrl{% endblock %}"
+                 class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
                 {% block above_content %}{% endblock %}
                 <div class="content">
@@ -166,30 +170,5 @@
             </div>
         </footer>
         {% endblock %}
-
-        <script type="text/javascript">
-        $(function(){
-            $('.clippy').clippy({
-                clippy_path: app.config.clippyPath,
-                keep_text: true
-            });
-            $('input[data-toggle="datepicker"]').datepicker();
-            $('.tip').tooltip({
-                html: true,
-                container: 'body'
-            });
-            $('.trigger-popover').popover({
-                html: true,
-                container: 'body'
-            });
-            $('.nav-tabs .active a').tab('show')
-            $('.project-selector').on('change', function(e){
-                var $el = $(e.target).get(0);
-                var $opt = $($el.options[$el.selectedIndex]);
-                window.location.href = $opt.attr('data-url');
-                return false;
-            });
-        });
-        </script>
     </body>
 </html>

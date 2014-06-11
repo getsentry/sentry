@@ -1,0 +1,23 @@
+<table class="table">
+    <colgroup>
+        <col style="width:130px;">
+    </colgroup>
+    <tbody>
+        <tr ng-if="data.id">
+            <th>ID:</th>
+            <td class="code">{{data.id}}</td>
+        </tr>
+        <tr ng-if="data.ip_address">
+            <th>IP Address:</th>
+            <td class="code">{{data.ip_address}}</td>
+        </tr>
+        <tr ng-if="data.username">
+            <th>Username:</th>
+            <td class="code">{{data.username}}</td>
+        </tr>
+        <tr ng-if="data.email">
+            <th>Email:</th>
+            <td class="code">{{data.email}}</td>
+        </tr>
+    </tbody>
+</table>

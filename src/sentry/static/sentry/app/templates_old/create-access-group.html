@@ -1,0 +1,11 @@
+<div class="page-header">
+  <h3>New Access Group</h3>
+</div>
+
+<form role="form" name="form">
+    <div form-field="accessGroupForm.name"></div>
+    <div form-field="accessGroupForm.type"></div>
+    <button class="btn btn-primary"
+            ng-click="saveForm()"
+            ng-disabled="form.$invalid || accessGroupForm.isUnchanged()">Save</button>
+</form>

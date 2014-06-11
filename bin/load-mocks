@@ -3,6 +3,9 @@
 from sentry.utils.runner import configure
 configure()
 
+from sentry.models import User, Project, Team
+from sentry.utils.samples import create_sample_event
+
 from datetime import datetime, timedelta
 from pytz import utc
 from random import randint

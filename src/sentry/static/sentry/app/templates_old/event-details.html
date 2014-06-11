@@ -1,0 +1,72 @@
+<div class="box event-browser">
+  <div class="event-controls">
+    <a class="btn btn-sm btn-default older"
+       ng-class="selectedEvent.previousEventID === null ? 'disabled' : ''"
+       ui-sref="event({event_id: selectedEvent.previousEventID})"><span class="icon-arrow-left"></span> Older</a>
+     <a class="btn btn-sm btn-default newer"
+       ng-class="selectedEvent.nextEventID === null ? 'disabled' : ''"
+       ui-sref="event({event_id: selectedEvent.nextEventID})">Newer <span class="icon-arrow-right"></span></a>
+       <p>Event id <strong>rGrPTNxMUDwf6r6B</strong> occurred <time time-since="selectedEvent.dateCreated"></time></p></span>
+  </div>
+</div>
+
+
+<!-- <ul class="nav nav-pills">
+  <li ng-repeat="entry in entryList"><a href="#" render-entry-title="entry"></a></li>
+  <li><a href="#tags">Tags</a></li>
+</ul> -->
+
+<section class="entry box" ng-repeat="entry in entryList">
+  <div class="box-header">
+    <h4 render-entry-title="entry"></h4>
+  </div>
+  <div class="box-content" render-entry-body="entry"></div>
+</section>
+
+<!-- <div class="box">
+  <div class="box-header">
+    <h4>Timeline</h4>
+  </div>
+  <div class="box-content with-padding">
+      <ul class="timeline">
+          <li ng-repeat="transactionEvent in transactionEventList"
+              class="timeline-item">
+              <div class="icon"></div>
+              <div render-event="transactionEvent"></div>
+          </li>
+      </ul>
+  </div>
+</div> -->
+
+<!-- <div class="box">
+    <div class="box-header">
+      <h4>Activity</h4>
+    </div>
+    <div class="box-content with-padding">
+    </div>
+</div> -->
+
+<div class="box">
+    <div class="box-header">
+        <a href="#" class="box-toggle"></a>
+        <h4>Tags</h4>
+    </div>
+    <div class="box-content with-padding">
+        <div class="row">
+            <div class="col-sm-6">
+                <ul class="tags">
+                    <li><strong>level</strong> <a href="#">Error</a></li>
+                    <li><strong>url</strong> <a href="#">https://app.getsentry.com/api/quizup/quizup-production/tags/search/?query=users-dev&quietMillis=300&name=url&limit=10</a></li>
+                    <li><strong>server_name</strong> <a href="#">web-2</a></li>
+                </ul>
+            </div>
+            <div class="col-sm-6">
+                <ul class="tags">
+                    <li><strong>logger</strong> <a href="#">root</a></li>
+                    <li><strong>browser</strong> <a href="#">Chrome 32.0.1700.102</a></li>
+                    <li><strong>os</strong> <a href="#">MacOs</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

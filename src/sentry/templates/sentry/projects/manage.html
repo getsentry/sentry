@@ -17,7 +17,7 @@
         <div class="page-header">
             <h2>{% trans "Project Details" %}</h2>
         </div>
-        <form class="form-stacked" action="" method="post">
+        <form class="form-stacked" action="." method="post">
             {% csrf_token %}
 
             {{ form|as_crispy_errors }}
@@ -54,8 +54,10 @@
             </div>
         </form>
 
-        <script type="text/javascript">
-        new app.ProjectDetailsPage();
+        <script>
+        require(['config', 'app/init'], function(_, app){
+            new app.ProjectDetailsPage();
+        });
         </script>
     {% endblock %}
     </section>

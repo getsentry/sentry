@@ -1,0 +1,99 @@
+<ul class="nav nav-tabs project-nav hidden-xs">
+    <li class="pull-right search">
+        <form>
+            <span class="icon-search"></span>
+            <input type="text" placeholder="Search: Unresolved Errors" class="form-control" />
+        </form>
+    </li>
+    <li ui-sref-active="active"><a ui-sref="project.stream()">Stream</a></li>
+</ul>
+
+<section id="stream">
+    <div class="row">
+        <div id="main">
+            <ul class="events">
+                <li class="event event-header">
+                    <div class="row">
+                        <div class="col-xs-8 col-md-10 col-lg-8 hidden-xs details">
+                            <div class="checkbox">
+                                <input type="checkbox">
+                            </div>
+                            <div class="btn-group">
+                                <a href="#" class="btn btn-default btn-sm"><span class="icon-checkmark"></span></a>
+                                <a href="#" class="btn btn-default btn-sm"><span class="icon-bookmark"></span></a>
+                            </div>
+                            <a href="#" class="btn btn-default btn-sm"><span class="icon-pause"></span></a>
+                            <div class="btn-group">
+                                <div class="btn-group">
+                                  <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+                                    Sort by: Last seen <span class="icon-arrow-down"></span>
+                                  </button>
+                                  <ul class="dropdown-menu" role="menu">
+                                    <li><a href="#">Priority</a></li>
+                                    <li><a href="#">Last seen</a></li>
+                                    <li><a href="#">First seen</a></li>
+                                    <li><a href="#">Frequency</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href="#">Total time spent</a></li>
+                                    <li><a href="#">Average time spent</a></li>
+                                  </ul>
+                                </div>
+                                <div class="btn-group">
+                                  <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+                                    Since: Jan 18th <span class="icon-arrow-down"></span>
+                                  </button>
+                                  <ul class="dropdown-menu" role="menu">
+                                    <li><a href="#">Priority</a></li>
+                                    <li><a href="#">Last seen</a></li>
+                                    <li><a href="#">First seen</a></li>
+                                    <li><a href="#">Frequency</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href="#">Total time spent</a></li>
+                                    <li><a href="#">Average time spent</a></li>
+                                  </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 hidden-md hidden-sm hidden-xs graph align-right">
+                            <ul>
+                                <li class="active"><a href="#">24h</a></li>
+                                <li><a href="#">2w</a></li>
+                                <li><a href="#">30d</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-sm-2 col-md-1 hidden-xs occurrences align-right">occurrences</div>
+                        <div class="col-sm-2 col-md-1 hidden-xs users align-right">users</div>
+                    </div>
+                </li>
+                <li class="deploy" ng-if="false">
+                    <code>master</code> deployed by <a href="#">ckj</a> at 2014-02-23 06:13:31 UTC
+                </li>
+                <li class="event" ng-repeat="group in groupList">
+                    <div class="row">
+                        <div class="col-xs-8 col-md-10 col-lg-8 details">
+                            <div class="checkbox">
+                                <input type="checkbox">
+                            </div>
+                            <h3><a ui-sref="group({group_id: group.id})">{{group.title}}</a></h3>
+                            <div class="meta">
+                                <time time-since="group.lastSeen"></time> &middot;
+                                <span class="message">{{group.culprit}}</span>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 hidden-md hidden-sm hidden-xs graph align-right">
+                            <barchart ng-model="group.historicalData" width="100%" height="37" style="display:block"></barchart>
+                        </div>
+                        <div class="col-sm-2 col-md-1 hidden-xs occurrences align-right"><span>{{group.count|formatNumber}}</span></div>
+                        <div class="col-sm-2 col-md-1 hidden-xs users align-right"><span>209</span></div>
+                    </div>
+                </li>
+            </ul>
+            <div class="stream-actions">
+                <div class="btn-group pull-right">
+                    <button type="button" class="btn btn-default"><span class="icon-arrow-left"></span></button>
+                    <button type="button" class="btn btn-default"><span class="icon-arrow-right"></span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,16 @@
+<div class="event-details event-cell">
+    <div class="checkbox">
+        <input type="checkbox">
+    </div>
+    <h3><a href="<%= permalink %>"><%= title %></a></h3>
+    <div class="event-meta">
+        <% if (timeSpent) { %><time><%= Math.round(timeSpent) %>ms</time> &middot;<% } %>
+        <span class="message"><%= message %></span>
+    </div>
+</div>
+<div class="event-assignee event-cell"><img src="http://github.com/benvinegar.png" class="avatar"></div>
+<div class="hidden-md hidden-sm hidden-xs event-graph align-right event-cell">
+    <span class="sparkline"></span>
+</div>
+<div class="hidden-xs event-occurrences align-center event-cell"><span><%= utils.formatNumber(count) %></span></div>
+<div class="hidden-xs event-users align-right event-cell"><span>209</span></div>

@@ -1,0 +1,19 @@
+<div class="row">
+    <div class="col-sm-3">
+        <ul class="nav nav-pills nav-stacked">
+            {{#link-to 'team.settings.index' tagName='li'}}
+              {{#link-to 'team.settings.index'}}Settings{{/link-to}}
+            {{/link-to}}
+            {{#link-to 'team.settings.projects' tagName='li'}}
+              {{#link-to 'team.settings.projects'}}Projects{{/link-to}}
+            {{/link-to}}
+            {{#link-to 'team.settings.members' tagName='li'}}
+              {{#link-to 'team.settings.members'}}Members{{/link-to}}
+            {{/link-to}}
+            {{#link-to 'team.settings.access-groups' tagName='li'}}
+              {{#link-to 'team.settings.access-groups'}}Access groups{{/link-to}}
+            {{/link-to}}
+        </ul>
+    </div>
+    <div class="col-sm-9">{{outlet}}</div>
+</div>

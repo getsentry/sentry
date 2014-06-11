@@ -1,0 +1,27 @@
+<table class="table table-settings">
+    <colgroup>
+        <col>
+        <col width="140px">
+    </colgroup>
+    <thead>
+        <tr>
+            <th><h4>Team</h4></th>
+            <th style="text-align:right;">
+                <a ui-sref="create_team()" class="btn btn-default btn-sm pull-right">New Team</a>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr ng-repeat="team in teamList">
+            <td>
+                <h4>
+                    <a ui-sref="manage_team.settings({team_slug: team.slug})">{{team.name}}</a>
+                </h4>
+                {{team.slug}}
+
+            </td>
+            <td style="text-align:right;" time-since="team.dateCreated">
+            </td>
+        </tr>
+    </tbody>
+</table>

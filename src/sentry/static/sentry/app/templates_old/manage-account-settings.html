@@ -1,0 +1,11 @@
+<div class="section-header">
+  <h4>Settings</h4>
+</div>
+
+<form role="form" name="form">
+    <div form-field="settingsForm.name"></div>
+    <div form-field="settingsForm.email"></div>
+    <button class="btn btn-primary"
+            ng-click="saveForm()"
+            ng-disabled="form.$invalid || settingsForm.isUnchanged()">Save</button>
+</form>

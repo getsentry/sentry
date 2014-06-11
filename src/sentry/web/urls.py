@@ -69,6 +69,8 @@ urlpatterns += patterns('',
 
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
+    url(r'^templates/(?P<path>.*)$', generic.partial_static_media,
+        name='sentry-partial-media'),
 
     # API
     url(r'^api/0/', include('sentry.api.urls')),
@@ -138,6 +140,7 @@ urlpatterns += patterns('',
         name='sentry-manage-team-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', teams.create_new_team_project,
         name='sentry-new-project'),
+
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', teams.accept_invite,
         name='sentry-accept-invite'),
 

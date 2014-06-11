@@ -1,0 +1,57 @@
+<style type="text/css">
+.sub-nav {
+    margin-left: 20px;
+}
+.sub-nav .ul {
+    margin-bottom: 0px;
+}
+</style>
+
+<header>
+    <div class="container">
+        <a ui-sref="help()">Sentry Knowledge Base</a>
+    </div>
+</header>
+<section id="content">
+    <div class="container">
+        <flash-messages></flash-messages>
+
+        <div class="row">
+            <div class="col-sm-9">
+                <div ui-view>
+                    <p>This guide will help walk you through everything you need to get up and running with Sentry!</p>
+                    <p>Start by selecting the approriate language on the right.</p>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <ul class="nav nav-stacked">
+                    <li ui-sref-active="active"><a ui-sref="help.guide({language: 'python'})">Python</a></li>
+                    <ul class="nav sub-nav">
+                        <li ui-sref-active="active"><a ui-sref="help.guide({language: 'django'})">Django</a></li>
+                        <li ui-sref-active="active"><a ui-sref="help.guide({language: 'flask'})">Flask</a></li>
+                        <li ui-sref-active="active"><a ui-sref="help.guide({language: 'Tornado'})">Tornado</a></li>
+                    </ul>
+                    <li ui-sref-active="active"><a ui-sref="help.guide({language: 'javascript'})">Javascript</a></li>
+                    <li ui-sref-active="active"><a ui-sref="help.guide({language: 'php'})">PHP</a></li>
+                    <li ui-sref-active="active"><a ui-sref="help.guide({language: 'ruby'})">Ruby</a></li>
+                    <ul class="nav sub-nav">
+                        <li ui-sref-active="active"><a ui-sref="help.guide({language: 'rails-3'})">Rails 3</a></li>
+                        <li ui-sref-active="active"><a ui-sref="help.guide({language: 'rails-4'})">Rails 4</a></li>
+                        <li ui-sref-active="active"><a ui-sref="help.guide({language: 'sinatra'})">Sinatra</a></li>
+                        <li ui-sref-active="active"><a ui-sref="help.guide({language: 'sidekiq'})">Sidekiq</a></li>
+                    </ul>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- <footer>
+    <div class="container">
+        <div class="pull-right">
+            <a href="#">Contribute</a>
+            <a href="#">Translate</a>
+        </div>
+        Sentry 7.0.0-DEV (9765530)
+    </div>
+</footer> -->
+

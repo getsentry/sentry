@@ -1,0 +1,84 @@
+<style type="text/css">
+.help-section-title {
+    font-size: 18px;
+    font-weight: 500;
+}
+.help-section-info {
+    padding-bottom: 10px;
+    margin: 10px 0 20px 0;
+    border-bottom: #aaa 1px dashed;
+}
+</style>
+
+<div ui-view>
+    <div class="col-sm-3">
+        <ul class="nav nav-stacked">
+            <li ui-sref-active="active"><a href="#create-project">Create a Project</a></li>
+            <li ui-sref-active="active"><a href="#install-client">Install Client</a></li>
+            <li ui-sref-active="active"><a href="#configure-client">Configure Client</a></li>
+            <li ui-sref-active="active"><a href="#use-client">Use Client</a></li>
+            <li ui-sref-active="active"><a href="#notifications">Notifications</a></li>
+            <li ui-sref-active="active"><a href="#tag-event">Tag Events</a></li>
+            <li ui-sref-active="active"><a href="#user-data">User Data</a></li>
+            <li ui-sref-active="active"><a href="#grouping">Event Grouping</a></li>
+        </ul>
+    </div>
+
+    <div class="col-sm-9">
+        <span class='help-section-title' id='create-project'>Create a Project</span>
+        <div class='help-section-info'>
+            <p>To get started with Sentry, the first thing you will want to do is create a project.</p>
+            <p>Projects allow you to scope events to a specific application in your organization. For example, you might have seperate projects for production vs development instances, or separate projects for your web app and mobile app.</p>
+            <p>Visit <a href='account/teams/boat/projects/new/'>Here</a> to create a project.</p>
+        </div>
+
+        <span class='help-section-title' id='install-client'>Install the Client</span>
+        <div class='help-section-info'>
+            <p>Once you have created a project, go ahead and install the client</p>
+            <p>The client is how your app will communicate errors to Sentry.</p>
+            <pre>{{ languageInfo.install }}</pre>
+        </div>
+
+        <span class='help-section-title' id='configure-client'>Configure the Client</span>
+        <div class='help-section-info'>
+            <p>Now that the client is installed, let's get it configured.</p>
+            <p>Sending errors to Sentry is as easy as creating an instance of the client and then using that client to send events to Sentry.</p>
+            <p>First - Create an instance of the client:</p>
+            <pre>{{ languageInfo.initialize }}</pre>
+
+            <p>Next - Call out to the raven client to capture events</p>
+            <pre>{{ languageInfo.simpleMessage }}</pre>
+
+            <p>If you want to wrap a WSGI app to record uncaught exceptions, Raven provides a middleware for that:</p>
+            <pre>{{ languageInfo.middleware }}</pre>
+
+            <p>If you wish to test your connection to the server, you can use the raven test command:</p>
+            <pre>{{ languageInfo.testConnection }}</pre>
+        </div>
+
+        <span class='help-section-title' id='use-client'>Start Using the Client</span>
+        <div class='help-section-info'>
+            <p>Now let's start captureing some messages!</p>
+        </div>
+
+        <span class='help-section-title' id='notifications'>Set up Notifications</span>
+        <div class='help-section-info'>
+            <p>Now that we're all set up, let's configure the notifications so we can let you know when something has gone awry</p>
+        </div>
+
+        <span class='help-section-title' id='tag-event'>Tag Events</span>
+        <div class='help-section-info'>
+            <p>One of the most useful features of Sentry is event tagging</p>
+        </div>
+
+        <span class='help-section-title' id='user-data'>Send over User Data</span>
+        <div class='help-section-info'>
+            <p>Knowing an error occured is useful. But knowing information about the users to whom it occured is even better</p>
+        </div>
+
+        <span class='help-section-title' id='grouping'>Understand how Event Grouping Works</span>
+        <div class='help-section-info'>
+            <p>When you see errors coming into Sentry, we group those messages automatically for you.  Knowing how we group and why will help you better utilize the platform.</p>
+        </div>
+    </div>
+</div>

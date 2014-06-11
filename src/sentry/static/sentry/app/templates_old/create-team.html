@@ -1,0 +1,35 @@
+<div class="page-header">
+  <h3>New Team</h3>
+</div>
+
+<form role="form" name="form">
+    <div class="form-group" ng-class="form.teamName.$invalid ? 'error' : ''">
+        <label for="teamName">Name:</label>
+        <input id="teamName"
+               name="name"
+               ng-model="teamData.name"
+               class="form-control"
+               type="text"
+               placeholder="Project Name"
+               required>
+        <div ng-show="form.teamName.$dirty && form.teamName.$invalid">Invalid:
+            <span ng-show="form.teamName.$error.required">Enter a valid team name.</span>
+        </div>
+    </div>
+    <div class="form-group" ng-class="form.teamSlug.$invalid ? 'error' : ''">
+        <label for="teamSlug">Slug:</label>
+        <input id="teamSlug"
+               name="slug"
+               ng-model="teamData.slug"
+               class="form-control"
+               type="text"
+               placeholder="Project Slug"
+               required>
+        <div ng-show="form.teamSlug.$dirty && form.teamSlug.$invalid">Invalid:
+            <span ng-show="form.teamSlug.$error.required">Enter a valid team slug.</span>
+        </div>
+    </div>
+    <button class="btn btn-primary"
+            ng-click="saveForm()"
+            ng-disabled="form.$invalid">Save</button>
+</form>

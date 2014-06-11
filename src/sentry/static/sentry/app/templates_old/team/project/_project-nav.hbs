@@ -1,0 +1,17 @@
+<ul class="nav nav-tabs project-nav">
+    <li class="pull-right search">
+        <form>
+            <span class="icon-search"></span>
+            <input type="text" placeholder="Search by id" class="form-control" />
+        </form>
+    </li>
+    {{#link-to 'team.project.index' tagName='li'}}
+      {{#link-to 'team.project.index'}}Stream{{/link-to}}
+    {{/link-to}}
+    {{#link-to 'team.project.explore' tagName='li'}}
+      {{#link-to 'team.project.explore'}}Explore{{/link-to}}
+    {{/link-to}}
+    {{!-- {{#link-to 'team.project.settings' tagName='li'}}
+      {{#link-to 'team.project.settings'}}Settings{{/link-to}}
+    {{/link-to}} --}}
+</ul>

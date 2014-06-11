@@ -1,0 +1,101 @@
+{{#link-to 'team.project'}}<span class="icon-arrow-left back-button"></span>{{/link-to}}
+<div class="group-detail">
+  <div class="row">
+      <div class="col-xs-9 details">
+        <h3>{{title}}</h3>
+        <div class="meta">
+            <time>3 days ago</time> &middot;
+            <span class="message">{{culprit}}</span>
+        </div>
+      </div>
+      <div class="col-xs-3 occurrences">
+        <div class="row">
+          <div class="col-xs-6 occurences align-right"><span class="count">{{format-number count}}</span> occurences</div>
+          <div class="col-xs-6 users align-right"><span class="count">209</span> users</div>
+        </div>
+      </div>
+  </div>
+  <div class="group-actions">
+    <div class="pull-right">
+      <div class="btn-group">
+        <a class="btn btn-sm btn-default"><span class="icon-arrow-left"></span> Older</a>
+        <a class="btn btn-sm btn-default disabled" style="background: #fff">ID: ff0d71...</a>
+        <a class="btn btn-sm btn-default">Newer <span class="icon-arrow-right"></span></a>
+      </div>
+    </div>
+    <div class="btn-group">
+      <a href="#" class="btn btn-default btn-sm"><span class="icon-checkmark"></span></a>
+      <a href="#" class="btn btn-default btn-sm"><span class="icon-bookmark"></span></a>
+    </div>
+    <div class="btn-group">
+      <a href="#" class="btn btn-default btn-sm"><span class="icon-trash"></span></a>
+    </div>
+    <div class="btn-group">
+      <a href="#" class="btn btn-default btn-sm">More <span class="icon-arrow-down"></span></a>
+    </div>
+  </div>
+</div>
+
+<div class="seen-by">
+  <ul>
+    <li>seen by</li>
+    <li><a href="#"><img src="http://github.com/ckj.png" /></a></li>
+    <li><a href="#"><img src="http://github.com/dcramer.png" /></a></li>
+    <li><a href="#"><img src="http://github.com/mattrobenolt.png" /></a></li>
+  </ul>
+</div>
+
+<ul class="nav nav-tabs project-nav" style="margin-top: -8px">
+    <li class="active"><a href="#">Summary</a></li>
+    <li class=""><a href="#">Discussion</a></li>
+</ul>
+<div class="row">
+    <div class="col-sm-9">
+    {{bar-chart width="100%" height=100 data=historicalData}}
+    <div class="box">
+            <div class="box-header">
+                <h4>Timeline</h4>
+            </div>
+            <div class="box-content">
+                <ul class="timeline">
+                    {{#each action in actions}}
+                        <li class="timeline-item">
+                            {{render-event-action action}}
+                        </li>
+                    {{/each}}
+                </ul>
+            </div>
+        </div>
+        <div class="box">
+            <div class="box-header">
+                <a href="#" class="box-toggle"></a>
+                <h4>Tags</h4>
+            </div>
+            <div class="box-content with-padding">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <ul class="tags">
+                            <li><strong>level</strong> <a href="#">Error</a></li>
+                            <li><strong>url</strong> <a href="#">https://app.getsentry.com/api/quizup/quizup-production/tags/search/?query=users-dev&quietMillis=300&name=url&limit=10</a></li>
+                            <li><strong>server_name</strong> <a href="#">web-2</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-sm-6">
+                        <ul class="tags">
+                            <li><strong>logger</strong> <a href="#">root</a></li>
+                            <li><strong>browser</strong> <a href="#">Chrome 32.0.1700.102</a></li>
+                            <li><strong>os</strong> <a href="#">MacOs</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <ul class="nav nav-pills nav-stacked">
+            <li class="active"><a href="#">Event overview</a></li>
+            <li><a href="#">Tags</a></li>
+            <li><a href="#">Similar events</a></li>
+        </ul>
+    </div>
+</div>

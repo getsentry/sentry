@@ -12,11 +12,11 @@ from .authentication import KeyAuthentication
 from .paginator import Paginator
 
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
-
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
+
+LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
 
 
 class Endpoint(APIView):

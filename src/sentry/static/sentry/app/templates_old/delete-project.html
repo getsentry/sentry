@@ -1,0 +1,11 @@
+<div class="page-header">
+  <h3>Delete Project</h3>
+</div>
+
+<form role="form" name="form">
+    <p><strong>Deleting this project is permanent</strong> and once the process begins it cannot be stopped.</p>
+    <p><label><input ng-model="confirm" type="checkbox" value="1" required> I understand and want to delete this project.</label></p>
+    <button class="btn btn-danger"
+            ng-click="saveForm()"
+            ng-disabled="form.$invalid">Delete</button>
+</form>

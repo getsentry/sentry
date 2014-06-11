@@ -49,6 +49,11 @@ def static_media(request, **kwargs):
     return serve(request, path, insecure=True)
 
 
+def partial_static_media(request, path):
+    path = 'app/templates/' + path
+    return static_media(request, module='sentry', path=path)
+
+
 def missing_perm(request, perm, **kwargs):
     """
     Returns a generic response if you're missing permission to perform an

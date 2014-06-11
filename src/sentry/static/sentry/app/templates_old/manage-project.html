@@ -1,0 +1,26 @@
+<header ng-include="'partials/team-header.html'"></header>
+<section id="content">
+    <div class="container">
+        <flash-messages></flash-messages>
+
+        <div class="row">
+            <div class="col-sm-3">
+                <a ui-sref="manage_team.projects({team_slug: selectedTeam.slug})"><span class="icon-arrow-left back-button"></span></a>
+                <h3><a href="#">{{selectedProject.name}}</a></h3>
+                <ul class="nav nav-pills nav-stacked">
+                    <li ui-sref-active="active"><a ui-sref="manage_project.settings()">Settings</a></li>
+                    <li ui-sref-active="active"><a ui-sref="manage_project.notifications()">Notifications</a></li>
+                    <li ui-sref-active="active"><a ui-sref="manage_project.rate_limits()">Rate Limits</a></li>
+                    <li ui-sref-active="active"><a ui-sref="manage_project.tags()">Tags</a></li>
+                    <li ui-sref-active="active"><a ui-sref="manage_project.api_keys()">API Keys</a></li>
+                    <li class="divider"></li>
+                    <li ng-if="selectedProject.permission.admin"
+                        ui-sref-active="active"><a ui-sref="manage_project.delete()">Delete Project</a></li>
+                    </li>
+                </ul>
+
+            </div>
+            <div class="col-sm-9" ui-view></div>
+        </div>
+    </div>
+</section>

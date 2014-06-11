@@ -15,7 +15,7 @@ import os
 import pkg_resources
 import warnings
 
-USE_GEVENT = os.environ.get('USE_GEVENT')
+USE_GEVENT = os.environ.get('USE_GEVENT') == '1'
 
 KEY_LENGTH = 40
 

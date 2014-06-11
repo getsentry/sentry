@@ -1,0 +1,14 @@
+<div class="form-group" ng-class="field.$invalid ? 'error' : ''">
+    <label for="{{field.id}}">{{field.label}}:</label>
+    <select id="{{field.id}}"
+            name="{{field.name}}"
+            class="form-control"
+            type="{{field.type}}"
+            placeholder="{{field.placeholder}}"
+            ng-model="field.value"
+            ng-options="option.value as option.name for option in field.options"
+            ng-required="field.required"></select>
+    <div ng-show="form[field.name].$dirty && form[field.name].$invalid">Invalid:
+        <span ng-show="form[field.name].$error.required">Select a valid choice.</span>
+    </div>
+</div>
