@@ -7,7 +7,9 @@ define([
     'app/config',
     'app/models',
     'app/utils',
-    'app/views'
+    'app/views',
+
+    'simple-slider'
 ], function(Backbone, $, _, appCharts, appConfig, appModels, appUtils, appViews){
     'use strict';
 

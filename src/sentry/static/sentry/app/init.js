@@ -49,38 +49,26 @@ define([
       return false;
   });
 
-  $(function(){
-      // Change all select boxes to select2 elements.
-      $('.body select').each(function(){
-          var $this = $(this),
-              options = {
-                  width: 'element',
-                  allowClear: false,
-                  minimumResultsForSearch: 10
-              };
-
-          if ($this.attr('data-allowClear')) {
-              options.allowClear = $this.attr('data-allowClear');
-          }
-
-          $this.select2(options);
-      });
-
-      // Update date strings periodically
-      setInterval(function() {
-          $('.pretty-date').each(function(_, el){
-              var $el = $(el);
-              var dt = $el.data('datetime');
-              if (dt) {
-                  var date = moment(dt);
-                  if (date) {
-                      $el.text(date.fromNow());
-                      $el.attr('title', date.format('llll'));
-                  }
-              }
-          });
-      }, 5000);
+  // Change all select boxes to selectize elements.
+  $('.body select').each(function(){
+      var $this = $(this);
+      $this.selectize();
   });
+
+  // Update date strings periodically
+  setInterval(function() {
+      $('.pretty-date').each(function(_, el){
+          var $el = $(el);
+          var dt = $el.data('datetime');
+          if (dt) {
+              var date = moment(dt);
+              if (date) {
+                  $el.text(date.fromNow());
+                  $el.attr('title', date.format('llll'));
+              }
+          }
+      });
+  }, 5000);
 
   var Sentry = $.extend({}, appBase);
   Sentry.utils = appUtils;
