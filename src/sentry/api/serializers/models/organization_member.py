@@ -6,7 +6,7 @@ from sentry.models import OrganizationMember
 
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):
-    def serialize(self, obj, user):
+    def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
             'email': obj.email or obj.user.email,
