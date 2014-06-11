@@ -10,7 +10,6 @@
 {% block bodyclass %}{% endblock %}
 
 {% block main %}
-
   {% block inner %}
   <div class="box">
       <div class="box-header">
@@ -38,12 +37,11 @@
           </form>
       </div>
   </div>
-  {% endblock %}
 
   <script type="text/javascript">
       require(['config', 'app/init'], function(_, app){
           new app.TeamDetailsPage();
       });
   </script>
-
+  {% endblock %}
 {% endblock %}
