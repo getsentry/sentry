@@ -112,10 +112,14 @@ def sourcemap_to_index(sourcemap):
     key_list = []
     src_list = set()
     content = None
+    root = smap.get('sourceRoot')
 
     if 'sourcesContent' in smap:
         content = {}
         for idx, source in enumerate(smap['sources']):
+            # Apply the root to the source before shoving into the index
+            # so we can look it up correctly later
+            source = urljoin(root, source)
             if smap['sourcesContent'][idx]:
                 content[source] = smap['sourcesContent'][idx].splitlines()
             else:
