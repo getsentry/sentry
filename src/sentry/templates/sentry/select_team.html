@@ -20,7 +20,12 @@
                                 <span class="loading">{% trans "Loading historical data..." %}</span>
                             </div>
                         </div>
-                        <h2><a href="{% url 'sentry' team.slug %}">{{ team.name }}</a></h2>
+                        <h2>
+                            <a href="{% url 'sentry' team.slug %}">{{ team.name }}</a>
+                            {% if team.status %}
+                                <small>{{ team.get_status_display }}</small>
+                            {% endif %}
+                        </h2>
                         <ul>
                             {% for project in project_list %}
                                 <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
