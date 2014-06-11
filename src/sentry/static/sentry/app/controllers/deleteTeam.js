@@ -6,7 +6,7 @@ define([
   app.classy.controller({
     name: 'DeleteTeamCtrl',
 
-    inject: ['$scope', '$http', '$location', 'selectedTeam'],
+    inject: ['$scope', '$http', 'selectedTeam'],
 
     init: function() {
       var $scope = this.$scope;
@@ -23,7 +23,7 @@ define([
         method: 'DELETE',
         url: '/api/0/teams/' + this.selectedTeam.id + '/'
       }).success(function(data){
-        this.$location.path('/account/teams/');
+        window.location.href = '/account/teams/';
       });
     }
   });

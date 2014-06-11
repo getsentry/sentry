@@ -6,7 +6,7 @@ define([
   app.classy.controller({
     name: 'ManageTeamOwnershipCtrl',
 
-    inject: ['$scope', '$http', '$location', 'selectedTeam'],
+    inject: ['$scope', '$http', 'selectedTeam'],
 
     init: function() {
       this.$scope.newOwner = null;
@@ -21,7 +21,7 @@ define([
       this.$http.put('/api/0/teams/' + this.selectedTeam.id + '/', {
         'owner': this.$scope.newOwner
       }).success(function(data){
-        this.$location.path('/account/teams/');
+        window.location.href = '/account/teams/';
       });
     }
   });
