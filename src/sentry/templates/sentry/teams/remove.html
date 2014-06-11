@@ -1,22 +1,30 @@
 {% extends "sentry/teams/manage.html" %}
 
-{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Remove Team" %} | {{ block.super }}{% endblock %}
 
+{% block controller %}DeleteTeamCtrl{% endblock %}
+
 {% block main %}
-    <section class="body">
-        <form action="." method="post">
-            <p>{% trans "Are you sure you wish to remove this team? This change is permanent!" %}</p>
-            {% csrf_token %}
-            {{ form|as_crispy_errors }}
-            {% for field in form %}
-                {{ field|as_crispy_field }}
-            {% endfor %}
-            <fieldset class="form-actions">
-                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url 'sentry-manage-team' team.slug %}" class="btn">{% trans "Cancel" %}</a>
-            </fieldset>
+<div class="box">
+    <div class="box-header">
+        <h3>{% trans "Delete Team" %}</h3>
+    </div>
+    <div class="box-content with-padding">
+        <form role="form" name="form">
+            <p>Deleting this team is permanent and once the process begins it cannot be stopped.</p>
+            <section ng-if="projectList">
+              <p>The following projects will also be deleted as part of this process:</p>
+              <ul>
+                <li ng-repeat="project in projectList"><% project.name %></li>
+              </ul>
+            </section>
+            <p><label><input ng-model="confirm" type="checkbox" value="1" required> I understand and want to delete this team.</label></p>
+            <button class="btn btn-danger"
+                    ng-click="saveForm()"
+                    ng-disabled="form.$invalid">Delete</button>
         </form>
-    </section>
+    </div>
+</div>
 {% endblock %}
