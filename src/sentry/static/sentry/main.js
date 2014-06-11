@@ -1,10 +1,9 @@
-require([
+define([
   'angular',
   'app',
   'moment',
 
   'app/controllers/default',
-  'app/controllers/loginSudo',
   'app/controllers/manageTeamOwnership',
   'app/controllers/projectStream',
   'app/controllers/teamDashboard',
