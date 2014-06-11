@@ -34,33 +34,39 @@ def create_sample_time_series(event):
 
 user = User.objects.filter(is_superuser=True)[0]
 
-team, _ = Team.objects.get_or_create(
-    name='Earth', slug='earth',
-    defaults={
-        'owner': user,
-    },
+
+mocks = (
+    ('Massive Dynamic', ('Ludic Science',)),
+    ('Captain Planet', ('Earth', 'Fire', 'Wind', 'Water', 'Heart')),
 )
 
-project, _ = Project.objects.get_or_create(
-    team=team,
-    name='Backend',
-    slug='backend',
-    owner=team.owner,
-)
+for team_name, project_names in mocks:
+    team, _ = Team.objects.get_or_create(
+        name=team_name,
+        defaults={
+            'owner': user,
+        },
+    )
 
-event1 = create_sample_event(project, 'python')
-create_sample_time_series(event1)
+    for project_name in project_names:
+        project, _ = Project.objects.get_or_create(
+            team=team,
+            name=project_name,
+            owner=team.owner,
+        )
 
-event2 = create_sample_event(project, 'javascript')
-create_sample_time_series(event2)
+        event1 = create_sample_event(project, 'python')
+        create_sample_time_series(event1)
 
-Activity.objects.create(
-    type=Activity.DEPLOY,
-    project=project,
-    ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
-    user=user,
-    data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
-)
+        event2 = create_sample_event(project, 'javascript')
+        create_sample_time_series(event2)
 
-event3 = create_sample_event(project, 'java')
-create_sample_time_series(event3)
+        Activity.objects.create(
+            type=Activity.DEPLOY,
+            project=project,
+            ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+            user=user,
+            data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
+        )
+
+        event3 = create_sample_event(project, 'java')
