@@ -41,10 +41,8 @@ class EditTeamForm(forms.ModelForm):
 
 
 class EditTeamAdminForm(EditTeamForm):
-    owner = UserField(required=True)
-
     class Meta:
-        fields = ('name', 'slug', 'owner',)
+        fields = ('name', 'slug',)
         model = Team
 
     def clean_slug(self):

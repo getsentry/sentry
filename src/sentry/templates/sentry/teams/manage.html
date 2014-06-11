@@ -28,37 +28,22 @@
 
               <fieldset>
                   {% for field in form %}
-                      {% if field.name != 'owner' %}
-                          {{ field|as_crispy_field }}
-                      {% endif %}
+                        {{ field|as_crispy_field }}
                   {% endfor %}
               </fieldset>
 
-              {% if form.owner %}
-                  <fieldset>
-                      <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
-                      {{ form.owner|as_crispy_field }}
-                  </fieldset>
-              {% endif %}
-
               <div class="form-actions">
                   <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-                  {% if can_remove_team %}
-                      <a href="{% url 'sentry-remove-team' team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
-                  {% else %}
-                      <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
-                  {% endif %}
               </div>
           </form>
       </div>
   </div>
   {% endblock %}
 
-
-    <script type="text/javascript">
-        require(['config', 'app/init'], function(_, app){
-            new app.TeamDetailsPage();
-        });
-    </script>
+  <script type="text/javascript">
+      require(['config', 'app/init'], function(_, app){
+          new app.TeamDetailsPage();
+      });
+  </script>
 
 {% endblock %}
