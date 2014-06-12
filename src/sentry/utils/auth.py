@@ -22,12 +22,15 @@ def get_auth_providers():
     ]
 
 
-def find_users(username):
+def find_users(username, with_valid_password=True):
     """
     Return a list of users that match a username
     and falling back to email
     """
-    qs = User.objects.exclude(password='!')
+    qs = User.objects
+    if with_valid_password:
+        qs = qs.exclude(password='!')
+
     try:
         # First, assume username is an iexact match for username
         user = qs.get(username__iexact=username)
