@@ -517,9 +517,6 @@ define([
 
         }),
 
-        AddTeamMemberPage: BasePage.extend({
-        }),
-
         AccessGroupMembersPage: BasePage.extend({
             initialize: function(){
                 BasePage.prototype.initialize.apply(this, arguments);

@@ -74,12 +74,14 @@
     </div>
 
     <script>
-    new app.NewProjectRulePage({
-        el: '#new-rule-form',
-        actions: {{ action_list|safe }},
-        conditions: {{ condition_list|safe }},
-        form_data: {{ form_data|to_json|safe }},
-        form_errors: {{ form_errors|to_json|safe }}
+    require(['app/init'], function(app){
+        new app.NewProjectRulePage({
+            el: '#new-rule-form',
+            actions: {{ action_list|safe }},
+            conditions: {{ condition_list|safe }},
+            form_data: {{ form_data|to_json|safe }},
+            form_errors: {{ form_errors|to_json|safe }}
+        });
     });
     </script>
 {% endblock %}

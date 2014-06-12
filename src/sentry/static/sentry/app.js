@@ -5,6 +5,7 @@ define([
 
   'moment',
   'jquery',
+  'selectize',
 
   'app/modules/charts',
   'app/modules/collection',
