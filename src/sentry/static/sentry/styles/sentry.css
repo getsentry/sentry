@@ -8016,6 +8016,12 @@ section.body .page-header:first-child {
   color: #fff;
   background: #56AFE8;
 }
+.dashboard .events.small {
+  margin-bottom: 10px;
+}
+.dashboard li.empty {
+  border-bottom: 0;
+}
 .dashboard .empty-message {
   padding: 0;
   width: auto;
@@ -8028,6 +8034,7 @@ section.body .page-header:first-child {
   font-size: 16px;
   color: #c2c9d1;
   letter-spacing: 0;
+  margin: 0;
 }
 .dashboard .empty-message p {
   display: none;

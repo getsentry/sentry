@@ -17,17 +17,25 @@
             {% include "sentry/partial/alerts.html" %}
         {% endblock %}
         {% block main %}
-            <section class="body dashboard">
+            <div class="dashboard">
                 {% if project_list %}
-                    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
-                        <div class="sparkline">
-                            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                            <span class="loading">{% trans "Loading historical data..." %}</span>
+                    <div class="box">
+                      <div class="box-header">
+                        <h3>Last 7 days</h3>
+                      </div>
+                        <div class="box-content with-padding">
+                            <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
+                                <div class="sparkline">
+                                    <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                                    <span class="loading">{% trans "Loading historical data..." %}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="page-header clearfix">
+                          <div class="box">
+                            <div class="box-header clearfix">
                                 <h3 class="pull-left">{% trans "Trends" %}</h3>
                                 <ul class="nav nav-pills nav-small pull-right">
                                     <li><a href="#top_events" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-trends' team.slug %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
@@ -35,12 +43,14 @@
                                     <li class="active"><a href="#top_events" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-trends' team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
                                 </ul>
                             </div>
-                            <div class="tab-content">
+                            <div class="box-content with-padding">
                                 <div class="tab-pane active" id="top_events"><p>{% trans "Loading ..." %}</p></div>
                             </div>
+                          </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="page-header clearfix">
+                          <div class="box">
+                            <div class="box-header clearfix">
                                 <h3 class="pull-left">{% trans "New Events" %}</h3>
                                 <ul class="nav nav-pills nav-small pull-right">
                                     <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-new' team.slug %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
@@ -48,7 +58,7 @@
                                     <li class="active"><a href="#new_events" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-new' team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
                                 </ul>
                             </div>
-                            <div class="tab-content">
+                            <div class="box-content with-padding">
                                 <div class="tab-pane active" id="new_events"><p>{% trans "Loading ..." %}</p></div>
                             </div>
                         </div>
@@ -57,7 +67,7 @@
                     {% url 'sentry-new-project' team.slug as link %}
                     <div class="alert alert-info">{% blocktrans %}You do not have access to any projects. Would you like to <a href="{{ link }}">create a new project</a>?{% endblocktrans %}</div>
                 {% endif %}
-            </section>
+            </div>
         {% endblock %}
     </div>
 {% endblock %}
