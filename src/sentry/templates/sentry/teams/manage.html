@@ -9,6 +9,8 @@
 
 {% block bodyclass %}{% endblock %}
 
+{% block controller %}ManageTeamSettingsCtrl{% endblock %}
+
 {% block main %}
   {% block inner %}
   <div class="box">
@@ -16,32 +18,44 @@
           <h3>{% trans "Team Details" %}</h3>
       </div>
       <div class="box-content with-padding">
-          <form class="form-stacked" action="." method="post">
-              {% csrf_token %}
+          <form method="post"name="form">
+              <div class="form-group" ng-class="form.name.$invalid ? 'error' : ''">
+                <label for="id_name">Name:</label>
+                <input id="id_name"
+                       name="name"
+                       ng-model="teamData.name"
+                       class="form-control"
+                       type="text"
+                       placeholder="team name"
+                       style="width: 240px"
+                       required>
+                <div ng-show="form.name.$dirty && form.name.$invalid">Invalid:
+                  <span ng-show="form.name.$error.required">Enter a valid team name.</span>
+                </div>
+              </div>
 
-              {% if form.errors %}
-                  <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-              {% endif %}
-
-              {{ form|as_crispy_errors }}
-
-              <fieldset>
-                  {% for field in form %}
-                        {{ field|as_crispy_field }}
-                  {% endfor %}
-              </fieldset>
+              <div class="form-group" ng-class="form.slug.$invalid ? 'error' : ''">
+                <label for="id_slug">Slug:</label>
+                <input id="id_slug"
+                       name="slug"
+                       ng-model="teamData.slug"
+                       class="form-control"
+                       type="text"
+                       placeholder="team slug"
+                       style="width: 240px"
+                       required>
+                <div ng-show="form.slug.$dirty && form.slug.$invalid">Invalid:
+                  <span ng-show="form.slug.$error.required">Enter a valid team slug.</span>
+                </div>
+              </div>
 
               <div class="form-actions">
-                  <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                  <button class="btn btn-primary"
+                          ng-click="saveForm()"
+                          ng-disabled="form.$invalid || isUnchanged()">{% trans "Save Changes" %}</button>
               </div>
           </form>
       </div>
   </div>
-
-  <script type="text/javascript">
-      require(['config', 'app/init'], function(_, app){
-          new app.TeamDetailsPage();
-      });
-  </script>
   {% endblock %}
 {% endblock %}

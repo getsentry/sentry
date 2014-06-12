@@ -8,13 +8,9 @@ sentry.web.forms.teams
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_TYPES, RESERVED_TEAM_SLUGS
+from sentry.constants import MEMBER_TYPES
 from sentry.models import Team, TeamMember, PendingTeamMember, AccessGroup, Project
 from sentry.web.forms.fields import UserField, get_team_choices
-
-
-class RemoveTeamForm(forms.Form):
-    pass
 
 
 class NewTeamForm(forms.ModelForm):
@@ -32,24 +28,6 @@ class NewTeamAdminForm(NewTeamForm):
     class Meta:
         fields = ('name', 'owner')
         model = Team
-
-
-class EditTeamForm(forms.ModelForm):
-    class Meta:
-        fields = ('name',)
-        model = Team
-
-
-class EditTeamAdminForm(EditTeamForm):
-    class Meta:
-        fields = ('name', 'slug',)
-        model = Team
-
-    def clean_slug(self):
-        value = self.cleaned_data['slug']
-        if value in RESERVED_TEAM_SLUGS:
-            raise forms.ValidationError('You may not use "%s" as a slug' % (value,))
-        return value
 
 
 class SelectTeamForm(forms.Form):
