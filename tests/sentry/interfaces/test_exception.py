@@ -114,3 +114,11 @@ class SingleExceptionTest(TestCase):
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()
+
+    def test_only_requires_only_type_or_value(self):
+        SingleException.to_python(dict(
+            type='ValueError',
+        ))
+        SingleException.to_python(dict(
+            value='ValueError',
+        ))
