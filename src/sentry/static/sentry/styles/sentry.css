@@ -8414,50 +8414,8 @@ table.vars tbody > tr:nth-child(even) > th {
   font-size: 0.9em;
   background: #dee3e9;
 }
-.windowed {
-  background: #c8cbd0;
-}
-.windowed .outer-wrapper {
-  width: 900px;
-  max-width: 900px;
-  margin-top: 30px;
-  margin-bottom: 30px;
-  -webkit-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
-  border-radius: 9px;
-}
-.windowed .navbar .navbar-inner {
-  border-radius: 7px 7px 0 0;
-}
-.windowed footer {
-  border-radius: 0 0 7px 7px;
-  padding: 30px 30px;
-}
-.windowed #content {
-  width: auto;
-  min-width: auto;
-}
-.windowed #content.with-left-sidebar {
-  width: 900px;
-  min-width: 900px;
-  background: #ffffff url(../images/dashboard/sidebar-bg.png) -50px top repeat-y;
-}
-.windowed #content.with-left-sidebar .content {
-  padding-left: 250px;
-}
-.windowed #content.with-left-sidebar .main {
-  min-width: 0;
-  float: right;
-}
-.windowed #content.with-left-sidebar .sidebar {
-  width: 190px;
-  display: block;
-  margin-right: 0;
-  margin-top: 0;
-  margin-left: -250px;
-}
-.windowed #content.with-left-sidebar section.body {
-  min-width: 0;
+.narrow .container {
+  max-width: 800px;
 }
 .windowed-small {
   padding-top: 100px;
