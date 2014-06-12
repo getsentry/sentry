@@ -2,6 +2,7 @@ define([
   'angular',
   'app',
   'moment',
+  'jquery',
 
   'app/controllers/default',
   'app/controllers/deleteTeam',
@@ -11,8 +12,8 @@ define([
   'app/controllers/teamDashboard',
 
   'app/directives/count',
-  'app/directives/timeSince'
-], function(angular, app, moment){
+  'app/directives/timeSince',
+], function(angular, app, moment, jQuery){
   'use strict';
 
   app.config(function(
@@ -30,6 +31,9 @@ define([
     $provide.value('selectedTeam', window.SentryConfig.selectedTeam);
     $provide.value('selectedProject', window.SentryConfig.selectedProject);
   });
+
+  // Change all select boxes to selectize elements.
+  jQuery('select').selectize();
 
   moment.lang(window.SentryConfig.lang);
 

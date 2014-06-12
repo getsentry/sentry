@@ -52,7 +52,9 @@
     </form>
 
     <script type="text/javascript">
-    new app.AccessGroupMembersPage();
+    require(['app/init'], function(app){
+        new app.AccessGroupMembersPage();
+    });
     </script>
 
 {% endblock %}

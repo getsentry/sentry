@@ -49,12 +49,6 @@ define([
       return false;
   });
 
-  // Change all select boxes to selectize elements.
-  $('.body select').each(function(){
-      var $this = $(this);
-      $this.selectize();
-  });
-
   // Update date strings periodically
   setInterval(function() {
       $('.pretty-date').each(function(_, el){
