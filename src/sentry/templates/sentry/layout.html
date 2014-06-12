@@ -136,13 +136,13 @@
                     {% block content_before %}
                     {% endblock %}
 
+                    {% block alerts %}
+                        {% include "sentry/partial/alerts.html" %}
+                    {% endblock %}
+
                     {% block content %}
                     <div class="row">
                         <div class="col-xs-9">
-                            {% block alerts %}
-                                {% include "sentry/partial/alerts.html" %}
-                            {% endblock %}
-
                             {% block main %}
                             {% endblock %}
                         </div>

@@ -2,9 +2,11 @@
 
 {% load i18n %}
 
+{% block title %}Your teams | {{ block.super }}{% endblock %}
+
 {% block bodyclass %}team-index {{ block.super }}{% endblock %}
 
-{% block main %}
+{% block content %}
     <section class="body">
         {% if team_list %}
             <div class="pull-right">

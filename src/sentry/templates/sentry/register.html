@@ -5,16 +5,15 @@
 
 {% block title %}{% trans "Register" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
+{% block content %}
     <section class="body">
         {{ form|as_crispy_errors }}
 
         <div class="row">
-            <div class="span5">
+            <div class="col-xs-6">
                 <form class="form-stacked" action="." method="post">
-                    <fieldset>
-                        <legend>{% trans "Create a new account" %}</legend>
-                    </fieldset>
+                    <h2>{% trans "Create a new account" %}</h2>
+
                     {% csrf_token %}
                     {{ form|as_crispy_errors }}
                     {% for field in form %}
@@ -22,18 +21,17 @@
                     {% endfor %}
 
                     <fieldset class="form-actions">
-                        <div class="pull-right" style="margin-top: 5px;">
+                        <div class="pull-right" style="margin-top: 6px;">
                             <a href="{% url 'sentry-login' %}">{% trans "Login as an existing user" %}</a>
                         </div>
-                        <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
+                        <button type="submit" class="btn btn-primary">{% trans "Create account" %}</button>
                     </fieldset>
                 </form>
             </div>
             {% if AUTH_PROVIDERS and SOCIAL_AUTH_CREATE_USERS %}
-                <div class="span5">
-                    <fieldset>
-                        <legend>{% trans "Register using another service" %}</legend>
-                    </fieldset>
+                <div class="col-xs-6">
+                    <h2>{% trans "Register using another service" %}</h2>
+
                     {% url 'sentry-account-settings-identities' as identities_link %}
                     <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
                         <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
