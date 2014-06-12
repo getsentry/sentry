@@ -49,7 +49,7 @@
                         {% endfor %}
                     </ul>
                     <a href="#add-note" class="add-note-btn"><i class="icon-comment"></i> Add Note</a>
-                    <form class="add-note-form hide" method="POST" action="">
+                    <form class="add-note-form hide" method="POST" action=".">
                         {% csrf_token %}
                         <input type="hidden" name="o" value="note">
                         {{ add_note_form.text }}
