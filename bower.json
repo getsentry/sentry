@@ -30,6 +30,6 @@
     "requirejs": "2.1.11",
     "requirejs-plugins": "~1.0.2",
     "selectize": "~0.10.1",
-    "require-handlebars-plugin": "~0.8.0",
+    "require-handlebars-plugin": "~0.8.0"
   }
 }
