@@ -6,17 +6,23 @@ from sentry.api.base import Endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN
+from sentry.constants import MEMBER_ADMIN, RESERVED_TEAM_SLUGS
 from sentry.models import Team, TeamMember, TeamStatus
 from sentry.tasks.deletion import delete_team
 
 
 class TeamSerializer(serializers.ModelSerializer):
-    owner = serializers.Field(source='owner.username')
-
     class Meta:
         model = Team
         fields = ('name', 'slug')
+
+    def validate_slug(self, attrs, source):
+        value = attrs[source]
+        if value in RESERVED_TEAM_SLUGS:
+            raise serializers.ValidationError('You may not use "%s" as a slug.' % (value,))
+        elif Team.objects.filter(slug=value).exclude(id=self.object.id):
+            raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+        return attrs
 
 
 class TeamAdminSerializer(TeamSerializer):
