@@ -78,24 +78,6 @@ class InviteTeamMemberForm(BaseTeamMemberForm):
         return value
 
 
-class NewTeamMemberForm(BaseTeamMemberForm):
-    user = UserField()
-
-    class Meta:
-        fields = ('type', 'user')
-        model = TeamMember
-
-    def clean_user(self):
-        value = self.cleaned_data['user']
-        if not value:
-            return None
-
-        if self.team.member_set.filter(user=value).exists():
-            raise forms.ValidationError(_('User is already a member of this team'))
-
-        return value
-
-
 class AcceptInviteForm(forms.Form):
     pass
 

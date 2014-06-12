@@ -25,7 +25,7 @@ from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (
     NewTeamForm, NewTeamAdminForm,
-    EditTeamMemberForm, NewTeamMemberForm,
+    EditTeamMemberForm,
     InviteTeamMemberForm, AcceptInviteForm, NewAccessGroupForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
@@ -176,21 +176,10 @@ def new_team_member(request, team):
         'type': MEMBER_USER,
     }
 
-    invite_form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
-    add_form = NewTeamMemberForm(team, request.POST or None, initial=initial, prefix='add')
+    form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
 
-    if add_form.is_valid():
-        pm = add_form.save(commit=False)
-        pm.team = team
-        pm.save()
-
-        messages.add_message(request, messages.SUCCESS,
-            _('The team member was added.'))
-
-        return HttpResponseRedirect(reverse('sentry-manage-team-members', args=[team.slug]))
-
-    elif invite_form.is_valid():
-        pm = invite_form.save(commit=False)
+    if form.is_valid():
+        pm = form.save(commit=False)
         pm.team = team
         pm.save()
 
@@ -204,8 +193,7 @@ def new_team_member(request, team):
     context = csrf(request)
     context.update({
         'page': 'members',
-        'add_form': add_form,
-        'invite_form': invite_form,
+        'form': form,
         'SUBSECTION': 'members',
     })
 
