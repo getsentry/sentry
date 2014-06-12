@@ -160,7 +160,7 @@ class RecoverPasswordForm(CaptchaForm):
     def clean_user(self):
         value = self.cleaned_data.get('user')
         if value:
-            users = find_users(value)
+            users = find_users(value, with_valid_password=False)
             if not users:
                 raise forms.ValidationError(_("We were unable to find a matching user."))
             if len(users) > 1:
