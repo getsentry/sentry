@@ -6,6 +6,7 @@ define([
   'app/controllers/default',
   'app/controllers/deleteTeam',
   'app/controllers/manageTeamOwnership',
+  'app/controllers/manageTeamSettings',
   'app/controllers/projectStream',
   'app/controllers/teamDashboard',
 

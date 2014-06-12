@@ -105,41 +105,6 @@ class ManageTeamTest(BaseTeamTest):
         self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
         assert resp.context['team'] == self.team
 
-    def test_valid_params(self):
-        resp = self.client.post(self.path, {
-            'name': 'bar',
-            'slug': self.team.slug,
-        })
-        assert resp.status_code == 302
-        self.assertEquals(resp['Location'], 'http://testserver' + self.path)
-        team = Team.objects.get(pk=self.team.pk)
-        self.assertEquals(team.name, 'bar')
-
-
-class RemoveTeamTest(BaseTeamTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-remove-team', args=[self.team.slug])
-
-    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=False))
-    def test_missing_permission(self):
-        resp = self.client.post(self.path)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry'))
-
-    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
-    def test_loads(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/remove.html')
-
-    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
-    def test_valid_params(self):
-        resp = self.client.post(self.path)
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry')
-        assert not Team.objects.filter(pk=self.team.pk).exists()
-
 
 class NewTeamMemberTest(BaseTeamTest):
     @fixture

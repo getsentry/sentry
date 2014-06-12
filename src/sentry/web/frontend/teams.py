@@ -25,8 +25,8 @@ from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (
     NewTeamForm, NewTeamAdminForm,
-    EditTeamForm, EditTeamMemberForm, NewTeamMemberForm,
-    InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm,
+    EditTeamMemberForm, NewTeamMemberForm,
+    InviteTeamMemberForm, AcceptInviteForm, NewAccessGroupForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
 from sentry.web.helpers import render_to_response
@@ -81,18 +81,9 @@ def manage_team(request, team):
     if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = EditTeamForm(request.POST or None, instance=team)
-    if form.is_valid():
-        team = form.save()
-        messages.add_message(request, messages.SUCCESS,
-            _('Changes to your team were saved.'))
-
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
     context = csrf(request)
     context.update({
         'page': 'details',
-        'form': form,
         'SUBSECTION': 'settings',
     })
 
@@ -120,22 +111,9 @@ def remove_team(request, team):
     if not can_remove_team(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))
 
-    if request.method == 'POST':
-        form = RemoveTeamForm(request.POST)
-    else:
-        form = RemoveTeamForm()
-
-    if form.is_valid():
-        team.delete()
-        messages.add_message(
-            request, messages.SUCCESS,
-            _(u'The team %r was permanently deleted.') % (team.name.encode('utf-8'),))
-        return HttpResponseRedirect(reverse('sentry'))
-
     context = csrf(request)
     context.update({
         'page': 'settings',
-        'form': form,
         'SUBSECTION': 'delete',
     })
 

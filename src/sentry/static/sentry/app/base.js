@@ -536,14 +536,6 @@ define([
             }
         }),
 
-        TeamDetailsPage: BasePage.extend({
-            initialize: function(){
-                BasePage.prototype.initialize.apply(this, arguments);
-
-                appUtils.makeSearchableUsersInput('form input[name=owner]');
-            }
-        }),
-
         ProjectDetailsPage: BasePage.extend({
             initialize: function(){
                 BasePage.prototype.initialize.apply(this, arguments);

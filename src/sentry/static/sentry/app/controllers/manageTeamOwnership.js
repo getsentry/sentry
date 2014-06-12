@@ -10,7 +10,6 @@ define([
 
     init: function() {
       this.$scope.newOwner = null;
-
     },
 
     isUnchanged: function(value) {
