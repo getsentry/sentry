@@ -293,19 +293,14 @@ define([
                     });
                 });
 
-                $('.add-note-btn').click(function(e){
-                    var $el = $(this),
-                        $form = $('.add-note-form', $el.parent());
+                $('.add-note-form textarea').focus(function () {
+                    $(this).addClass('expanded');
+                });
 
-                    e.preventDefault();
-
-                    if ($el.hasClass('selected')) {
-                        $el.removeClass('selected');
-                        $form.addClass('hide');
-                    } else {
-                        $el.addClass('selected');
-                        $form.removeClass('hide');
-                        $form.find('textarea:first').focus();
+                $('.add-note-form textarea').keypress(function (e) {
+                    if (e.which == 13 && !e.shiftKey) {
+                      $('.add-note-form').submit();
+                      return false;
                     }
                 });
 

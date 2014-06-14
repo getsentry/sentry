@@ -64,7 +64,7 @@ class TestEmailForm(forms.Form):
 
 
 class NewNoteForm(forms.Form):
-    text = forms.CharField(widget=forms.Textarea(attrs={'class': 'span8'}))
+    text = forms.CharField(widget=forms.Textarea(attrs={'rows': '1', 'placeholder': 'Type a note and press enter...'}))
 
     def save(self, event, user):
         activity = Activity.objects.create(

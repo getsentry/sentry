@@ -39,6 +39,16 @@
                     <h3>Activity</h3>
                 </div>
                 <div class="activity box-content with-padding" id="activity">
+                    <div class="post-box">
+                        <form class="add-note-form" method="POST" action=".">
+                            {% csrf_token %}
+                            <input type="hidden" name="o" value="note">
+                            {{ add_note_form.text }}
+                            <!-- <fieldset class="form-actions">
+                                <button type="submit" class="btn btn-small btn-primary">{% trans "Add Note" %}</button>
+                            </fieldset> -->
+                        </form>
+                    </div>
                     <ul>
                         {% for item in activity %}
                             {% with item|render_activity as out %}
@@ -48,15 +58,6 @@
                             {% endwith %}
                         {% endfor %}
                     </ul>
-                    <a href="#add-note" class="add-note-btn"><i class="icon-comment"></i> Add Note</a>
-                    <form class="add-note-form hide" method="POST" action=".">
-                        {% csrf_token %}
-                        <input type="hidden" name="o" value="note">
-                        {{ add_note_form.text }}
-                        <fieldset class="form-actions">
-                            <button type="submit" class="btn btn-small btn-primary">{% trans "Add Note" %}</button>
-                        </fieldset>
-                    </form>
                 </div>
             </div>
 
