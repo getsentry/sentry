@@ -144,6 +144,7 @@ header {
     float: left;
     margin: 2px 12px 0 0;
     font-size: 22px;
+    top: 0 !important;
   }
 
   .user-avatar {
@@ -151,6 +152,11 @@ header {
     border-radius: 3px;
     position: relative;
     top: -2px;
+  }
+
+  [class^="icon-"], [class*=" icon-"] {
+    position: relative;
+    top: 2px;
   }
 
   .user-nav {
@@ -169,9 +175,9 @@ header {
         font-size: 15px;
       }
     }
-    [class^="icon-"], [class*=" icon-"] {
-      position: relative;
-      top: 1px;
+
+    .icon-settings {
+      padding-right: 5px;
     }
   }
 
