@@ -5,7 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{% if event %}{{ event.error }}{% else %}{{ group.message }}{% endif %} | {{ block.super }}{% endblock %}
+{% block title %}{{ group.title }} | {{ block.super }}{% endblock %}
 
 {% block page_header %}{% endblock %}
 
@@ -17,10 +17,10 @@
       <a href="#" class="back-button icon-arrow-left"></a>
       <div class="row">
           <div class="col-xs-8 details">
-            <h3>Someone tickled my port</h3>
+            <h3>{{ group.title }}</h3>
             <div class="meta">
-                <time time-since="selectedGroup.lastSeen">2 days ago</time> &middot;
-                <span class="message">And it felt so goooood</span>
+                <time>{{ group.last_seen|timesince }}</time> &middot;
+                <span class="message">{{ group.message_short }}</span>
             </div>
           </div>
           <div class="col-xs-4 occurrences">
@@ -28,7 +28,7 @@
               <div class="col-xs-4 assigned-to align-right">
                 <div class="dropdown">
                     {% spaceless %}
-                    <span class="avatar"><img src="http://github.com/benvinegar.png"></span> 
+                    <span class="avatar"><img src="http://github.com/benvinegar.png"></span>
                     <a href="" class="btn btn-sm btn-default">
                         <span class="icon-arrow-down"></span>
                     </a>
@@ -36,7 +36,7 @@
                 </div>
                 <div style="clear: both">is assigned</div>
               </div>
-              <div class="col-xs-4 occurences align-right"><span class="count">1000</span> events</div>
+              <div class="col-xs-4 occurences align-right"><span class="count">{{ group.times_seen|small_count }}</span> events</div>
               <div class="col-xs-4 users align-right"><span class="count">209</span> users</div>
             </div>
           </div>
