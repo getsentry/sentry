@@ -14,7 +14,7 @@
         <div id="event_list" class="inactive"></div>
     </div> -->
     <div class="group-detail">
-      <a href="#" class="back-button icon-arrow-left"></a>
+      <a href="{% url 'sentry-stream' team.slug project.slug %}" class="back-button icon-arrow-left"></a>
       <div class="row">
           <div class="col-xs-8 details">
             <h3>{{ group.title }}</h3>
