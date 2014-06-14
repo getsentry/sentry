@@ -1170,20 +1170,21 @@ ul.traceback {
 }
 .traceback > .traceback {
   margin-top: 10px;
+  padding-bottom: 20px;
 }
 .subtraceback {
-  padding-left: 20px;
-  border-left: 2px solid #dee3e9;
+  padding-left: 15px;
+  // border-left: 2px solid #f1f2f3;
   position: relative;
 
   > h3:before {
     display: block;
     content: "";
-    width: 15px;
+    width: 20px;
     height: 0;
-    border-bottom: 2px solid #dee3e9;
+    border-bottom: 2px solid #f1f2f3;
     position: absolute;
-    left: 0;
+    left: -15px;
     top: 12px;
   }
 }
@@ -2047,7 +2048,7 @@ table.vars {
       .form-control();
       min-height: 36px;
       margin: 0;
-      .transition(.15s ease-in-out min-height);
+      .transition(.1s ease-in-out min-height);
 
       &.expanded {
         min-height: 52px;

@@ -7523,20 +7523,20 @@ ul.traceback {
 }
 .traceback > .traceback {
   margin-top: 10px;
+  padding-bottom: 20px;
 }
 .subtraceback {
-  padding-left: 20px;
-  border-left: 2px solid #dee3e9;
+  padding-left: 15px;
   position: relative;
 }
 .subtraceback > h3:before {
   display: block;
   content: "";
-  width: 15px;
+  width: 20px;
   height: 0;
-  border-bottom: 2px solid #dee3e9;
+  border-bottom: 2px solid #f1f2f3;
   position: absolute;
-  left: 0;
+  left: -15px;
   top: 12px;
 }
 .frames-omitted {
@@ -8312,8 +8312,8 @@ table.vars tbody > tr:nth-child(even) > th {
   border: 2px solid #e9eaea;
   min-height: 36px;
   margin: 0;
-  -webkit-transition: 0.15s ease-in-out min-height;
-  transition: 0.15s ease-in-out min-height;
+  -webkit-transition: 0.1s ease-in-out min-height;
+  transition: 0.1s ease-in-out min-height;
 }
 .activity .post-box textarea:focus {
   border-color: #66afe9;
