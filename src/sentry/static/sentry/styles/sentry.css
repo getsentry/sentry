@@ -7432,7 +7432,7 @@ a.icon-share:hover {
   border-color: #f2f4f7;
 }
 label {
-  font-weight: bold;
+  font-weight: 500;
 }
 pre span,
 code span {
@@ -7782,14 +7782,12 @@ small {
   margin-bottom: 9px;
 }
 legend {
-  margin-bottom: 18px;
-  border-bottom-width: 2px;
+  margin: 30px 0;
+  border-bottom: 3px solid #f1f2f3;
+  padding-bottom: 10px;
 }
 .modal-header small {
   font-size: 0.65em;
-}
-section.body .page-header:first-child {
-  margin-top: 0;
 }
 .page-header {
   padding-bottom: 0;
@@ -7801,6 +7799,8 @@ section.body .page-header:first-child {
 }
 .page-header h2 {
   font-weight: normal;
+  font-size: 32px;
+  margin: 30px 0;
 }
 .modal {
   width: 760px;
