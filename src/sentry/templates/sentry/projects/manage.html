@@ -64,8 +64,8 @@
 {% endblock %}
 
 {% block sidebar %}
-    <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Details" %}</li>
+    <h6>{% trans "Details" %}</h6>
+    <ul class="nav nav-stacked">
         <li{% if page == 'details' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{% trans "Settings" %}</a>
         </li>
@@ -85,8 +85,8 @@
             <a href="{% url 'sentry-manage-project-keys' project.team.slug project.slug %}">{% trans "API Keys" %}</a>
         </li>
     </ul>
-    <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Client Configuration" %}</li>
+    <h6>{% trans "Client Configuration" %}</h6>
+    <ul class="nav nav-stacked">
         <li{% if page == 'client_help' %} class="active"{% endif %}>
             <a href="{% url 'sentry-project-client-help' project.team.slug project.slug %}">{% trans "All Platforms" %}</a>
         </li>
@@ -110,8 +110,8 @@
         </li>
     </ul>
     {% with project|get_plugins as plugins %}
-        <ul class="nav nav-list">
-            <li class="nav-header">{% trans "Integrations" %}</li>
+        <h6>{% trans "Integrations" %}</h6>
+        <ul class="nav nav-stacked">
             <li class="{% if page == 'plugins' %} active{% endif %}">
                 <a href="{% url 'sentry-manage-project-plugins' project.team.slug project.slug %}">{% trans "Manage Integrations" %} ({{ PLUGINS|length }})</a>
             </li>
