@@ -6737,7 +6737,7 @@ button.close {
 body {
   margin: 0;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 20px;
   color: #454C50;
   -webkit-font-smoothing: antialiased;
@@ -6751,11 +6751,15 @@ h5,
 h6 {
   font-weight: 500;
 }
+.sidebar h6 {
+  margin: 20px 0;
+  color: #999;
+}
 .container {
   max-width: 960px;
 }
 a {
-  color: #4593de;
+  color: #49a9e6;
   text-decoration: none;
   -webkit-transition: color linear 0.2s;
   transition: color linear 0.2s;
@@ -6982,14 +6986,6 @@ header .project-dropdown .icon-arrow-down {
   border: 3px solid #f1f2f3 ;
   border-bottom-color: transparent;
 }
-.nav-tabs.nav-stacked > li:last-child > a {
-  -webkit-box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
-  box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
-}
-.nav-tabs.nav-stacked > li:last-child > a.action {
-  -webkit-box-shadow: none;
-  box-shadow: none;
-}
 footer {
   display: none;
   background: #e4e8ed;
@@ -7094,6 +7090,29 @@ footer a:hover {
   color: #ccc;
   border-color: #ddd;
 }
+.nav li a {
+  color: #4c5459;
+}
+.nav-stacked li {
+  margin-bottom: 6px;
+}
+.nav-stacked li > a {
+  background: #f7f7f7;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 4px;
+}
+.nav-stacked li > a:hover {
+  background: #f0f0f0;
+}
+.nav-stacked li.active a,
+.nav-stacked li.active a:hover {
+  color: #fff;
+  background: #49a9e6;
+}
+.tag-widget h6 {
+  margin: 15px 0 6px;
+}
 .search {
   width: 320px;
   margin-top: -2px;
@@ -7152,7 +7171,7 @@ footer a:hover {
   padding-left: 10px;
   height: 100%;
   text-align: left;
-  color: #4593de;
+  color: #49a9e6;
 }
 ul.tag-list {
   list-style: none;
@@ -7198,10 +7217,10 @@ a.icon-share:hover {
   position: absolute;
 }
 .progressbar > div {
-  border-radius: 4px;
+  border-radius: 3px;
 }
 .progressbar > a {
-  left: 5px;
+  left: 0;
   position: relative;
   z-index: 1;
   padding-right: 60px;
@@ -7212,10 +7231,10 @@ a.icon-share:hover {
 }
 .progressbar > a span {
   position: absolute;
-  right: 10px;
+  right: 0px;
 }
 .progressbar > div {
-  background-color: #f2f8fd;
+  background-color: #f6f7f8;
   text-indent: -100000em;
   z-index: 0;
 }
@@ -7225,12 +7244,12 @@ a.icon-share:hover {
 .sparkline > a {
   position: relative;
   float: left;
-  height: 20px;
+  height: 18px;
   display: block;
 }
 .sparkline > a:hover > span {
-  background: #4593de;
-  border-color: #4593de;
+  background: #49a9e6;
+  border-color: #49a9e6;
 }
 .sparkline > a > span {
   display: block;
@@ -7852,7 +7871,7 @@ section.body .page-header:first-child {
   border-radius: 3px;
 }
 .nav-pills > li.active > a {
-  background-color: #70ace6;
+  background-color: #76beec;
 }
 .nav-small.nav-pills > li > a {
   padding: 5px 8px;
