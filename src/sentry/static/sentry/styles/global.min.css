@@ -6836,12 +6836,18 @@ header .icon-sentry-logo {
   float: left;
   margin: 2px 12px 0 0;
   font-size: 22px;
+  top: 0 !important;
 }
 header .user-avatar {
   width: 22px;
   border-radius: 3px;
   position: relative;
   top: -2px;
+}
+header [class^="icon-"],
+header [class*=" icon-"] {
+  position: relative;
+  top: 2px;
 }
 header .user-nav {
   margin-top: 4px;
@@ -6875,10 +6881,8 @@ header .user-nav > li {
 header .user-nav > li a {
   font-size: 15px;
 }
-header .user-nav [class^="icon-"],
-header .user-nav [class*=" icon-"] {
-  position: relative;
-  top: 1px;
+header .user-nav .icon-settings {
+  padding-right: 5px;
 }
 header .project-dropdown {
   float: left;
