@@ -13,11 +13,11 @@
         {% endif %}
         <h3>
             {% trans "Exception" %}
-            <small>{% if newest_first %}
+            {% if newest_first %}
                 ({% trans "most recent call first" %})
             {% else %}
                 ({% trans "most recent call last" %})
-            {% endif %}</small>
+            {% endif %}
         </h3>
     </div>
     <div class="box-content with-padding">
