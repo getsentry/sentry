@@ -8243,26 +8243,29 @@ table.vars tbody > tr:nth-child(even) > th {
 }
 .activity > ul {
   list-style: none;
-  margin: 0 0 20px;
+  margin: 0 0 0;
   padding-left: 0;
 }
 .activity > ul > li {
-  margin-bottom: 5px;
-  line-height: 30px;
+  padding: 10px 0;
   position: relative;
-  padding-left: 20px;
+  padding-left: 24px;
+  border-bottom: 2px solid #f1f2f3;
+}
+.activity > ul > li:last-child {
+  border: 0;
 }
 .activity > ul > li .avatar {
   position: absolute;
   left: 0;
-  top: 4px;
+  top: 11px;
   width: 16px;
   height: 16px;
   display: block;
   background-size: 16px 16px;
   background-repeat: no-repeat;
   background-position: center center;
-  border-radius: 16px;
+  border-radius: 3px;
 }
 .activity > ul > li .avatar img {
   width: 16px;
@@ -8273,75 +8276,73 @@ table.vars tbody > tr:nth-child(even) > th {
 .activity > ul > li .avatar.sentry {
   background-image: url('../images/favicon.ico');
 }
-.activity > ul > li .avatar p {
+.activity > ul > li p {
   font-size: 12px;
+  margin-bottom: 10px;
+}
+.activity > ul > li p:last-child {
+  margin: 0;
 }
 .activity > ul > li .sep,
 .activity > ul > li .time {
   font-size: 12px;
   color: #aaa;
 }
-.activity .add-note-btn {
-  font-size: 12px;
-  font-weight: 300;
-  letter-spacing: -0.1px;
-  position: absolute;
-  right: 0;
-  top: 0;
-  padding: 2px 5px;
-  background: #eff3f7;
-  color: #666d73;
-  border: 1px solid #eff3f7;
+.activity .post-box {
+  margin: 0 0 5px;
+}
+.activity .post-box textarea {
+  display: block;
+  width: 100%;
+  height: 34px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  color: #465262;
+  background-color: #ffffff;
+  background-image: none;
+  border: 1px solid #cccccc;
   border-radius: 4px;
-}
-.activity .add-note-btn .icon-comment {
-  opacity: 50;
-  filter: alpha(opacity=5000);
-}
-.activity .add-note-btn:hover.selected,
-.activity .add-note-btn.selected {
-  z-index: 1001;
-  border-color: #cdd9e6;
-  border-radius: 4px 4px 0 0;
-  border-bottom-color: #eff3f7;
-}
-.activity form.add-note-form {
-  z-index: 1000;
-  position: absolute;
-  right: 0;
-  top: 25px;
-  background: #eff3f7;
-  padding: 10px;
-  border: 1px solid #cdd9e6;
-}
-.activity form.add-note-form > textarea {
-  font-size: 13px;
-  max-width: 600px;
-  background: #fff;
-  border: 1px solid #cdd9e6;
-  font-weight: 300;
-  height: 80px;
-  margin: 0;
-  right: 0;
-  left: 0;
-  margin-bottom: 10px;
-  -webkit-box-shadow: none;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  -webkit-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
   box-shadow: none;
+  height: auto;
+  border: 2px solid #e9eaea;
+  min-height: 36px;
+  margin: 0;
+  -webkit-transition: 0.15s ease-in-out min-height;
+  transition: 0.15s ease-in-out min-height;
 }
-.activity form.add-note-form > textarea::-moz-placeholder {
-  color: #dddddd;
+.activity .post-box textarea:focus {
+  border-color: #66afe9;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
+}
+.activity .post-box textarea::-moz-placeholder {
+  color: #999999;
   opacity: 1;
 }
-.activity form.add-note-form > textarea:-ms-input-placeholder {
-  color: #dddddd;
+.activity .post-box textarea:-ms-input-placeholder {
+  color: #999999;
 }
-.activity form.add-note-form > textarea::-webkit-input-placeholder {
-  color: #dddddd;
+.activity .post-box textarea::-webkit-input-placeholder {
+  color: #999999;
 }
-.activity form.add-note-form .form-actions {
-  text-align: right;
-  padding: 0;
-  margin: 0;
+.activity .post-box textarea[disabled],
+.activity .post-box textarea[readonly],
+fieldset[disabled] .activity .post-box textarea {
+  cursor: not-allowed;
+  background-color: #eeeeee;
+  opacity: 1;
+}
+textarea.activity .post-box textarea {
+  height: auto;
+}
+.activity .post-box textarea.expanded {
+  min-height: 52px;
 }
 .seen-by {
   position: relative;

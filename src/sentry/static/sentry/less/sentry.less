@@ -1986,26 +1986,30 @@ table.vars {
 
   > ul {
     list-style: none;
-    margin: 0 0 20px;
+    margin: 0 0 0;
     padding-left: 0;
 
     > li {
-      margin-bottom: 5px;
-      line-height: 30px;
+      padding: 10px 0;
       position: relative;
-      padding-left: 20px;
+      padding-left: 24px;
+      border-bottom: 2px solid #f1f2f3;
+
+      &:last-child {
+        border: 0;
+      }
 
       .avatar {
         position: absolute;
         left: 0;
-        top: 4px;
+        top: 11px;
         width: 16px;
         height: 16px;
         display: block;
         background-size: 16px 16px;
         background-repeat: no-repeat;
         background-position: center center;
-        border-radius: 16px;
+        border-radius: 3px;
 
         img {
           width: 16px;
@@ -2017,9 +2021,13 @@ table.vars {
         &.sentry {
           background-image: url('../images/favicon.ico');
         }
+      }
 
-        p {
-          font-size: 12px;
+      p {
+        font-size: 12px;
+        margin-bottom: 10px;
+        &:last-child {
+          margin: 0;
         }
       }
 
@@ -2030,60 +2038,20 @@ table.vars {
     }
   }
 
-  .add-note-btn {
-    font-size: 12px;
-    font-weight: 300;
-    letter-spacing: -0.1px;
-    position: absolute;
-    right: 0;
-    top: 0;
-    padding: 2px 5px;
-    background: #eff3f7;
-    color: #666d73;
-    border: 1px solid #eff3f7;
-    border-radius: 4px;
+  .post-box {
 
-    .icon-comment {
-      .opacity(50);
-    }
-    &:hover.selected,
-    &.selected {
-      z-index: 1001;
-      border-color: darken(#eff3f7, 10%);
-      border-radius: 4px 4px 0 0;
-      border-bottom-color: #eff3f7;
-    }
+    // border-bottom: 2px solid #f1f2f3;
+    margin: -0 -0 5px;
 
-  }
-
-  form.add-note-form {
-    z-index: 1000;
-    position: absolute;
-    right: 0;
-    top: 25px;
-    background: #eff3f7;
-    padding: 10px;
-    border: 1px solid darken(#eff3f7, 10%);
-
-    > textarea {
-      font-size: 13px;
-      max-width: 600px;
-      background: #fff;
-      border: 1px solid darken(#eff3f7, 10%);
-      font-weight: 300;
-      height: 80px;
+    textarea {
+      .form-control();
+      min-height: 36px;
       margin: 0;
-      right: 0;
-      left: 0;
-      margin-bottom: 10px;
-      .box-shadow(none);
-      .placeholder(#ddd);
-    }
+      .transition(.15s ease-in-out min-height);
 
-    .form-actions {
-      text-align: right;
-      padding: 0;
-      margin: 0;
+      &.expanded {
+        min-height: 52px;
+      }
     }
   }
 }
