@@ -7702,6 +7702,13 @@ ol.context-line > li > span {
 .mini-tag-list > li span {
   padding-right: 8px;
 }
+.event-toolbar {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.event-toolbar h4 {
+  margin: 5px 0 0;
+}
 #chart {
   margin-bottom: 10px;
   overflow: hidden;
