@@ -67,7 +67,36 @@
           <a href="#" class="btn btn-default btn-sm"><span class="icon-trash"></span></a>
         </div>
         <div class="btn-group">
-          <a href="#" class="btn btn-default btn-sm">More <span class="icon-arrow-down"></span></a>
+          <a href="#" class="btn btn-default btn-sm dropdown-toggle">More <span class="icon-arrow-down"></span></a>
+          <ul class="dropdown-menu">
+            {% if can_admin_event %}
+                {% if not group.is_muted %}
+                    <li><a href="{% url 'sentry-api-set-group-mute' group.team.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
+                {% elif not group.is_resolved %}
+                    <li><a href="{% url 'sentry-api-set-group-unresolve' group.team.slug project.slug group.id %}">{% trans "Unmute Event" %}</a></li>
+                {% endif %}
+                {% url 'sentry-group' group.team.slug group.project.slug group.id as group_link %}
+                <li>
+                    <a href="javascript:void(0)"
+                       data-public-url="{% url 'sentry-api-set-group-public' group.team.slug group.project.slug group.id %}"
+                       data-private-url="{% url 'sentry-api-set-group-private' group.team.slug group.project.slug group.id %}"
+                       data-share-url="{% absolute_uri group_link %}"
+                       data-public="{% if group.is_public %}true{% else %}false{% endif %}"
+                       class="share-link">{% trans "Share Event" %}</a>
+                </li>
+                {% for label, link, is_active in group|get_actions:request %}
+                    <li><a href="{{ link }}">{{ label }}</a></li>
+                {% endfor %}
+                {% endif %}
+                <li><a {% if event.id %}
+                href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id event.id %}"{% else %}
+                href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id 'latest' %}"{% endif %}
+                >{% trans "Raw JSON Data" %}</a></li>
+                {% if can_admin_event %}
+                    <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}"
+                           onclick="return confirm('{% trans "Are you sure you wish to delete all data for this event?" %}');">{% trans "Remove Event Data" %}</a></li>
+                {% endif %}
+            </ul>
         </div>
       </div>
     </div>
@@ -189,37 +218,6 @@
             {% endif %}
         </ul>
     {% endif %}
-
-    <h6>{% trans "Actions" %}</h6>
-    <ul class="nav nav-stacked">
-        {% if can_admin_event %}
-            {% if not group.is_muted %}
-                <li><a href="{% url 'sentry-api-set-group-mute' group.team.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
-            {% elif not group.is_resolved %}
-                <li><a href="{% url 'sentry-api-set-group-unresolve' group.team.slug project.slug group.id %}">{% trans "Unmute Event" %}</a></li>
-            {% endif %}
-            {% url 'sentry-group' group.team.slug group.project.slug group.id as group_link %}
-            <li>
-                <a href="javascript:void(0)"
-                   data-public-url="{% url 'sentry-api-set-group-public' group.team.slug group.project.slug group.id %}"
-                   data-private-url="{% url 'sentry-api-set-group-private' group.team.slug group.project.slug group.id %}"
-                   data-share-url="{% absolute_uri group_link %}"
-                   data-public="{% if group.is_public %}true{% else %}false{% endif %}"
-                   class="share-link">{% trans "Share Event" %}</a>
-            </li>
-            {% for label, link, is_active in group|get_actions:request %}
-                <li><a href="{{ link }}">{{ label }}</a></li>
-            {% endfor %}
-        {% endif %}
-        <li><a {% if event.id %}
-        href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id event.id %}"{% else %}
-        href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id 'latest' %}"{% endif %}
-        >{% trans "Raw JSON Data" %}</a></li>
-        {% if can_admin_event %}
-            <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}"
-                   onclick="return confirm('{% trans "Are you sure you wish to delete all data for this event?" %}');">{% trans "Remove Event Data" %}</a></li>
-        {% endif %}
-    </ul>
 
     {% for tag in group.get_tags %}
         {% render_tag_widget group tag %}
