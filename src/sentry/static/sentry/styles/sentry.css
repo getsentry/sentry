@@ -8383,7 +8383,7 @@ table.vars tbody > tr:nth-child(even) > th {
   margin: 0 0 20px 0;
   padding: 18px 22px;
   min-height: 81px;
-  border: 5px solid #DEE3E9;
+  border: 3px solid #f1f2f3;
   position: relative;
   border-radius: 7px;
 }
@@ -8407,7 +8407,7 @@ table.vars tbody > tr:nth-child(even) > th {
   overflow: hidden;
   text-overflow: ellipsis;
   color: #465262;
-  font-weight: bold;
+  font-weight: 500;
 }
 .team-index .body .team-list > li h2 a {
   color: inherit;
@@ -8420,7 +8420,7 @@ table.vars tbody > tr:nth-child(even) > th {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: -1px;
   top: 10px;
 }
 .team-index .body .team-list > li > ul {
