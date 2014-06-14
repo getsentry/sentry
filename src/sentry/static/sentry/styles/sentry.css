@@ -7322,6 +7322,121 @@ a.icon-share:hover {
   width: 100px;
   padding-left: 30px;
 }
+.group-detail {
+  padding-bottom: 28px;
+  margin-bottom: 30px;
+  border-bottom: 3px solid #f1f2f3;
+  margin-top: -5px;
+}
+.group-detail h3 {
+  font-size: 24px;
+  letter-spacing: -0.25px;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: 1.4;
+}
+.group-detail .count {
+  color: #454C50;
+  font-size: 22px;
+  font-weight: 500;
+  display: block;
+  line-height: 1.4;
+}
+.group-detail .assigned-to,
+.group-detail .occurrences,
+.group-detail .users {
+  color: #949ea4;
+}
+.group-detail .assigned-to .dropdown {
+  float: right;
+  margin-bottom: 2px;
+}
+.group-detail .assigned-to .dropdown:before,
+.group-detail .assigned-to .dropdown:after {
+  content: " ";
+  display: table;
+}
+.group-detail .assigned-to .dropdown:after {
+  clear: both;
+}
+.group-detail .assigned-to .dropdown:before,
+.group-detail .assigned-to .dropdown:after {
+  content: " ";
+  display: table;
+}
+.group-detail .assigned-to .dropdown:after {
+  clear: both;
+}
+.group-detail .assigned-to .avatar {
+  float: left;
+  width: auto;
+  height: auto;
+}
+.group-detail .assigned-to .avatar img {
+  border-radius: 3px 0 0 3px;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 0px;
+  display: block;
+}
+.group-detail .assigned-to .btn {
+  float: left;
+  border-left: 0;
+  height: 28px;
+  margin-left: 0;
+  padding: 4px 6px 0;
+  border-radius: 0 4px 4px 0;
+  background: #fff;
+}
+.group-detail .meta {
+  margin: 0 0 15px;
+  color: #949ea4;
+}
+.group-detail .group-actions:before,
+.group-detail .group-actions:after {
+  content: " ";
+  display: table;
+}
+.group-detail .group-actions:after {
+  clear: both;
+}
+.group-detail .group-actions:before,
+.group-detail .group-actions:after {
+  content: " ";
+  display: table;
+}
+.group-detail .group-actions:after {
+  clear: both;
+}
+.group-detail .group-actions .id-label {
+  background: #fff;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.seen-by {
+  float: right;
+}
+.seen-by ul {
+  padding-left: 0;
+  list-style: none;
+}
+.seen-by ul li:first-child {
+  padding-right: 4px;
+}
+.seen-by ul li {
+  float: left;
+  margin-left: 4px;
+  line-height: 32px;
+}
+.seen-by ul li img {
+  border-radius: 3px;
+  width: 30px;
+  height: 30px;
+}
 .group-list,
 .events {
   padding-left: 0;

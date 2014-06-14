@@ -10,8 +10,66 @@
 {% block page_header %}{% endblock %}
 
 {% block content_before %}
-    <div id="details">
+    <!-- <div id="details">
         <div id="event_list" class="inactive"></div>
+    </div> -->
+
+    <div class="group-detail">
+      <div class="row">
+          <div class="col-xs-8 details">
+            <h3>Someone tickled my port</h3>
+            <div class="meta">
+                <time time-since="selectedGroup.lastSeen">2 days ago</time> &middot;
+                <span class="message">And it felt so goooood</span>
+            </div>
+          </div>
+          <div class="col-xs-4 occurrences">
+            <div class="row">
+              <div class="col-xs-4 assigned-to align-right">
+                <div class="dropdown">
+                    {% spaceless %}
+                    <span class="avatar"><img src="http://github.com/benvinegar.png"></span> 
+                    <a href="" class="btn btn-sm btn-default">
+                        <span class="icon-arrow-down"></span>
+                    </a>
+                    {% endspaceless %}
+                </div>
+                <div style="clear: both">is assigned</div>
+              </div>
+              <div class="col-xs-4 occurences align-right"><span class="count">1000</span> events</div>
+              <div class="col-xs-4 users align-right"><span class="count">209</span> users</div>
+            </div>
+          </div>
+      </div>
+      <div class="seen-by">
+        <ul>
+          <li>Seen by</li>
+          <li ng-repeat="user in selectedGroup.seenBy">
+            <a href="#"><img src="{{user.avatarUrl}}" /></a>
+          </li>
+          <li>
+            <a href="#"><img src="http://github.com/ckj.png"></a>
+          </li>
+          <li>
+            <a href="#"><img src="http://github.com/dcramer.png"></a>
+          </li>
+          <li>
+            <a href="#"><img src="http://github.com/mattrobenolt.png"></a>
+          </li>
+        </ul>
+      </div>
+      <div class="group-actions">
+        <div class="btn-group">
+          <a href="#" class="btn btn-default btn-sm"><span class="icon-checkmark"></span></a>
+          <a href="#" class="btn btn-default btn-sm"><span class="icon-bookmark"></span></a>
+        </div>
+        <div class="btn-group">
+          <a href="#" class="btn btn-default btn-sm"><span class="icon-trash"></span></a>
+        </div>
+        <div class="btn-group">
+          <a href="#" class="btn btn-default btn-sm">More <span class="icon-arrow-down"></span></a>
+        </div>
+      </div>
     </div>
 {% endblock %}
 

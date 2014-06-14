@@ -633,6 +633,101 @@ a.icon-share {
   }
 }
 
+.group-detail {
+  padding-bottom: 28px;
+  margin-bottom: 30px;
+  border-bottom: 3px solid #f1f2f3;
+  margin-top: -5px;
+  h3 {
+    font-size: 24px;
+    letter-spacing: -0.25px;
+    margin: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+
+  .count {
+    color: #454C50;
+    font-size: 22px;
+    font-weight: 500;
+    display: block;
+    line-height: 1.4;
+  }
+
+  .assigned-to, .occurrences, .users {
+    color: #949ea4;
+  }
+
+  .assigned-to {
+    .dropdown {
+      float: right;
+      .clearfix();
+      margin-bottom: 2px;
+    }
+    .avatar {
+      float: left;
+      width: auto;
+      height: auto;
+
+      img {
+        border-radius: 3px 0 0 3px;
+        width: 28px;
+        height: 28px;
+        margin-bottom: 0px;
+        display: block;
+      }
+    }
+    .btn {
+      float: left;
+      border-left: 0;
+      height: 28px;
+      margin-left: 0;
+      padding: 4px 6px 0;
+      border-radius: 0 4px 4px 0;
+      background: #fff;
+    }
+  }
+
+  .meta {
+    margin: 0 0 15px;
+    color: #949ea4;
+  }
+
+  .group-actions {
+    .clearfix;
+
+    .id-label {
+      background: #fff;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+.seen-by {
+  float: right;
+  ul {
+    .list-unstyled;
+    li:first-child {
+      padding-right: 4px;
+    }
+    li {
+      float: left;
+      margin-left: 4px;
+      line-height: 32px;
+      img {
+        border-radius: 3px;
+        width: 30px;
+        height: 30px;
+      }
+    }
+  }
+}
+
 .group-list, .events {
   .list-unstyled;
   .list-unstyled;
