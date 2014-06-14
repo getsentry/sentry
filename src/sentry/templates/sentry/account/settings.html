@@ -10,6 +10,9 @@
     <form action="." method="post">
         {% csrf_token %}
         {{ form|as_crispy_errors }}
+
+        <legend style="margin-top: 0;">Your details</legend>
+
         {% with form.first_name as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
