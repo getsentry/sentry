@@ -6816,7 +6816,7 @@ h3 {
 header {
   background: #465262;
   color: #fff;
-  padding: 20px 0;
+  padding: 20px 0 19px;
   margin: 0 0 30px;
 }
 header a {
@@ -6842,12 +6842,12 @@ header .user-avatar {
   width: 22px;
   border-radius: 3px;
   position: relative;
-  top: -2px;
+  top: -3px;
 }
 header [class^="icon-"],
 header [class*=" icon-"] {
   position: relative;
-  top: 2px;
+  top: 1px;
 }
 header .user-nav {
   margin-top: 4px;
@@ -6968,9 +6968,6 @@ header .project-dropdown .team-name {
 header .project-dropdown .project-name {
   font-weight: 400;
   color: #B5B9C0;
-}
-header .project-dropdown .icon-arrow-down {
-  top: 0;
 }
 .project-nav {
   margin: -10px 0 20px;
