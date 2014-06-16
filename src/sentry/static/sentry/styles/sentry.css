@@ -7073,6 +7073,10 @@ footer a:hover {
   position: relative;
   top: 2px;
 }
+.btn.disabled {
+  color: #CED3D6;
+  border-color: #E3E5E6;
+}
 .btn-default {
   color: #34343f;
   background-color: #f7f7f7;
@@ -7103,10 +7107,6 @@ footer a:hover {
   background-color: #e3e3e3 !important;
   -webkit-box-shadow: none;
   box-shadow: none;
-}
-.btn.disabled {
-  color: #ccc;
-  border-color: #ddd;
 }
 .nav li a {
   color: #4c5459;
@@ -7286,6 +7286,9 @@ a.icon-share:hover {
   display: table;
   margin-top: -4px;
   width: 100%;
+}
+.stream-pagination {
+  margin: 20px 0;
 }
 .stream-actions {
   display: table-row;
