@@ -178,14 +178,12 @@ define([
             updateStreamOptions: function(){
                 if (this.options.realtime){
                     $.removeCookie('pausestream');
-                    this.control.removeClass('realtime-pause');
-                    this.control.addClass('realtime-play');
-                    this.control.html(this.control.attr('data-pause-label'));
+                    this.control.toggleClass('realtime-paused');
+                    this.control.attr("title", this.control.attr('data-pause-label'));
                 } else {
                     $.cookie('pausestream', '1', {expires: 7});
-                    this.control.addClass('realtime-pause');
-                    this.control.removeClass('realtime-play');
-                    this.control.html(this.control.attr('data-play-label'));
+                    this.control.toggleClass('realtime-paused');
+                    this.control.attr("title", this.control.attr('data-play-label'));
                 }
             }
 
