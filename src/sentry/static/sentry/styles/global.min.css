@@ -6872,6 +6872,7 @@ header .user-nav:after {
 header .user-nav .dropdown-menu {
   left: auto;
   right: 0;
+  border-radius: 0 0 4px 4px;
 }
 header .user-nav > li {
   list-style: none;
@@ -6893,10 +6894,13 @@ header .project-dropdown .dropdown-menu {
   max-height: 400px;
   overflow: auto;
   padding: 0;
+  top: 44px;
+  left: -35px;
+  border-radius: 0 0 4px 4px;
 }
 header .project-dropdown .dropdown-menu .team {
   border-bottom: 2px solid #f1f2f3;
-  padding: 15px 15px 0;
+  padding: 5px 15px 2px;
 }
 header .project-dropdown .dropdown-menu .team:last-child {
   border-bottom: 0;
@@ -6913,6 +6917,7 @@ header .project-dropdown .dropdown-menu h5 a:hover {
 header .project-dropdown .dropdown-menu ul {
   padding-left: 0;
   list-style: none;
+  margin-bottom: 0;
 }
 header .project-dropdown .dropdown-menu ul:before,
 header .project-dropdown .dropdown-menu ul:after {
