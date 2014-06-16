@@ -604,6 +604,11 @@ a.icon-share {
     position: relative;
     top: 1px;
   }
+
+  .icon-pause {
+    top: 2px;
+  }
+
   .stream-actions-cell {
     display: table-cell;
     position: relative;
@@ -626,6 +631,9 @@ a.icon-share {
   .stream-actions-users {
     width: 100px;
     padding-left: 30px;
+  }
+  .realtime-paused {
+    .btn-danger();
   }
 }
 
@@ -1263,9 +1271,7 @@ ul.traceback {
     font-weight: bold;
   }
 }
-.traceback > p {
 
-}
 .traceback > .traceback {
   margin-top: 10px;
   padding-bottom: 20px;

@@ -7299,6 +7299,9 @@ a.icon-share:hover {
   position: relative;
   top: 1px;
 }
+.stream-actions .icon-pause {
+  top: 2px;
+}
 .stream-actions .stream-actions-cell {
   display: table-cell;
   position: relative;
@@ -7318,6 +7321,47 @@ a.icon-share:hover {
 .stream-actions .stream-actions-users {
   width: 100px;
   padding-left: 30px;
+}
+.stream-actions .realtime-paused {
+  color: #ffffff;
+  background-color: #d9534f;
+  border-color: #d43f3a;
+}
+.stream-actions .realtime-paused:hover,
+.stream-actions .realtime-paused:focus,
+.stream-actions .realtime-paused:active,
+.stream-actions .realtime-paused.active,
+.open .dropdown-toggle.stream-actions .realtime-paused {
+  color: #ffffff;
+  background-color: #d2322d;
+  border-color: #ac2925;
+}
+.stream-actions .realtime-paused:active,
+.stream-actions .realtime-paused.active,
+.open .dropdown-toggle.stream-actions .realtime-paused {
+  background-image: none;
+}
+.stream-actions .realtime-paused.disabled,
+.stream-actions .realtime-paused[disabled],
+fieldset[disabled] .stream-actions .realtime-paused,
+.stream-actions .realtime-paused.disabled:hover,
+.stream-actions .realtime-paused[disabled]:hover,
+fieldset[disabled] .stream-actions .realtime-paused:hover,
+.stream-actions .realtime-paused.disabled:focus,
+.stream-actions .realtime-paused[disabled]:focus,
+fieldset[disabled] .stream-actions .realtime-paused:focus,
+.stream-actions .realtime-paused.disabled:active,
+.stream-actions .realtime-paused[disabled]:active,
+fieldset[disabled] .stream-actions .realtime-paused:active,
+.stream-actions .realtime-paused.disabled.active,
+.stream-actions .realtime-paused[disabled].active,
+fieldset[disabled] .stream-actions .realtime-paused.active {
+  background-color: #d9534f;
+  border-color: #d43f3a;
+}
+.stream-actions .realtime-paused .badge {
+  color: #d9534f;
+  background-color: #ffffff;
 }
 .group-detail {
   position: relative;
