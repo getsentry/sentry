@@ -14,18 +14,23 @@ from sentry.utils.safe import safe_execute
 
 
 class NotifyEventAction(EventAction):
-    label = 'Send a notification'
+    label = 'Send a notification (for all enabled services)'
 
-    def after(self, event, state):
+    def get_plugins(self):
         from sentry.plugins.bases.notify import NotificationPlugin
 
-        group = event.group
-
-        for plugin in plugins.for_project(event.project):
+        results = []
+        for plugin in plugins.for_project(self.project):
             if not isinstance(plugin, NotificationPlugin):
                 continue
+            results.append(plugin)
+        return results
 
-            if not safe_execute(plugin.should_notify, group, event):
+    def after(self, event, state):
+        group = event.group
+
+        for plugin in self.get_plugins():
+            if not safe_execute(plugin.should_notify, group=group, event=event):
                 continue
 
             safe_execute(plugin.notify_users, group=group, event=event)
