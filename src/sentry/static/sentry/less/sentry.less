@@ -1695,19 +1695,18 @@ legend {
 }
 
 .datepicker-box {
+  width: 400px;
   position: absolute;
-  top:50px;
-  left:400px;
-  padding: 15px 15px 0px;
-  z-index:900;
-  background-color: @white;
-  border-radius: 4px;
-  .box-shadow(0 0 0 2px rgba(70,82,98,.43));
-  -webkit-background-clip: padding-box;
-  -moz-background-clip: padding;
-  background-clip: padding-box;
+  top:45px;
+  left: 2px;
+  padding: 20px 15px 0;
+
+  .form-control {
+    display: inline;
+  }
+
   form {
-    margin-bottom: 15px;
+    // margin-bottom: 15px;
   }
   .help-block {
     margin-bottom: 5px;
@@ -1730,10 +1729,10 @@ legend {
     }
   }
   .time {
-    width: 60px;
+    width: 65px;
   }
   .date {
-    width: 70px;
+    width: 103px;
   }
 }
 
