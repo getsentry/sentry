@@ -6902,13 +6902,13 @@ header .project-dropdown .dropdown-menu {
 }
 header .project-dropdown .dropdown-menu .team {
   border-bottom: 2px solid #f1f2f3;
-  padding: 5px 15px 2px;
+  padding: 14px 15px 8px;
 }
 header .project-dropdown .dropdown-menu .team:last-child {
   border-bottom: 0;
 }
 header .project-dropdown .dropdown-menu h5 {
-  margin-bottom: 10px;
+  margin: 0 0 8px;
 }
 header .project-dropdown .dropdown-menu h5 a {
   color: #465262;
@@ -6940,7 +6940,7 @@ header .project-dropdown .dropdown-menu ul:after {
 header .project-dropdown .dropdown-menu ul li {
   width: 31%;
   float: left;
-  margin: 0 10px 10px 0;
+  margin: 0 10px 0 0;
   min-height: 24px;
 }
 header .project-dropdown .dropdown-menu ul li a {
@@ -8557,7 +8557,7 @@ textarea.activity .post-box textarea {
 .team-index .team-list > li {
   display: block;
   margin: 0 0 20px 0;
-  padding: 18px 20px 11px;
+  padding: 18px 20px 12px;
   border: 3px solid #f1f2f3;
   position: relative;
   border-radius: 7px;
@@ -8574,7 +8574,7 @@ textarea.activity .post-box textarea {
 .team-index .team-list > li h2 {
   width: 100%;
   position: relative;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   line-height: 26px;
   font-size: 22px;
   white-space: nowrap;
