@@ -61,6 +61,10 @@ hr {
 
 #content {
   margin-bottom: 40px;
+
+  img {
+    max-width: 100%;
+  }
 }
 
 // LINKS
@@ -1628,7 +1632,6 @@ legend {
 .page-header {
   padding-bottom: 0;
   border-bottom: 0;
-  margin: 20px 0;
 
   .pull-right {
     margin-top: 4px;
@@ -2039,6 +2042,10 @@ table.table td .select2-container {
   }
 }
 
+.table-bordered {
+  border: 2px solid #f1f2f3;
+}
+
 
 table.table {
   table-layout: fixed;
@@ -2059,6 +2066,8 @@ table.table, table.vars {
   th, td {
     border: none;
     padding: 5px 8px;
+    word-break: break-all;
+    border: 2px solid #f1f2f3 !important;
   }
 
   td.values, td.code {
@@ -2086,6 +2095,7 @@ table.vars {
     padding: 10px 0 !important;
     border: 0;
     vertical-align: top;
+    border: 0 !important;
     border-top: 2px solid #f1f2f3 !important;
   }
   td table {
