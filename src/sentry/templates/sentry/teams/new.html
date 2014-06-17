@@ -5,28 +5,27 @@
 
 {% block title %}{% trans "New Team" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
-    <section class="body">
-        <div class="page-header">
-            <h2>{% trans "Create a New Team" %}</h2>
+{% block content %}
+    <div class="box">
+        <div class="box-header">
+            <h3>{% trans "Create a new team" %}</h3>
         </div>
+        <div class="box-content with-padding">
+            <p>{% blocktrans %}Teams in Sentry represent a collection of users and projects. They're the top level component
+               of your organization allowing you to control access and scope of events.{% endblocktrans %}</p>
 
-        <p>{% blocktrans %}Teams in Sentry represent a collection of users and projects. They're the top level component
-           of your organization allowing you to control access and scope of events.{% endblocktrans %}</p>
-
-        <br>
-
-        <form class="form-stacked" action="." method="post">
-            {% csrf_token %}
-            <fieldset>
-                {{ form|as_crispy_errors }}
-                {% for field in form %}
-                    {{ field|as_crispy_field }}
-                {% endfor %}
-            </fieldset>
-            <div class="actions">
-                <button type="submit" class="btn btn-primary">{% trans "Create Team" %}</button>
-            </div>
-        </form>
-    </section>
+            <form class="form-stacked" action="." method="post">
+                {% csrf_token %}
+                <fieldset>
+                    {{ form|as_crispy_errors }}
+                    {% for field in form %}
+                        {{ field|as_crispy_field }}
+                    {% endfor %}
+                </fieldset>
+                <p>
+                    <button type="submit" class="btn btn-primary">{% trans "Create Team" %}</button>
+                </p>
+            </form>
+        </div>
+    </div>
 {% endblock %}
