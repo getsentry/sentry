@@ -855,6 +855,30 @@ a.icon-share {
       font-size: 20px;
     }
   }
+  &.small {
+    .checkbox, .event-graph, .event-assignee {
+      display: none;
+    }
+    .event-details {
+      padding-left: 0;
+      &:after {
+        display: none;
+      }
+    }
+
+    li:first-child {
+      .event-cell {
+        padding-top: 0;
+      }
+    }
+
+    li:last-child {
+      .event-cell {
+        border: 0;
+        padding-bottom: 0;
+      }
+    }
+  }
 }
 
 // .group-list, .events {
@@ -1490,6 +1514,15 @@ ol.context-line {
       position: relative;
       top: -3px;
       right: -6px;
+    }
+    .nav-pills {
+      position: relative;
+      right: -6px;
+      .active {
+        a {
+          background: @blue;
+        }
+      }
     }
   }
   .box-content {
