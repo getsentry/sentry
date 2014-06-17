@@ -7614,6 +7614,31 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
   color: #949ea4;
   font-size: 20px;
 }
+.group-list.small .checkbox,
+.events.small .checkbox,
+.group-list.small .event-graph,
+.events.small .event-graph,
+.group-list.small .event-assignee,
+.events.small .event-assignee {
+  display: none;
+}
+.group-list.small .event-details,
+.events.small .event-details {
+  padding-left: 0;
+}
+.group-list.small .event-details:after,
+.events.small .event-details:after {
+  display: none;
+}
+.group-list.small li:first-child .event-cell,
+.events.small li:first-child .event-cell {
+  padding-top: 0;
+}
+.group-list.small li:last-child .event-cell,
+.events.small li:last-child .event-cell {
+  border: 0;
+  padding-bottom: 0;
+}
 .inactive .group-list > li:hover {
   filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
   background-image: none;
@@ -7853,6 +7878,13 @@ ol.context-line > li > span {
   position: relative;
   top: -3px;
   right: -6px;
+}
+.box .box-header .nav-pills {
+  position: relative;
+  right: -6px;
+}
+.box .box-header .nav-pills .active a {
+  background: #49a9e6;
 }
 .box .box-content.with-padding {
   padding: 15px 15px 5px;
