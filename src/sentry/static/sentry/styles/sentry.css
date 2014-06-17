@@ -6764,6 +6764,9 @@ hr {
 .container {
   max-width: 960px;
 }
+#content {
+  margin-bottom: 40px;
+}
 a {
   color: #49a9e6;
   text-decoration: none;
