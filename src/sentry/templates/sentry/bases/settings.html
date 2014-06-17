@@ -6,7 +6,7 @@
 
 {% block page_header %}
     {{ block.super }}
-    <ul class="nav nav-tabs">
+    <ul class="nav nav-tabs project-nav">
         <li>
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
