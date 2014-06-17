@@ -53,46 +53,45 @@
                         {% endif %}
                     {% endif %}
                  <span aria-hidden="true" class="icon-arrow-down"></span></a>
+                 <div class="datepicker-box dropdown-menu" id="daterange">
+                     <form method="GET">
+                         {% for key, value in request.GET.iteritems %}
+                             {% if key != df and key != tf and key != dt and key != tt and key != page %}
+                                 <input type="hidden" name="{{ key }}" value="{{ value }}">
+                             {% endif %}
+                         {% endfor %}
+                         <div class="input">
+                           <div class="inline-inputs">
+                             <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" class="form-control date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
+                             <input class="time form-control" type="text" name="tf" value="{% if from_date %}{{ from_date|time:"h:i A" }}{% endif %}" />
+                             to
+                             <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" class="date form-control" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" />
+                             <input class="time form-control" type="text" name="tt" value="{% if to_date %}{{ to_date|time:"h:i A" }}{% endif %}" />
+                           </div>
+                           <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
+                         </div>
+                         <div class="submit">
+                             <div class="pull-right">
+                                 <input type="button" class="btn btn-small" value="{% trans "Clear" %}" onclick="$('#daterange input[type=text]').val(''); this.form.submit();">
+                                 <input type="submit" class="btn btn-primary btn-small" value="{% trans "Apply" %}">
+                             </div>
+                             <div class="radio-inputs">
+                                 <label class="radio">
+                                     <input type="radio" name="date_type" value="last_seen" {% if date_type != 'first_seen' %}checked{% endif %}> {% trans "Last Seen" %}
+                                 </label>
+                                 <label class="radio">
+                                     <input type="radio" name="date_type" value="first_seen" {% if date_type == 'first_seen' %}checked{% endif %}> {% trans "First Seen" %}
+                                 </label>
+                             </div>
+                         </div>
+                     </form>
+                 </div>
             </div>
           </div>
             <div class="stream-actions-graph stream-actions-cell">&nbsp;</div>
             <div class="stream-actions-occurrences stream-actions-cell align-center hidden-xs"> events</div>
             <div class="stream-actions-users stream-actions-cell align-right hidden-xs"> users</div>
         </div>
-    </div>
-
-    <div class="datepicker-box" id="daterange">
-        <form method="GET">
-            {% for key, value in request.GET.iteritems %}
-                {% if key != df and key != tf and key != dt and key != tt and key != page %}
-                    <input type="hidden" name="{{ key }}" value="{{ value }}">
-                {% endif %}
-            {% endfor %}
-            <div class="input">
-              <div class="inline-inputs">
-                <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" class="date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
-                <input class="time" type="text" name="tf" value="{% if from_date %}{{ from_date|time:"h:i A" }}{% endif %}" />
-                to
-                <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" class="date" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" />
-                <input class="time" type="text" name="tt" value="{% if to_date %}{{ to_date|time:"h:i A" }}{% endif %}" />
-              </div>
-              <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
-            </div>
-            <div class="submit">
-                <div class="pull-right">
-                    <input type="button" class="btn btn-small" value="{% trans "Clear" %}" onclick="$('#daterange input[type=text]').val(''); this.form.submit();">
-                    <input type="submit" class="btn btn-primary btn-small" value="{% trans "Apply" %}">
-                </div>
-                <div class="radio-inputs">
-                    <label class="radio">
-                        <input type="radio" name="date_type" value="last_seen" {% if date_type != 'first_seen' %}checked{% endif %}> {% trans "Last Seen" %}
-                    </label>
-                    <label class="radio">
-                        <input type="radio" name="date_type" value="first_seen" {% if date_type == 'first_seen' %}checked{% endif %}> {% trans "First Seen" %}
-                    </label>
-                </div>
-            </div>
-        </form>
     </div>
 
     {% recent_alerts from project as recent_alerts %}

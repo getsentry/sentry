@@ -8046,21 +8046,14 @@ legend {
   display: block;
 }
 .datepicker-box {
+  width: 400px;
   position: absolute;
-  top: 50px;
-  left: 400px;
-  padding: 15px 15px 0px;
-  z-index: 900;
-  background-color: #ffffff;
-  border-radius: 4px;
-  -webkit-box-shadow: 0 0 0 2px rgba(70, 82, 98, 0.43);
-  box-shadow: 0 0 0 2px rgba(70, 82, 98, 0.43);
-  -webkit-background-clip: padding-box;
-  -moz-background-clip: padding;
-  background-clip: padding-box;
+  top: 45px;
+  left: 2px;
+  padding: 20px 15px 0;
 }
-.datepicker-box form {
-  margin-bottom: 15px;
+.datepicker-box .form-control {
+  display: inline;
 }
 .datepicker-box .help-block {
   margin-bottom: 5px;
@@ -8083,10 +8076,10 @@ legend {
   vertical-align: middle;
 }
 .datepicker-box .time {
-  width: 60px;
+  width: 65px;
 }
 .datepicker-box .date {
-  width: 70px;
+  width: 103px;
 }
 #daterange {
   display: none;
