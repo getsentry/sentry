@@ -6908,7 +6908,7 @@ header .project-dropdown .dropdown-menu .team:last-child {
   border-bottom: 0;
 }
 header .project-dropdown .dropdown-menu h5 {
-  margin: 0 0 8px;
+  margin: 0 0 7px;
 }
 header .project-dropdown .dropdown-menu h5 a {
   color: #465262;
@@ -8252,7 +8252,7 @@ li.empty {
   border-bottom: 3px solid #F8F9FA;
 }
 .empty-message {
-  width: 490px;
+  width: 510px;
   margin: 100px auto;
   position: relative;
 }
@@ -8280,7 +8280,7 @@ li.empty {
 .empty-message p {
   font-size: 20px;
   line-height: 1.4;
-  color: #c2c9d1;
+  color: #AFB4B9;
   margin: 0 0 18px;
 }
 .empty-message p.links {
