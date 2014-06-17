@@ -6822,7 +6822,9 @@ header {
 header a {
   color: #fff;
 }
-header a:hover {
+header a:hover,
+header a:active,
+header a:focus {
   color: #fff;
   text-decoration: none;
 }
@@ -8543,42 +8545,37 @@ textarea.activity .post-box textarea {
   width: 32px;
   border-radius: 32px;
 }
-.team-index #page-header {
-  display: none;
-}
-.team-index .body h2 {
+.team-index h2 {
   font-size: 26px;
-  margin: 0 0 20px;
-  letter-spacing: -1px;
+  margin: 0 0 28px;
+  letter-spacing: -0.25px;
 }
-.team-index .body .team-list {
+.team-index .team-list {
   list-style: none;
   padding-left: 0;
 }
-.team-index .body .team-list > li {
+.team-index .team-list > li {
   display: block;
   margin: 0 0 20px 0;
-  padding: 18px 22px;
-  min-height: 81px;
+  padding: 18px 20px 11px;
   border: 3px solid #f1f2f3;
   position: relative;
   border-radius: 7px;
 }
-.team-index .body .team-list > li .loading {
+.team-index .team-list > li .loading {
   display: none;
 }
-.team-index .body .team-list > li:hover {
+.team-index .team-list > li:hover {
   border-color: #56AFE8;
 }
-.team-index .body .team-list > li:hover h2 {
+.team-index .team-list > li:hover h2 {
   color: #000;
 }
-.team-index .body .team-list > li h2 {
+.team-index .team-list > li h2 {
   width: 100%;
   position: relative;
-  margin-bottom: 0;
+  margin-bottom: 10px;
   line-height: 26px;
-  height: 26px;
   font-size: 22px;
   white-space: nowrap;
   overflow: hidden;
@@ -8586,13 +8583,13 @@ textarea.activity .post-box textarea {
   color: #465262;
   font-weight: 500;
 }
-.team-index .body .team-list > li h2 a {
+.team-index .team-list > li h2 a {
   color: inherit;
 }
-.team-index .body .team-list > li h2 a:hover {
+.team-index .team-list > li h2 a:hover {
   color: #12659a;
 }
-.team-index .body .team-list > li .chart {
+.team-index .team-list > li .chart {
   display: block;
   position: absolute;
   left: 0;
@@ -8600,24 +8597,25 @@ textarea.activity .post-box textarea {
   bottom: -1px;
   top: 10px;
 }
-.team-index .body .team-list > li > ul {
+.team-index .team-list > li > ul {
   position: relative;
-  min-height: 56px;
   overflow: hidden;
   padding-left: 0;
   list-style: circle;
+  margin-left: -2%;
 }
-.team-index .body .team-list > li > ul > li {
-  display: inline-block;
-  width: 142px;
-  margin-right: 5px;
+.team-index .team-list > li > ul > li {
+  float: left;
+  width: 23%;
+  margin-left: 2%;
+  margin-bottom: 5px;
+}
+.team-index .team-list > li > ul > li a {
+  display: block;
+  font-size: 17px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 26px;
-}
-.team-index .body .team-list > li > ul > li a {
-  font-size: 17px;
 }
 .toggle-expand {
   padding: 0 !important;
