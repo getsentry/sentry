@@ -127,7 +127,7 @@ header {
   margin: 0 0 30px;
   a {
     color: #fff;
-    &:hover {
+    &:hover, &:active, &:focus {
       color: #fff;
       text-decoration: none;
     }
@@ -2204,93 +2204,87 @@ table.vars {
 }
 
 .team-index {
-  #page-header {
-    display: none;
+
+  h2 {
+    font-size: 26px;
+    margin: 0 0 28px;
+    letter-spacing: -0.25px;
   }
 
-  .body {
-    h2 {
-      font-size: 26px;
-      margin: 0 0 20px;
-      letter-spacing: -1px;
-    }
+  .team-list {
+    list-style: none;
+    padding-left: 0;
 
-    .team-list {
-      list-style: none;
-      padding-left: 0;
+    > li {
+      display: block;
+      margin: 0 0 20px 0;
+      padding: 18px 20px 11px;
+      border: 3px solid #f1f2f3;
+      position: relative;
+      border-radius: 7px;
 
-      > li {
-        display: block;
-        margin: 0 0 20px 0;
-        padding: 18px 22px;
-        min-height: 81px;
-        border: 3px solid #f1f2f3;
-        position: relative;
-        border-radius: 7px;
+      .loading {
+        display: none;
+      }
 
-        .loading {
-          display: none;
+      &:hover {
+        border-color: #56AFE8;
+        h2 {
+          color: #000;
         }
+      }
 
-        &:hover {
-          border-color: #56AFE8;
-          h2 {
-            color: #000;
+      h2 {
+        width: 100%;
+        position: relative;
+        margin-bottom: 10px;
+        line-height: 26px;
+        font-size: 22px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #465262;
+        font-weight: 500;
+
+        a {
+          color: inherit;
+          &:hover {
+            color: @linkColorHover;
           }
         }
+      }
 
-        h2 {
-          width: 100%;
-          position: relative;
-          margin-bottom: 0;
-          line-height: 26px;
-          height: 26px;
-          font-size: 22px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          color: #465262;
-          font-weight: 500;
+      .chart {
+        display: block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        top: 10px;
+      }
+
+      > ul {
+        position: relative;
+
+        overflow: hidden;
+        padding-left: 0;
+        list-style: circle;
+        margin-left: -2%;
+
+        > li {
+          float: left;
+          width: 23%;
+          margin-left: 2%;
+          margin-bottom: 5px;
 
           a {
-            color: inherit;
-            &:hover {
-              color: @linkColorHover;
-            }
-          }
-        }
-
-        .chart {
-          display: block;
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: -1px;
-          top: 10px;
-        }
-
-        > ul {
-          position: relative;
-          min-height: 56px;
-          overflow: hidden;
-          padding-left: 0;
-          list-style: circle;
-
-          > li {
-            display: inline-block;
-            width: 142px;
-            margin-right: 5px;
+            display: block;
+            font-size: 17px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            line-height: 26px;
-
-            a {
-              font-size: 17px;
-            }
           }
         }
-
       }
     }
   }
