@@ -15,7 +15,7 @@
             {% trans "Manage API Keys" %}
         </h2>
     </div>
-    <table class="table table-bordered table-striped">
+    <table class="table table-bordered">
         <colgroup>
             <col/>
             <col width="100px"/>
@@ -35,9 +35,9 @@
                         {% else %}
                             <a href="{% url 'sentry-edit-project-key' project.team.slug project.slug key.id %}">{{ key.public_key }}</a> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}
                         {% endif %}<br>
-                        <code class="clippy">{{ key.dsn_private }}</code><br>
+                        <input class="form-control" value="{{ key.dsn_private }}" style="margin: 4px 0 6px">
                         {% if key.user_added %}
-                            <small>Added by {{ key.user_added.email }} ({{ key.date_added|timesince }})</small>
+                            <small><small>Added by {{ key.user_added.email }} ({{ key.date_added|timesince }})</small></small>
                         {% endif %}
                     </td>
                     <td style="text-align:center; vertical-align:middle;">
