@@ -16,28 +16,23 @@
             {{ form|as_crispy_errors }}
 
             <div class="row">
-                <div class="span6">
-                    <fieldset>
-                        <legend>{% trans "Stream Filters" %}</legend>
-                        <p><small>{% blocktrans %}Filters allow you to do limited searching on the stream view based on a tag's value. They are selectable via the sidebar on the stream.{% endblocktrans %}</small></p>
-                        {{ form.filters|as_crispy_field }}
-                    </fieldset>
+                <div class="col-xs-6">
+                    <h3>{% trans "Stream Filters" %}</h3>
+                    <p><small>{% blocktrans %}Filters allow you to do limited searching on the stream view based on a tag's value. They are selectable via the sidebar on the stream.{% endblocktrans %}</small></p>
+                    {{ form.filters|as_crispy_field }}
                 </div>
-                <div class="span6">
-                    <fieldset>
-                        <legend>{% trans "Stream Annotations" %}</legend>
-                        <p><small>{% blocktrans %}Annotations display the total number of unique values that have been seen for an event. They are rendered on the stream with each individual event.{% endblocktrans %}</small></p>
-                        {{ form.annotations|as_crispy_field }}
-                    </fieldset>
+                <div class="col-xs-6">
+                    <h3>{% trans "Stream Annotations" %}</h3>
+                    <p><small>{% blocktrans %}Annotations display the total number of unique values that have been seen for an event. They are rendered on the stream with each individual event.{% endblocktrans %}</small></p>
+                    {{ form.annotations|as_crispy_field }}
                 </div>
             </div>
 
-            <fieldset class="form-actions">
+            <div class="form-actions" style="margin-top: 10px;">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-            </fieldset>
+            </div>
         </form>
     {% else %}
         <p>{% trans "We have not yet recorded any tags for this project." %}</p>
     {% endif %}
 {% endblock %}
-
