@@ -6784,10 +6784,18 @@ p {
   font-size: 14px;
   line-height: 22px;
 }
+h1,
+h2,
+h3,
+h4,
+h5 {
+  margin: 0 0 30px;
+}
 h2 {
   font-weight: normal;
-  font-size: 24px;
+  font-size: 28px;
   line-height: 36px;
+  letter-spacing: -0.25px;
 }
 h3 {
   line-height: 27px;
@@ -6983,7 +6991,7 @@ header .project-dropdown .project-name {
   color: #B5B9C0;
 }
 .project-nav {
-  margin: -10px 0 20px;
+  margin: -10px 0 30px;
 }
 .nav-tabs {
   border-bottom: 3px solid #f1f2f3;
@@ -8020,14 +8028,10 @@ legend {
 .page-header {
   padding-bottom: 0;
   border-bottom: 0;
+  margin: 0;
 }
 .page-header .pull-right {
   margin-top: 4px;
-}
-.page-header h2 {
-  font-weight: normal;
-  font-size: 32px;
-  margin: 30px 0;
 }
 .modal {
   width: 760px;
