@@ -8378,6 +8378,10 @@ table.table td .select2-container {
   -webkit-font-smoothing: antialiased;
   content: "\e003";
 }
+.select2-inline {
+  display: inline-block;
+  vertical-align: middle;
+}
 .table-bordered {
   border: 2px solid #f1f2f3;
 }
@@ -8390,6 +8394,17 @@ table.table th {
 }
 table.table td {
   vertical-align: middle;
+}
+.table.table-light th,
+.table.table-light td {
+  border: 0 !important;
+  border-bottom: 2px solid #f1f2f3 !important;
+}
+.condition-list th,
+.action-list th,
+.condition-list td,
+.action-list td {
+  vertical-align: middle !important;
 }
 table.table.closed,
 table.vars.closed {

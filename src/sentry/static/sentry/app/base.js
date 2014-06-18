@@ -737,7 +737,7 @@ define([
             addCondition: function(id, options, has_errors) {
                 var node = this.conditions_by_id[id],
                     row = $('<tr></tr>'),
-                    remove_btn = $('<button class="btn btn-small">Remove</button>'),
+                    remove_btn = $('<button class="btn btn-default btn-sm"><span class="icon-trash"></span></button>'),
                     num = this.condition_table_body.find('tr').length,
                     html = $('<div>' + node.html + '</div>'),
                     prefix = 'condition[' + num + ']',
@@ -760,7 +760,7 @@ define([
                     $el.val(options[name] || '');
                 });
                 row.append($('<td></td>').append(html).append(id_field));
-                row.append($('<td></td>').append(remove_btn));
+                row.append($('<td class="align-right"></td>').append(remove_btn));
                 row.appendTo(this.condition_table_body);
 
                 remove_btn.click(function(){
@@ -775,7 +775,7 @@ define([
             addAction: function(id, options, has_errors) {
                 var node = this.actions_by_id[id],
                     row = $('<tr></tr>'),
-                    remove_btn = $('<button class="btn btn-small">Remove</button>'),
+                    remove_btn = $('<button class="btn btn-default btn-sm"><span class="icon-trash"></span></button>'),
                     num = this.action_table_body.find('tr').length,
                     html = $('<div>' + node.html + '</div>'),
                     prefix = 'action[' + num + ']',
@@ -798,7 +798,7 @@ define([
                     $el.val(options[name] || '');
                 });
                 row.append($('<td></td>').append(html).append(id_field));
-                row.append($('<td></td>').append(remove_btn));
+                row.append($('<td class="align-right"></td>').append(remove_btn));
                 row.appendTo(this.action_table_body);
 
                 remove_btn.click(function(){

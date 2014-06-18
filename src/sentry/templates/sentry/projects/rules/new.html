@@ -5,16 +5,15 @@
 {% load sentry_helpers %}
 
 {% block inner %}
-    <div class="page-header">
-        <h2>
-            {% if rule.id %}
-                {% trans "Edit Rule" %}
-            {% else %}
-                {% trans "New Rule" %}
-            {% endif %}
-            <small>Applying to Events</small>
-        </h2>
-    </div>
+    <h2>
+        {% if rule.id %}
+            {% trans "Edit Rule" %}
+        {% else %}
+            {% trans "New Rule" %}
+        {% endif %}
+        <small>Applying to Events</small>
+    </h2>
+
     <div id="new-rule-form">
         <form method="POST" action=".">
             {% csrf_token %}
@@ -27,45 +26,51 @@
 
             {{ form|as_crispy_errors }}
 
-            <fieldset>
-                <div class="controls{% if form_errors.label %} error{% endif %}">
-                    <label>{% trans "Label:" %}</label> <input type="text" name="label" placeholder="{% trans "e.g. My Rule Name" %}">
-                </div>
-            </fieldset>
 
-            <fieldset>
-                <div><legend>Conditions</legend></div>
-                <p>When <select name="action_match" style="width:100px" class="select2-small">
-                    <option value="all">all of</option>
-                    <option value="any">any of</option>
-                    <option value="none">none of</option>
-                </select> these conditions are met:</p>
-                <table class="condition-list table table-striped">
-                    <colgroup>
-                        <col>
-                        <col style="width:50px">
-                    </colgroup>
-                    <tbody></tbody>
-                </table>
-                <div class="controls">
-                    <select id="condition-select" class="span6" placeholder="add a condition"></select>
-                </div>
-            </fieldset>
+            <div class="box">
+              <div class="box-header">
+                <h3>{% trans "Rule label:" %}</h3>
+              </div>
+              <div class="box-content" style="padding: 10px;">
+                <input type="text" name="label" class="form-control" placeholder="{% trans "e.g. My Rule Name" %}">
+              </div>
+            </div>
 
-            <fieldset>
-                <div><legend>Actions</legend></div>
-                <p>Take these actions every time this rules matches:</p>
-                <table class="action-list table table-striped">
-                    <colgroup>
-                        <col>
-                        <col style="width:50px">
-                    </colgroup>
-                    <tbody></tbody>
-                </table>
-                <div class="controls">
-                    <select id="action-select" class="span6" placeholder="add an action"></select>
+            <div class="box">
+                <div class="box-header" style="padding-top: 5px; padding-bottom: 0px; font-weight: 500">
+                    Every time <select name="action_match" style="width:100px;" class="select2-small select2-inline">
+                        <option value="all">all of</option>
+                        <option value="any">any of</option>
+                        <option value="none">none of</option>
+                    </select> these conditions are met:
                 </div>
-            </fieldset>
+                <div class="box-content" style="padding: 0 10px 6px;">
+                  <table class="condition-list table table-light" style="margin-bottom: 10px;">
+                      <col>
+                      <col style="width: 25%; text-align: right">
+                      <tbody></tbody>
+                  </table>
+                  <div class="controls">
+                      <select id="condition-select" placeholder="add a condition"></select>
+                  </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="box-header">
+                    <h3>Take these actions:</h3>
+                </div>
+                <div class="box-content" style="padding: 0 10px 6px;">
+                  <table class="action-list table table-light" style="margin-bottom: 10px;">
+                      <col>
+                      <col style="width: 25%; text-align: right">
+                      <tbody></tbody>
+                  </table>
+                  <div class="controls">
+                      <select id="action-select" placeholder="add an action"></select>
+                  </div>
+                </div>
+            </div>
 
             <div class="actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Rule" %}</button>
