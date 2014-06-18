@@ -6991,7 +6991,7 @@ header .project-dropdown .project-name {
   font-weight: 400;
   color: #B5B9C0;
 }
-.project-nav {
+.nav.project-nav {
   margin: -10px 0 30px;
 }
 .nav-tabs {
@@ -8094,6 +8094,9 @@ legend {
   height: 20px;
   vertical-align: middle;
   border-radius: 3px;
+}
+.nav {
+  margin-bottom: 20px;
 }
 .nav-pills > li.active > a {
   background-color: #76beec;
