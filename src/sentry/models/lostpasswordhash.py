@@ -6,8 +6,6 @@ sentry.models.useroption
 :license: BSD, see LICENSE for more details.
 """
 
-import logging
-
 from datetime import timedelta
 from urlparse import urlparse
 
@@ -61,9 +59,4 @@ class LostPasswordHash(Model):
             template='sentry/emails/recover_account.txt',
             context=context,
         )
-
-        try:
-            msg.send([self.user.email])
-        except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
-            logger.exception(e)
+        msg.send_async([self.user.email])
