@@ -177,16 +177,24 @@ class MessageBuilder(object):
 
         return msg
 
-    def send(self, to=None, fail_silently=False):
+    def get_built_messages(self, to=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        self.send_all(
-            [self.build(to=email, reply_to=send_to) for email in send_to],
-            fail_silently=fail_silently)
+        return [self.build(to=email, reply_to=send_to) for email in send_to]
+
+    def send(self, to=None, fail_silently=False):
+        messages = self.get_built_messages(to)
+        self.send_all(messages, fail_silently=fail_silently)
 
     def send_all(self, messages, fail_silently=False):
         connection = get_connection(fail_silently=fail_silently)
         return connection.send_messages(messages)
+
+    def send_async(self, to=None):
+        from sentry.tasks.email import send_email
+        messages = self.get_built_messages(to)
+        for message in messages:
+            send_email.delay(message=message)
 
 
 def inline_css(html):
