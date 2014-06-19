@@ -87,9 +87,7 @@ class RuleBase(object):
         if not self.form_cls:
             return True
 
-        form = self.form_cls(
-            self.data,
-        )
+        form = self.get_form_instance()
 
         return form.is_valid()
 
