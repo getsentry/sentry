@@ -437,7 +437,7 @@ class Stacktrace(Interface):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to JS
-        if len(frames) == 1 and frames[0].lineno == '1' and frames[0].function in ('?', None):
+        if len(frames) == 1 and frames[0].lineno == 1 and frames[0].function in ('?', None):
             return []
 
         output = []
