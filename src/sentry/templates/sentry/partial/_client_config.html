@@ -4,7 +4,7 @@
 .client-platform-list {
     list-style: none;
     margin-left: 0;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 .client-platform-list li {
     display: inline-block;
@@ -41,19 +41,20 @@
 {% if key %}
     <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
 
-    <pre class="clippy">{{ dsn }}</pre>
+    <p><input type="text" class="form-control" value="{{ dsn }}" style="width: 100%;"></p>
 
     <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
 
-    <pre class="clippy">{{ dsn_public }}</pre>
+    <p><input type="text" class="form-control" value="{{ dsn_public }}" style="width: 100%;"></p>
+
 {% else %}
     {% url 'sentry-project-keys' project.slug as link %}
     <p>{% blocktrans %}There is no API key assigned to your account. Generate a new key or select one from the <a href="{{ link }}">API Keys page</a>.{% endblocktrans %}</p>
 {% endif %}
 
-<div class="page-header">
-    <h3>{% trans "Platforms" %}</h3>
-</div>
+
+<h3>{% trans "Platforms" %}</h3>
+
 <ul class="client-platform-list list-unstyled">
     <li>
         <a href="{% url 'sentry-docs-client' project.team.slug project.slug 'python' %}">
@@ -98,9 +99,9 @@
         </a>
     </li>
 </ul>
-<div class="page-header">
-    <h3>{% trans "Frameworks" %}</h3>
-</div>
+
+<h3>{% trans "Frameworks" %}</h3>
+
 <ul class="client-platform-list list-unstyled">
     <li>
         <a href="{% url 'sentry-docs-client' project.team.slug project.slug 'rails3' %}">
@@ -122,9 +123,9 @@
     </li>
 </ul>
 
-<div class="page-header">
-    <h3>{% trans "More Clients" %}</h3>
-</div>
+
+<h3>{% trans "More Clients" %}</h3>
+
 <ul>
     <li>
         <a href="{% url 'sentry-docs-client' project.team.slug project.slug 'csharp' %}">
