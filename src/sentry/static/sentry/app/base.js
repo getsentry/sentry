@@ -115,7 +115,7 @@ define([
 
                 this.control.click(_.bind(function(e){
                     e.preventDefault();
-                    this.options.realtime = this.group_list.options.realtime = this.control.hasClass('realtime-pause');
+                    this.options.realtime = this.group_list.options.realtime = this.control.hasClass('realtime-paused');
                     this.updateStreamOptions();
                 }, this));
 
@@ -178,11 +178,11 @@ define([
             updateStreamOptions: function(){
                 if (this.options.realtime){
                     $.removeCookie('pausestream');
-                    this.control.toggleClass('realtime-paused');
+                    this.control.removeClass('realtime-paused');
                     this.control.attr("title", this.control.attr('data-pause-label'));
                 } else {
                     $.cookie('pausestream', '1', {expires: 7});
-                    this.control.toggleClass('realtime-paused');
+                    this.control.addClass('realtime-paused');
                     this.control.attr("title", this.control.attr('data-play-label'));
                 }
             }
