@@ -580,14 +580,6 @@ SENTRY_INTERFACES = {
     'sentry.interfaces.User': 'sentry.interfaces.user.User',
 }
 
-# Should users without 'sentry.add_project' permissions be allowed
-# to create new projects
-SENTRY_ALLOW_PROJECT_CREATION = False
-
-# Should users without 'sentry.add_team' permissions be allowed
-# to create new projects
-SENTRY_ALLOW_TEAM_CREATION = False
-
 # Should users without superuser permissions be allowed to
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True

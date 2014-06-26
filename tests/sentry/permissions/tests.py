@@ -18,14 +18,8 @@ class CanCreateProjectTest(TestCase):
         self.assertFalse(can_create_projects(user))
 
     def test_allow_creation_is_true(self):
-        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=True):
-            user = User(id=100000)
-            self.assertTrue(can_create_projects(user))
-
-    def test_dont_allow_creation_is_false(self):
-        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False):
-            user = User(id=100000)
-            self.assertFalse(can_create_projects(user))
+        user = User(id=100000)
+        self.assertTrue(can_create_projects(user))
 
 
 class CanSetProjectPublicTest(TestCase):
