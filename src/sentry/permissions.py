@@ -58,9 +58,6 @@ def can_create_projects(user, team=None):
         return False
 
     result = plugins.first('has_perm', user, 'add_project', team)
-    if result is None:
-        result = settings.SENTRY_ALLOW_PROJECT_CREATION
-
     if result is False:
         return result
 
@@ -78,9 +75,6 @@ def can_create_teams(user):
         return True
 
     result = plugins.first('has_perm', user, 'add_team')
-    if result is None:
-        result = settings.SENTRY_ALLOW_TEAM_CREATION
-
     if result is False:
         return result
 
