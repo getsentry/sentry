@@ -21,7 +21,7 @@ Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong>SENTRY_DSN</s
 
 <p>{% trans "Add additional user context if it's available:" %}</p>
 
-<pre>Raven.setUserContext({
+<pre>Raven.setUser({
     email: '&lt;?php echo $_SESSION['email'] ?&gt;',
     id: '&lt;?php echo $_SESSION['id'] ?&gt;'
 });</pre>
