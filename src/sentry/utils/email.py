@@ -145,6 +145,9 @@ class MessageBuilder(object):
         else:
             headers = self.headers.copy()
 
+        from_email = settings.SERVER_EMAIL
+        headers.setdefault('From', from_email)
+
         if ENABLE_EMAIL_REPLIES and 'X-Sentry-Reply-To' in headers:
             reply_to = headers['X-Sentry-Reply-To']
         else:
@@ -168,7 +171,7 @@ class MessageBuilder(object):
         msg = EmailMultiAlternatives(
             subject,
             self.txt_body,
-            settings.SERVER_EMAIL,
+            from_email,
             (to,),
             headers=headers
         )

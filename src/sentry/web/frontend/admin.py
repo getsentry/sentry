@@ -13,7 +13,7 @@ import uuid
 
 from django.conf import settings
 from django.core.context_processors import csrf
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Count
@@ -151,13 +151,16 @@ def create_new_user(request):
                     'dsn': key.get_dsn(),
                 })
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
-
+            from_email = settings.SERVER_EMAIL
             try:
-                send_mail(
-                    '%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
-                    body, settings.SERVER_EMAIL, [user.email],
-                    fail_silently=False
+                message = EmailMessage(
+                    subject='%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
+                    body=body,
+                    from_email=from_email,
+                    to=[user.email],
+                    headers={'From': from_email},
                 )
+                message.send(fail_silently=False)
             except Exception as e:
                 logger = logging.getLogger('sentry.mail.errors')
                 logger.exception(e)
@@ -319,7 +322,10 @@ def status_packages(request):
 
     return render_to_response('sentry/admin/status/packages.html', {
         'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
-        'extensions': [(p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__)) for p in plugins.all()],
+        'extensions': [
+            (p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__))
+            for p in plugins.all()
+        ],
     }, request)
 
 
@@ -329,13 +335,18 @@ def status_mail(request):
     form = TestEmailForm(request.POST or None)
 
     if form.is_valid():
-        body = """This email was sent as a request to test the Sentry outbound email configuration."""
+        body = "This email was sent as a request to test "
+        body += "the Sentry outbound email configuration."
+        from_email = settings.SERVER_EMAIL
         try:
-            send_mail(
-                '%s Test Email' % (settings.EMAIL_SUBJECT_PREFIX,),
-                body, settings.SERVER_EMAIL, [request.user.email],
-                fail_silently=False
+            message = EmailMessage(
+                subject='%s Test Email' % (settings.EMAIL_SUBJECT_PREFIX,),
+                body=body,
+                from_email=from_email,
+                to=[request.user.email],
+                headers={'From': from_email},
             )
+            message.send(fail_silently=False)
         except Exception as e:
             form.errors['__all__'] = [six.text_type(e)]
 
