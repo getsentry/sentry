@@ -444,7 +444,6 @@ footer {
   .form-control {
     padding: 7px 70px 7px 34px;
     box-shadow: none;
-    // border: 3px solid #f2f4f6;
     border: 0;
     font-size: 14px;
     background: #f8f8f8;
@@ -898,338 +897,6 @@ a.icon-share {
   }
 }
 
-// .group-list, .events {
-//   margin: 0;
-//   padding: 0;
-//   list-style: none;
-//
-//   &.events-detail {
-//     li {
-//       border-bottom: none;
-//       padding-bottom: 0;
-//     }
-//   }
-//   &.similar-events {
-//     > li {
-//       padding-left: 20px;
-//       min-height: 0;
-//       .meta {
-//         position: absolute;
-//         top: 10px;
-//         bottom: 0;
-//         right: 20px;
-//       }
-//       .row_link:hover {
-//         background: rgba(238, 238, 238, 0.10);
-//       }
-//     }
-//   }
-//
-//   > li {
-//     position: relative;
-//     padding: 10px 30px 10px 74px;
-//     position: relative;
-//     border-bottom: 2px solid #f2f4f7;
-//     min-height: 60px; /* count height */
-//
-//     a {
-//       .transition(none);
-//     }
-//
-//     &:first-child {
-//       border-top-width: 1px;
-//     }
-//
-//     &:hover {
-//       .actions a {
-//         color: darken(#e7e9ed, 6);
-//       }
-//     }
-//
-//     &.empty {
-//       border: 0;
-//       padding-left: 30px;
-//       &:hover {
-//         .reset-filter();
-//         background-image: none;
-//         background-color: inherit;
-//       }
-//     }
-//
-//     &.with-sparkline {
-//       .message {
-//         padding-right: 129px;
-//       }
-//       .meta {
-//         right: 155px;
-//       }
-//     }
-//
-//     &.seen {
-//       h3 {
-//         font-weight: normal;
-//
-//         a {
-//           color: #898f98;
-//         }
-//       }
-//     }
-//
-//     h3 {
-//       margin: 0;
-//       font-size: 16px;
-//       line-height: 20px;
-//       font-weight: 500;
-//       width: 85%;
-//       white-space: nowrap;
-//       overflow: hidden;
-//       text-overflow: ellipsis;
-//
-//       a {
-//         color: #465262;
-//         &:hover {
-//           color: #000;
-//         }
-//       }
-//       span {
-//         margin-left: 10px;
-//         font-weight: 300;
-//         padding: 0 5px;
-//         font-size: 13px;
-//       }
-//     }
-//     .count {
-//       color: #fff;
-//       position: absolute;
-//       left: 0;
-//       .square(60px);
-//       border-radius: 60px;
-//       line-height: 60px;
-//       background: #cfd3da;
-//       text-align: center;
-//       font-size: 17px;
-//       font-weight: bold;
-//       letter-spacing: -1px;
-//       overflow: hidden;
-//
-//       span {
-//         position: absolute;
-//         left: 0;
-//         right: 0;
-//         height: 100%;
-//         text-align: center;
-//         line-height: inherit;
-//         display: block;
-//       }
-//     }
-//     .message {
-//       color: #898f98;
-//       margin-bottom: 0;
-//       font-size: 14px;
-//       padding-right: 24px;
-//       white-space: nowrap;
-//       overflow: hidden;
-//       text-overflow: ellipsis;
-//
-//       .tag {
-//         .pull-right;
-//       }
-//     }
-//
-//     .meta {
-//       color: #b6bcc2;
-//       font-size: 12px;
-//       a {
-//         color: inherit;
-//         &:hover {
-//           text-decoration: underline;
-//           color: #000;
-//         }
-//       }
-//     }
-//
-//     .tag,
-//     .annotation {
-//       margin-left: 10px;
-//     }
-//     .tag-users,
-//     .annotation {
-//       margin-right: 10px;
-//       margin-left: 0;
-//       position: relative;
-//       background: #f9f9f9;
-//       padding: 0 5px;
-//       line-height: 20px;
-//       height: 20px;
-//       min-width: 20px;
-//       text-align: right;
-//       float: left;
-//       display: block;
-//       color: #666;
-//       overflow: hidden;
-//
-//       span {
-//         position: absolute;
-//         top: 0;
-//         bottom: 0;
-//         right: 5px;
-//         height: 100%;
-//         text-align: center;
-//         line-height: inherit;
-//         display: block;
-//       }
-//
-//       i {
-//         padding-right: 25px;
-//         font-style: normal;
-//         color: #aaa;
-//       }
-//     }
-//     .tag-project {
-//       display: none;
-//     }
-//     .sparkline {
-//       position: absolute;
-//       right: 50px;
-//       top: 18px;
-//       display: inline-block;
-//       width: 100px;
-//       height: 52px;
-//
-//       > span {
-//         position: relative;
-//         float: left;
-//         width: 3px;
-//       }
-//     }
-//     .actions {
-//       position: absolute;
-//       right: 2px;
-//       top: 17px;
-//       list-style-type: none;
-//       margin: 0;
-//       padding: 0;
-//       li {
-//         margin-bottom: 13px;
-//         font-size: 14px;
-//         line-height: 18px;
-//         text-align: center;
-//         display: block;
-//         width: 20px;
-//         height: 20px;
-//         > a {
-//           font-size: 19px;
-//           color: #e7e9ed;
-//           &:hover {
-//             color: darken(#e7e9ed, 6);
-//             text-decoration: none;
-//           }
-//           i {
-//             background-image: none;
-//           }
-//         }
-//         .checked, .checked:hover {
-//           color: #f6de2f;
-//         }
-//
-//         .bookmarked {
-//           color: @orange;
-//         }
-//
-//         .disabled {
-//           color: @gray;
-//         }
-//       }
-//     }
-//
-//     .row_link {
-//       top: 0;
-//       left: 0;
-//       width: 100%;
-//       height: 100%;
-//       position: absolute;
-//     }
-//
-//     &.level-debug .count {}
-//     &.level-info .count { background: #2788ce; }
-//     &.level-warning .count { background: #f18500; }
-//     &.level-error .count { background: #f43f20; }
-//     &.level-fatal .count { background: #d20f2a; }
-//
-//     &.resolved {
-//       h3 {
-//         text-decoration: line-through;
-//       }
-//       .count {
-//         background: #cfd3da;
-//       }
-//       .icon-checkmark {
-//         color: #27ce8a;
-//       }
-//     }
-//   }
-//   &.small {
-//     > li {
-//       min-height: 30px;
-//       padding: 14px 14px 14px 50px;
-//
-//       &.empty {
-//         padding-left: 0px;
-//       }
-//
-//       &:last-child {
-//         border-bottom: none;
-//       }
-//
-//       h3 {
-//         margin: 0;
-//         font-size: 14px;
-//         line-height: 18px;
-//       }
-//
-//       .message {
-//         line-height: 18px;
-//         font-size: 12px;
-//         .tag {
-//           display: none;
-//         }
-//       }
-//       .meta {
-//         line-height: 18px;
-//         font-size: 12px;
-//       }
-//
-//       .count {
-//         left: 0;
-//         font-size: 12px;
-//         width: 36px;
-//         height: 36px;
-//         line-height: 38px;
-//         border-radius: 36px;
-//       }
-//
-//       .actions {
-//         display: none;
-//       }
-//
-//       .sparkline {
-//         right: 10px;
-//         height: 30px;
-//         top: 20px;
-//       }
-//
-//       .tag, .meta {
-//
-//       }
-//
-//       .tag-project {
-//         display: inline-block;
-//       }
-//
-//     }
-//   }
-// }
-
 .inactive .group-list > li:hover {
   .reset-filter();
   background-image: none;
@@ -1335,7 +1002,6 @@ ul.traceback {
 }
 .subtraceback {
   padding-left: 15px;
-  // border-left: 2px solid #f1f2f3;
   position: relative;
 
   > h3:before {
@@ -1413,18 +1079,6 @@ ul.traceback {
     > p {
       color: #000;
     }
-
-    // .context li {
-    //   color: darken(@state-info-text, 20%);
-    //   background: lighten(@infoBackground, 5%);
-    //   pre {
-    //     color: inherit;
-    //   }
-    //   &.active {
-    //     background: @infoBackground;
-    //     color: #000;
-    //   }
-    // }
 
     .expandable {
       height: auto;
@@ -1718,9 +1372,6 @@ legend {
     display: inline;
   }
 
-  form {
-    // margin-bottom: 15px;
-  }
   .help-block {
     margin-bottom: 5px;
   }
@@ -1823,7 +1474,6 @@ legend {
 }
 
 #event_nav.fixed {
-  // overflow: hidden;
 
   .event_nav_wrap {
     z-index: 1000000;
@@ -2243,8 +1893,6 @@ table.vars {
   }
 
   .post-box {
-
-    // border-bottom: 2px solid #f1f2f3;
     margin: -0 -0 5px;
 
     textarea {
