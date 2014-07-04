@@ -9,8 +9,6 @@
     {% if event_list.objects %}
         <p class="alert alert-info">{% blocktrans with 'http://sentry.readthedocs.org' as link %}This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
 
-        {{ event_list.paging }}
-
         <ul class="events similar-events">
             {% for event in event_list.objects %}
                 {% include "sentry/partial/_event.html" %}

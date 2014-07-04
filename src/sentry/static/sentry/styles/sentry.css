@@ -7648,6 +7648,18 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
   border: 0;
   padding-bottom: 0;
 }
+.group-list.similar-events,
+.events.similar-events {
+  border-top: 3px solid #F8F9FA;
+}
+.group-list.similar-events .event-cell,
+.events.similar-events .event-cell {
+  display: block;
+}
+.group-list.similar-events .event-details,
+.events.similar-events .event-details {
+  padding-left: 20px;
+}
 .inactive .group-list > li:hover {
   filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
   background-image: none;
