@@ -7658,7 +7658,7 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
 }
 .group-list.similar-events .event-details,
 .events.similar-events .event-details {
-  padding-left: 20px;
+  padding-left: 10px;
 }
 .inactive .group-list > li:hover {
   filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
