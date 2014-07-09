@@ -87,6 +87,7 @@ PLATFORM_LIST = (
     'javascript',
     'node.js',
     'php',
+    'pyramid',
     'python',
     'r',
     'ruby',
@@ -104,6 +105,7 @@ PLATFORM_ROOTS = {
     'sidekiq': 'ruby',
     'django': 'python',
     'flask': 'python',
+    'pyramid': 'python',
     'tornado': 'python',
     'express': 'node.js',
     'connect': 'node.js',
@@ -122,6 +124,7 @@ PLATFORM_TITLES = {
     'connect': 'Connect (Node.js)',
     'django': 'Django (Python)',
     'flask': 'Flask (Python)',
+    'pyramid': 'Pyramid (Python)',
     'csharp': 'C#',
     'java_log4j': 'Log4j (Java)',
     'java_log4j2': 'Log4j 2.x (Java)',
@@ -182,6 +185,7 @@ TAG_LABELS = {
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
     'sentry.rules.actions.notify_event.NotifyEventAction',
+    'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
     'sentry.rules.conditions.every_event.EveryEventCondition',
     'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
     'sentry.rules.conditions.regression_event.RegressionEventCondition',

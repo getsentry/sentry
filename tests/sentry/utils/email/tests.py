@@ -131,3 +131,14 @@ class MessageBuilderTest(TestCase):
             '<html><body><b>hello world</b></body></html>',
             'text/html',
         )
+
+    def test_get_built_messages(self):
+        msg = MessageBuilder(
+            subject='Test',
+            body='hello world',
+            html_body='<b>hello world</b>',
+            reference=self.activity,
+            reply_reference=self.group,
+        )
+        results = msg.get_built_messages(['foo@example.com'])
+        assert len(results) == 1

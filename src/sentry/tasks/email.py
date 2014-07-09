@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 import logging
 
+from django.core.mail import get_connection
+
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
@@ -58,3 +60,11 @@ def process_inbound_email(mailfrom, group_id, payload):
     form = NewNoteForm({'text': payload})
     if form.is_valid():
         form.save(event, user)
+
+
+@instrumented_task(
+    name='sentry.tasks.email.send_email',
+    queue='email')
+def send_email(message):
+    connection = get_connection()
+    connection.send_messages([message])

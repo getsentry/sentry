@@ -16,9 +16,9 @@ from sentry.web.helpers import render_to_string
 
 class SingleException(Interface):
     """
-    A standard exception with a mandatory ``value`` argument, and optional
-    ``type`` and``module`` argument describing the exception class type and
-    module namespace.
+    A standard exception with a ``type`` and value argument, and an optional
+    ``module`` argument describing the exception class type and
+    module namespace. Either ``type`` or ``value`` must be present.
 
     You can also optionally bind a stacktrace interface to an exception. The
     spec is identical to ``sentry.interfaces.Stacktrace``.
@@ -37,7 +37,7 @@ class SingleException(Interface):
 
     @classmethod
     def to_python(cls, data):
-        assert data.get('value') is not None
+        assert data.get('type') or data.get('value')
 
         if data.get('stacktrace'):
             stacktrace = Stacktrace.to_python(data['stacktrace'])
@@ -45,8 +45,8 @@ class SingleException(Interface):
             stacktrace = None
 
         kwargs = {
-            'value': trim(data['value'], 256),
             'type': trim(data.get('type'), 128),
+            'value': trim(data.get('value'), 256),
             'module': trim(data.get('module'), 128),
             'stacktrace': stacktrace,
         }
@@ -60,8 +60,8 @@ class SingleException(Interface):
             stacktrace = None
 
         return {
-            'value': self.value,
             'type': self.type,
+            'value': self.value,
             'module': self.module,
             'stacktrace': stacktrace,
         }
@@ -89,7 +89,7 @@ class SingleException(Interface):
             last_frame = interface.frames[-1]
 
         e_module = self.module
-        e_type = self.type or 'Exception'
+        e_type = self.type
         e_value = self.value
 
         if self.module:
@@ -97,11 +97,15 @@ class SingleException(Interface):
         else:
             fullname = e_type
 
+        if e_value and not e_type:
+            e_type = e_value
+            e_value = None
+
         return {
             'is_public': is_public,
             'event': event,
-            'exception_value': e_value or e_type or '<empty value>',
             'exception_type': e_type,
+            'exception_value': e_value,
             'exception_module': e_module,
             'fullname': fullname,
             'last_frame': last_frame

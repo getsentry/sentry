@@ -217,7 +217,7 @@ class StacktraceTest(TestCase):
 
     def test_get_composite_hash_uses_exception_value_if_no_type_or_stack(self):
         interface = Stacktrace(frames=[])
-        interface_exc = Exception.to_python(dict(value='bar'))
+        interface_exc = Exception.to_python(dict(type='bar'))
         result = interface.get_composite_hash({
             'sentry.interfaces.Exception': interface_exc,
         })

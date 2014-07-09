@@ -189,24 +189,19 @@ class NewTeamProjectTest(PermissionBase):
         return reverse('sentry-new-project', args=[self.team.slug])
 
     def test_admin_can_load(self):
-        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
-            self._assertPerm(self.path, self.template, self.admin.username)
+        self._assertPerm(self.path, self.template, self.admin.username)
 
     def test_user_cannot_load(self):
-        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
-            self._assertPerm(self.path, self.template, self.nobody.username, False)
+        self._assertPerm(self.path, self.template, self.nobody.username, False)
 
     def test_anonymous_cannot_load(self):
-        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
-            self._assertPerm(self.path, self.template, None, False)
+        self._assertPerm(self.path, self.template, None, False)
 
     def test_public_creation_admin_can_load(self):
-        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
-            self._assertPerm(self.path, self.template, self.admin.username)
+        self._assertPerm(self.path, self.template, self.admin.username)
 
     def test_public_anonymous_cannot_load(self):
-        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
-            self._assertPerm(self.path, self.template, None, False)
+        self._assertPerm(self.path, self.template, None, False)
 
 
 class ManageProjectTest(PermissionBase):
