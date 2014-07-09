@@ -90,8 +90,7 @@ class ProjectOptionManager(BaseManager):
             for i in self.filter(project=project_id)
         )
         cache.set(cache_key, result)
-        if project_id in self.__cache:
-            self.__cache[project_id] = result
+        self.__cache[project_id] = result
         return result
 
     def post_save(self, instance, **kwargs):
