@@ -92,9 +92,6 @@ class NotificationPlugin(Plugin):
             return False
 
         project = group.project
-        send_to = self.get_sendable_users(project)
-        if not send_to:
-            return False
 
         rate_limited = ratelimiter.is_limited(
             project=project,

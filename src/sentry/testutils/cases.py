@@ -233,22 +233,21 @@ class RuleTestCase(TestCase):
             data=data or {},
         )
 
-    def assertPasses(self, rule, event=None, **kwargs):
-        if event is None:
-            event = self.event
+    def get_state(self, **kwargs):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
         kwargs.setdefault('is_sample', True)
         kwargs.setdefault('rule_is_active', False)
-        state = EventState(**kwargs)
+        return EventState(**kwargs)
+
+    def assertPasses(self, rule, event=None, **kwargs):
+        if event is None:
+            event = self.event
+        state = self.get_state(**kwargs)
         assert rule.passes(event, state) is True
 
     def assertDoesNotPass(self, rule, event=None, **kwargs):
         if event is None:
             event = self.event
-        kwargs.setdefault('is_new', True)
-        kwargs.setdefault('is_regression', True)
-        kwargs.setdefault('is_sample', True)
-        kwargs.setdefault('rule_is_active', False)
-        state = EventState(**kwargs)
+        state = self.get_state(**kwargs)
         assert rule.passes(event, state) is False

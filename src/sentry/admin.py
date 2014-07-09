@@ -21,7 +21,7 @@ sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('full_slug', 'owner', 'platform', 'date_added')
+    list_display = ('full_slug', 'owner', 'platform', 'status', 'date_added')
     list_filter = ('status', 'platform', 'public')
     search_fields = ('name', 'owner__username', 'owner__email', 'team__slug',
                      'team__name', 'slug')
@@ -46,7 +46,8 @@ class TeamMemberInline(admin.TabularInline):
 
 
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'slug')
+    list_display = ('name', 'owner', 'slug', 'status')
+    list_filter = ('status',)
     search_fields = ('name', 'owner__username', 'owner__email', 'slug')
     raw_id_fields = ('owner',)
     inlines = (TeamMemberInline,)

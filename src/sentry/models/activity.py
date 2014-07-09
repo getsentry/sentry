@@ -6,8 +6,6 @@ sentry.models.activity
 :license: BSD, see LICENSE for more details.
 """
 
-import logging
-
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -151,9 +149,4 @@ class Activity(Model):
             reply_reference=self.group,
         )
         msg.add_users(send_to, project=self.project)
-
-        try:
-            msg.send()
-        except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
-            logger.exception(e)
+        msg.send_async()

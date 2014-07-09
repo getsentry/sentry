@@ -98,6 +98,13 @@ class MailPlugin(NotificationPlugin):
             context=context,
         )
 
+    def should_notify(self, group, event):
+        send_to = self.get_sendable_users(group.project)
+        if not send_to:
+            return False
+
+        return super(MailPlugin, self).should_notify(group, event)
+
     def get_send_to(self, project=None):
         """
         Returns a list of email addresses for the users that should be notified of alerts.
