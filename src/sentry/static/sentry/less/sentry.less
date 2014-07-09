@@ -1109,7 +1109,6 @@ ul.traceback {
   }
 }
 
-
 ol.context {
   cursor: pointer;
   margin: 0;
@@ -1119,16 +1118,16 @@ ol.context {
   > li {
     padding-left: 20px;
     font-family: monospace;
-    color: rgba(0,0,0,.75);
-    background-color: #f1f2f3;
+    color: #222;
+    background-color: #fafafa;
     line-height: 22px;
-    font-size: 12px;
+    font-size: 13px;
     white-space: pre;
     white-space: pre-wrap;
     word-wrap: break-word;
   }
   > li.active {
-    background-color: #f1f2f3;
+    background-color: #f0f0f0;
 
     pre {
       color: @black;
@@ -1146,20 +1145,19 @@ ol.context {
   li.closed {
     border-radius: 4px;
   }
-
-  &:hover {
-    li {
-      background-color: #f3f3f3;
-      &.active {
-        background-color: #e0e0e0;
-      }
-    }
-  }
 }
 ol.context-line {
   > li {
     > span {
       float: right;
+    }
+  }
+}
+
+.expanded {
+  ol.context {
+    > li.active {
+      background-color: #e0e0e0;
     }
   }
 }

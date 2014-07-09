@@ -7846,16 +7846,16 @@ ol.context {
 ol.context > li {
   padding-left: 20px;
   font-family: monospace;
-  color: rgba(0, 0, 0, 0.75);
-  background-color: #f1f2f3;
+  color: #222;
+  background-color: #fafafa;
   line-height: 22px;
-  font-size: 12px;
+  font-size: 13px;
   white-space: pre;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
 ol.context > li.active {
-  background-color: #f1f2f3;
+  background-color: #f0f0f0;
 }
 ol.context > li.active pre {
   color: #111111;
@@ -7869,14 +7869,11 @@ ol.context > li:last-child {
 ol.context li.closed {
   border-radius: 4px;
 }
-ol.context:hover li {
-  background-color: #f3f3f3;
-}
-ol.context:hover li.active {
-  background-color: #e0e0e0;
-}
 ol.context-line > li > span {
   float: right;
+}
+.expanded ol.context > li.active {
+  background-color: #e0e0e0;
 }
 .box {
   border: 3px solid #f1f2f3;
