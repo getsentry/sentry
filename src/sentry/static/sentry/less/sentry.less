@@ -1121,13 +1121,14 @@ ol.context {
     color: #222;
     background-color: #fafafa;
     line-height: 22px;
-    font-size: 13px;
+    font-size: 12px;
     white-space: pre;
     white-space: pre-wrap;
     word-wrap: break-word;
   }
   > li.active {
     background-color: #f0f0f0;
+    min-height: 22px;
 
     pre {
       color: @black;
@@ -1156,6 +1157,9 @@ ol.context-line {
 
 .expanded {
   ol.context {
+    > li {
+      min-height: 22px;
+    }
     > li.active {
       background-color: #e0e0e0;
     }
