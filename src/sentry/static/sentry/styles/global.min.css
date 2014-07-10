@@ -7846,13 +7846,14 @@ ol.context > li {
   color: #222;
   background-color: #fafafa;
   line-height: 22px;
-  font-size: 13px;
+  font-size: 12px;
   white-space: pre;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
 ol.context > li.active {
   background-color: #f0f0f0;
+  min-height: 22px;
 }
 ol.context > li.active pre {
   color: #111111;
@@ -7868,6 +7869,9 @@ ol.context li.closed {
 }
 ol.context-line > li > span {
   float: right;
+}
+.expanded ol.context > li {
+  min-height: 22px;
 }
 .expanded ol.context > li.active {
   background-color: #e0e0e0;
