@@ -170,6 +170,7 @@ class Http(Interface):
             'query_string': self.query_string,
             'fragment': self.fragment,
             'headers': self.headers,
+            'curl': self.to_curl(),
         }
         if not is_public:
             # It's kind of silly we store this twice
@@ -183,7 +184,7 @@ class Http(Interface):
 
     def to_curl(self):
         method = self.method.upper()
-        if self.cookies is not None:
+        if self.cookies:
             cookies = SmartCookie(self.cookies)
             # The Cookie header is already yanked out of the headers dict
             # inside `to_python` so we can just safely re-set it.
