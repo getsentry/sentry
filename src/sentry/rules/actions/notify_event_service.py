@@ -18,7 +18,7 @@ class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
     def __init__(self, *args, **kwargs):
-        plugins = kwargs.pop('plugins')
+        kwargs.pop('plugins')
 
         super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
 

@@ -122,3 +122,24 @@ class HttpTest(TestCase):
         ))
         assert result.url == 'http://example.com'
         assert result.full_url == 'http://example.com?foo=bar#fragment'
+
+    def test_to_curl_get(self):
+        result = Http.to_python(dict(
+            method='GET',
+            url='http://example.com',
+            query_string='foo=bar',
+            headers={'x-foo-bar': 'baz', 'accept-encoding': 'deflate, gzip'},
+            cookies={'foo': 'bar'},
+        ))
+        assert result.to_curl() == "curl 'http://example.com?foo=bar' -H 'X-Foo-Bar: baz' -H 'Cookie: foo=bar' -H 'Accept-Encoding: deflate, gzip' --compressed"
+
+    def test_to_curl_post(self):
+        result = Http.to_python(dict(
+            method='POST',
+            url='http://example.com',
+            query_string='foo=bar',
+            headers={'x-foo-bar': 'baz', 'accept-encoding': 'deflate, gzip'},
+            cookies={'foo': 'bar'},
+            data='foo=bar&a=b',
+        ))
+        assert result.to_curl() == "curl -XPOST --data 'foo=bar&a=b' 'http://example.com?foo=bar' -H 'X-Foo-Bar: baz' -H 'Cookie: foo=bar' -H 'Accept-Encoding: deflate, gzip' --compressed"

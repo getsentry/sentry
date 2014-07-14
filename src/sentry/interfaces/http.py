@@ -8,7 +8,9 @@ sentry.interfaces.http
 
 __all__ = ('Http',)
 
+from Cookie import SmartCookie
 from django.utils.translation import ugettext as _
+from pipes import quote
 from urllib import urlencode
 from urlparse import parse_qsl, urlsplit, urlunsplit
 
@@ -178,6 +180,25 @@ class Http(Interface):
             })
 
         return render_to_string('sentry/partial/interfaces/http.html', context)
+
+    def to_curl(self):
+        method = self.method.upper()
+        if self.cookies is not None:
+            cookies = SmartCookie(self.cookies)
+            # The Cookie header is already yanked out of the headers dict
+            # inside `to_python` so we can just safely re-set it.
+            self.headers['Cookie'] = ';'.join(c.output(attrs=[], header='') for c in cookies.values()).strip()
+        bits = []
+        if method != 'GET':
+            bits.append('-X' + method)
+            if self.data is not None:
+                bits.append('--data ' + quote(self.data))
+        bits.append(quote(self.full_url))
+        for header in self.headers.iteritems():
+            bits.append('-H ' + quote('%s: %s' % header))
+        if 'gzip' in self.headers.get('Accept-Encoding', ''):
+            bits.append('--compressed')
+        return 'curl ' + ' '.join(bits)
 
     def get_alias(self):
         return 'request'
