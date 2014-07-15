@@ -38,6 +38,9 @@ class NotifyEventServiceAction(EventAction):
     def after(self, event, state):
         service = self.get_option('service')
 
+        if not service:
+            return
+
         plugin = plugins.get(service)
         if not plugin.is_enabled(self.project):
             return
