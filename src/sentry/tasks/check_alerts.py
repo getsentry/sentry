@@ -74,6 +74,10 @@ def check_project_alerts(project_id, **kwargs):
 
     half_intervals = int(len(results) / 2)
     previous_data, current_data = results[:half_intervals], results[half_intervals:]
+
+    if not current_data:
+        return
+
     current_avg = sum(current_data) / len(current_data)
 
     # if there first few points within previous data are empty, assume that the
