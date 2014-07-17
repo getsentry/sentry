@@ -27,6 +27,13 @@ def format_headers(value):
     )
 
 
+def utf8_dict(value):
+    return dict(
+        (k.encode('utf8'), v)
+        for k, v in value.iteritems()
+    )
+
+
 class Http(Interface):
     """
     The Request information is stored in the Http interface. Two arguments
@@ -185,10 +192,14 @@ class Http(Interface):
     def to_curl(self):
         method = self.method.upper()
         if self.cookies:
-            cookies = SmartCookie(self.cookies)
-            # The Cookie header is already yanked out of the headers dict
-            # inside `to_python` so we can just safely re-set it.
-            self.headers['Cookie'] = ';'.join(c.output(attrs=[], header='') for c in cookies.values()).strip()
+            try:
+                cookies = SmartCookie(utf8_dict(self.cookies))
+            except Exception:
+                pass
+            else:
+                # The Cookie header is already yanked out of the headers dict
+                # inside `to_python` so we can just safely re-set it.
+                self.headers['Cookie'] = ';'.join(c.output(attrs=[], header='') for c in cookies.values()).strip()
         bits = []
         if method != 'GET':
             bits.append('-X' + method)
