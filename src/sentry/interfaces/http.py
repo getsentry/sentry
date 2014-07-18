@@ -203,10 +203,11 @@ class Http(Interface):
         bits = []
         if method != 'GET':
             bits.append('-X' + method)
-            if isinstance(self.data, basestring):
-                bits.append('--data ' + quote(self.data))
-            elif isinstance(self.data, (list, tuple, dict)):
-                bits.append('--data ' + quote(urlencode(self.data)))
+            data = self.data
+            if isinstance(data, dict):
+                data = urlencode(data)
+            if isinstance(data, basestring):
+                bits.append('--data ' + quote(data))
         bits.append(quote(self.full_url))
         for header in self.headers.iteritems():
             bits.append('-H ' + quote('%s: %s' % header))
