@@ -137,7 +137,7 @@ class Http(Interface):
         elif not cookies:
             cookies = {}
 
-        kwargs['cookies'] = trim_dict(cookies)
+        kwargs['cookies'] = format_cookies(trim_dict(cookies))
         kwargs['env'] = trim_dict(data.get('env') or {})
         kwargs['headers'] = headers
         kwargs['data'] = body
@@ -193,7 +193,7 @@ class Http(Interface):
         method = self.method.upper()
         if self.cookies:
             try:
-                cookies = SmartCookie(format_cookies(self.cookies))
+                cookies = SmartCookie(self.cookies)
             except Exception:
                 pass
             else:
