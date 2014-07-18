@@ -16,7 +16,7 @@ from urlparse import parse_qsl, urlsplit, urlunsplit
 
 from sentry.constants import HTTP_METHODS
 from sentry.interfaces.base import Interface
-from sentry.utils.safe import trim, trim_dict
+from sentry.utils.safe import trim, trim_dict, safe_execute
 from sentry.web.helpers import render_to_string
 
 
@@ -27,9 +27,9 @@ def format_headers(value):
     )
 
 
-def utf8_dict(value):
+def format_cookies(value):
     return dict(
-        (k.encode('utf8'), v)
+        (k.encode('utf8').strip(), v)
         for k, v in value.iteritems()
     )
 
@@ -177,7 +177,7 @@ class Http(Interface):
             'query_string': self.query_string,
             'fragment': self.fragment,
             'headers': self.headers,
-            'curl': self.to_curl(),
+            'curl': safe_execute(self.to_curl),
         }
         if not is_public:
             # It's kind of silly we store this twice
@@ -193,7 +193,7 @@ class Http(Interface):
         method = self.method.upper()
         if self.cookies:
             try:
-                cookies = SmartCookie(utf8_dict(self.cookies))
+                cookies = SmartCookie(format_cookies(self.cookies))
             except Exception:
                 pass
             else:
