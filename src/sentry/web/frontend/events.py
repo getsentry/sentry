@@ -46,7 +46,7 @@ def replay_event(request, team, project, group, event_id):
         data = http.data
 
     initial = {
-        'url': urlparse.urldefrag(http.url)[0],
+        'url': urlparse.urldefrag(http.full_url)[0],
         'method': http.method,
         'headers': headers,
         'data': data,
