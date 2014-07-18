@@ -6,7 +6,7 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "bower": "~1.2.7",
+    "bower": "^1.2.8",
     "chai": "1.7.x",
     "jshint": "~2.5.0",
     "less": "1.7.0",
