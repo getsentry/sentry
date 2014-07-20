@@ -60,8 +60,10 @@ EditTeamMemberForm = BaseTeamMemberForm
 
 
 class InviteTeamMemberForm(BaseTeamMemberForm):
+    type = forms.ChoiceField(label=_('Access Type'), choices=MEMBER_TYPES)
+
     class Meta:
-        fields = ('type', 'email')
+        fields = ('email', 'type')
         model = PendingTeamMember
 
     def clean_email(self):

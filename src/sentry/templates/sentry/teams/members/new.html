@@ -4,12 +4,6 @@
 
 {% block title %}{% trans "Add Team Member" %} | {{ block.super }}{% endblock %}
 
-{% block sidebar %}
-    {{ block.super }}
-    <h4>{% trans "Access Levels" %}</h4>
-    <p>{% blocktrans %}The primary difference between access levels is team management. Any member with admin access is treated almost identical to the team owner.{% endblocktrans %}</p>
-{% endblock %}
-
 {% block inner %}
     <div class="box">
         <div class="box-header">
@@ -19,6 +13,12 @@
             <p>{% trans "Invite a member to join this team via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
 
             {% include "sentry/partial/_form.html" %}
+
+            <br><br>
+
+            <h4>{% trans "Access Levels" %}</h4>
+
+            <p>{% blocktrans %}The primary difference between access levels is team management. Any member with admin access is treated almost identical to the team owner. Members with user-level access are able to take action on events, but will be restricted from modifying any team or project-level settings.{% endblocktrans %}</p>
         </div>
     </div>
 {% endblock %}
