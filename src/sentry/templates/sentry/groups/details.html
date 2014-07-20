@@ -2,10 +2,13 @@
 
 {% load i18n %}
 {% load sentry_activity %}
+{% load sentry_api %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
 {% block title %}{{ group.title }} | {{ block.super }}{% endblock %}
+
+{% block controller %}GroupDetailsCtrl{% endblock %}
 
 {% block page_header %}{% endblock %}
 
@@ -41,20 +44,11 @@
             </div>
           </div>
       </div>
-      <div class="seen-by">
+      <div class="seen-by" ng-if="selectedGroup.seenBy">
         <ul>
           <li>Seen by</li>
           <li ng-repeat="user in selectedGroup.seenBy">
-            <a href="#"><img src="{{user.avatarUrl}}" /></a>
-          </li>
-          <li>
-            <a href="#"><img src="http://github.com/ckj.png"></a>
-          </li>
-          <li>
-            <a href="#"><img src="http://github.com/dcramer.png"></a>
-          </li>
-          <li>
-            <a href="#"><img src="http://github.com/mattrobenolt.png"></a>
+            <img src="{{user.avatarUrl}}" />
           </li>
         </ul>
       </div>
@@ -230,6 +224,7 @@
 
 {% block content_after %}
     <script>
+    window.SentryConfig.selectedGroup = {% convert_to_json selectedGroup %};
     require(['config', 'app/init'], function(_, app){
         new app.GroupDetailsPage({
             group: {{ group|to_json:request|safe }},

@@ -20,6 +20,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from sentry import app
+from sentry.api.serializers import serialize
 from sentry.constants import (
     SORT_OPTIONS, MEMBER_USER, DEFAULT_SORT_OPTION, EVENTS_PER_PAGE
 )
@@ -131,6 +132,7 @@ def render_with_group_context(group, template, context, request=None,
         'team': group.project.team,
         'project': group.project,
         'group': group,
+        'selectedGroup': serialize(group, request.user),
         'can_admin_event': can_admin_group(request.user, group),
     })
 
