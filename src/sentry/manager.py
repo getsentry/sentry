@@ -147,6 +147,7 @@ class GroupManager(BaseManager):
         data.setdefault('checksum', None)
         data.setdefault('platform', None)
         data.setdefault('extra', {})
+        data.setdefault('release', None)
 
         tags = data.get('tags')
         if not tags:
@@ -218,6 +219,7 @@ class GroupManager(BaseManager):
         site = data.pop('site')
         checksum = data.pop('checksum')
         platform = data.pop('platform')
+        release = data.pop('release')
 
         date = datetime.fromtimestamp(data.pop('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
@@ -261,6 +263,9 @@ class GroupManager(BaseManager):
             tags.append(('server_name', server_name))
         if site:
             tags.append(('site', site))
+        if release:
+            # TODO(dcramer): we should ensure we create Release objects
+            tags.append(('sentry:release', release))
 
         for plugin in plugins.for_project(project):
             added_tags = safe_execute(plugin.get_tags, event)
