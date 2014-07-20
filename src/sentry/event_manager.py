@@ -234,6 +234,7 @@ class EventManager(object):
         site = data.pop('site', None)
         checksum = data.pop('checksum', None)
         platform = data.pop('platform', None)
+        release = data.pop('release', None)
 
         date = datetime.fromtimestamp(data.pop('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
@@ -280,6 +281,9 @@ class EventManager(object):
             tags.append(('server_name', server_name))
         if site:
             tags.append(('site', site))
+        if release:
+            # TODO(dcramer): we should ensure we create Release objects
+            tags.append(('sentry:release', release))
 
         for plugin in plugins.for_project(project):
             added_tags = safe_execute(plugin.get_tags, event)

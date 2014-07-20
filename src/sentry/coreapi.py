@@ -55,6 +55,7 @@ RESERVED_FIELDS = (
     'modules',
     'tags',
     'platform',
+    'release',
 )
 
 
