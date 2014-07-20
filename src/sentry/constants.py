@@ -65,7 +65,7 @@ MEMBER_OWNER = MEMBER_ADMIN  # backwards compat
 MEMBER_TYPES = (
     (MEMBER_ADMIN, _('Admin')),
     (MEMBER_USER, _('User')),
-    (MEMBER_SYSTEM, _('System Agent')),
+    # (MEMBER_SYSTEM, _('System Agent')),
 )
 
 # A list of values which represent an unset or empty password on
