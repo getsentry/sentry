@@ -6,12 +6,8 @@
 
 {% block wrapperclass %}team-settings{% endblock %}
 
-{% block page_header %}
-    <div class="pull-right">
-        <a class="btn btn-default btn-sm" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
-    </div>
-
-    <ul class="nav nav-tabs">
+{% block sidebar %}
+    <ul class="nav nav-stacked">
         <li{% if SUBSECTION == 'settings' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-team' team.slug %}">{% trans "Settings" %}</a>
         </li>

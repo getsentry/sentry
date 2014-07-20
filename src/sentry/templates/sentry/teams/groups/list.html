@@ -3,11 +3,6 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block sidebar %}
-    <h4>{% trans "About Access Groups" %}</h4>
-    <p>{% blocktrans %}This page lists access groups within your team. An access group is an alternative to using team-wide membership, which allows you to restrict access to only specific projects.{% endblocktrans %}</p>
-{% endblock %}
-
 {% block inner %}
 <div class="box">
     <div class="box-header">
@@ -17,6 +12,7 @@
         <h3>{% trans "Access Groups" %}</h3>
     </div>
     <div class="box-content with-padding">
+    <p>{% blocktrans %}This page lists access groups within your team. An access group is an alternative to using team-wide membership, which allows you to restrict access to only specific projects.{% endblocktrans %}</p>
     {% if group_list %}
         <table class="table table-striped">
             <colgroup>

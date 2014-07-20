@@ -3,12 +3,10 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block content %}
+{% block main %}
 <div class="box">
     <div class="box-header">
-        {% if can_add_project %}
-            <a href="{% url 'sentry-new-project' team.slug %}" class="btn pull-right btn-primary btn-sm">{% trans "New Project" %}</a>
-        {% endif %}
+        <a class="btn pull-right btn-primary btn-sm" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
         <h3>{% trans "Projects" %}</h3>
     </div>
     <div class="box-content with-padding">
