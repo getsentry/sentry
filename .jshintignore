@@ -11,3 +11,4 @@ src/sentry/static/sentry/scripts/lib.map.js
 src/sentry/static/sentry/scripts/bootstrap.js
 src/sentry/static/sentry/scripts/bootstrap.min.js
 src/sentry/static/sentry/scripts/bootstrap.map.js
+src/sentry/static/sentry/vendor/
