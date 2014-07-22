@@ -490,12 +490,40 @@ footer {
     top: 12px;
     left: 13px;
   }
-  .form-control {
-    padding: 7px 10px 6px 38px;
+  .search-input {
+    padding: 7px 20px 6px 38px;
     box-shadow: none;
     border: 2px solid #f1f2f3;
     font-size: 15px;
     background: #fff;
+  }
+  .filter-toggle {
+    color: #8E8E97;
+    position: absolute;
+    right: 2px;
+    top: -1px;
+    padding: 10px;
+  }
+}
+
+.filter-dropdown {
+  box-shadow: 0 0 0 2px rgba(70, 82, 98, .1);
+  border-radius: 0 0 5px 5px;
+  position: absolute;
+  top: 38px;
+  right: 2px;
+  left: 2px;
+  background: #fff;
+  z-index: 100;
+
+  .form-group {
+    padding: 10px 0;
+    border-top: 2px solid #f1f2f3;
+    margin: 0;
+
+    &:first-child {
+      border-top: 0;
+    }
   }
 }
 
