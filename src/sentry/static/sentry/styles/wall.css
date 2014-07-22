@@ -6992,7 +6992,7 @@ header .project-dropdown .project-name {
   margin: -10px 0 30px;
 }
 .nav-tabs {
-  border-bottom: 3px solid #f7f7f7;
+  border-bottom: 3px solid #f1f2f3;
 }
 .nav-tabs li {
   margin-bottom: -3px;
@@ -7015,7 +7015,7 @@ header .project-dropdown .project-name {
 .nav-tabs li.active a:hover,
 .nav-tabs li.active a:focus {
   background: #fff;
-  border: 3px solid #f7f7f7 ;
+  border: 3px solid #f1f2f3 ;
   border-bottom-color: transparent;
 }
 footer {
@@ -7188,7 +7188,7 @@ footer a:hover {
 }
 .filter-nav {
   margin-top: -5px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 .search form {
   display: block;
@@ -7327,8 +7327,8 @@ a.icon-share:hover {
 }
 .group-header {
   display: table;
-  margin-top: -4px;
   width: 100%;
+  margin-bottom: 3px;
 }
 .stream-pagination {
   margin: 20px 0;
@@ -7648,6 +7648,7 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
 .events .event-occurrences {
   vertical-align: middle;
   padding-left: 30px;
+  padding-right: 10px;
   width: 100px;
 }
 .group-list .event-users span,
