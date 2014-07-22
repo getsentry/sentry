@@ -6992,7 +6992,7 @@ header .project-dropdown .project-name {
   margin: -10px 0 30px;
 }
 .nav-tabs {
-  border-bottom: 3px solid #f1f2f3;
+  border-bottom: 3px solid #f7f7f7;
 }
 .nav-tabs li {
   margin-bottom: -3px;
@@ -7015,7 +7015,7 @@ header .project-dropdown .project-name {
 .nav-tabs li.active a:hover,
 .nav-tabs li.active a:focus {
   background: #fff;
-  border: 3px solid #f1f2f3 ;
+  border: 3px solid #f7f7f7 ;
   border-bottom-color: transparent;
 }
 footer {
@@ -7081,6 +7081,7 @@ footer a:hover {
 .btn {
   border: 2px solid transparent;
   font-weight: 600;
+  color: inherit;
 }
 .btn:active {
   box-shadow: none;
@@ -7145,9 +7146,49 @@ footer a:hover {
 .tag-widget h6 {
   margin: 15px 0 6px;
 }
-.search {
-  width: 280px;
-  margin-top: -2px;
+.btn-group-justified .btn {
+  height: 38px;
+  background: #fff;
+  color: #808088;
+  border-color: #f1f2f3;
+}
+.btn-group-justified .btn:hover {
+  background: #fafafa;
+}
+.btn-group-justified .btn-middle {
+  border-left: 0;
+  border-right: 0;
+  position: relative;
+}
+.btn-group-justified .btn-middle:before,
+.btn-group-justified .btn-middle:after {
+  display: block;
+  content: "";
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: transparent;
+}
+.btn-group-justified .btn-middle:after {
+  left: -2px;
+}
+.btn-group-justified .btn-middle:before {
+  right: -2px;
+}
+.btn-group-justified .btn-middle.active:after,
+.btn-group-justified .btn-middle.active:before {
+  background: #1a7ebe;
+}
+.btn-group-justified .btn.active {
+  color: #fff;
+  box-shadow: none;
+  background: #2598e1;
+  border-color: #1a7ebe;
+}
+.filter-nav {
+  margin-top: -5px;
+  margin-bottom: 18px;
 }
 .search form {
   display: block;
@@ -7156,27 +7197,15 @@ footer a:hover {
 .search .icon-search {
   color: #8E8E97;
   position: absolute;
-  top: 10px;
-  left: 12px;
+  top: 12px;
+  left: 13px;
 }
 .search .form-control {
-  padding: 7px 70px 7px 34px;
+  padding: 7px 10px 6px 38px;
   box-shadow: none;
-  border: 0;
-  font-size: 14px;
-  background: #f8f8f8;
-}
-.search .advanced-toggle {
-  color: inherit;
-  opacity: .4;
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  font-size: 11px;
-}
-.search .advanced-toggle:hover {
-  opacity: 1;
-  text-decoration: none;
+  border: 2px solid #f1f2f3;
+  font-size: 15px;
+  background: #fff;
 }
 .chart {
   position: relative;
@@ -7310,7 +7339,7 @@ a.icon-share:hover {
 .stream-actions .checkbox {
   position: absolute;
   left: 16px;
-  top: -1px;
+  top: 3px;
 }
 .stream-actions .icon-bookmark {
   position: relative;
@@ -7325,13 +7354,14 @@ a.icon-share:hover {
   top: 2px;
 }
 .stream-actions .stream-actions-cell {
+  background: #f9f9f9;
   display: table-cell;
   position: relative;
-  border-bottom: 3px solid #F8F9FA;
-  padding: 0 0 15px;
+  padding: 7px 14px;
 }
 .stream-actions .stream-actions-left {
   padding-left: 42px;
+  border-radius: 5px 0 0 5px;
 }
 .stream-actions .stream-actions-graph {
   width: 100px;
@@ -7343,6 +7373,7 @@ a.icon-share:hover {
 .stream-actions .stream-actions-users {
   width: 100px;
   padding-left: 30px;
+  border-radius: 0 5px 5px 0;
 }
 .stream-actions .realtime-paused {
   color: #ffffff;
@@ -7384,6 +7415,12 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
 .stream-actions .realtime-paused .badge {
   color: #d9534f;
   background-color: #ffffff;
+}
+.stream-actions .btn {
+  background: rgba(255, 255, 255, 0.85);
+}
+.stream-actions .btn.dropdown-toggle {
+  background: none;
 }
 .group-detail {
   position: relative;
