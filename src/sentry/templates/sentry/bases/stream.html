@@ -9,8 +9,8 @@
     {{ block.super }}
 
     <ul class="nav nav-tabs project-nav" style="margin-bottom: 20px;">
-        <li class="pull-right hidden-xs">
-          
+        <li class="pull-right hidden-xs broadcast">
+          <a href="#">Search is finally here!</a>
         </li>
         <li class="active">
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
