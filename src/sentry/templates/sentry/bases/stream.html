@@ -7,21 +7,16 @@
 
 {% block page_header %}
     {{ block.super }}
+
     <ul class="nav nav-tabs project-nav" style="margin-bottom: 20px;">
         <li class="pull-right hidden-xs">
-            <div class="search">
-                <form>
-                    <div>
-                        <input type="text" class="form-control"
-                               placeholder="Search query or event ID">
-                        <span class="icon-search"></span>
-                        {% comment %}<a href="#" class="advanced-toggle">Advanced</a> {% endcomment %}
-                    </div>
-                </form>
-            </div>
+          
         </li>
         <li class="active">
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-explore' project.team.slug project.slug %}">{% trans "Explore" %}</a>
         </li>
         {% if team and request.user|can_admin_team:team %}
             <li>
@@ -31,4 +26,28 @@
             </li>
         {% endif %}
     </ul>
+
+    <div class="filter-nav">
+        <div class="row">
+            <div class="col-sm-4">
+              <div class="btn-group btn-group-justified">
+                <a href="#" class="btn btn-default active">All Events</a>
+                <a href="#" class="btn btn-default btn-middle">Bookmarks</a>
+                <a href="#" class="btn btn-default">Assigned</a>
+              </div>
+            </div>
+            <div class="col-sm-8">
+              <div class="search">
+                  <form>
+                      <div>
+                          <input type="text" class="form-control"
+                                 placeholder="Search for events, users, tags, and everything else.">
+                          <span class="icon-search"></span>
+                          {% comment %}<a href="#" class="advanced-toggle">Advanced</a> {% endcomment %}
+                      </div>
+                  </form>
+              </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

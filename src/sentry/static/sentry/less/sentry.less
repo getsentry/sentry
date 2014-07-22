@@ -284,7 +284,7 @@ header {
 }
 
 .nav-tabs {
-  border-bottom: 3px solid #f1f2f3;
+  border-bottom: 3px solid #f7f7f7;
   li {
     margin-bottom: -3px;
     > a {
@@ -304,7 +304,7 @@ header {
 
     &.active a, &.active a:hover, &.active a:focus {
       background: #fff;
-      border: 3px solid #f1f2f3 ;
+      border: 3px solid #f7f7f7 ;
       border-bottom-color: transparent;
     }
   }
@@ -349,6 +349,8 @@ footer {
 .btn {
   border: 2px solid transparent;
   font-weight: 600;
+  color: inherit;
+
   &:active {
     box-shadow: none;
     position: relative;
@@ -425,11 +427,58 @@ footer {
   }
 }
 
+.btn-group-justified {
+  .btn {
+    height: 38px;
+    background: #fff;
+    color: #808088;
+    border-color: #f1f2f3;
+    &:hover {
+      background: #fafafa;
+    }
+  }
+  .btn-middle {
+    border-left: 0;
+    border-right: 0;
+    position: relative;
+    &:before, &:after {
+      display: block;
+      content: "";
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 2px;
+      background: transparent;
+    }
+    &:after {
+      left: -2px;
+    }
+    &:before {
+      right: -2px;
+    }
+
+    &.active {
+      &:after, &:before {
+        background: #1a7ebe;
+      }
+    }
+  }
+  .btn.active {
+    color: #fff;
+    box-shadow: none;
+    background: #2598e1;
+    border-color: #1a7ebe;
+  }
+}
+
+.filter-nav {
+  margin-top: -5px;
+  margin-bottom: 18px;
+}
+
 // Search
 
 .search {
-  width: 280px;
-  margin-top: -2px;
 
   form {
     display: block;
@@ -438,27 +487,15 @@ footer {
   .icon-search {
     color: #8E8E97;
     position: absolute;
-    top: 10px;
-    left: 12px;
+    top: 12px;
+    left: 13px;
   }
   .form-control {
-    padding: 7px 70px 7px 34px;
+    padding: 7px 10px 6px 38px;
     box-shadow: none;
-    border: 0;
-    font-size: 14px;
-    background: #f8f8f8;
-  }
-  .advanced-toggle {
-    color: inherit;
-    opacity: .4;
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    font-size: 11px;
-    &:hover {
-      opacity: 1;
-      text-decoration: none;
-    }
+    border: 2px solid #f1f2f3;
+    font-size: 15px;
+    background: #fff;
   }
 }
 
@@ -614,7 +651,7 @@ a.icon-share {
   .checkbox {
     position: absolute;
     left: 16px;
-    top: -1px;
+    top: 3px;
   }
   .icon-bookmark {
     position: relative;
@@ -631,14 +668,15 @@ a.icon-share {
   }
 
   .stream-actions-cell {
+    background: #f9f9f9;
     display: table-cell;
     position: relative;
-    border-bottom: 3px solid #F8F9FA;
-    padding: 0 0 15px;
+    padding: 7px 14px;
   }
 
   .stream-actions-left {
     padding-left: 42px;
+    border-radius: 5px 0 0 5px;
   }
 
   .stream-actions-graph {
@@ -652,9 +690,17 @@ a.icon-share {
   .stream-actions-users {
     width: 100px;
     padding-left: 30px;
+    border-radius: 0 5px 5px 0;
   }
   .realtime-paused {
     .btn-danger();
+  }
+
+  .btn {
+    background: rgba(255,255,255, .85);
+    &.dropdown-toggle {
+      background: none;
+    }
   }
 }
 

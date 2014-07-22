@@ -17,16 +17,16 @@
                 <input type="checkbox">
             </div>
             <div class="btn-group">
-                <a class="btn btn-default" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i></a>
-                <a href="#" class="btn btn-default"><span class="icon icon-bookmark"></span></a>
+                <a class="btn btn-default btn-sm" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i></a>
+                <a href="#" class="btn btn-default btn-sm"><span class="icon icon-bookmark"></span></a>
             </div>
             <div class="btn-group">
-                <a class="btn btn-default" data-action="pause" data-pause-label="{% trans "Updates are paused. Click to enable." %}" data-play-label="{% trans "Updates are live. Click to pause." %}" href="javascript:void(0)">
+                <a class="btn btn-default btn-sm" data-action="pause" data-pause-label="{% trans "Updates are paused. Click to enable." %}" data-play-label="{% trans "Updates are live. Click to pause." %}" href="javascript:void(0)">
                     <span class="icon icon-pause"></span>
                 </a>
             </div>
             <div class="btn-group">
-                <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span aria-hidden="true" class="icon-arrow-down"></span></a>
+                <a href="#" class="btn dropdown-toggle btn-sm" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span aria-hidden="true" class="icon-arrow-down"></span></a>
                 <ul class="dropdown-menu">
                     <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
                     <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
@@ -38,7 +38,7 @@
                 </ul>
             </div>
             <div class="btn-group">
-                <a href="#" class="btn btn-default dropdown-toggle" onclick="$('#daterange').toggle(); return false;">
+                <a href="#" class="btn dropdown-toggle btn-sm" onclick="$('#daterange').toggle(); return false;">
                     {% if from_date %}
                         {% if not to_date %}
                             Since: {{ from_date|date:"M jS" }}
