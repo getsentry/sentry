@@ -38,12 +38,66 @@
             </div>
             <div class="col-sm-8">
               <div class="search">
-                  <form>
+                  <form class="form-horizontal">
                       <div>
-                          <input type="text" class="form-control"
+                          <input type="text" class="search-input form-control"
                                  placeholder="Search for events, users, tags, and everything else.">
                           <span class="icon-search"></span>
-                          {% comment %}<a href="#" class="advanced-toggle">Advanced</a> {% endcomment %}
+                          <a href="#" class="filter-toggle"><span aria-hidden="true" class="icon-arrow-down"></span></a>
+                      </div>
+                      <div class="filter-dropdown">
+                          <!-- <ul class="nav nav-pills">
+                            <li class="active"><a href="#">Build</a></li>
+                            <li><a href="#">Recent searches</a></li>
+                          </ul> -->
+                          <div class="users form-group">
+                              <label class="col-md-2 control-label">String</label>
+                              <div class="col-md-10">
+                                <input type="text" class="form-control">
+                              </div>
+                          </div>
+                          <div class="row form-group">
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="Browser">
+                                <option>Hi</option>
+                              </select>
+                            </div>
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="Status">
+                                <option>Hi</option>
+                              </select>
+                            </div>
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="Client">
+                                <option>Hi</option>
+                              </select>
+                            </div>
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="Logger">
+                                <option>Hi</option>
+                              </select>
+                            </div>
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="Project">
+                                <option>Hi</option>
+                              </select>
+                            </div>
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="User">
+
+                              </select>
+                            </div>
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="Project">
+                                <option>Hi</option>
+                              </select>
+                            </div>
+                            <div class="col-md-4">
+                              <select class="selectize" placeholder="User">
+                                <option>Hi</option>
+                              </select>
+                            </div>
+                          </div>
                       </div>
                   </form>
               </div>
