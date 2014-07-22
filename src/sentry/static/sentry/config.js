@@ -25,7 +25,7 @@ var require = {
     'ngRouter': 'vendor/angular-ui-router/release/angular-ui-router',
     'ngSanitize': 'vendor/angular-sanitize/angular-sanitize',
     'selectize': 'vendor/selectize/dist/js/standalone/selectize.min',
-    'simple-slider': 'vendor/simple-slider/simple-slider',
+    'simple-slider': 'vendor/simple-slider/js/simple-slider.min',
     'underscore': 'vendor/underscore/underscore',
     'text': 'vendor/requirejs-plugins/lib/text',
   },
