@@ -1,0 +1,145 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block content %}
+
+    <style type="text/css">
+    .client-platform-list {
+        list-style: none;
+        margin-left: 0;
+        margin-bottom: 20px;
+    }
+    .client-platform-list li {
+        display: inline-block;
+        width: 64px;
+        height: 64px;
+    }
+    .client-platform-list span {
+        width: 48px;
+        height: 48px;
+        display: block;
+        text-align: center;
+        margin: 0 auto;
+        -moz-border-radius: 48px;
+        -webkit-border-radius: 48px;
+        border-radius: 48px;
+        background: #fff;
+
+    }
+    .client-platform-list img {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto;
+        display: inline-block;
+    }
+    .client-platform-list a {
+        text-align: center;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 10px;
+        vertical-align: bottom;
+        display: block;
+    }
+    </style>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h3>User Guide</h2>
+            <ul>
+                <li><a href="#">Teams &amp; Projects</a></li>
+                <li><a href="#">Data Sampling</a></li>
+                <li><a href="#">Rate Limits &amp; Quotas</a></li>
+                <li><a href="#">Event Tagging</a></li>
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <h3>Developer Documentation</h2>
+            <ul>
+                <li><a href="#">Web API Reference</a></li>
+                <li><a href="#">Client API Reference</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <hr>
+
+    <h3>{% trans "Platforms" %}</h3>
+
+    <ul class="client-platform-list list-unstyled">
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/python48x48.png" %}"></span>
+                <strong>Python</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/php48x48.png" %}"></span>
+                <strong>PHP</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/ruby48x48.png" %}"></span>
+                <strong>Ruby</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/javascript48x48.png" %}"></span>
+                <strong>JavaScript</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/java48x48.png" %}"></span>
+                <strong>Java</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/node48x48.png" %}"></span>
+                <strong>Node.js</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/ios48x48.png" %}"></span>
+                <strong>iOS</strong><br>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/go48x48.png" %}"></span>
+                <strong>Go</strong>
+            </a>
+        </li>
+    </ul>
+
+    <hr>
+
+    <h3>{% trans "Frameworks" %}</h3>
+
+    <ul class="client-platform-list list-unstyled">
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}"></span>
+                <strong>Rails 3</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}"></span>
+                <strong>Rails 4</strong>
+            </a>
+        </li>
+        <li>
+            <a href="">
+                <span><img src="{% url 'sentry-media' "sentry" "images/platforms/django48x48.png" %}"></span>
+                <strong>Django</strong>
+            </a>
+        </li>
+    </ul>
+{% endblock %}
