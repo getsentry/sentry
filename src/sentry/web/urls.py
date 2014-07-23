@@ -16,7 +16,7 @@ except ImportError:
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 
 from django.conf import settings
-from django.views.generic import TemplateView
+from django.views.generic import RedirectView, TemplateView
 
 from sentry.web import api
 from sentry.web.frontend import (
@@ -90,6 +90,7 @@ urlpatterns += patterns('',
         name='sentry-media'),
 
     # API
+    url(r'^api/$', RedirectView.as_view(url='0/')),
     url(r'^api/0/', include('sentry.api.urls')),
 
     # Account
