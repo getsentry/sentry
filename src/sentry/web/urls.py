@@ -15,6 +15,7 @@ except ImportError:
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 
 from django.conf import settings
+from django.views.generic import TemplateView
 
 from sentry.web import api
 from sentry.web.frontend import (
@@ -100,6 +101,10 @@ urlpatterns += patterns('',
     url(r'^account/settings/notifications/$', accounts.notification_settings,
         name='sentry-account-settings-notifications'),
     url(r'^account/settings/social/', include('social_auth.urls')),
+
+    # Help
+    url(r'^help/$', TemplateView.as_view(template_name='sentry/help/index.html'),
+        name='sentry-help'),
 
     # Settings - Teams
     url(r'^account/teams/new/$', teams.create_new_team,
