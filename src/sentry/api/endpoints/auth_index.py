@@ -11,6 +11,9 @@ class AuthIndexEndpoint(Endpoint):
     authentication_classes = [QuietBasicAuthentication]
 
     def post(self, request):
+        """
+        Authenticate a user using the provided credentials (i.e. basic auth).
+        """
         if not request.user.is_authenticated():
             return Response(status=400)
 
@@ -24,5 +27,8 @@ class AuthIndexEndpoint(Endpoint):
         return response
 
     def delete(self, request, *args, **kwargs):
+        """
+        Logout the authenticated user.
+        """
         logout(request._request)
         return Response(status=204)
