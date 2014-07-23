@@ -6,16 +6,23 @@
 {% block content %}
     <h2>Web API</h2>
 
-    <ul>
+    <div class="list-group">
         {% for resource in resource_list %}
-            {% for method in resource.methods %}
-                <li>
-                    <h3>{{ method.name.upper }} {{ resource.path }}</h3>
+            <a href="#" class="list-group-item">
+                <div class="pull-right">
+                    {{ resource.path }}
+                </div>
+                <h4>{{ resource.title }}</h4>
+                {% if resource.doc %}
+                    {{ resource.doc|linebreaks }}
+                {% endif %}
+                {% for method in resource.methods %}
+                    <h5>{{ method.name.upper }}</h5>
                     {% if method.doc %}
-                        <pre>{{ method.doc }}</pre>
+                        {{ method.doc|linebreaks }}
                     {% endif %}
-                </li>
-            {% endfor %}
+                {% endfor %}
+            </a>
         {% endfor %}
-    </ul>
+    </div>
 {% endblock %}
