@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.parsers import JSONParser
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from urllib2 import quote
@@ -21,6 +22,7 @@ LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
 
 class Endpoint(APIView):
     authentication_classes = (KeyAuthentication, SessionAuthentication)
+    renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
 
     def paginate(self, request, on_results=lambda x: x, **kwargs):
