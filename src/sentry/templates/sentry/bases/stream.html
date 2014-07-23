@@ -15,9 +15,6 @@
         <li class="active">
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
-        <li>
-            <a href="{% url 'sentry-explore' project.team.slug project.slug %}">{% trans "Explore" %}</a>
-        </li>
         {% if team and request.user|can_admin_team:team %}
             <li>
                 <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}" title="{% trans "Project Settings" %}">
