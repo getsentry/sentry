@@ -6,6 +6,7 @@
     <div class="event-meta">
         <% if (timeSpent) { %><time><%= Math.round(timeSpent) %>ms</time> &middot;<% } %>
         <span class="message"><%= message %></span>
+        &middot; <time><%= firstSeen %></time>
     </div>
 </div>
 <div class="event-assignee event-cell"><img src="http://github.com/benvinegar.png" class="avatar"></div>
