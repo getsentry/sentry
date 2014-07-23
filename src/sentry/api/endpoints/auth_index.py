@@ -8,6 +8,14 @@ from sentry.api.base import Endpoint
 
 
 class AuthIndexEndpoint(Endpoint):
+    """
+    Manage session authentication
+
+    Intended to be used by the internal Sentry application to handle
+    authentication methods from JS endpoints by relying on internal sessions
+    and simple HTTP authentication.
+    """
+
     authentication_classes = [QuietBasicAuthentication]
 
     def post(self, request):
