@@ -1,0 +1,21 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block content %}
+    <h2>Web API</h2>
+
+    <ul>
+        {% for resource in resource_list %}
+            {% for method in resource.methods %}
+                <li>
+                    <h3>{{ method.name.upper }} {{ resource.path }}</h3>
+                    {% if method.doc %}
+                        <pre>{{ method.doc }}</pre>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+{% endblock %}

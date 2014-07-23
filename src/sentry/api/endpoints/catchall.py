@@ -1,11 +1,10 @@
-from rest_framework.response import Response
+from django.http import HttpResponse
+from django.views.generic import View
 
-from sentry.api.base import Endpoint
 
-
-class CatchallEndpoint(Endpoint):
+class CatchallEndpoint(View):
     def get(self, request):
-        return Response(status=404)
+        return HttpResponse(status=404)
 
     post = get
     put = get
