@@ -33,6 +33,17 @@ class ApiHelpIndexView(View):
     def __strip_doc(self, doc):
         return doc.strip()
 
+    def __split_doc(self, doc, path):
+        if doc:
+            try:
+                title, doc = doc.split('\n', 1)
+            except ValueError:
+                title, doc = doc, ''
+        else:
+            title = path
+
+        return title.strip(), doc.strip()
+
     def __get_resource_data(self, pattern, prefix):
         if not hasattr(pattern, 'callback'):
             return
@@ -50,7 +61,7 @@ class ApiHelpIndexView(View):
         else:
             return
 
-        path = simplify_regex(prefix + pattern.regex.pattern)
+        path = simplify_regex(pattern.regex.pattern)
 
         path = path.replace('<', '{').replace('>', '}')
 
@@ -64,8 +75,12 @@ class ApiHelpIndexView(View):
                 'doc': self.__strip_doc(method.__doc__ or ''),
             })
 
+        title, docstring = self.__split_doc(
+            self.__strip_doc(callback.__doc__ or ''), path=path)
+
         return {
-            'path': path,
-            'doc': self.__strip_doc(callback.__doc__ or ''),
+            'path': prefix.rstrip('/') + path,
             'methods': methods,
+            'doc': docstring,
+            'title': title,
         }
