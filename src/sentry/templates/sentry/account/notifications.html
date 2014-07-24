@@ -44,14 +44,14 @@
 
         {% with settings_form as form %}
             <fieldset>
-                <div><legend>{% trans "General" %}</legend></div>
+                <h4>{% trans "General" %}</legend></h4>
                 {% include "sentry/partial/form_base.html" %}
             </fieldset>
         {% endwith %}
 
         {% if project_forms %}
-            <fieldset>
-                <div><legend>{% trans "Mail" %}</legend></div>
+
+                <h4>{% trans "Mail" %}</h4>
                 <p>{% blocktrans %}Choose which projects you wish to receive email notifications for, as well as an alternative email address to send to.{% endblocktrans %}</p>
                 <p><small>{% blocktrans %}Note: You will never receive notifications if a project has them disabled (via the Project settings){% endblocktrans %}</small></p>
 
@@ -63,14 +63,14 @@
                         {% if not forloop.first %}
                             </table>
                         {% endif %}
-                        <table class="table table-bordered table-striped">
-                            <caption>{{ project.team.name }}</caption>
+                        <h4>{{ project.team.name }}</h4>
 
+                        <table class="table table-bordered table-striped" style="margin-bottom: 20px">
                             <thead>
                                 <tr>
-                                    <th style="width:5px"><input type="checkbox" onclick="$('tbody input[type=checkbox]', $(this).parents('table')).attr('checked', this.checked)"></th>
+                                    <th style="width:31px"><input type="checkbox" onclick="$('tbody input[type=checkbox]', $(this).parents('table')).attr('checked', this.checked)"></th>
                                     <th>{% trans "Project Name" %}</th>
-                                    <th style="width:100px;overflow:hidden;text-align:right">
+                                    <th style="width:150px;overflow:hidden;text-align:right">
                                         {% trans "Email Address" %}</th>
                                 </tr>
                             </thead>
@@ -80,13 +80,12 @@
                         <td>{{ form.alert }}</td>
                         <td><label for="{{ form.alert.auto_id }}">{{ project.name }}</label></td>
                         <td style="text-align:right">
-                            <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">{% if form.email.value %}{{ form.email.value }}{% else %}<em>default</em>{% endif %}</a>
+                            <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">{% if form.email.value %}{{ form.email.value }}{% else %}Default{% endif %}</a>
                             {{ form.email }}
                         </td>
                     </tr>
                 {% endfor %}
                 </tbody></table>
-            </fieldset>
         {% endif %}
 
         {% for form in ext_forms %}
