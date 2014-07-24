@@ -7081,7 +7081,6 @@ footer a:hover {
 .btn {
   border: 2px solid transparent;
   font-weight: 600;
-  color: inherit;
 }
 .btn:active {
   box-shadow: none;

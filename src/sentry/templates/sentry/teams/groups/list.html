@@ -14,28 +14,28 @@
     <div class="box-content with-padding">
     <p>{% blocktrans %}This page lists access groups within your team. An access group is an alternative to using team-wide membership, which allows you to restrict access to only specific projects.{% endblocktrans %}</p>
     {% if group_list %}
-        <table class="table table-striped">
+        <table class="table vars">
             <colgroup>
                 <col/>
-                <col width="100px"/>
-                <col width="100px"/>
+                <col width="140px"/>
+                <col width="140px"/>
             </colgroup>
             <thead>
                 <tr>
                     <th>{% trans "Name" %}</th>
                     <th style="text-align:center;">{% trans "Access Type" %}</th>
-                    <th style="text-align:center">{% trans "Actions" %}</th>
+                    <th class="align-right">{% trans "Actions" %}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for group in group_list %}
                     <tr>
-                        <td>
+                        <td style="vertical-align: middle">
                             <strong><a href="{% url 'sentry-edit-access-group' team.slug group.id %}">{{ group.name }}</a></strong>
                             {% if group.managed %} ({% trans "automatically managed" %}){% endif %}
                         </td>
-                        <td style="text-align:center">{{ group.get_type_display }}</td>
-                        <td style="text-align:center"><a href="#" class="btn">{% trans "Remove" %}</a></td>
+                        <td style="text-align:center; vertical-align: middle">{{ group.get_type_display }}</td>
+                        <td style="vertical-align: middle" class="align-right"><a href="#" class="btn btn-sm btn-default">{% trans "Remove" %}</a></td>
                     </tr>
                 {% endfor %}
             </tbody>

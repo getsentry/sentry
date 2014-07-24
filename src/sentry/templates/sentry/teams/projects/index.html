@@ -11,17 +11,11 @@
     </div>
     <div class="box-content with-padding">
     {% if project_list %}
-        <table class="table table-striped">
+        <table class="table vars">
             <colgroup>
                 <col/>
                 <col width="140px"/>
             </colgroup>
-            <thead>
-                <tr>
-                    <th>{% trans "Project" %}</th>
-                    <th style="text-align:right;">{% trans "Created" %}</th>
-                </tr>
-            </thead>
             <tbody>
             {% for project in project_list %}
                 <tr>
@@ -33,7 +27,7 @@
                          {{ team.slug }}/{{ project.slug }}
                     </td>
                     <td style="text-align:right;">
-                        {{ project.date_added|timesince }}
+                      {% trans "Created" %} {{ project.date_added|timesince }}
                     </td>
                 </tr>
             {% endfor %}
