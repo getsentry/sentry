@@ -275,7 +275,6 @@ class StacktraceTest(TestCase):
         interface = Stacktrace.to_python(dict(frames=[{'lineno': 1, 'filename': 'foo.py'}]))
         result = interface.to_html(event)
         get_traceback.assert_called_once_with(event, newest_first=False)
-        self.assertTrue('<div class="module">' in result)
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
