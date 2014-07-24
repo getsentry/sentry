@@ -773,33 +773,11 @@ a.icon-share {
   }
 
   .assigned-to {
-    .dropdown {
+    .btn-group {
+      margin-top: -3px;
       float: right;
-      .clearfix();
-      margin-bottom: 2px;
     }
-    .avatar {
-      float: left;
-      width: auto;
-      height: auto;
 
-      img {
-        border-radius: 3px 0 0 3px;
-        width: 28px;
-        height: 28px;
-        margin-bottom: 0px;
-        display: block;
-      }
-    }
-    .btn {
-      float: left;
-      border-left: 0;
-      height: 28px;
-      margin-left: 0;
-      padding: 4px 6px 0;
-      border-radius: 0 4px 4px 0;
-      background: #fff;
-    }
   }
 
   .meta {
@@ -931,7 +909,7 @@ a.icon-share {
   }
 
   .event-assignee {
-    width: 32px;
+    width: 40px;
     padding: 0 30px;
   }
 
@@ -983,6 +961,31 @@ a.icon-share {
     }
     .event-details {
       padding-left: 10px;
+    }
+  }
+}
+
+.user-selector {
+  .btn {
+    padding-left: 5px;
+    padding-right: 5px;
+    background: #fff;
+    border-radius: 4px;
+    border-color: transparent;
+    width: 50px;
+  }
+
+  .dropdown-menu {
+    left: auto;
+    right: 0;
+    max-height: 180px;
+    overflow: auto;
+    li a {
+      padding-left: 8px;
+      padding-right: 8px;
+      img {
+        margin-right: 5px;
+      }
     }
   }
 }
@@ -1791,8 +1794,8 @@ table.table td .select2-container {
     color: #878e94;
 
     &:hover {
-      background: #fff;
-      color: darken(#878e94, 12);
+      background: #f1f2f3;
+      color: darken(#878e94, 15);
     }
   }
 
