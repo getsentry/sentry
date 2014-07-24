@@ -7487,46 +7487,9 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
 .group-detail .users {
   color: #949ea4;
 }
-.group-detail .assigned-to .dropdown {
+.group-detail .assigned-to .btn-group {
+  margin-top: -3px;
   float: right;
-  margin-bottom: 2px;
-}
-.group-detail .assigned-to .dropdown:before,
-.group-detail .assigned-to .dropdown:after {
-  content: " ";
-  display: table;
-}
-.group-detail .assigned-to .dropdown:after {
-  clear: both;
-}
-.group-detail .assigned-to .dropdown:before,
-.group-detail .assigned-to .dropdown:after {
-  content: " ";
-  display: table;
-}
-.group-detail .assigned-to .dropdown:after {
-  clear: both;
-}
-.group-detail .assigned-to .avatar {
-  float: left;
-  width: auto;
-  height: auto;
-}
-.group-detail .assigned-to .avatar img {
-  border-radius: 3px 0 0 3px;
-  width: 28px;
-  height: 28px;
-  margin-bottom: 0px;
-  display: block;
-}
-.group-detail .assigned-to .btn {
-  float: left;
-  border-left: 0;
-  height: 28px;
-  margin-left: 0;
-  padding: 4px 6px 0;
-  border-radius: 0 4px 4px 0;
-  background: #fff;
 }
 .group-detail .meta {
   margin: 0 0 15px;
@@ -7671,7 +7634,7 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
 }
 .group-list .event-assignee,
 .events .event-assignee {
-  width: 32px;
+  width: 40px;
   padding: 0 30px;
 }
 .group-list .event-graph,
@@ -7731,6 +7694,27 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
 .group-list.similar-events .event-details,
 .events.similar-events .event-details {
   padding-left: 10px;
+}
+.user-selector .btn {
+  padding-left: 5px;
+  padding-right: 5px;
+  background: #fff;
+  border-radius: 4px;
+  border-color: transparent;
+  width: 50px;
+}
+.user-selector .dropdown-menu {
+  left: auto;
+  right: 0;
+  max-height: 180px;
+  overflow: auto;
+}
+.user-selector .dropdown-menu li a {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.user-selector .dropdown-menu li a img {
+  margin-right: 5px;
 }
 .inactive .group-list > li:hover {
   filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
@@ -8434,8 +8418,8 @@ table.table td .select2-container {
   color: #878e94;
 }
 .dropdown-menu li a:hover {
-  background: #fff;
-  color: #696f75;
+  background: #f1f2f3;
+  color: #61686d;
 }
 .dropdown-menu li.active a,
 .dropdown-menu li.active a:hover {
