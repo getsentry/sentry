@@ -1,0 +1,14 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_markup %}
+
+{% block content %}
+    <ul class="breadcrumb">
+        <li><a href="{% url 'sentry-help' %}">Knowledge Base</a></li>
+        <li>{{ page.title }}</li>
+    </ul>
+
+    {{ page.content|markdown }}
+{% endblock %}
