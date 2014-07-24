@@ -7366,6 +7366,10 @@ a.icon-share:hover {
 .stream-pagination {
   margin: 20px 0;
 }
+.stream-pagination .icon-arrow-right,
+.stream-pagination .icon-arrow-left {
+  font-size: 20px !important;
+}
 .stream-actions {
   display: table-row;
 }
