@@ -476,6 +476,10 @@ footer {
   }
 }
 
+.primary-filters {
+  padding-right: 0;
+}
+
 .filter-nav {
   margin-top: -5px;
   margin-bottom: 14px;
@@ -830,6 +834,10 @@ a.icon-share {
   width: 100%;
   .group {
     display: table-row;
+    background: transparent;
+    .transition(all 2s linear);
+    z-index: 1;
+    position: relative;
 
     .event-details:after {
       position: absolute;
@@ -840,16 +848,34 @@ a.icon-share {
       left: 0;
       width: 4px;
       background: #54adff;
+      z-index: 100;
     }
-    &.seen .event-details:after {
-      background: #fff;
+    &.seen {
+      .event-details:after {
+        background: transparent;
+      }
+    }
+    &.new {
+      background: #fffff4;
+      .event-cell {
+        border-color: #f7f7c7;
+      }
+      &+ .group .event-cell{
+        border-color: #f7f7c7;
+      }
+    }
+    &:first-child {
+      .event-cell{
+        border-top: 0;
+      }
     }
   }
 
   .event-cell {
+    .transition(all 2s linear);
     position: relative;
     display: table-cell;
-    border-bottom: 3px solid #F8F9FA;
+    border-top: 3px solid #F8F9FA;
     padding: 15px 0;
     vertical-align: middle;
   }
@@ -973,7 +999,7 @@ a.icon-share {
   .btn {
     padding-left: 5px;
     padding-right: 5px;
-    background: #fff;
+    background: transparent;
     border-radius: 4px;
     border-color: transparent;
     width: 50px;

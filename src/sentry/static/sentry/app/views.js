@@ -407,7 +407,7 @@ define([
             }
 
             if (this.loaded)
-                $el.css('background-color', '#eee').animate({backgroundColor: '#fff'}, 300);
+                $el.addClass("new").delay(100).removeClass("new");
         },
 
         renderMember: function(member){
