@@ -6820,6 +6820,10 @@ h3 {
   position: absolute;
   left: -40px;
   top: -10px;
+  color: rgba(70, 82, 98, 0.2);
+}
+.back-button.icon-arrow-left:hover {
+  color: rgba(70, 82, 98, 0.5);
 }
 .btn-sm .icon-arrow-down,
 .btn-sm .icon-arrow-right,
