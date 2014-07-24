@@ -80,6 +80,7 @@ install_requires = [
     'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
     'nydus>=0.10.7,<0.11.0',
+    'markdown>=2.4.1,<2.5.0',
     'Pygments>=1.6.0,<1.7.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
