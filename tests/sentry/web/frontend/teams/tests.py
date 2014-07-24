@@ -123,49 +123,34 @@ class NewTeamMemberTest(BaseTeamTest):
         self.assertEquals(resp.status_code, 302)
         can_add_team_member.assert_called_once_with(self.user, self.team)
 
-    def test_cannot_add_existing_member(self):
-        resp = self.client.post(self.path, {
-            'add-type': MEMBER_USER,
-            'add-user': self.team.owner.username,
-        })
-        self.assertEquals(resp.status_code, 200)
-        self.assertIn('user', resp.context['add_form'].errors)
-
-    def test_does_add_existing_user_as_member(self):
-        user = User.objects.create(username='newuser')
-        resp = self.client.post(self.path, {
-            'add-type': MEMBER_USER,
-            'add-user': user.username,
-        })
-        self.assertEquals(resp.status_code, 302, resp.context['add_form'].errors if resp.status_code != 302 else None)
-        member = self.team.member_set.get(user=user)
-        self.assertEquals(member.type, MEMBER_USER)
-
+    @mock.patch('sentry.web.frontend.teams.can_add_team_member', mock.Mock(return_value=True))
     def test_cannot_invite_existing_member(self):
         resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': self.team.owner.email,
+            'type': MEMBER_USER,
+            'email': self.team.owner.email,
         })
         self.assertEquals(resp.status_code, 200)
-        self.assertIn('email', resp.context['invite_form'].errors)
+        self.assertIn('email', resp.context['form'].errors)
 
+    @mock.patch('sentry.web.frontend.teams.can_add_team_member', mock.Mock(return_value=True))
     @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
     def test_does_invite_already_registered_user(self, send_invite_email):
         user = User.objects.create(username='newuser', email='newuser@example.com')
         resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': user.email,
+            'type': MEMBER_USER,
+            'email': user.email,
         })
         self.assertEquals(resp.status_code, 302)
         ptm = PendingTeamMember.objects.get(email=user.email, team=self.team)
         self.assertEquals(ptm.type, MEMBER_USER)
         send_invite_email.assert_called_once_with()
 
+    @mock.patch('sentry.web.frontend.teams.can_add_team_member', mock.Mock(return_value=True))
     @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
     def test_does_invite_unregistered_user(self, send_invite_email):
         resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': 'newuser@example.com',
+            'type': MEMBER_USER,
+            'email': 'newuser@example.com',
         })
         self.assertEquals(resp.status_code, 302)
         ptm = PendingTeamMember.objects.get(email='newuser@example.com', team=self.team)
