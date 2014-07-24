@@ -80,13 +80,13 @@
             {% endif %}
 
             {% if frame.context %}
-                <ol start="{{ frame.start_lineno }}" class="context list-unstyled">
+                <ol start="{{ frame.start_lineno }}" class="context">
                 {% for num, line in frame.context %}
                     <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ stack_id }}-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line }}</li>
                 {% endfor %}
                 </ol>
             {% elif not frame.context_line|is_none %}
-                <ol start="{{ frame.lineno }}" class="context list-unstyled">
+                <ol start="{{ frame.lineno }}" class="context">
                     <li class="active">{{ frame.context_line }}</li>
                 </ol>
             {% endif %}
