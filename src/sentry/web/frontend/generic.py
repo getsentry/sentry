@@ -8,6 +8,7 @@ sentry.web.frontend.generic
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
+from django.views.generic import TemplateView as BaseTemplateView
 
 from sentry.models import Team
 from sentry.permissions import can_create_teams
@@ -81,3 +82,13 @@ def missing_perm(request, perm, **kwargs):
         }, request)
 
     return HttpResponseRedirect(reverse('sentry'))
+
+
+class TemplateView(BaseTemplateView):
+    def render_to_response(self, context, **response_kwargs):
+        return render_to_response(
+            request=self.request,
+            template=self.get_template_names(),
+            context=context,
+            **response_kwargs
+        )
