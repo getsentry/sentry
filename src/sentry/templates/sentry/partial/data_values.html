@@ -37,7 +37,7 @@
                 <tr>
                     <td colspan="2" class="toggle-expand">
                         <a href="javascript:void(0)" onclick="app.utils.varToggle(this, $(this).parent().parent().siblings('.js-expand'));"
-                            data-collapse-label="{% trans "Collapse Context" %}">
+                            data-collapse-label="{% trans "Collapse Context" %}" class="btn btn-default btn-block">
                             {% blocktrans with num=hidden_values %}Expand Context ({{ num }} hidden){% endblocktrans %}
                         </a>
                     </td>
