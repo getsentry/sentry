@@ -8325,24 +8325,6 @@ legend {
   }
 }
 /* ////////////////////////////////// Flat overrides ////////////////////////////////// */
-.dashboard .page-header {
-  margin: 0;
-  border-bottom: 2px solid #eceff2;
-}
-.dashboard .page-header .nav {
-  margin: 0 0 14px;
-}
-.dashboard .page-header .nav a {
-  font-size: 11px;
-  color: #9ea7af;
-  font-weight: bold;
-  min-width: 50px;
-  text-align: center;
-}
-.dashboard .page-header .nav .active a {
-  color: #fff;
-  background: #56AFE8;
-}
 .dashboard .events.small {
   margin-bottom: 10px;
 }
@@ -8406,6 +8388,12 @@ li.empty {
 }
 .empty-message p.links a {
   margin: 0 12px 0 0;
+}
+.box-header {
+  padding-bottom: 8px;
+}
+.box-header .nav {
+  margin-bottom: 0;
 }
 table.table td input,
 table.table td .select2-container {
