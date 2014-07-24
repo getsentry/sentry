@@ -681,11 +681,16 @@ a.icon-share {
 .stream-actions {
   display: table-row;
 
+  .btn-group > .btn {
+    color: inherit;
+  }
+
   .checkbox {
     position: absolute;
     left: 16px;
     top: 3px;
   }
+
   .icon-bookmark {
     position: relative;
     top: 2px;
@@ -729,7 +734,8 @@ a.icon-share {
     .btn-danger();
   }
 
-  .btn {
+  > .btn {
+    color: inherit;
     background: rgba(255,255,255, .85);
     &.dropdown-toggle {
       background: none;

@@ -7368,6 +7368,9 @@ a.icon-share:hover {
 .stream-actions {
   display: table-row;
 }
+.stream-actions .btn-group > .btn {
+  color: inherit;
+}
 .stream-actions .checkbox {
   position: absolute;
   left: 16px;
@@ -7448,10 +7451,11 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
   color: #d9534f;
   background-color: #ffffff;
 }
-.stream-actions .btn {
+.stream-actions > .btn {
+  color: inherit;
   background: rgba(255, 255, 255, 0.85);
 }
-.stream-actions .btn.dropdown-toggle {
+.stream-actions > .btn.dropdown-toggle {
   background: none;
 }
 .group-detail {
