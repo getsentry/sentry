@@ -176,8 +176,7 @@ def new_team_member(request, team):
         'type': MEMBER_USER,
     }
 
-    form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
-
+    form = InviteTeamMemberForm(team, request.POST or None, initial=initial)
     if form.is_valid():
         pm = form.save(commit=False)
         pm.team = team
