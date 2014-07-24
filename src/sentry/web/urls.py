@@ -15,12 +15,13 @@ except ImportError:
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 
 from django.conf import settings
-from django.views.generic import TemplateView
 
 from sentry.web import api
 from sentry.web.frontend import (
     alerts, accounts, generic, groups, events,
     admin, docs, teams, users, explore, explore_code)
+
+from sentry.web.frontend.generic import TemplateView
 
 import sentry.web.frontend.projects.general
 import sentry.web.frontend.projects.keys
