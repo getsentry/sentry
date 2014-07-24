@@ -6903,7 +6903,8 @@ header .user-nav > li {
 header .user-nav > li a {
   font-size: 15px;
 }
-header .user-nav .icon-settings {
+header .user-nav .icon-settings,
+header .user-nav .icon-book {
   padding-right: 5px;
 }
 header .project-dropdown {
