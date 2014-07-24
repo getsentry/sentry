@@ -7,7 +7,7 @@
 
 {% block page_header %}
     {{ block.super }}
-
+    <a href="{% url 'sentry' team.slug %}" class="back-button icon-arrow-left"></a>
     <ul class="nav nav-tabs project-nav" style="margin-bottom: 20px;">
         <li class="pull-right hidden-xs broadcast">
           <a href="#">Search is finally here!</a>
