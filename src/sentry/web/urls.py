@@ -21,7 +21,8 @@ from sentry.web.frontend import (
     alerts, accounts, generic, groups, events,
     admin, docs, teams, users, explore, explore_code)
 
-from sentry.web.frontend.generic import TemplateView
+from sentry.web.frontend.help_index import HelpIndexView
+from sentry.web.frontend.help_page import HelpPageView
 
 import sentry.web.frontend.projects.general
 import sentry.web.frontend.projects.keys
@@ -104,9 +105,11 @@ urlpatterns += patterns('',
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Help
-    url(r'^help/$', TemplateView.as_view(template_name='sentry/help/index.html'),
+    url(r'^help/$', HelpIndexView.as_view(),
         name='sentry-help'),
     url(r'^help/api/', include('sentry.api.help_urls')),
+    url(r'^help/(?P<page_id>[\d]+)/(?P<page_slug>[\w_-]+)/$', HelpPageView.as_view(),
+        name='sentry-help-page'),
 
     # Settings - Teams
     url(r'^account/teams/new/$', teams.create_new_team,

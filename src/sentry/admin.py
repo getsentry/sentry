@@ -14,7 +14,8 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
-from sentry.models import Project, Team, TeamMember, User
+
+from sentry.models import Project, Team, TeamMember, User, HelpPage
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
@@ -197,3 +198,11 @@ class UserAdmin(admin.ModelAdmin):
                                                    post_url_continue)
 
 admin.site.register(User, UserAdmin)
+
+
+class HelpPageAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_visible', 'priority')
+    list_filter = ('is_visible',)
+    search_fields = ('title', 'content')
+
+admin.site.register(HelpPage, HelpPageAdmin)
