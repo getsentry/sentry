@@ -27,3 +27,4 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         call_command('syncdb', migrate=True, interactive=(not options['noinput']))
+        call_command('load_help_pages')
