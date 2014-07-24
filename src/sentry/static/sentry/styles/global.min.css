@@ -7702,6 +7702,10 @@ fieldset[disabled] .stream-actions .realtime-paused.active {
   border-radius: 4px;
   border-color: transparent;
   width: 50px;
+  color: rgba(70, 82, 98, 0.4) !important;
+}
+.user-selector .btn span {
+  top: 3px;
 }
 .user-selector .dropdown-menu {
   left: auto;
