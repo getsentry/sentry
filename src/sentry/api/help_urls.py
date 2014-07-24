@@ -7,5 +7,5 @@ urlpatterns = patterns(
     '',
 
     url(r'^$', ApiHelpIndexView.as_view(),
-        name='sentry-api-0'),
+        name='sentry-api-0-help'),
 )
