@@ -20,18 +20,16 @@
     }
     </style>
     <script>
-    require(['config', 'app/init'], function(_, app){
-        $('form a[data-toggle=change-target-value]').click(function(){
-            var $this = $(this);
-            var $target = $('#' + $this.data('target'));
-            var result = window.prompt('Enter an email address', $target.val());
-            $target.val(result || '');
-            if (result !== null) {
-                $this.text(result);
-            } else {
-                $this.html('<em>default</em>');
-            }
-        })
+    $('form a[data-toggle=change-target-value]').click(function(){
+        var $this = $(this);
+        var $target = $('#' + $this.data('target'));
+        var result = window.prompt('Enter an email address', $target.val());
+        $target.val(result || '');
+        if (result !== null) {
+            $this.text(result);
+        } else {
+            $this.html('<em>default</em>');
+        }
     });
     </script>
 
