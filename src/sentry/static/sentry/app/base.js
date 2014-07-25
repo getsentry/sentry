@@ -128,7 +128,7 @@
                             allowClear: true,
                             minimumInputLength: 3,
                             ajax: {
-                                url: appUtils.getSearchTagsUrl(),
+                                url: app.utils.getSearchTagsUrl(),
                                 dataType: 'json',
                                 data: function (term, page) {
                                     return {
@@ -142,8 +142,8 @@
                                     var results = [];
                                     $(data.results).each(function(_, val){
                                         results.push({
-                                            id: appUtils.escape(val),
-                                            text: appUtils.escape(val)
+                                            id: app.utils.escape(val),
+                                            text: app.utils.escape(val)
                                         });
                                     });
                                     return {results: results};
@@ -157,7 +157,7 @@
                     }
                     if ($input.length > 0) {
                         $input.on('change', function(e){
-                            var query = appUtils.getQueryParams();
+                            var query = app.utils.getQueryParams();
                             query[e.target.name] = e.val;
                             window.location.href = '?' + $.param(query);
                         });
@@ -495,7 +495,7 @@
             initialize: function(){
                 BasePage.prototype.initialize.apply(this, arguments);
 
-                appUtils.makeSearchableUsersInput('form input[name=user]');
+                app.utils.makeSearchableUsersInput('form input[name=user]');
             }
         }),
 
@@ -503,7 +503,7 @@
             initialize: function(){
                 BasePage.prototype.initialize.apply(this, arguments);
 
-                appUtils.makeSearchableProjectsInput('form input[name=project]');
+                app.utils.makeSearchableProjectsInput('form input[name=project]');
             }
         }),
 
@@ -511,7 +511,7 @@
             initialize: function(){
                 BasePage.prototype.initialize.apply(this, arguments);
 
-                appUtils.makeSearchableUsersInput('form input[name=owner]');
+                app.utils.makeSearchableUsersInput('form input[name=owner]');
 
                 $("input[type=range]").each(_.bind(function loop(n, el){
                     var $el = $(el),
@@ -588,7 +588,7 @@
 
                 $("#tag_list input").each(function(_, el){
                     $(el).addClass('span6');
-                    appUtils.makeSearchableTagsInput(el);
+                    app.utils.makeSearchableTagsInput(el);
                 });
             },
 
