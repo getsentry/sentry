@@ -1,10 +1,9 @@
-define([
-  'app',
-], function(app) {
+(function(){
   'use strict';
 
-  app.classy.controller({
-    name: 'LoginSudoCtrl'
-  });
-});
+  angular.module('sentry.controllers.loginSudo', ['classy'])
+    .classy.controller({
+      name: 'LoginSudoCtrl'
+    });
+}());
 

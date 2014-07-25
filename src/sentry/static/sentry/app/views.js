@@ -1,23 +1,13 @@
-define([
-    'backbone',
-    'moment',
-    'jquery',
-    'underscore',
-
-    'app/charts',
-    'app/collections',
-    'app/config',
-    'app/models',
-    'app/templates',
-    'app/utils'
-], function(Backbone, moment, $, _, appCharts, appCollections, appConfig, appModels, appTemplates, appUtils){
+(function(){
     'use strict';
 
-    var views = {};
-    views.GroupView = Backbone.View.extend({
+    var appConfig = window.SentryConfig;
+
+    app.views = {};
+    app.views.GroupView = Backbone.View.extend({
         tagName: 'li',
         className: 'group',
-        template: _.template(appTemplates.group),
+        template: _.template(app.templates.group),
 
         initialize: function(){
             Backbone.View.prototype.initialize.apply(this, arguments);
@@ -42,7 +32,7 @@ define([
             data.projectUrl = appConfig.urlPrefix + '/' + appConfig.selectedTeam.slug +
                 '/' + data.project.slug + '/';
             data.loggerUrl = data.projectUrl + '?logger=' + data.logger;
-            data.utils = appUtils;
+            data.utils = app.utils;
 
             this.$el.html(this.template(data));
             this.$el.attr('data-id', this.model.id);
@@ -97,7 +87,7 @@ define([
 
             this.$el.addClass('with-sparkline');
 
-            appCharts.createSparkline(this.$el.find('.sparkline'), data);
+            app.charts.createSparkline(this.$el.find('.sparkline'), data);
         },
 
         resolve: function(){
@@ -168,7 +158,7 @@ define([
         },
 
         updateCount: function(){
-            var new_count = appUtils.formatNumber(this.model.get('count'));
+            var new_count = app.utils.formatNumber(this.model.get('count'));
             var counter = this.$el.find('.count');
             var digit = counter.find('span');
 
@@ -210,7 +200,7 @@ define([
             var value = annotation.count;
             if (value === null)
                 return;
-            var new_count = appUtils.formatNumber(value);
+            var new_count = app.utils.formatNumber(value);
             var counter = this.$el.find('.annotation[data-tag="' + annotation.label + '"]');
             var digit = counter.find('span');
 
@@ -257,11 +247,11 @@ define([
 
     });
 
-    views.OrderedElementsView = Backbone.View.extend({
+    app.views.OrderedElementsView = Backbone.View.extend({
 
         emptyMessage: '<div class="empty-message"><h2>No events to show.</h2><p>We\'ll notify you if that changes. In the meantime why not take a moment to become more familiar with Sentry.</p><p class="links"><a href="docs/">Installation instructions</a> <a href="settings/">Project settings</a></p></div>',
         loadingMessage: '<p>Loading...</p>',
-        model: appModels.Group,
+        model: app.models.Group,
 
         defaults: {
             maxItems: 50,
@@ -288,7 +278,7 @@ define([
 
             _.bindAll(this, 'renderMemberInContainer', 'unrenderMember', 'reSortMembers');
 
-            this.collection = new appCollections.ScoredList([], {
+            this.collection = new app.collections.ScoredList([], {
                 model: data.model
             });
             this.collection.on('add', this.renderMemberInContainer, this);
@@ -427,8 +417,7 @@ define([
 
     });
 
-
-    views.GroupListView = views.OrderedElementsView.extend({
+    app.views.GroupListView = app.views.OrderedElementsView.extend({
 
         defaults: {
             realtime: false,
@@ -442,14 +431,14 @@ define([
             if (_.isUndefined(data))
                 data = {};
 
-            data.model = appModels.Group;
-            data.view = views.GroupView;
+            data.model = app.models.Group;
+            data.view = app.views.GroupView;
 
-            views.OrderedElementsView.prototype.initialize.call(this, data);
+            app.views.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend({}, this.defaults, this.options, data);
 
-            this.queue = new appCollections.ScoredList([], {
+            this.queue = new app.collections.ScoredList([], {
                 model: data.model
             });
 
@@ -498,7 +487,7 @@ define([
             if (!this.options.realtime || !this.options.pollUrl)
                 return window.setTimeout(this.poll, this.options.pollTime);
 
-            data = appUtils.getQueryParams();
+            data = app.utils.getQueryParams();
             data.cursor = this.cursor || undefined;
 
             $.ajax({
@@ -512,6 +501,4 @@ define([
         }
 
     });
-
-    return views;
-});
+}());

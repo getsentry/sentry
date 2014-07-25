@@ -1,12 +1,4 @@
-define([
-  'angular',
-
-  'jquery.flot',
-  'jquery.flot.dashes',
-  'jquery.flot.resize',
-  'jquery.flot.time',
-  'jquery.flot.tooltip'
-], function(angular) {
+(function(){
   'use strict';
 
   var average = function(a) {
@@ -171,4 +163,4 @@ define([
         createBasicChart(element, attrs.simpleChart);
       };
     });
-});
+}());

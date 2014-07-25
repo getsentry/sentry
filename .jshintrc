@@ -2,8 +2,6 @@
     "strict": true,
     "browser": true,
     "predef": [
-        "parseUri",
-        "requirejs",
-        "define"
+        "angular"
     ]
 }

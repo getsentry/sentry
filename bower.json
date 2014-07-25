@@ -6,8 +6,6 @@
   },
   "private": true,
   "dependencies": {
-    "d3": "~3.4.2",
-    "d3-tip": "https://github.com/deciob/d3-tip.git#amd",
     "angular": "1.2.9",
     "angular-bootstrap": "~0.10.0",
     "angular-classy": "~0.4.2",
@@ -25,8 +23,6 @@
     "jquery": "~2.0.3",
     "jquery-flot": "~0.8.3",
     "json2": "*",
-    "requirejs": "2.1.11",
-    "requirejs-plugins": "~1.0.2",
     "selectize": "~0.10.1",
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git"
   }

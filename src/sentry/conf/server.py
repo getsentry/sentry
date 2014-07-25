@@ -410,6 +410,88 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/less/wall.less": "sentry/styles/wall.css",
             },
         },
+
+        "sentry/app.min.js": {
+            "src": [
+                "sentry/app/modules/charts.js",
+                "sentry/app/modules/collection.js",
+                "sentry/app/modules/forms.js",
+
+                "sentry/app/controllers/default.js",
+                "sentry/app/controllers/deleteTeam.js",
+                "sentry/app/controllers/groupDetails.js",
+                "sentry/app/controllers/manageTeamOwnership.js",
+                "sentry/app/controllers/manageTeamSettings.js",
+                "sentry/app/controllers/projectStream.js",
+                "sentry/app/controllers/teamDashboard.js",
+
+                "sentry/app/directives/count.js",
+                "sentry/app/directives/timeSince.js",
+
+                "sentry/app.js",
+            ],
+        },
+
+        # TODO(dcramer): this needs to go away ASAP
+        "sentry/legacy-app.min.js": {
+            "src": [
+                "sentry/vendor/json2/json2.js",
+                "sentry/vendor/underscore/underscore.js",
+                "sentry/vendor/backbone/backbone.js",
+
+                "sentry/app/init.js",
+
+                "sentry/app/base.js",
+                "sentry/app/charts.js",
+                "sentry/app/collections.js",
+                "sentry/app/models.js",
+                "sentry/app/templates.js",
+                "sentry/app/views.js",
+                "sentry/app/utils.js",
+            ],
+        },
+
+        "sentry/vendor-angular.min.js": {
+            "src": [
+                "sentry/vendor/angular/angular.min.js",
+                # "sentry/vendor/angular-route/angular-route.min.js",
+
+                "sentry/vendor/angular-bootstrap/ui-bootstrap-tpls.min.js",
+                "sentry/vendor/angular-classy/angular-classy.min.js",
+                # "sentry/vendor/angular-http-auth/src/http-auth-interceptor.js",
+
+                "sentry/vendor/angular-loading-bar/build/loading-bar.min.js",
+            ],
+        },
+
+        "sentry/vendor-bootstrap.min.js": {
+            "src": [
+                "sentry/vendor/bootstrap/dist/js/bootstrap.min.js",
+                "sentry/vendor/bootstrap-datepicker/js/bootstrap-datepicker.js",
+            ],
+        },
+
+        "sentry/vendor-jquery.min.js": {
+            "src": [
+                "sentry/vendor/jquery/jquery.min.js",
+                "sentry/scripts/lib/jquery.clippy.min.js",
+                "sentry/scripts/lib/jquery.cookie.js",
+                "sentry/vendor/jquery-flot/jquery.flot.js",
+                "sentry/scripts/lib/jquery.flot.dashes.js",
+                "sentry/vendor/jquery-flot/jquery.flot.resize.js",
+                "sentry/vendor/jquery-flot/jquery.flot.time.js",
+                "sentry/scripts/lib/jquery.flot.tooltip.js",
+            ],
+        },
+
+        "sentry/vendor-misc.min.js": {
+            "src": [
+                "sentry/vendor/moment/min/moment.min.js",
+                "sentry/vendor/selectize/dist/js/standalone/selectize.min.js",
+                "sentry/vendor/simple-slider/js/simple-slider.min.js",
+            ],
+        },
+
     },
     "postcompilers": {
         "*.js": ["node_modules/.bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],

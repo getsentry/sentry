@@ -1,14 +1,13 @@
 /*jshint -W024 */
 
-define([
-  'app',
-], function(app) {
+(function(){
   'use strict';
 
-  app.classy.controller({
-    name: 'TeamDashboardCtrl',
+  angular.module('sentry.controllers.teamDashboard', ['classy'])
+    .classy.controller({
+      name: 'TeamDashboardCtrl',
 
-    init: function() {
-    }
-  });
-});
+      init: function() {
+      }
+    });
+}());

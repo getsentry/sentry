@@ -1,9 +1,8 @@
-define([
-  'app',
-], function(app) {
+(function(){
   'use strict';
 
-  app.classy.controller({
-    name: 'DefaultCtrl'
-  });
-});
+  angular.module('sentry.controllers.default', ['classy'])
+    .classy.controller({
+      name: 'DefaultCtrl'
+    });
+}());

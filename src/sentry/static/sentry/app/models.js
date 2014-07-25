@@ -1,9 +1,7 @@
-define([
-  'backbone'
-], function(Backbone){
+(function(){
   'use strict';
 
-  return {
+  app.models = {
     Group: Backbone.Model.extend({
       defaults: {
         count: 0,
@@ -17,4 +15,4 @@ define([
       }
     })
   };
-});
+}());

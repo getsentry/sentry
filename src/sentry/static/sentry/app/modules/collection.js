@@ -1,4 +1,4 @@
-define(['angular'], function(angular) {
+(function(){
   'use strict';
 
   angular.module('sentry.collection', [])
@@ -89,4 +89,4 @@ define(['angular'], function(angular) {
 
       return Collection;
     });
-});
+}());
