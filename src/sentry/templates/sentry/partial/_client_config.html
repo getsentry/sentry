@@ -38,6 +38,7 @@
     display: block;
 }
 </style>
+<<<<<<< HEAD
 {% if key %}
     <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
 
@@ -56,84 +57,75 @@
 </div>
 <ul class="client-platform-list">
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'python' %}">
+        <a href="{% url 'sentry-help-platform' 'python' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/python48x48.png" %}"></span>
             <strong>Python</strong>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'php' %}">
+        <a href="{% url 'sentry-help-platform' 'php' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/php48x48.png" %}"></span>
             <strong>PHP</strong>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'ruby' %}">
+        <a href="{% url 'sentry-help-platform' 'ruby' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/ruby48x48.png" %}"></span>
             <strong>Ruby</strong>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'javascript' %}">
+        <a href="{% url 'sentry-help-platform' 'javascript' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/javascript48x48.png" %}"></span>
             <strong>JavaScript</strong>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'java' %}">
+        <a href="{% url 'sentry-help-platform' 'java' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/java48x48.png" %}"></span>
             <strong>Java</strong>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'node.js' %}">
+        <a href="{% url 'sentry-help-platform' 'node.js' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/node48x48.png" %}"></span>
             <strong>Node.js</strong>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'ios' %}">
+        <a href="{% url 'sentry-help-platform' 'ios' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/ios48x48.png" %}"></span>
-            <strong>iOS</strong>
-        </a>
-    </li>
-</ul>
-<div class="page-header">
-    <h3>{% trans "Frameworks" %}</h3>
-</div>
-<ul class="client-platform-list">
-    <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'rails3' %}">
-            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}"></span>
-            <strong>Rails 3</strong>
+            <strong>iOS</strong><br>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'rails4' %}">
-            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}"></span>
-            <strong>Rails 4</strong>
-        </a>
-    </li>
-    <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'django' %}">
-            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/django48x48.png" %}"></span>
-            <strong>Django</strong>
+        <a href="{% url 'sentry-help-platform' 'go' %}">
+            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/go48x48.png" %}"></span>
+            <strong>Go</strong>
         </a>
     </li>
 </ul>
 
 <div class="page-header">
-    <h3>{% trans "More Clients" %}</h3>
+    <h3>{% trans "Frameworks" %}</h3>
 </div>
-<ul>
+<ul class="client-platform-list">
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'csharp' %}">
-            <strong>C#</strong>
+        <a href="{% url 'sentry-help-platform' 'rails3' %}">
+            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}"></span>
+            <strong>Rails 3</strong>
         </a>
     </li>
     <li>
-        <a href="{% url 'sentry-docs-client' project.organization.slug project.slug 'r' %}">
-            <strong>R Project</strong>
+        <a href="{% url 'sentry-help-platform' 'rails4' %}">
+            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}"></span>
+            <strong>Rails 4</strong>
+        </a>
+    </li>
+    <li>
+        <a href="{% url 'sentry-help-platform' 'django' %}">
+            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/django48x48.png" %}"></span>
+            <strong>Django</strong>
         </a>
     </li>
 </ul>

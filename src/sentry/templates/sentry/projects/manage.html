@@ -83,30 +83,6 @@
             <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "API Keys" %}</a>
         </li>
     </ul>
-    <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Client Configuration" %}</li>
-        <li{% if page == 'client_help' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-project-client-help' project.organization.slug project.slug %}">{% trans "All Platforms" %}</a>
-        </li>
-        <li{% if page == 'client_help_javascript' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-docs-client' project.organization.slug project.slug "javascript" %}">{% trans "JavaScript" %}</a>
-        </li>
-        <li{% if page == 'client_help_python' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-docs-client' project.organization.slug project.slug "python" %}">{% trans "Python" %}</a>
-        </li>
-        <li{% if page == 'client_help_php' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-docs-client' project.organization.slug project.slug "php" %}">{% trans "PHP" %}</a>
-        </li>
-        <li{% if page == 'client_help_ruby' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-docs-client' project.organization.slug project.slug "ruby" %}">{% trans "Ruby" %}</a>
-        </li>
-        <li{% if page == 'client_help_node.js' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-docs-client' project.organization.slug project.slug "node.js" %}">{% trans "Node.js" %}</a>
-        </li>
-        <li{% if page == 'client_help_java' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-docs-client' project.organization.slug project.slug "java" %}">{% trans "Java" %}</a>
-        </li>
-    </ul>
     {% with project|get_plugins as plugins %}
         <ul class="nav nav-list">
             <li class="nav-header">{% trans "Integrations" %}</li>

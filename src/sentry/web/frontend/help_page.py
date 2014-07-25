@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function
+
 from django.http import Http404
 from django.views.generic import View
 
