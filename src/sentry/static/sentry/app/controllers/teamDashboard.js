@@ -3,11 +3,12 @@
 (function(){
   'use strict';
 
-  angular.module('sentry.controllers.teamDashboard', ['classy'])
-    .classy.controller({
-      name: 'TeamDashboardCtrl',
+  SentryApp.classy.controller({
+    name: 'TeamDashboardCtrl',
 
-      init: function() {
-      }
-    });
+    init: function() {
+      $('#chart').height('150px');
+      app.charts.createBasic('#chart');
+    }
+  });
 }());

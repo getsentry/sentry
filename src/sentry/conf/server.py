@@ -400,19 +400,21 @@ NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'nod
 
 SENTRY_STATIC_BUNDLES = {
     "packages": {
-        "sentry/styles/global.min.css": {
+        "sentry/dist/global.min.css": {
             "src": {
-                "sentry/less/sentry.less": "sentry/styles/sentry.css",
+                "sentry/less/sentry.less": "sentry/dist/sentry.css",
             },
         },
-        "sentry/styles/wall.min.css": {
+        "sentry/dist/wall.min.css": {
             "src": {
-                "sentry/less/wall.less": "sentry/styles/wall.css",
+                "sentry/less/wall.less": "sentry/dist/wall.css",
             },
         },
 
-        "sentry/app.min.js": {
+        "sentry/dist/app.min.js": {
             "src": [
+                "sentry/app.js",
+
                 "sentry/app/modules/charts.js",
                 "sentry/app/modules/collection.js",
                 "sentry/app/modules/forms.js",
@@ -427,13 +429,11 @@ SENTRY_STATIC_BUNDLES = {
 
                 "sentry/app/directives/count.js",
                 "sentry/app/directives/timeSince.js",
-
-                "sentry/app.js",
             ],
         },
 
         # TODO(dcramer): this needs to go away ASAP
-        "sentry/legacy-app.min.js": {
+        "sentry/dist/legacy-app.min.js": {
             "src": [
                 "sentry/vendor/json2/json2.js",
                 "sentry/vendor/underscore/underscore.js",
@@ -451,7 +451,7 @@ SENTRY_STATIC_BUNDLES = {
             ],
         },
 
-        "sentry/vendor-angular.min.js": {
+        "sentry/dist/vendor-angular.min.js": {
             "src": [
                 "sentry/vendor/angular/angular.min.js",
                 # "sentry/vendor/angular-route/angular-route.min.js",
@@ -464,14 +464,14 @@ SENTRY_STATIC_BUNDLES = {
             ],
         },
 
-        "sentry/vendor-bootstrap.min.js": {
+        "sentry/dist/vendor-bootstrap.min.js": {
             "src": [
                 "sentry/vendor/bootstrap/dist/js/bootstrap.min.js",
                 "sentry/vendor/bootstrap-datepicker/js/bootstrap-datepicker.js",
             ],
         },
 
-        "sentry/vendor-jquery.min.js": {
+        "sentry/dist/vendor-jquery.min.js": {
             "src": [
                 "sentry/vendor/jquery/jquery.min.js",
                 "sentry/scripts/lib/jquery.clippy.min.js",
@@ -484,7 +484,7 @@ SENTRY_STATIC_BUNDLES = {
             ],
         },
 
-        "sentry/vendor-misc.min.js": {
+        "sentry/dist/vendor-misc.min.js": {
             "src": [
                 "sentry/vendor/moment/min/moment.min.js",
                 "sentry/vendor/selectize/dist/js/standalone/selectize.min.js",

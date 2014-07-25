@@ -19,5 +19,6 @@ pip-log.txt
 example/db.sqlite
 /src/sentry/static/CACHE/
 /src/sentry/static/sentry/vendor/
+/src/sentry/static/sentry/dist/
 /wheelhouse
 /env
