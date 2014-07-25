@@ -7,6 +7,8 @@
         [1000, 'k']
     ];
 
+    var appConfig = window.SentryConfig;
+
     app.utils = {
         getQueryParams: function() {
 
