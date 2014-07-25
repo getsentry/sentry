@@ -179,16 +179,7 @@
 
         }),
 
-        DashboardPage: BasePage.extend({
-
-            initialize: function(data){
-                BasePage.prototype.initialize.apply(this, arguments);
-
-                $('#chart').height('150px');
-                app.charts.createBasic('#chart');
-            }
-
-        }),
+        DashboardPage: BasePage,
 
         SelectTeamPage: BasePage.extend({
 

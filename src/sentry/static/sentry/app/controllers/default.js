@@ -1,8 +1,7 @@
 (function(){
   'use strict';
 
-  angular.module('sentry.controllers.default', ['classy'])
-    .classy.controller({
-      name: 'DefaultCtrl'
-    });
+  SentryApp.classy.controller({
+    name: 'DefaultCtrl'
+  });
 }());

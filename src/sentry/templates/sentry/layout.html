@@ -14,7 +14,7 @@
         <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-            {% staticbundle 'sentry/styles/global.min.css' %}
+            {% staticbundle 'sentry/dist/global.min.css' %}
         {% endblock %}
 
         <title>{% block title %}Sentry{% endblock %}</title>
@@ -48,20 +48,18 @@
             {% endif %}
             </script>
 
-            {% staticbundle 'sentry/vendor-angular.min.js' %}
-            {% staticbundle 'sentry/vendor-jquery.min.js' %}
-            {% staticbundle 'sentry/vendor-bootstrap.min.js' %}
-            {% staticbundle 'sentry/vendor-misc.min.js' %}
+            {% staticbundle 'sentry/dist/vendor-angular.min.js' %}
+            {% staticbundle 'sentry/dist/vendor-jquery.min.js' %}
+            {% staticbundle 'sentry/dist/vendor-bootstrap.min.js' %}
+            {% staticbundle 'sentry/dist/vendor-misc.min.js' %}
 
-            {% staticbundle 'sentry/app.min.js' %}
-            {% staticbundle 'sentry/legacy-app.min.js' %}
+            {% staticbundle 'sentry/dist/app.min.js' %}
+            {% staticbundle 'sentry/dist/legacy-app.min.js' %}
 
             <script>
             jQuery('select').selectize();
 
             moment.lang(window.SentryConfig.lang);
-
-            angular.bootstrap(document, ['app']);
             </script>
 
             <script src="{% url 'sentry-media' 'sentry' 'vendor/raven/raven.js' %}"></script>
@@ -71,7 +69,7 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %}">
+    <body class="{% block wrapperclass %}{% endblock %}" ng-app="sentry">
         {% block body %}
         {% block header %}
             <header>

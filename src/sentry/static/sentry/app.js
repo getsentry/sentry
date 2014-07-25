@@ -1,17 +1,9 @@
-var SentryApp = angular.module('app', [
+var SentryApp = angular.module('sentry', [
   'classy',
 
   'sentry.charts',
   'sentry.collection',
   'sentry.forms',
-
-  'sentry.controllers.default',
-  'sentry.controllers.deleteTeam',
-  'sentry.controllers.groupDetails',
-  'sentry.controllers.manageTeamOwnership',
-  'sentry.controllers.manageTeamSettings',
-  'sentry.controllers.projectStream',
-  'sentry.controllers.teamDashboard',
 
   'sentry.directives.count',
   'sentry.directives.timeSince',

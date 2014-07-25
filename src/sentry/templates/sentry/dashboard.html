@@ -4,12 +4,7 @@
 
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
-{% block page_header_block %}
-    <section id="page-header" class="toolbar" style="height:5px;">
-    </section>
-{% endblock %}
-
-{% block bodyclass %}{% endblock %}
+{% block controller %}TeamDashboardCtrl{% endblock %}
 
 {% block content %}
     <div class="main">
@@ -70,11 +65,4 @@
             </div>
         {% endblock %}
     </div>
-
-    <script type="text/javascript">
-        new app.DashboardPage({
-            realtime: false,
-            stream: false
-        });
-    </script>
 {% endblock %}

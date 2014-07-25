@@ -1,15 +1,14 @@
 (function(){
   'use strict';
 
-  angular.module('sentry.controllers.groupDetails', ['classy'])
-    .classy.controller({
-      name: 'GroupDetailsCtrl',
+  SentryApp.classy.controller({
+    name: 'GroupDetailsCtrl',
 
-      inject: ['$scope', '$http'],
+    inject: ['$scope', '$http'],
 
-      init: function() {
-        // TODO(dcramer): remove the window hack
-        this.$http.post('/api/0/groups/' + window.SentryConfig.selectedGroup.id + '/markseen/');
-      }
-    });
+    init: function() {
+      // TODO(dcramer): remove the window hack
+      this.$http.post('/api/0/groups/' + window.SentryConfig.selectedGroup.id + '/markseen/');
+    }
+  });
 }());

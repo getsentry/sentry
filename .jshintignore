@@ -1,7 +1,5 @@
 tests/
-src/sentry/static/sentry/bootstrap/
 src/sentry/static/sentry/scripts/lib/
 src/sentry/static/CACHE/
-src/sentry/static/sentry/app.min.js
-src/sentry/static/sentry/legacy-app.min.js
+src/sentry/static/sentry/dist/
 src/sentry/static/sentry/vendor/
