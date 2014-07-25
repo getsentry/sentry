@@ -6,11 +6,11 @@
 </div>
 
 <ul class="nav nav-tabs">
-    <li{% if platform == 'java' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java' %}">Java</a></li>
-    <li{% if platform == 'java_logging' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_logging' %}">java.util.logging</a></li>
-    <li{% if platform == 'java_log4j' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_log4j' %}">log4j</a></li>
-    <li{% if platform == 'java_log4j2' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_log4j2' %}">log4j2</a></li>
-    <li{% if platform == 'java_logback' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_logback' %}">logback</a></li>
+    <li{% if platform == 'java' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'java' %}">Java</a></li>
+    <li{% if platform == 'java_logging' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'java_logging' %}">java.util.logging</a></li>
+    <li{% if platform == 'java_log4j' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'java_log4j' %}">log4j</a></li>
+    <li{% if platform == 'java_log4j2' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'java_log4j2' %}">log4j2</a></li>
+    <li{% if platform == 'java_logback' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'java_logback' %}">logback</a></li>
 </ul>
 
 <p>{% blocktrans with 'https://github.com/kencochrane/raven-java' as link %}Start by installing <a href="{{ link }}">raven-java</a>.{% endblocktrans %}</p>
@@ -22,7 +22,7 @@
   &lt;artifactId&gt;raven&lt;/artifactId&gt;
   &lt;version&gt;4.0&lt;/version&gt;
 &lt;/dependency&gt;</pre>
-    
+
 {% block inner %}
 {% endblock %}
 

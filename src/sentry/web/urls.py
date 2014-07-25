@@ -6,8 +6,6 @@ sentry.web.urls
 :license: BSD, see LICENSE for more details.
 """
 
-import re
-
 try:
     from django.conf.urls import include, patterns, url
 except ImportError:
@@ -19,10 +17,12 @@ from django.conf import settings
 from sentry.web import api
 from sentry.web.frontend import (
     alerts, accounts, generic, groups, events,
-    admin, docs, teams, users, explore, explore_code)
+    admin, teams, users, explore, explore_code)
 
 from sentry.web.frontend.help_index import HelpIndexView
 from sentry.web.frontend.help_page import HelpPageView
+from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
+from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
 
 import sentry.web.frontend.projects.general
 import sentry.web.frontend.projects.keys
@@ -108,8 +108,12 @@ urlpatterns += patterns('',
     url(r'^help/$', HelpIndexView.as_view(),
         name='sentry-help'),
     url(r'^help/api/', include('sentry.api.help_urls')),
-    url(r'^help/(?P<page_id>[\d]+)/(?P<page_slug>[\w_-]+)/$', HelpPageView.as_view(),
+    url(r'^help/(?P<page_id>[\d]+)/(?P<page_slug>[^\/]+)/$', HelpPageView.as_view(),
         name='sentry-help-page'),
+    url(r'^help/platforms/$', HelpPlatformIndexView.as_view(),
+        name='sentry-help-platform-list'),
+    url(r'^help/platforms/(?P<platform>[^\/]+)/$', HelpPlatformDetailsView.as_view(),
+        name='sentry-help-platform'),
 
     # Settings - Teams
     url(r'^account/teams/new/$', teams.create_new_team,
@@ -164,12 +168,6 @@ urlpatterns += patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/$',
         sentry.web.frontend.projects.settings.manage_project,
         name='sentry-manage-project'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/$',
-        docs.client_help,
-        name='sentry-project-client-help'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/(?P<platform>%s)/$' % ('|'.join(re.escape(r) for r in docs.PLATFORM_LIST),),
-        docs.client_guide,
-        name='sentry-docs-client'),
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/$',
         sentry.web.frontend.projects.keys.manage_project_keys,
