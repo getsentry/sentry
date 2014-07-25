@@ -1,17 +1,7 @@
-define([
-    'backbone',
-    'jquery',
-    'underscore',
-
-    'app/charts',
-    'app/config',
-    'app/models',
-    'app/utils',
-    'app/views',
-
-    'simple-slider'
-], function(Backbone, $, _, appCharts, appConfig, appModels, appUtils, appViews){
+(function(){
     'use strict';
+
+    var appConfig = window.SentryConfig;
 
     var BasePage = Backbone.View.extend({
 
@@ -70,13 +60,13 @@ define([
         },
 
         makeDefaultView: function(id){
-            return new appViews.GroupListView({
+            return new app.views.GroupListView({
                 className: 'events small',
                 id: id,
                 maxItems: 5,
                 stream: this.options.stream,
                 realtime: this.options.realtime,
-                model: appModels.Group
+                model: app.models.Group
             });
         },
 
@@ -90,7 +80,7 @@ define([
 
     });
 
-    return {
+    $.extend(app, {
         BasePage: BasePage,
 
         StreamPage: BasePage.extend({
@@ -98,7 +88,7 @@ define([
             initialize: function(data){
                 BasePage.prototype.initialize.apply(this, arguments);
 
-                this.group_list = new appViews.GroupListView({
+                this.group_list = new app.views.GroupListView({
                     className: 'group-list',
                     id: 'event_list',
                     members: data.groups,
@@ -106,7 +96,7 @@ define([
                     realtime: ($.cookie('pausestream') ? false : true),
                     canStream: this.options.canStream,
                     pollUrl: appConfig.urlPrefix + '/api/' + appConfig.selectedTeam.slug + '/' + appConfig.selectedProject.slug + '/poll/',
-                    model: appModels.Group
+                    model: app.models.Group
                 });
 
                 this.control = $('a[data-action=pause]');
@@ -120,7 +110,7 @@ define([
                 }, this));
 
                 $('#chart').height('50px');
-                appCharts.createBasic('#chart', {
+                app.charts.createBasic('#chart', {
                     placement: 'left'
                 });
             },
@@ -195,7 +185,7 @@ define([
                 BasePage.prototype.initialize.apply(this, arguments);
 
                 $('#chart').height('150px');
-                appCharts.createBasic('#chart');
+                app.charts.createBasic('#chart');
             }
 
         }),
@@ -264,15 +254,15 @@ define([
             initialize: function(data){
                 BasePage.prototype.initialize.apply(this, arguments);
 
-                this.group_list = new appViews.GroupListView({
+                this.group_list = new app.views.GroupListView({
                     className: 'group-list',
                     id: 'event_list',
                     members: [data.group],
-                    model: appModels.Group
+                    model: app.models.Group
                 });
 
                 $('#chart').height('150px');
-                appCharts.createBasic('#chart');
+                app.charts.createBasic('#chart');
 
                 $('#public-status .action').click(function(){
                     var $this = $(this);
@@ -401,13 +391,13 @@ define([
             },
 
             makeDefaultView: function(id){
-                return new appViews.GroupListView({
+                return new app.views.GroupListView({
                     className: 'events',
                     id: id,
                     maxItems: 5,
                     stream: this.options.stream,
                     realtime: this.options.realtime,
-                    model: appModels.Group
+                    model: app.models.Group
                 });
             },
 
@@ -811,5 +801,5 @@ define([
             }
 
         })
-    };
-});
+    });
+}());

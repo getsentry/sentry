@@ -1,8 +1,4 @@
-define([
-    'jquery',
-
-    'app/config'
-], function($, appConfig){
+(function(){
     'use strict';
 
     var number_formats = [
@@ -11,7 +7,7 @@ define([
         [1000, 'k']
     ];
 
-    return {
+    app.utils = {
         getQueryParams: function() {
 
             var vars = {},
@@ -174,4 +170,4 @@ define([
             }));
         }
     };
-});
+}());

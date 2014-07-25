@@ -1,4 +1,4 @@
-define(['app'], function(app){
+(function(){
   'use strict';
 
   var numberFormats = [
@@ -31,14 +31,15 @@ define(['app'], function(app){
       return '' + number;
   };
 
-  app.directive('count', function() {
-    return function(scope, element, attrs){
-      var value = scope.$eval(attrs.count);
-      if (value === undefined) {
-        element.text('');
-      } else {
-        element.text(formatNumber(value));
-      }
-    };
-  });
-});
+  angular.module('sentry.directives.count', [])
+    .directive('count', function() {
+      return function(scope, element, attrs){
+        var value = scope.$eval(attrs.count);
+        if (value === undefined) {
+          element.text('');
+        } else {
+          element.text(formatNumber(value));
+        }
+      };
+    });
+}());

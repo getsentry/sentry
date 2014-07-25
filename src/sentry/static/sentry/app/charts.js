@@ -1,15 +1,4 @@
-define([
-    'jquery',
-    'moment',
-
-    'app/utils',
-
-    'jquery.flot',
-    'jquery.flot.dashes',
-    'jquery.flot.resize',
-    'jquery.flot.time',
-    'jquery.flot.tooltip'
-], function($, moment, utils){
+(function(){
     'use strict';
 
     var average = function(a) {
@@ -67,7 +56,7 @@ define([
         return d.format(fmt);
     };
 
-    var charts = {
+    app.charts = {
         render: function(el, options) {
             var $el = $('#chart');
             var url = $el.attr('data-api-url');
@@ -125,12 +114,12 @@ define([
                 }
             }
 
-            point_width = utils.floatFormat(100.0 / points.length, 2) + '%';
+            point_width = app.utils.floatFormat(100.0 / points.length, 2) + '%';
 
             // TODO: we should only remove nodes that are no longer valid
             for (i=0; i<points.length; i++) {
                 point = points[i];
-                pct = utils.floatFormat(point.y / maxval * 99, 2) + '%';
+                pct = app.utils.floatFormat(point.y / maxval * 99, 2) + '%';
                 title = point.y + ' events';
                 if (point.label) {
                     title = title + '<br>(' + point.label + ')';
@@ -248,6 +237,4 @@ define([
             });
         }
     };
-
-    return charts;
-});
+}());

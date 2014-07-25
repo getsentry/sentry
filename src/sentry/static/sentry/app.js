@@ -1,24 +1,36 @@
-define([
-  'angular',
-  'ngBootstrap',
-  'ngClassy',
+var SentryApp = angular.module('app', [
+  'classy',
 
-  'moment',
-  'jquery',
-  'selectize',
+  'sentry.charts',
+  'sentry.collection',
+  'sentry.forms',
 
-  'app/modules/charts',
-  'app/modules/collection',
-  'app/modules/forms'
+  'sentry.controllers.default',
+  'sentry.controllers.deleteTeam',
+  'sentry.controllers.groupDetails',
+  'sentry.controllers.manageTeamOwnership',
+  'sentry.controllers.manageTeamSettings',
+  'sentry.controllers.projectStream',
+  'sentry.controllers.teamDashboard',
 
-], function(angular){
+  'sentry.directives.count',
+  'sentry.directives.timeSince',
+
+  'ui.bootstrap'
+]).config(function(
+  $httpProvider, $interpolateProvider, $provide
+) {
   'use strict';
 
-  return angular.module('app', [
-    'classy',
-    'sentry.charts',
-    'sentry.collection',
-    'sentry.forms',
-    'ui.bootstrap'
-  ]);
+  // compatiblity with Django templates
+  $interpolateProvider.startSymbol('<%');
+  $interpolateProvider.endSymbol('%>');
+
+  // add in Django csrf support
+  $httpProvider.defaults.xsrfCookieName = 'csrftoken';
+  $httpProvider.defaults.xsrfHeaderName = 'X-CSRFToken';
+
+  $provide.value('config', window.SentryConfig);
+  $provide.value('selectedTeam', window.SentryConfig.selectedTeam);
+  $provide.value('selectedProject', window.SentryConfig.selectedProject);
 });

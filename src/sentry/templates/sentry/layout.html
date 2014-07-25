@@ -24,6 +24,13 @@
         <![endif]-->
         {% block scripts %}
             <script>
+            // Legacy app object
+            window.app = {
+                config: {},
+                templates: {},
+                utils: {}
+            }
+
             window.SentryConfig = {};
             window.SentryConfig.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
             window.SentryConfig.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
@@ -41,9 +48,22 @@
             {% endif %}
             </script>
 
-            <script src="{% url 'sentry-media' 'sentry' 'config.js' %}"></script>
-            <script data-main="{% url 'sentry-media' 'sentry' 'main' %}"
-                    src="{% url 'sentry-media' 'sentry' 'vendor/requirejs/require.js' %}"></script>
+            {% staticbundle 'sentry/vendor-angular.min.js' %}
+            {% staticbundle 'sentry/vendor-jquery.min.js' %}
+            {% staticbundle 'sentry/vendor-bootstrap.min.js' %}
+            {% staticbundle 'sentry/vendor-misc.min.js' %}
+
+            {% staticbundle 'sentry/app.min.js' %}
+            {% staticbundle 'sentry/legacy-app.min.js' %}
+
+            <script>
+            jQuery('select').selectize();
+
+            moment.lang(window.SentryConfig.lang);
+
+            angular.bootstrap(document, ['app']);
+            </script>
+
             <script src="{% url 'sentry-media' 'sentry' 'vendor/raven/raven.js' %}"></script>
         {% endblock %}
 

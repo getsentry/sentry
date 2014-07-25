@@ -134,12 +134,10 @@
     </div>
 
     <script>
-    require(['config', 'app/init'], function(_, app){
-        new app.StreamPage({
-            groups: {{ event_list|to_json:request|safe }},
-            canStream: {{ has_realtime|to_json|safe }},
-            realtime: true
-        });
+    new app.StreamPage({
+        groups: {{ event_list|to_json:request|safe }},
+        canStream: {{ has_realtime|to_json|safe }},
+        realtime: true
     });
     </script>
 {% endblock %}

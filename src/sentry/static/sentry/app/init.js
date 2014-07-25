@@ -1,26 +1,4 @@
-define([
-  'bootstrap',
-  'moment',
-  'jquery',
-
-  'app',
-  'app/base',
-  'app/charts',
-  'app/config',
-  'app/collections',
-  'app/core',
-  'app/models',
-  'app/templates',
-  'app/views',
-  'app/utils',
-
-  'bootstrap-datepicker',
-  'jquery.clippy',
-  'jquery.cookie',
-  'selectize'
-], function (bootstrap, moment, $, app, appBase, appCharts,
-             appConfig, appCollections, appCore, appModels, appTemplates,
-             appViews, appUtils) {
+(function(){
   'use strict';
 
   $('.clippy').clippy({
@@ -63,8 +41,4 @@ define([
           }
       });
   }, 5000);
-
-  var Sentry = $.extend({}, appBase);
-  Sentry.utils = appUtils;
-  return Sentry;
-});
+}());
