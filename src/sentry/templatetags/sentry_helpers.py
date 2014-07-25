@@ -455,15 +455,6 @@ def render_values(value, threshold=5, collapse_to=3):
     return context
 
 
-@register.inclusion_tag('sentry/partial/_client_config.html')
-def client_help(user, project):
-    from sentry.web.frontend.docs import get_key_context
-
-    context = get_key_context(user, project)
-    context['project'] = project
-    return context
-
-
 @tag(register, [Constant('from'), Variable('project'),
                 Constant('as'), Name('asvar')])
 def recent_alerts(context, project, asvar):

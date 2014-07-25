@@ -5,9 +5,9 @@
 </div>
 
 <ul class="nav nav-tabs">
-	<li{% if platform == 'node.js' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'node.js' %}">Node.js</a></li>
-	<li{% if platform == 'express' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'express' %}">Express</a></li>
-	<li{% if platform == 'connect' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'connect' %}">Connect</a></li>
+	<li{% if platform == 'node.js' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'node.js' %}">Node.js</a></li>
+	<li{% if platform == 'express' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'express' %}">Express</a></li>
+	<li{% if platform == 'connect' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'connect' %}">Connect</a></li>
 </ul>
 
 {% block inner %}
