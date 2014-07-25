@@ -56,12 +56,6 @@
             {% staticbundle 'sentry/dist/app.min.js' %}
             {% staticbundle 'sentry/dist/legacy-app.min.js' %}
 
-            <script>
-            jQuery('select').selectize();
-
-            moment.lang(window.SentryConfig.lang);
-            </script>
-
             <script src="{% url 'sentry-media' 'sentry' 'vendor/raven/raven.js' %}"></script>
         {% endblock %}
 
@@ -192,6 +186,12 @@
                 {% endblock %}
             </div>
         </footer>
+
+        <script>
+        jQuery('select').selectize();
+
+        moment.lang(window.SentryConfig.lang);
+        </script>
         {% endblock %}
     </body>
 </html>
