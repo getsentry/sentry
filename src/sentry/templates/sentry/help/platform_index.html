@@ -1,0 +1,15 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}Platforms | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <ul class="breadcrumb">
+        <li><a href="{% url 'sentry-help' %}">Knowledge Base</a></li>
+        <li>Platforms</li>
+    </ul>
+
+    {% include 'sentry/partial/_client_config.html' %}
+{% endblock %}
