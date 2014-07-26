@@ -727,17 +727,21 @@ a.icon-share {
   }
 
   .stream-actions-graph {
-    width: 100px;
+    vertical-align: middle;
+    width: 113px;
+    font-size: 13px;
   }
 
   .stream-actions-occurrences {
     width: 100px;
     padding-left: 30px;
+    font-size: 13px;
   }
   .stream-actions-users {
     width: 100px;
     padding-left: 30px;
     border-radius: 0 5px 5px 0;
+    font-size: 13px;
   }
   .realtime-paused {
     .btn-danger();
@@ -748,6 +752,32 @@ a.icon-share {
     background: rgba(255,255,255, .85);
     &.dropdown-toggle {
       background: none;
+    }
+  }
+
+  .toggle-graph {
+    .list-unstyled();
+    margin-bottom: 0;
+
+    li {
+      float: left;
+      margin-right: 10px;
+
+      &:last-child {
+        margin-right: 0;
+      }
+
+      a {
+        color: #454C50;
+        opacity: .5;
+        &:hover {
+          opacity: .75;
+        }
+      }
+      &.active a {
+        opacity: 1;
+        font-weight: 500;
+      }
     }
   }
 }
@@ -1012,13 +1042,35 @@ a.icon-share {
   .dropdown-menu {
     left: auto;
     right: 0;
-    max-height: 180px;
-    overflow: auto;
+    min-width: 180px;
+
+    .form-control {
+      border: 0;
+      border-bottom: 2px solid #f1f2f3;
+      padding-bottom: 8px;
+      margin-bottom: 6px;
+      border-radius: 0;
+      &:focus {
+        box-shadow: none;
+      }
+    }
+
+    ul {
+      .list-unstyled();
+      max-height: 180px;
+      overflow: auto;
+      margin: 0;
+    }
     li a {
-      padding-left: 8px;
-      padding-right: 8px;
+      padding: 4px 8px;
+      display: block;
+      padding-left: 35px;
+      position: relative;
+
       img {
         margin-right: 5px;
+        position: absolute;
+        left: 8px;
       }
     }
   }
