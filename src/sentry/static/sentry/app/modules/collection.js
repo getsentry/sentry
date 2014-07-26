@@ -77,6 +77,12 @@
         }
       };
 
+      Collection.prototype.empty = function empty() {
+        while (this.length > 0) {
+          this.pop();
+        }
+      };
+
       Collection.prototype._updateExisting = function _updateExisting(item) {
         for (var i = 0; i < this.length; i++) {
           if (this[i].id == item.id) {
