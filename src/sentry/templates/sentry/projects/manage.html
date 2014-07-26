@@ -7,6 +7,8 @@
 
 {% block bodyclass %} with-left-sidebar{% endblock %}
 
+{% block controller %}ManageProjectCtrl{% endblock %}
+
 {% block main %}
     <style>
     select { width: 300px; }
@@ -53,10 +55,6 @@
                 {% endif %}
             </div>
         </form>
-
-        <script>
-        new app.ProjectDetailsPage();
-        </script>
     {% endblock %}
 {% endblock %}
 
