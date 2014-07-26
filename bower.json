@@ -11,6 +11,7 @@
     "angular-classy": "~0.4.2",
     "angular-loading-bar": "~0.0.5",
     "angular-linkify": "~0.3.0",
+    "angular-mocks": "1.2.9",
     "angular-raven": "~0.5.4",
     "backbone": "~1.1.2",
     "bootstrap": "~3.1.1",
@@ -21,5 +22,8 @@
     "json2": "*",
     "selectize": "~0.10.1",
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git"
+  },
+  "resolutions": {
+    "angular": "1.2.9"
   }
 }

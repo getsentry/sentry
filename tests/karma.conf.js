@@ -20,6 +20,7 @@ module.exports = function(config) {
       'src/sentry/static/sentry/dist/vendor-jquery.min.js',
       'src/sentry/static/sentry/dist/vendor-bootstrap.min.js',
       'src/sentry/static/sentry/dist/vendor-misc.min.js',
+      'src/sentry/static/sentry/vendor/angular-mocks/angular-mocks.js',
       'src/sentry/static/sentry/dist/app.min.js',
       'src/sentry/static/sentry/dist/legacy-app.min.js',
       'tests/js/**/*Spec.js'
