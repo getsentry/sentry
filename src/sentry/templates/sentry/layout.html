@@ -25,11 +25,7 @@
         {% block scripts %}
             <script>
             // Legacy app object
-            window.app = {
-                config: {},
-                templates: {},
-                utils: {}
-            }
+            window.app = {};
 
             window.SentryConfig = {};
             window.SentryConfig.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';

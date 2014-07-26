@@ -5,9 +5,6 @@ BOOTSTRAP_JS = ${STATIC_DIR}/scripts/lib/bootstrap.js
 BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
 UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 
-JS_TESTS = tests/js/index.html
-JS_REPORTER = dot
-
 develop: update-submodules setup-git
 	@echo "--> Installing dependencies"
 	npm install
@@ -80,7 +77,7 @@ test-cli:
 
 test-js:
 	@echo "--> Running JavaScript tests"
-	${NPM_ROOT}/.bin/mocha-phantomjs -p ${NPM_ROOT}/phantomjs/bin/phantomjs -R ${JS_REPORTER} ${JS_TESTS}
+	@npm run test
 	@echo ""
 
 test-python:
@@ -97,7 +94,7 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting JavaScript files"
-	${NPM_ROOT}/.bin/jshint src/sentry/ || exit 1
+	@npm run lint || exit 1
 	@echo ""
 
 coverage: develop
