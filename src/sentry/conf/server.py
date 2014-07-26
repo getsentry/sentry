@@ -479,7 +479,6 @@ SENTRY_STATIC_BUNDLES = {
         "sentry/dist/vendor-jquery.min.js": {
             "src": [
                 "sentry/vendor/jquery/jquery.min.js",
-                "sentry/scripts/lib/jquery.clippy.min.js",
                 "sentry/scripts/lib/jquery.cookie.js",
                 "sentry/vendor/jquery-flot/jquery.flot.js",
                 "sentry/scripts/lib/jquery.flot.dashes.js",
