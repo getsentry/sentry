@@ -1,11 +1,6 @@
 (function(){
   'use strict';
 
-  $('.clippy').clippy({
-      clippy_path: '../clippy.swf',
-      keep_text: true
-  });
-
   $('input[data-toggle="datepicker"]').datepicker();
 
   $('.tip').tooltip({

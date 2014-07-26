@@ -5,6 +5,7 @@ var SentryApp = angular.module('sentry', [
   'sentry.collection',
   'sentry.forms',
 
+  'sentry.directives.clippy',
   'sentry.directives.count',
   'sentry.directives.timeSince',
 

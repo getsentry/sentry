@@ -431,6 +431,7 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/app/controllers/projectStream.js",
                 "sentry/app/controllers/teamDashboard.js",
 
+                "sentry/app/directives/clippy.js",
                 "sentry/app/directives/count.js",
                 "sentry/app/directives/timeSince.js",
             ],

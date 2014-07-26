@@ -38,26 +38,26 @@
             <div class="control-group">
                 <label>{% trans "DSN" %}</label>
                 <div class="controls">
-                    <code class="clippy">{{ key.dsn_private }}</code>
+                    <code clippy>{{ key.dsn_private }}</code>
                 </div>
             </div>
             <div class="control-group">
                 <label>{% trans "DSN (Public)" %}</label>
                 <div class="help-text">{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Use your public DSN with insecure clients such as <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</div>
                 <div class="controls">
-                    <code class="clippy">{{ key.dsn_public }}</code>
+                    <code clippy>{{ key.dsn_public }}</code>
                 </div>
             </div>
             <div class="control-group">
                 <label>{% trans "Public Key" %}</label>
                 <div class="controls">
-                    <code class="clippy">{{ key.public_key }}</code>
+                    <code clippy>{{ key.public_key }}</code>
                 </div>
             </div>
             <div class="control-group">
                 <label>{% trans "Secret Key" %}</label>
                 <div class="controls">
-                    <code class="clippy">{{ key.secret_key }}</code>
+                    <code clippy>{{ key.secret_key }}</code>
                 </div>
             </div>
         </fieldset>
