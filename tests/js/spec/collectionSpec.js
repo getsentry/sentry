@@ -99,4 +99,14 @@ describe('sentry.collection', function(){
     });
   });
 
+  describe('empty', function() {
+    it('should clear all values', function(){
+      var c = new Collection([{id: 'foo'}, {id: 'bar'}]);
+
+      c.empty();
+
+      assert.equal(c.length, 0);
+    });
+  });
+
 });
