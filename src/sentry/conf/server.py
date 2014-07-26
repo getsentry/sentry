@@ -424,6 +424,7 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/app/controllers/groupDetails.js",
                 "sentry/app/controllers/manageAccessGroupMembers.js",
                 "sentry/app/controllers/manageAccessGroupProjects.js",
+                "sentry/app/controllers/manageProject.js",
                 "sentry/app/controllers/manageTeamOwnership.js",
                 "sentry/app/controllers/manageTeamSettings.js",
                 "sentry/app/controllers/projectStream.js",
