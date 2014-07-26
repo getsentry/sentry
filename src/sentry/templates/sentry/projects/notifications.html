@@ -6,6 +6,8 @@
 
 {% block title %}{% trans "Notifications" %} | {{ block.super }}{% endblock %}
 
+{% block controller %}ManageProjectNotificationsCtrl{% endblock %}
+
 {% block inner %}
     <div class="page-header">
         <h2>{% trans "Notifications" %}</h2>
@@ -46,8 +48,5 @@
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
     </form>
-    <script type="text/javascript">
-    new app.ProjectNotificationsPage();
-    </script>
 {% endblock %}
 
