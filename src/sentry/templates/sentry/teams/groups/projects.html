@@ -8,6 +8,7 @@
     {% trans "Projects" %} | {{ block.super }}
 {% endblock %}
 
+{% block controller %}ManageAccessGroupProjectsCtrl{% endblock %}
 
 {% block inner %}
     <div class="page-header">
@@ -50,9 +51,4 @@
 
         {{ form.project }} <button type="submit" class="btn btn-primary" style="padding: 6px 10px; margin-left: 5px">{% trans "Add Project" %}</button>
     </form>
-
-    <script type="text/javascript">
-    new app.AccessGroupProjectsPage();
-    </script>
-
 {% endblock %}

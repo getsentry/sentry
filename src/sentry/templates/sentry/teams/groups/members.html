@@ -8,6 +8,8 @@
     {% trans "Members" %} | {{ block.super }}
 {% endblock %}
 
+{% block controller %}ManageAccessGroupMembersCtrl{% endblock %}
+
 {% block inner %}
     <div class="page-header">
         <h2>{% trans "Group Members" %}</h2>
@@ -50,9 +52,4 @@
 
         {{ form.user }} <button type="submit" class="btn btn-primary" style="padding: 6px 10px; margin-left: 5px">{% trans "Add Member" %}</button>
     </form>
-
-    <script type="text/javascript">
-    new app.AccessGroupMembersPage();
-    </script>
-
 {% endblock %}
