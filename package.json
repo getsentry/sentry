@@ -9,19 +9,27 @@
     "bower": "^1.2.8",
     "chai": "1.7.x",
     "jshint": "~2.5.0",
+    "karma": "^0.12.19",
+    "karma-chai": "^0.1.0",
+    "karma-phantomjs-launcher": "~0.1.4",
+    "karma-sinon": "^1.0.3",
     "less": "1.7.0",
     "mocha": "1.9.x",
-    "mocha-phantomjs": "3.0.x",
-    "phantomjs": "1.9.x",
+    "sinon": "^1.10.3",
     "uglify-js": "2.2.4"
   },
   "private": true,
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "start": "grunt server",
-    "build": "grunt build:debug",
-    "test": "grunt test:ci",
-    "postinstall": "bower install"
+    "postinstall": "bower install",
+    "pretest": "npm install && sentry compilestatic",
+    "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
+    "prelint": "npm install",
+    "lint": "jshint src/"
+  },
+  "devDependencies": {
+    "karma-mocha": "^0.1.6",
+    "karma-phantomjs-launcher": "^0.1.4"
   }
 }

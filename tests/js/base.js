@@ -1,0 +1,2 @@
+window.app = {};
+window.SentryConfig = {};

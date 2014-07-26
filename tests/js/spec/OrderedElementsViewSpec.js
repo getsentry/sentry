@@ -33,7 +33,7 @@ describe("OrderedElementsView", function() {
           defaults: {foo: "bar"}
       });
 
-      view = new app.OrderedElementsView({
+      view = new app.views.OrderedElementsView({
           id: 'foo',
           model: TestModel
       });
@@ -51,7 +51,7 @@ describe("OrderedElementsView", function() {
 
   describe("without initial members", function() {
     beforeEach(function() {
-      view = new app.OrderedElementsView({
+      view = new app.views.OrderedElementsView({
           id: 'foo'
       });
       view.$parent = $('<ul></ul>');
@@ -69,7 +69,7 @@ describe("OrderedElementsView", function() {
   describe("with initial members", function() {
     beforeEach(function() {
       group1 = make_group({id: 1, score: 3});
-      view = new app.OrderedElementsView({
+      view = new app.views.OrderedElementsView({
           id: 'foo',
           members: [group1]
       });
@@ -89,10 +89,10 @@ describe("OrderedElementsView", function() {
     describe("with data", function(){
       beforeEach(function(){
         group1 = make_group({id: 1, score: 3});
-        view = new app.OrderedElementsView({
+        view = new app.views.OrderedElementsView({
             id: 'foo'
         });
-        view.collection.reset = this.sinon.spy();
+        view.collection.reset = sinon.spy();
         view.reset([group1]);
       });
 
@@ -111,11 +111,11 @@ describe("OrderedElementsView", function() {
 
     describe("with empty list of data", function(){
       beforeEach(function(){
-        view = new app.OrderedElementsView({
+        view = new app.views.OrderedElementsView({
             id: 'foo'
         });
         group1 = make_group({id: 1, score: 3});
-        view.collection.reset = this.sinon.spy();
+        view.collection.reset = sinon.spy();
         view.reset([]);
       });
 
@@ -135,11 +135,11 @@ describe("OrderedElementsView", function() {
 
     describe("with no data value", function(){
       beforeEach(function(){
-        view = new app.OrderedElementsView({
+        view = new app.views.OrderedElementsView({
             id: 'foo'
         });
         group1 = make_group({id: 1, score: 3});
-        view.collection.reset = this.sinon.spy();
+        view.collection.reset = sinon.spy();
         view.reset();
       });
 
@@ -160,10 +160,10 @@ describe("OrderedElementsView", function() {
 
   describe(".extend", function() {
     beforeEach(function(){
-      view = new app.OrderedElementsView({
+      view = new app.views.OrderedElementsView({
           id: 'foo'
       });
-      view.addMember = this.sinon.spy();
+      view.addMember = sinon.spy();
     });
 
     it("calls addMember for each item", function() {
@@ -179,7 +179,7 @@ describe("OrderedElementsView", function() {
 
   describe(".addMember", function() {
     beforeEach(function(){
-      view = new app.OrderedElementsView({
+      view = new app.views.OrderedElementsView({
           id: 'foo',
           maxItems: 3
       });
@@ -271,7 +271,7 @@ describe("OrderedElementsView", function() {
     });
 
     beforeEach(function(){
-      view = new app.OrderedElementsView({
+      view = new app.views.OrderedElementsView({
           id: 'test-',
           maxItems: 3,
           view: TestView
