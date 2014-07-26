@@ -15,13 +15,6 @@
 
   $('.nav-tabs .active a').tab('show');
 
-  $('.project-selector').on('change', function(e){
-      var $el = $(e.target).get(0);
-      var $opt = $($el.options[$el.selectedIndex]);
-      window.location.href = $opt.attr('data-url');
-      return false;
-  });
-
   // Update date strings periodically
   setInterval(function() {
       $('.pretty-date').each(function(_, el){
