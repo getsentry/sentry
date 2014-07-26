@@ -30,6 +30,19 @@ describe('sentry.collection', function(){
       assert.equal(c[0].id, 'foo');
       assert.equal(c[0].biz, 'boz');
     });
+
+    it('should should respect limit', function(){
+      var c = new Collection([], {limit: 2});
+      c.push({id: 'foo'});
+      c.push({id: 'bar'});
+      c.push({id: 'baz'});
+
+      assert.equal(c.length, 2);
+
+      assert.equal(c[0].id, 'foo');
+      assert.equal(c[1].id, 'bar');
+    });
+
   });
 
   describe('unshift', function() {
@@ -53,6 +66,18 @@ describe('sentry.collection', function(){
 
       assert.equal(c[0].id, 'foo');
       assert.equal(c[0].biz, 'boz');
+    });
+
+    it('should should respect limit', function(){
+      var c = new Collection([], {limit: 2});
+      c.unshift({id: 'foo'});
+      c.unshift({id: 'bar'});
+      c.unshift({id: 'baz'});
+
+      assert.equal(c.length, 2);
+
+      assert.equal(c[0].id, 'baz');
+      assert.equal(c[1].id, 'bar');
     });
   });
 
