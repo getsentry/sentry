@@ -1364,8 +1364,8 @@ pre {
 
 code {
   border: 0;
-  background-color: inherit;
-  color: lighten(@black, 40%);
+  background-color: #f1f2f3;
+  color: @gray;
 }
 
 .nav-tabs {
@@ -2934,6 +2934,17 @@ pre {
 .help {
   font-size: 16px;
   line-height: 1.5;
+
+  .back-button {
+    top: -6px;
+  }
+
+  h2 a {
+    color: #9CA3AC;
+    span {
+      opacity: .4;
+    }
+  }
 }
 
 .client-platform-list {

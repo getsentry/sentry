@@ -6,10 +6,9 @@
 {% block title %}Platforms | {{ block.super }}{% endblock %}
 
 {% block content %}
-    <ul class="breadcrumb">
-        <li><a href="{% url 'sentry-help' %}">Knowledge Base</a></li>
-        <li>Platforms</li>
-    </ul>
+    <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
+
+    <h2>Platforms</h2>
 
     {% include 'sentry/partial/_client_config.html' %}
 {% endblock %}
