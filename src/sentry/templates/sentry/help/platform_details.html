@@ -5,12 +5,10 @@
 
 {% block title %}{{ platform_title }} Client Configuration | {{ block.super }}{% endblock %}
 
-{% block content %}
-    <ul class="breadcrumb">
-        <li><a href="{% url 'sentry-help' %}">Knowledge Base</a></li>
-        <li><a href="{% url 'sentry-help-platform-list' %}">Platforms</a></li>
-        <li>{{ platform_title }}</li>
-    </ul>
+{% block helpcontent %}
+    <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
+
+    <h2><a href="{% url 'sentry-help-platform-list' %}">Platforms <span>/</span> </a> {{ platform_title }}</h2>
 
     {{ template }}
 {% endblock %}

@@ -4,10 +4,9 @@
 {% load sentry_helpers %}
 
 {% block helpcontent %}
-    <ul class="breadcrumb">
-        <li><a href="{% url 'sentry-help' %}">Knowledge Base</a></li>
-        <li>Web API</li>
-    </ul>
+    <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
+
+    <h2>Web API</h2>
 
     <h2>Overview</h2>
 
