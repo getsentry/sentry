@@ -357,8 +357,12 @@ class StoreView(APIView):
 @never_cache
 @api
 def poll(request, team, project):
-    offset = 0
     limit = EVENTS_PER_PAGE
+    try:
+        page = int(request.REQUEST.get('p', '1'))
+    except ValueError:
+        page = 1
+    offset = limit * (page - 1)
 
     response = _get_group_list(
         request=request,
