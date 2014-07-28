@@ -5,10 +5,9 @@
 {% load sentry_markup %}
 
 {% block helpcontent %}
-    <ul class="breadcrumb">
-        <li><a href="{% url 'sentry-help' %}">Knowledge Base</a></li>
-        <li>{{ page.title }}</li>
-    </ul>
+    <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
+
+    <h2>{{ page.title }}</h2>
 
     {{ page.content|markdown }}
 {% endblock %}
