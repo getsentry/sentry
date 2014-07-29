@@ -49,6 +49,10 @@
         {% csrf_token %}
         {{ form|as_crispy_errors }}
 
-        {{ form.project }} <button type="submit" class="btn btn-primary" style="padding: 6px 10px; margin-left: 5px">{% trans "Add Project" %}</button>
+        {{ form.project }}
+
+        <div class="form-actions" style="margin-top: 15px;">
+          <button type="submit" class="btn btn-primary" style="padding: 6px 10px;">{% trans "Add Project" %}</button>
+        </div>
     </form>
 {% endblock %}

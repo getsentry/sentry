@@ -198,6 +198,10 @@ header {
     .icon-book {
       padding-right: 5px;
     }
+
+    .icon-book {
+      top: 2px;
+    }
   }
 
   .project-dropdown {
@@ -279,12 +283,42 @@ header {
     .project-name {
       font-weight: 400;
       color: #B5B9C0;
+      margin-left: 3px;
     }
   }
 }
 
 .nav.project-nav {
   margin: -10px 0 30px;
+
+  .broadcast {
+    font-size: 14px;
+    padding-top: 4px;
+
+    span {
+      line-height: .9;
+      position: relative;
+      top: -2px;
+      margin-right: 2px;
+      &.new {
+        background: @linkColor;
+        color: #fff;
+        font-size: 10px;
+        padding: 4px;
+        border-radius: 3px;
+        display: inline-block;
+        font-weight: 600;
+      }
+    }
+    a {
+      color: @linkColor;
+      border: 0;
+      padding-right: 0;
+      padding-left: 0;
+      margin-right: 0;
+      display: inline-block;
+    }
+  }
 }
 
 .nav-tabs {
