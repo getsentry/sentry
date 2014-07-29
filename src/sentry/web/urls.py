@@ -105,14 +105,14 @@ urlpatterns += patterns('',
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Help
-    url(r'^help/$', HelpIndexView.as_view(),
+    url(r'^docs/$', HelpIndexView.as_view(),
         name='sentry-help'),
-    url(r'^help/api/', include('sentry.api.help_urls')),
-    url(r'^help/(?P<page_id>[\d]+)/(?P<page_slug>[^\/]+)/$', HelpPageView.as_view(),
+    url(r'^docs/api/', include('sentry.api.help_urls')),
+    url(r'^docs/(?P<page_id>[\d]+)/(?P<page_slug>[^\/]+)/$', HelpPageView.as_view(),
         name='sentry-help-page'),
-    url(r'^help/platforms/$', HelpPlatformIndexView.as_view(),
+    url(r'^docs/platforms/$', HelpPlatformIndexView.as_view(),
         name='sentry-help-platform-list'),
-    url(r'^help/platforms/(?P<platform>[^\/]+)/$', HelpPlatformDetailsView.as_view(),
+    url(r'^docs/platforms/(?P<platform>[^\/]+)/$', HelpPlatformDetailsView.as_view(),
         name='sentry-help-platform'),
 
     # Settings - Teams
