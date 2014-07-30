@@ -369,6 +369,7 @@
                 $el, $rel;
 
             this.$parent.find('li.empty').remove();
+            $('.stream-actions').show();
 
             $el = $('#' + this.id + member.id);
 
