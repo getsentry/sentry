@@ -10,14 +10,15 @@
 
 {% block bodyclass %} with-left-sidebar{% endblock %}
 
+{% block page_header %}
+  <h2 class="crumbs">
+    <a href="{% url 'sentry-manage-access-groups' team.slug %}">Access Groups</a> <span>/</span> {{ group.name }}
+  </h2>
+{% endblock %}
+
 {% block sidebar %}
-    <select style="margin-left:-14px" onchange="window.location.href=$(this.options[this.selectedIndex]).data('url');">
-        {% for g in group_list %}
-            <option {% if g == group %} selected="selected"{% endif %} data-url="{% url 'sentry-edit-access-group' g.team.slug g.id %}">{{ g.name }}</option>
-        {% endfor %}
-    </select>
-    <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Access Group" %}</li>
+    <ul class="nav nav-stacked">
+
         <li{% if page == 'details' %} class="active"{% endif %}>
             <a href="{% url 'sentry-edit-access-group' group.team.slug group.id %}">{% trans "Settings" %}</a>
         </li>
