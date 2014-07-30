@@ -308,6 +308,7 @@
 
         setEmpty: function(){
             this.$parent.html(this.$empty);
+            $('.stream-actions').hide();
         },
 
         extend: function(data){
