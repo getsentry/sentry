@@ -28,18 +28,17 @@ def preprocess_event(cache_key=None, data=None, **kwargs):
 
     logger = preprocess_event.get_logger()
 
-    try:
-        if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
-            try:
-                expand_javascript_source(data)
-            except Exception as e:
-                logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
-            else:
-                cache.set(cache_key, data, 3600)
-    finally:
-        if cache_key:
-            data = None
-        save_event.delay(cache_key=cache_key, data=data)
+    if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
+        try:
+            expand_javascript_source(data)
+        except Exception as e:
+            logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
+        else:
+            cache.set(cache_key, data, 3600)
+
+    if cache_key:
+        data = None
+    save_event.delay(cache_key=cache_key, data=data)
 
 
 @instrumented_task(
