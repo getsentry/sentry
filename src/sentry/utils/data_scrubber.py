@@ -44,7 +44,7 @@ class SensitiveDataFilter(object):
     FIELDS = frozenset([
         'password', 'secret', 'passwd', 'authorization', 'api_key', 'apikey'
     ])
-    VALUES_RE = re.compile(r'^(?:\d[ -]*?){13,16}$')
+    VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
 
     def apply(self, data):
         if 'stacktrace' in data:
@@ -61,7 +61,7 @@ class SensitiveDataFilter(object):
         if value is None:
             return
 
-        if isinstance(value, six.string_types) and self.VALUES_RE.match(value):
+        if isinstance(value, six.string_types) and self.VALUES_RE.search(value):
             return self.MASK
 
         if not key:  # key can be a NoneType
