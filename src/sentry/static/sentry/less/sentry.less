@@ -295,7 +295,7 @@ header {
     font-size: 14px;
     padding-top: 4px;
 
-    span {
+    .badge {
       line-height: .9;
       position: relative;
       top: -2px;
@@ -310,7 +310,7 @@ header {
         font-weight: 600;
       }
     }
-    a {
+    .link {
       color: @linkColor;
       border: 0;
       padding-right: 0;
@@ -2346,5 +2346,27 @@ table.vars {
   }
   span {
     opacity: .4;
+  }
+}
+
+.usage-wrapper {
+  width: 240px;
+  font-size: 13px;
+  margin-top: -6px;
+
+  a {
+    color: @linkColor !important;
+  }
+
+  .usage {
+    background: #f1f2f3;
+    border-radius: 1px;
+
+    div {
+      margin-top: 5px;
+      height: 5px;
+      background: red;
+      border-radius: 1px;
+    }
   }
 }
