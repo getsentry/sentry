@@ -28,9 +28,9 @@ from sentry.constants import (
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
 )
 from sentry.db.models import BaseManager
-from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
+from sentry.tasks.post_process import post_process_group
 from sentry.tsdb.base import TSDBModel
 from sentry.utils.cache import memoize
 from sentry.utils.db import get_db_engine, attach_foreignkey
@@ -306,7 +306,7 @@ class GroupManager(BaseManager):
         transaction.commit_unless_managed(using=using)
 
         if not raw:
-            send_group_processors(
+            post_process_group.delay(
                 group=group,
                 event=event,
                 is_new=is_new or is_regression,  # backwards compat
