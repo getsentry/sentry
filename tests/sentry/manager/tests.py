@@ -41,21 +41,18 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.message, 'foo')
         self.assertEquals(event.project_id, 1)
 
-    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')
     def test_tags_as_list(self, add_tags):
         event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
         group = event.group
         add_tags.assert_called_once_with(group, [('foo', 'bar'), ('level', 'error'), ('logger', 'root')])
 
-    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')
     def test_tags_as_dict(self, add_tags):
         event = Group.objects.from_kwargs(1, message='foo', tags={'foo': 'bar'})
         group = event.group
         add_tags.assert_called_once_with(group, [('foo', 'bar'), ('level', 'error'), ('logger', 'root')])
 
-    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     def test_platform_is_saved(self):
         event = Group.objects.from_kwargs(1, message='foo', platform='python')
         group = event.group
