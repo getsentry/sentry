@@ -434,6 +434,7 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/app/directives/clippy.js",
                 "sentry/app/directives/count.js",
                 "sentry/app/directives/timeSince.js",
+                "sentry/app/directives/broadcast.js",
             ],
         },
 

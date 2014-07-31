@@ -8,6 +8,7 @@ var SentryApp = angular.module('sentry', [
   'sentry.directives.clippy',
   'sentry.directives.count',
   'sentry.directives.timeSince',
+  'sentry.directives.broadcast',
 
   'ui.bootstrap'
 ]).config(function(
