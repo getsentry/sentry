@@ -44,6 +44,7 @@ from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json
+from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -343,6 +344,10 @@ class StoreView(APIView):
             ensure_has_ip(data, request.META['REMOTE_ADDR'])
 
         event_id = data['event_id']
+
+        # We filter data immediately before it ever gets into the queue
+        inst = SensitiveDataFilter()
+        inst.apply(data)
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)
