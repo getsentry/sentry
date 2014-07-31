@@ -112,3 +112,12 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         result = proc.sanitize('foo', '424242424242424')
         self.assertEquals(result, proc.MASK)
+
+    def test_sanitize_credit_card_within_value(self):
+        proc = SensitiveDataFilter()
+        result = proc.sanitize('foo', "'4242424242424242'")
+        self.assertEquals(result, proc.MASK)
+
+        proc = SensitiveDataFilter()
+        result = proc.sanitize('foo', "foo 4242424242424242")
+        self.assertEquals(result, proc.MASK)
