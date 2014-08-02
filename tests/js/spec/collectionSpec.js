@@ -8,11 +8,11 @@ describe('sentry.collection', function(){
     Collection = $injector.get('Collection');
   }));
 
-  describe('push', function() {
+  describe('add', function() {
     it('should append elements', function(){
       var c = new Collection();
-      c.push({id: 'foo'});
-      c.push({id: 'bar'});
+      c.add({id: 'foo'});
+      c.add({id: 'bar'});
 
       assert.equal(c.length, 2);
 
@@ -22,8 +22,8 @@ describe('sentry.collection', function(){
 
     it('should update existing elements', function(){
       var c = new Collection();
-      c.push({id: 'foo', biz: 'baz'});
-      c.push({id: 'foo', biz: 'boz'});
+      c.add({id: 'foo', biz: 'baz'});
+      c.add({id: 'foo', biz: 'boz'});
 
       assert.equal(c.length, 1);
 
@@ -33,9 +33,9 @@ describe('sentry.collection', function(){
 
     it('should should respect limit', function(){
       var c = new Collection([], {limit: 2});
-      c.push({id: 'foo'});
-      c.push({id: 'bar'});
-      c.push({id: 'baz'});
+      c.add({id: 'foo'});
+      c.add({id: 'bar'});
+      c.add({id: 'baz'});
 
       assert.equal(c.length, 2);
 
@@ -43,42 +43,6 @@ describe('sentry.collection', function(){
       assert.equal(c[1].id, 'bar');
     });
 
-  });
-
-  describe('unshift', function() {
-    it('should prepend elements', function(){
-      var c = new Collection();
-      c.unshift({id: 'foo'});
-      c.unshift({id: 'bar'});
-
-      assert.equal(c.length, 2);
-
-      assert.equal(c[0].id, 'bar');
-      assert.equal(c[1].id, 'foo');
-    });
-
-    it('should update existing elements', function(){
-      var c = new Collection();
-      c.unshift({id: 'foo', biz: 'baz'});
-      c.unshift({id: 'foo', biz: 'boz'});
-
-      assert.equal(c.length, 1);
-
-      assert.equal(c[0].id, 'foo');
-      assert.equal(c[0].biz, 'boz');
-    });
-
-    it('should should respect limit', function(){
-      var c = new Collection([], {limit: 2});
-      c.unshift({id: 'foo'});
-      c.unshift({id: 'bar'});
-      c.unshift({id: 'baz'});
-
-      assert.equal(c.length, 2);
-
-      assert.equal(c[0].id, 'baz');
-      assert.equal(c[1].id, 'bar');
-    });
   });
 
   describe('remove', function() {
