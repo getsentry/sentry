@@ -11,9 +11,14 @@
     init: function() {
       var self = this;
 
-      this.$scope.groupList = new this.Collection(this.$window.groupList);
-      this.timeoutId = null;
-
+      this.$scope.groupList = new this.Collection(this.$window.groupList, {
+        sortFunc: function(data) {
+          app.utils.sortArray(data, function(item){
+            return [new Date(item.lastSeen).getTime()];
+          });
+        },
+        limit: 50
+      });
       this.timeoutId = window.setTimeout(this.pollForChanges, 1000);
 
       this.$scope.$on('destroy', function(){
@@ -33,17 +38,14 @@
     pollForChanges: function() {
       var self = this;
 
-      this.$http.get('/api/0/projects/' + this.selectedProject.id + '/groups/').success(function(data){
-        for (var i = 0; i < data.length; i++) {
-          self.$scope.groupList.unshift(data[i]);
-        }
-        app.utils.sortArray(self.$scope.groupList, function(item){
-          return [new Date(item.lastSeen).getTime()];
-        }).splice(50);
-
-      }).finally(function(){
-        self.timeoutId = window.setTimeout(self.pollForChanges, 1000);
-      });
+      this.$http.get('/api/0/projects/' + this.selectedProject.id + '/groups/')
+        .success(function(data){
+          self.$timeout(function(){
+            self.$scope.groupList.extend(data);
+          });
+        }).finally(function(){
+          self.timeoutId = window.setTimeout(self.pollForChanges, 1000);
+        });
     }
   });
 }());

@@ -5,7 +5,10 @@
     .factory('Collection', function(){
       var defaults = {
         sortFunc: null,
-        limit: null
+        limit: null,
+        equals: function(item, other) {
+          return item.id == other.id;
+        }
       };
 
       function Collection(collection, options) {
@@ -26,9 +29,7 @@
         this.options = options;
 
         if (collection !== undefined) {
-          for (i=0; i<collection.length; i++) {
-            this.push(collection[i]);
-          }
+          this.extend(collection);
         }
 
         return this;
@@ -38,28 +39,12 @@
 
       Collection.prototype.constructor = Collection;
 
-      // TODO(dcramer): we should probably make the behavior in updateItem actually
-      // be part of push/unshift
-      Collection.prototype.push = function push(item) {
+      Collection.prototype.add = function add(item) {
         if (this._updateExisting(item)) {
           return;
         }
 
         Array.prototype.push.apply(this, arguments);
-        if (this.options.sortFunc) {
-          this.options.sortFunc(this);
-        }
-        if (this.options.limit && this.length > this.options.limit) {
-          this.splice(this.options.limit, this.length - this.options.limit);
-        }
-      };
-
-      Collection.prototype.unshift = function unshift(item) {
-        if (this._updateExisting(item)) {
-          return;
-        }
-
-        Array.prototype.unshift.apply(this, arguments);
         if (this.options.sortFunc) {
           this.options.sortFunc(this);
         }
@@ -83,12 +68,26 @@
         }
       };
 
-      Collection.prototype._updateExisting = function _updateExisting(item) {
+      Collection.prototype.extend = function extend(data) {
+        for (var i = 0; i < data.length; i++) {
+          this.add(data[i]);
+        }
+      };
+
+      Collection.prototype.indexOf = function indexOf(item) {
         for (var i = 0; i < this.length; i++) {
-          if (this[i].id == item.id) {
-            angular.extend(this[i], item);
-            return true;
+          if (this.options.equals(this[i], item)) {
+            return i;
           }
+        }
+        return -1;
+      };
+
+      Collection.prototype._updateExisting = function _updateExisting(item) {
+        var existing = this.indexOf(item);
+        if (existing !== -1) {
+          $.extend(true, this[existing], item);
+          return true;
         }
         return false;
       };
