@@ -6,6 +6,8 @@
 
 {% block bodyclass %}team-index {{ block.super }}{% endblock %}
 
+{% block controller %}TeamListCtrl{% endblock %}
+
 {% block heading %}Sentry{% endblock %}
 
 {% block content %}
@@ -42,8 +44,4 @@
             <div class="alert alert-info">{% trans "You are not a member of any teams." %}</div>
         {% endif %}
     </section>
-
-    <script>
-    new app.SelectTeamPage();
-    </script>
 {% endblock %}
