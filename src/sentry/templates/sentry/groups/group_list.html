@@ -1,10 +1,12 @@
 {% extends "sentry/bases/stream.html" %}
 
 {% load i18n %}
+{% load sentry_api %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 {% load sentry_stream_filters %}
 
+{% block controller %}ProjectStreamCtrl{% endblock %}
 
 {% block content %}
     {% querystring from request without sort as sort_querystring %}
@@ -113,7 +115,49 @@
         </ul>
     {% endif %}
 
-    <div id="event_list"></div>
+    <ul class="group-list">
+        <li class="group" ng-repeat="group in groupList">
+            <div class="event-details event-cell">
+              <div class="checkbox">
+                  <input type="checkbox">
+              </div>
+              <h3><a href="<% group.permalink %>"><% group.title %></a></h3>
+              <div class="event-meta">
+                  <span class="message"><% group.culprit %></span>
+                  &middot; <time time-since="group.firstSeen"></time>
+              </div>
+            </div>
+            <div class="event-assignee event-cell">
+              <div class="user-selector">
+                <div class="btn-group">
+                  <a href="#" class="btn btn-sm btn-default dropdown-toggle">
+                    <img src="http://github.com/benvinegar.png" class="avatar">
+                    <span aria-hidden="true" class="icon-arrow-down"></span>
+                  </a>
+                  <div class="dropdown-menu">
+                    <input type="text" class="form-control input-sm" placeholder="Filter people">
+                    <ul>
+                      <li><a href="#"><img src="http://github.com/dcramer.png" class="avatar"> David Cramer</a></li>
+                      <li><a href="#"><img src="http://github.com/ckj.png" class="avatar"> Chris Jennings</a></li>
+                      <li><a href="#"><img src="http://github.com/mattrobenolt.png" class="avatar"> Matt Robenolt</a></li>
+                      <li><a href="#"><img src="http://github.com/byk.png" class="avatar"> Red Lobster</a></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="hidden-sm hidden-xs event-graph align-right event-cell">
+                <span class="sparkline"></span>
+            </div>
+            <div class="hidden-xs event-occurrences align-center event-cell">
+              <span count="group.count"></span>
+            </div>
+            <div class="hidden-xs event-users align-right event-cell">
+              <span>209</span>
+            </div>
+        </li>
+    </ul>
+
 
     <div class="stream-pagination">
         <div class="btn-group pull-right">
@@ -140,10 +184,6 @@
     </div>
 
     <script>
-    new app.StreamPage({
-        groups: {{ event_list|to_json:request|safe }},
-        canStream: {{ has_realtime|to_json|safe }},
-        realtime: true
-    });
+    window.groupList = {% serialize event_list %}
     </script>
 {% endblock %}

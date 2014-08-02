@@ -452,7 +452,6 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/app/charts.js",
                 "sentry/app/collections.js",
                 "sentry/app/models.js",
-                "sentry/app/templates.js",
                 "sentry/app/views.js",
                 "sentry/app/utils.js",
             ],
