@@ -14,7 +14,7 @@
     {
       text: "Precisely control notifications with Rules"
     }
-  ]
+  ];
 
   angular.module('sentry.directives.broadcast', [])
     .directive('broadcast', function() {
