@@ -34,12 +34,13 @@
   angular.module('sentry.directives.count', [])
     .directive('count', function() {
       return function(scope, element, attrs){
-        var value = scope.$eval(attrs.count);
-        if (value === undefined) {
-          element.text('');
-        } else {
-          element.text(formatNumber(value));
-        }
+        scope.$watch(attrs.count, function(value){
+          if (value === undefined) {
+            element.text('');
+          } else {
+            element.text(formatNumber(value));
+          }
+        });
       };
     });
 }());
