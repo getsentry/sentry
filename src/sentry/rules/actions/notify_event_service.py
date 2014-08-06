@@ -18,14 +18,12 @@ class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
     def __init__(self, *args, **kwargs):
-        plugins = kwargs.pop('plugins')
-
-        super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
-
         service_choices = [
             (plugin.slug, plugin.get_title())
-            for plugin in plugins
+            for plugin in kwargs.pop('plugins')
         ]
+
+        super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
 
         self.fields['service'].choices = service_choices
         self.fields['service'].widget.choices = self.fields['service'].choices
@@ -37,6 +35,9 @@ class NotifyEventServiceAction(EventAction):
 
     def after(self, event, state):
         service = self.get_option('service')
+
+        if not service:
+            return
 
         plugin = plugins.get(service)
         if not plugin.is_enabled(self.project):

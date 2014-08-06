@@ -28,18 +28,17 @@ def preprocess_event(cache_key=None, data=None, **kwargs):
 
     logger = preprocess_event.get_logger()
 
-    try:
-        if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
-            try:
-                expand_javascript_source(data)
-            except Exception as e:
-                logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
-            else:
-                cache.set(cache_key, data, 3600)
-    finally:
-        if cache_key:
-            data = None
-        save_event.delay(cache_key=cache_key, data=data)
+    if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
+        try:
+            expand_javascript_source(data)
+        except Exception as e:
+            logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
+        else:
+            cache.set(cache_key, data, 3600)
+
+    if cache_key:
+        data = None
+    save_event.delay(cache_key=cache_key, data=data)
 
 
 @instrumented_task(
@@ -50,7 +49,7 @@ def save_event(cache_key=None, data=None, **kwargs):
     Saves an event to the database.
     """
     from sentry.app import cache
-    from sentry.models import Group
+    from sentry.event_manager import EventManager
 
     if cache_key:
         data = cache.get(cache_key)
@@ -58,8 +57,11 @@ def save_event(cache_key=None, data=None, **kwargs):
     if data is None:
         return
 
+    project = data.pop('project')
+
     try:
-        Group.objects.save_data(data.pop('project'), data)
+        manager = EventManager(data)
+        manager.save(project)
     finally:
         if cache_key:
             cache.delete(cache_key)

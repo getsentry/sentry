@@ -8,7 +8,7 @@ sentry.utils.samples
 import os.path
 
 from sentry.constants import DATA_ROOT, PLATFORM_ROOTS, PLATFORM_TITLES
-from sentry.models import Group
+from sentry.event_manager import EventManager
 from sentry.utils import json
 
 
@@ -72,5 +72,6 @@ def create_sample_event(project, platform=None, default=None):
     if not data:
         return
 
-    data = Group.objects.normalize_event_data(data)
-    return Group.objects.save_data(project.id, data, raw=True)
+    manager = EventManager(data)
+    manager.normalize()
+    return manager.save(project.id, raw=True)
