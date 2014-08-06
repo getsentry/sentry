@@ -40,9 +40,10 @@
                           <input type="text" class="search-input form-control"
                                  placeholder="Search for events, users, tags, and everything else.">
                           <span class="icon-search"></span>
-                          <a href="#" class="filter-toggle"><span aria-hidden="true" class="icon-arrow-down"></span></a>
+                          <a href="#" class="filter-toggle"
+                             ng-click="searchDropdown.visible = !searchDropdown.visible === true"><span aria-hidden="true" class="icon-arrow-down"></span></a>
                       </div>
-                      <div class="filter-dropdown">
+                      <div class="filter-dropdown" ng-show="searchDropdown.visible === true">
                           <!-- <ul class="nav nav-pills">
                             <li class="active"><a href="#">Build</a></li>
                             <li><a href="#">Recent searches</a></li>
