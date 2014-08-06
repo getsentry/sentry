@@ -77,7 +77,7 @@ class GroupSerializer(Serializer):
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'tags': tags,
                 'hourly_stats': hourly_stats[item.id],
-                'daily_stats': hourly_stats[item.id],
+                'daily_stats': daily_stats[item.id],
             }
         return result
 
