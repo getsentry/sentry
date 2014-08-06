@@ -9,6 +9,7 @@ sentry.tasks.merge
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
+from django.db.models import F
 
 from sentry.tasks.base import instrumented_task, retry
 
@@ -45,6 +46,10 @@ def merge_group(from_object_id, to_object_id, **kwargs):
             to_object_id=to_object_id,
         )
         return
+
+    new_group.update(
+        times_seen=F('times_seen') + group.times_seen,
+    )
 
     group.delete()
 
