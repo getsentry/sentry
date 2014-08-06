@@ -8,20 +8,7 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
-from celery.task import current
-from functools import wraps
-
-from sentry.tasks.base import instrumented_task
-
-
-def retry(func):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as exc:
-            current.retry(exc=exc)
-    return wrapped
+from sentry.tasks.base import instrumented_task, retry
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
