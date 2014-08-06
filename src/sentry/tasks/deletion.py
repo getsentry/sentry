@@ -84,7 +84,8 @@ def delete_project(object_id, **kwargs):
 @retry
 def delete_group(object_id, **kwargs):
     from sentry.models import (
-        Group, GroupRuleStatus, GroupTagKey, GroupTagValue, EventMapping, Event
+        Group, GroupHash, GroupRuleStatus, GroupTagKey, GroupTagValue,
+        EventMapping, Event
     )
 
     try:
@@ -95,7 +96,7 @@ def delete_group(object_id, **kwargs):
     logger = delete_group.get_logger()
 
     model_list = (
-        GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping, Event
+        GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping, Event
     )
 
     has_more = delete_objects(model_list, relation={'group': group}, logger=logger)
