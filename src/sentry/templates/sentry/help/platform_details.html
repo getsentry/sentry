@@ -6,9 +6,10 @@
 {% block title %}{{ platform_title }} Client Configuration | {{ block.super }}{% endblock %}
 
 {% block helpcontent %}
-    <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
-
-    <h2><a href="{% url 'sentry-help-platform-list' %}">Platforms <span>/</span> </a> {{ platform_title }}</h2>
+    <div class="crumbs">
+      <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
+      <h2><a href="{% url 'sentry-help-platform-list' %}">Platforms <span>/</span> </a> {{ platform_title }}</h2>
+    </div>
 
     {{ template }}
 {% endblock %}

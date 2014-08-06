@@ -2,15 +2,13 @@
 title:Rate Limits & Quotas
 ----
 
-Burst Quotas and Throttling
-===========================
+## Burst Quotas and Throttling
 
 Sentry enforces rate limits using a 60-second counter. For example, when you send an event at 18:51 it will be counted only for the duration of that minute.
 
 Most of the time when you're throttled, Sentry will return a 429. This error code means you've hit the 60 second burst protection. In rare cases, the server might flat out reject your request (connection refused). Both cases the throttling happens only for a short period of time (less than a minute), and the service will operate as expected once its lifted.
 
-Message Truncation
-==================
+## Message Truncation
 
 Sentry imposes hard limits on various components within a message. While the limits may change over time, and vary between attributes most individual attributes are capped at 512 bytes. Additionally, certain attributes also limit the maximum number of items.
 
@@ -25,8 +23,7 @@ The following limitations will be automatically enforced:
 - Collections exceeding the max items will be trimmed down to the maximum size.
 - Individually values exceeding the maximum length will be trimmed down to the maximum size.
 
-Optimizing What You Send
-========================
+## Optimizing What You Send
 
 Trying to keep within the bounds of your subscription? Try these useful tips for optimizing what you send to Sentry:
 
