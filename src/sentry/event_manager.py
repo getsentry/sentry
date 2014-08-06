@@ -372,6 +372,8 @@ class EventManager(object):
         # attempt to find a matching hash
         existing_hashes = self._find_hashes(project, hashes)
 
+        is_new = not existing_hashes
+
         try:
             existing_group_id = (h[0] for h in existing_hashes if h[0]).next()
         except StopIteration:
@@ -387,12 +389,8 @@ class EventManager(object):
                 checksum=hashes[0],
                 defaults=kwargs,
             )
-
-            is_new = True
         else:
             group = Group.objects.get(id=existing_group_id)
-
-            is_new = False
 
         new_hashes = [h[1] for h in existing_hashes if h[0] is None]
         if new_hashes:
