@@ -14,7 +14,7 @@
       this.$scope.groupList = new this.Collection(this.$window.groupList, {
         sortFunc: function(data) {
           app.utils.sortArray(data, function(item){
-            return [new Date(item.lastSeen).getTime()];
+            return [item.score];
           });
         },
         limit: 50
