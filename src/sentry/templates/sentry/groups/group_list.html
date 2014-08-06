@@ -56,7 +56,7 @@
                     {% endif %}
                  <span aria-hidden="true" class="icon-arrow-down"></span></a>
                  <div class="datepicker-box dropdown-menu" id="daterange">
-                     <form method="GET">
+                     <form method="GET" action=".">
                          {% for key, value in request.GET.iteritems %}
                              {% if key != df and key != tf and key != dt and key != tt and key != page %}
                                  <input type="hidden" name="{{ key }}" value="{{ value }}">
@@ -92,9 +92,8 @@
           </div>
             <div class="hidden-sm hidden-xs stream-actions-graph stream-actions-cell">
               <ul class="toggle-graph">
-                <li class="active"><a href="#">24h</a></li>
-                <li><a href="#">7d</a></li>
-                <li><a href="#">2w</a></li>
+                <li ng-class="chartDuration == '24h' ? 'active' : ''"><a ng-click="setChartDuration('24h')">24h</a></li>
+                <li ng-class="chartDuration == '30d' ? 'active' : ''"><a ng-click="setChartDuration('30d')">30d</a></li>
               </ul>
             </div>
             <div class="stream-actions-occurrences stream-actions-cell align-center hidden-xs"> events</div>
@@ -147,13 +146,13 @@
               </div>
             </div>
             <div class="hidden-sm hidden-xs event-graph align-right event-cell">
-                <span class="sparkline"></span>
+              <barchart data="group.activeChartData" options="chartOptions" class="sparkline"></barchart>
             </div>
             <div class="hidden-xs event-occurrences align-center event-cell">
               <span count="group.count"></span>
             </div>
             <div class="hidden-xs event-users align-right event-cell">
-              <span>209</span>
+              <span count="group.tags['sentry:user'].count || 0"></span>
             </div>
         </li>
     </ul>

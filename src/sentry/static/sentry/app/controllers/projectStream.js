@@ -25,13 +25,13 @@
         window.clearTimeout(self.timeoutId);
       });
 
-      this.setChartDuration('1d');
+      this.setChartDuration('24h');
     },
 
     setChartDuration: function(duration) {
       this.$scope.chartDuration = duration;
-      $.each(this.$scope.groupList, function(_, group){
-        group.activeChartData = group.stats['24h'];
+      angular.forEach(this.$scope.groupList, function(group){
+        group.activeChartData = group.stats[duration];
       });
     },
 
@@ -40,7 +40,11 @@
 
       this.$http.get('/api/0/projects/' + this.selectedProject.id + '/groups/')
         .success(function(data){
+          var duration = self.$scope.chartDuration;
           self.$timeout(function(){
+            angular.forEach(data, function(group){
+              group.activeChartData = group.stats[duration];
+            });
             self.$scope.groupList.extend(data);
           });
         }).finally(function(){
