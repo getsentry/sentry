@@ -339,6 +339,8 @@ class EventManager(object):
         return matches
 
     def _ensure_hashes_merged(self, group, hash_list):
+        # TODO(dcramer): there is a race condition with selecting/updating
+        # in that another group could take ownership of the hash
         bad_hashes = GroupHash.objects.filter(
             project=group.project,
             hash__in=hash_list,
