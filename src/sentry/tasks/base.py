@@ -6,7 +6,7 @@ sentry.tasks.base
 :license: BSD, see LICENSE for more details.
 """
 
-from celery.task import task
+from celery.task import current, task
 from django_statsd.clients import statsd
 from functools import wraps
 
@@ -22,4 +22,14 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
                 result = func(*args, **kwargs)
             return result
         return task(name=name, **kwargs)(_wrapped)
+    return wrapped
+
+
+def retry(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as exc:
+            current.retry(exc=exc)
     return wrapped

@@ -34,6 +34,7 @@ def replay_event(request, team, project, group, event_id):
         # TODO: show a proper error
         return HttpResponseRedirect(reverse('sentry'))
 
+    # TODO(mattrobenolt): Add Cookie as a header
     http = interfaces['sentry.interfaces.Http']
     if http.headers:
         headers = '\n'.join('%s: %s' % (k, v) for k, v in http.headers.iteritems() if k[0].upper() == k[0])
@@ -46,7 +47,7 @@ def replay_event(request, team, project, group, event_id):
         data = http.data
 
     initial = {
-        'url': urlparse.urldefrag(http.url)[0],
+        'url': urlparse.urldefrag(http.full_url)[0],
         'method': http.method,
         'headers': headers,
         'data': data,

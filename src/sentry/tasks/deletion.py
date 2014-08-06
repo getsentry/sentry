@@ -8,20 +8,7 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
-from celery.task import current
-from functools import wraps
-
-from sentry.tasks.base import instrumented_task
-
-
-def retry(func):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as exc:
-            current.retry(exc=exc)
-    return wrapped
+from sentry.tasks.base import instrumented_task, retry
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
@@ -97,7 +84,8 @@ def delete_project(object_id, **kwargs):
 @retry
 def delete_group(object_id, **kwargs):
     from sentry.models import (
-        Group, GroupRuleStatus, GroupTagKey, GroupTagValue, EventMapping, Event
+        Group, GroupHash, GroupRuleStatus, GroupTagKey, GroupTagValue,
+        EventMapping, Event
     )
 
     try:
@@ -108,7 +96,7 @@ def delete_group(object_id, **kwargs):
     logger = delete_group.get_logger()
 
     model_list = (
-        GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping, Event
+        GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping, Event
     )
 
     has_more = delete_objects(model_list, relation={'group': group}, logger=logger)

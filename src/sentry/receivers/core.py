@@ -2,6 +2,7 @@ from __future__ import print_function
 
 from django.conf import settings
 from django.contrib.auth.signals import user_logged_in
+from django.db import connections
 from django.db.models.signals import post_syncdb, post_save, pre_delete
 from pkg_resources import parse_version as Version
 
@@ -14,10 +15,17 @@ from sentry.models import (
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.safe import safe_execute
 
+PROJECT_SEQUENCE_FIX = """
+SELECT setval('sentry_project_id_seq', (
+    SELECT GREATEST(MAX(id) + 1, nextval('sentry_project_id_seq')) - 1
+    FROM sentry_project))
+"""
+
 
 def create_default_project(created_models, verbosity=2, **kwargs):
     if Project not in created_models:
         return
+
     if Project.objects.filter(id=settings.SENTRY_PROJECT).exists():
         return
 
@@ -27,6 +35,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         user = None
 
     project = Project.objects.create(
+        id=settings.SENTRY_PROJECT,
         public=False,
         name='Sentry (Internal)',
         slug='sentry',
@@ -35,11 +44,10 @@ def create_default_project(created_models, verbosity=2, **kwargs):
     )
     # HACK: manually update the ID after insert due to Postgres
     # sequence issues. Seriously, fuck everything about this.
-    # TODO(dcramer): find a better solution
-    if project.id != settings.SENTRY_PROJECT:
-        project.key_set.all().delete()
-        project.update(id=settings.SENTRY_PROJECT)
-        create_team_and_keys_for_project(project, created=True)
+    connection = connections[project._state.db]
+    if connection.settings_dict['ENGINE'].endswith('psycopg2'):
+        cursor = connection.cursor()
+        cursor.execute(PROJECT_SEQUENCE_FIX)
 
     if verbosity > 0:
         print('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
