@@ -404,7 +404,7 @@ class EventManager(object):
             )
             if affected != len(new_hashes):
                 self._ensure_hashes_merged(group, new_hashes)
-            else:
+            elif group_is_new:
                 is_new = len(new_hashes) == len(existing_hashes)
 
         update_kwargs = {
