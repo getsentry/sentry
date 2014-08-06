@@ -287,6 +287,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.email',
     'sentry.tasks.fetch_source',
     'sentry.tasks.index',
+    'sentry.tasks.merge',
     'sentry.tasks.store',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',

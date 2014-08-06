@@ -38,6 +38,7 @@ from sentry.coreapi import (
     APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
     decompress_deflate, decompress_gzip)
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
+from sentry.event_manager import EventManager
 from sentry.models import (
     Group, GroupBookmark, Project, TagValue, Activity, User)
 from sentry.signals import event_received
@@ -337,7 +338,8 @@ class StoreView(APIView):
             raise APIError(u'Invalid data: %s (%s)' % (six.text_type(e), type(e)))
 
         # mutates data
-        Group.objects.normalize_event_data(data)
+        manager = EventManager(data)
+        data = manager.normalize()
 
         # insert IP address if not available
         if auth.is_public:
