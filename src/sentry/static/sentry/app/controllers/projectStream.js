@@ -30,6 +30,7 @@
 
     setChartDuration: function(duration) {
       this.$scope.chartDuration = duration;
+      console.log(duration);
       angular.forEach(this.$scope.groupList, function(group){
         group.activeChartData = group.stats[duration];
       });
