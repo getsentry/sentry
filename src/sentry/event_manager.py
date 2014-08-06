@@ -331,13 +331,10 @@ class EventManager(object):
 
         matches = []
         for hash in hash_list:
-            try:
-                ghash, _ = GroupHash.objects.get_or_create(
-                    project=project,
-                    hash=hash,
-                )
-            except GroupHash.DoesNotExist:
-                continue
+            ghash, _ = GroupHash.objects.get_or_create(
+                project=project,
+                hash=hash,
+            )
             matches.append((ghash.group_id, ghash.hash))
         return matches
 
@@ -372,8 +369,6 @@ class EventManager(object):
         # attempt to find a matching hash
         existing_hashes = self._find_hashes(project, hashes)
 
-        is_new = not existing_hashes
-
         try:
             existing_group_id = (h[0] for h in existing_hashes if h[0]).next()
         except StopIteration:
@@ -389,9 +384,15 @@ class EventManager(object):
                 checksum=hashes[0],
                 defaults=kwargs,
             )
+
+            group_is_new = True
         else:
             group = Group.objects.get(id=existing_group_id)
 
+            group_is_new = False
+
+        # If all hashes are brand new we treat this event as new
+        is_new = False
         new_hashes = [h[1] for h in existing_hashes if h[0] is None]
         if new_hashes:
             affected = GroupHash.objects.filter(
@@ -403,6 +404,8 @@ class EventManager(object):
             )
             if affected != len(new_hashes):
                 self._ensure_hashes_merged(group, new_hashes)
+            else:
+                is_new = len(new_hashes) == len(existing_hashes)
 
         update_kwargs = {
             'times_seen': 1,
