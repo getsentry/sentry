@@ -10,6 +10,7 @@ var SentryApp = angular.module('sentry', [
   'sentry.directives.timeSince',
   'sentry.directives.broadcast',
 
+  'ngAnimate',
   'ui.bootstrap'
 ]).config(function(
   $httpProvider, $interpolateProvider, $provide

@@ -7,6 +7,7 @@
   "private": true,
   "dependencies": {
     "angular": "1.2.9",
+    "angular-animate": "1.2.9",
     "angular-bootstrap": "~0.10.0",
     "angular-classy": "~0.4.2",
     "angular-loading-bar": "~0.0.5",
