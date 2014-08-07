@@ -380,14 +380,12 @@ class EventManager(object):
         # it should be resolved by the hash merging function later but this
         # should be better tested/reviewed
         if existing_group_id is None:
-            group, _ = Group.objects.get_or_create(
+            group, group_is_new = Group.objects.get_or_create(
                 project=project,
                 # TODO(dcramer): remove checksum from Group/Event
                 checksum=hashes[0],
                 defaults=kwargs,
             )
-
-            group_is_new = True
         else:
             group = Group.objects.get(id=existing_group_id)
 
@@ -407,8 +405,8 @@ class EventManager(object):
 
             if affected != len(new_hashes):
                 self._ensure_hashes_merged(group, new_hashes)
-            elif group_is_new:
-                is_new = len(new_hashes) == len(all_hashes)
+            elif len(new_hashes) == len(all_hashes):
+                is_new = True
 
         update_kwargs = {
             'times_seen': 1,
