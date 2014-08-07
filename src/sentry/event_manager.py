@@ -356,7 +356,7 @@ class EventManager(object):
                 to_group_id=group.id,
             )
 
-        GroupHash.objects.filter(
+        return GroupHash.objects.filter(
             project=group.project,
             hash__in=bad_hashes,
         ).update(
@@ -369,10 +369,10 @@ class EventManager(object):
         project = event.project
 
         # attempt to find a matching hash
-        existing_hashes = self._find_hashes(project, hashes)
+        all_hashes = self._find_hashes(project, hashes)
 
         try:
-            existing_group_id = (h[0] for h in existing_hashes if h[0]).next()
+            existing_group_id = (h[0] for h in all_hashes if h[0]).next()
         except StopIteration:
             existing_group_id = None
 
@@ -395,7 +395,7 @@ class EventManager(object):
 
         # If all hashes are brand new we treat this event as new
         is_new = False
-        new_hashes = [h[1] for h in existing_hashes if h[0] is None]
+        new_hashes = [h[1] for h in all_hashes if h[0] is None]
         if new_hashes:
             affected = GroupHash.objects.filter(
                 project=project,
@@ -404,10 +404,11 @@ class EventManager(object):
             ).update(
                 group=group,
             )
+
             if affected != len(new_hashes):
                 self._ensure_hashes_merged(group, new_hashes)
             elif group_is_new:
-                is_new = len(new_hashes) == len(existing_hashes)
+                is_new = len(new_hashes) == len(all_hashes)
 
         update_kwargs = {
             'times_seen': 1,
