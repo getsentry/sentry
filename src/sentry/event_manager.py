@@ -197,7 +197,8 @@ class EventManager(object):
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
         if data['message']:
-            data['message'] = trim(data['message'], 2048)
+            data['message'] = trim(
+                data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
         return data
 

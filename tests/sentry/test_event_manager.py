@@ -6,6 +6,9 @@ import logging
 
 from mock import patch
 
+from django.conf import settings
+
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager, get_hashes_for_event
 from sentry.models import Event, Group, Project, EventMapping
 from sentry.testutils import TestCase
@@ -104,6 +107,20 @@ class EventManagerTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
         assert group.message == event2.message
+
+    def test_long_culprit(self):
+        manager = EventManager(self.make_event(
+            culprit='x' * (MAX_CULPRIT_LENGTH + 1),
+        ))
+        data = manager.normalize()
+        assert len(data['culprit']) == MAX_CULPRIT_LENGTH
+
+    def test_long_message(self):
+        manager = EventManager(self.make_event(
+            message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
+        ))
+        data = manager.normalize()
+        assert len(data['message']) == settings.SENTRY_MAX_MESSAGE_LENGTH
 
 
 class GetHashesFromEventTest(TestCase):
