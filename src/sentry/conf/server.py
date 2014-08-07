@@ -462,6 +462,7 @@ SENTRY_STATIC_BUNDLES = {
         "sentry/dist/vendor-angular.min.js": {
             "src": [
                 "sentry/vendor/angular/angular.min.js",
+                "sentry/vendor/angular-animate/angular-animate.min.js",
                 # "sentry/vendor/angular-route/angular-route.min.js",
 
                 "sentry/vendor/angular-bootstrap/ui-bootstrap-tpls.min.js",
