@@ -405,7 +405,7 @@ class EventManager(object):
 
             if affected != len(new_hashes):
                 self._ensure_hashes_merged(group, new_hashes)
-            elif len(new_hashes) == len(all_hashes):
+            elif group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
 
         update_kwargs = {
@@ -449,7 +449,7 @@ class EventManager(object):
 
     def _process_existing_aggregate(self, group, event, data):
         date = max(event.datetime, group.last_seen)
-
+        print date
         extra = {
             'last_seen': date,
             'score': ScoreClause(group),
