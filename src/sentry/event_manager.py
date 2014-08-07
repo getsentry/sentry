@@ -321,7 +321,7 @@ class EventManager(object):
         index_event.delay(event)
 
         # TODO: move this to the queue
-        if is_new and not raw:
+        if is_regression and not raw:
             regression_signal.send_robust(sender=Group, instance=group)
 
         return event
