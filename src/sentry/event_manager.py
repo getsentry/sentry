@@ -450,7 +450,6 @@ class EventManager(object):
 
     def _process_existing_aggregate(self, group, event, data):
         date = max(event.datetime, group.last_seen)
-        print date
         extra = {
             'last_seen': date,
             'score': ScoreClause(group),
