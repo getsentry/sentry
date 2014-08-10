@@ -19,7 +19,7 @@ from django.utils.safestring import mark_safe
 
 from sentry.api.serializers.base import serialize
 from sentry.constants import EVENTS_PER_PAGE, STATUS_HIDDEN
-from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
+from sentry.models import Project, Team, Option, ProjectOption
 
 logger = logging.getLogger('sentry.errors')
 
@@ -79,22 +79,6 @@ def get_login_url(reset=False):
         if _LOGIN_URL is None:
             _LOGIN_URL = reverse('sentry-login')
     return _LOGIN_URL
-
-
-def get_internal_project():
-    try:
-        project = Project.objects.get(id=settings.SENTRY_PROJECT)
-    except Project.DoesNotExist:
-        return {}
-    try:
-        projectkey = ProjectKey.objects.filter(project=project).order_by('-user')[0]
-    except IndexError:
-        return {}
-
-    return {
-        'id': project.id,
-        'dsn': projectkey.get_dsn(public=True)
-    }
 
 
 def get_default_context(request, existing_context=None, team=None):
