@@ -179,8 +179,6 @@
 
         }),
 
-        DashboardPage: BasePage,
-
         GroupDetailsPage: BasePage.extend({
 
             initialize: function(data){
