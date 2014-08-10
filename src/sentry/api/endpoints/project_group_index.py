@@ -18,7 +18,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
     # status=<x>
     # <tag>=<value>
     def get(self, request, project_id):
-        project = Project.objects.get(
+        project = Project.objects.get_from_cache(
             id=project_id,
         )
 
