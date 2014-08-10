@@ -234,9 +234,5 @@
 {% block content_after %}
     <script>
     window.SentryConfig.selectedGroup = {% convert_to_json selectedGroup %};
-
-    new app.GroupDetailsPage({
-        group: {{ group|to_json:request|safe }},
-    });
     </script>
 {% endblock %}
