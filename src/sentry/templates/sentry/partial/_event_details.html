@@ -27,13 +27,15 @@
 {% endfor %}
 
 {% if json_data %}
-    <div id="extra">
-        <div class="page-header">
-            <h2>{% trans "Additional Data" %}</h2>
+    <div id="extra" class="box">
+        <div class="box-header">
+            <h3>{% trans "Additional Data" %}</h3>
         </div>
+        <div class="box-content with-padding">
         {% if json_data %}
             {% render_values json_data %}
         {% endif %}
+        </div>
     </div>
 {% endif %}
 
