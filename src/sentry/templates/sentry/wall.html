@@ -4,11 +4,6 @@
 {% load sentry_helpers %}
 {% load static_compiler %}
 
-{% block scripts %}
-    {{ block.super }}
-    {% staticbundle 'sentry/dist/legacy-app.min.js' %}
-{% endblock %}
-
 {% block css %}
     {% staticbundle 'sentry/dist/wall.min.css' %}
 {% endblock %}
