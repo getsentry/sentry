@@ -10,7 +10,7 @@
                 {% if not plugin_is_enabled %}
                     <a href="{% url 'sentry-enable-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn btn-default">{% trans "Enable Plugin" %}</a>
                 {% else %}
-                    <a href="{% url 'sentry-disable-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn btn-default">{% trans "Disable Plugin" %}</a>
+                    <a href="{% url 'sentry-disable-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn btn-danger">{% trans "Disable Plugin" %}</a>
                 {% endif %}
             {% endif %}
             <a href="{% url 'sentry-reset-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn btn-default"
