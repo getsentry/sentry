@@ -8,7 +8,7 @@
         <h2>{% trans "Rules" %}</h2>
     </div>
     {% if rule_list %}
-        <table class="table table-striped">
+        <table class="table">
             <thead>
                 <tr>
                     <th>Rule</th>
@@ -18,12 +18,12 @@
             <tbody>
                 {% for rule in rule_list %}
                     <tr>
-                        <td>
+                        <td style="vertical-align: middle">
                             <a href="{% url 'sentry-edit-project-rule' project.team.slug project.slug rule.id %}">{{ rule.label }}</a>
                         </td>
-                        <td>
-                            <a href="{% url 'sentry-remove-project-rule' project.team.slug project.slug rule.id %}"
-                               onclick="confirm('Are you sure you want to remove this rule?')">Delete</a>
+                        <td style="text-align: right">
+                            <a href="{% url 'sentry-remove-project-rule' project.team.slug project.slug rule.id %}" class="btn btn-sm btn-default"
+                               onclick="confirm('Are you sure you want to remove this rule?')"><span class="icon-trash"></span> Delete</a>
                         </td>
                     </tr>
                 {% endfor %}
