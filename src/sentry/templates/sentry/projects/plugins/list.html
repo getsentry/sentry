@@ -12,7 +12,7 @@
     </div>
     <form method="POST">
         {% csrf_token %}
-        <table class="table table-striped">
+        <table class="table integrations">
             <thead>
                 <tr>
                     <th>{% trans "Integration" %}</th>
@@ -24,15 +24,12 @@
                 {% for plugin, is_enabled in project|get_plugins_with_status %}
                     <tr>
                         <td>
-                            {% if plugin.has_project_conf %}
-                                <a href="{% url 'sentry-configure-project-plugin' project.team.slug project.slug plugin.slug %}">{{ plugin.get_title }}</a>
-                            {% else %}
-                                {{ plugin.get_title }}
-                            {% endif %}
-                            <br />
+                            <h4>{{ plugin.get_title }}</h4>
                             <small>{% if plugin.author %}
                                 By {% if plugin.author_url %}<a href="{{ plugin.author_url }}">{{ plugin.author }}</a>{% else %}{{ plugin.author }}{% endif %}
-                            {% endif %}</small>
+                            {% endif %}
+                            {% if plugin.has_project_conf %} &middot; <a href="{% url 'sentry-configure-project-plugin' project.team.slug project.slug plugin.slug %}">Configure plugin</a>{% endif %}
+                            </small>
                         </td>
                         <td style="text-align:center;">
                             {% if plugin.version %}{{ plugin.version }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}
@@ -48,8 +45,8 @@
                 {% endfor %}
             </tbody>
         </table>
-        <fieldset class="form-actions">
+        <div class="form-actions" style="border: 0">
             <input type="submit" class="btn btn-primary pull-right" value="Save Changes">
-        </fieldset>
+        </div>
     </form>
 {% endblock %}
