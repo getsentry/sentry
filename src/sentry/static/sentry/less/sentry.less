@@ -1286,8 +1286,9 @@ ul.traceback {
   > div > table.vars {
     margin-bottom: 5px;
     > tbody > tr > th {
-      color: @gray;
+      color: @gray-dark;
       text-align: right;
+      padding-right: 12px !important;
     }
   }
 
@@ -2027,7 +2028,7 @@ table.vars {
   }
   td table {
     border-top: 0;
-    margin-top: -10px;
+    margin-top: -12px;
     margin-bottom: -10px;
   }
   thead th,
@@ -2041,6 +2042,21 @@ table.vars {
   tbody > tr:nth-child(even) > td,
   tbody > tr:nth-child(even) > th {
     background-color: #fff;
+  }
+}
+
+.stack table.vars {
+  tr:first-child td, tr:first-child th {
+    border-top: 2px solid #f1f2f3 !important;
+  }
+}
+
+table.vars .toggle-expand {
+  border-top: 0 !important;
+  padding-top: 2px !important;
+
+  .btn {
+    margin-bottom: -15px;
   }
 }
 
