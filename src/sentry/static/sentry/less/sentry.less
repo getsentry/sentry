@@ -2015,7 +2015,7 @@ table.table, table.vars {
 table.vars {
   margin-top: -5px;
 
-  tr:first-child td, tr:first-child th {
+  tr:first-child > td, tr:first-child > th {
     border-top: 0 !important;
   }
 
@@ -2042,12 +2042,6 @@ table.vars {
   tbody > tr:nth-child(even) > td,
   tbody > tr:nth-child(even) > th {
     background-color: #fff;
-  }
-}
-
-.stack table.vars {
-  tr:first-child td, tr:first-child th {
-    border-top: 2px solid #f1f2f3 !important;
   }
 }
 
