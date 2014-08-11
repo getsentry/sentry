@@ -8,18 +8,18 @@
         <div class="pull-right">
             {% if plugin.can_disable %}
                 {% if not plugin_is_enabled %}
-                    <a href="{% url 'sentry-enable-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn">{% trans "Enable Plugin" %}</a>
+                    <a href="{% url 'sentry-enable-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn btn-default">{% trans "Enable Plugin" %}</a>
                 {% else %}
-                    <a href="{% url 'sentry-disable-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn">{% trans "Disable Plugin" %}</a>
+                    <a href="{% url 'sentry-disable-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn btn-default">{% trans "Disable Plugin" %}</a>
                 {% endif %}
             {% endif %}
-            <a href="{% url 'sentry-reset-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn"
+            <a href="{% url 'sentry-reset-project-plugin' project.team.slug project.slug plugin.slug %}" class="btn btn-default"
                 onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
         </div>
         <h2>{% blocktrans with plugin.get_title as name %}Configure {{ name }}{% endblocktrans %}</h2>
     </div>
-    <div class="row-fluid">
-        <div class="span8">
+    <div class="row">
+        <div class="col-md-8">
             {% if request.GET.success %}
                 <div class="alert alert-success">
                     {% trans "Changes to your project were saved successfully." %}
@@ -28,9 +28,9 @@
             {% endif %}
             {{ view }}
         </div>
-        <div class="span4">
+        <div class="col-md-4">
             <div class="well plugin-meta">
-                <h6>Plugin Information</h6>
+                <h4>Plugin Information</h4>
                 <dl class="flat">
                     <dt>Name:</dt>
                     <dd>{{ plugin.get_title }}</dd>
@@ -44,15 +44,15 @@
                     <dd>{{ plugin.version }}</dd>
                 </dl>
                 {% if plugin_description %}
-                    <h6>Description</h6>
+                    <h4>Description</h4>
                     <div class="description">
                         {{ plugin_description|linebreaks }}
                     </div>
                 {% endif %}
                 {% with plugin.get_resource_links as resource_links %}
                     {% if resource_links %}
-                        <ul class="nav nav-list" style="padding:0;">
-                            <li class="nav-header">Resources</li>
+                        <h4>Resources</h4>
+                        <ul class="nav nav-stacked" style="margin:0;">
                             {% for label, link in resource_links %}
                                 <li><a href="{{ link }}">{{ label }}</a></li>
                             {% endfor %}
