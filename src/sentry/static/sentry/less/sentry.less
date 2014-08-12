@@ -708,6 +708,40 @@ a.icon-share {
   }
 }
 
+// Affix styles
+
+.group-header-container {
+  margin-bottom: -49px;
+  > .container {
+    left: -15px;
+  }
+
+  &.affix {
+    top: 0;
+    z-index: 1000;
+    left: 0;
+    right: 0;
+    box-shadow: 0 2px 0 0 rgba(0,0,0, .1);
+    background: #f9f9f9;
+
+    .group-header {
+      margin-bottom: 0;
+    }
+
+    .container {
+      left: 0;
+    }
+
+    .stream-actions-left {
+      border-radius: 0;
+    }
+  }
+}
+
+.group-list {
+  margin-top: 49px;
+}
+
 .group-header {
   display: table;
   width: 100%;
@@ -727,6 +761,11 @@ a.icon-share {
 
   .btn-group > .btn {
     color: inherit;
+  }
+
+  .btn-default {
+    background: #fff;
+    border-color: rgba(70, 82, 98, .16);
   }
 
   .checkbox {
@@ -758,7 +797,7 @@ a.icon-share {
 
   .stream-actions-left {
     padding-left: 42px;
-    border-radius: 5px 0 0 5px;
+    border-radius: 5px 0 0 0;
   }
 
   .stream-actions-graph {
