@@ -11,6 +11,19 @@
 
 {% endblock %}
 
+{% block scripts %}
+
+  {{ block.super }}
+
+  <script type="text/javascript">
+    $(function() {
+      setTimeout(function(){
+          $("#id_password").focus();
+      }, 0);
+    });
+  </script>
+{% endblock %}
+
 {% block content %}
     <div class="box">
         <div class="box-header">
