@@ -1,16 +1,10 @@
 (function(){
   'use strict';
 
-  SentryApp.classy.controller({
-    name: 'GroupDetailsCtrl',
-
-    inject: ['$scope', '$http', 'selectedProject'],
-
-    init: function() {
-      var selectedGroup = window.SentryConfig.selectedGroup,
-          selectedProject = this.selectedProject,
-          $scope = this.$scope,
-          $http = this.$http;
+  SentryApp.controller('GroupDetailsCtrl', [
+    '$scope', '$http', 'selectedProject',
+    function($scope, $http, selectedProject) {
+      var selectedGroup = window.SentryConfig.selectedGroup;
 
       // TODO(dcramer): remove the window hack
       $http.post('/api/0/groups/' + selectedGroup.id + '/markseen/');
@@ -46,5 +40,5 @@
           }
       });
     }
-  });
+  ]);
 }());

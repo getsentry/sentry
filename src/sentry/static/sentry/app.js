@@ -29,4 +29,8 @@ var SentryApp = angular.module('sentry', [
   $provide.value('config', window.SentryConfig);
   $provide.value('selectedTeam', window.SentryConfig.selectedTeam);
   $provide.value('selectedProject', window.SentryConfig.selectedProject);
+
+  $provide.service('projectMemberList', ['$http', 'selectedProject', function($http, selectedProject){
+    return $http.get('/api/0/projects/' + selectedProject.id + '/members/');
+  }]);
 });
