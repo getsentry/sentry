@@ -1709,7 +1709,7 @@ legend {
 }
 
 #messages .alert {
-  border-radius: 0;
+  // border-radius: 0;
 }
 
 .alert {
@@ -1718,6 +1718,22 @@ legend {
   background: #ffc01a;
   color: #fff;
   border: 0;
+  margin-bottom: 30px;
+
+  .close {
+    opacity: .5;
+    font-weight: 500;
+    position: relative;
+    top: -2px;
+    box-shadow: none;
+    .transition(opacity .15s);
+
+    &:hover {
+      box-shadow: none;
+      color: #fff;
+      opacity: 1;
+    }
+  }
   a {
     font-weight: bold;
     color: inherit;
