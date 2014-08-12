@@ -25,6 +25,7 @@
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git"
   },
   "resolutions": {
-    "angular": "1.2.9"
+    "angular": "1.2.9",
+    "jquery": "~2.0.3"
   }
 }
