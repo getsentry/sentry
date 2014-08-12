@@ -390,12 +390,16 @@ footer {
 
   &:active {
     box-shadow: none;
-    position: relative;
-    top: 2px;
   }
   &.disabled {
     color: #CED3D6;
     border-color: #E3E5E6;
+  }
+  &.btn-default, .btn-primary, .btn-danger {
+    &:active {
+      position: relative;
+      top: 2px;
+    }
   }
 }
 
