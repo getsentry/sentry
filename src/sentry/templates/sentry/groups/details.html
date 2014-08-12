@@ -29,24 +29,7 @@
           <div class="col-xs-4 occurrences">
             <div class="row">
               <div class="col-xs-4 assigned-to">
-                <div class="user-selector">
-                  <div class="btn-group">
-                    <a href="#" class="btn btn-sm btn-default dropdown-toggle">
-                      <img src="http://github.com/benvinegar.png" class="avatar">
-                      <span aria-hidden="true" class="icon-arrow-down"></span>
-                    </a>
-                    <div class="dropdown-menu">
-                      <input type="text" class="form-control input-sm" placeholder="Filter people">
-                      <ul>
-                        <li><a href="#"><img src="http://github.com/dcramer.png" class="avatar"> David Cramer</a></li>
-                        <li><a href="#"><img src="http://github.com/ckj.png" class="avatar"> Chris Jennings</a></li>
-                        <li><a href="#"><img src="http://github.com/mattrobenolt.png" class="avatar"> Matt Robenolt</a></li>
-                        <li><a href="#"><img src="http://github.com/byk.png" class="avatar"> Red Lobster</a></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                <div style="clear: both">is assigned</div>
+                  <assignee-selector></assignee-selector>
               </div>
               <div class="col-xs-4 occurences align-right"><span class="count">{{ group.times_seen|small_count }}</span> events</div>
               <div class="col-xs-4 users align-right"><span class="count">209</span> users</div>

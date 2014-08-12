@@ -4,11 +4,16 @@
   SentryApp.classy.controller({
     name: 'GroupDetailsCtrl',
 
-    inject: ['$scope', '$http'],
+    inject: ['$scope', '$http', 'selectedProject'],
 
     init: function() {
+      var selectedGroup = window.SentryConfig.selectedGroup,
+          selectedProject = this.selectedProject,
+          $scope = this.$scope,
+          $http = this.$http;
+
       // TODO(dcramer): remove the window hack
-      this.$http.post('/api/0/groups/' + window.SentryConfig.selectedGroup.id + '/markseen/');
+      $http.post('/api/0/groups/' + selectedGroup.id + '/markseen/');
 
       $('#chart').height('150px');
       app.charts.createBasic('#chart');
