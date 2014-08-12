@@ -11,7 +11,8 @@
 {% block content %}
     {% querystring from request without sort as sort_querystring %}
     {% querystring from request without since as since_querystring %}
-
+    <div class="group-header-container" data-spy="affix" data-offset-top="200">
+    <div class="container">
     <div class="group-header">
       <div class="stream-actions">
         <div class="stream-actions-left stream-actions-cell">
@@ -100,6 +101,8 @@
             <div class="stream-actions-users stream-actions-cell align-right hidden-xs"> users</div>
         </div>
     </div>
+  </div>
+</div>
 
     {% recent_alerts from project as recent_alerts %}
     {% if recent_alerts %}
