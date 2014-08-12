@@ -35,27 +35,27 @@
               {% for member, user in member_list %}
                   {% if user == team.owner %}
                       <tr>
-                          <td>
+                          <td style="vertical-align: middle">
                               <strong>{% if user.first_name %}{{ user.first_name }} &mdash; {% endif %}{{ user.username }}</strong><br>
                               {{ user.email }}
                           </td>
-                          <td style="text-align:center;">
+                          <td style="text-align:center; vertical-align: middle">
                               {% trans "Owner" %}
                           </td>
-                          <td style="text-align:center;">
+                          <td style="text-align:center; vertical-align: middle">
                               <em>{% trans "unavailable for owner" %}</em>
                           </td>
                       </tr>
                   {% else %}
                       <tr>
-                          <td>
+                          <td style="vertical-align: middle">
                               <a href="{% url 'sentry-edit-team-member' team.slug member.pk %}">{% if user.first_name %}{{ user.first_name }} &mdash; {% endif %}{{ user.username }}</a><br>
                               {{ user.email }}
                           </td>
-                          <td style="text-align:center;">
+                          <td style="text-align:center; vertical-align: middle">
                               {{ member.get_type_display }}
                           </td>
-                          <td style="text-align:center;">
+                          <td style="text-align:center; vertical-align: middle">
                               <a href="{% url 'sentry-remove-team-member' team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
                           </td>
                       </tr>
@@ -71,7 +71,7 @@
             <h3>{% trans "Pending Members" %}</h3>
         </div>
         <div class="box-content with-padding">
-        <table class="table table-striped">
+        <table class="table vars">
             <colgroup>
                 <col/>
                 <col width="100px"/>
@@ -87,13 +87,13 @@
             <tbody>
                 {% for member, email in pending_member_list %}
                     <tr>
-                        <td>
+                        <td style="vertical-align: middle">
                             {{ email }}
                         </td>
-                        <td style="text-align:center;">
+                        <td style="text-align:center; vertical-align: middle">
                             {{ member.get_type_display }}
                         </td>
-                        <td style="text-align:center;">
+                        <td style="text-align:center; vertical-align: middle">
                             <a href="{% url 'sentry-remove-pending-team-member' team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
                             <a href="{% url 'sentry-reinvite-pending-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
                         </td>
