@@ -29,8 +29,10 @@
           <div class="col-xs-4 occurrences">
             <div class="row">
               <div class="col-xs-4 assigned-to">
+                <div class="hidden-xs">
                   <assignee-selector></assignee-selector>
-                  <div style="clear: both">is assigned</div>
+                  <div class="is-assigned"><span class="hidden-sm">is</span> assigned</div>
+                </div>
               </div>
               <div class="col-xs-4 occurences align-right"><span class="count">{{ group.times_seen|small_count }}</span> events</div>
               <div class="col-xs-4 users align-right"><span class="count">209</span> users</div>
