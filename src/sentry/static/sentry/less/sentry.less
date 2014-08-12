@@ -75,6 +75,7 @@ a {
   color: @linkColor;
   text-decoration: none;
   .transition(color linear .2s);
+  cursor: pointer;
 }
 a:hover {
   color: @linkColorHover;
@@ -802,8 +803,9 @@ a.icon-share {
 
   .stream-actions-graph {
     vertical-align: middle;
-    width: 113px;
+    width: 100px;
     font-size: 13px;
+    padding-right: 0;
   }
 
   .stream-actions-occurrences {
@@ -831,7 +833,10 @@ a.icon-share {
 
   .toggle-graph {
     .list-unstyled();
+    margin-top: 2px;
     margin-bottom: 0;
+    font-size: 11px;
+    float: right;
 
     li {
       float: left;
@@ -843,14 +848,15 @@ a.icon-share {
 
       a {
         color: #454C50;
-        opacity: .5;
-        &:hover {
-          opacity: .75;
-        }
+        padding: 3px 4px 2px;
+        border-radius: 3px;
+        .transition(background .2s linear);
       }
       &.active a {
+        background: rgba(70,82, 98, .45);
         opacity: 1;
         font-weight: 500;
+        color: #fff;
       }
     }
   }
