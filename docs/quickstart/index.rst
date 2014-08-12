@@ -269,6 +269,18 @@ You should now be able to test the web service by visiting `http://localhost:900
 .. note:: This doesn't run any workers in the background, so assuming queueing is enabled (default in 7.0.0+)
           no asyncrhonous tasks will be running.
 
+Starting the Workers
+--------------------
+
+A large amount of Sentry's work is typically done via it's workers. While Sentry will seemingly work without
+using a queue, you'll quickly hit limitations. Once you've configured the queue, you'll also need to run
+workers. Generally, this is as simple as running "celery" from the Sentry CLI.
+::
+
+  sentry --config=/etc/sentry.conf.py celery worker -B
+
+.. note:: `Celery <http://celeryproject.org/>`_ is an open source task framework for Python.
+
 Setup a Reverse Proxy
 ---------------------
 
