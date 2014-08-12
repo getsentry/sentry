@@ -23,7 +23,7 @@ class TeamMember(Model):
     be set to ownership.
     """
     team = models.ForeignKey('sentry.Team', related_name="member_set")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="member_set")
     type = BoundedIntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
