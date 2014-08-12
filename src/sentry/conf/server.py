@@ -433,6 +433,7 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/app/controllers/teamDashboard.js",
                 "sentry/app/controllers/teamList.js",
 
+                "sentry/app/directives/assigneeSelector.js",
                 "sentry/app/directives/clippy.js",
                 "sentry/app/directives/count.js",
                 "sentry/app/directives/timeSince.js",
