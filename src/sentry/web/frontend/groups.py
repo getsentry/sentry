@@ -27,7 +27,9 @@ from sentry.db.models import create_or_update
 from sentry.models import (
     Project, Group, Event, Activity, EventMapping, TagKey, GroupSeen
 )
-from sentry.permissions import can_admin_group, can_create_projects
+from sentry.permissions import (
+    can_admin_group, can_remove_group, can_create_projects
+)
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
@@ -132,6 +134,7 @@ def render_with_group_context(group, template, context, request=None,
         'project': group.project,
         'group': group,
         'can_admin_event': can_admin_group(request.user, group),
+        'can_remove_event': can_remove_group(request.user, group),
     })
 
     if event:

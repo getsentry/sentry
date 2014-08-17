@@ -313,7 +313,7 @@ class IPlugin(local):
 
     def get_view_response(self, request, group):
         from sentry.models import Event
-        from sentry.permissions import can_admin_group
+        from sentry.permissions import can_admin_group, can_remove_group
 
         self.selected = request.path == self.get_url(group)
 
@@ -340,6 +340,7 @@ class IPlugin(local):
             'group': group,
             'event': event,
             'can_admin_event': can_admin_group(request.user, group),
+            'can_remove_event': can_remove_group(request.user, group),
         })
 
     def view(self, request, group, **kwargs):
