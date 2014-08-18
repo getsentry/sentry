@@ -169,6 +169,8 @@ def manage_team_members(request, team):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def new_team_member(request, team):
+    from django.conf import settings
+
     if not can_add_team_member(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))
 
@@ -179,6 +181,7 @@ def new_team_member(request, team):
     form = InviteTeamMemberForm(team, request.POST or None, initial=initial)
     if form.is_valid():
         pm = form.save(commit=False)
+
         pm.team = team
         pm.save()
 
@@ -193,6 +196,7 @@ def new_team_member(request, team):
     context.update({
         'page': 'members',
         'form': form,
+        'can_register': settings.SENTRY_ALLOW_REGISTRATION,
         'SUBSECTION': 'members',
     })
 
