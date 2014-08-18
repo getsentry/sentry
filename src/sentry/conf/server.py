@@ -693,6 +693,11 @@ SENTRY_DISALLOWED_IPS = (
     '255.255.255.255/32',
 )
 
+# Fields which managed users cannot change via Sentry UI. Username and password
+# cannot be changed by managed users. Optionally include 'email' and
+# 'first_name' in SENTRY_MANAGED_USER_FIELDS.
+SENTRY_MANAGED_USER_FIELDS = ('email',)
+
 # Configure celery
 import djcelery
 djcelery.setup_loader()
