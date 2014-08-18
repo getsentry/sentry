@@ -28,14 +28,18 @@
                 <a href="http://gravatar.com/">Change your avatar at Gravatar.com</a>
             </div>
         </fieldset>
+        {% if form.new_password %}
         <hr>
         <p>{% trans "You may also optionally change your password." %}</p>
         {% with form.new_password as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
+        {% endif %}
 
+        {% if not form.is_readonly %}
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
+        {% endif %}
     </form>
 {% endblock %}
