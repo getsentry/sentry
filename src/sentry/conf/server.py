@@ -596,6 +596,9 @@ SENTRY_ALLOW_ORIGIN = None
 # Enable scraping of javascript context for source code
 SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
 
+# Enable email invites
+SENTRY_ENABLE_INVITES = True
+
 # Redis connection information (see Nydus documentation)
 SENTRY_REDIS_OPTIONS = {}
 
