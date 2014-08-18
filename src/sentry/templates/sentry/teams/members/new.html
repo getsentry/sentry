@@ -10,7 +10,11 @@
             <h3>{% trans "Add Team Member" %}</h3>
         </div>
         <div class="box-content with-padding">
-            <p>{% trans "Invite a member to join this team via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
+            {% if can_register %}
+                <p>{% trans "Invite a member to join this team via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
+            {% else %}
+                <p>{% trans "Invite a member to join this team via their email address. They must already have an account, as user registration is disabled."}
+            {% endif %}
 
             {% include "sentry/partial/_form.html" %}
 

@@ -35,7 +35,9 @@
                             {% if group.managed %} ({% trans "automatically managed" %}){% endif %}
                         </td>
                         <td style="text-align:center; vertical-align: middle">{{ group.get_type_display }}</td>
-                        <td style="vertical-align: middle" class="align-right"><a href="#" class="btn btn-sm btn-default">{% trans "Remove" %}</a></td>
+                        <td style="vertical-align: middle" class="align-right">
+                            <a href="{% url 'sentry-remove-access-group' team.slug group.id %}" class="btn btn-danger">{% trans "Remove" %}</a>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>

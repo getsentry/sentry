@@ -9,7 +9,6 @@ from uuid import UUID
 
 from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
-from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.coreapi import (
     extract_auth_vars, project_from_auth_vars, APIForbidden, ensure_has_ip,
     process_data_timestamp, validate_data, get_interface, APIError
@@ -237,12 +236,6 @@ class ValidateDataTest(BaseAPITest):
         self.assertRaises(APIError, validate_data, self.project, {
             'culprit': 1
         })
-
-    def test_long_culprit(self):
-        data = validate_data(self.project, {
-            'culprit': 'x' * (MAX_CULPRIT_LENGTH + 1)
-        })
-        assert len(data['culprit']) == MAX_CULPRIT_LENGTH
 
 
 class GetInterfaceTest(TestCase):
