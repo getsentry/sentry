@@ -204,6 +204,8 @@ def manage_team_members(request, team):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def new_team_member(request, team):
+    from django.conf import settings
+
     if not can_add_team_member(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))
 
@@ -211,7 +213,11 @@ def new_team_member(request, team):
         'type': MEMBER_USER,
     }
 
-    invite_form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
+    if settings.SENTRY_ENABLE_INVITES:
+        invite_form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
+    else:
+        invite_form = None
+
     add_form = NewTeamMemberForm(team, request.POST or None, initial=initial, prefix='add')
 
     if add_form.is_valid():
@@ -224,7 +230,7 @@ def new_team_member(request, team):
 
         return HttpResponseRedirect(reverse('sentry-manage-team-members', args=[team.slug]))
 
-    elif invite_form.is_valid():
+    elif invite_form and invite_form.is_valid():
         pm = invite_form.save(commit=False)
         pm.team = team
         pm.save()
