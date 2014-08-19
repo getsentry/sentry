@@ -41,16 +41,23 @@
                                             <a href="#" ng-click="loadTrendingGroups('1440')">{% trans "24 hours" %}</a></li>
                                     </ul>
                                 </div>
-                                <div class="box-content with-padding">
+                                <div class="box-content">
                                     <div class="tab-pane active">
                                         <p ng-show="trendingGroupList.state == 'loading'">{% trans "Loading ..." %}</p>
                                         <p ng-show="trendingGroupList.state == 'error'">{% trans "There was an error fetching data from the server." %}</p>
-                                        <ul ng-show="trendingGroupList.state == 'results'">
+                                        <ul ng-show="trendingGroupList.state == 'results'" class="dashboard-events">
                                             <li ng-repeat="group in trendingGroupList">
-                                                <% group.title %>
+                                                <div class="dashboard-count">
+                                                  <span count="group.count"></span>
+                                                </div>
+                                                <div class="dashboard-details">
+                                                  <h3><a href="<% group.permalink %>"><% group.title %></a></h3>
+                                                  <p class="message"><% group.culprit %></p>
+                                                  <p class="time"><span>First:</span> <time time-since="group.firstSeen"></time>. <span>Last:</span> <time time-since="group.lastSeen"></time>.</p>
+                                                </div>
                                             </li>
                                         </ul>
-                                        <p ng-show="trendingGroupList.state == 'no-results'">{% trans "There are no events within the selected time window." %}</p>
+                                        <p ng-show="trendingGroupList.state == 'no-results'" class="list-empty">{% trans "There are no events within the selected time window." %}</p>
                                     </div>
                                 </div>
                             </div>
@@ -74,7 +81,14 @@
                                         <p ng-show="newGroupList.state == 'error'">{% trans "There was an error fetching data from the server." %}</p>
                                         <ul ng-show="newGroupList.state == 'results'">
                                             <li ng-repeat="group in newGroupList">
-                                                <% group.title %>
+                                                <div class="dashboard-count">
+                                                  <span count="group.count"></span>
+                                                </div>
+                                                <div class="dashboard-details">
+                                                  <h3><a href="<% group.permalink %>"><% group.title %></a></h3>
+                                                  <p class="message"><% group.culprit %></p>
+                                                  <p class="time"><span>First:</span> <time time-since="group.firstSeen"></time>. <span>Last:</span> <time time-since="group.lastSeen"></time>.</p>
+                                                </div>
                                             </li>
                                         </ul>
                                         <p ng-show="newGroupList.state == 'no-results'">{% trans "There are no events within the selected time window." %}</p>
