@@ -5,6 +5,7 @@ sentry.utils.safe
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 import logging
 
@@ -25,7 +26,7 @@ def safe_execute(func, *args, **kwargs):
             cls = func.im_class
         else:
             cls = func.__class__
-        logger = logging.getLogger('sentry.errors.plugins')
+        logger = logging.getLogger('sentry.errors')
         logger.error('Error processing %r on %r: %s', func.__name__, cls.__name__, e, extra={
             'func_module': cls.__module__,
             'func_args': args,

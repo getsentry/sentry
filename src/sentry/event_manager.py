@@ -5,6 +5,7 @@ sentry.event_manager
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 import logging
 import six
@@ -25,6 +26,7 @@ from sentry.constants import (
 from sentry.models import Event, EventMapping, Group, GroupHash, Project
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
+from sentry.utils.logging import suppress_exceptions
 from sentry.tasks.index import index_event
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
@@ -202,6 +204,7 @@ class EventManager(object):
 
         return data
 
+    @suppress_exceptions
     @transaction.commit_on_success
     def save(self, project, raw=False):
         # TODO: culprit should default to "most recent" frame in stacktraces when

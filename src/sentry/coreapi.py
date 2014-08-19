@@ -8,6 +8,7 @@ sentry.coreapi
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which aren't useful).
+from __future__ import absolute_import, print_function
 
 import base64
 import logging
@@ -34,7 +35,7 @@ from sentry.utils.compat import StringIO
 from sentry.utils.strings import decompress
 
 
-logger = logging.getLogger('sentry.coreapi.errors')
+logger = logging.getLogger('sentry.coreapi')
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 

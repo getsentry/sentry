@@ -352,7 +352,9 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'console': {
-            'class': 'logging.StreamHandler'
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
         'sentry': {
             'level': 'ERROR',
@@ -360,25 +362,24 @@ LOGGING = {
         }
     },
     'formatters': {
+        'simple': {
+            'format': '[%(levelname)s] %(message)s',
+        },
         'client_info': {
-            'format': '%(name)s %(levelname)s %(project_slug)s/%(team_slug)s %(message)s'
-        }
+            'format': '[%(levelname)s] %(project_slug)s/%(team_slug)s %(message)s',
+        },
     },
     'root': {
-        'level': 'WARNING',
         'handlers': ['console', 'sentry'],
     },
     'loggers': {
         'sentry': {
             'level': 'ERROR',
-            'handlers': ['console', 'sentry'],
-            'propagate': False,
         },
         'sentry.coreapi': {
             'formatter': 'client_info',
         },
         'sentry.errors': {
-            'level': 'ERROR',
             'handlers': ['console'],
             'propagate': False,
         },

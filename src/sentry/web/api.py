@@ -5,6 +5,8 @@ sentry.web.views
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
+
 import datetime
 import logging
 from functools import wraps
@@ -53,8 +55,8 @@ from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
 
-error_logger = logging.getLogger('sentry.errors.api.http')
-logger = logging.getLogger('sentry.api.http')
+error_logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry.api')
 
 # Transparent 1x1 gif
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
