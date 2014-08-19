@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 
@@ -10,7 +10,7 @@ from django.conf import settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager, get_hashes_for_event
-from sentry.models import Event, Group, Project, EventMapping
+from sentry.models import Event, Group, EventMapping
 from sentry.testutils import TestCase
 
 
@@ -47,11 +47,6 @@ class EventManagerTest(TestCase):
 
         assert EventMapping.objects.filter(
             group=event.group, event_id=event_id).exists()
-
-    def test_invalid_project(self):
-        manager = EventManager(self.make_event())
-        with self.assertRaises(Project.DoesNotExist):
-            event = manager.save(2)
 
     @patch('sentry.manager.GroupManager.add_tags')
     def test_tags_as_list(self, add_tags):
