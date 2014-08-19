@@ -79,7 +79,7 @@
                                     <div class="tab-pane active">
                                         <p ng-show="newGroupList.state == 'loading'">{% trans "Loading ..." %}</p>
                                         <p ng-show="newGroupList.state == 'error'">{% trans "There was an error fetching data from the server." %}</p>
-                                        <ul ng-show="newGroupList.state == 'results'">
+                                        <ul ng-show="newGroupList.state == 'results'" class="dashboard-events">
                                             <li ng-repeat="group in newGroupList">
                                                 <div class="dashboard-count">
                                                   <span count="group.count"></span>
