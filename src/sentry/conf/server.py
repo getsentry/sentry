@@ -422,6 +422,7 @@ SENTRY_STATIC_BUNDLES = {
 
                 "sentry/app/controllers/default.js",
                 "sentry/app/controllers/deleteTeam.js",
+                "sentry/app/controllers/editProjectRule.js",
                 "sentry/app/controllers/groupDetails.js",
                 "sentry/app/controllers/manageAccessGroupMembers.js",
                 "sentry/app/controllers/manageAccessGroupProjects.js",
@@ -450,12 +451,7 @@ SENTRY_STATIC_BUNDLES = {
 
                 "sentry/app/init.js",
 
-                "sentry/app/base.js",
                 "sentry/app/charts.js",
-                "sentry/app/collections.js",
-                "sentry/app/models.js",
-                "sentry/app/templates.js",
-                "sentry/app/views.js",
                 "sentry/app/utils.js",
             ],
         },
