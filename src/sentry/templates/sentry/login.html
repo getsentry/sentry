@@ -7,7 +7,7 @@
 
 {% block content %}
     <div class="row">
-        <div class="col-xs-6" style="border-right: 3px solid #f1f2f3; padding-right: 30px;">
+        <div class="col-sm-6" style=" margin-bottom: 30px">
             <form class="form-stacked" action="." method="post">
                 {{ form|as_crispy_errors }}
 
@@ -33,7 +33,7 @@
             </form>
         </div>
         {% if AUTH_PROVIDERS %}
-            <div class="col-xs-6" style="padding-left: 30px;">
+            <div class="col-sm-6">
                 <h2>
                     {% if SOCIAL_AUTH_CREATE_USERS %}
                         {% trans "Login or Register using another service" %}
