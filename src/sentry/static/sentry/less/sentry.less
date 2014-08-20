@@ -476,7 +476,7 @@ footer {
     color: #808088;
     border-color: #f1f2f3;
     &:hover {
-      background: #fafafa;
+      color: @gray;
     }
   }
   .btn-middle {
@@ -591,7 +591,7 @@ footer {
         color: rgba(70, 82, 98, .18);
         font-size: 16px;
         width: 24px;
-        line-height: 26px;
+        line-height: 24px;
         text-align: center;
 
         &.icon-toggle {
@@ -623,6 +623,10 @@ footer {
     &:hover, .active {
       background: #EFF9FF;
       border-color: #DFEAF1;
+
+      .icon {
+        color: rgba(70, 82, 98, .24);
+      }
 
       & + li {
         border-color: #DFEAF1;
@@ -1940,6 +1944,7 @@ legend {
 
   .empty {
     text-align: center;
+    margin: 30px 0;
   }
 
   .box-header {

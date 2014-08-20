@@ -57,7 +57,7 @@
                                                 </div>
                                             </li>
                                         </ul>
-                                        <p ng-show="trendingGroupList.state == 'no-results'" class="list-empty">{% trans "There are no events within the selected time window." %}</p>
+                                        <p class="empty" ng-show="trendingGroupList.state == 'no-results'" class="list-empty">{% trans "There are no events within the selected time window." %}</p>
                                     </div>
                                 </div>
                             </div>
@@ -75,7 +75,7 @@
                                             <a href="#" ng-click="loadNewGroups('1440')">{% trans "24 hours" %}</a></li>
                                     </ul>
                                 </div>
-                                <div class="box-content with-padding">
+                                <div class="box-content">
                                     <div class="tab-pane active">
                                         <p ng-show="newGroupList.state == 'loading'">{% trans "Loading ..." %}</p>
                                         <p ng-show="newGroupList.state == 'error'">{% trans "There was an error fetching data from the server." %}</p>
@@ -91,7 +91,7 @@
                                                 </div>
                                             </li>
                                         </ul>
-                                        <p ng-show="newGroupList.state == 'no-results'">{% trans "There are no events within the selected time window." %}</p>
+                                        <p class="empty" ng-show="newGroupList.state == 'no-results'">{% trans "There are no events within the selected time window." %}</p>
                                     </div>
                                 </div>
                             </div>
