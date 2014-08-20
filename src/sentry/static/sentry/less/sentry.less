@@ -2550,3 +2550,92 @@ table.integrations {
   box-shadow: none;
   background: #fff;
 }
+
+/* Small screens */
+
+@media(max-width:767px){
+
+  header {
+    padding: 15px 0 13px;
+
+    .icon-sentry-logo {
+      font-size: 16px;
+      padding-top: 3px;
+    }
+
+    .dropdown, .project-dropdown {
+      position: static;
+      padding-top: 3px;
+
+      .team-name {
+        font-size: 14px;
+      }
+
+      .dropdown-menu {
+        width: auto;
+        left: 0;
+        right: 0;
+        top: 40px;
+        border-radius: 0;
+        max-height: 9999px;
+        overflow-x: hidden;
+
+        ul li {
+          width: 100%;
+          font-size: 16px;
+          margin: 0;
+
+          a {
+            padding: 10px 20px;
+            left: 0;
+            margin-left: -20px;
+            margin-right: -20px;
+          }
+        }
+      }
+    }
+  }
+
+  /* Stream */
+
+  .primary-filters {
+    padding-right: 15px;
+    margin-bottom: 10px;
+  }
+  .search {
+    margin-bottom: -5px;
+    .search-input {
+      font-size: 12px;
+      line-height: 22px;
+    }
+  }
+
+  .group-header-container {
+    margin-left: -15px;
+    margin-right: -15px;
+    .container {
+      left: 0;
+      margin: 0;
+      padding: 0
+    }
+    &.affix {
+      padding-left: 15px;
+      padding-right: 0;
+    }
+  }
+
+  .group-list, .events {
+    display: block;
+    width: auto;
+    margin-left: -15px;
+    margin-right: -15px;
+
+    li.group {
+      display: block;
+
+      .event-cell {
+        display: block;
+      }
+    }
+  }
+}

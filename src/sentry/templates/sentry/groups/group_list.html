@@ -24,7 +24,7 @@
                 <a href="#" class="btn btn-default btn-sm"><span class="icon icon-bookmark"></span></a>
             </div>
             <div class="btn-group">
-                <a class="btn btn-default btn-sm" data-action="pause" data-pause-label="{% trans "Updates are paused. Click to enable." %}" data-play-label="{% trans "Updates are live. Click to pause." %}" href="javascript:void(0)">
+                <a class="btn btn-default btn-sm hidden-xs" data-action="pause" data-pause-label="{% trans "Updates are paused. Click to enable." %}" data-play-label="{% trans "Updates are live. Click to pause." %}" href="javascript:void(0)">
                     <span class="icon icon-pause"></span>
                 </a>
             </div>
@@ -129,7 +129,7 @@
                   &middot; <time time-since="group.firstSeen"></time>
               </div>
             </div>
-            <div class="event-assignee event-cell">
+            <div class="event-assignee event-cell hidden-xs">
                 <assignee-selector></assignee-selector>
             </div>
             <div class="hidden-sm hidden-xs event-graph align-right event-cell">
