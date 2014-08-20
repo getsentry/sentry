@@ -584,6 +584,24 @@ footer {
     padding: 12px 14px 12px 40px;
     cursor: pointer;
 
+    .icon {
+        position: absolute;
+        left: 9px;
+        top: 7px;
+        color: rgba(70, 82, 98, .18);
+        font-size: 16px;
+        width: 24px;
+        line-height: 26px;
+        text-align: center;
+
+        &.icon-toggle {
+          font-size: 14px;
+        }
+        &.icon-tag {
+          top: 8px;
+        }
+    }
+
     h4 {
       margin: 0;
       font-size: 14px;
@@ -605,11 +623,7 @@ footer {
     &:hover, .active {
       background: #EFF9FF;
       border-color: #DFEAF1;
-      
-      h4 {}
-      p {
 
-      }
       & + li {
         border-color: #DFEAF1;
       }
