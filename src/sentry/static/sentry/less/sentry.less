@@ -249,15 +249,15 @@ header {
           a {
             display: block;
             .text-overflow;
+            padding: 1px 5px;
+            position: relative;
+            left: -5px;
+            border-radius: 3px;
           }
-          &.active {
+          &.active, &:hover {
             a {
-              position: relative;
               color: @gray;
               background: rgba(0, 0, 0, 0.04);
-              border-radius: 5px;
-              padding: 2px 7px;
-              left: -5px;
             }
           }
         }
