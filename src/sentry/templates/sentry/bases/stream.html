@@ -7,8 +7,8 @@
 
 {% block page_header %}
     {{ block.super }}
-    <a href="{% url 'sentry' team.slug %}" class="back-button icon-arrow-left"></a>
-    <ul class="nav nav-tabs project-nav" style="margin-bottom: 20px;">
+    <a href="{% url 'sentry' team.slug %}" class="back-button icon-arrow-left hidden-xs"></a>
+    <ul class="nav nav-tabs project-nav hidden-xs" style="margin-bottom: 20px;">
         <li class="pull-right hidden-xs broadcast">
             <broadcast></broadcast>
         </li>
