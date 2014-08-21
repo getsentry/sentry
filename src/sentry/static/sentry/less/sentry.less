@@ -2556,6 +2556,7 @@ table.integrations {
 @media(max-width:767px) {
   body {
     overflow-x: hidden;
+    zoom: .85;
   }
 
   header {
@@ -2618,6 +2619,10 @@ table.integrations {
 
   /* Stream */
 
+  .stream-actions-left {
+      padding-right: 0 !important;
+  }
+
   .primary-filters {
     padding-right: 15px;
     margin-bottom: 10px;
@@ -2666,6 +2671,10 @@ table.integrations {
 
     li.group {
       display: block;
+
+      h3 {
+        font-size: 15px;
+      }
 
       .event-cell {
         display: block;
