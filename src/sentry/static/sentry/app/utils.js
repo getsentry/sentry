@@ -143,33 +143,35 @@
         },
 
         makeSearchableUsersInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchUsersUrl(), _.bind(function(data){
+            var self = this;
+
+            this.makeSearchableInput(el, this.getSearchUsersUrl(), function(data){
                 var results = [];
-                $(data.results).each(_.bind(function(_, val){
+                $(data.results).each(function(_, val){
                     var label;
                     if (val.first_name) {
-                        label = this.escape(val.first_name) + ' &mdash; ' + this.escape(val.username);
+                        label = self.escape(val.first_name) + ' &mdash; ' + self.escape(val.username);
                     } else {
-                        label = this.escape(val.username);
+                        label = self.escape(val.username);
                     }
-                    label += '<br>' + this.escape(val.email);
+                    label += '<br>' + self.escape(val.email);
                     results.push({
                         id: val.username,
                         text: label
                     });
-                }, this));
+                });
 
                 if (data.query && $(results).filter(function(){
                     return this.id.localeCompare(data.query) === 0;
                 }).length === 0) {
                     results.push({
-                        id: this.escape(data.query),
-                        text: this.escape(data.query)
+                        id: self.escape(data.query),
+                        text: self.escape(data.query)
                     });
                 }
 
                 return results;
-            }));
+            });
         }
     };
 }());
