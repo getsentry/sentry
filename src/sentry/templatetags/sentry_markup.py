@@ -10,7 +10,7 @@ register = template.Library()
 
 
 @register.filter(is_safe=True)
-def markdown(value):
+def markdown(value, header_level=3):
     """
     Runs Markdown over a given value, optionally using various
     extensions python-markdown supports.
@@ -19,4 +19,6 @@ def markdown(value):
 
         {{ value|markdown }}
     """
-    return mark_safe(markdown_func(force_text(value)))
+    return mark_safe(markdown_func(force_text(value), extensions=[
+        'headerid(level=%d)' % (int(header_level),),
+    ]))
