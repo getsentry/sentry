@@ -445,10 +445,6 @@ SENTRY_STATIC_BUNDLES = {
         # TODO(dcramer): this needs to go away ASAP
         "sentry/dist/legacy-app.min.js": {
             "src": [
-                "sentry/vendor/json2/json2.js",
-                "sentry/vendor/underscore/underscore.js",
-                "sentry/vendor/backbone/backbone.js",
-
                 "sentry/app/init.js",
 
                 "sentry/app/charts.js",
