@@ -3,9 +3,16 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}Platforms | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Platforms" %} | {{ block.super }}{% endblock %}
 
 {% block content %}
+    <div class="crumbs">
+      <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
+      <h2>{% trans "Platforms" %}</h2>
+    </div>
 
+    <p>While Sentry is designed to work on any platform, we officially support a subset. If you're looking to integrate Sentry on an unsupported platform please take a look at our <a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">client API reference</a>.</p>
+
+    <h3>Languages</h3>
     {% include 'sentry/partial/_client_config.html' %}
 {% endblock %}
