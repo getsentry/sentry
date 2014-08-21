@@ -10,12 +10,12 @@
     {% block helpcontent %}
 
         <div class="crumbs">
-          <h2>Knowledge Base</h1>
+          <h2>{% trans "Knowledge Base" %}</h1>
         </div>
 
         <div class="row">
             <div class="col-md-6">
-                <h3>User Guide</h2>
+                <h3>{% trans "User Guide" %}</h2>
                 <ul>
                     {% for page in page_list %}
                         <li><a href="{% url 'sentry-help-page' page.id page.slug %}">{{ page.title }}</a></li>
@@ -23,7 +23,7 @@
                 </ul>
             </div>
             <div class="col-md-6">
-                <h3>Developer Documentation</h2>
+                <h3>{% trans "Developer Documentation" %}</h2>
                 <ul>
                     <li><a href="{% url 'sentry-api-0-help' %}">Web API Reference</a></li>
                     <li><a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">Client API Reference</a></li>
@@ -32,6 +32,8 @@
         </div>
 
         <hr>
+
+        <h3>{% trans "Languages" %}</h3>
 
         {% include 'sentry/partial/_client_config.html' %}
 
