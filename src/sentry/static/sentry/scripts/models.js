@@ -10,7 +10,6 @@
             version: 0,
             annotations: [],
             tags: [],
-            versions: [],
             hasSeen: false,
             isBookmarked: false,
             historicalData: []
