@@ -141,16 +141,6 @@ class Event(Model):
 
         return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
 
-    def get_version(self):
-        if not self.data:
-            return
-        if '__sentry__' not in self.data:
-            return
-        if 'version' not in self.data['__sentry__']:
-            return
-        module = self.data['__sentry__'].get('module', 'ver')
-        return module, self.data['__sentry__']['version']
-
     def get_tags(self):
         try:
             return [
