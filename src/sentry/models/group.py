@@ -138,14 +138,6 @@ class Group(Model):
                 self._latest_event = None
         return self._latest_event
 
-    def get_version(self):
-        if not self.data:
-            return
-        if 'version' not in self.data:
-            return
-        module = self.data.get('module', 'ver')
-        return module, self.data['version']
-
     def get_unique_tags(self, tag, since=None, order_by='-times_seen'):
         # TODO(dcramer): this has zero test coverage and is a critical path
         from sentry.models import GroupTagValue
