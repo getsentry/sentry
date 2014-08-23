@@ -477,6 +477,22 @@ class IPlugin(local):
         >>>     print alert.get_absolute_url()
         """
 
+    def is_regression(self, group, event, **kwargs):
+        """
+        Called on new events when the group's status is STATUS_RESOLVED.
+        Return True if this event is a regression, False if it is not,
+        None to defer to other plugins.
+
+        :param group: an instance of ``Group``
+        :param event: an instance of ``Event``
+
+        >>> def is_regression(self, group, event, **kwargs):
+        >>>     # regression if 'version' tag has a value we haven't seen before
+        >>>     seen_versions = set(t[0] for t in group.get_unique_tags("version"))
+        >>>     event_version = dict(event.get_tags()).get("version")
+        >>>     return event_version not in seen_versions
+        """
+
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         """
         Post processes an event after it has been saved.

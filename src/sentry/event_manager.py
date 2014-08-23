@@ -84,6 +84,15 @@ else:
         return True
 
 
+def plugin_is_regression(group, event):
+    project = event.project
+    for plugin in plugins.for_project(project):
+        result = safe_execute(plugin.is_regression, group, event)
+        if result is not None:
+            return result
+    return True
+
+
 class ScoreClause(object):
     def __init__(self, group):
         self.group = group
@@ -464,7 +473,8 @@ class EventManager(object):
         if group.culprit != data['culprit']:
             extra['culprit'] = data['culprit']
 
-        if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
+        is_regression = False
+        if group.is_resolved() and plugin_is_regression(group, event):
             # Making things atomic
             is_regression = bool(Group.objects.filter(
                 id=group.id,
@@ -477,8 +487,6 @@ class EventManager(object):
 
             group.active_at = date
             group.status = STATUS_UNRESOLVED
-        else:
-            is_regression = False
 
         group.last_seen = extra['last_seen']
 

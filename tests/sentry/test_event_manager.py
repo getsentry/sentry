@@ -8,7 +8,7 @@ from mock import patch
 
 from django.conf import settings
 
-from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH, STATUS_RESOLVED
 from sentry.event_manager import EventManager, get_hashes_for_event
 from sentry.models import Event, Group, EventMapping
 from sentry.testutils import TestCase
@@ -102,6 +102,58 @@ class EventManagerTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
         assert group.message == event2.message
+
+    def test_unresolves_group(self):
+        # N.B. EventManager won't unresolve the group unless the event2 has a
+        # later timestamp than event1. MySQL doesn't support microseconds.
+        manager = EventManager(self.make_event(
+            event_id='a' * 32, checksum='a' * 32,
+            timestamp=1403007314,
+        ))
+        event = manager.save(1)
+        print(event)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = STATUS_RESOLVED
+        group.save()
+        assert group.is_resolved()
+
+        manager = EventManager(self.make_event(
+            event_id='b' * 32, checksum='a' * 32,
+            timestamp=1403007315,
+        ))
+        event2 = manager.save(1)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        assert not group.is_resolved()
+
+    @patch('sentry.event_manager.plugin_is_regression')
+    def test_does_not_unresolve_group(self, plugin_is_regression):
+        # N.B. EventManager won't unresolve the group unless the event2 has a
+        # later timestamp than event1. MySQL doesn't support microseconds.
+        plugin_is_regression.return_value = False
+
+        manager = EventManager(self.make_event(
+            event_id='a' * 32, checksum='a' * 32,
+            timestamp=1403007314,
+        ))
+        event = manager.save(1)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = STATUS_RESOLVED
+        group.save()
+        assert group.is_resolved()
+
+        manager = EventManager(self.make_event(
+            event_id='b' * 32, checksum='a' * 32,
+            timestamp=1403007315,
+        ))
+        event2 = manager.save(1)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        assert group.is_resolved()
 
     def test_long_culprit(self):
         manager = EventManager(self.make_event(
