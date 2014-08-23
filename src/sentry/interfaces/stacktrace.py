@@ -423,22 +423,26 @@ class Stacktrace(Interface):
         data['frames_omitted'] = data.pop('frames_omitted', None)
         return data
 
-    def get_composite_hash(self, interfaces):
-        output = self.get_hash()
-        if 'sentry.interfaces.Exception' in interfaces:
-            exc = interfaces['sentry.interfaces.Exception'][0]
-            if exc.type:
-                output.append(exc.type)
-            elif not output:
-                output = exc.get_hash()
-        return output
+    def compute_hashes(self):
+        system_hash = self.get_hash(system_frames=True)
+        if not system_hash:
+            return []
 
-    def get_hash(self):
+        app_hash = self.get_hash(system_frames=False)
+        if system_hash == app_hash or not app_hash:
+            return [system_hash]
+
+        return [system_hash, app_hash]
+
+    def get_hash(self, system_frames=True):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to JS
         if len(frames) == 1 and frames[0].lineno == 1 and frames[0].function in ('?', None):
             return []
+
+        if not system_frames:
+            frames = [f for f in frames if f.in_app] or frames
 
         output = []
         for frame in frames:

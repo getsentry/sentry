@@ -5,7 +5,7 @@ sentry.templatetags.sentry_stream_filters
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 
@@ -26,7 +26,7 @@ def get_filters(project, request):
         try:
             filter_cls = import_string(class_path)
         except Exception:
-            logger = logging.getLogger('sentry.errors.filters')
+            logger = logging.getLogger('sentry.errors')
             logger.exception('Unable to import %s', class_path)
             continue
         filter_list.append(filter_cls(request, project))

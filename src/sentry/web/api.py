@@ -5,6 +5,8 @@ sentry.web.views
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
+
 import datetime
 import logging
 from functools import wraps
@@ -38,12 +40,14 @@ from sentry.coreapi import (
     APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
     decompress_deflate, decompress_gzip)
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
+from sentry.event_manager import EventManager
 from sentry.models import (
     Group, GroupBookmark, Project, TagValue, Activity, User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json
+from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -51,8 +55,8 @@ from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
 
-error_logger = logging.getLogger('sentry.errors.api.http')
-logger = logging.getLogger('sentry.api.http')
+error_logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry.api')
 
 # Transparent 1x1 gif
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
@@ -336,13 +340,18 @@ class StoreView(APIView):
             raise APIError(u'Invalid data: %s (%s)' % (six.text_type(e), type(e)))
 
         # mutates data
-        Group.objects.normalize_event_data(data)
+        manager = EventManager(data)
+        data = manager.normalize()
 
         # insert IP address if not available
         if auth.is_public:
             ensure_has_ip(data, request.META['REMOTE_ADDR'])
 
         event_id = data['event_id']
+
+        # We filter data immediately before it ever gets into the queue
+        inst = SensitiveDataFilter()
+        inst.apply(data)
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)

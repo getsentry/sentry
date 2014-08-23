@@ -1,4 +1,6 @@
 from django.contrib.auth.models import AnonymousUser
+from django.utils.crypto import constant_time_compare
+
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -12,7 +14,7 @@ class KeyAuthentication(BasicAuthentication):
         except ProjectKey.DoesNotExist:
             raise AuthenticationFailed('Invalid api key')
 
-        if pk.secret_key != password:
+        if not constant_time_compare(pk.secret_key, password):
             raise AuthenticationFailed('Invalid api key')
 
         if not pk.roles.api:

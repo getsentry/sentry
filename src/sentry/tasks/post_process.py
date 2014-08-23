@@ -6,7 +6,7 @@ sentry.tasks.post_process
 :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 
@@ -21,7 +21,7 @@ from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 
 
-rules_logger = logging.getLogger('sentry.errors.rules')
+rules_logger = logging.getLogger('sentry.errors')
 
 
 def condition_matches(project, condition, event, state):
@@ -122,13 +122,13 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
         if passed and rule_status.status == STATUS_INACTIVE:
             # we only fire if we're able to say that the state has changed
             GroupRuleStatus.objects.filter(
-                id=rule.id,
+                id=rule_status.id,
                 status=STATUS_INACTIVE,
             ).update(status=STATUS_ACTIVE)
         elif not passed and rule_status.status == STATUS_ACTIVE:
             # update the state to suggest this rule can fire again
             GroupRuleStatus.objects.filter(
-                id=rule.id,
+                id=rule_status.id,
                 status=STATUS_ACTIVE,
             ).update(status=STATUS_INACTIVE)
 

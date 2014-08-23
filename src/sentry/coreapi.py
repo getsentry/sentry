@@ -8,6 +8,7 @@ sentry.coreapi
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which aren't useful).
+from __future__ import absolute_import, print_function
 
 import base64
 import logging
@@ -16,14 +17,13 @@ import zlib
 from gzip import GzipFile
 
 from datetime import datetime, timedelta
-from django.conf import settings
 from django.utils.encoding import smart_str
 
 import six
 
 from sentry.app import cache, env
 from sentry.constants import (
-    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH,
+    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH)
 from sentry.exceptions import InvalidTimestamp
 from sentry.interfaces.base import get_interface
@@ -32,10 +32,10 @@ from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
-from sentry.utils.strings import decompress, truncatechars
+from sentry.utils.strings import decompress
 
 
-logger = logging.getLogger('sentry.coreapi.errors')
+logger = logging.getLogger('sentry.coreapi')
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
@@ -249,20 +249,10 @@ def validate_data(project, data, client=None):
         data['message'] = '<no message value>'
     elif not isinstance(data['message'], six.string_types):
         raise APIError('Invalid value for message')
-    elif len(data['message']) > settings.SENTRY_MAX_MESSAGE_LENGTH:
-        logger.info(
-            'Truncated value for message due to length (%d chars)',
-            len(data['message']), **client_metadata(client, project))
-        data['message'] = truncatechars(
-            data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     if data.get('culprit'):
         if not isinstance(data['culprit'], six.string_types):
             raise APIError('Invalid value for culprit')
-        logger.info(
-            'Truncated value for culprit due to length (%d chars)',
-            len(data['culprit']), **client_metadata(client, project))
-        data['culprit'] = truncatechars(data['culprit'], MAX_CULPRIT_LENGTH)
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex

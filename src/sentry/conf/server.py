@@ -287,6 +287,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.email',
     'sentry.tasks.fetch_source',
     'sentry.tasks.index',
+    'sentry.tasks.merge',
     'sentry.tasks.store',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
@@ -351,7 +352,9 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'console': {
-            'class': 'logging.StreamHandler'
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
         'sentry': {
             'level': 'ERROR',
@@ -359,25 +362,24 @@ LOGGING = {
         }
     },
     'formatters': {
+        'simple': {
+            'format': '[%(levelname)s] %(message)s',
+        },
         'client_info': {
-            'format': '%(name)s %(levelname)s %(project_slug)s/%(team_slug)s %(message)s'
-        }
+            'format': '[%(levelname)s] %(project_slug)s/%(team_slug)s %(message)s',
+        },
     },
     'root': {
-        'level': 'WARNING',
         'handlers': ['console', 'sentry'],
     },
     'loggers': {
         'sentry': {
             'level': 'ERROR',
-            'handlers': ['console', 'sentry'],
-            'propagate': False,
         },
         'sentry.coreapi': {
             'formatter': 'client_info',
         },
         'sentry.errors': {
-            'level': 'ERROR',
             'handlers': ['console'],
             'propagate': False,
         },
@@ -595,6 +597,9 @@ SENTRY_ALLOW_ORIGIN = None
 # Enable scraping of javascript context for source code
 SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
 
+# Enable email invites
+SENTRY_ENABLE_INVITES = True
+
 # Redis connection information (see Nydus documentation)
 SENTRY_REDIS_OPTIONS = {}
 
@@ -660,7 +665,7 @@ SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 # keys
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
-SENTRY_MAX_MESSAGE_LENGTH = 1024 * 10
+SENTRY_MAX_MESSAGE_LENGTH = 1024 * 2
 SENTRY_MAX_STACKTRACE_FRAMES = 25
 
 # Gravatar service base url

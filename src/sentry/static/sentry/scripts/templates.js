@@ -28,9 +28,6 @@
                     '<span class="tag tag-logger">' +
                         '<a href="<%= loggerUrl %>"><%= logger %></a>' +
                     '</span>' +
-                    '<% _.each(versions, function(version){ %> ' +
-                        '<span class="tag tag-version"><%= version %></span>' +
-                    '<% }) %>' +
                     '<% _.each(tags, function(tag){ %> ' +
                         '<span class="tag"><%= tag %></span>' +
                     '<% }) %>' +
