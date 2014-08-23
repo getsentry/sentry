@@ -20,6 +20,7 @@ from six.moves import range
 from sentry.constants import LANGUAGES
 from sentry.models import UserOption, User
 from sentry.utils.auth import find_users
+from sentry.web.forms.fields import ReadOnlyTextField
 
 
 # at runtime we decide whether we should support recaptcha
@@ -244,12 +245,38 @@ class AccountSettingsForm(forms.Form):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
+        if self.user.is_managed:
+            # username and password always managed, email and
+            # first_name optionally managed
+            for field in ('email', 'first_name', 'username'):
+                if field == 'username' or field in settings.SENTRY_MANAGED_USER_FIELDS:
+                    self.fields[field] = ReadOnlyTextField(label=self.fields[field].label)
+            # don't show password field at all
+            del self.fields['new_password']
+
         # don't show username field if its the same as their email address
         if self.user.email == self.user.username:
             del self.fields['username']
 
+    def is_readonly(self):
+        if self.user.is_managed:
+            return set(('email', 'first_name')) == set(settings.SENTRY_MANAGED_USER_FIELDS)
+        return False
+
+    def _clean_managed_field(self, field):
+        if self.user.is_managed and (field == 'username' or
+                field in settings.SENTRY_MANAGED_USER_FIELDS):
+            return getattr(self.user, field)
+        return self.cleaned_data[field]
+
+    def clean_email(self):
+        return self._clean_managed_field('email')
+
+    def clean_first_name(self):
+        return self._clean_managed_field('first_name')
+
     def clean_username(self):
-        value = self.cleaned_data['username']
+        value = self._clean_managed_field('username')
         if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
             raise forms.ValidationError(_("That username is already in use."))
         return value
