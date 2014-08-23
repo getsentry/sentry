@@ -1,14 +1,16 @@
 """
-sentry.web.forms.teams
-~~~~~~~~~~~~~~~~~~~~~~
+sentry.web.forms.fields
+~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from django.core.validators import URLValidator
-from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
-from django.forms import CharField, IntegerField, ValidationError
+from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea, Widget
+from django.forms.util import flatatt
+from django.forms import Field, CharField, IntegerField, ValidationError
 from django.utils.encoding import force_unicode
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -105,6 +107,27 @@ class OriginsField(CharField):
             return False
 
         return True
+
+
+class ReadOnlyTextWidget(Widget):
+    def render(self, name, value, attrs):
+        final_attrs = self.build_attrs(attrs)
+        if not value:
+            value = mark_safe("<em>%s</em>" % _("Not set"))
+        return format_html("<div{0}>{1}</div>", flatatt(final_attrs), value)
+
+
+class ReadOnlyTextField(Field):
+    widget = ReadOnlyTextWidget
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("required", False)
+        super(ReadOnlyTextField, self).__init__(*args, **kwargs)
+
+    def bound_data(self, data, initial):
+        # Always return initial because the widget doesn't
+        # render an input field.
+        return initial
 
 
 def get_team_label(team):

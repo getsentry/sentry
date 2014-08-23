@@ -10,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import HTTP_METHODS
 from sentry.models import User, Activity
-from sentry.web.forms.fields import RadioFieldRenderer
+from sentry.web.forms.fields import RadioFieldRenderer, ReadOnlyTextField
 
 
 class ReplayForm(forms.Form):
@@ -54,6 +54,16 @@ class ChangeUserForm(BaseUserForm):
         fields = ('first_name', 'username', 'email', 'is_active', 'is_staff',
                   'is_superuser')
         model = User
+
+    def __init__(self, *args, **kwargs):
+        super(ChangeUserForm, self).__init__(*args, **kwargs)
+        self.user = kwargs['instance']
+        if self.user.is_managed:
+            self.fields['username'] = ReadOnlyTextField(label="Username (managed)")
+
+    def clean_username(self):
+        if self.user.is_managed:
+            return self.user.username
 
 
 class RemoveUserForm(forms.Form):
