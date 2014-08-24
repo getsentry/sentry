@@ -228,3 +228,4 @@ class TrimLineTest(TestCase):
         assert trim_line(self.long_line, column=10) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
         assert trim_line(self.long_line, column=66) == '{snip} blic is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives wi {snip}'
         assert trim_line(self.long_line, column=190) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
+        assert trim_line(self.long_line, column=9999) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
