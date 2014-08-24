@@ -59,7 +59,8 @@ def trim_line(line, column=0):
     """
     line = line.strip('\n')
     ll = len(line)
-    assert column < ll
+    if column > ll:
+        column = ll
     if ll <= 150:
         return line
     start = max(column - 60, 0)
