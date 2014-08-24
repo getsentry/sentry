@@ -59,10 +59,10 @@ def trim_line(line, column=0):
     """
     line = line.strip('\n')
     ll = len(line)
-    if column > ll:
-        column = ll
     if ll <= 150:
         return line
+    if column > ll:
+        column = ll
     start = max(column - 60, 0)
     # Round down if it brings us close to the edge
     if start < 5:
