@@ -51,6 +51,12 @@ logger = logging.getLogger(__name__)
 
 
 def trim_line(line, column=0):
+    """
+    Trims a line down to a goal of 140 characters, with a little
+    wiggle room to be sensible and tries to trim around the given
+    `column`. So it tries to extract 60 characters before and after
+    the provided `column` and yield a better context.
+    """
     line = line.strip('\n')
     ll = len(line)
     assert column < ll
