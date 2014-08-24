@@ -21,8 +21,8 @@ class JSONTest(TestCase):
 
     def test_set(self):
         res = set(['foo', 'bar'])
-        self.assertEquals(json.dumps(res), '["foo", "bar"]')
+        self.assertEquals(json.dumps(res), '["foo","bar"]')
 
     def test_frozenset(self):
         res = frozenset(['foo', 'bar'])
-        self.assertEquals(json.dumps(res), '["foo", "bar"]')
+        self.assertEquals(json.dumps(res), '["foo","bar"]')
