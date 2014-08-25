@@ -3,8 +3,10 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block heading %}Sentry{% endblock %}
-{% block bodyclass %}help{% endblock %}
+{% block heading %}{% endblock %}
+{% block wrapperclass %}help narrow{% endblock %}
+
+{% block logo %}<a id="logo" href="{% url 'sentry' %}"><span class="icon-sentry-logo-full"></span></a>{% endblock %}
 
 {% block content %}
     {% block helpcontent %}
