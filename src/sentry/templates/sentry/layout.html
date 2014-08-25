@@ -65,7 +65,7 @@
         {% block header %}
             <header>
                 <div class="container">
-                  <a id="logo" href="{% url 'sentry' %}"><span class="icon-sentry-logo"></span></a>
+                  {% block logo %}<a id="logo" href="{% url 'sentry' %}"><span class="icon-sentry-logo"></span></a>{% endblock %}
                   <ul class="pull-right user-nav">
                       {% block account_nav %}
                           {% if request.user.is_authenticated %}
