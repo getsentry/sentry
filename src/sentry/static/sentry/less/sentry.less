@@ -2360,7 +2360,7 @@ table.integrations {
 
 .narrow {
   .container {
-    max-width: 800px;
+    max-width: 960px;
   }
 }
 
@@ -2428,18 +2428,43 @@ table.integrations {
 // Help
 
 .help {
-  font-size: 18px;
-  line-height: 1.8;
-  padding-top: 5px;
+  header {
+    background: none;
+    color: @gray-dark;
+    padding: 30px 0;
+    margin-bottom: 0;
 
-  p, ul, ol {
-    margin: 20px 0;
-    line-height: 1.7;
+    #logo {
+      font-size: 30px;
+    }
+    .user-nav {
+      margin-top: 9px;
+    }
+
+    a {
+      color: @gray-dark;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
   }
 
-  ul, ol {
-    li {
-      margin-bottom: 5px;
+  .content {
+    border-top: 3px solid #f1f2f3;
+    font-size: 18px;
+    line-height: 1.8;
+    padding-top: 5px;
+
+    p, ul, ol {
+      margin: 20px 0;
+      line-height: 1.7;
+    }
+
+    ul, ol {
+      li {
+        margin-bottom: 5px;
+      }
     }
   }
 
