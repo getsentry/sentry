@@ -20,22 +20,23 @@
               {% endfor %}
             </ul>
 
-            <h4>Client Reference</h4>
+            <h4>Clients</h4>
             <ul>
-              <li class="active"><a href="{% url 'sentry-help-platform' 'python' %}">Python</a></li>
-              <li><a href="{% url 'sentry-help-platform' 'php' %}">PHP</a></li>
-              <li><a href="{% url 'sentry-help-platform' 'ruby' %}">Ruby</a></li>
-              <li><a href="{% url 'sentry-help-platform' 'javascript' %}">JavaScript</a></li>
-              <li><a href="{% url 'sentry-help-platform' 'java' %}">Java</a></li>
-              <li><a href="{% url 'sentry-help-platform' 'node.js' %}">Node.js</a></li>
-              <li><a href="{% url 'sentry-help-platform' 'ios' %}">iOS</a></li>
-              <li><a href="{% url 'sentry-help-platform' 'go' %}">Go</a></li>
+              <li class="{% block client_overview_class %}{% endblock %}"><a href="{% url 'sentry-help-platform-list' %}">Overview</a></li>
+              <li class="{% ifequal platform "python" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'python' %}">Python</a></li>
+              <li class="{% ifequal platform "php" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'php' %}">PHP</a></li>
+              <li class="{% ifequal platform "ruby" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'ruby' %}">Ruby</a></li>
+              <li class="{% ifequal platform "javascript" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'javascript' %}">JavaScript</a></li>
+              <li class="{% ifequal platform "java" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'java' %}">Java</a></li>
+              <li class="{% ifequal platform "node.js" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'node.js' %}">Node.js</a></li>
+              <li class="{% ifequal platform "ios" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'ios' %}">iOS</a></li>
+              <li class="{% ifequal platform "go" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'go' %}">Go</a></li>
             </ul>
 
-            <h4>API</h4>
+            <h4>API Reference</h4>
             <ul>
-                <li><a href="{% url 'sentry-api-0-help' %}">Web API Reference</a></li>
-                <li><a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">Client API Reference</a></li>
+                <li><a href="{% url 'sentry-api-0-help' %}">Web API</a></li>
+                <li><a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">Client API</a></li>
             </ul>
 
             {% endblock %}
@@ -43,7 +44,7 @@
           <div class="col-sm-9 main">
               <ul class="crumbs">
                 {% block breadcrumbs %}
-                <li><a href="#">Docs</a></li>
+                <li><a href="{% url 'sentry-help' %}">Docs</a></li>
                 {% endblock %}
               </ul>
             {% block main %}

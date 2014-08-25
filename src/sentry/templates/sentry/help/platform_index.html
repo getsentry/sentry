@@ -4,15 +4,22 @@
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Platforms" %} | {{ block.super }}{% endblock %}
+{% block client_overview_class %}active{% endblock %}
 
-{% block content %}
-    <div class="crumbs">
-      <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
-      <h2>{% trans "Platforms" %}</h2>
-    </div>
+{% block breadcrumbs %}
+{{ block.super }}
+<li class="divider">/</li>
+<li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
+
+{% endblock%}
+
+{% block main %}
+    <h3>Sentry Clients</h3>
 
     <p>While Sentry is designed to work on any platform, we officially support a subset. If you're looking to integrate Sentry on an unsupported platform please take a look at our <a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">client API reference</a>.</p>
 
-    <h3>Languages</h3>
+    <h4>Our clients</h4>
     {% include 'sentry/partial/_client_config.html' %}
+
+    <h4>Community clients</h4>
 {% endblock %}
