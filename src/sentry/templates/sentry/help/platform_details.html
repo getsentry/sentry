@@ -1,15 +1,19 @@
-{% extends "sentry/help/index.html" %}
+{% extends "sentry/help/platform_index.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{{ platform_title }} Client Configuration | {{ block.super }}{% endblock %}
+{% block client_overview_class %}{% endblock %}
 
-{% block helpcontent %}
-    <div class="crumbs">
-      <a href="{% url 'sentry-help' %}" class="back-button icon-arrow-left"></a>
-      <h2><a href="{% url 'sentry-help-platform-list' %}">Platforms <span>/</span> </a> {{ platform_title }}</h2>
-    </div>
+{% block breadcrumbs %}
+  {{ block.super }}
+  <li class="divider">/</li>
+  <li>{{ platform_title }}</li>
+{% endblock %}
+
+{% block main %}
+    <h3>{{ platform_title }}</h3>
 
     {{ template }}
 {% endblock %}
