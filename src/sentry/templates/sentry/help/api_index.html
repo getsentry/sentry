@@ -6,8 +6,6 @@
 {% block breadcrumbs %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li>API</li>
-    <li class="divider">/</li>
     <li><a href="{% url 'sentry-help-platform-list' %}">Web API</a></li>
 {% endblock%}
 
@@ -33,25 +31,4 @@
     dateCreated: "2014-06-11T05:29:56.987Z",
     id: "4"
 }]</pre>
-
-    {% for section in section_list %}
-        <br>
-        <h3>{{ section.name }}</h3>
-        <div class="list-group">
-            {% for resource in section.resources %}
-                <a href="#" class="list-group-item">
-                    <h4>{{ resource.path }}</h4>
-                    {% if resource.doc %}
-                        {{ resource.doc|linebreaks }}
-                    {% endif %}
-                    {% for method in resource.methods %}
-                        <h5>{{ method.name.upper }}</h5>
-                        {% if method.doc %}
-                            {{ method.doc|linebreaks }}
-                        {% endif %}
-                    {% endfor %}
-                </a>
-            {% endfor %}
-        </div>
-    {% endfor %}
 {% endblock %}
