@@ -14,10 +14,29 @@ class ApiHelpIndexView(View):
         prefix = '/api/0/'
 
         context = {
-            'resource_list': self.get_resources(prefix),
+            'section_list': self.get_sections(prefix)
         }
 
         return render_to_response('sentry/help/api_index.html', context, request)
+
+    def get_sections(self, prefix=''):
+        resource_list = sorted(
+            (r for r in self.get_resources(prefix) if r['section']),
+            key=lambda x: x['section']
+        )
+
+        section_list = []
+        last_section = None
+        for resource in resource_list:
+            if resource['section'] != last_section:
+                section_list.append({
+                    'name': resource['section'],
+                    'resources': [],
+                })
+            section_list[-1]['resources'].append(resource)
+            last_section = resource['section']
+
+        return section_list
 
     def get_resources(self, prefix=''):
         urls = import_module('sentry.api.urls')
@@ -83,4 +102,5 @@ class ApiHelpIndexView(View):
             'methods': methods,
             'doc': docstring,
             'title': title,
+            'section': getattr(callback, 'doc_section', None),
         }
