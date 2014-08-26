@@ -2,7 +2,7 @@ from django.contrib.auth import login, logout
 from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection, Endpoint
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -15,6 +15,8 @@ class AuthIndexEndpoint(Endpoint):
     """
 
     authentication_classes = [QuietBasicAuthentication]
+
+    doc_section = DocSection.ACCOUNTS
 
     def post(self, request):
         """

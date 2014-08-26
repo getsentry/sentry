@@ -20,6 +20,13 @@ ONE_DAY = ONE_HOUR * 24
 LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
 
 
+class DocSection(object):
+    ACCOUNTS = 'Accounts API'
+    TEAMS = 'Teams API'
+    PROJECTS = 'Projects API'
+    EVENTS = 'Events API'
+
+
 class Endpoint(APIView):
     authentication_classes = (KeyAuthentication, SessionAuthentication)
     renderer_classes = (JSONRenderer,)
