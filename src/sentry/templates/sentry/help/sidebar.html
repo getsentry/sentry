@@ -21,8 +21,8 @@
 <h4>API Reference</h4>
 <ul>
     <li><a href="{% url 'sentry-api-0-help' %}">Overview</a></li>
-    {% for section_key, section_label in api_sections %}
-      <li><a href="{% url 'sentry-api-0-help' %}">{{ section_label }}</a></li>
+    {% for section in api_sections %}
+      <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
     {% endfor %}
     <li><a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">Client Specification</a></li>
 </ul>

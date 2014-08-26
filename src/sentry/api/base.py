@@ -22,10 +22,10 @@ LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
 
 
 class DocSection(Enum):
-    ACCOUNTS = 'Accounts API'
-    TEAMS = 'Teams API'
-    PROJECTS = 'Projects API'
-    EVENTS = 'Events API'
+    ACCOUNTS = 'Accounts'
+    TEAMS = 'Teams'
+    PROJECTS = 'Projects'
+    EVENTS = 'Events'
 
 
 class Endpoint(APIView):
