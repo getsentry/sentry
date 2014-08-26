@@ -36,27 +36,25 @@
     id: "4"
 }]</pre>
 
-    <br>
 
-    <h2>Resources</h2>
-
-    <div class="list-group">
-        {% for resource in resource_list %}
-            <a href="#" class="list-group-item">
-                <div class="pull-right">
-                    {{ resource.path }}
-                </div>
-                <h4>{{ resource.title }}</h4>
-                {% if resource.doc %}
-                    {{ resource.doc|linebreaks }}
-                {% endif %}
-                {% for method in resource.methods %}
-                    <h5>{{ method.name.upper }}</h5>
-                    {% if method.doc %}
-                        {{ method.doc|linebreaks }}
+    {% for section in section_list %}
+        <br>
+        <h3>{{ section.name }}</h3>
+        <div class="list-group">
+            {% for resource in section.resources %}
+                <a href="#" class="list-group-item">
+                    <h4>{{ resource.path }}</h4>
+                    {% if resource.doc %}
+                        {{ resource.doc|linebreaks }}
                     {% endif %}
-                {% endfor %}
-            </a>
-        {% endfor %}
-    </div>
+                    {% for method in resource.methods %}
+                        <h5>{{ method.name.upper }}</h5>
+                        {% if method.doc %}
+                            {{ method.doc|linebreaks }}
+                        {% endif %}
+                    {% endfor %}
+                </a>
+            {% endfor %}
+        </div>
+    {% endfor %}
 {% endblock %}
