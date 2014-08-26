@@ -340,8 +340,6 @@ class EventManager(object):
         return event
 
     def _find_hashes(self, project, hash_list):
-        from sentry.models import GroupHash
-
         matches = []
         for hash in hash_list:
             ghash, _ = GroupHash.objects.get_or_create(
@@ -377,7 +375,6 @@ class EventManager(object):
         )
 
     def _save_aggregate(self, event, tags, hashes, **kwargs):
-        date = event.datetime
         time_spent = event.time_spent
         project = event.project
 
