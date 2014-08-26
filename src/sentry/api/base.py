@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.parsers import JSONParser
@@ -22,7 +23,7 @@ ONE_DAY = ONE_HOUR * 24
 LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
 
 
-class DocSection(object):
+class DocSection(Enum):
     ACCOUNTS = 'Accounts API'
     TEAMS = 'Teams API'
     PROJECTS = 'Projects API'
