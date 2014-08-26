@@ -1,52 +1,43 @@
 from django.contrib.admindocs.views import simplify_regex
+from django.http import Http404
 from django.utils.importlib import import_module
 from django.views.generic import View
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection, Endpoint
 from sentry.web.helpers import render_to_response
 
 METHODS = ('get', 'post', 'delete', 'patch')
 
 
-class ApiHelpIndexView(View):
+class ApiHelpSectionView(View):
 
-    def get(self, request):
-        prefix = '/api/0/'
+    def get(self, request, section_id):
+        try:
+            section = DocSection[section_id.upper()]
+        except KeyError:
+            raise Http404
 
         context = {
-            'section_list': self.get_sections(prefix)
+            'section': {
+                'id': section.name.lower(),
+                'name': section.value,
+            },
+            'resource_list': self.get_resources(section)
         }
 
-        return render_to_response('sentry/help/api_index.html', context, request)
+        return render_to_response('sentry/help/api_section.html', context, request)
 
-    def get_sections(self, prefix=''):
-        resource_list = sorted(
-            (r for r in self.get_resources(prefix) if r['section']),
-            key=lambda x: x['section'].value,
-        )
-
-        section_list = []
-        last_section = None
-        for resource in resource_list:
-            if resource['section'] != last_section:
-                section_list.append({
-                    'id': resource['section'].name,
-                    'name': resource['section'].value,
-                    'resources': [],
-                })
-            section_list[-1]['resources'].append(resource)
-            last_section = resource['section']
-
-        return section_list
-
-    def get_resources(self, prefix=''):
+    def get_resources(self, section, prefix='/api/0/'):
         urls = import_module('sentry.api.urls')
 
         resources = []
         for pattern in urls.urlpatterns:
-            data = self.__get_resource_data(pattern, prefix)
-            if data is None:
+            callback = self.__get_resource_callback(pattern, prefix)
+            if callback is None:
                 continue
+            if getattr(callback, 'doc_section', None) != section:
+                continue
+            data = self.__get_resource_data(pattern, prefix, callback)
             resources.append(data)
         return sorted(resources, key=lambda x: x['path'])
 
@@ -64,7 +55,7 @@ class ApiHelpIndexView(View):
 
         return title.strip(), doc.strip()
 
-    def __get_resource_data(self, pattern, prefix):
+    def __get_resource_callback(self, pattern, prefix):
         if not hasattr(pattern, 'callback'):
             return
 
@@ -81,6 +72,9 @@ class ApiHelpIndexView(View):
         else:
             return
 
+        return callback
+
+    def __get_resource_data(self, pattern, prefix, callback):
         path = simplify_regex(pattern.regex.pattern)
 
         path = path.replace('<', '{').replace('>', '}')
