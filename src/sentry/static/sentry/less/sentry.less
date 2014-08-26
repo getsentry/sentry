@@ -43,7 +43,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 hr {
-  border-top: 3px solid #f1f2f3;
+  border-top: 1px solid #E9EBEC;
   margin: 30px 0;
   opacity: .65;
 }
@@ -215,11 +215,11 @@ header {
       overflow: auto;
       padding: 0;
       top: 44px;
-      left: -35px;
+      left: -36px;
       border-radius: 0 0 4px 4px;
 
       .team {
-        border-bottom: 2px solid #f1f2f3;
+        border-bottom: 1px solid #E9EBEC;
         padding: 14px 15px 8px;
         &:last-child {
           border-bottom: 0;
@@ -323,17 +323,17 @@ header {
 }
 
 .nav-tabs {
-  border-bottom: 3px solid #f1f2f3;
+  border-bottom: 1px solid darken(#E9EBEC, 3);
   li {
-    margin-bottom: -3px;
+    margin-bottom: -1px;
     > a {
       font-size: 14px;
       color: #4c5459;
       font-weight: 600;
       margin-right: 5px;
       line-height: 1.428571429;
-      border: 3px solid transparent;
-      border-radius: 5px 5px 0 0;
+      border: 1px solid transparent;
+      border-radius: 4px 4px 0 0;
       padding: 10px 15px;
       &:hover {
         background: transparent;
@@ -343,7 +343,7 @@ header {
 
     &.active a, &.active a:hover, &.active a:focus {
       background: #fff;
-      border: 3px solid #f1f2f3 ;
+      border: 1px solid darken(#E9EBEC, 3);
       border-bottom-color: transparent;
     }
   }
@@ -382,11 +382,11 @@ footer {
 .form-control {
   box-shadow: none;
   height: auto;
-  border: 2px solid #e9eaea;
+  border: 1px solid #E9EBEC;
 }
 
 .btn {
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   font-weight: 600;
 
   &:active {
@@ -404,13 +404,17 @@ footer {
   }
 }
 
+.btn-lg {
+  border-radius: 4px;
+}
+
 .btn-default {
   color: #34343f;
-  background-color: #f7f7f7;
-  border-color: #e9eaea;
+  background-color: #f6f7f8;
+  border-color: #e1e4e5;
   &:hover, &:focus, &:active {
     color: #34343f;
-    background-color: #e3e3e3;
+    background-color: #f1f2f3;
     border-color: #cacccc;
   }
 }
@@ -426,7 +430,7 @@ footer {
 }
 
 .btn-group .btn + .btn {
-  margin-left: -2px;
+  margin-left: -1px;
 }
 
 .btn-group.open .dropdown-toggle {
@@ -446,12 +450,12 @@ footer {
   margin-bottom: 6px;
 
   > a {
-    background: #f7f7f7;
+    background: lighten(#f1f2f3, 2);
     font-weight: 600;
     padding: 8px 14px;
     border-radius: 4px;
     &:hover {
-      background: #f0f0f0;
+      background: #f1f2f3;
     }
   }
 
@@ -474,7 +478,7 @@ footer {
     height: 38px;
     background: #fff;
     color: #808088;
-    border-color: #f1f2f3;
+    border-color: #e1e4e5;
     &:hover {
       color: @gray;
     }
@@ -487,16 +491,16 @@ footer {
       display: block;
       content: "";
       position: absolute;
-      top: -2px;
-      bottom: -2px;
-      width: 2px;
+      top: -1px;
+      bottom: -1px;
+      width: 1px;
       background: transparent;
     }
     &:after {
-      left: -2px;
+      left: -1px;
     }
     &:before {
-      right: -2px;
+      right: -1px;
     }
 
     &.active {
@@ -537,11 +541,15 @@ footer {
     left: 15px;
   }
   .search-input {
-    padding: 7px 20px 6px 40px;
+    padding: 8px 20px 7px 40px;
     box-shadow: none;
-    border: 2px solid #f1f2f3;
+    border: 1px solid #e1e4e5;
     font-size: 15px;
     background: #fff;
+    &:focus {
+      border-radius: 4px 4px 0 0;
+      border-bottom-width: 0;
+    }
   }
   .search-toggle {
     color: #8E8E97;
@@ -553,19 +561,19 @@ footer {
 }
 
 .search-dropdown {
-  box-shadow: 0 0 0 2px rgba(70, 82, 98, .1);
-  border-radius: 0 0 5px 5px;
+  box-shadow: 0 0 0 1px rgba(70, 82, 98, .15), 0 1px 3px rgba(70, 82, 98, .2);
+  border-radius: 0 0 4px 4px;
   position: absolute;
   top: 38px;
-  right: 2px;
-  left: 2px;
+  right: 1px;
+  left: 1px;
   background: #fff;
   z-index: 100;
   overflow: hidden;
 
   .form-group {
     padding: 10px 0;
-    border-top: 2px solid #f1f2f3;
+    border-top: 1px solid #E9EBEC;
     margin: 0;
 
     &:first-child {
@@ -580,7 +588,7 @@ footer {
 
   li {
     position: relative;
-    border-top: 2px solid #f1f2f3;
+    border-top: 1px solid #E9EBEC;
     padding: 12px 14px 12px 40px;
     cursor: pointer;
 
@@ -784,7 +792,7 @@ a.icon-share {
     z-index: 1000;
     left: 0;
     right: 0;
-    box-shadow: 0 2px 0 0 rgba(0,0,0, .1);
+    box-shadow: 0 1px 0 rgba(0,0,0, .1), 0 1px 2px rgba(0,0,0, .06);
     background: #f9f9f9;
 
     .group-header {
@@ -795,8 +803,13 @@ a.icon-share {
       left: 0;
     }
 
-    .stream-actions-left {
+    .stream-actions-left, .stream-actions-users {
       border-radius: 0;
+    }
+
+    .stream-actions-cell {
+      box-shadow: none;
+      border: 0;
     }
   }
 }
@@ -856,11 +869,14 @@ a.icon-share {
     display: table-cell;
     position: relative;
     padding: 7px 14px;
+    border-top: 1px solid #e1e4e5;
+    box-shadow: 0 1px 0 rgba(70,82, 98, .15);
   }
 
   .stream-actions-left {
     padding-left: 42px;
-    border-radius: 5px 0 0 0;
+    border-radius: 4px 0 0 0;
+    border-left: 1px solid #e1e4e5;
   }
 
   .stream-actions-graph {
@@ -878,8 +894,9 @@ a.icon-share {
   .stream-actions-users {
     width: 100px;
     padding-left: 30px;
-    border-radius: 0 5px 5px 0;
+    border-radius: 0 4px 0 0;
     font-size: 13px;
+    border-right: 1px solid #e1e4e5;
   }
   .realtime-paused {
     .btn-danger();
@@ -928,7 +945,7 @@ a.icon-share {
   position: relative;
   padding-bottom: 28px;
   margin-bottom: 30px;
-  border-bottom: 3px solid #f1f2f3;
+  border-bottom: 1px solid #E9EBEC;
   margin-top: -5px;
   h3 {
     font-size: 24px;
@@ -1052,7 +1069,7 @@ a.icon-share {
     .transition(all 2s linear);
     position: relative;
     display: table-cell;
-    border-top: 3px solid #F8F9FA;
+    border-top: 1px solid #E9EBEC;
     padding: 15px 0;
     vertical-align: middle;
   }
@@ -1061,7 +1078,7 @@ a.icon-share {
     background: lighten(#F8F9FA, 1.25);
     font-size: 12px;
     text-align: center;
-    border-bottom: 3px solid #F8F9FA;
+    border-bottom: 1px solid #E9EBEC;
     padding: 5px 0;
   }
 
@@ -1170,7 +1187,7 @@ a.icon-share {
   }
 
   &.similar-events {
-    border-top: 3px solid #F8F9FA;
+    border-top: 1px solid #f1f2f3;
 
     .event-cell {
       display: block;
@@ -1202,7 +1219,7 @@ a.icon-share {
 
     .form-control {
       border: 0;
-      border-bottom: 2px solid #f1f2f3;
+      border-bottom: 1px solid #E9EBEC;
       padding-bottom: 8px;
       margin-bottom: 6px;
       border-radius: 0;
@@ -1344,7 +1361,7 @@ ul.traceback {
     content: "";
     width: 20px;
     height: 0;
-    border-bottom: 2px solid #f1f2f3;
+    border-bottom: 1px solid #E9EBEC;
     position: absolute;
     left: -15px;
     top: 12px;
@@ -1506,14 +1523,14 @@ ol.context-line {
 // Generic module stuff
 
 .box {
-  border: 3px solid #f1f2f3;
-  border-radius: 7px;
+  border: 1px solid #e1e4e5;
+  border-radius: 4px;
   margin: 0 0 30px;
   .box-header {
     padding: 10px 14px;
-    border-bottom: 3px solid #f1f2f3;
-    background: lighten(#f1f2f3, 4.4);
-    border-radius: 4px 4px 0 0;
+    border-bottom: 1px solid #e1e4e5;
+    background: lighten(#f1f2f3, 4);
+    border-radius: 3px 3px 0 0;
 
     h3,h4,h5 {
       font-size: 14px;
@@ -1548,7 +1565,7 @@ ol.context-line {
   > li {
     display: inline-block;
     background: #f9f9f9;
-    border-radius: 8px;
+    border-radius: 4px;
     padding-top: 2px;
     padding-bottom: 2px;
     margin-bottom: 10px;
@@ -1624,7 +1641,7 @@ small {
 }
 
 .form-actions {
-  border-top: 2px solid #eff1f4;
+  border-top: 1px solid #E9EBEC;
   background: none;
   padding: 20px 0 5px;
 
@@ -1663,7 +1680,7 @@ small {
 
 legend {
   margin: 30px 0;
-  border-bottom: 3px solid #f1f2f3;
+  border-bottom: 1px solid #E9EBEC;
   padding-bottom: 10px;
 }
 
@@ -1688,9 +1705,9 @@ legend {
 }
 
 .image {
-  border: 2px solid #f1f2f3;
+  border: 1px solid #E9EBEC;
   padding: 20px;
-  border-radius: 5px;
+  border-radius: 4px;
 }
 
 .datepicker-box {
@@ -1956,7 +1973,7 @@ legend {
 
     li {
       .clearfix();
-      border-bottom: 2px solid #f1f2f3;
+      border-bottom: 1px solid #E9EBEC;
       padding: 10px 10px 10px 0;
       &:last-child {
         border-bottom: 0;
@@ -2013,7 +2030,7 @@ table.table td .select2-container {
   top: 40px;
   border: none;
   border-radius: 4px;
-  .box-shadow(0 0 0 2px rgba(0,0,0,.43));
+  box-shadow: 0 0 0 1px rgba(70, 82, 98, .15), 0 1px 3px rgba(70, 82, 98, .2);
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
@@ -2061,7 +2078,7 @@ table.table td .select2-container {
 }
 
 .table-bordered {
-  border: 2px solid #f1f2f3;
+  border: 1px solid #E9EBEC;
 }
 
 
@@ -2079,7 +2096,7 @@ table.table {
 .table.table-light {
   th, td {
       border: 0 !important;
-      border-bottom: 2px solid #f1f2f3 !important;
+      border-bottom: 1px solid #E9EBEC !important;
   }
 }
 
@@ -2098,7 +2115,7 @@ table.table, table.vars {
     border: none;
     padding: 5px 8px;
     word-break: break-all;
-    border: 2px solid #f1f2f3 !important;
+    border: 1px solid #E9EBEC !important;
   }
 
   td.values, td.code {
@@ -2127,7 +2144,7 @@ table.vars {
     border: 0;
     vertical-align: top;
     border: 0 !important;
-    border-top: 2px solid #f1f2f3 !important;
+    border-top: 1px solid #E9EBEC !important;
   }
   td table {
     border-top: 0;
@@ -2178,7 +2195,7 @@ table.integrations {
       padding: 10px 0;
       position: relative;
       padding-left: 24px;
-      border-bottom: 2px solid #f1f2f3;
+      border-bottom: 1px solid #E9EBEC;
 
       &:last-child {
         border: 0;
@@ -2280,7 +2297,7 @@ table.integrations {
       display: block;
       margin: 0 0 20px 0;
       padding: 18px 20px 12px;
-      border: 3px solid #f1f2f3;
+      border: 1px solid #E9EBEC;
       position: relative;
       border-radius: 7px;
 
@@ -2632,7 +2649,7 @@ table.integrations {
 }
 
 .well {
-  border: 2px solid #f1f2f3;
+  border: 1px solid #E9EBEC;
   box-shadow: none;
   background: #fff;
 }
@@ -2696,8 +2713,8 @@ table.integrations {
     .box-header {
       border-radius: 0;
       // background: #f1f2f3;
-      border-top: 2px solid #f1f2f3;
-      border-bottom: 2px solid #f1f2f3;
+      border-top: 1px solid #E9EBEC;
+      border-bottom: 1px solid #E9EBEC;
       padding: 15px;
       background: lighten(#f1f2f3, 3);
     }
@@ -2810,7 +2827,7 @@ table.integrations {
       margin-bottom: 15px;
 
       .row {
-        border: 2px solid #f1f2f3;
+        border: 1px solid #E9EBEC;
         border-radius: 4px;
         margin: 0;
       }
@@ -2822,7 +2839,7 @@ table.integrations {
     }
 
     .event-count, .user-count {
-      border-left: 2px solid #f1f2f3;
+      border-left: 1px solid #E9EBEC;
     }
   }
 
