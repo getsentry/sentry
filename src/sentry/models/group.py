@@ -119,8 +119,8 @@ class Group(Model):
         return self.get_status() == STATUS_RESOLVED
 
     def get_status(self):
-        if self.status == STATUS_UNRESOLVED or self.is_over_resolve_age():
-            return STATUS_UNRESOLVED
+        if self.status == STATUS_UNRESOLVED and self.is_over_resolve_age():
+            return STATUS_RESOLVED
         return self.status
 
     def get_score(self):
