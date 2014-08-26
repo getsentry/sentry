@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.models import Event
@@ -8,6 +8,8 @@ from sentry.web.helpers import group_is_public
 
 
 class EventDetailsEndpoint(Endpoint):
+    doc_section = DocSection.EVENTS
+
     def _get_entries(self, request, event):
         # XXX(dcramer): These are called entries for future-proofing
         is_public = group_is_public(event.group, request.user)
