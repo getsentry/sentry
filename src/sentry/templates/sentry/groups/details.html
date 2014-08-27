@@ -141,7 +141,7 @@
                 <a class="btn btn-default btn-lg pull-right prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Event" %}</a>
                 <a class="btn btn-default btn-lg pull-left next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Event" %} <span></span></a>
                 <h4>
-                Event at <span title="{{ event.datetime }}">{% localized_datetime event.datetime %}</span> [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
+                <span title="{{ event.datetime }}">{% localized_datetime event.datetime %}</span> [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
             </div>
             {% comment %}
             {% include "sentry/partial/event_nav.html" %}
