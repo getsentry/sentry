@@ -48,10 +48,22 @@ hr {
   opacity: .65;
 }
 
+th {
+  font-weight: 600;
+}
+
+strong {
+  font-weight: 600;
+}
+
 .sidebar {
   h6 {
-    margin: 20px 0;
+    margin: 0 0 20px;
     color: #999;
+  }
+
+  .nav-stacked {
+    margin: 0 0 15px;
   }
 }
 
@@ -415,11 +427,12 @@ footer {
 
 .btn-lg {
   border-radius: 4px;
+  font-size: 15px;
 }
 
 .btn-default {
   color: #34343f;
-  background-color: #f6f7f8;
+  background-color: #fff;
   border-color: #e1e4e5;
   box-shadow: 0 1px 1px rgba(70, 82, 98, 0.05);
   &:hover, &:focus, &:active {
@@ -481,7 +494,8 @@ footer {
   &.active {
     a, a:hover {
       color: #fff;
-      background: darken(@blue, 3);
+      background: #2598e1;
+      border-color: #1a7ebe;
     }
   }
 }
@@ -1044,7 +1058,6 @@ a.icon-share {
   margin-bottom: 20px;
   display: table;
   width: 100%;
-  box-shadow: 0 1px 1px rgba(70, 82, 98, .04);
   border-radius: 4px;
 
   .group {
@@ -1383,7 +1396,7 @@ ul.traceback {
   font-weight: normal;
 
   span {
-    font-weight: bold;
+    font-weight: 600;
   }
 }
 
@@ -1442,7 +1455,7 @@ ul.traceback {
   }
 
   code {
-    padding: 0;
+    padding: 1px 3px;
     font-size: inherit;
     color: inherit;
   }
@@ -1574,13 +1587,15 @@ ol.context-line {
     h3,h4,h5 {
       font-size: 14px;
       margin: 0;
+      font-weight: 600;
     }
 
     .btn {
       position: relative;
-      top: -3px;
+      top: -1px;
       right: -6px;
     }
+
     .nav-pills {
       position: relative;
       right: -6px;
@@ -1599,24 +1614,19 @@ ol.context-line {
 }
 
 .mini-tag-list {
-  padding-left: 0;
+  .clearfix();
+  .list-unstyled();
   margin-bottom: 0;
+
   > li {
-    display: inline-block;
-    background: #f9f9f9;
-    border-radius: 4px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-    margin-bottom: 10px;
-    strong {
-      padding-left: 8px;
-    }
+    float: left;
+    background: #fff;
+    border-radius: 3px;
+    margin: 0 20px 10px 0;
+
+
     em {
       color: #aaa;
-      margin: 0 3px;
-    }
-    span {
-      padding-right: 8px;
     }
   }
 }
@@ -1626,7 +1636,7 @@ ol.context-line {
   margin-bottom: 30px;
 
   h4 {
-    margin: 5px 0 0;
+    margin: 3px 0 0;
   }
 }
 
@@ -1846,7 +1856,7 @@ legend {
     }
   }
   a {
-    font-weight: bold;
+    font-weight: 500;
     color: inherit;
   }
 }
