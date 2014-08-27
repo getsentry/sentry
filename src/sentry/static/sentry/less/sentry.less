@@ -48,11 +48,7 @@ hr {
   opacity: .65;
 }
 
-th {
-  font-weight: 600;
-}
-
-strong {
+th, dt, strong {
   font-weight: 600;
 }
 
@@ -426,7 +422,7 @@ footer {
 }
 
 .btn-lg {
-  border-radius: 4px;
+  border-radius: 3px;
   font-size: 15px;
 }
 
@@ -864,6 +860,19 @@ a.icon-share {
     font-size: 20px !important;
   }
 }
+.btn {
+
+  .icon-bookmark {
+    position: relative;
+    top: 2px;
+  }
+
+  .icon-checkmark, .icon-trash, .icon-pause {
+    position: relative;
+    top: 1px;
+  }
+
+}
 
 .stream-actions {
   display: table-row;
@@ -880,20 +889,6 @@ a.icon-share {
     position: absolute;
     left: 16px;
     top: 3px;
-  }
-
-  .icon-bookmark {
-    position: relative;
-    top: 2px;
-  }
-
-  .icon-checkmark, .icon-pause {
-    position: relative;
-    top: 1px;
-  }
-
-  .icon-pause {
-    top: 2px;
   }
 
   .stream-actions-cell {
@@ -1579,9 +1574,9 @@ ol.context-line {
   border-radius: 4px;
   margin: 0 0 30px;
   .box-header {
-    padding: 10px 14px;
+    padding: 10px 14px 9px;
     border-bottom: 1px solid #e1e4e5;
-    background: lighten(#f1f2f3, 4);
+    background: #f9fafa;
     border-radius: 3px 3px 0 0;
 
     h3,h4,h5 {
@@ -1592,7 +1587,7 @@ ol.context-line {
 
     .btn {
       position: relative;
-      top: -1px;
+      top: -2px;
       right: -6px;
     }
 
@@ -1636,7 +1631,8 @@ ol.context-line {
   margin-bottom: 30px;
 
   h4 {
-    margin: 3px 0 0;
+    font-size: 16px;
+    margin: 5px 0 0;
   }
 }
 
@@ -1664,7 +1660,7 @@ dl.flat {
 dl.flat dt {
     float: left;
     clear: left;
-    width: 90px;
+    width: 70px;
     padding-bottom: 5px;
 }
 dl.flat dd {
@@ -2076,9 +2072,9 @@ table.table td .select2-container {
 }
 
 .dropdown-menu {
-  top: 40px;
+  top: 32px;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(70, 82, 98, .15), 0 1px 3px rgba(70, 82, 98, .2);
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
@@ -2765,11 +2761,9 @@ table.integrations {
 
     .box-header {
       border-radius: 0;
-      // background: #f1f2f3;
       border-top: 1px solid #E9EBEC;
       border-bottom: 1px solid #E9EBEC;
       padding: 15px;
-      background: lighten(#f1f2f3, 3);
     }
   }
 
