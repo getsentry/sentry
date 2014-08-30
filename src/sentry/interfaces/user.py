@@ -11,17 +11,15 @@ __all__ = ('User',)
 from sentry.interfaces.base import Interface
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
+from ipaddr import IPAddress
 
 
 def validate_ip(value, required=True):
-    # TODO(dcramer): we should just use ipaddr here
     if not required and not value:
         return
 
-    assert value.count('.') == 3
-    for comp in value.split('.'):
-        assert comp.isdigit()
-        assert -1 < int(comp) <= 256
+    # will raise a ValueError
+    IPAddress(value)
     return value
 
 
