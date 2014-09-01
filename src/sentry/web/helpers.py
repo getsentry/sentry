@@ -17,6 +17,7 @@ from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
+from sentry import options
 from sentry.constants import EVENTS_PER_PAGE, STATUS_HIDDEN
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 
@@ -184,7 +185,7 @@ def plugin_config(plugin, project, request):
         if project:
             value = ProjectOption.objects.get_value(project, key, NOTSET)
         else:
-            value = Option.objects.get_value(key, NOTSET)
+            value = options.get(key)
         if value is not NOTSET:
             initials[field] = value
 
