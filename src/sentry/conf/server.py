@@ -301,6 +301,7 @@ CELERY_QUEUES = [
     Queue('events', routing_key='events'),
     Queue('update', routing_key='update'),
     Queue('email', routing_key='email'),
+    Queue('options', routing_key='options'),
 ]
 
 CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
@@ -340,6 +341,14 @@ CELERYBEAT_SCHEDULE = {
         'options': {
             'expires': 10,
             'queue': 'counters-0',
+        }
+    },
+    'sync-options': {
+        'task': 'sentry.tasks.options.sync_options',
+        'schedule': timedelta(seconds=10),
+        'options': {
+            'expires': 10,
+            'queue': 'options',
         }
     },
 }
@@ -697,6 +706,9 @@ SENTRY_DISALLOWED_IPS = (
 # cannot be changed by managed users. Optionally include 'email' and
 # 'first_name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ('email',)
+
+# See sentry/options/__init__.py for more information
+SENTRY_OPTIONS = {}
 
 # Configure celery
 import djcelery

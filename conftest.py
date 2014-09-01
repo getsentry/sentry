@@ -93,6 +93,12 @@ def pytest_configure(config):
     settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
     settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
+    settings.CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
