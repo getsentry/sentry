@@ -48,6 +48,7 @@ Internals
 
 .. toctree::
    :maxdepth: 1
+
    internals/options
 
 Reference
