@@ -133,8 +133,8 @@ class OptionsManager(object):
         """
         Permanently remove the value of an option.
 
-        This will also clear the cache, which means a following get() will
-        result in a miss.
+        This will also clear the value within the cache, which means a following
+        get() will result in a miss.
 
         >>> from sentry import options
         >>> options.delete('option')
