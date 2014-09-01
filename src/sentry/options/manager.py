@@ -42,12 +42,6 @@ class OptionsManager(object):
 
     - Values must be strings.
     - Empty values are identical to null values which are represented by ''.
-
-    >>> from sentry import options
-    >>>
-    >>> assert options.get('my:option') == ''
-    >>> options.set('my:option', 'foo')
-    >>> assert options.get('my:option') == 'foo'
     """
     cache = cache
 
@@ -70,6 +64,13 @@ class OptionsManager(object):
         return 'o:{0}'.format(md5(key).hexdigest())
 
     def set(self, key, value):
+        """
+        Set the value for an option. If the cache is unavailable the action will
+        still suceeed.
+
+        >>> from sentry import options
+        >>> options.set('option', 'value')
+        """
         create_or_update(
             model=Option,
             key=key,
@@ -85,6 +86,15 @@ class OptionsManager(object):
             self.logger.warn(CACHE_UPDATE_ERR, key, exc_info=True)
 
     def get(self, key):
+        """
+        Get the value of an option prioritizing the cache, then the database,
+        and finally the local configuration.
+
+        If no value is present for the key, an empty value ('') is returned.
+
+        >>> from sentry import options
+        >>> options.get('option')
+        """
         cache_key = self._make_cache_key(key)
 
         try:
@@ -120,6 +130,15 @@ class OptionsManager(object):
         return result or ''
 
     def delete(self, key):
+        """
+        Permanently remove the value of an option.
+
+        This will also clear the cache, which means a following get() will
+        result in a miss.
+
+        >>> from sentry import options
+        >>> options.delete('option')
+        """
         cache_key = self._make_cache_key(key)
 
         Option.objects.filter(key=key).delete()
