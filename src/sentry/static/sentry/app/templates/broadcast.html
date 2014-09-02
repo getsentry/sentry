@@ -10,12 +10,12 @@
 <div ng-if="!broadcasts.overQuota">
   <div ng-repeat="broadcast in broadcasts">
       <div ng-if="broadcast.url">
-          <span class="badge new" ng-show="broadcast.showNew">new</span>
-          <a href="{{ broadcast.url }}" class="link">{{ broadcast.text }}</a>
+          <span class="badge new" ng-show="broadcast.badge">new</span>
+          <a href="{{ broadcast.url }}" class="link">{{ broadcast.message }}</a>
       </div>
       <div ng-if="!broadcast.url">
-          <span class="badge new" ng-show="broadcast.showBadge">{{ broadcast.badgeText }}</span>
-          {{ broadcast.text }}
+          <span class="badge new" ng-show="broadcast.badge">new</span>
+          {{ broadcast.message }}
       </div>
   </div>
 </div>
