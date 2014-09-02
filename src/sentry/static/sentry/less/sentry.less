@@ -395,10 +395,17 @@ footer {
   height: auto;
   border: 1px solid #e1e4e5;
   padding: 8px 12px 7px;
+  position: relative;
 
   &:focus {
     box-shadow: none;
     border-color: @blue;
+  }
+
+  object {
+    position: absolute;
+    top: 10px;
+    right: 9px;
   }
 }
 
