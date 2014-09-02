@@ -41,7 +41,7 @@
                 </ul>
             </div>
             <div class="btn-group">
-                <a href="#" class="btn dropdown-toggle btn-sm" onclick="$('#daterange').toggle(); return false;">
+                <a href="#" class="btn dropdown-toggle btn-sm" onclick="" data-toggle="dropdown">
                     {% if from_date %}
                         {% if not to_date %}
                             Since: {{ from_date|date:"M jS" }}
@@ -56,7 +56,7 @@
                         {% endif %}
                     {% endif %}
                  <span aria-hidden="true" class="icon-arrow-down"></span></a>
-                 <div class="datepicker-box dropdown-menu" id="daterange">
+                 <div class="datepicker-box dropdown-menu" id="daterange" ng-click="$event.stopPropagation()">
                      <form method="GET" action=".">
                          {% for key, value in request.GET.iteritems %}
                              {% if key != df and key != tf and key != dt and key != tt and key != page %}
@@ -65,7 +65,7 @@
                          {% endfor %}
                          <div class="input">
                            <div class="inline-inputs">
-                             <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" class="form-control date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" placeholder="Date"/>
+                             <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" class="form-control date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" placeholder="Date" />
                              <input class="time form-control" type="text" name="tf" value="{% if from_date %}{{ from_date|time:"h:i A" }}{% endif %}" placeholder="Time" />
                              to
                              <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" class="date form-control" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" placeholder="Date"/>
