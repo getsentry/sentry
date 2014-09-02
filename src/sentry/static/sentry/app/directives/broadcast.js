@@ -3,16 +3,15 @@
 
   var broadcasts = [
     {
-      showBadge: true,
-      badgeText: "new",
-      text: "See what's new in Sentry!",
+      badge: true,
+      message: "See what's new in Sentry!",
       url: "http://blog.getsentry.com/"
     },
     {
-      text: "Restrict access to projects using Access Groups"
+      message: "Restrict access to projects using Access Groups"
     },
     {
-      text: "Precisely control notifications with Rules"
+      message: "Precisely control notifications with Rules"
     }
   ];
 
@@ -24,7 +23,7 @@
         controller: function () {
           this.overQuota = false; // TODO: Figure out if over quota
 
-          // this.randomBroadcast = broadcasts[Math.floor(Math.random() * broadcasts.length)];
+          this.randomBroadcast = broadcasts[Math.floor(Math.random() * broadcasts.length)];
 
         },
         controllerAs: "broadcasts"
