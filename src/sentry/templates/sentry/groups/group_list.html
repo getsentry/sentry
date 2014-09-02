@@ -75,8 +75,8 @@
                          </div>
                          <div class="submit">
                              <div class="pull-right">
-                                 <input type="button" class="btn btn-small" value="{% trans "Clear" %}" onclick="$('#daterange input[type=text]').val(''); this.form.submit();">
-                                 <input type="submit" class="btn btn-primary btn-small" value="{% trans "Apply" %}">
+                                 <button class="btn btn-default btn-sm" onclick="$('#daterange input[type=text]').val(''); this.form.submit();">{% trans "Clear" %}</button>
+                                 <button class="btn btn-primary btn-sm">{% trans "Apply" %}</button>
                              </div>
                              <div class="radio-inputs">
                                  <label class="radio">
