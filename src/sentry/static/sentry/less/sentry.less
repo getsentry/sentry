@@ -147,7 +147,7 @@ h3 {
 /* =============================  Layout  ============================== */
 
 header {
-  background: @grayDark;
+  background: #434F5E;
   color: #fff;
   padding: 20px 0 19px;
   margin: 0 0 30px;
@@ -440,11 +440,11 @@ footer {
 
 .btn-primary {
   color: #ffffff;
-  background-color: #49a9e6;
-  border-color: #339ee3;
+  background-color: @blue;
+  border-color: darken(@blue, 10);
   &:hover, &:focus, &:active {
-    background-color: #2598e1;
-    border-color: #1a7ebe;
+    background-color: lighten(@blue, 10);
+    border-color: @blue;
   }
 }
 
@@ -659,15 +659,15 @@ footer {
     }
 
     &:hover, .active {
-      background: #EFF9FF;
-      border-color: #DFEAF1;
+      background: #f3f8fb;
+      border-color: #e5ecf0;
 
       .icon {
         color: rgba(70, 82, 98, .24);
       }
 
       & + li {
-        border-color: #DFEAF1;
+        border-color: #e5ecf0;
       }
     }
   }

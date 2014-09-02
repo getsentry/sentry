@@ -22,9 +22,9 @@
         restrict: 'E',
         templateUrl: '../../templates/broadcast.html',
         controller: function () {
-          this.overQuota = true; // TODO: Figure out if over quota
+          this.overQuota = false; // TODO: Figure out if over quota
 
-          this.randomBroadcast = broadcasts[Math.floor(Math.random() * broadcasts.length)];
+          // this.randomBroadcast = broadcasts[Math.floor(Math.random() * broadcasts.length)];
 
         },
         controllerAs: "broadcasts"
