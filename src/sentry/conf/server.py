@@ -289,6 +289,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.index',
     'sentry.tasks.merge',
     'sentry.tasks.store',
+    'sentry.tasks.options',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
 )
