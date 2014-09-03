@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from sentry.models import Option
 from sentry.options import default_manager
-from sentry.tasks.sync_options import sync_options
+from sentry.tasks.options import sync_options
 from sentry.testutils import TestCase
 
 
