@@ -1,0 +1,97 @@
+// Buttons // --------------------------------------------------
+
+.btn {
+  border: 1px solid transparent;
+  font-weight: 500;
+  .transition(all .1s);
+
+  &:active {
+    box-shadow: none;
+  }
+  &.disabled {
+    color: #CED3D6;
+    border-color: #E3E5E6;
+  }
+  &.btn-default, .btn-primary, .btn-danger {
+    &:active {
+      position: relative;
+      top: 2px;
+    }
+  }
+}
+
+.btn-lg {
+  border-radius: 3px;
+  font-size: 15px;
+}
+
+.btn-default {
+  color: #34343f;
+  background-color: #fff;
+  border-color: #e1e4e5;
+  box-shadow: 0 1px 1px rgba(70, 82, 98, 0.05);
+  &:hover, &:focus, &:active {
+    color: #34343f;
+    background-color: #f1f2f3;
+    border-color: #cacccc;
+  }
+}
+
+.btn-primary {
+  color: #ffffff;
+  background-color: @blue;
+  border-color: darken(@blue, 10);
+  &:hover, &:focus, &:active {
+    background-color: lighten(@blue, 10);
+    border-color: @blue;
+  }
+}
+
+.btn-group .btn + .btn {
+  margin-left: -1px;
+}
+
+// Disabled buttons
+
+.btn-primary.disabled, .btn-primary[disabled], fieldset[disabled] .btn-primary, .btn-primary.disabled:hover, .btn-primary[disabled]:hover, fieldset[disabled] .btn-primary:hover, .btn-primary.disabled:focus, .btn-primary[disabled]:focus, fieldset[disabled] .btn-primary:focus, .btn-primary.disabled:active, .btn-primary[disabled]:active, fieldset[disabled] .btn-primary:active, .btn-primary.disabled.active, .btn-primary[disabled].active, fieldset[disabled] .btn-primary.active, .btn-danger.disabled, .btn-danger[disabled], fieldset[disabled] .btn-danger, .btn-danger.disabled:hover, .btn-danger[disabled]:hover, fieldset[disabled] .btn-danger:hover, .btn-danger.disabled:focus, .btn-danger[disabled]:focus, fieldset[disabled] .btn-danger:focus, .btn-danger.disabled:active, .btn-danger[disabled]:active, fieldset[disabled] .btn-danger:active, .btn-danger.disabled.active, .btn-danger[disabled].active, fieldset[disabled] .btn-danger.active {
+  color: lighten(@gray, 50);
+  border-color: lighten(@gray, 58);
+  background: #fff;
+  opacity: 1;
+}
+
+.btn {
+  .icon-checkmark, .icon-trash, .icon-pause {
+    position: relative;
+    top: 1px;
+  }
+
+  .icon-bookmark {
+    position: relative;
+    top: 2px;
+  }
+
+  .icon-arrow-down, .icon-arrow-right, .icon-arrow-left {
+    font-size: 16px !important;
+    position: relative;
+    top: 3px;
+  }
+
+  &.btn-sm {
+    .icon-arrow-down, .icon-arrow-right, .icon-arrow-left {
+      font-size: 14px !important;
+      top: 2px;
+    }
+  }
+}
+
+.back-button.icon-arrow-left {
+  font-size: 48px !important;
+  position: absolute;
+  left: -40px;
+  top: -10px;
+  color: rgba(70, 82, 98, .2);
+  &:hover {
+    color: rgba(70, 82, 98, .5);
+  }
+}
