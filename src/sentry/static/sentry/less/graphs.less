@@ -69,3 +69,28 @@
 }
 
 #chart { margin-bottom: 10px; overflow: hidden; }
+
+
+// Usage graph // ------------------------------------------
+
+.usage-wrapper {
+  width: 240px;
+  font-size: 13px;
+  margin-top: -6px;
+
+  a {
+    color: @linkColor !important;
+    font-weight: 600;
+  }
+
+  .usage {
+    background: #f1f2f3;
+
+    div {
+      margin-top: 5px;
+      height: 5px;
+
+      #gradient > .horizontal(#FFFC52, #FF5254);
+    }
+  }
+}

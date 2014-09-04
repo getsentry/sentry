@@ -10,6 +10,21 @@ body {
   font-family: "Avenir Next", "Avenir", "Helvetica Neue", helvetica, sans-serif;
 }
 
+// Links
+
+a {
+  color: @linkColor;
+  text-decoration: none;
+  .transition(color linear .2s);
+  cursor: pointer;
+  &:hover {
+    color: @linkColorHover;
+    text-decoration: none;
+  }
+}
+
+// Headings
+
 h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
   margin: 30px 0;
@@ -27,6 +42,8 @@ h3 {
   font-size: 18px;
 }
 
+// Misc
+
 hr {
   border-top: 1px solid #E9EBEC;
   margin: 30px 0;
@@ -35,17 +52,30 @@ hr {
 
 th,
 dt,
-strong {
+strong,
+label {
   font-weight: 600;
 }
 
-a {
-  color: @linkColor;
-  text-decoration: none;
-  .transition(color linear .2s);
-  cursor: pointer;
-  &:hover {
-    color: @linkColorHover;
-    text-decoration: none;
+
+small {
+  font-size: 0.9em;
+}
+
+// Code
+
+pre, code {
+  span {
+    display: inline-block;
   }
+}
+
+pre {
+  border: 0;
+}
+
+code {
+  border: 0;
+  background-color: #f1f2f3;
+  color: @gray;
 }
