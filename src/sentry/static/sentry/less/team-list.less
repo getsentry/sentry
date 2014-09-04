@@ -1,0 +1,88 @@
+.team-index {
+
+  h2 {
+    font-size: 26px;
+    margin: 0 0 28px;
+    letter-spacing: -0.25px;
+  }
+
+  .team-list {
+    list-style: none;
+    padding-left: 0;
+
+    > li {
+      display: block;
+      margin: 0 0 20px 0;
+      padding: 18px 20px 12px;
+      border: 1px solid darken(#E9EBEC, 2.5);
+      box-shadow: 0 1px 2px rgba(70, 82, 98, .06);
+      position: relative;
+      border-radius: 5px;
+      overflow: hidden;
+
+      .loading {
+        display: none;
+      }
+
+      &:hover {
+        border-color: #56AFE8;
+        h2 {
+          color: #000;
+        }
+      }
+
+      h2 {
+        width: 100%;
+        position: relative;
+        margin-bottom: 8px;
+        line-height: 26px;
+        font-size: 22px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: @grayDark;
+        font-weight: 500;
+
+        a {
+          color: inherit;
+          &:hover {
+            color: @linkColorHover;
+          }
+        }
+      }
+
+      .chart {
+        display: block;
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        top: 10px;
+      }
+
+      > ul {
+        position: relative;
+
+        overflow: hidden;
+        padding-left: 0;
+        list-style: circle;
+        margin-left: -2%;
+
+        > li {
+          float: left;
+          width: 23%;
+          margin-left: 2%;
+          margin-bottom: 5px;
+
+          a {
+            display: block;
+            font-size: 17px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+      }
+    }
+  }
+}
