@@ -460,12 +460,6 @@ footer {
   margin-left: -1px;
 }
 
-.btn-group.open .dropdown-toggle {
-  background-color: transparent !important;
-  color: #141516 !important;
-  .box-shadow(none);
-}
-
 // Disabled buttons
 
 .btn-primary.disabled, .btn-primary[disabled], fieldset[disabled] .btn-primary, .btn-primary.disabled:hover, .btn-primary[disabled]:hover, fieldset[disabled] .btn-primary:hover, .btn-primary.disabled:focus, .btn-primary[disabled]:focus, fieldset[disabled] .btn-primary:focus, .btn-primary.disabled:active, .btn-primary[disabled]:active, fieldset[disabled] .btn-primary:active, .btn-primary.disabled.active, .btn-primary[disabled].active, fieldset[disabled] .btn-primary.active, .btn-danger.disabled, .btn-danger[disabled], fieldset[disabled] .btn-danger, .btn-danger.disabled:hover, .btn-danger[disabled]:hover, fieldset[disabled] .btn-danger:hover, .btn-danger.disabled:focus, .btn-danger[disabled]:focus, fieldset[disabled] .btn-danger:focus, .btn-danger.disabled:active, .btn-danger[disabled]:active, fieldset[disabled] .btn-danger:active, .btn-danger.disabled.active, .btn-danger[disabled].active, fieldset[disabled] .btn-danger.active {
@@ -902,6 +896,7 @@ a.icon-share {
 
   .dropdown-toggle {
     padding-right: 0;
+    box-shadow: none !important;
   }
 
   .dropdown-menu {
@@ -1194,6 +1189,12 @@ a.icon-share {
   .event-assignee {
     width: 40px;
     padding: 0 30px;
+
+    .open .dropdown-toggle {
+      background: #f1f2f3 !important;
+      border-color: #cacccc;
+      box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+    }
   }
 
   .event-graph {
@@ -1265,13 +1266,14 @@ a.icon-share {
   .btn {
     padding-left: 5px;
     padding-right: 5px;
-    background: transparent;
     border-radius: 4px;
-    border-color: transparent;
     width: 50px;
-    color: rgba(70, 82, 98, 0.4) !important;
+    box-shadow: none;
     span {
       top: 3px;
+    }
+    .avatar {
+      border-radius: 2px;
     }
   }
 
@@ -1279,6 +1281,8 @@ a.icon-share {
     left: auto;
     right: 0;
     min-width: 180px;
+    padding-top: 0;
+    overflow: hidden;
 
     .form-control {
       border: 0;
@@ -2864,6 +2868,12 @@ table.integrations {
     .assigned-to .btn-group {
       float: none;
       margin-left: -6px;
+
+      &.open .dropdown-toggle {
+        background: #f1f2f3 !important;
+        border-color: #cacccc ;
+        box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+      }
 
       .dropdown-menu {
         left: 0;
