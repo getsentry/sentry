@@ -4,7 +4,7 @@
       <img src="http://github.com/benvinegar.png" class="avatar">
       <span aria-hidden="true" class="icon-arrow-down"></span>
     </a>
-    <div class="dropdown-menu">
+    <div class="dropdown-menu" ng-click="$event.stopPropagation()">
       <input type="text" class="form-control input-sm" placeholder="Filter people">
       <ul>
         <li ng-repeat="projectMember in projectMemberList">
