@@ -7,6 +7,8 @@
 @import url("simple-slider.less");
 @import url("typeahead.less");
 
+// Variables // --------------------------------------------
+
 @baseFontSize: 13px;
 @grayDark: #4a535e;
 @gray: #4f5760;
@@ -21,11 +23,8 @@
 
 @linkColorHover: darken(@blue, 25%);
 
-@iconSpritePath:          "../bootstrap/img/glyphicons-halflings.png";
-@iconWhiteSpritePath:     "../bootstrap/img/glyphicons-halflings-white.png";
 
-
-/* =============================  Global  ============================== */
+// Global // -----------------------------------------------
 
 body {
   margin: 0;
@@ -48,7 +47,9 @@ hr {
   opacity: .65;
 }
 
-th, dt, strong {
+th,
+dt,
+strong {
   font-weight: 600;
 }
 
@@ -76,8 +77,7 @@ th, dt, strong {
   }
 }
 
-// LINKS
-// -----
+// Typography // --------------------------------------------------
 
 a {
   color: @linkColor;
@@ -90,24 +90,19 @@ a {
   }
 }
 
-p {
-}
-
-h1, h2, h3, h4, h5 {
-  margin: 0 0 20px;
-}
-
 h2 {
-  font-weight: normal;
   font-size: 28px;
   line-height: 36px;
   letter-spacing: -0.25px;
   margin: 0 0 30px;
 }
+
 h3 {
   line-height: 27px;
   font-size: 18px;
 }
+
+// Utilities // --------------------------------------------
 
 .align-right {
   text-align: right;
@@ -144,7 +139,7 @@ h3 {
 }
 
 
-/* =============================  Layout  ============================== */
+// Header // --------------------------------------------------
 
 header {
   background: #434F5E;
@@ -388,7 +383,7 @@ footer {
   }
 }
 
-/* =============================  Modules  ============================== */
+// Forms // --------------------------------------------------
 
 .form-control {
   box-shadow: inset 0 1px 1px rgba(70, 82, 98, 0.05);
@@ -408,6 +403,8 @@ footer {
     right: 9px;
   }
 }
+
+// Buttons // --------------------------------------------------
 
 .btn {
   border: 1px solid transparent;
@@ -559,7 +556,7 @@ footer {
   margin-bottom: 14px;
 }
 
-// Search
+// Search // -----------------------------------------------
 
 .search {
 
@@ -675,6 +672,8 @@ footer {
     }
   }
 }
+
+// Charts and Graphs // ------------------------------------
 
 .chart {
   position: relative;
@@ -811,6 +810,8 @@ a.icon-share {
     }
   }
 }
+
+// Stream // -----------------------------------------------
 
 // Affix styles
 
@@ -979,6 +980,8 @@ a.icon-share {
     }
   }
 }
+
+// Detail page // ------------------------------------------
 
 .group-detail {
   position: relative;
@@ -1400,6 +1403,8 @@ div.commands {
   }
 }
 
+// Tracebacks // -------------------------------------------
+
 ul.traceback {
   list-style-type: none;
   padding-left: 0;
@@ -1588,7 +1593,7 @@ ol.context-line {
   }
 }
 
-// Generic module stuff
+// Boxes // --------------------------------------------------
 
 .box {
   border: 1px solid #e1e4e5;
@@ -1628,6 +1633,8 @@ ol.context-line {
     }
   }
 }
+
+// Tag list // --------------------------------------------------
 
 .mini-tag-list {
   .clearfix();
@@ -1776,6 +1783,8 @@ legend {
   border-radius: 4px;
 }
 
+// Date picker // --------------------------------------------------
+
 .datepicker-box {
   width: 400px;
   position: absolute;
@@ -1846,6 +1855,8 @@ legend {
   // border-radius: 0;
 }
 
+// Alerts // --------------------------------------------------
+
 .alert {
   border-radius: 4px;
   text-shadow: none;
@@ -1900,92 +1911,7 @@ legend {
   }
 }
 
-#event_nav.fixed {
-
-  .event_nav_wrap {
-    z-index: 1000000;
-    min-width: 1086px;
-    max-width: 1300px;
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    margin: 0 auto;
-
-    > ul {
-      overflow: hidden;
-      .box-sizing(border-box);
-      width: auto;
-      display: block;
-      margin: 0 300px 0 0;
-      background: #fff;
-
-      li.dropdown {
-        position: relative;
-      }
-
-      li.top {
-        .pull-right;
-        display: block;
-      }
-    }
-  }
-}
-
-#event_nav {
-  position: relative;
-  margin-bottom: 15px;
-
-  .event_nav_wrap {
-    position: relative;
-
-    > ul {
-      padding: 10px 12px;
-      margin: 0 -30px 0;
-      border-top: 1px solid #dee3e9;
-      @shadow: 0 1px 0 rgba(0,0,0, .08), 0 1px 3px rgba(0,0,0, .05);
-      .box-shadow(@shadow);
-
-      > li {
-        margin: 0 4px 0 0;
-
-        &.top {
-          display: none;
-        }
-        > a {
-          padding: 8px 18px;
-          line-height: 16px;
-          color: #89919b;
-          margin: 0;
-          font-weight: 600;
-
-          border-radius: 30px;
-          .transition(none);
-          &:hover,
-          &:focus {
-            .transition(none);
-            color: @grayDark;
-            background-color: #dee3e9;
-          }
-        }
-        &.active > a {
-          .transition(none);
-          color: @white;
-          background-color: #56AFE8;
-        }
-
-        > ul.dropdown-menu {
-          > li.active > a,
-          > li:hover > a,
-          > li:focus > a {
-            color: @white;
-          }
-        }
-
-      }
-    }
-  }
-}
+// Plugins // ----------------------------------------------
 
 .plugin-meta {
   .description {
@@ -2010,7 +1936,7 @@ legend {
 }
 
 
-/* ////////////////////////////////// Flat overrides ////////////////////////////////// */
+// Dashboard specific styles // --------------------------------------------------
 
 .dashboard {
 
@@ -2088,6 +2014,8 @@ table.table td .select2-container {
   text-shadow: none;
 }
 
+// Dropdown menu // ----------------------------------------
+
 .dropdown-menu {
   top: 32px;
   border: none;
@@ -2143,6 +2071,7 @@ table.table td .select2-container {
   border: 1px solid #E9EBEC;
 }
 
+// Tables // --------------------------------------------------
 
 table.table {
   table-layout: fixed;
@@ -2245,6 +2174,8 @@ table.integrations {
   }
 }
 
+// Activity // ---------------------------------------------
+
 .activity {
   position: relative;
 
@@ -2317,6 +2248,8 @@ table.integrations {
     }
   }
 }
+
+// Seen by // --------------------------------------------------
 
 .seen-by {
   position: relative;
@@ -2432,6 +2365,8 @@ table.integrations {
   }
 }
 
+// Layouts // --------------------------------------------------
+
 .narrow {
   .container {
     max-width: 900px;
@@ -2446,6 +2381,8 @@ table.integrations {
     margin: 0 auto;
   }
 }
+
+// Popovers // --------------------------------------------------
 
 .popover {
   width: auto;
@@ -2499,7 +2436,7 @@ table.integrations {
   }
 }
 
-// Docs
+// Docs // --------------------------------------------------
 
 .docs {
   .container {
@@ -2664,6 +2601,8 @@ table.integrations {
   }
 }
 
+// Platform and framework icons // -------------------------
+
 .client-platform-list {
     list-style: none;
     margin-left: 0;
@@ -2692,6 +2631,8 @@ table.integrations {
     }
 }
 
+// Usage graph // ------------------------------------------
+
 .usage-wrapper {
   width: 240px;
   font-size: 13px;
@@ -2719,6 +2660,8 @@ table.integrations {
   box-shadow: none;
   background: #fff;
 }
+
+// Responsive overrides // ---------------------------------
 
 /* Small screens */
 
