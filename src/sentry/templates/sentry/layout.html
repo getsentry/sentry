@@ -17,8 +17,6 @@
         {% block css %}
           {% if DEBUG == true %}
           <link rel="stylesheet/less" type="text/css" href="{% url 'sentry-media' "sentry" 'less/sentry.less' %}" />
-          <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.4/less.js" type="text/javascript"></script>
-
           {% else %}
             {% staticbundle 'sentry/dist/global.min.css' %}
           {% endif %}
@@ -61,6 +59,9 @@
             {% staticbundle 'sentry/dist/legacy-app.min.js' %}
 
             <script src="{% url 'sentry-media' 'sentry' 'vendor/raven/raven.js' %}"></script>
+            {% if DEBUG == true %}
+            <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.4/less.js" type="text/javascript"></script>
+            {% endif %}
         {% endblock %}
 
         {% block meta %}
