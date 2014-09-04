@@ -1,0 +1,225 @@
+// Layout // -----------------------------------------------
+
+.container {
+  // max-width: 960px;
+  position: relative;
+}
+
+#content {
+  margin-bottom: 40px;
+
+  img {
+    max-width: 100%;
+  }
+}
+
+.sidebar {
+  h6 {
+    margin: 0 0 20px;
+    color: #93989E;
+  }
+
+  .nav-stacked {
+    margin: 0 0 15px;
+  }
+}
+
+// Header // --------------------------------------------------
+
+header {
+  background: #434F5E;
+  color: #fff;
+  padding: 20px 0 19px;
+  margin: 0 0 30px;
+  a {
+    color: #fff;
+    &:hover, &:active, &:focus {
+      color: #fff;
+      text-decoration: none;
+    }
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .icon-sentry-logo {
+    float: left;
+    margin: 2px 12px 0 0;
+    font-size: 22px;
+    top: 0 !important;
+  }
+
+  .user-avatar {
+    width: 22px;
+    border-radius: 3px;
+    position: relative;
+    top: -3px;
+  }
+
+  [class^="icon-"], [class*=" icon-"] {
+    position: relative;
+    top: 1px;
+  }
+
+  .user-nav {
+    margin-top: 4px;
+    margin-bottom: 0;
+    .clearfix();
+    .dropdown-menu {
+      left: auto;
+      right: 0;
+      border-radius: 0 0 4px 4px;
+      top: 40px;
+    }
+    > li {
+      list-style: none;
+      float: left;
+      margin-left: 30px;
+      line-height: 1;
+
+      a {
+        font-size: 15px;
+      }
+    }
+
+    .icon-settings,
+    .icon-book {
+      padding-right: 5px;
+    }
+
+    .icon-book {
+      top: 2px;
+    }
+  }
+
+  .project-dropdown {
+    float: left;
+    position: relative;
+
+    .dropdown-menu {
+      width: 540px;
+      max-height: 400px;
+      overflow: auto;
+      padding: 0;
+      top: 44px;
+      left: -36px;
+      border-radius: 0 0 4px 4px;
+
+      .team {
+        border-bottom: 1px solid #E9EBEC;
+        padding: 14px 15px 8px;
+        &:last-child {
+          border-bottom: 0;
+        }
+      }
+
+      h5 {
+        margin: 0 0 7px;
+        a {
+          color: @gray;
+          &:hover {
+            color: @gray-dark;
+          }
+        }
+      }
+
+      ul {
+        .clearfix;
+        .list-unstyled;
+        margin-bottom: 0;
+
+        li {
+          width: 31%;
+          float: left;
+          margin: 0 10px 0 0;
+          min-height: 24px;
+          a {
+            display: block;
+            .text-overflow;
+            padding: 1px 5px;
+            position: relative;
+            left: -5px;
+            border-radius: 3px;
+          }
+          &.active, &:hover {
+            a {
+              color: @gray;
+              background: rgba(0, 0, 0, 0.04);
+            }
+          }
+        }
+      }
+
+      a {
+        color: @link-color;
+        &:hover {
+          color: @link-hover-color;
+        }
+      }
+
+    }
+    .team-name {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      z-index: 2;
+      position: relative;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+
+    .project-name {
+      font-weight: 400;
+      color: #B5B9C0;
+      margin-left: 3px;
+    }
+  }
+}
+
+// Footer // -----------------------------------------------
+
+footer {
+  display: none;
+  .clearfix();
+  background: lighten(#dee3e9, 2);
+  padding: 40px 30px 36px;
+  color: #939aa4;
+  font-weight: bold;
+
+  .container {
+    .clearfix();
+    > div {
+      float: left;
+      margin: 0 30px 0 0;
+    }
+    .contribute {
+      float: right;
+      margin: 0;
+    }
+  }
+  a {
+    color: darken(#939aa4, 10);
+    font-weight: bold;
+    &:hover {
+      color: #333;
+    }
+  }
+}
+
+// utilities
+
+.align-left {
+  text-align: left;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-right {
+  text-align: right;
+}
