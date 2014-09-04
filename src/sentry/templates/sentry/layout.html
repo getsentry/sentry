@@ -15,7 +15,7 @@
         <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-          {% if TEMPLATE_DEBUG == true %}
+          {% if DEBUG == true %}
           <link rel="stylesheet/less" type="text/css" href="{% url 'sentry-media' "sentry" 'less/sentry.less' %}" />
           <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.4/less.js" type="text/javascript"></script>
 
