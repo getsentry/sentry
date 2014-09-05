@@ -39,6 +39,7 @@ from __future__ import absolute_import
 
 import re
 
+from crispy_forms.templatetags.crispy_forms_filters import as_crispy_field
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
@@ -59,14 +60,17 @@ class RuleBase(object):
     def __init__(self, project, data=None):
         self.project = project
         self.data = data or {}
+        self.had_data = data is not None
 
     def get_option(self, key):
         return self.data.get(key)
 
     def get_form_instance(self):
-        return self.form_cls(
-            self.data,
-        )
+        if self.had_data:
+            data = self.data
+        else:
+            data = None
+        return self.form_cls(data)
 
     def render_label(self):
         return self.label.format(**self.data)
@@ -79,7 +83,7 @@ class RuleBase(object):
 
         def replace_field(match):
             field = match.group(1)
-            return unicode(form[field])
+            return as_crispy_field(form[field])
 
         return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
 
