@@ -1,0 +1,95 @@
+// Nav // --------------------------------------------------
+
+.nav {
+  margin-bottom: 20px;
+
+  li {
+    a {
+      color: #4c5459;
+    }
+  }
+}
+
+.nav.project-nav {
+  margin: -10px 0 30px;
+}
+
+.nav-tabs {
+  border-bottom: 1px solid darken(#E9EBEC, 3);
+
+  > li.pull-right {
+    float: right;
+  }
+
+  li {
+    margin-bottom: -1px;
+    > a {
+      font-size: 14px;
+      color: #4c5459;
+      font-weight: 600;
+      margin-right: 5px;
+      line-height: 1.428571429;
+      border: 1px solid transparent;
+      border-radius: 4px 4px 0 0;
+      padding: 10px 15px;
+      &:hover {
+        background: transparent;
+        border-bottom-color: transparent;
+      }
+    }
+
+    &.active a, &.active a:hover, &.active a:focus {
+      background: #fff;
+      border: 1px solid darken(#E9EBEC, 3);
+      border-bottom-color: transparent;
+    }
+  }
+}
+
+.nav-stacked li  {
+  margin-bottom: 6px;
+
+  > a {
+    background: lighten(#f1f2f3, 2);
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 4px;
+    &:hover {
+      background: #f1f2f3;
+    }
+  }
+
+  &.active {
+    a, a:hover {
+      color: #fff;
+      background: #2598e1;
+      border-color: #1a7ebe;
+    }
+  }
+}
+
+.nav-small {
+  &.nav-pills > li > a {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
+
+.primary-filters {
+  padding-right: 0;
+}
+
+.filter-nav {
+  margin-top: -5px;
+  margin-bottom: 14px;
+}
+
+.navbar-inverse .nav .active > a, .navbar-inverse .nav .active > a:hover, .navbar-inverse .nav .active > a:focus {
+  background: #56AFE8;
+}
+
+.nav-list > li > a, .nav-list > li > a:hover, .nav-list > li.active > a, .nav-list > li.active > a:hover {
+  font-weight: bold;
+  font-size: 14px;
+  text-shadow: none;
+}

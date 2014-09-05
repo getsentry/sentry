@@ -1,0 +1,115 @@
+// Tables // --------------------------------------------------
+
+table.table {
+  table-layout: fixed;
+  margin-bottom: 0;
+  th {
+    vertical-align: top;
+  }
+  td {
+    vertical-align: middle;
+  }
+}
+
+.table.table-light {
+  th, td {
+      border: 0 !important;
+      border-bottom: 1px solid #E9EBEC !important;
+  }
+}
+
+.condition-list, .action-list {
+  th, td {
+    vertical-align: middle !important;
+  }
+}
+
+table.table, table.vars {
+  &.closed {
+    display: none;
+  }
+
+  th, td {
+    border: none;
+    padding: 5px 8px;
+    word-break: break-all;
+    border: 1px solid #E9EBEC !important;
+  }
+
+  td.values, td.code {
+    overflow: hidden;
+
+    > pre {
+      background-color: inherit;
+      color: rgba(0,0,0,.75);
+      padding: 1px 3px;
+      border: 0;
+      margin-bottom: 0;
+    }
+  }
+
+}
+
+table.vars {
+  margin-top: -5px;
+
+  tr:first-child > td, tr:first-child > th {
+    border-top: 0 !important;
+  }
+
+  td, th {
+    padding: 10px 0 !important;
+    border: 0;
+    vertical-align: top;
+    border: 0 !important;
+    border-top: 1px solid #E9EBEC !important;
+  }
+  td table {
+    border-top: 0;
+    margin-top: -12px;
+    margin-bottom: -10px;
+  }
+  thead th,
+  thead td {
+    background-color: #fff !important;
+  }
+  tbody > tr:nth-child(odd) > td,
+  tbody > tr:nth-child(odd) > th {
+    background-color: #fff;
+  }
+  tbody > tr:nth-child(even) > td,
+  tbody > tr:nth-child(even) > th {
+    background-color: #fff;
+  }
+}
+
+table.vars .toggle-expand {
+  border-top: 0 !important;
+  padding-top: 2px !important;
+
+  .btn {
+    margin-bottom: -15px;
+  }
+}
+
+.table-bordered {
+  border: 1px solid #E9EBEC;
+}
+
+table.integrations {
+  td, th {
+    padding: 12px !important;
+  }
+  h4 {
+    margin-bottom: 6px;
+  }
+}
+
+table.table td input,
+table.table td .select2-container {
+  margin-bottom: 0;
+}
+
+table.inline tr {
+  display: inline-block;
+}

@@ -1,0 +1,55 @@
+// Alerts // --------------------------------------------------
+
+.alert {
+  border-radius: 4px;
+  text-shadow: none;
+  background: #ffc01a;
+  color: #fff;
+  border: 0;
+  margin-bottom: 30px;
+
+  .close {
+    opacity: .5;
+    font-weight: 500;
+    position: relative;
+    top: -2px;
+    box-shadow: none;
+    .transition(opacity .15s);
+
+    &:hover {
+      box-shadow: none;
+      color: #fff;
+      opacity: 1;
+    }
+  }
+  a {
+    font-weight: 500;
+    color: inherit;
+  }
+}
+.alert-block {
+  padding-bottom: 5px;
+  > p {
+    margin-bottom: 9px;
+  }
+  > ul {
+    margin-bottom: 9px;
+  }
+}
+.alert-error {
+  background: #ff2e46;
+}
+.alert-info {
+  background: #2e9fff;
+}
+.alert-success {
+  background: #4bad00;
+}
+
+.active-alerts {
+  margin: 15px 25px 0;
+  padding: 0 5px;
+  li.alert {
+    margin-bottom: 5px;
+  }
+}

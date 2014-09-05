@@ -1,0 +1,96 @@
+// Charts and Graphs // ------------------------------------
+
+.chart {
+  position: relative;
+  max-height: 200px;
+
+  > .title {
+    font-size: 2em;
+    text-transform: uppercase;
+    position: absolute;
+    left: 1px;
+    top: 1px;
+    color: #dfe3e9;
+    .opacity(70);
+    background: #fff;
+    padding: 5px 8px;
+    line-height: 100%;
+  }
+
+  > .legend {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    padding-left: 10px;
+    height: 100%;
+    text-align: left;
+    color: @linkColor;
+  }
+}
+
+.sparkline {
+  position: relative;
+
+  > a {
+    position: relative;
+    float: left;
+    height: 18px;
+    display: block;
+
+    &:hover {
+      > span {
+        background: @linkColor;
+        border-color: @linkColor;
+      }
+    }
+
+    > span {
+      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 1px;
+      background: #dfe3e9;
+      border: 1px solid #dfe3e9;
+      min-width: 1px;
+      height: 0;
+      overflow: hidden;
+      text-indent: -9999px;
+
+    }
+  }
+}
+
+// Sparkline grid
+
+.innerColumn(@columnSpan: 1) {
+  width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
+}
+
+#chart { margin-bottom: 10px; overflow: hidden; }
+
+
+// Usage graph // ------------------------------------------
+
+.usage-wrapper {
+  width: 240px;
+  font-size: 13px;
+  margin-top: -6px;
+
+  a {
+    color: @linkColor !important;
+    font-weight: 600;
+  }
+
+  .usage {
+    background: #f1f2f3;
+
+    div {
+      margin-top: 5px;
+      height: 5px;
+
+      #gradient > .horizontal(#FFFC52, #FF5254);
+    }
+  }
+}
