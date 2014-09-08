@@ -117,7 +117,7 @@
         </ul>
     {% endif %}
 
-    <ul class="group-list">
+    <ul class="group-list" ng-show="groupList">
         <li class="group" ng-repeat="group in groupList">
             <div class="event-details event-cell">
               <div class="checkbox">
@@ -144,7 +144,7 @@
         </li>
     </ul>
 
-    <div class="stream-pagination">
+    <div class="stream-pagination" ng-show="groupList">
         <div class="btn-group pull-right">
             {% spaceless %}
                 {% if previous_page %}
@@ -166,6 +166,12 @@
                 {% endif %}
             {% endspaceless %}
         </div>
+    </div>
+
+    <div class="stream-empty" ng-hide="groupList">
+      <div class="container">
+        <h3>No events to show.</h3>
+      </div>
     </div>
 
     <script>
