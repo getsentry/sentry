@@ -64,6 +64,7 @@ class ChangeUserForm(BaseUserForm):
     def clean_username(self):
         if self.user.is_managed:
             return self.user.username
+        return self.cleaned_data['username']
 
 
 class RemoveUserForm(forms.Form):
