@@ -73,7 +73,7 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
         },
         'sentry.event': {
-            'Meta': {'unique_together': "(('project', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'"},
+            'Meta': {'unique_together': "(('project', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'", 'index_together': "(('group', 'datetime'),)"},
             'checksum': ('django.db.models.fields.CharField', [], {'max_length': '32', 'db_index': 'True'}),
             'data': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
@@ -117,6 +117,14 @@ class Migration(SchemaMigration):
             'time_spent_total': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '1', 'db_index': 'True'})
         },
+        'sentry.groupassignee': {
+            'Meta': {'object_name': 'GroupAssignee', 'db_table': "'sentry_groupasignee'"},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'assignee_set'", 'unique': 'True', 'to': "orm['sentry.Group']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'assignee_set'", 'to': "orm['sentry.Project']"}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_assignee_set'", 'to': "orm['sentry.User']"})
+        },
         'sentry.groupbookmark': {
             'Meta': {'unique_together': "(('project', 'user', 'group'),)", 'object_name': 'GroupBookmark'},
             'group': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bookmark_set'", 'to': "orm['sentry.Group']"}),
@@ -124,12 +132,28 @@ class Migration(SchemaMigration):
             'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bookmark_set'", 'to': "orm['sentry.Project']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_bookmark_set'", 'to': "orm['sentry.User']"})
         },
+        'sentry.grouphash': {
+            'Meta': {'unique_together': "(('project', 'hash'),)", 'object_name': 'GroupHash'},
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']", 'null': 'True'}),
+            'hash': ('django.db.models.fields.CharField', [], {'max_length': '32', 'db_index': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'})
+        },
         'sentry.groupmeta': {
             'Meta': {'unique_together': "(('group', 'key'),)", 'object_name': 'GroupMeta'},
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'value': ('django.db.models.fields.TextField', [], {})
+        },
+        'sentry.grouprulestatus': {
+            'Meta': {'unique_together': "(('rule', 'group'),)", 'object_name': 'GroupRuleStatus'},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'rule': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Rule']"}),
+            'status': ('django.db.models.fields.PositiveSmallIntegerField', [], {'default': '0'})
         },
         'sentry.groupseen': {
             'Meta': {'unique_together': "(('user', 'group'),)", 'object_name': 'GroupSeen'},
@@ -169,6 +193,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Option'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
+            'last_updated': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'value': ('sentry.db.models.fields.pickle.UnicodePickledObjectField', [], {})
         },
         'sentry.pendingteammember': {
@@ -195,6 +220,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'ProjectKey'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'null': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'label': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'key_set'", 'to': "orm['sentry.Project']"}),
             'public_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
             'roles': ('django.db.models.fields.BigIntegerField', [], {'default': '1'}),
@@ -268,6 +294,7 @@ class Migration(SchemaMigration):
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
+            'is_managed': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
