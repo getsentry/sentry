@@ -34,6 +34,12 @@ class User(Model, AbstractBaseUser):
         _('superuser status'), default=False,
         help_text=_('Designates that this user has all permissions without '
                     'explicitly assigning them.'))
+    is_managed = models.BooleanField(
+        _('managed'), default=False,
+        help_text=_('Designates whether this user should be treated as '
+                    'managed. Select this to disallow the user from '
+                    'modifying their account (username, password, etc).'))
+
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
 
     objects = UserManager(cache_fields=['pk'])

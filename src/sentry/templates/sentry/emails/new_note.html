@@ -33,11 +33,6 @@
                 <span class="tag">
                     <a href="{% absolute_uri project_link %}">{{ group.project.name }}</a>
                 </span>
-                {% with group.get_version as version %}
-                    {% if version %}
-                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
-                    {% endif %}
-                {% endwith %}
             </div>
         </div>
     </div>

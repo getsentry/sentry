@@ -23,6 +23,8 @@ def get_instance(path, options):
     return cls(**options)
 
 
+# TODO(dcramer): this is getting heavy, we should find a better way to structure
+# this
 buffer = get_instance(settings.SENTRY_BUFFER, settings.SENTRY_BUFFER_OPTIONS)
 cache = get_instance(settings.SENTRY_CACHE, settings.SENTRY_CACHE_OPTIONS)
 quotas = get_instance(settings.SENTRY_QUOTAS, settings.SENTRY_QUOTA_OPTIONS)

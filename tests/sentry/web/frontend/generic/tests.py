@@ -3,9 +3,9 @@ import mock
 from django.core.urlresolvers import reverse
 from exam import before, fixture
 
+from sentry import options
 from sentry.models import Team
 from sentry.testutils import TestCase
-from sentry.plugins.helpers import set_option
 
 
 class DashboardTest(TestCase):
@@ -74,7 +74,7 @@ class UpdateAvailableTest(TestCase):
         assert self.UPDATE_MESSAGE not in resp.content
 
     def test_update_is_not_available(self):
-        set_option('sentry:latest_version', '5.5.1')
+        options.set('sentry:latest_version', '5.5.1')
 
         with mock.patch('sentry.get_version') as get_version:
             get_version.return_value = '5.5.0'

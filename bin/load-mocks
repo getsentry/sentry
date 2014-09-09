@@ -70,3 +70,11 @@ for team_name, project_names in mocks:
         )
 
         event3 = create_sample_event(project, 'java')
+
+Activity.objects.create(
+    type=Activity.RELEASE,
+    project=project,
+    ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+    user=user,
+    data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
+)

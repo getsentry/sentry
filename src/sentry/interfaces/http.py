@@ -34,6 +34,13 @@ def format_cookies(value):
     )
 
 
+def format_body(value):
+    return dict(
+        (k.encode('utf8'), v.encode('utf8'))
+        for k, v in value.iteritems()
+    )
+
+
 class Http(Interface):
     """
     The Request information is stored in the Http interface. Two arguments
@@ -205,7 +212,7 @@ class Http(Interface):
             bits.append('-X' + method)
             data = self.data
             if isinstance(data, dict):
-                data = urlencode(data)
+                data = urlencode(format_body(data))
             if isinstance(data, basestring):
                 bits.append('--data ' + quote(data))
         bits.append(quote(self.full_url))

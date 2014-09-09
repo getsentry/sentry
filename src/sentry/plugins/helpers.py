@@ -6,7 +6,7 @@ sentry.plugins.helpers
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.models import ProjectOption, Option, UserOption
+from sentry.models import ProjectOption, UserOption
 
 __all__ = ('set_option', 'get_option', 'unset_option')
 
@@ -19,8 +19,7 @@ def reset_options(prefix, project=None, user=None):
         ProjectOption.objects.filter(key__startswith='%s:' % (prefix,), project=project).delete()
         ProjectOption.objects.clear_local_cache()
     else:
-        Option.objects.filter(key__startswith='%s:' % (prefix,)).delete()
-        Option.objects.clear_local_cache()
+        raise NotImplementedError
 
 
 def set_option(key, value, project=None, user=None):
@@ -29,7 +28,7 @@ def set_option(key, value, project=None, user=None):
     elif project:
         result = ProjectOption.objects.set_value(project, key, value)
     else:
-        result = Option.objects.set_value(key, value)
+        raise NotImplementedError
 
     return result
 
@@ -40,7 +39,7 @@ def get_option(key, project=None, user=None):
     elif project:
         result = ProjectOption.objects.get_value(project, key, None)
     else:
-        result = Option.objects.get_value(key, None)
+        raise NotImplementedError
 
     return result
 
@@ -51,6 +50,6 @@ def unset_option(key, project=None, user=None):
     elif project:
         result = ProjectOption.objects.unset_value(project, key)
     else:
-        result = Option.objects.unset_value(key)
+        raise NotImplementedError
 
     return result

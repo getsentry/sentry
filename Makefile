@@ -98,7 +98,8 @@ lint-js:
 	@echo ""
 
 coverage: develop
-	py.test --cov=src/sentry --cov-report=html
+	coverage run --source=src/sentry -m py.test
+	coverage html
 
 run-uwsgi:
 	uwsgi --http 127.0.0.1:8000 --need-app --disable-logging --wsgi-file src/sentry/wsgi.py --processes 1 --threads 5

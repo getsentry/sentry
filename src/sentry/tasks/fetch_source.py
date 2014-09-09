@@ -5,6 +5,7 @@ sentry.tasks.fetch_source
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 import itertools
 import logging
@@ -49,14 +50,42 @@ UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 logger = logging.getLogger(__name__)
 
 
-def trim_line(line):
+def trim_line(line, column=0):
+    """
+    Trims a line down to a goal of 140 characters, with a little
+    wiggle room to be sensible and tries to trim around the given
+    `column`. So it tries to extract 60 characters before and after
+    the provided `column` and yield a better context.
+    """
     line = line.strip('\n')
-    if len(line) > 150:
-        line = line[:140] + ' [... truncated]'
+    ll = len(line)
+    if ll <= 150:
+        return line
+    if column > ll:
+        column = ll
+    start = max(column - 60, 0)
+    # Round down if it brings us close to the edge
+    if start < 5:
+        start = 0
+    end = min(start + 140, ll)
+    # Round up to the end if it's close
+    if end > ll - 5:
+        end = ll
+    # If we are bumped all the way to the end,
+    # make sure we still get a full 140 characters in the line
+    if end == ll:
+        start = max(end - 140, 0)
+    line = line[start:end]
+    if end < ll:
+        # we've snipped from the end
+        line += ' {snip}'
+    if start > 0:
+        # we've snipped from the beginning
+        line = '{snip} ' + line
     return line
 
 
-def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
+def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
     if lineno > 0:
@@ -71,7 +100,7 @@ def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
         pre_context = []
 
     try:
-        context_line = trim_line(source[lineno])
+        context_line = trim_line(source[lineno], colno)
     except IndexError:
         context_line = ''
 
@@ -353,7 +382,7 @@ def expand_javascript_source(data, **kwargs):
 
         # TODO: theoretically a minified source could point to another mapped, minified source
         frame.pre_context, frame.context_line, frame.post_context = get_source_context(
-            source=source, lineno=frame.lineno)
+            source=source, lineno=frame.lineno, colno=frame.colno or 0)
 
     if has_changes:
         logger.debug('Updating stacktraces with expanded source context')

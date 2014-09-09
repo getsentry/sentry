@@ -5,6 +5,7 @@ sentry.event_manager
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 import logging
 import six
@@ -25,6 +26,7 @@ from sentry.constants import (
 from sentry.models import Event, EventMapping, Group, GroupHash, Project
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
+from sentry.utils.logging import suppress_exceptions
 from sentry.tasks.index import index_event
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
@@ -80,6 +82,15 @@ else:
             return False
 
         return True
+
+
+def plugin_is_regression(group, event):
+    project = event.project
+    for plugin in plugins.for_project(project):
+        result = safe_execute(plugin.is_regression, group, event)
+        if result is not None:
+            return result
+    return True
 
 
 class ScoreClause(object):
@@ -202,6 +213,7 @@ class EventManager(object):
 
         return data
 
+    @suppress_exceptions
     @transaction.commit_on_success
     def save(self, project, raw=False):
         # TODO: culprit should default to "most recent" frame in stacktraces when
@@ -222,6 +234,7 @@ class EventManager(object):
         site = data.pop('site', None)
         checksum = data.pop('checksum', None)
         platform = data.pop('platform', None)
+        release = data.pop('release', None)
 
         date = datetime.fromtimestamp(data.pop('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
@@ -268,6 +281,9 @@ class EventManager(object):
             tags.append(('server_name', server_name))
         if site:
             tags.append(('site', site))
+        if release:
+            # TODO(dcramer): we should ensure we create Release objects
+            tags.append(('sentry:release', release))
 
         for plugin in plugins.for_project(project):
             added_tags = safe_execute(plugin.get_tags, event)
@@ -328,8 +344,6 @@ class EventManager(object):
         return event
 
     def _find_hashes(self, project, hash_list):
-        from sentry.models import GroupHash
-
         matches = []
         for hash in hash_list:
             ghash, _ = GroupHash.objects.get_or_create(
@@ -365,7 +379,6 @@ class EventManager(object):
         )
 
     def _save_aggregate(self, event, tags, hashes, **kwargs):
-        date = event.datetime
         time_spent = event.time_spent
         project = event.project
 
@@ -461,7 +474,8 @@ class EventManager(object):
         if group.culprit != data['culprit']:
             extra['culprit'] = data['culprit']
 
-        if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
+        is_regression = False
+        if group.is_resolved() and plugin_is_regression(group, event):
             # Making things atomic
             is_regression = bool(Group.objects.filter(
                 id=group.id,
@@ -474,8 +488,6 @@ class EventManager(object):
 
             group.active_at = date
             group.status = STATUS_UNRESOLVED
-        else:
-            is_regression = False
 
         group.last_seen = extra['last_seen']
 

@@ -217,6 +217,7 @@ def settings(request):
     context.update({
         'form': form,
         'page': 'settings',
+        'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/settings.html', context, request)
 
@@ -245,6 +246,7 @@ def appearance_settings(request):
     context.update({
         'form': form,
         'page': 'appearance',
+        'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/appearance.html', context, request)
 
@@ -292,6 +294,7 @@ def notification_settings(request):
         'project_forms': project_forms,
         'ext_forms': ext_forms,
         'page': 'notifications',
+        'AUTH_PROVIDERS': get_auth_providers(),
     })
     return render_to_response('sentry/account/notifications.html', context, request)
 

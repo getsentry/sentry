@@ -47,7 +47,9 @@ class TaggedEventCondition(EventCondition):
         if not (key and match and value):
             return False
 
-        tags = (v for k, v in event.get_tags() if k == key)
+        value = value.lower()
+
+        tags = (v.lower() for k, v in event.get_tags() if k == key)
 
         if match == MatchType.EQUAL:
             for t_value in tags:

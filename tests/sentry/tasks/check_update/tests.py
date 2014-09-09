@@ -2,9 +2,8 @@ import json
 
 from mock import patch
 
-from sentry.plugins.helpers import get_option, set_option
+from sentry import options
 from sentry.testutils import TestCase
-from sentry.models import Option
 from sentry.receivers import set_sentry_version
 from sentry.tasks.check_update import check_update, PYPI_URL
 
@@ -27,7 +26,7 @@ class CheckUpdateTest(TestCase):
         safe_urlopen.assert_called_once_with(PYPI_URL)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        self.assertEqual(get_option(key=self.KEY), self.NEW)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)
 
     @patch('sentry.tasks.check_update.safe_urlopen')
     @patch('sentry.tasks.check_update.safe_urlread')
@@ -40,28 +39,28 @@ class CheckUpdateTest(TestCase):
         safe_urlopen.assert_called_once_with(PYPI_URL)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        self.assertEqual(get_option(key=self.KEY), None)
+        self.assertEqual(options.get(key=self.KEY), '')
 
     def test_set_sentry_version_empty_latest(self):
         set_sentry_version(latest=self.NEW)
-        self.assertEqual(get_option(key=self.KEY), self.NEW)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)
 
     @patch('sentry.get_version')
     def test_set_sentry_version_new(self, get_version):
-        set_option(self.KEY, self.OLD)
+        options.set(self.KEY, self.OLD)
 
         get_version.return_value = self.CURRENT
 
         set_sentry_version(latest=self.NEW)
 
-        self.assertEqual(Option.objects.get_value(key=self.KEY), self.NEW)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)
 
     @patch('sentry.get_version')
     def test_set_sentry_version_old(self, get_version):
-        set_option(self.KEY, self.NEW)
+        options.set(self.KEY, self.NEW)
 
         get_version.return_value = self.CURRENT
 
         set_sentry_version(latest=self.OLD)
 
-        self.assertEqual(Option.objects.get_value(key=self.KEY), self.NEW)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)

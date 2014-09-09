@@ -6,7 +6,7 @@ from mock import patch
 
 from sentry.tasks.fetch_source import (
     UrlResult, expand_javascript_source, discover_sourcemap,
-    fetch_sourcemap, fetch_url, generate_module, BAD_SOURCE)
+    fetch_sourcemap, fetch_url, generate_module, BAD_SOURCE, trim_line)
 from sentry.utils.sourcemaps import (SourceMap, SourceMapIndex)
 from sentry.testutils import TestCase
 
@@ -217,3 +217,15 @@ class FetchBase64SourcemapTest(TestCase):
         content = {'/test.js': ['console.log("hello, World!")']}
 
         assert index == SourceMapIndex(states, keys, sources, content)
+
+
+class TrimLineTest(TestCase):
+    long_line = 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
+
+    def test_simple(self):
+        assert trim_line('foo') == 'foo'
+        assert trim_line(self.long_line) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
+        assert trim_line(self.long_line, column=10) == 'The public is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it li {snip}'
+        assert trim_line(self.long_line, column=66) == '{snip} blic is more familiar with bad design than good design. It is, in effect, conditioned to prefer bad design, because that is what it lives wi {snip}'
+        assert trim_line(self.long_line, column=190) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
+        assert trim_line(self.long_line, column=9999) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
