@@ -5,6 +5,8 @@ sentry.models.group
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
+
 import logging
 import math
 import time
@@ -135,14 +137,6 @@ class Group(Model):
             except IndexError:
                 self._latest_event = None
         return self._latest_event
-
-    def get_version(self):
-        if not self.data:
-            return
-        if 'version' not in self.data:
-            return
-        module = self.data.get('module', 'ver')
-        return module, self.data['version']
 
     def get_unique_tags(self, tag, since=None, order_by='-times_seen'):
         # TODO(dcramer): this has zero test coverage and is a critical path

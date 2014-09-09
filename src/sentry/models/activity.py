@@ -26,7 +26,7 @@ class Activity(Model):
     CREATE_ISSUE = 7
     NOTE = 8
     FIRST_SEEN = 9
-    DEPLOY = 10
+    RELEASE = 10
     ASSIGNED = 11
 
     TYPE = (
@@ -40,7 +40,7 @@ class Activity(Model):
         (CREATE_ISSUE, 'create_issue'),
         (NOTE, 'note'),
         (FIRST_SEEN, 'first_seen'),
-        (DEPLOY, 'deploy'),
+        (RELEASE, 'release'),
         (ASSIGNED, 'assigned'),
     )
 

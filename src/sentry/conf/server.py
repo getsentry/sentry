@@ -289,6 +289,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.index',
     'sentry.tasks.merge',
     'sentry.tasks.store',
+    'sentry.tasks.options',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
 )
@@ -301,6 +302,7 @@ CELERY_QUEUES = [
     Queue('events', routing_key='events'),
     Queue('update', routing_key='update'),
     Queue('email', routing_key='email'),
+    Queue('options', routing_key='options'),
 ]
 
 CELERY_ROUTES = ('sentry.queue.routers.SplitQueueRouter',)
@@ -342,6 +344,14 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'counters-0',
         }
     },
+    'sync-options': {
+        'task': 'sentry.tasks.options.sync_options',
+        'schedule': timedelta(seconds=10),
+        'options': {
+            'expires': 10,
+            'queue': 'options',
+        }
+    },
 }
 
 # Disable South in tests as it is sending incorrect create signals
@@ -352,7 +362,9 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'console': {
-            'class': 'logging.StreamHandler'
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
         'sentry': {
             'level': 'ERROR',
@@ -360,25 +372,24 @@ LOGGING = {
         }
     },
     'formatters': {
+        'simple': {
+            'format': '[%(levelname)s] %(message)s',
+        },
         'client_info': {
-            'format': '%(name)s %(levelname)s %(project_slug)s/%(team_slug)s %(message)s'
-        }
+            'format': '[%(levelname)s] %(project_slug)s/%(team_slug)s %(message)s',
+        },
     },
     'root': {
-        'level': 'WARNING',
         'handlers': ['console', 'sentry'],
     },
     'loggers': {
         'sentry': {
             'level': 'ERROR',
-            'handlers': ['console', 'sentry'],
-            'propagate': False,
         },
         'sentry.coreapi': {
             'formatter': 'client_info',
         },
         'sentry.errors': {
-            'level': 'ERROR',
             'handlers': ['console'],
             'propagate': False,
         },
@@ -715,6 +726,14 @@ SENTRY_DISALLOWED_IPS = (
     '240.0.0.0/4',
     '255.255.255.255/32',
 )
+
+# Fields which managed users cannot change via Sentry UI. Username and password
+# cannot be changed by managed users. Optionally include 'email' and
+# 'first_name' in SENTRY_MANAGED_USER_FIELDS.
+SENTRY_MANAGED_USER_FIELDS = ('email',)
+
+# See sentry/options/__init__.py for more information
+SENTRY_OPTIONS = {}
 
 # Configure celery
 import djcelery

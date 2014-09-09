@@ -31,9 +31,10 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
+from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Team, Option, GroupTagValue
+from sentry.models import Team, GroupTagValue
 from sentry.web.helpers import group_is_public
 from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -150,7 +151,7 @@ def get_sentry_version(context):
     import sentry
     current = sentry.get_version()
 
-    latest = Option.objects.get_value('sentry:latest_version', current)
+    latest = options.get('sentry:latest_version') or current
     update_available = Version(latest) > Version(current)
 
     context['sentry_version'] = SentryVersion(

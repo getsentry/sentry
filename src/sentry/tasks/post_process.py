@@ -6,7 +6,7 @@ sentry.tasks.post_process
 :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 
@@ -21,7 +21,7 @@ from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 
 
-rules_logger = logging.getLogger('sentry.errors.rules')
+rules_logger = logging.getLogger('sentry.errors')
 
 
 def condition_matches(project, condition, event, state):

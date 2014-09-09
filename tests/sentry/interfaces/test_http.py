@@ -143,3 +143,11 @@ class HttpTest(TestCase):
             data='foo=bar&a=b',
         ))
         assert result.to_curl() == "curl -XPOST --data 'foo=bar&a=b' 'http://example.com?foo=bar' -H 'X-Foo-Bar: baz' -H 'Cookie: foo=bar' -H 'Accept-Encoding: deflate, gzip' --compressed"
+
+    def test_to_curl_post_with_unicode(self):
+        result = Http.to_python(dict(
+            method='POST',
+            url='http://example.com',
+            data={u'föo': u'bär'},
+        ))
+        assert result.to_curl() == "curl -XPOST --data f%C3%B6o=b%C3%A4r http://example.com"

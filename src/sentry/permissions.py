@@ -177,7 +177,7 @@ def can_remove_project(user, project):
 
 
 @requires_login
-def can_admin_group(user, group):
+def can_admin_group(user, group, is_remove=False):
     from sentry.models import Team
 
     if user.is_superuser:
@@ -189,11 +189,23 @@ def can_admin_group(user, group):
     except KeyError:
         return False
 
+    # The "remove_event" permission was added after "admin_event".
+    # First check the new "remove_event" permission, then fall back
+    # to the "admin_event" permission.
+    if is_remove:
+        result = plugins.first('has_perm', user, 'remove_event', group)
+        if result is False:
+            return False
+
     result = plugins.first('has_perm', user, 'admin_event', group)
     if result is False:
         return False
 
     return True
+
+
+def can_remove_group(user, group):
+    return can_admin_group(user, group, is_remove=True)
 
 
 @requires_login

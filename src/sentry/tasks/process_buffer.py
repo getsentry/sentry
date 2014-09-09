@@ -8,6 +8,7 @@ sentry.tasks.process_buffer
 
 from __future__ import absolute_import
 
+from sentry.utils.logging import suppress_exceptions
 from sentry.tasks.base import instrumented_task
 
 
@@ -24,6 +25,7 @@ def process_pending():
 
 @instrumented_task(
     name='sentry.tasks.process_buffer.process_incr')
+@suppress_exceptions
 def process_incr(**kwargs):
     """
     Processes a buffer event.

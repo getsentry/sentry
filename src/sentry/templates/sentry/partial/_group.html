@@ -13,11 +13,6 @@
         </h3>
         <p class="message" title="{{ group.message }}">
             <a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?logger={{ group.logger }}" class="tag tag-logger">{{ group.logger }}</a>
-            {% with group.get_version as version %}
-                {% if version %}
-                    <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
-                {% endif %}
-            {% endwith %}
             {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
             {{ group.error }}
         </p>

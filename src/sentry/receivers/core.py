@@ -6,11 +6,12 @@ from django.db import connections
 from django.db.models.signals import post_syncdb, post_save, pre_delete
 from pkg_resources import parse_version as Version
 
+from sentry import options
 from sentry.constants import MEMBER_OWNER
 from sentry.db.models import update
 from sentry.db.models.utils import slugify_instance
 from sentry.models import (
-    Project, User, Option, Team, ProjectKey, UserOption, TagKey, TagValue,
+    Project, User, Team, ProjectKey, UserOption, TagKey, TagValue,
     GroupTagValue, GroupTagKey, Activity, TeamMember, Alert)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.safe import safe_execute
@@ -57,19 +58,13 @@ def set_sentry_version(latest=None, **kwargs):
     import sentry
     current = sentry.get_version()
 
-    version = Option.objects.get_value(
-        key='sentry:latest_version',
-        default=''
-    )
+    version = options.get('sentry:latest_version')
 
     for ver in (current, version):
         if Version(ver) >= Version(latest):
             return
 
-    Option.objects.set_value(
-        key='sentry:latest_version',
-        value=(latest or current)
-    )
+    options.set('sentry:latest_version', (latest or current))
 
 
 def create_team_and_keys_for_project(instance, created, **kwargs):

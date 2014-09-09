@@ -36,7 +36,8 @@ class RedisCache(local):
     def set(self, key, value, timeout):
         with self.conn.map() as conn:
             conn.set(key, json.dumps(value))
-            conn.expire(key, timeout)
+            if timeout:
+                conn.expire(key, timeout)
 
     def delete(self, key):
         self.conn.delete(key)
