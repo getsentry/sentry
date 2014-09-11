@@ -43,6 +43,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-bitbucket <https://github.com/neilalbrock/sentry-bitbucket>`_
 * `sentry-campfire <https://github.com/mkhattab/sentry-campfire>`_
 * `sentry-flowdock <https://github.com/getsentry/sentry-flowdock>`_
+* `sentry-fogbugz <https://github.com/glasslion/sentry-fogbugz>`_
 * `sentry-github <https://github.com/getsentry/sentry-github>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
