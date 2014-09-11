@@ -62,7 +62,7 @@ for team_name, project_names in mocks:
         create_sample_time_series(event2)
 
         Activity.objects.create(
-            type=Activity.DEPLOY,
+            type=Activity.RELEASE,
             project=project,
             ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
             user=user,
