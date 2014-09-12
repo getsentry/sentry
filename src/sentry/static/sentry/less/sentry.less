@@ -2679,24 +2679,67 @@ table.integrations {
 .client-platform-list {
     list-style: none;
     margin-left: 0;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
     .clearfix();
 
     li {
         float: left;
-        margin-right: 20px;
+        margin-right: 30px;
+        margin-bottom: 30px !important;
     }
 
-    img {
-        width: 48px;
-        height: 48px;
-        margin: 0 auto 8px;
+    span {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 20px;
         display: block;
-        border-radius: 3px;
+        border-radius: 120px;
+        line-height: 120px;
+        color: #fff;
+
+        &.platformicon-generic {
+          background: #929c9e;
+        }
+
+        &.platformicon-python {
+          background: #2671aa;
+        }
+        &.platformicon-php {
+          background: #6067a8;
+        }
+        &.platformicon-ruby,
+        &.platformicon-rails {
+          background: #d71f26;
+        }
+        &.platformicon-rails-3 {
+          background: lighten(#d71f26, 10);
+        }
+        &.platformicon-java {
+          background: darken(#d71f26, 3);
+        }
+        &.platformicon-js {
+          color: #1b191c;
+          background: #f7dc3c;
+        }
+        &.platformicon-node-js { // Fixed in upcoming version
+          background: #8ac655;
+          color: #2d292f;
+        }
+        &.platformicon-go {
+          color: #222;
+          border: 2px solid #222;
+        }
+        &.platformicon-django {
+          background: #025129;
+        }
+        &.platformicon-ios {
+          background: #383a3a;
+        }
+
     }
 
     a {
-        font-size: 12px;
+        font-size: 18px;
         text-align: center;
         display: block;
         font-weight: 500;
