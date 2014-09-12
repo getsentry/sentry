@@ -131,3 +131,14 @@ class GroupDetailsEndpoint(Endpoint):
             ).delete()
 
         return Response(serialize(group, request.user))
+
+    def delete(self, request, group_id):
+        group = Group.objects.get(
+            id=group_id,
+        )
+
+        assert_perm(group, request.user, request.auth)
+
+        group.delete()
+
+        return Response()
