@@ -57,3 +57,18 @@ class GroupDetailsTest(APITestCase):
         # ensure we've created the bookmark
         assert GroupBookmark.objects.filter(
             group=group, user=self.user).exists()
+
+    def test_delete(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+
+        url = reverse('sentry-api-0-group-details', kwargs={
+            'group_id': group.id
+        })
+        response = self.client.delete(url, format='json')
+
+        assert response.status_code == 200, response.content
+
+        group = Group.objects.filter(id=group.id).exists()
+        assert not group
