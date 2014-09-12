@@ -24,7 +24,7 @@
         {% endif %}
     </ul>
 
-    <div class="filter-nav">
+    <div class="filter-nav" ng-controller="ProjectStreamControlsCtrl">
         <div class="row">
             <div class="col-sm-4 primary-filters">
               <div class="btn-group btn-group-justified">
@@ -38,7 +38,7 @@
                   <form class="form-horizontal">
                       <div>
                           <input type="text" class="search-input form-control"
-                                 placeholder="Search for events, users, tags, and everything else." ng-focus="searchDropdown.visible = !searchDropdown.visible === true" ng-blur="searchDropdown.visible = false">
+                                 placeholder="Search for events, users, tags, and everything else.">
                           <span class="icon-search"></span>
                       </div>
                       <div class="search-dropdown" ng-show="searchDropdown.visible === true">

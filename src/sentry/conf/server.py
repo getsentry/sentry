@@ -493,6 +493,7 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/vendor/jquery-flot/jquery.flot.resize.js",
                 "sentry/vendor/jquery-flot/jquery.flot.time.js",
                 "sentry/scripts/lib/jquery.flot.tooltip.js",
+                "sentry/vendor/typeahead.js/dist/typeahead.jquery.min.js",
             ],
         },
 
