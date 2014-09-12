@@ -10,7 +10,6 @@ from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_resolve import GroupResolveEndpoint
 from .endpoints.group_bookmark import GroupBookmarkEndpoint
 from .endpoints.group_markseen import GroupMarkSeenEndpoint
-from .endpoints.group_delete import GroupDeleteEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -110,9 +109,6 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/markseen/$',
         GroupMarkSeenEndpoint.as_view(),
         name='sentry-api-0-group-markseen'),
-    url(r'^groups/(?P<group_id>\d+)/delete/$',
-        GroupDeleteEndpoint.as_view(),
-        name='sentry-api-0-group-delete'),
     url(r'^groups/(?P<group_id>\d+)/events/$',
         GroupEventsEndpoint.as_view(),
         name='sentry-api-0-group-events'),
