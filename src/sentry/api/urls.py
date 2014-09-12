@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function
+
 from django.conf.urls import patterns, url
 
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -5,8 +7,6 @@ from .endpoints.catchall import CatchallEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.group_assign import GroupAssignEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
-from .endpoints.group_resolve import GroupResolveEndpoint
-from .endpoints.group_bookmark import GroupBookmarkEndpoint
 from .endpoints.group_markseen import GroupMarkSeenEndpoint
 from .endpoints.group_delete import GroupDeleteEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
@@ -97,12 +97,6 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/assign/$',
         GroupAssignEndpoint.as_view(),
         name='sentry-api-0-group-assign'),
-    url(r'^groups/(?P<group_id>\d+)/resolve/$',
-        GroupResolveEndpoint.as_view(),
-        name='sentry-api-0-group-resolve'),
-    url(r'^groups/(?P<group_id>\d+)/bookmark/$',
-        GroupBookmarkEndpoint.as_view(),
-        name='sentry-api-0-group-bookmark'),
     url(r'^groups/(?P<group_id>\d+)/markseen/$',
         GroupMarkSeenEndpoint.as_view(),
         name='sentry-api-0-group-markseen'),
