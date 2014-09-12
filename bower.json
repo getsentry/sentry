@@ -21,7 +21,7 @@
     "jquery-flot": "~0.8.3",
     "selectize": "~0.10.1",
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
-    "platformicons": "1.0.0"
+    "platformicons": "1.0.2"
   },
   "resolutions": {
     "angular": "1.2.9",
