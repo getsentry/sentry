@@ -3,6 +3,20 @@
 (function(){
   'use strict';
 
+  SentryApp.controller('ProjectStreamControlsCtrl', [
+    '$scope', '$timeout',
+    function($scope, $timeout){
+      $scope.searchDropdown = {visible: false};
+
+      $('.search-input').typeahead({}, {
+        source: function(query, cb){
+          console.log(query);
+          cb([{value: query}]);
+        }
+      });
+    }
+  ]);
+
   SentryApp.classy.controller({
     name: 'ProjectStreamCtrl',
 
