@@ -33,7 +33,10 @@
                   <assignee-selector></assignee-selector>
                   <div class="is-assigned"><span class="hidden-sm">is</span> assigned</div>
               </div>
-              <div class="col-xs-4 event-count align-right"><span class="count">{{ group.times_seen|small_count }}</span> events</div>
+              <div class="col-xs-4 event-count align-right">
+                <span class="count"
+                      count="selectedGroup.count"></span> events
+              </div>
               <div class="col-xs-4 user-count align-right"><span class="count">209</span> users</div>
             </div>
           </div>
@@ -48,11 +51,16 @@
       </div>
       <div class="group-actions">
         <div class="btn-group">
-          <a href="#" class="btn btn-default btn-sm"><span class="icon-checkmark"></span></a>
-          <a href="#" class="btn btn-default btn-sm"><span class="icon-bookmark"></span></a>
+          <a href="#" class="btn btn-default btn-sm"
+             ng-class="{active: selectedGroup.status == 'resolved'}"
+             data-action="resolve"><span class="icon-checkmark"></span></a>
+          <a href="#" class="btn btn-default btn-sm"
+             ng-class="{active: selectedGroup.isBookmarked}"
+             data-action="bookmark"><span class="icon-bookmark"></span></a>
         </div>
         <div class="btn-group">
-          <a href="#" class="btn btn-default btn-sm"><span class="icon-trash"></span></a>
+          <a href="#" class="btn btn-default btn-sm"
+             data-action="remove"><span class="icon-trash"></span></a>
         </div>
         <div class="btn-group more">
           <a href="#" class="btn btn-default btn-sm dropdown-toggle">More <span class="icon-arrow-down"></span></a>
