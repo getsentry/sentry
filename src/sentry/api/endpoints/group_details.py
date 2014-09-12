@@ -1,9 +1,28 @@
+from __future__ import absolute_import, print_function
+
+from django.utils import timezone
+from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.models import Activity, Group, GroupSeen
+from sentry.db.models.query import create_or_update
+from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED, STATUS_MUTED
+from sentry.models import Activity, Group, GroupBookmark, GroupSeen
+
+STATUS_CHOICES = {
+    'resolved': STATUS_RESOLVED,
+    'unresolved': STATUS_UNRESOLVED,
+    'muted': STATUS_MUTED,
+}
+
+
+class GroupSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=zip(
+        STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
+    ))
+    isBookmarked = serializers.BooleanField()
 
 
 class GroupDetailsEndpoint(Endpoint):
@@ -61,3 +80,54 @@ class GroupDetailsEndpoint(Endpoint):
         })
 
         return Response(data)
+
+    def post(self, request, group_id):
+        group = Group.objects.get(
+            id=group_id,
+        )
+
+        assert_perm(group, request.user, request.auth)
+
+        serializer = GroupSerializer(data=request.DATA, partial=True)
+        if not serializer.is_valid():
+            return Response(status=400)
+
+        result = serializer.object
+        if result.get('status') == 'resolved':
+            now = timezone.now()
+
+            group.resolved_at = now
+            group.status = STATUS_RESOLVED
+
+            happened = Group.objects.filter(
+                id=group.id,
+            ).exclude(status=STATUS_RESOLVED).update(
+                status=STATUS_RESOLVED,
+                resolved_at=now,
+            )
+
+            if happened:
+                create_or_update(
+                    Activity,
+                    project=group.project,
+                    group=group,
+                    type=Activity.SET_RESOLVED,
+                    user=request.user,
+                )
+        elif result.get('status'):
+            group.status = STATUS_CHOICES[result['status']]
+            group.save()
+
+        if result.get('isBookmarked'):
+            GroupBookmark.objects.get_or_create(
+                project=group.project,
+                group=group,
+                user=request.user,
+            )
+        elif result.get('isBookmarked') is False:
+            GroupBookmark.objects.filter(
+                group=group,
+                user=request.user,
+            ).delete()
+
+        return Response(serialize(group, request.user))

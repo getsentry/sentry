@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function
+
 from collections import defaultdict
 from datetime import timedelta
 from django.core.urlresolvers import reverse
@@ -106,11 +108,7 @@ class GroupSerializer(Serializer):
             'lastSeen': obj.last_seen,
             'timeSpent': obj.avg_time_spent,
             'canResolve': user.is_authenticated(),
-            'status': {
-                'id': status,
-                'name': status_label,
-            },
-            'isResolved': obj.get_status() == STATUS_RESOLVED,
+            'status': status_label,
             'isPublic': obj.is_public,
             # 'score': getattr(obj, 'sort_value', 0),
             'project': {
