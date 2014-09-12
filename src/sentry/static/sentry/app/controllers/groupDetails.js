@@ -6,6 +6,8 @@
     function($scope, $http, selectedProject) {
       var selectedGroup = window.SentryConfig.selectedGroup;
 
+      $scope.selectedGroup = selectedGroup;
+
       // TODO(dcramer): remove the window hack
       $http.post('/api/0/groups/' + selectedGroup.id + '/markseen/');
 
@@ -38,6 +40,22 @@
             $('.add-note-form').submit();
             return false;
           }
+      });
+
+      $('a[data-action="resolve"]').click(function(){
+        $http.post('/api/0/groups/' + selectedGroup.id + '/', {
+          status: (selectedGroup.status != 'resolved' ? 'resolved' : 'unresolved')
+        }).success(function(data) {
+          selectedGroup.status = data.status;
+        });
+      });
+
+      $('a[data-action="bookmark"]').click(function(){
+        $http.post('/api/0/groups/' + selectedGroup.id + '/', {
+          isBookmarked: (selectedGroup.isBookmarked ? '0' : '1')
+        }).success(function(data) {
+          selectedGroup.isBookmarked = data.isBookmarked;
+        });
       });
     }
   ]);
