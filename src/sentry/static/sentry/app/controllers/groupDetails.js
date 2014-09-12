@@ -3,8 +3,10 @@
 
   SentryApp.controller('GroupDetailsCtrl', [
     '$scope', '$http', 'selectedProject',
-    function($scope, $http, selectedProject) {
-      var selectedGroup = window.SentryConfig.selectedGroup;
+    function($scope, $http) {
+      var selectedGroup = window.SentryConfig.selectedGroup,
+          selectedTeam = window.SentryConfig.selectedTeam,
+          selectedProject = window.SentryConfig.selectedProject;
 
       $scope.selectedGroup = selectedGroup;
 
@@ -57,6 +59,16 @@
           selectedGroup.isBookmarked = data.isBookmarked;
         });
       });
+
+      $('a[data-action="remove"]').click(function(){
+        if (confirm('Are you sure you wish to permanently remove data for this group?')) {
+          $http.delete('/api/0/groups/' + selectedGroup.id + '/')
+            .success(function(data) {
+              window.location.href = '/' + selectedTeam.slug + '/' + selectedProject.slug + '/';
+            });
+        }
+      });
+
     }
   ]);
 }());
