@@ -16,6 +16,9 @@
 @white: #fff;
 @sentry-orange: #fb4226;
 @blue: #56AFE8;
+@green: #07CC6D;
+@yellow: #f5db00;
+@red: #e03c38;
 
 @linkColor: darken(@blue, 10%);
 
@@ -1027,6 +1030,29 @@ a.icon-share {
   }
 
   .group-actions {
+
+    .group-resolve.active {
+      background: @green;
+      color: #fff;
+      border-color: darken(@green, 10);
+      text-shadow: 0 1px 0 rgba(0,0,0, .15);
+    }
+
+    .group-bookmark.active {
+      background: @yellow;
+      color: #fff;
+      border-color: darken(@yellow, 10);
+      text-shadow: 0 1px 0 rgba(0,0,0, .15);
+
+    }
+
+    .group-remove:hover {
+      color: #fff;
+      background: @red;
+      border-color: darken(@red, 14);
+    }
+
+
     .clearfix;
 
     .id-label {
