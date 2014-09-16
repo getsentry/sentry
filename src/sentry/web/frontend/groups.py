@@ -105,7 +105,7 @@ def _get_group_list(request, project):
 
     query = request.GET.get('query')
     if query is not None:
-        query_kwargs.update(parse_query(query))
+        query_kwargs.update(parse_query(query, request.user))
 
     results = app.search.query(**query_kwargs)
 
