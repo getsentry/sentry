@@ -58,6 +58,11 @@ STATUS_LEVELS = (
     (STATUS_RESOLVED, _('Resolved')),
     (STATUS_MUTED, _('Muted')),
 )
+STATUS_CHOICES = {
+    'resolved': STATUS_RESOLVED,
+    'unresolved': STATUS_UNRESOLVED,
+    'muted': STATUS_MUTED,
+}
 
 MEMBER_ADMIN = 0
 MEMBER_USER = 50

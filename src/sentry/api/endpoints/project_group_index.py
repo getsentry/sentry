@@ -6,7 +6,7 @@ from sentry.app import search
 from sentry.api.base import Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import DEFAULT_SORT_OPTION
+from sentry.constants import DEFAULT_SORT_OPTION, STATUS_CHOICES
 from sentry.models import TagKey, Project
 from sentry.utils.dates import parse_date
 
@@ -27,7 +27,10 @@ class ProjectGroupIndexEndpoint(Endpoint):
         }
 
         if request.GET.get('status'):
-            query_kwargs['status'] = int(request.GET['status'])
+            try:
+                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
+            except KeyError:
+                return Response('{"error": "invalid status"}', status=400)
 
         if request.user.is_authenticated() and request.GET.get('bookmarks'):
             query_kwargs['bookmarked_by'] = request.user
