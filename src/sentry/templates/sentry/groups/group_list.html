@@ -182,8 +182,15 @@
         </script>
 
     </div>
-      <div class="sidebar col-md-3 hidden-sm hidden-xs">
-        <h6>Filter</h6>
-      </div>
+    <div class="sidebar col-md-3 hidden-sm hidden-xs">
+      {% for filter in project|get_filters:request %}
+        {% if filter.show_label %}
+            <h6>{% trans filter.label %}</h6>
+        {% endif %}
+        <div class="filter">
+            {{ filter.render }}
+        </div>
+      {% endfor %}
     </div>
+  </div>
 {% endblock %}
