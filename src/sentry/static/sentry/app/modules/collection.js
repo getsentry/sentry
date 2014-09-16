@@ -8,6 +8,9 @@
         limit: null,
         equals: function(item, other) {
           return item.id == other.id;
+        },
+        canUpdate: function(current, pending) {
+          return true;
         }
       };
 
@@ -84,8 +87,13 @@
       };
 
       Collection.prototype._updateExisting = function _updateExisting(item) {
+        // returns true if the item already existed and was updated (as configured)
+
         var existing = this.indexOf(item);
         if (existing !== -1) {
+          if (!this.options.canUpdate(this[existing], item)) {
+            return true;
+          }
           $.extend(true, this[existing], item);
           return true;
         }
