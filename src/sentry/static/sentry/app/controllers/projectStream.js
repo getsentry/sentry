@@ -87,6 +87,24 @@
         });
       };
 
+      $scope.selectAllActive = false;
+      $('.stream-actions .chk-select-all').change(function(){
+        var checked = $(this).is(':checked');
+        $scope.selectAllActive = checked;
+        $('.group-list .chk-select').prop('checked', checked);
+      });
+
+      $('.group-list').delegate('.chk-select', 'change', function(){
+        var allSelected = !$('.group-list .chk-select').is(':not(:checked)');
+
+        $scope.selectAllActive = allSelected;
+        $('.stream-actions .chk-select-all').prop('checked', allSelected);
+      });
+
+      $('.stream-actions .datepicker-box').click(function(e){
+        e.stopPropagation();
+      });
+
       // we explicitly avoid $timeout here to prevent the watcher
       timeoutId = window.setTimeout(pollForChanges, 1000);
       $scope.$on('destroy', function(){

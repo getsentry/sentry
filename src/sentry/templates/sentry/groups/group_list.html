@@ -19,7 +19,7 @@
           <div class="stream-actions">
             <div class="stream-actions-left stream-actions-cell">
                 <div class="checkbox">
-                    <input type="checkbox">
+                    <input type="checkbox" class="chk-select-all">
                 </div>
                 <div class="btn-group">
                     <a class="btn btn-default btn-sm" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i></a>
@@ -58,7 +58,7 @@
                             {% endif %}
                         {% endif %}
                      <span aria-hidden="true" class="icon-arrow-down"></span></a>
-                     <div class="datepicker-box dropdown-menu" id="daterange" ng-click="$event.stopPropagation()">
+                     <div class="datepicker-box dropdown-menu" id="daterange">
                          <form method="GET" action=".">
                              {% for key, value in request.GET.iteritems %}
                                  {% if key != df and key != tf and key != dt and key != tt and key != page %}
@@ -123,7 +123,7 @@
             <li class="group" ng-repeat="group in groupList">
                 <div class="event-details event-cell">
                   <div class="checkbox">
-                      <input type="checkbox">
+                      <input type="checkbox" class="chk-select">
                   </div>
                   <h3><a href="<% group.permalink %>"><% group.title %></a></h3>
                   <div class="event-meta">
