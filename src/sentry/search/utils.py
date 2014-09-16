@@ -11,8 +11,8 @@ def parse_query(query):
             key, value = token.split(':', 1)
             results['tags'][key] = value
         else:
-            results['query'].append(value)
+            results['query'].append(token)
 
     results['query'] = ' '.join(results['query'])
 
-    return dict(results)
+    return results
