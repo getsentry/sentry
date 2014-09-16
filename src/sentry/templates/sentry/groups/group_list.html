@@ -120,7 +120,8 @@
         {% endif %}
 
         <ul class="group-list" ng-show="groupList">
-            <li class="group" ng-repeat="group in groupList">
+            <li class="group" ng-repeat="group in groupList"
+                ng-class="{'seen': group.hasSeen}">
                 <div class="event-details event-cell">
                   <div class="checkbox">
                       <input type="checkbox" class="chk-select">
