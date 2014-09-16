@@ -32,6 +32,9 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if request.user.is_authenticated() and request.GET.get('bookmarks'):
             query_kwargs['bookmarked_by'] = request.user
 
+        if request.user.is_authenticated() and request.GET.get('assigned'):
+            query_kwargs['assigned_to'] = request.user
+
         sort_by = request.GET.get('sort') or request.session.get('streamsort')
         if sort_by is None:
             sort_by = DEFAULT_SORT_OPTION
