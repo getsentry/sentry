@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.app import search
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION, STATUS_CHOICES
@@ -26,6 +26,8 @@ class GroupSerializer(serializers.Serializer):
 
 
 class ProjectGroupIndexEndpoint(Endpoint):
+    doc_section = DocSection.EVENTS
+
     # bookmarks=0/1
     # status=<x>
     # <tag>=<value>
