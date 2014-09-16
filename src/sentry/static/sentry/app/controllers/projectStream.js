@@ -15,7 +15,11 @@
     function($scope, $timeout){
       var params = app.utils.getQueryParams();
 
-      $scope.searchDropdown = {visible: false};
+      $('.filter-nav .search-input').focus(function(){
+        $('.search-dropdown').show();
+      }).blur(function(){
+        $('.search-dropdown').hide();
+      });
 
       if (params.bookmarks) {
         $scope.activeButton = 'bookmarks';
@@ -35,13 +39,6 @@
         default:
           $('.btn-all-events').addClass('active');
       }
-
-      $('.search-input').typeahead({}, {
-        source: function(query, cb){
-          console.log(query);
-          cb([{value: query}]);
-        }
-      });
     }
   ]);
 
@@ -56,10 +53,11 @@
           .success(function(data){
             var duration = $scope.chartDuration;
             data = $.map(data, GroupModel);
+            angular.forEach(data, function(group){
+              group.activeChartData = group.stats[duration];
+            });
+
             $timeout(function(){
-              angular.forEach(data, function(group){
-                group.activeChartData = group.stats[duration];
-              });
               $scope.groupList.extend(data);
             });
           }).finally(function(){

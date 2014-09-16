@@ -32,6 +32,7 @@ from sentry.permissions import (
     can_admin_group, can_remove_group, can_create_projects
 )
 from sentry.plugins import plugins
+from sentry.search.utils import parse_query
 from sentry.utils import json
 from sentry.utils.dates import parse_date
 from sentry.web.decorators import has_access, has_group_access, login_required
@@ -46,10 +47,6 @@ def _get_group_list(request, project):
     query_kwargs = {
         'project': project,
     }
-
-    query = request.GET.get('query')
-    if query:
-        query_kwargs['query'] = query
 
     status = request.GET.get('status', '0')
     if status:
@@ -106,6 +103,10 @@ def _get_group_list(request, project):
 
     query_kwargs['offset'] = (page - 1) * EVENTS_PER_PAGE
     query_kwargs['limit'] = EVENTS_PER_PAGE + 1
+
+    query = request.GET.get('query')
+    if query is not None:
+        query_kwargs.update(parse_query(query))
 
     results = app.search.query(**query_kwargs)
 
@@ -273,6 +274,7 @@ def group_list(request, team, project):
         'next_page': response['next_page'],
         'today': response['today'],
         'sort': response['sort'],
+        'query': query,
         'pageless_query_string': pageless_query_string,
         'sort_label': sort_label,
         'SORT_OPTIONS': SORT_OPTIONS,

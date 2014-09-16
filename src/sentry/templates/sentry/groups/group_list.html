@@ -4,17 +4,14 @@
 {% load sentry_api %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
-{% load sentry_stream_filters %}
 
 {% block controller %}ProjectStreamCtrl{% endblock %}
 
 {% block content %}
     {% querystring from request without sort as sort_querystring %}
     {% querystring from request without since as since_querystring %}
-    <div class="row">
-      <div class="col-md-9">
-        <div class="group-header-container" data-spy="affix" data-offset-top="195">
-        <div class="container">
+    <div class="group-header-container" data-spy="affix" data-offset-top="195">
+      <div class="container">
         <div class="group-header">
           <div class="stream-actions">
             <div class="stream-actions-left stream-actions-cell">
@@ -106,91 +103,78 @@
       </div>
     </div>
 
-        {% recent_alerts from project as recent_alerts %}
-        {% if recent_alerts %}
-            <ul class="active-alerts">
-                {% for alert in recent_alerts %}
-                    <li class="alert alert-error">
-                        <a class="close" data-dismiss="alert">×</a>
-                        <a href="{% url 'sentry-alert-details' project.team.slug project.slug alert.id %}">{{ alert.message }}</a>
-                        <small>&mdash; {{ alert.datetime|timesince }}</small>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        <ul class="group-list" ng-show="groupList">
-            <li class="group" ng-repeat="group in groupList"
-                ng-class="{'seen': group.hasSeen}">
-                <div class="event-details event-cell">
-                  <div class="checkbox">
-                      <input type="checkbox" class="chk-select">
-                  </div>
-                  <h3><a href="<% group.permalink %>"><% group.title %></a></h3>
-                  <div class="event-meta">
-                      <span class="message"><% group.culprit %></span>
-                      &middot; <time time-since="group.firstSeen"></time>
-                  </div>
-                </div>
-                <div class="event-assignee event-cell hidden-xs">
-                    <assignee-selector></assignee-selector>
-                </div>
-                <div class="hidden-sm hidden-xs event-graph align-right event-cell">
-                  <barchart data="group.activeChartData" options="chartOptions" class="sparkline"></barchart>
-                </div>
-                <div class="hidden-xs event-occurrences align-center event-cell">
-                  <span count="group.count"></span>
-                </div>
-                <div class="hidden-xs event-users align-center event-cell">
-                  <span count="group.tags['sentry:user'].count || 0"></span>
-                </div>
-            </li>
+    {% recent_alerts from project as recent_alerts %}
+    {% if recent_alerts %}
+        <ul class="active-alerts">
+            {% for alert in recent_alerts %}
+                <li class="alert alert-error">
+                    <a class="close" data-dismiss="alert">×</a>
+                    <a href="{% url 'sentry-alert-details' project.team.slug project.slug alert.id %}">{{ alert.message }}</a>
+                    <small>&mdash; {{ alert.datetime|timesince }}</small>
+                </li>
+            {% endfor %}
         </ul>
+    {% endif %}
 
-        <div class="stream-pagination" ng-show="groupList">
-            <div class="btn-group pull-right">
-                {% spaceless %}
-                    {% if previous_page %}
-                        <a class="btn btn-default btn-lg prev" href="?{{ pageless_query_string|escape }}&amp;p={{ previous_page }}">
-                            <span title="{% trans "Previous" %}" class="icon-arrow-left"></span>
-                        </a>
-                    {% else %}
-                        <a class="btn btn-default btn-lg prev disabled">
-                            <span title="{% trans "Previous" %}" class="icon-arrow-left"></span>
-                        </a>
-                    {% endif %}
-                    {% if next_page %}
-                        <a class="btn btn-default btn-lg next" href="?{{ pageless_query_string|escape }}&amp;p={{ next_page }}">
-                            <span title="{% trans "Next" %}" class="icon-arrow-right"></span></a>
-                    {% else %}
-                        <a class="btn btn-default btn-lg next disabled">
-                            <span calss="{% trans "Next" %}" class="icon-arrow-right"></span>
-                        </a>
-                    {% endif %}
-                {% endspaceless %}
+    <ul class="group-list" ng-if="groupList.length">
+        <li class="group" ng-repeat="group in groupList"
+            ng-class="{'seen': group.hasSeen}">
+            <div class="event-details event-cell">
+              <div class="checkbox">
+                  <input type="checkbox" class="chk-select">
+              </div>
+              <h3><a href="<% group.permalink %>"><% group.title %></a></h3>
+              <div class="event-meta">
+                  <span class="message"><% group.culprit %></span>
+                  &middot; <time time-since="group.firstSeen"></time>
+              </div>
             </div>
+            <div class="event-assignee event-cell hidden-xs">
+                <assignee-selector></assignee-selector>
+            </div>
+            <div class="hidden-sm hidden-xs event-graph align-right event-cell">
+              <barchart data="group.activeChartData" options="chartOptions" class="sparkline"></barchart>
+            </div>
+            <div class="hidden-xs event-occurrences align-center event-cell">
+              <span count="group.count"></span>
+            </div>
+            <div class="hidden-xs event-users align-center event-cell">
+              <span count="group.tags['sentry:user'].count || 0"></span>
+            </div>
+        </li>
+    </ul>
+
+    <div class="stream-pagination" ng-if="groupList.length">
+        <div class="btn-group pull-right">
+            {% spaceless %}
+                {% if previous_page %}
+                    <a class="btn btn-default btn-lg prev" href="?{{ pageless_query_string|escape }}&amp;p={{ previous_page }}">
+                        <span title="{% trans "Previous" %}" class="icon-arrow-left"></span>
+                    </a>
+                {% else %}
+                    <a class="btn btn-default btn-lg prev disabled">
+                        <span title="{% trans "Previous" %}" class="icon-arrow-left"></span>
+                    </a>
+                {% endif %}
+                {% if next_page %}
+                    <a class="btn btn-default btn-lg next" href="?{{ pageless_query_string|escape }}&amp;p={{ next_page }}">
+                        <span title="{% trans "Next" %}" class="icon-arrow-right"></span></a>
+                {% else %}
+                    <a class="btn btn-default btn-lg next disabled">
+                        <span calss="{% trans "Next" %}" class="icon-arrow-right"></span>
+                    </a>
+                {% endif %}
+            {% endspaceless %}
         </div>
-
-        <div class="stream-empty" ng-hide="groupList">
-          <div class="container">
-            <h3>No events to show.</h3>
-          </div>
-        </div>
-
-        <script>
-        window.groupList = {% serialize event_list %}
-        </script>
-
     </div>
-    <div class="sidebar col-md-3 hidden-sm hidden-xs">
-      {% for filter in project|get_filters:request %}
-        {% if filter.show_label %}
-            <h6>{% trans filter.label %}</h6>
-        {% endif %}
-        <div class="filter">
-            {{ filter.render }}
-        </div>
-      {% endfor %}
+
+    <div class="stream-empty" ng-if="!groupList.length">
+      <div class="container">
+        <h3>No events to show.</h3>
+      </div>
     </div>
-  </div>
+
+    <script>
+    window.groupList = {% serialize event_list %}
+    </script>
 {% endblock %}

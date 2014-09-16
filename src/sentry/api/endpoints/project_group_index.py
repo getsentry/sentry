@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
@@ -13,6 +15,7 @@ from sentry.constants import (
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import Activity, Group, GroupBookmark, Project, TagKey
+from sentry.search.utils import parse_query
 from sentry.utils.dates import parse_date
 
 
@@ -94,6 +97,10 @@ class ProjectGroupIndexEndpoint(Endpoint):
         cursor = request.GET.get('cursor')
         if cursor:
             query_kwargs['cursor'] = cursor
+
+        query = request.GET.get('query')
+        if query is not None:
+            query_kwargs.update(parse_query(query))
 
         results = search.query(**query_kwargs)
 
