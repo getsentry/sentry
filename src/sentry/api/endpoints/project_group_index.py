@@ -100,7 +100,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         query = request.GET.get('query')
         if query is not None:
-            query_kwargs.update(parse_query(query))
+            query_kwargs.update(parse_query(query, request.user))
 
         results = search.query(**query_kwargs)
 
