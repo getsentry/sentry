@@ -3,6 +3,13 @@
 (function(){
   'use strict';
 
+  function getEndpoint(selectedProject, params) {
+    if (typeof(params.status) === "undefined") {
+      params.status = 'unresolved';
+    }
+    return '/api/0/projects/' + selectedProject.id + '/groups/?' + $.param(params);
+  }
+
   SentryApp.controller('ProjectStreamControlsCtrl', [
     '$scope', '$timeout',
     function($scope, $timeout){
@@ -43,7 +50,9 @@
     function($http, $scope, $timeout, Collection, GroupModel, selectedProject) {
       var timeoutId;
       var pollForChanges = function() {
-        $http.get('/api/0/projects/' + selectedProject.id + '/groups/')
+        var params = app.utils.getQueryParams();
+        var endpoint = getEndpoint(selectedProject, params);
+        $http.get(endpoint)
           .success(function(data){
             var duration = $scope.chartDuration;
             data = $.map(data, GroupModel);
