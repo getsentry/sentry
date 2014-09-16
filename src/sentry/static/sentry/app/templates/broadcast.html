@@ -1,21 +1,10 @@
-<div ng-if="broadcasts.overQuota">
-  <div class="usage-wrapper">
-    <div class="pull-right">
-      <a href="#">Upgrade now</a>
+<div ng-if="broadcast">
+    <div ng-if="broadcast.link">
+        <span class="badge new" ng-show="broadcast.badge">new</span>
+        <a href="{{ broadcast.link }}" class="link">{{ broadcast.message }}</a>
     </div>
-    <strong>Usage:</strong>
-    <div class="usage"><div style="width: 80%"></div></div>
-  </div>
-</div>
-<div ng-if="!broadcasts.overQuota">
-  <div ng-repeat="broadcast in broadcasts">
-      <div ng-if="broadcast.url">
-          <span class="badge new" ng-show="broadcast.badge">new</span>
-          <a href="{{ broadcast.url }}" class="link">{{ broadcast.message }}</a>
-      </div>
-      <div ng-if="!broadcast.url">
-          <span class="badge new" ng-show="broadcast.badge">new</span>
-          {{ broadcast.message }}
-      </div>
-  </div>
+    <div ng-if="!broadcast.link">
+        <span class="badge new" ng-show="broadcast.badge">new</span>
+        {{ broadcast.message }}
+    </div>
 </div>
