@@ -6,7 +6,28 @@
   SentryApp.controller('ProjectStreamControlsCtrl', [
     '$scope', '$timeout',
     function($scope, $timeout){
+      var params = app.utils.getQueryParams();
+
       $scope.searchDropdown = {visible: false};
+
+      if (params.bookmarks) {
+        $scope.activeButton = 'bookmarks';
+      } else if (params.assigned) {
+        $scope.activeButton = 'assigned';
+      } else {
+        $scope.activeButton = 'all';
+      }
+
+      switch ($scope.activeButton) {
+        case 'bookmarks':
+          $('.btn-bookmarks').addClass('active');
+          break;
+        case 'assigned':
+          $('.btn-assigned').addClass('active');
+          break;
+        default:
+          $('.btn-all-events').addClass('active');
+      }
 
       $('.search-input').typeahead({}, {
         source: function(query, cb){
