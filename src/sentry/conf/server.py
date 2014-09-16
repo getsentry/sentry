@@ -543,9 +543,7 @@ SENTRY_PUBLIC = False
 SENTRY_PROJECT = 1
 SENTRY_CACHE_BACKEND = 'default'
 
-SENTRY_FILTERS = (
-    'sentry.filters.StatusFilter',
-)
+SENTRY_FILTERS = ()
 
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
