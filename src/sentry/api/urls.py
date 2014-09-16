@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.conf.urls import patterns, url
 
 from .endpoints.auth_index import AuthIndexEndpoint
+from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.group_assign import GroupAssignEndpoint
@@ -39,6 +40,11 @@ urlpatterns = patterns(
     url(r'^auth/$',
         AuthIndexEndpoint.as_view(),
         name='sentry-api-0-auth'),
+
+    # Broadcasts
+    url(r'^broadcasts/$',
+        BroadcastIndexEndpoint.as_view(),
+        name='sentry-api-0-broadcast-index'),
 
     # Users
     url(r'^users/(?P<user_id>[^\/]+)/$',
