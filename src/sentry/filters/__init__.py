@@ -7,7 +7,6 @@ sentry.filters
 """
 
 from sentry.filters.base import *  # NOQA
-from sentry.filters.builtins import *  # NOQA
 from sentry.filters.widgets import *  # NOQA
 
 # Backwards compatibility
