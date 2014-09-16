@@ -82,8 +82,9 @@ class ElasticSearchBackend(SearchBackend):
         )
 
     def query(self, project, query=None, status=None, tags=None,
-              bookmarked_by=None, sort_by='date', date_filter='last_seen',
-              date_from=None, date_to=None, offset=0, limit=100):
+              bookmarked_by=None, assigned_to=None, sort_by='date',
+              date_filter='last_seen', date_from=None, date_to=None, offset=0,
+              limit=100):
 
         query_body = {
             'filter': {
@@ -135,6 +136,10 @@ class ElasticSearchBackend(SearchBackend):
             # TODO(dcramer): we could store an array on each event similar to how
             # we are doing tags? should we just make bookmarked events a special
             # thing that isn't searchable?
+            raise NotImplementedError
+
+        if assigned_to:
+            # TODO(dcramer):
             raise NotImplementedError
 
         if sort_by == 'date':
