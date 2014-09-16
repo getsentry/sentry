@@ -4,9 +4,8 @@ from django.utils.importlib import import_module
 from django.views.generic import View
 
 from sentry.api.base import DocSection, Endpoint
+from sentry.constants import HTTP_METHODS
 from sentry.web.helpers import render_to_response
-
-METHODS = ('get', 'post', 'delete', 'patch')
 
 
 class ApiHelpSectionView(View):
@@ -80,8 +79,10 @@ class ApiHelpSectionView(View):
         path = path.replace('<', '{').replace('>', '}')
 
         methods = []
-        for method_name in METHODS:
-            method = getattr(callback, method_name, None)
+        for method_name in HTTP_METHODS:
+            if method_name == 'OPTIONS':
+                continue
+            method = getattr(callback, method_name.lower(), None)
             if method is None:
                 continue
             methods.append({

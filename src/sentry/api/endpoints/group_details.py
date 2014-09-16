@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
@@ -20,6 +20,8 @@ class GroupSerializer(serializers.Serializer):
 
 
 class GroupDetailsEndpoint(Endpoint):
+    doc_section = DocSection.EVENTS
+
     def _get_activity(self, request, group, num=7):
         activity_items = set()
         activity = []
