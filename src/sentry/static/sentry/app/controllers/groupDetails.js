@@ -2,11 +2,9 @@
   'use strict';
 
   SentryApp.controller('GroupDetailsCtrl', [
-    '$scope', '$http', 'selectedProject',
-    function($scope, $http) {
-      var selectedGroup = window.SentryConfig.selectedGroup,
-          selectedTeam = window.SentryConfig.selectedTeam,
-          selectedProject = window.SentryConfig.selectedProject;
+    '$scope', '$http', 'selectedProject', 'selectedTeam',
+    function($scope, $http, selectedProject, selectedTeam) {
+      var selectedGroup = window.SentryConfig.selectedGroup;
 
       $scope.selectedGroup = selectedGroup;
 
