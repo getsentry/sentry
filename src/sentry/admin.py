@@ -15,10 +15,18 @@ from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-from sentry.models import Project, Team, TeamMember, User, HelpPage
+from sentry.models import Broadcast, Project, Team, TeamMember, User, HelpPage
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
+
+
+class BroadcastAdmin(admin.ModelAdmin):
+    list_display = ('message', 'is_active', 'date_added')
+    list_filter = ('is_active',)
+    search_fields = ('message', 'url')
+
+admin.site.register(Broadcast, BroadcastAdmin)
 
 
 class ProjectAdmin(admin.ModelAdmin):
