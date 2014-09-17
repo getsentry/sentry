@@ -460,11 +460,17 @@ footer {
   background-color: @blue;
   border-color: darken(@blue, 15);
   box-shadow: 0 1px 1px rgba(70, 82, 98, 0.16);
-  text-shadow: 0 -1px 0 rgba(70, 82, 98, 0.4); 
+  text-shadow: 0 -1px 0 rgba(70, 82, 98, 0.4);
   &:hover, &:focus, &:active {
     background-color: darken(@blue, 10);
     border-color: darken(@blue, 30);
   }
+}
+
+.btn-danger {
+  border-color: darken(@red, 15);
+  box-shadow: 0 1px 1px rgba(70, 82, 98, 0.16);
+  text-shadow: 0 -1px 0 rgba(70, 82, 98, 0.4);
 }
 
 .btn-group .btn + .btn {
