@@ -1789,11 +1789,6 @@ legend {
   padding-bottom: 10px;
 }
 
-
-.modal-header small {
-  font-size: 0.65em;
-}
-
 .page-header {
   padding-bottom: 0;
   border-bottom: 0;
@@ -1802,11 +1797,6 @@ legend {
   .pull-right {
     margin-top: 4px;
   }
-}
-
-.modal {
-  width: 760px;
-  margin-left: -480px;
 }
 
 .image {
@@ -3023,5 +3013,43 @@ table.integrations {
     li {
       width: 800px;
     }
+  }
+}
+
+
+.modal {
+  .modal-content {
+    box-shadow: 0 0 0 3px rgba(0,0,0, .15);
+  }
+
+  .modal-header {
+    background: #f9f9f9;
+    border-bottom: 1px solid #e1e4e5;
+    border-radius: 5px 5px 0 0;
+    padding: 15px 20px 14px;
+
+    h4 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .close {
+      margin-top: 1px;
+    }
+  }
+
+  .modal-body {
+    padding: 15px 20px;
+    font-size: 15px;
+    
+    p:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .modal-footer {
+    margin-top: 0;
+    border-top: 0;
+    padding: 0 20px 15px;
   }
 }
