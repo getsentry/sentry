@@ -15,7 +15,7 @@
 @black: #111;
 @white: #fff;
 @sentry-orange: #fb4226;
-@blue: #56AFE8;
+@blue: darken(#56AFE8, 2);
 @green: #07CC6D;
 @yellow: #f5db00;
 @red: #e03c38;
@@ -458,10 +458,11 @@ footer {
 .btn-primary {
   color: #ffffff;
   background-color: @blue;
-  border-color: darken(@blue, 10);
+  border-color: darken(@blue, 15);
+  box-shadow: 0 1px 1px rgba(70, 82, 98, 0.16);
   &:hover, &:focus, &:active {
-    background-color: lighten(@blue, 10);
-    border-color: @blue;
+    background-color: darken(@blue, 10);
+    border-color: darken(@blue, 30);
   }
 }
 
