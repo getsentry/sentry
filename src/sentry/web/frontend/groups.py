@@ -141,12 +141,12 @@ def render_with_group_context(group, template, context, request=None,
         if event.id:
             base_qs = group.event_set.exclude(id=event.id)
             try:
-                next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
+                next_event = base_qs.filter(datetime__gte=event.datetime, pk__gte=event.pk).order_by('datetime', 'pk')[0:1].get()
             except Event.DoesNotExist:
                 next_event = None
 
             try:
-                prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
+                prev_event = base_qs.filter(datetime__lte=event.datetime, pk__lte=event.pk).order_by('-datetime', '-pk')[0:1].get()
             except Event.DoesNotExist:
                 prev_event = None
         else:
