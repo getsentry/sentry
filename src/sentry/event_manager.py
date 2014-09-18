@@ -23,7 +23,10 @@ from sentry.constants import (
     STATUS_RESOLVED, STATUS_UNRESOLVED, LOG_LEVELS,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
-from sentry.models import Event, EventMapping, Group, GroupHash, Project
+from sentry.models import (
+    Event, EventMapping, Group, GroupHash, Project, GroupTagValue,
+    EventFilterTagValue
+)
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
 from sentry.utils.logging import suppress_exceptions
@@ -316,6 +319,9 @@ class EventManager(object):
                 return event
             transaction.savepoint_commit(sid, using=using)
 
+            # if everything is ok, save the tag data
+            self._save_message_tags(event=event, tags=tags)
+
         sid = transaction.savepoint(using=using)
         try:
             EventMapping.objects.create(
@@ -460,6 +466,43 @@ class EventManager(object):
         ])
 
         return group, is_new, is_regression, is_sample
+
+    def _save_message_tags(self, event, tags):
+        # This saves message tag, value data to the database. New GroupValueTag
+        # should have been already saved. The counters might not be updated, but here
+        # only the id (pk) of the row is needed
+        from sentry.constants import MAX_TAG_VALUE_LENGTH
+
+        group_queryset = GroupTagValue.objects.filter(
+            project=event.project,
+            group_id=event.group,
+        )
+
+        using = event.group._state.db
+
+        sid = transaction.savepoint(using=using)
+
+        for tag_item in tags:
+            key, value = tag_item[:2]
+
+            value = six.text_type(value)
+            if len(value) > MAX_TAG_VALUE_LENGTH:
+                continue
+
+            # There can be only one.
+            grouptagval = group_queryset.get(key=key, value=value)
+
+            try:
+                eventtagvalue = EventFilterTagValue(
+                    event=event, group=event.group, messagefiltervalue=grouptagval
+                )
+                eventtagvalue.save()
+
+            except IntegrityError:
+                transaction.savepoint_rollback(sid, using=using)
+                return
+
+        transaction.savepoint_commit(sid, using)
 
     def _process_existing_aggregate(self, group, event, data):
         date = max(event.datetime, group.last_seen)
