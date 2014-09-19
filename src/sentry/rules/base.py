@@ -82,7 +82,7 @@ class RuleBase(object):
 
         def replace_field(match):
             field = match.group(1)
-            return form[field]
+            return unicode(form[field])
 
         return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
 
