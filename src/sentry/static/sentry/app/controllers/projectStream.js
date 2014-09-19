@@ -3,6 +3,8 @@
 (function(){
   'use strict';
 
+  var ALL = -1;
+
   function getEndpoint(selectedProject, params) {
     if (typeof(params.status) === "undefined") {
       params.status = 'unresolved';
@@ -18,6 +20,12 @@
       $scope.canActionAll = context.canActionAll;
       $scope.cancel = function(){
         $modalInstance.dismiss('cancel');
+      };
+      $scope.actionAll = function(){
+        $modalInstance.close(ALL);
+      };
+      $scope.actionSelected = function(){
+        $modalInstance.close(context.selectedGroupIds);
       };
     }
   ]);
@@ -111,9 +119,7 @@
         $('.stream-actions .chk-select-all').prop('checked', allSelected);
       });
 
-      $('.stream-actions .action-resolve').click(function(e){
-        e.preventDefault();
-
+      function confirmAction(options){
         var selectedGroupIds = $.map($('.group-list .chk-select:checked'), function(item){
           return $(item).val();
         });
@@ -129,17 +135,84 @@
               return {
                 selectAllActive: $scope.selectAllActive,
                 selectedGroupIds: selectedGroupIds,
-                actionLabel: 'Resolve',
-                canActionAll: true
+                actionLabel: options.actionLabel,
+                canActionAll: options.canActionAll && $scope.selectAllActive || false
               };
             }
           }
+        }).result.then(options.action);
+      }
+
+      function actionGroups(options) {
+        var data = options.data || {},
+            url = options.url || '/api/0/projects/' + selectedProject.id + '/groups/';
+        if (options.ids !== ALL) {
+          url += '?id=' + options.ids.join('&id=');
+        }
+        $http({
+          url: url,
+          method: options.method || 'PUT',
+          data: data
         });
-        // result.then(function(selectedItem) {
-        //   $scope.selected = selectedItem;
-        // }, function () {
-        //   console.log('Modal dismissed at: ' + new Date());
-        // });
+        $timeout(function(){
+          var groupList = [];
+          if (options.ids === ALL) {
+             groupList = $scope.groupList;
+          } else {
+            $.each(options.ids, function(id){
+              var item = groupList[groupList.indexOf({id: id})];
+              groupList.push(item);
+            });
+          }
+          $.each(groupList, function(item){
+            item.version = new Date().getTime() + 10;
+            $.extend(true, item, data);
+          });
+        });
+        $('.group-list .chk-select').prop('checked', false);
+      }
+
+      $('.stream-actions .action-resolve').click(function(e){
+        e.preventDefault();
+
+        confirmAction({
+          actionLabel: 'Resolve',
+          canActionAll: true,
+          action: function(selectedGroupIds){
+            actionGroups({
+              ids: selectedGroupIds,
+              data: {status: 'resolved'}
+            });
+          }
+        });
+      });
+
+      $('.stream-actions .action-delete').click(function(e){
+        e.preventDefault();
+
+        confirmAction({
+          actionLabel: 'Delete',
+          action: function(selectedGroupIds){
+            actionGroups({
+              ids: selectedGroupIds,
+              method: 'DELETE',
+            });
+          }
+        });
+      });
+
+      $('.stream-actions .action-bookmark').click(function(e){
+        e.preventDefault();
+
+        confirmAction({
+          actionLabel: 'Bookmark',
+          action: function(selectedGroupIds){
+            actionGroups({
+              ids: selectedGroupIds,
+              data: {isBookmarked: 1}
+            });
+          }
+        });
       });
 
       $('.stream-actions .datepicker-box').click(function(e){

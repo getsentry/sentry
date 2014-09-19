@@ -13,6 +13,8 @@
   <button type="button" class="btn btn-default"
           ng-click="close()">Cancel</button>
   <button type="button" class="btn btn-danger"
-          ng-if="canActionAll"><% actionLabel %> all recorded events</button>
-  <button type="button" class="btn btn-primary"><% actionLabel %> <% numEvents %> selected events</button>
+          ng-if="canActionAll"
+          ng-click="actionAll()"><% actionLabel %> all recorded events</button>
+  <button type="button" class="btn btn-primary"
+          ng-click="actionSelected()"><% actionLabel %> <% numEvents %> selected events</button>
 </div>
