@@ -43,7 +43,7 @@
       Collection.prototype.constructor = Collection;
 
       Collection.prototype.add = function add(item) {
-        if (this._updateExisting(item)) {
+        if (this.update(item)) {
           return;
         }
 
@@ -86,7 +86,7 @@
         return -1;
       };
 
-      Collection.prototype._updateExisting = function _updateExisting(item) {
+      Collection.prototype.update = function update(item) {
         // returns true if the item already existed and was updated (as configured)
 
         var existing = this.indexOf(item);
