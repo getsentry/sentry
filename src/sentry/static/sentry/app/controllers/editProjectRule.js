@@ -106,6 +106,7 @@
       $el.attr('name', prefix + '[' + name + ']');
       $el.val(options[name] || '');
     });
+    row.addClass('rule-condition-' + id.replace(/\./g, '-'));
     row.append($('<td></td>').append(html).append(id_field));
     row.append($('<td class="align-right"></td>').append(remove_btn));
     row.appendTo(this.condition_table_body);
@@ -144,6 +145,7 @@
       $el.attr('name', prefix + '[' + name + ']');
       $el.val(options[name] || '');
     });
+    row.addClass('rule-action-' + id.replace(/\./g, '-'));
     row.append($('<td></td>').append(html).append(id_field));
     row.append($('<td class="align-right"></td>').append(remove_btn));
     row.appendTo(this.action_table_body);
