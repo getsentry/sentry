@@ -191,50 +191,5 @@
         moment.lang(window.SentryConfig.lang);
         </script>
         {% endblock %}
-        <!-- Button trigger modal -->
-        <button class="btn btn-primary btn-lg" data-toggle="modal" data-target="#confirm">
-          Launch confirm modal
-        </button>
-
-        <button class="btn btn-primary btn-lg" data-toggle="modal" data-target="#normal">
-          Launch normal modal
-        </button>
-
-        <div class="modal fade" id="confirm">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                <h4 class="modal-title">What did you mean to do here?</h4>
-              </div>
-              <!-- <div class="modal-body">
-                <p>What did you mean to do here?</p>
-              </div> -->
-              <div class="modal-footer">
-                <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger">Resolve all 673 events</button>
-                <button type="button" class="btn btn-primary">Resolve 25 selected events</button>
-              </div>
-            </div><!-- /.modal-content -->
-          </div><!-- /.modal-dialog -->
-        </div><!-- /.modal -->
-
-        <div class="modal fade" id="normal">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
-                <h4 class="modal-title">Please confirm</h4>
-              </div>
-              <div class="modal-body">
-                <p><strong>Are you sure that you want to merge these 3 events</strong>? <br>This action cannot be undone.</p>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary">Merge 3 events</button>
-              </div>
-            </div><!-- /.modal-content -->
-          </div><!-- /.modal-dialog -->
-        </div><!-- /.modal -->
     </body>
 </html>

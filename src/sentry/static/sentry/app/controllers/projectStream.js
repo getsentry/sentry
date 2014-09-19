@@ -10,6 +10,15 @@
     return '/api/0/projects/' + selectedProject.id + '/groups/?' + $.param(params);
   }
 
+  SentryApp.controller('ProjectStreamActionModalCtrl', [
+    '$scope', '$modalInstance', 'context',
+    function($scope, $modalInstance, context) {
+      $scope.numEvents = context.selectedGroupIds.length;
+      $scope.actionLabel = context.actionLabel;
+      $scope.canActionAll = context.canActionAll;
+    }
+  ]);
+
   SentryApp.controller('ProjectStreamControlsCtrl', [
     '$scope', '$timeout',
     function($scope, $timeout){
@@ -43,8 +52,8 @@
   ]);
 
   SentryApp.controller('ProjectStreamCtrl', [
-    '$http', '$scope', '$timeout', 'Collection', 'GroupModel', 'selectedProject',
-    function($http, $scope, $timeout, Collection, GroupModel, selectedProject) {
+    '$http', '$modal', '$scope', '$timeout', 'Collection', 'GroupModel', 'selectedProject',
+    function($http, $modal, $scope, $timeout, Collection, GroupModel, selectedProject) {
       var timeoutId;
       var pollForChanges = function() {
         var params = app.utils.getQueryParams();
@@ -99,8 +108,39 @@
         $('.stream-actions .chk-select-all').prop('checked', allSelected);
       });
 
+      $('.stream-actions .action-resolve').click(function(e){
+        e.preventDefault();
+
+        var selectedGroupIds = $.map($('.group-list .chk-select:checked'), function(item){
+          return $(item).val();
+        });
+        if (selectedGroupIds.length === 0) {
+          return;
+        }
+
+        var modal = $modal.open({
+          templateUrl: '/templates/action-modal.html',
+          controller: 'ProjectStreamActionModalCtrl',
+          resolve: {
+            context: function(){
+              return {
+                selectAllActive: $scope.selectAllActive,
+                selectedGroupIds: selectedGroupIds,
+                actionLabel: 'Resolve',
+                canActionAll: true
+              };
+            }
+          }
+        });
+        // result.then(function(selectedItem) {
+        //   $scope.selected = selectedItem;
+        // }, function () {
+        //   console.log('Modal dismissed at: ' + new Date());
+        // });
+      });
+
       $('.stream-actions .datepicker-box').click(function(e){
-        e.stopPropagation();
+        e.preventDefault();
       });
 
       // we explicitly avoid $timeout here to prevent the watcher
