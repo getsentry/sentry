@@ -320,7 +320,11 @@ class EventManager(object):
             transaction.savepoint_commit(sid, using=using)
 
             # if everything is ok, save the tag data
-            self._save_message_tags(event=event, tags=tags)
+            safe_execute(
+                self._save_message_tags,
+                event=event,
+                tags=tags
+            )
 
         sid = transaction.savepoint(using=using)
         try:
