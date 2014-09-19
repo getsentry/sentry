@@ -39,7 +39,6 @@ from __future__ import absolute_import
 
 import re
 
-from crispy_forms.templatetags.crispy_forms_filters import as_crispy_field
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
@@ -83,7 +82,7 @@ class RuleBase(object):
 
         def replace_field(match):
             field = match.group(1)
-            return as_crispy_field(form[field])
+            return form[field]
 
         return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
 
