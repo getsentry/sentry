@@ -1,5 +1,6 @@
 <div class="modal-header">
-  <button type="button" class="close" data-dismiss="modal">
+  <button type="button" class="close"
+          ng-click="close()">
     <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
   </button>
   <h4 class="modal-title">Please confirm</h4>
@@ -9,7 +10,8 @@
   <p>This action cannot be undone.</p>
 </div>
 <div class="modal-footer">
-  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+  <button type="button" class="btn btn-default"
+          ng-click="close()">Cancel</button>
   <button type="button" class="btn btn-danger"
           ng-if="canActionAll"><% actionLabel %> all recorded events</button>
   <button type="button" class="btn btn-primary"><% actionLabel %> <% numEvents %> selected events</button>

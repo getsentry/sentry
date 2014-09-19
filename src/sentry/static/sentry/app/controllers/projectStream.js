@@ -16,6 +16,9 @@
       $scope.numEvents = context.selectedGroupIds.length;
       $scope.actionLabel = context.actionLabel;
       $scope.canActionAll = context.canActionAll;
+      $scope.cancel = function(){
+        $modalInstance.dismiss('cancel');
+      };
     }
   ]);
 
