@@ -19,8 +19,12 @@
                     <input type="checkbox" class="chk-select-all">
                 </div>
                 <div class="btn-group">
-                    <a class="btn btn-default btn-sm" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i></a>
-                    <a href="#" class="btn btn-default btn-sm"><span class="icon icon-bookmark"></span></a>
+                    <a  href="javascript:void(0)" class="btn btn-default btn-sm action-resolve">
+                        <i aria-hidden="true" class="icon-checkmark"></i>
+                    </a>
+                    <a href="#" class="btn btn-default btn-sm action-bookmark">
+                        <span class="icon icon-bookmark"></span>
+                    </a>
                 </div>
                 <div class="btn-group">
                     <a class="btn btn-default btn-sm hidden-xs" data-action="pause" data-pause-label="{% trans "Updates are paused. Click to enable." %}" data-play-label="{% trans "Updates are live. Click to pause." %}" href="javascript:void(0)">
@@ -121,7 +125,7 @@
             ng-class="{'seen': group.hasSeen}">
             <div class="event-details event-cell">
               <div class="checkbox">
-                  <input type="checkbox" class="chk-select">
+                  <input type="checkbox" class="chk-select" value="<% group.id %>">
               </div>
               <h3><a href="<% group.permalink %>"><% group.title %></a></h3>
               <div class="event-meta">
@@ -173,7 +177,6 @@
         <h3>No events to show.</h3>
       </div>
     </div>
-
     <script>
     window.groupList = {% serialize event_list %}
     </script>
