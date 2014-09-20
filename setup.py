@@ -112,22 +112,20 @@ mysql_requires = [
 ]
 
 
-def _build_static_assets():
-    log.info("running npm install")
-    check_output(['npm', 'install', '--quiet'])
-    log.info("running sentry compilestatic")
-    check_output(['sentry', 'compilestatic'])
-
-
 class CustomSdist(sdist):
     def make_distribution(self):
-        _build_static_assets()
+        log.info("running npm install")
+        check_output(['npm', 'install', '--quiet'])
+        log.info("running sentry compilestatic")
+        check_output(['sentry', 'compilestatic'])
         return sdist.make_distribution(self)
 
 
 class CustomDevelop(develop):
     def install_for_development(self):
-        _build_static_assets()
+        log.info("running npm install")
+        check_output(['npm', 'install', '--quiet'])
+        # TODO(dcramer): can we run compilestatic somehow here?
         return develop.install_for_development(self)
 
 
