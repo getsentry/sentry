@@ -23,7 +23,8 @@ any application.
 """
 
 from distutils import log
-from distutils.command.sdist import sdist
+from setuptools.command.sdist import sdist
+from setuptools.command.develop import develop
 from setuptools import setup, find_packages
 from subprocess import check_output
 
@@ -112,17 +113,23 @@ mysql_requires = [
 ]
 
 
+def _build_static_assets():
+    log.info("running npm install")
+    check_output(['npm', 'install', '--quiet'])
+    log.info("running sentry compilestatic")
+    check_output(['sentry', 'compilestatic'])
+
+
 class CustomSdist(sdist):
-    """
-    Identical to the built-in sdist command except that we need to generate
-    static media before building the tarball.
-    """
     def make_distribution(self):
-        log.info("running npm install")
-        check_output(['npm', 'install', '--quiet'])
-        log.info("running sentry compilestatic")
-        check_output(['sentry', 'compilestatic'])
+        _build_static_assets()
         return sdist.make_distribution(self)
+
+
+class CustomDevelop(develop):
+    def install_for_development(self):
+        _build_static_assets()
+        return develop.install_for_development(self)
 
 
 setup(
@@ -146,6 +153,7 @@ setup(
     },
     cmdclass={
         'sdist': CustomSdist,
+        'develop': CustomDevelop,
     },
     license='BSD',
     include_package_data=True,
