@@ -7,9 +7,11 @@
 {% block main %}
     <section class="body">
         {% if team_list %}
+            {% if can_create_teams %}
             <div class="pull-right">
                 <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a New Team" %}</a>
             </div>
+            {% endif %}
             <h2>{% trans "Your teams" %}</h2>
             <ul class="team-list">
                 {% for team, project_list in team_list %}
