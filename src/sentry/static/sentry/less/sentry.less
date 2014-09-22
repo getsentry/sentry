@@ -1127,6 +1127,19 @@ a.icon-share {
     z-index: 1;
     position: relative;
 
+    .icon-bookmark {
+      display: inline-block;
+      font-size: 95%;
+      position: relative;
+      top: 2px;
+      padding-right: 0;
+      color: #D4DBDF;
+      width: 0;
+      overflow: hidden;
+      margin-left: -4px;
+      .transition(all .2s ease-in-out);
+    }
+
     .event-details:after {
       position: absolute;
       content: "";
@@ -1137,12 +1150,34 @@ a.icon-share {
       width: 4px;
       background: #54adff;
       z-index: 100;
+      .transition(all .2s ease-in-out);
     }
     &.seen {
       .event-details:after {
         background: transparent;
       }
     }
+    &.bookmarked {
+      .event-details:after {
+        background: @yellow;
+      }
+      .icon-bookmark {
+        width: auto;
+        margin-left: 0;
+        padding-right: 3px;
+      }
+    }
+
+    &.resolved {
+      .event-details:after {
+        background: @green;
+      }
+      h3 {
+        text-decoration: line-through;
+        color: #949ea4;
+      }
+    }
+
     &.ng-enter {
       background: #fffff4;
       .event-cell {
