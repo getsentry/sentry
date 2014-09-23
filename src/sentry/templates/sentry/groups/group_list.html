@@ -107,6 +107,7 @@
       </div>
     </div>
 
+    {% comment %}
     {% recent_alerts from project as recent_alerts %}
     {% if recent_alerts %}
         <ul class="active-alerts">
@@ -119,6 +120,7 @@
             {% endfor %}
         </ul>
     {% endif %}
+    {% endcomment %}
 
     <ul class="group-list" ng-if="groupList.length">
         <li class="group" ng-repeat="group in groupList"
