@@ -136,6 +136,11 @@
                  </div>
             </header>
         {% endblock %}
+
+        {% block alerts %}
+            {% include "sentry/partial/alerts.html" %}
+        {% endblock %}
+
         {% block page_header_block %}
             <div class="toolbar">
                 <div class="container">
@@ -143,6 +148,7 @@
                 </div>
             </div>
         {% endblock %}
+
         <section id="content"
                  ng-controller="{% block controller %}DefaultCtrl{% endblock %}"
                  class="{% block bodyclass %}with-sidebar{% endblock %}">
@@ -150,10 +156,6 @@
                 {% block above_content %}{% endblock %}
                 <div class="content">
                     {% block content_before %}
-                    {% endblock %}
-
-                    {% block alerts %}
-                        {% include "sentry/partial/alerts.html" %}
                     {% endblock %}
 
                     {% block content %}

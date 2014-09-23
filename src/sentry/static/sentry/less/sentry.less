@@ -1916,17 +1916,62 @@ legend {
   margin-right: 10px;
 }
 
-#messages .alert {
-  // border-radius: 0;
+header + .messages-container {
+  margin-top: -30px;
+  margin-bottom: 30px;
 }
 
+.messages-container.affix {
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10000;
+  margin-top: 0;
+}
+
+.messages-container.affix + .toolbar {
+  margin-top: 43px;
+}
+
+.stream .messages-container.affix + .toolbar {
+  margin-top: 73px;
+}
+
+.messages-container.affix + .toolbar + #content .affix {
+  top: 43px;
+}
+
+
 .alert {
-  border-radius: 4px;
-  text-shadow: none;
+  border-radius: 0;
+  text-shadow: 0 1px 1px rgba(0,0,0, .15);
   background: #ffc01a;
   color: #fff;
   border: 0;
-  margin-bottom: 30px;
+  font-weight: 500;
+  padding: 12px 20px 10px;
+  box-shadow: 0 0 0 1px rgba(0,0,0, .35), 0 1px 3px rgba(0,0,0, .25), inset 0 1px 0 rgba(0,0,0, .05);
+  margin-bottom: 0px;
+
+  &:last-child {
+    margin-bottom: 20px;
+  }
+
+  p:last-child {
+    margin: 0;
+  }
+
+  .icon {
+    float: left;
+    margin-top: 1px;
+    margin-right: 8px;
+    display: none;
+    font-size: 16px;
+  }
+
+  .icon-sentry-logo {
+    display: block;
+  }
 
   .close {
     opacity: .5;
@@ -1943,27 +1988,32 @@ legend {
     }
   }
   a {
-    font-weight: 500;
+    font-weight: 600;
     color: inherit;
   }
 }
-.alert-block {
-  padding-bottom: 5px;
-  > p {
-    margin-bottom: 9px;
-  }
-  > ul {
-    margin-bottom: 9px;
-  }
-}
+
 .alert-error {
   background: #ff2e46;
+  .icon-x {
+    display: block;
+  }
 }
 .alert-info {
   background: #2e9fff;
 }
 .alert-success {
   background: #4bad00;
+  .icon-checkmark {
+    display: block;
+    margin-top: 0;
+  }
+}
+
+.alert-error, .alert-success {
+  .icon-sentry-logo {
+    display: none;
+  }
 }
 
 .active-alerts {

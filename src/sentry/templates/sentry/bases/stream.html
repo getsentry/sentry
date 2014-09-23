@@ -5,6 +5,8 @@
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
+{% block wrapperclass %}stream{% endblock %}
+
 {% block page_header %}
     {{ block.super }}
     <a href="{% url 'sentry' team.slug %}" class="back-button icon-arrow-left hidden-xs"></a>
