@@ -316,17 +316,18 @@
 
         addMember: function(member){
             var existing = this.collection.get(member.id);
+            var getter = member.get || function(x) { return member[x]; };
             if (!existing) {
                 if (this.collection.length >= this.options.maxItems) {
                     // bail early if the score is too low
-                    if (member.score < this.collection.last().get('score'))
+                    if (getter(member).score < this.collection.last().get('score'))
                         return;
 
                     // make sure we limit the number shown
                     while (this.collection.length >= this.options.maxItems)
                         this.collection.pop();
                 }
-            } else if (member.version && existing.get('version') >= member.version) {
+            } else if (getter(version) && existing.get('version') >= getter(version)) {
                 return;
             }
             this.collection.add(member, {merge: true});
