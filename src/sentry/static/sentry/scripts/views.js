@@ -327,7 +327,7 @@
                     while (this.collection.length >= this.options.maxItems)
                         this.collection.pop();
                 }
-            } else if (getter(version) && existing.get('version') >= getter(version)) {
+            } else if (getter('version') && existing.get('version') >= getter('version')) {
                 return;
             }
             this.collection.add(member, {merge: true});
