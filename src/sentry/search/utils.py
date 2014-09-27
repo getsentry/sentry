@@ -9,12 +9,25 @@ def parse_query(query, user):
     tokens = query.split(' ')
 
     results = {'tags': {}, 'query': []}
-    for token in tokens:
+
+    tokens_iter = iter(tokens)
+    for token in tokens_iter:
         if ':' not in token:
             results['query'].append(token)
             continue
 
         key, value = token.split(':', 1)
+        if value[0] == '"':
+            nvalue = value
+            while nvalue[-1] != '"':
+                try:
+                    nvalue = tokens_iter.next()
+                except StopIteration:
+                    break
+                value = '%s %s' % (value, nvalue)
+
+            if value.endswith('"'):
+                value = value[1:-1]
 
         if key == 'is':
             try:
