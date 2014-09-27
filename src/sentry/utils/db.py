@@ -20,6 +20,8 @@ def get_db_engine(alias='default'):
     else:
         assert alias == 'default', 'You cannot fetch a database engine other than the default on Django < 1.2'
         value = settings.DATABASE_ENGINE
+    if value == 'mysql.connector.django':
+        return 'mysql'
     return value.rsplit('.', 1)[-1]
 
 
