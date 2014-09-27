@@ -28,6 +28,8 @@ def parse_query(query, user):
 
             if value.endswith('"'):
                 value = value[1:-1]
+            else:
+                value = value[1:]
 
         if key == 'is':
             try:
