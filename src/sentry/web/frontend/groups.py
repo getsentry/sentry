@@ -47,7 +47,7 @@ def _get_group_list(request, project):
         'project': project,
     }
 
-    status = request.GET.get('status', '0')
+    status = request.GET.get('status')
     if status:
         query_kwargs['status'] = int(status)
 
@@ -103,7 +103,7 @@ def _get_group_list(request, project):
     query_kwargs['offset'] = (page - 1) * EVENTS_PER_PAGE
     query_kwargs['limit'] = EVENTS_PER_PAGE + 1
 
-    query = request.GET.get('query')
+    query = request.GET.get('query', 'is:unresolved')
     if query is not None:
         query_kwargs.update(parse_query(query, request.user))
 
@@ -231,7 +231,7 @@ def group_list(request, organization, project):
     except (TypeError, ValueError):
         page = 1
 
-    query = request.GET.get('query')
+    query = request.GET.get('query', 'is:unresolved')
     if query and uuid_re.match(query):
         # Forward to event if it exists
         try:
