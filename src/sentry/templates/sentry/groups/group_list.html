@@ -129,7 +129,10 @@
               <div class="checkbox">
                   <input type="checkbox" class="chk-select" value="<% group.id %>">
               </div>
-              <h3><a href="<% group.permalink %>"><span class="icon icon-bookmark"></span>  <% group.title %></a></h3>
+              <h3><a href="<% group.permalink %>">
+                <span class="icon icon-bookmark" ng-if="group.isBookmarked"></span>
+                <% group.title %></a>
+              </h3>
               <div class="event-meta">
                   <span class="message"><% group.culprit %></span>
                   &middot; <time time-since="group.firstSeen"></time>
