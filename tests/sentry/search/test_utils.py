@@ -37,3 +37,11 @@ class ParseQueryTest(TestCase):
     def test_assigned_me(self):
         result = parse_query('assigned:me', self.user)
         assert result == {'assigned_to': self.user, 'tags': {}, 'query': ''}
+
+    def test_assigned_email(self):
+        result = parse_query('assigned:%s' % (self.user.email,), self.user)
+        assert result == {'assigned_to': self.user, 'tags': {}, 'query': ''}
+
+    def test_assigned_unknown_user(self):
+        result = parse_query('assigned:fake@example.com', self.user)
+        assert result['assigned_to'].id == 0
