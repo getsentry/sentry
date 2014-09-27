@@ -169,6 +169,7 @@
             $.extend(true, item, data);
           });
         });
+        $('.stream-actions .chk-select-all').prop('checked', false);
         $('.group-list .chk-select').prop('checked', false);
       }
 
