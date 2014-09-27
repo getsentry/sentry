@@ -31,6 +31,7 @@ def dashboard(request, template='dashboard.html'):
 
     return render_to_response('sentry/select_team.html', {
         'team_list': team_list.values(),
+        'can_create_teams': can_create_teams(request.user),
     }, request)
 
 
