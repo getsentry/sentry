@@ -124,7 +124,7 @@
 
     <ul class="group-list" ng-if="groupList.length">
         <li class="group" ng-repeat="group in groupList"
-            ng-class="{'seen': group.hasSeen}">
+            ng-class="{'seen': group.hasSeen, 'resolved': group.status == 'resolved'}">
             <div class="event-details event-cell">
               <div class="checkbox">
                   <input type="checkbox" class="chk-select" value="<% group.id %>">
