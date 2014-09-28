@@ -507,6 +507,10 @@ SENTRY_STATIC_BUNDLES = {
             ],
         },
 
+        "sentry/dist/raven.min.js": {
+            "src": ["sentry/vendor/raven-js/dist/raven.min.js"],
+        },
+
     },
     "postcompilers": {
         "*.js": ["node_modules/.bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],
@@ -540,7 +544,13 @@ STATSD_CLIENT = 'django_statsd.clients.null'
 # Sentry and Raven configuration
 
 SENTRY_PUBLIC = False
+
+# Default project ID for recording internal exceptions
 SENTRY_PROJECT = 1
+
+# Project ID for recording frontend (javascript) exceptions
+SENTRY_FRONTEND_PROJECT = None
+
 SENTRY_CACHE_BACKEND = 'default'
 
 SENTRY_FILTERS = ()
@@ -675,8 +685,6 @@ SENTRY_SEARCH_OPTIONS = {}
 # Time-series storage backend
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
-
-SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.15/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)

@@ -23,26 +23,58 @@ SELECT setval('sentry_project_id_seq', (
 """
 
 
-def create_default_project(created_models, verbosity=2, **kwargs):
+def create_default_projects(created_models, verbosity=2, **kwargs):
     if Project not in created_models:
         return
 
-    if Project.objects.filter(id=settings.SENTRY_PROJECT).exists():
+    create_default_project(
+        id=settings.SENTRY_PROJECT,
+        name='Backend',
+        slug='backend',
+        verbosity=verbosity,
+        platform='django',
+    )
+    if settings.SENTRY_FRONTEND_PROJECT:
+        project = create_default_project(
+            id=settings.SENTRY_FRONTEND_PROJECT,
+            name='Frontend',
+            slug='frontend',
+            verbosity=verbosity,
+            platform='javascript'
+        )
+
+
+def create_default_project(id, name, slug, verbosity=2, **kwargs):
+    if Project.objects.filter(id=id).exists():
         return
 
     try:
         user = User.objects.filter(is_superuser=True)[0]
     except IndexError:
-        user = None
+        user, _ = User.objects.get_or_create(
+            username='sentry',
+            defaults={
+                'email': 'sentry@localhost',
+            }
+        )
+
+    team, _ = Team.objects.get_or_create(
+        name='sentry',
+        defaults={
+            'owner': user,
+        }
+    )
 
     project = Project.objects.create(
-        id=settings.SENTRY_PROJECT,
+        id=id,
         public=False,
-        name='Sentry (Internal)',
-        slug='sentry',
+        name=name,
+        slug=slug,
         owner=user,
-        platform='django',
+        team=team,
+        **kwargs
     )
+
     # HACK: manually update the ID after insert due to Postgres
     # sequence issues. Seriously, fuck everything about this.
     connection = connections[project._state.db]
@@ -50,8 +82,12 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)
 
+    project.update_option('sentry:origins', ['*'])
+
     if verbosity > 0:
         print('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
+
+    return project
 
 
 def set_sentry_version(latest=None, **kwargs):
@@ -71,6 +107,11 @@ def create_team_and_keys_for_project(instance, created, **kwargs):
     if not created or kwargs.get('raw'):
         return
 
+    if not ProjectKey.objects.filter(project=instance, user__isnull=True).exists():
+        ProjectKey.objects.create(
+            project=instance,
+        )
+
     if not instance.owner:
         return
 
@@ -79,11 +120,6 @@ def create_team_and_keys_for_project(instance, created, **kwargs):
         slugify_instance(team, instance.slug)
         team.save()
         update(instance, team=team)
-
-    if not ProjectKey.objects.filter(project=instance, user__isnull=True).exists():
-        ProjectKey.objects.create(
-            project=instance,
-        )
 
 
 def create_team_member_for_owner(instance, created, **kwargs):
@@ -171,7 +207,7 @@ def on_alert_creation(instance, **kwargs):
 
 # Signal registration
 post_syncdb.connect(
-    create_default_project,
+    create_default_projects,
     dispatch_uid="create_default_project",
     weak=False,
 )

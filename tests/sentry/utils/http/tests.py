@@ -7,7 +7,7 @@ import mock
 from django.conf import settings
 from exam import fixture
 
-from sentry.models import Project, ProjectOption
+from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import (
     is_same_domain, is_valid_origin, get_origins, absolute_uri)
@@ -45,16 +45,15 @@ class GetOriginsTestCase(TestCase):
 
     def test_project(self):
         project = Project.objects.get()
-        ProjectOption.objects.create(project=project, key='sentry:origins', value=['http://foo.example'])
+        project.update_option('sentry:origins', ['http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(project)
             self.assertEquals(result, frozenset(['http://foo.example']))
 
     def test_project_and_setting(self):
-        from sentry.models import Project, ProjectOption
         project = Project.objects.get()
-        ProjectOption.objects.create(project=project, key='sentry:origins', value=['http://foo.example'])
+        project.update_option('sentry:origins', ['http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
             result = get_origins(project)

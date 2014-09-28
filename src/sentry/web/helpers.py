@@ -91,6 +91,7 @@ def get_default_context(request, existing_context=None, team=None):
         'URL_PREFIX': settings.SENTRY_URL_PREFIX,
         'PLUGINS': plugins,
         'STATUS_HIDDEN': STATUS_HIDDEN,
+        'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
     }
 
     if existing_context:
@@ -234,7 +235,3 @@ def plugin_config(plugin, project, request):
         'plugin_test_results': test_results,
         'plugin_is_configured': is_configured,
     }, context_instance=RequestContext(request))))
-
-
-def get_raven_js_url():
-    return settings.SENTRY_RAVEN_JS_URL
