@@ -159,7 +159,7 @@ def can_remove_team(user, team):
 
 @requires_login
 def can_remove_project(user, project):
-    if project.is_default_project():
+    if project.is_internal_project():
         return False
 
     if user.is_superuser:
