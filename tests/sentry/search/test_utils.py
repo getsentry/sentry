@@ -18,6 +18,10 @@ class ParseQueryTest(TestCase):
         result = parse_query('key:value', self.user)
         assert result == {'tags': {'key': 'value'}, 'query': ''}
 
+    def test_tag_with_colon_in_value(self):
+        result = parse_query('url:http://example.com', self.user)
+        assert result == {'tags': {'url': 'http://example.com'}, 'query': ''}
+
     def test_multiple_tags(self):
         result = parse_query('foo:bar key:value', self.user)
         assert result == {'tags': {'key': 'value', 'foo': 'bar'}, 'query': ''}
