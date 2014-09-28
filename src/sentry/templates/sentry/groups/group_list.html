@@ -94,6 +94,8 @@
                      </div>
                 </div>
               </div>
+              <div class="hidden-sm hidden-xs stream-actions-assignee stream-actions-cell">
+              </div>
                 <div class="hidden-sm hidden-xs stream-actions-graph stream-actions-cell">
                   <ul class="toggle-graph">
                     <li ng-class="chartDuration == '24h' ? 'active' : ''"><a ng-click="setChartDuration('24h')">24h</a></li>
@@ -138,7 +140,7 @@
                   &middot; <time time-since="group.firstSeen"></time>
               </div>
             </div>
-            <div class="event-assignee event-cell hidden-xs">
+            <div class="event-assignee event-cell hidden-xs hidden-sm">
                 <assignee-selector></assignee-selector>
             </div>
             <div class="hidden-sm hidden-xs event-graph align-right event-cell">
