@@ -1339,13 +1339,19 @@ a.icon-share {
   }
 
   &.similar-events {
-    border-top: 1px solid #f1f2f3;
+    border: 1px solid #E9EBEC;
 
     .event-cell {
       display: block;
+      border: 0;
+      border-bottom: 1px solid #E9EBEC;
     }
     .event-details {
-      padding-left: 10px;
+      padding-left: 15px;
+    }
+
+    .event:last-child .event-cell {
+      border: 0;
     }
   }
 }
@@ -1953,16 +1959,23 @@ header + .messages-container {
 }
 
 
+.messages-container {
+  .alert {
+    margin-bottom: 0px;
+    border-radius: 0;
+    box-shadow: 0 0 0 1px rgba(0,0,0, .35), 0 1px 3px rgba(0,0,0, .25), inset 0 1px 0 rgba(0,0,0, .05);
+    text-shadow: 0 1px 1px rgba(0,0,0, .15);
+  }
+}
+
 .alert {
-  border-radius: 0;
-  text-shadow: 0 1px 1px rgba(0,0,0, .15);
+
   background: #ffc01a;
   color: #fff;
   border: 0;
   font-weight: 500;
   padding: 12px 20px 10px;
-  box-shadow: 0 0 0 1px rgba(0,0,0, .35), 0 1px 3px rgba(0,0,0, .25), inset 0 1px 0 rgba(0,0,0, .05);
-  margin-bottom: 0px;
+
 
   &:last-child {
     margin-bottom: 20px;
