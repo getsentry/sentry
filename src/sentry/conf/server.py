@@ -553,8 +553,6 @@ SENTRY_FRONTEND_PROJECT = None
 
 SENTRY_CACHE_BACKEND = 'default'
 
-SENTRY_FILTERS = ()
-
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
 )
