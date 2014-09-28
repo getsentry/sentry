@@ -25,7 +25,15 @@
                     <a href="javascript:void(0)" class="btn btn-default btn-sm action-bookmark">
                         <span class="icon icon-bookmark"></span>
                     </a>
+                    <a class="btn btn-default btn-sm hidden-xs action-more dropdown-toggle" data-toggle="dropdown"><span class="icon-ellipsis"></span></a>
+
+                    <ul class="dropdown-menu more-menu" style="left: 0">
+                      <li><a href="#">Merge events</a></li>
+                      <li class="divider"></li>
+                      <li><a href="#">Delete all events</a></li>
+                    </ul>
                 </div>
+
                 <div class="btn-group">
                     <a class="btn btn-default btn-sm hidden-xs" data-action="pause" data-pause-label="{% trans "Updates are paused. Click to enable." %}" data-play-label="{% trans "Updates are live. Click to pause." %}" href="javascript:void(0)">
                         <span class="icon icon-pause"></span>
