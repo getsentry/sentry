@@ -81,7 +81,7 @@
               $scope.groupList.extend(data);
             });
           }).finally(function(){
-            timeoutId = window.setTimeout(pollForChanges, 1000);
+            timeoutId = window.setTimeout(pollForChanges, 3000);
           });
       };
       var groupList = $.map(window.groupList, GroupModel);
