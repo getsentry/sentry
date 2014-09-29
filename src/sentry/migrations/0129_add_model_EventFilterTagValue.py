@@ -9,18 +9,18 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Adding model 'EventFilterTagValue'
-        db.create_table('sentry_messagefiltertagvalue', (
+        db.create_table('sentry_eventfiltertagvalue', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('event', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Event'])),
             ('group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Group'])),
-            ('messagefiltervalue', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.GroupTagValue'])),
+            ('grouptagvalue', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.GroupTagValue'])),
         ))
         db.send_create_signal('sentry', ['EventFilterTagValue'])
 
 
     def backwards(self, orm):
         # Deleting model 'EventFilterTagValue'
-        db.delete_table('sentry_messagefiltertagvalue')
+        db.delete_table('sentry_eventfiltertagvalue')
 
 
     models = {
@@ -90,11 +90,11 @@ class Migration(SchemaMigration):
             'time_spent': ('django.db.models.fields.IntegerField', [], {'null': 'True'})
         },
         'sentry.eventfiltertagvalue': {
-            'Meta': {'unique_together': "(('event', 'group', 'messagefiltervalue'),)", 'object_name': 'EventFilterTagValue', 'db_table': "'sentry_messagefiltertagvalue'"},
+            'Meta': {'unique_together': "(('event', 'group', 'grouptagvalue'),)", 'object_name': 'EventFilterTagValue'},
             'event': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Event']"}),
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'messagefiltervalue': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.GroupTagValue']"})
+            'grouptagvalue': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.GroupTagValue']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
         },
         'sentry.eventmapping': {
             'Meta': {'unique_together': "(('project', 'event_id'),)", 'object_name': 'EventMapping'},

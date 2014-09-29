@@ -17,20 +17,20 @@ class EventFilterTagValue(Model):
     table.
     """
 
-    # event_id in this case is the id from sentry_messagevaluetable.
-    # Not to confuse with message_id that is the same as event_id
+    # event in this case is the id from sentry_message table,
+    # not to confuse with message_id that is the same as event_id
     # from sentry_eventmapping table!
     event = models.ForeignKey('sentry.Event')
     group = models.ForeignKey('sentry.Group', db_index=True)
-    messagefiltervalue = models.ForeignKey('sentry.GroupTagValue')
+    grouptagvalue = models.ForeignKey('sentry.GroupTagValue')
 
     objects = BaseManager()
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry_messagefiltertagvalue'
-        unique_together = (('event', 'group', 'messagefiltervalue'),)
+        db_table = 'sentry_eventfiltertagvalue'
+        unique_together = (('event', 'group', 'grouptagvalue'),)
 
-    __repr__ = sane_repr('group_id', 'event_id', 'messagefiltervalue_id')
+    __repr__ = sane_repr('group_id', 'event_id', 'grouptagvalue_id')
 
 EventFilter = EventFilterTagValue

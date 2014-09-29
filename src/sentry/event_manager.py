@@ -498,7 +498,7 @@ class EventManager(object):
 
             try:
                 eventtagvalue = EventFilterTagValue(
-                    event=event, group=event.group, messagefiltervalue=grouptagval
+                    event=event, group=event.group, grouptagvalue=grouptagval
                 )
                 eventtagvalue.save()
 
