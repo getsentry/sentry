@@ -1,14 +1,18 @@
 {% load sentry_helpers %}
-
+{% if messages %}
 <div id="messages">
-    {% if messages %}
-        {% for message in messages %}
-        	{% with message.tags|split:" " as message_tags %}
-	            <div class="alert alert-block{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
-	                <a class="close" data-dismiss="alert">×</a>
-	                {{ message|linebreaks }}
-	            </div>
-	        {% endwith %}
-        {% endfor %}
-    {% endif %}
+    {% for message in messages %}
+    	{% with message.tags|split:" " as message_tags %}
+          <div class="alert alert-block{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
+            <div class="container">
+              <a class="close" data-dismiss="alert">×</a>
+              <span class="icon icon-checkmark"></span>
+              <span class="icon icon-x"></span>
+              <span class="icon icon-sentry-logo"></span>
+              {{ message|linebreaks }}
+            </div>
+          </div>
+      {% endwith %}
+    {% endfor %}
 </div>
+{% endif %}

@@ -22,7 +22,11 @@ any application.
 :license: BSD, see LICENSE for more details.
 """
 
+from distutils import log
+from setuptools.command.sdist import sdist
+from setuptools.command.develop import develop
 from setuptools import setup, find_packages
+from subprocess import check_output
 
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
@@ -108,6 +112,23 @@ mysql_requires = [
 ]
 
 
+class CustomSdist(sdist):
+    def make_distribution(self):
+        log.info("running npm install")
+        check_output(['npm', 'install', '--quiet'])
+        log.info("running sentry compilestatic")
+        check_output(['sentry', 'compilestatic'])
+        return sdist.make_distribution(self)
+
+
+class CustomDevelop(develop):
+    def install_for_development(self):
+        log.info("running npm install")
+        check_output(['npm', 'install', '--quiet'])
+        # TODO(dcramer): can we run compilestatic somehow here?
+        return develop.install_for_development(self)
+
+
 setup(
     name='sentry',
     version='7.0.0-DEV',
@@ -126,6 +147,10 @@ setup(
         'postgres': install_requires + postgres_requires,
         'postgres_pypy': install_requires + postgres_pypy_requires,
         'mysql': install_requires + mysql_requires,
+    },
+    cmdclass={
+        'sdist': CustomSdist,
+        'develop': CustomDevelop,
     },
     license='BSD',
     include_package_data=True,

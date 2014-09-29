@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load sentry_api %}
+{% load sentry_dsn %}
 {% load sentry_helpers %}
 {% load static_compiler %}
 
@@ -54,7 +55,62 @@
             {% staticbundle 'sentry/dist/app.min.js' %}
             {% staticbundle 'sentry/dist/legacy-app.min.js' %}
 
-            <script src="{% url 'sentry-media' 'sentry' 'vendor/raven/raven.js' %}"></script>
+            {% staticbundle 'sentry/dist/raven.min.js' %}
+
+            <script>
+            Raven.config('{% public_dsn %}', {
+                tags: {
+                    sentry_version: '{{ sentry_version.current }}'
+                },
+                whitelistUrls: {% convert_to_json ALLOWED_HOSTS %},
+                ignoreErrors: [
+                  // Random plugins/extensions
+                  'top.GLOBALS',
+                  // See: http://blog.errorception.com/2012/03/tale-of-unfindable-js-error. html
+                  'originalCreateNotification',
+                  'canvas.contentDocument',
+                  'MyApp_RemoveAllHighlights',
+                  'http://tt.epicplay.com',
+                  'Can\'t find variable: ZiteReader',
+                  'jigsaw is not defined',
+                  'ComboSearch is not defined',
+                  'http://loading.retry.widdit.com/',
+                  'atomicFindClose',
+                  // Facebook borked
+                  'fb_xd_fragment',
+                  // ISP "optimizing" proxy - `Cache-Control: no-transform` seems to reduce this. (thanks @acdha)
+                  // See http://stackoverflow.com/questions/4113268/how-to-stop-javascript-injection-from-vodafone-proxy
+                  'bmi_SafeAddOnload',
+                  'EBCallBackMessageReceived',
+                  // See http://toolbar.conduit.com/Developer/HtmlAndGadget/Methods/JSInjection.aspx
+                  'conduitPage'
+                ],
+                ignoreUrls: [
+                  // Facebook flakiness
+                  /graph\.facebook\.com/i,
+                  // Facebook blocked
+                  /connect\.facebook\.net\/en_US\/all\.js/i,
+                  // Woopra flakiness
+                  /eatdifferent\.com\.woopra-ns\.com/i,
+                  /static\.woopra\.com\/js\/woopra\.js/i,
+                  // Chrome extensions
+                  /extensions\//i,
+                  /^chrome:\/\//i,
+                  // Other plugins
+                  /127\.0\.0\.1:4001\/isrunning/i,  // Cacaoweb
+                  /webappstoolbarba\.texthelp\.com\//i,
+                  /metrics\.itunes\.apple\.com\.edgesuite\.net\//i
+                ]
+            }).install();
+
+            {% if request.user.is_authenticated %}
+            Raven.setUser({
+                email: '{{ request.user.email }}',
+                id: '{{ request.user.id }}',
+                ip_address: '{{ request.META.REMOTE_ADDR }}'
+            });
+            {% endif %}
+            </script>
         {% endblock %}
 
         {% block meta %}
@@ -136,6 +192,11 @@
                  </div>
             </header>
         {% endblock %}
+
+        {% block alerts %}
+            {% include "sentry/partial/alerts.html" %}
+        {% endblock %}
+
         {% block page_header_block %}
             <div class="toolbar">
                 <div class="container">
@@ -143,6 +204,7 @@
                 </div>
             </div>
         {% endblock %}
+
         <section id="content"
                  ng-controller="{% block controller %}DefaultCtrl{% endblock %}"
                  class="{% block bodyclass %}with-sidebar{% endblock %}">
@@ -150,10 +212,6 @@
                 {% block above_content %}{% endblock %}
                 <div class="content">
                     {% block content_before %}
-                    {% endblock %}
-
-                    {% block alerts %}
-                        {% include "sentry/partial/alerts.html" %}
                     {% endblock %}
 
                     {% block content %}

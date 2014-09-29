@@ -81,7 +81,7 @@
               $scope.groupList.extend(data);
             });
           }).finally(function(){
-            timeoutId = window.setTimeout(pollForChanges, 1000);
+            timeoutId = window.setTimeout(pollForChanges, 3000);
           });
       };
       var groupList = $.map(window.groupList, GroupModel);
@@ -169,6 +169,7 @@
             $.extend(true, item, data);
           });
         });
+        $('.stream-actions .chk-select-all').prop('checked', false);
         $('.group-list .chk-select').prop('checked', false);
       }
 

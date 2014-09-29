@@ -33,6 +33,12 @@ class ProjectGroupIndexEndpoint(Endpoint):
     # status=<x>
     # <tag>=<value>
     def get(self, request, project_id):
+        """
+        Return a list of aggregates bound to this project.
+
+        A default query of 'is:resolved' is applied. To return results with
+        other statuses send an new query value (i.e. ?query= for all results).
+        """
         project = Project.objects.get_from_cache(
             id=project_id,
         )
@@ -98,7 +104,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if cursor:
             query_kwargs['cursor'] = cursor
 
-        query = request.GET.get('query')
+        query = request.GET.get('query', 'is:unresolved')
         if query is not None:
             query_kwargs.update(parse_query(query, request.user))
 
