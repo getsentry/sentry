@@ -77,6 +77,11 @@ ValueError: hello world
         all_values = sum([v.get_hash() for v in inst.values], [])
         assert inst.get_hash() == all_values
 
+    def test_to_html_render_call(self):
+        # stupid test to ensure that we dont straight up error
+        result = self.interface.to_html(self.event)
+        assert result
+
 
 class SingleExceptionTest(TestCase):
     @fixture
