@@ -103,11 +103,6 @@ class SingleException(Interface):
             e_type = e_value
             e_value = None
 
-        if self.exc_omitted:
-            first_exc_omitted, last_exc_omitted = self.exc_omitted
-        else:
-            first_exc_omitted, last_exc_omitted = None, None
-
         return {
             'is_public': is_public,
             'event': event,
@@ -116,8 +111,6 @@ class SingleException(Interface):
             'exception_module': e_module,
             'fullname': fullname,
             'last_frame': last_frame,
-            'first_exc_omitted': first_exc_omitted,
-            'last_exc_omitted': last_exc_omitted,
         }
 
 
@@ -253,11 +246,18 @@ class Exception(Interface):
         if newest_first:
             exceptions.reverse()
 
+        if self.exc_omitted:
+            first_exc_omitted, last_exc_omitted = self.exc_omitted
+        else:
+            first_exc_omitted, last_exc_omitted = None, None
+
         return {
             'newest_first': newest_first,
             'system_frames': sum(e['stacktrace'].get('system_frames', 0) for e in exceptions),
             'exceptions': exceptions,
-            'stacktrace': self.get_stacktrace(event, newest_first=newest_first)
+            'stacktrace': self.get_stacktrace(event, newest_first=newest_first),
+            'first_exc_omitted': first_exc_omitted,
+            'last_exc_omitted': last_exc_omitted,
         }
 
     def to_html(self, event, **kwargs):
