@@ -29,7 +29,7 @@ from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.constants import MODULE_ROOT
-from sentry.models import ProjectOption
+from sentry.models import GroupMeta, ProjectOption
 from sentry.rules import EventState
 from sentry.utils import json
 
@@ -105,6 +105,7 @@ class BaseTestCase(Fixtures, Exam):
     def _pre_setup(self):
         cache.clear()
         ProjectOption.objects.clear_local_cache()
+        GroupMeta.objects.clear_local_cache()
         super(BaseTestCase, self)._pre_setup()
 
     def _post_teardown(self):
