@@ -324,6 +324,10 @@
                 var $widget = $(this);
                 $.ajax({
                     url: $widget.data('url'),
+                    error: function() {
+                        $widget.find('.loading').remove();
+                        $widget.append($('<li class="error">Unable to load tag information</li>'));
+                    },
                     success: function(data) {
                         var total = data.total,
                             eTagName = encodeURIComponent(data.name);
