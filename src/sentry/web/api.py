@@ -7,13 +7,14 @@ sentry.web.views
 """
 from __future__ import absolute_import, print_function
 
-import datetime
 import logging
-from functools import wraps
+import six
 
+from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
+from django.db import connections
 from django.db.models import Sum, Q
 from django.http import (
     HttpResponse, HttpResponseBadRequest,
@@ -24,9 +25,7 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
-
-import six
-
+from functools import wraps
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
@@ -42,12 +41,13 @@ from sentry.coreapi import (
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupBookmark, Project, TagValue, Activity, User)
+    Group, GroupBookmark, GroupTagValue, Project, TagValue, Activity, User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json
 from sentry.utils.data_scrubber import SensitiveDataFilter
+from sentry.utils.db import get_db_engine
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -561,6 +561,51 @@ def remove_group(request, team, project, group_id):
 
 
 @csrf_exempt
+@has_access(MEMBER_USER)
+@never_cache
+@api
+def get_group_tags(request, team, project, group_id, tag_name):
+    # XXX(dcramer): Consider this API deprecated as soon as it was implemented
+    cutoff = timezone.now() - timedelta(days=7)
+
+    engine = get_db_engine('default')
+    if 'postgres' in engine:
+        # This doesnt guarantee percentage is accurate, but it does ensure
+        # that the query has a maximum cost
+        cursor = connections['default'].cursor()
+        cursor.execute("""
+            SELECT SUM(t)
+            FROM (
+                SELECT times_seen as t
+                FROM sentry_messagefiltervalue
+                WHERE group_id = %s
+                AND key = %s
+                AND last_seen > NOW() - INTERVAL '7 days'
+                LIMIT 10000
+            ) as a
+        """, [group_id, tag_name])
+        total = cursor.fetchone() or 0
+    else:
+        total = GroupTagValue.objects.filter(
+            group=group_id,
+            key=tag_name,
+            last_seen__gte=cutoff,
+        ).aggregate(t=Sum('times_seen'))['t'] or 0
+
+    unique_tags = GroupTagValue.objects.filter(
+        group=group_id,
+        key=tag_name,
+        last_seen__gte=cutoff,
+    ).values_list('value', 'times_seen').order_by('-times_seen')[:10]
+
+    return json.dumps({
+        'name': tag_name,
+        'values': list(unique_tags),
+        'total': total,
+    })
+
+
+@csrf_exempt
 @has_access
 @never_cache
 @api
@@ -633,7 +678,7 @@ def get_group_trends(request, team=None, project=None):
         status=0,
     )
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(base_qs.filter(
@@ -666,7 +711,7 @@ def get_new_groups(request, team=None, project=None):
 
     project_dict = dict((p.id, p) for p in project_list)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(Group.objects.filter(
@@ -700,7 +745,7 @@ def get_resolved_groups(request, team=None, project=None):
 
     project_dict = dict((p.id, p) for p in project_list)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(Group.objects.filter(
@@ -731,7 +776,7 @@ def get_stats(request, team=None, project=None):
     else:
         project_list = Project.objects.get_for_user(request.user, team=team)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
 
     end = timezone.now()
     start = end - cutoff

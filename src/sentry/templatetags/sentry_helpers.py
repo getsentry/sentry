@@ -22,7 +22,6 @@ from urllib import quote
 
 from django import template
 from django.conf import settings
-from django.db.models import Sum
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
@@ -359,17 +358,16 @@ def with_metadata(group_list, request):
 def render_tag_widget(group, tag):
     cutoff = timezone.now() - timedelta(days=7)
 
-    total = GroupTagValue.objects.filter(
+    has_tags = GroupTagValue.objects.filter(
         group=group,
         key=tag,
         last_seen__gte=cutoff,
-    ).aggregate(t=Sum('times_seen'))['t'] or 0
+    ).exists()
 
     return {
         'title': tag.replace('_', ' ').title(),
         'tag_name': tag,
-        'unique_tags': list(group.get_unique_tags(tag, cutoff)[:10]),
-        'total_count': total,
+        'has_tags': has_tags,
         'group': group,
     }
 
