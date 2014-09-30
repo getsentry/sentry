@@ -197,7 +197,7 @@ class Http(Interface):
         return render_to_string('sentry/partial/interfaces/http.html', context)
 
     def to_curl(self):
-        method = self.method.upper()
+        method = self.method.upper() if self.method else 'GET'
         if self.cookies:
             try:
                 cookies = SmartCookie(self.cookies)
