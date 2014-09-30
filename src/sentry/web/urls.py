@@ -299,7 +299,7 @@ urlpatterns += patterns('',
         name='sentry-api-set-group-mute'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/unresolved/$', api.unresolve_group,
         name='sentry-api-set-group-unresolve'),
-    url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/tags/(?P<tag_name>[\w_-]+)/$', api.get_group_tags,
+    url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/tags/(?P<tag_name>[^/]+)/$', api.get_group_tags,
         name='sentry-api-group-tags'),
 
     url(r'^api/(?P<team_slug>[\w_-]+)/(?:(?P<project_id>[\w_-]+)/)?stats/$', api.get_stats,
