@@ -32,10 +32,6 @@ class IssuePlugin(Plugin):
     needs_auth_template = 'sentry/plugins/bases/issue/needs_auth.html'
     auth_provider = None
 
-    def __init__(self, *args, **kwargs):
-        super(IssuePlugin, self).__init__(*args, **kwargs)
-        self._cache = {}
-
     def _get_group_body(self, request, group, event, **kwargs):
         interface = event.interfaces.get('sentry.interfaces.Stacktrace')
         if interface:
@@ -209,16 +205,12 @@ class IssuePlugin(Plugin):
             action_list.append((self.get_new_issue_title(), self.get_url(group)))
         return action_list
 
-    def before_events(self, request, event_list, **kwargs):
-        if event_list and self.is_configured(request=request, project=event_list[0].project):
-            prefix = self.get_conf_key()
-            self._cache = GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
-
     def tags(self, request, group, tag_list, **kwargs):
         if not self.is_configured(request=request, project=group.project):
             return tag_list
 
-        issue_id = self._cache.get(group)
+        prefix = self.get_conf_key()
+        issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix)
         if not issue_id:
             return tag_list
 
