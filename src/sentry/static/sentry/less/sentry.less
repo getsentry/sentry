@@ -181,17 +181,22 @@ header {
     width: 22px;
     border-radius: 3px;
     position: relative;
-    top: -3px;
+    top: -4px;
   }
 
   [class^="icon-"], [class*=" icon-"] {
     position: relative;
-    top: 1px;
+    top: 0px;
   }
 
   .user-nav {
-    margin-top: 4px;
+    margin-top: 5px;
     margin-bottom: 0;
+
+    .dropdown {
+      float: right;
+    }
+
     .clearfix();
     .dropdown-menu {
       left: auto;
@@ -212,11 +217,13 @@ header {
 
     .icon-settings,
     .icon-book {
+      line-height: 0;
       padding-right: 5px;
     }
 
     .icon-book {
       top: 2px;
+      line-height: 0;
     }
   }
 
