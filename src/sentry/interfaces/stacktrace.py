@@ -418,11 +418,6 @@ class Stacktrace(Interface):
     def has_app_frames(self):
         return any(f.in_app is not None for f in self.frames)
 
-    def unserialize(self, data):
-        data['frames'] = [Frame(**f) for f in data.pop('frames', [])]
-        data['frames_omitted'] = data.pop('frames_omitted', None)
-        return data
-
     def compute_hashes(self):
         system_hash = self.get_hash(system_frames=True)
         if not system_hash:
