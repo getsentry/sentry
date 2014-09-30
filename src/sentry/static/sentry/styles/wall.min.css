@@ -7921,6 +7921,7 @@ ul.traceback {
   color: #666;
   font-size: 0.9em;
   margin-left: 15px;
+  white-space: pre-wrap;
 }
 .traceback > .traceback {
   margin-top: 10px;
@@ -7940,7 +7941,8 @@ ul.traceback {
   left: 0;
   top: 12px;
 }
-.frames-omitted {
+.frames-omitted,
+.exc-omitted {
   color: #999;
   border: 1px dotted #ddd;
   border-width: 1px 0;
