@@ -4,7 +4,9 @@ from __future__ import absolute_import
 
 from exam import fixture
 
-from sentry.interfaces.exception import SingleException, Exception
+from sentry.interfaces.exception import (
+    SingleException, Exception, trim_exceptions
+)
 from sentry.testutils import TestCase
 
 
@@ -122,3 +124,26 @@ class SingleExceptionTest(TestCase):
         SingleException.to_python(dict(
             value='ValueError',
         ))
+
+
+class TrimExceptionsTest(TestCase):
+    def test_under_max(self):
+        value = {'values': [{'value': 'foo'}]}
+        trim_exceptions(value)
+        assert len(value['values']) == 1
+        assert value.get('exc_omitted') is None
+
+    def test_over_max(self):
+        values = []
+        for n in xrange(5):
+            values.append({'value': 'frame %d' % n})
+        value = {'values': values}
+        trim_exceptions(value, max_values=4)
+
+        assert len(value['values']) == 4
+
+        for value, num in zip(values[:2], xrange(2)):
+            assert value['value'] == 'frame %d' % num
+
+        for value, num in zip(values[2:], xrange(3, 5)):
+            assert value['value'] == 'frame %d' % num

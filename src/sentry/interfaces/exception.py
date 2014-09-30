@@ -8,6 +8,8 @@ sentry.interfaces.exception
 
 __all__ = ('Exception',)
 
+from django.conf import settings
+
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace, is_newest_frame_first
 from sentry.utils.safe import trim
@@ -101,6 +103,11 @@ class SingleException(Interface):
             e_type = e_value
             e_value = None
 
+        if self.exc_omitted:
+            first_exc_omitted, last_exc_omitted = self.exc_omitted
+        else:
+            first_exc_omitted, last_exc_omitted = None, None
+
         return {
             'is_public': is_public,
             'event': event,
@@ -108,7 +115,9 @@ class SingleException(Interface):
             'exception_value': e_value,
             'exception_module': e_module,
             'fullname': fullname,
-            'last_frame': last_frame
+            'last_frame': last_frame,
+            'first_exc_omitted': first_exc_omitted,
+            'last_exc_omitted': last_exc_omitted,
         }
 
 
@@ -146,22 +155,32 @@ class Exception(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if 'values' in data:
-            values = data['values']
-        else:
-            values = [data]
+        if 'values' not in data:
+            data = {'values': [data]}
 
-        assert values
+        assert data['values']
+
+        trim_exceptions(data)
 
         kwargs = {
-            'values': [SingleException.to_python(v) for v in values],
+            'values': [
+                SingleException.to_python(v)
+                for v in data['values']
+            ],
         }
+
+        if data.get('exc_omitted'):
+            assert len(data['exc_omitted']) == 2
+            kwargs['exc_omitted'] = data['exc_omitted']
+        else:
+            kwargs['exc_omitted'] = None
 
         return cls(**kwargs)
 
     def to_json(self):
         return {
             'values': [v.to_json() for v in self.values],
+            'exc_omitted': self.exc_omitted,
         }
 
     def __getitem__(self, key):
@@ -271,3 +290,20 @@ class Exception(Interface):
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
         return ''
+
+
+def trim_exceptions(data, max_values=settings.SENTRY_MAX_EXCEPTIONS):
+    # TODO: this doesnt account for cases where the client has already omitted
+    # exceptions
+    values = data['values']
+    exc_len = len(values)
+
+    if exc_len <= max_values:
+        return
+
+    half_max = max_values / 2
+
+    data['exc_omitted'] = (half_max, exc_len - half_max)
+
+    for n in xrange(half_max, exc_len - half_max):
+        del values[half_max]
