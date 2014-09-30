@@ -1225,7 +1225,7 @@ a.icon-share {
     position: relative;
     display: table-cell;
     border-top: 1px solid #E9EBEC;
-    padding: 15px 0;
+    padding: 14px 0;
     vertical-align: middle;
   }
 
@@ -1244,7 +1244,7 @@ a.icon-share {
   .checkbox {
     position: absolute;
     left: 16px;
-    top: 3px;
+    top: 4px;
   }
 
   .event-details {
@@ -1252,7 +1252,7 @@ a.icon-share {
     border-left: 1px solid #E9EBEC;
     max-width: 500px;
     h3 {
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.2;
       letter-spacing: -0.25px;
       margin: 0 0 3px;
@@ -1261,10 +1261,20 @@ a.icon-share {
       }
     }
 
+    .event-message, .event-meta {
+      color: lighten(#79858C, 10);
+      line-height: 1.1;
+    }
+
     .event-message {
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
+    }
+
+    .event-meta {
+      font-size: 80%;
+      margin-top: 6px;
     }
 
     p {
@@ -1281,11 +1291,15 @@ a.icon-share {
       overflow: hidden;
     }
 
-    .event-meta {
-      color: lighten(#79858C, 10);
-      time {
-
-      }
+    .in-release {
+      color: #767D81;
+      display: inline-block;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: 500;
+      font-size: 80%;
+      margin-left: 8px;
+      border: 1px solid #E1E8EC;
     }
   }
 

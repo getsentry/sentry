@@ -143,9 +143,13 @@
                 <span class="icon icon-bookmark" ng-if="group.isBookmarked"></span>
                 <% group.title %></a>
               </h3>
+              <div class="event-message">
+                <span class="message"><% group.culprit %></span>
+              </div>
               <div class="event-meta">
-                  <span class="message"><% group.culprit %></span>
-                  &middot; <time time-since="group.firstSeen"></time>
+                <span class="last-seen"><time time-since="group.lastSeen"></time></span>
+                <span class="first-seen">(First seen <time time-since="group.firstSeen"></time>)</span>
+                <span class="in-release">in current release</span>
               </div>
             </div>
             <div class="event-assignee event-cell hidden-xs hidden-sm">
