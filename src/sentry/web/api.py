@@ -584,7 +584,7 @@ def get_group_tags(request, team, project, group_id, tag_name):
                 LIMIT 10000
             ) as a
         """, [group_id, tag_name])
-        total = cursor.fetchone() or 0
+        total = cursor.fetchone()[0] or 0
     else:
         total = GroupTagValue.objects.filter(
             group=group_id,
