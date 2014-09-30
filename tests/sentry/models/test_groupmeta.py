@@ -19,6 +19,10 @@ class GroupMetaManagerTest(TestCase):
         GroupMeta.objects.create(
             group=self.group, key='foo', value='bar')
         result = GroupMeta.objects.get_value(self.group, 'foo')
+        assert result is None
+
+        GroupMeta.objects.populate_cache([self.group])
+        result = GroupMeta.objects.get_value(self.group, 'foo')
         assert result == 'bar'
 
     def test_unset_value(self):
@@ -35,5 +39,9 @@ class GroupMetaManagerTest(TestCase):
 
         GroupMeta.objects.create(
             group=self.group, key='foo', value='bar')
+        result = GroupMeta.objects.get_value_bulk([self.group], 'foo')
+        assert result == {self.group: None}
+
+        GroupMeta.objects.populate_cache([self.group])
         result = GroupMeta.objects.get_value_bulk([self.group], 'foo')
         assert result == {self.group: 'bar'}
