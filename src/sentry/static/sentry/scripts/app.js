@@ -333,22 +333,26 @@
                             eTagName = encodeURIComponent(data.name);
 
                         $widget.find('.loading').remove();
-                        $.each(data.values, function(_, item){
-                            var tagValue = item[0],
-                                timesSeen = item[1],
-                                percent = parseInt(timesSeen / total * 100, 10),
-                                url = app.config.urlPrefix + '/' + app.config.teamId + '/' + app.config.projectId + '/';
+                        if (total === 0) {
+                            $widget.append$('<li>No data available.</li>');
+                        } else {
+                            $.each(data.values, function(_, item){
+                                var tagValue = item[0],
+                                    timesSeen = item[1],
+                                    percent = parseInt(timesSeen / total * 100, 10),
+                                    url = app.config.urlPrefix + '/' + app.config.teamId + '/' + app.config.projectId + '/';
 
-                            $('<li>' +
-                                '<div class="progressbar">' +
-                                    '<div style="width:' + percent + '%">' + timesSeen + '</div>' +
-                                    '<a href="' + url + '?' + eTagName + '=' + encodeURIComponent(tagValue) + '">' +
-                                        tagValue +
-                                        '<span>' + percent + '%</span>' +
-                                    '</a>' +
-                                '</div>' +
-                            '</li>').appendTo($widget);
-                        });
+                                $('<li>' +
+                                    '<div class="progressbar">' +
+                                        '<div style="width:' + percent + '%">' + timesSeen + '</div>' +
+                                        '<a href="' + url + '?' + eTagName + '=' + encodeURIComponent(tagValue) + '">' +
+                                            tagValue +
+                                            '<span>' + percent + '%</span>' +
+                                        '</a>' +
+                                    '</div>' +
+                                '</li>').appendTo($widget);
+                            });
+                        }
                     }
                 });
             });
