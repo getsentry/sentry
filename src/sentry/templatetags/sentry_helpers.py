@@ -33,7 +33,7 @@ from django.utils.translation import ugettext as _
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Team, GroupTagValue
+from sentry.models import Team
 from sentry.web.helpers import group_is_public
 from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -358,16 +358,9 @@ def with_metadata(group_list, request):
 def render_tag_widget(group, tag):
     cutoff = timezone.now() - timedelta(days=7)
 
-    has_tags = GroupTagValue.objects.filter(
-        group=group,
-        key=tag,
-        last_seen__gte=cutoff,
-    ).exists()
-
     return {
         'title': tag.replace('_', ' ').title(),
         'tag_name': tag,
-        'has_tags': has_tags,
         'group': group,
     }
 
