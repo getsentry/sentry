@@ -334,7 +334,7 @@
 
                         $widget.find('.loading').remove();
                         if (total === 0) {
-                            $widget.append$('<li>No data available.</li>');
+                            $widget.append($('<li>No data available.</li>'));
                         } else {
                             $.each(data.values, function(_, item){
                                 var tagValue = item[0],
