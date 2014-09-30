@@ -1137,11 +1137,12 @@ a.icon-share {
   display: table;
   width: 100%;
   border-radius: 4px;
+  border-collapse: collapse;
 
   .group {
     display: table-row;
     background: transparent;
-    .transition(all 2s linear);
+    .transition(all 1s linear);
     z-index: 1;
     position: relative;
 
@@ -1191,12 +1192,8 @@ a.icon-share {
     }
 
     &.ng-enter, &.new {
-      background: #fffff4;
-      .event-cell {
-        border-color: #f7f7c7;
-      }
-      &+ .group .event-cell{
-        border-top-color: #f7f7c7;
+      .event-cell{
+        opacity: 0;
       }
     }
     &:first-child {
@@ -1221,12 +1218,15 @@ a.icon-share {
   }
 
   .event-cell {
-    .transition(all 2s linear);
+    .transition(all 1s linear);
     position: relative;
     display: table-cell;
-    border-top: 1px solid #E9EBEC;
+    border: 1px solid #E9EBEC;
+    border-left: 0;
+    border-right: 0;
     padding: 14px 0;
     vertical-align: middle;
+    opacity: 1;
   }
 
   .deploy {
