@@ -26,7 +26,7 @@ from sentry.constants import (
 )
 from sentry.db.models import create_or_update
 from sentry.models import (
-    Project, Group, Event, Activity, EventMapping, TagKey, GroupSeen
+    Project, Group, GroupMeta, Event, Activity, EventMapping, TagKey, GroupSeen
 )
 from sentry.permissions import (
     can_admin_group, can_remove_group, can_create_projects
@@ -262,6 +262,8 @@ def group_list(request, team, project):
         del query_dict['p']
     pageless_query_string = query_dict.urlencode()
 
+    GroupMeta.objects.populate_cache(response['event_list'])
+
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'project': project,
@@ -291,6 +293,7 @@ def group(request, team, project, group, event_id=None):
         event = group.get_latest_event() or Event()
 
     Event.objects.bind_nodes([event], 'data')
+    GroupMeta.objects.populate_cache([group])
 
     # bind params to group in case they get hit
     event.group = group
