@@ -33,8 +33,6 @@
                     <h4>Event at {{ event.datetime }} {{ event.datetime.tzinfo }}</h4>
                 </div>
 
-                {% include "sentry/partial/event_nav.html" %}
-
                 <div class="alert alert-block alert-info">
                     <p>{% trans "You are viewing a publicly available version of this event's data. Some information may not be available." %}</p>
                 </div>
