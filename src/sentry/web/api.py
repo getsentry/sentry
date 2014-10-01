@@ -41,7 +41,7 @@ from sentry.coreapi import (
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupBookmark, GroupTagValue, Project, TagValue, Activity, User)
+    Group, GroupTagValue, Project, TagValue, Activity, User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
@@ -364,42 +364,6 @@ class StoreView(APIView):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def resolve(request, team, project):
-    gid = request.REQUEST.get('gid')
-    if not gid:
-        return HttpResponseForbidden()
-
-    try:
-        group = Group.objects.get(pk=gid)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    now = timezone.now()
-
-    happened = Group.objects.filter(
-        pk=group.pk,
-    ).exclude(status=STATUS_RESOLVED).update(
-        status=STATUS_RESOLVED,
-        resolved_at=now,
-    )
-    group.status = STATUS_RESOLVED
-    group.resolved_at = now
-
-    if happened:
-        Activity.objects.create(
-            project=project,
-            group=group,
-            type=Activity.SET_RESOLVED,
-            user=request.user,
-        )
-
-    return to_json(group, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
 def make_group_public(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
@@ -583,60 +547,6 @@ def get_group_tags(request, team, project, group_id, tag_name):
         'values': list(unique_tags),
         'total': total,
     })
-
-
-@csrf_exempt
-@has_access
-@never_cache
-@api
-def bookmark(request, team, project):
-    gid = request.REQUEST.get('gid')
-    if not gid:
-        return HttpResponseForbidden()
-
-    if not request.user.is_authenticated():
-        return HttpResponseForbidden()
-
-    try:
-        group = Group.objects.get(pk=gid)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    gb, created = GroupBookmark.objects.get_or_create(
-        project=group.project,
-        user=request.user,
-        group=group,
-    )
-    if not created:
-        gb.delete()
-
-    return to_json(group, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-def clear(request, team, project):
-    queryset = Group.objects.filter(
-        project=project,
-        status=STATUS_UNRESOLVED,
-    )
-    rows_affected = queryset.update(status=STATUS_RESOLVED)
-    if rows_affected > 1000:
-        logger.warning(
-            'Large resolve on %s of %s rows', project.slug, rows_affected)
-
-    if rows_affected:
-        Activity.objects.create(
-            project=project,
-            type=Activity.SET_RESOLVED,
-            user=request.user,
-        )
-
-    data = []
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
 
 
 @never_cache
