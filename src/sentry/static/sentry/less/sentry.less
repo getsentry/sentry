@@ -1116,12 +1116,15 @@ a.icon-share {
   ul {
     .list-unstyled;
     li:first-child {
-      padding-right: 4px;
+      padding-right: 5px;
+      padding-top: 2px;
+      color: lighten(@gray, 20);
+      line-height: 32px;
     }
     li {
       float: left;
-      margin-left: 4px;
-      line-height: 32px;
+      margin-left: 5px;
+
       img {
         border-radius: 3px;
         width: 30px;
@@ -2434,31 +2437,6 @@ table.integrations {
       &.expanded {
         min-height: 52px;
       }
-    }
-  }
-}
-
-.seen-by {
-  position: relative;
-  margin-left: 0;
-  > li {
-    list-style: none;
-    display: inline-block;
-    height: 32px;
-    width: 32px;
-    line-height: 32px;
-    text-align: center;
-    border-radius: 32px;
-    border: 1px solid #ddd;
-    font-size: 15px;
-    color: #aaa;
-
-    img {
-      height: 100%;
-      width: 100%;
-      height: 32px;
-      width: 32px;
-      border-radius: 32px;
     }
   }
 }
