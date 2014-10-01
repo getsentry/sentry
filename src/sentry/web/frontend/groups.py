@@ -11,7 +11,6 @@ TODO: Move all events.py views into here, and rename this file to events.
 """
 from __future__ import division
 
-import datetime
 import re
 
 from django.core.urlresolvers import reverse
@@ -19,117 +18,25 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from sentry import app
 from sentry.api.serializers import serialize
 from sentry.constants import (
-    SORT_OPTIONS, MEMBER_USER, DEFAULT_SORT_OPTION, EVENTS_PER_PAGE
+    SORT_OPTIONS, MEMBER_USER
 )
 from sentry.db.models import create_or_update
 from sentry.models import (
-    Project, Group, GroupMeta, Event, Activity, EventMapping, TagKey, GroupSeen
+    Project, Group, GroupMeta, Event, Activity, TagKey, GroupSeen
 )
 from sentry.permissions import (
     can_admin_group, can_remove_group, can_create_projects
 )
 from sentry.plugins import plugins
-from sentry.search.utils import parse_query
 from sentry.utils import json
-from sentry.utils.dates import parse_date
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
-
-
-def _get_group_list(request, project):
-    query_kwargs = {
-        'project': project,
-    }
-
-    status = request.GET.get('status')
-    if status:
-        query_kwargs['status'] = int(status)
-
-    if request.user.is_authenticated() and request.GET.get('bookmarks'):
-        query_kwargs['bookmarked_by'] = request.user
-
-    if request.user.is_authenticated() and request.GET.get('assigned'):
-        query_kwargs['assigned_to'] = request.user
-
-    sort_by = request.GET.get('sort') or request.session.get('streamsort')
-    if sort_by is None:
-        sort_by = DEFAULT_SORT_OPTION
-
-    # Save last sort in session
-    if sort_by != request.session.get('streamsort'):
-        request.session['streamsort'] = sort_by
-
-    query_kwargs['sort_by'] = sort_by
-
-    tags = {}
-    for tag_key in TagKey.objects.all_keys(project):
-        if request.GET.get(tag_key):
-            tags[tag_key] = request.GET[tag_key]
-    if tags:
-        query_kwargs['tags'] = tags
-
-    date_from = request.GET.get('df')
-    time_from = request.GET.get('tf')
-    date_to = request.GET.get('dt')
-    time_to = request.GET.get('tt')
-    date_filter = request.GET.get('date_type')
-
-    today = timezone.now()
-    # date format is Y-m-d
-    if any(x is not None for x in [date_from, time_from, date_to, time_to]):
-        date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
-    else:
-        date_from = today - datetime.timedelta(days=5)
-        date_to = None
-
-    query_kwargs['date_from'] = date_from
-    query_kwargs['date_to'] = date_to
-    if date_filter:
-        query_kwargs['date_filter'] = date_filter
-
-    # HACK(dcramer): this should be removed once the pagination component
-    # is abstracted from the paginator tag
-    try:
-        page = int(request.GET.get('p', 1))
-    except (ValueError, TypeError):
-        page = 1
-
-    query_kwargs['offset'] = (page - 1) * EVENTS_PER_PAGE
-    query_kwargs['limit'] = EVENTS_PER_PAGE + 1
-
-    query = request.GET.get('query', 'is:unresolved')
-    if query is not None:
-        query_kwargs.update(parse_query(query, request.user))
-
-    results = app.search.query(**query_kwargs)
-
-    if len(results) == query_kwargs['limit']:
-        next_page = page + 1
-    else:
-        next_page = None
-
-    if page > 1:
-        prev_page = page - 1
-    else:
-        prev_page = None
-
-    return {
-        'event_list': results[:EVENTS_PER_PAGE],
-        'date_from': date_from,
-        'date_to': date_to,
-        'today': today,
-        'sort': sort_by,
-        'date_type': date_filter,
-        'previous_page': prev_page,
-        'next_page': next_page,
-    }
 
 
 def render_with_group_context(group, template, context, request=None,
@@ -224,61 +131,15 @@ def wall_display(request, team):
 @login_required
 @has_access
 def group_list(request, team, project):
-    try:
-        page = int(request.GET.get('p', 1))
-    except (TypeError, ValueError):
-        page = 1
-
-    query = request.GET.get('query', 'is:unresolved')
-    if query and uuid_re.match(query):
-        # Forward to event if it exists
-        try:
-            group_id = EventMapping.objects.filter(
-                project=project, event_id=query
-            ).values_list('group', flat=True)[0]
-        except IndexError:
-            pass
-        else:
-            return HttpResponseRedirect(reverse('sentry-group', kwargs={
-                'project_id': project.slug,
-                'team_slug': project.team.slug,
-                'group_id': group_id,
-            }))
-
-    response = _get_group_list(
-        request=request,
-        project=project,
-    )
-    if isinstance(response, HttpResponse):
-        return response
-
-    # XXX: this is duplicate in _get_group_list
-    sort_label = SORT_OPTIONS[response['sort']]
-
-    has_realtime = page == 1
-
-    query_dict = request.GET.copy()
-    if 'p' in query_dict:
-        del query_dict['p']
-    pageless_query_string = query_dict.urlencode()
-
-    GroupMeta.objects.populate_cache(response['event_list'])
+    from sentry.api.endpoints.project_group_index import ProjectGroupIndexEndpoint
+    endpoint = ProjectGroupIndexEndpoint()
+    request.auth = None
+    response = endpoint.get(request, project_id=project.id)
 
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'project': project,
-        'from_date': response['date_from'],
-        'to_date': response['date_to'],
-        'date_type': response['date_type'],
-        'has_realtime': has_realtime,
-        'event_list': response['event_list'],
-        'previous_page': response['previous_page'],
-        'next_page': response['next_page'],
-        'today': response['today'],
-        'sort': response['sort'],
-        'query': query,
-        'pageless_query_string': pageless_query_string,
-        'sort_label': sort_label,
+        'event_list': response.data,
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
 

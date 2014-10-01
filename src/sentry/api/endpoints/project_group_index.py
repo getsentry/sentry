@@ -14,7 +14,9 @@ from sentry.constants import (
     DEFAULT_SORT_OPTION, STATUS_CHOICES, STATUS_RESOLVED
 )
 from sentry.db.models.query import create_or_update
-from sentry.models import Activity, Group, GroupBookmark, Project, TagKey
+from sentry.models import (
+    Activity, Group, GroupBookmark, GroupMeta, Project, TagKey
+)
 from sentry.search.utils import parse_query
 from sentry.utils.dates import parse_date
 
@@ -108,9 +110,11 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if query is not None:
             query_kwargs.update(parse_query(query, request.user))
 
-        results = search.query(**query_kwargs)
+        results = list(search.query(**query_kwargs))
 
-        return Response(serialize(list(results), request.user))
+        GroupMeta.objects.populate_cache(results)
+
+        return Response(serialize(results, request.user))
 
     def put(self, request, project_id):
         """
