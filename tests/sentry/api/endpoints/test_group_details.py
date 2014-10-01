@@ -68,7 +68,7 @@ class GroupDetailsTest(APITestCase):
         })
         response = self.client.delete(url, format='json')
 
-        assert response.status_code == 200, response.content
+        assert response.status_code == 202, response.content
 
         group = Group.objects.filter(id=group.id).exists()
         assert not group

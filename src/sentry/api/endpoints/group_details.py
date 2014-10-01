@@ -129,12 +129,14 @@ class GroupDetailsEndpoint(Endpoint):
         return Response(serialize(group, request.user))
 
     def delete(self, request, group_id):
+        from sentry.tasks.deletion import delete_group
+
         group = Group.objects.get(
             id=group_id,
         )
 
         assert_perm(group, request.user, request.auth)
 
-        group.delete()
+        delete_group.delay(object_id=group.id)
 
-        return Response()
+        return Response(status=202)
