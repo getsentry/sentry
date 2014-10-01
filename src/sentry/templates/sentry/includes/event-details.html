@@ -48,8 +48,6 @@
       </div>
     </div>
 
-    {% include "sentry/partial/event_nav.html" %}
-
     {% if group.is_muted %}
         <div class="alert alert-info">This event has been muted. You will not be notified of any changes and it will not show up in the default feed.</div>
     {% endif %}
