@@ -53,7 +53,14 @@
     {% endif %}
 
     {% if event.has_two_part_message %}
+    <div class="box">
+      <div class="box-header">
+          <h3>{% trans "Full message" %}</h3>
+      </div>
+      <div class="box-content with-padding">
         <pre id="full-message">{{ event.message }}</pre>
+      </div>
+    </div>
     {% endif %}
 
     {% if tags %}
