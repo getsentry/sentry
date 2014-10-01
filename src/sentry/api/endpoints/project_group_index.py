@@ -58,13 +58,9 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if request.user.is_authenticated() and request.GET.get('assigned'):
             query_kwargs['assigned_to'] = request.user
 
-        sort_by = request.GET.get('sort') or request.session.get('streamsort')
+        sort_by = request.GET.get('sort')
         if sort_by is None:
             sort_by = DEFAULT_SORT_OPTION
-
-        # Save last sort in session
-        if sort_by != request.session.get('streamsort'):
-            request.session['streamsort'] = sort_by
 
         query_kwargs['sort_by'] = sort_by
 
