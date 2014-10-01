@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.db.models import create_or_update
-from sentry.models import Group, GroupSeen
+from sentry.models import Project, Group, GroupSeen
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -15,6 +15,10 @@ class GroupMarkSeenEndpoint(Endpoint):
         )
 
         assert_perm(group, request.user, request.auth)
+
+        if group.project not in Project.objects.get_for_user(
+                request.user, team=group.project.team, superuser=False):
+            return Response(status=400)
 
         instance, created = create_or_update(
             GroupSeen,
