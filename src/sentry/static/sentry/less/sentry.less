@@ -1555,6 +1555,7 @@ ul.traceback {
 }
 .subtraceback {
   padding-left: 15px;
+  padding-right: 15px;
   position: relative;
 
   > h3 {
@@ -1569,7 +1570,7 @@ ul.traceback {
     border-bottom: 1px solid #E9EBEC;
     position: absolute;
     left: -15px;
-    top: 12px;
+    top: 23px;
   }
 }
 
@@ -1578,10 +1579,13 @@ ul.traceback {
   color: #887676;
   font-size: 14px;
   font-weight: 500;
-  border-left: 2px solid #E24444;
+  border-left: 1px solid #E24444;
+  border-right: 1px solid #E24444;
   background: #FFF0F0;
-  padding: 20px;
-  margin-bottom: 0;
+  padding: 10px 20px;
+  margin-bottom: 10px;
+  margin-left: -16px;
+  margin-right: -16px;
 }
 
 .frame {
@@ -1767,6 +1771,10 @@ ol.context-line {
           background: @blue;
         }
       }
+    }
+
+    .checkbox {
+      margin-top: -4px;
     }
   }
   .box-content {
