@@ -1543,13 +1543,15 @@ ul.traceback {
 }
 
 .traceback > p {
-  color: #444A52;
-  font-size: 0.9em;
+  color: #282B2E;
+  font-size: 13px;
   white-space: pre-wrap;
-  border: 1px solid #E8E9EB;
+  border: 1px solid #E2E5EB;
   padding: 10px 15px;
   border-radius: 4px;
   margin-top: -10px;
+  background: rgba(247, 248, 249, 0.5);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.02);
 }
 
 .traceback > .traceback {
@@ -1560,6 +1562,10 @@ ul.traceback {
   padding-left: 15px;
   padding-right: 15px;
   position: relative;
+
+  > p {
+    margin-top: -20px;
+  }
 
   > h3 {
     line-height: 50px
