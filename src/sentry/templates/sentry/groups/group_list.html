@@ -197,6 +197,6 @@
       </div>
     </div>
     <script>
-    window.groupList = {% serialize event_list %}
+    window.groupList = {% convert_to_json event_list %};
     </script>
 {% endblock %}

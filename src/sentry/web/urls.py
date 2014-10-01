@@ -272,8 +272,6 @@ urlpatterns += patterns('',
         name='sentry-api-crossdomain-xml'),
 
     # Generic API
-    url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/poll/$', api.poll,
-        name='sentry-api-poll'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/resolve/$', api.resolve,
         name='sentry-api-resolve'),
     url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/bookmark/$', api.bookmark,
