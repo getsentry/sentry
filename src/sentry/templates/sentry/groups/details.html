@@ -43,14 +43,18 @@
             </div>
           </div>
       </div>
-      <div class="seen-by hidden-xs" ng-if="selectedGroup.seenBy">
+      {% if seen_by_faces %}
+      <div class="seen-by">
         <ul>
-          <li>Seen by</li>
-          <li ng-repeat="user in selectedGroup.seenBy">
-            <img src="{{user.avatarUrl}}" />
-          </li>
+          <li>Seen by:</li>
+          {% for s_user, s_last_seen in seen_by_faces %}
+              <li>
+                  <img src="{% gravatar_url s_user.email size 32 %}" class="tip" rel="tooltip" title="<strong>{{ s_user|user_display_name|force_escape }}</strong><br>{{ s_last_seen|timesince }}">
+              </li>
+          {% endfor %}
         </ul>
       </div>
+      {% endif %}
       <div class="group-actions">
         <div class="btn-group">
           <a href="#" class="group-resolve btn btn-default btn-sm"
@@ -206,22 +210,6 @@
             {% endif %}
         </dl>
     </div>
-
-    {% if seen_by_faces %}
-        <h6>{% trans "Seen By" %}</h6>
-        <ul class="seen-by">
-            {% for s_user, s_last_seen in seen_by_faces %}
-                <li>
-                    <img src="{% gravatar_url s_user.email size 32 %}" class="tip" rel="tooltip" title="<strong>{{ s_user|user_display_name|force_escape }}</strong><br>{{ s_last_seen|timesince }}">
-                </li>
-            {% endfor %}
-            {% if seen_by_extra %}
-                <li class="tip" rel="tooltip" title="{% for s_user, _ in seen_by %}- {{ s_user|user_display_name|force_escape }}<br>{% endfor %}">
-                    &middot;&middot;&middot;
-                </li>
-            {% endif %}
-        </ul>
-    {% endif %}
 
     <div class="hidden-xs">
       {% for tag in group.get_tags %}
