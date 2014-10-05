@@ -11,7 +11,7 @@ from __future__ import absolute_import
 from django.db import models
 from django.db.models import signals
 
-from .fields.bounded import BoundedAutoField
+from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
 from .query import update
 
@@ -95,7 +95,7 @@ def __model_post_save(instance, **kwargs):
 
 
 class Model(BaseModel):
-    id = BoundedAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
 
     class Meta:
         abstract = True
