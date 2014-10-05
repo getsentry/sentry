@@ -32,6 +32,37 @@ class BoundedAutoField(models.AutoField):
         return (field_class, args, kwargs)
 
 
+class BoundedBigAutoField(models.AutoField):
+    MAX_VALUE = 9223372036854775807
+
+    def db_type(self, connection):
+        engine = connection.settings_dict['ENGINE']
+        if 'mysql' in engine:
+            return "bigint AUTO_INCREMENT"
+        elif 'oracle' in engine:
+            return "NUMBER(19)"
+        elif 'postgres' in engine:
+            return "bigserial"
+        else:
+            raise NotImplemented
+
+    def get_internal_type(self):
+        return "BoundedBigAutoField"
+
+    def get_prep_value(self, value):
+        if value:
+            value = long(value)
+            assert value <= self.MAX_VALUE
+        return super(BoundedAutoField, self).get_prep_value(value)
+
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        from south.modelsinspector import introspector
+        field_class = "sentry.db.models.fields.BoundedBigAutoField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
+
+
 class BoundedIntegerField(models.IntegerField):
     MAX_VALUE = 2147483647
 
@@ -54,7 +85,7 @@ class BoundedBigIntegerField(models.BigIntegerField):
 
     def get_prep_value(self, value):
         if value:
-            value = int(value)
+            value = long(value)
             assert value <= self.MAX_VALUE
         return super(BoundedBigIntegerField, self).get_prep_value(value)
 
