@@ -11,8 +11,9 @@ from django.db import models
 
 
 __all__ = (
-    'BoundedAutoField', 'BoundedIntegerField', 'BoundedBigIntegerField',
-    'BoundedPositiveIntegerField')
+    'BoundedAutoField', 'BoundedBigAutoField', 'BoundedIntegerField',
+    'BoundedBigIntegerField', 'BoundedPositiveIntegerField'
+)
 
 
 class BoundedAutoField(models.AutoField):
@@ -43,6 +44,9 @@ class BoundedBigAutoField(models.AutoField):
             return "NUMBER(19)"
         elif 'postgres' in engine:
             return "bigserial"
+        # SQLite doesnt actually support bigints with auto incr
+        elif 'sqlite' in engine:
+            return 'integer'
         else:
             raise NotImplemented
 
@@ -53,7 +57,7 @@ class BoundedBigAutoField(models.AutoField):
         if value:
             value = long(value)
             assert value <= self.MAX_VALUE
-        return super(BoundedAutoField, self).get_prep_value(value)
+        return super(BoundedBigAutoField, self).get_prep_value(value)
 
     def south_field_triple(self):
         "Returns a suitable description of this field for South."
