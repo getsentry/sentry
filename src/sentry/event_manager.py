@@ -492,19 +492,24 @@ class EventManager(object):
             value = six.text_type(value)
             if len(value) > MAX_TAG_VALUE_LENGTH:
                 continue
-
+            grouptagval = None
+            # If the Tag is unique, the grouptagvalue does not yet exist
+            # XXX! for now i ignore it so i can work on frontend.
+            # This needs to be fixed before any public releases
             # There can be only one.
-            grouptagval = group_queryset.get(key=key, value=value)
+            for gtv in group_queryset.filter(key=key, value=value):
+                grouptagval = gtv
 
-            try:
-                eventtagvalue = EventFilterTagValue(
-                    event=event, group=event.group, grouptagvalue=grouptagval
-                )
-                eventtagvalue.save()
+            if grouptagval:
+                try:
+                    eventtagvalue = EventFilterTagValue(
+                        event=event, group=event.group, grouptagvalue=grouptagval
+                    )
+                    eventtagvalue.save()
 
-            except IntegrityError:
-                transaction.savepoint_rollback(sid, using=using)
-                return
+                except IntegrityError:
+                    transaction.savepoint_rollback(sid, using=using)
+                    return
 
         transaction.savepoint_commit(sid, using)
 
