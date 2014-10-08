@@ -493,12 +493,15 @@ class EventManager(object):
             if len(value) > MAX_TAG_VALUE_LENGTH:
                 continue
             grouptagval = None
-            # If the Tag is unique, the grouptagvalue does not yet exist
-            # XXX! for now i ignore it so i can work on frontend.
+            # XXX! If the Tag is unique, the grouptagvalue does not yet exist
+            # for now I ignore it so I can work on frontend.
             # This needs to be fixed before any public releases
             # There can be only one.
-            for gtv in group_queryset.filter(key=key, value=value):
-                grouptagval = gtv
+            try:
+                grouptagval = group_queryset.get(key=key, value=value)
+            except GroupTagValue.DoesNotExist:
+                transaction.savepoint_rollback(sid, using=using)
+                return
 
             if grouptagval:
                 try:
