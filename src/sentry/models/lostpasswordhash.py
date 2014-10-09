@@ -41,7 +41,7 @@ class LostPasswordHash(Model):
         self.hash = hashlib.md5(str(random.randint(1, 10000000))).hexdigest()
 
     def is_valid(self):
-        return self.date_added > timezone.now() - timedelta(days=1)
+        return self.date_added > timezone.now() - timedelta(hours=48)
 
     def send_recover_mail(self):
         from sentry.utils.email import MessageBuilder
