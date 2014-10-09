@@ -156,6 +156,8 @@ class Event(Model):
         # We use a SortedDict to keep elements ordered for a potential JSON serializer
         data = SortedDict()
         data['id'] = self.event_id
+        data['culprit'] = self.group.culprit
+        data['message'] = self.message
         data['checksum'] = self.checksum
         data['project'] = self.project.slug
         data['datetime'] = self.datetime
