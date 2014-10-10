@@ -87,6 +87,11 @@
       var groupList = $.map(window.groupList, GroupModel);
 
       $scope.groupList = new Collection(groupList, {
+        sortFunc: function(data) {
+          app.utils.sortArray(data, function(item){
+            return [item.sortWeight];
+          });
+        },
         canUpdate: function(current, pending) {
           return (current.version < pending.version);
         },

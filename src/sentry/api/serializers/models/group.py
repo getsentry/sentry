@@ -109,7 +109,6 @@ class GroupSerializer(Serializer):
             'timeSpent': obj.avg_time_spent,
             'status': status_label,
             'isPublic': obj.is_public,
-            # 'score': getattr(obj, 'sort_value', 0),
             'project': {
                 'name': obj.project.name,
                 'slug': obj.project.slug,

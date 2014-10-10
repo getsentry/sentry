@@ -110,7 +110,12 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         GroupMeta.objects.populate_cache(results)
 
-        return Response(serialize(results, request.user))
+        # TODO(dcramer): we need create a public API for 'sort_value'
+        context = serialize(results, request.user)
+        for group, data in zip(results, context):
+            data['sortWeight'] = group.sort_value
+
+        return Response(context)
 
     def put(self, request, project_id):
         """
