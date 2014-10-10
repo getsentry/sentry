@@ -63,7 +63,10 @@ class ProjectGroupIndexEndpoint(Endpoint):
         }
 
         if request.GET.get('status'):
-            query_kwargs['status'] = int(request.GET['status'])
+            try:
+                query_kwargs['status'] = STATUS_CHOICES[request.GET['status']]
+            except KeyError:
+                return Response('{"error": "invalid status"}', status=400)
 
         if request.user.is_authenticated() and request.GET.get('bookmarks'):
             query_kwargs['bookmarked_by'] = request.user
@@ -114,11 +117,19 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if query is not None:
             query_kwargs.update(parse_query(query, request.user))
 
-        results = list(search.query(**query_kwargs))
+        cursor_result = search.query(**query_kwargs)
 
-        GroupMeta.objects.populate_cache(results)
+        context = list(cursor_result)
 
-        return Response(serialize(results, request.user))
+        GroupMeta.objects.populate_cache(context)
+
+        response = Response(serialize(context, request.user))
+        response['Link'] = ', '.join([
+            self.build_cursor_link(request, 'previous', cursor_result.prev),
+            self.build_cursor_link(request, 'next', cursor_result.next),
+        ])
+
+        return response
 
     def put(self, request, project_id):
         """
