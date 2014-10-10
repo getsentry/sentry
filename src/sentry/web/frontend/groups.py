@@ -33,6 +33,7 @@ from sentry.permissions import (
 from sentry.plugins import plugins
 from sentry.search.utils import parse_query
 from sentry.utils import json
+from sentry.utils.cursors import Cursor
 from sentry.utils.dates import parse_date
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
@@ -93,31 +94,16 @@ def _get_group_list(request, project):
     if date_filter:
         query_kwargs['date_filter'] = date_filter
 
-    # HACK(dcramer): this should be removed once the pagination component
-    # is abstracted from the paginator tag
-    try:
-        page = int(request.GET.get('p', 1))
-    except (ValueError, TypeError):
-        page = 1
-
-    query_kwargs['offset'] = (page - 1) * EVENTS_PER_PAGE
-    query_kwargs['limit'] = EVENTS_PER_PAGE + 1
+    cursor = request.GET.get('cursor')
+    if cursor:
+        query_kwargs['cursor'] = Cursor.from_string(cursor)
+    query_kwargs['limit'] = EVENTS_PER_PAGE
 
     query = request.GET.get('query', 'is:unresolved')
     if query is not None:
         query_kwargs.update(parse_query(query, request.user))
 
     results = app.search.query(**query_kwargs)
-
-    if len(results) == query_kwargs['limit']:
-        next_page = page + 1
-    else:
-        next_page = None
-
-    if page > 1:
-        prev_page = page - 1
-    else:
-        prev_page = None
 
     return {
         'event_list': results[:EVENTS_PER_PAGE],
@@ -126,8 +112,8 @@ def _get_group_list(request, project):
         'today': today,
         'sort': sort_by,
         'date_type': date_filter,
-        'previous_page': prev_page,
-        'next_page': next_page,
+        'next_cursor': results.next,
+        'prev_cursor': results.prev,
     }
 
 
@@ -226,11 +212,6 @@ def wall_display(request, organization, team):
 @login_required
 @has_access
 def group_list(request, organization, project):
-    try:
-        page = int(request.GET.get('p', 1))
-    except (TypeError, ValueError):
-        page = 1
-
     query = request.GET.get('query', 'is:unresolved')
     if query and uuid_re.match(query):
         # Forward to event if it exists
@@ -257,12 +238,12 @@ def group_list(request, organization, project):
     # XXX: this is duplicate in _get_group_list
     sort_label = SORT_OPTIONS[response['sort']]
 
-    has_realtime = page == 1
+    has_realtime = not request.GET.get('cursor')
 
     query_dict = request.GET.copy()
-    if 'p' in query_dict:
-        del query_dict['p']
-    pageless_query_string = query_dict.urlencode()
+    if 'cursor' in query_dict:
+        del query_dict['cursor']
+    cursorless_query_string = query_dict.urlencode()
 
     GroupMeta.objects.populate_cache(response['event_list'])
 
@@ -275,12 +256,12 @@ def group_list(request, organization, project):
         'date_type': response['date_type'],
         'has_realtime': has_realtime,
         'event_list': response['event_list'],
-        'previous_page': response['previous_page'],
-        'next_page': response['next_page'],
+        'prev_cursor': response['prev_cursor'],
+        'next_cursor': response['next_cursor'],
         'today': response['today'],
         'sort': response['sort'],
         'query': query,
-        'pageless_query_string': pageless_query_string,
+        'cursorless_query_string': cursorless_query_string,
         'sort_label': sort_label,
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)

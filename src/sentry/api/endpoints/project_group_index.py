@@ -16,6 +16,7 @@ from sentry.models import (
     Activity, Group, GroupBookmark, GroupMeta, GroupStatus, Project, TagKey
 )
 from sentry.search.utils import parse_query
+from sentry.utils.cursors import Cursor
 from sentry.utils.dates import parse_date
 
 
@@ -95,7 +96,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
         # TODO: proper pagination support
         cursor = request.GET.get('cursor')
         if cursor:
-            query_kwargs['cursor'] = cursor
+            query_kwargs['cursor'] = Cursor.from_string(cursor)
 
         query = request.GET.get('query', 'is:unresolved')
         if query is not None:

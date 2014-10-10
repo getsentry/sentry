@@ -10,7 +10,8 @@ from __future__ import absolute_import
 
 from django.db.models import Q
 
-from sentry.search.base import SearchBackend, SearchResult
+from sentry.api.paginator import Paginator
+from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
     SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
     MSSQL_ENGINES, ORACLE_SORT_CLAUSES
@@ -24,8 +25,8 @@ class DjangoSearchBackend(SearchBackend):
 
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, sort_by='date',
-              date_filter='last_seen', date_from=None, date_to=None, offset=0,
-              limit=100):
+              date_filter='last_seen', date_from=None, date_to=None,
+              cursor=None, limit=100):
         from sentry.models import Group
 
         queryset = Group.objects.filter(project=project)
@@ -99,10 +100,15 @@ class DjangoSearchBackend(SearchBackend):
         elif sort_by == 'avgtime':
             queryset = queryset.filter(time_spent_count__gt=0)
 
+        queryset = queryset.extra(
+            select={'sort_value': score_clause},
+        )
+
         # HACK: don't sort by the same column twice
         if sort_by == 'date':
-            queryset = queryset.order_by('-last_seen')
+            queryset = queryset.order_by('-sort_value')
         else:
             queryset = queryset.order_by('-sort_value', '-last_seen')
 
-        return SearchResult(instances=list(queryset[offset:offset + limit]))
+        paginator = Paginator(queryset, '-sort_value')
+        return paginator.get_result(limit, cursor)
