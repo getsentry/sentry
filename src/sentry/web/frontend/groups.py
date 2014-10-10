@@ -26,7 +26,8 @@ from sentry.constants import (
 )
 from sentry.db.models import create_or_update
 from sentry.models import (
-    Project, Group, Event, Activity, EventMapping, TagKey, GroupSeen
+    Project, Group, Event, Activity, EventMapping, TagKey, GroupSeen,
+    EventFilterTagValue
 )
 from sentry.permissions import (
     can_admin_group, can_remove_group, can_create_projects
@@ -38,6 +39,8 @@ from sentry.utils.dates import parse_date
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
+# just temporarly for debug purposes
+from __builtin__ import open
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
@@ -423,6 +426,49 @@ def group_event_list(request, team, project, group):
         'event_list': event_list,
         'page': 'event_list',
     }, request)
+
+
+@has_group_access
+def group_tag_event_list(request, team, project, group, grouptagvalue):
+    # now we need all the events with spacific GroupTagValueId id
+    # and all their tag_values
+    event_list = Event.objects.filter(
+        id__in=EventFilterTagValue.objects.filter(
+            group_id=group.id,
+            grouptagvalue_id=grouptagvalue,
+        ).values_list('event_id')
+    ).order_by('-datetime')[:100]
+
+    fil = open("SentryDoodlePad.txt", "a")
+    fil.write("\n**********************************\n")
+    fil.write("group tag event list \n")
+    fil.write("grouptagvalue" + str(grouptagvalue) + "\n")
+    fil.write("event_list" + str(event_list) + "\n")
+    full_list = event_list.values(
+        'eventfiltertagvalue__grouptagvalue__key',
+        'eventfiltertagvalue__grouptagvalue__value',
+        'id',
+        'message',
+        'project__slug',
+        'project__team__slug',
+        'group_id'
+    )
+    for e in full_list:
+        fil.write(str(e) + "\n")
+    Event.objects.bind_nodes(event_list, 'data')
+    # event_list = group.event_set.all().order_by('-datetime')[:100]
+    # Event.objects.bind_nodes(event_list, 'data')
+
+    return render_with_group_context(
+        group,
+        'sentry/groups/tag_event_list.html',
+        {
+            'event_list': event_list,
+            'full_list': full_list,
+            'page': 'event_list',
+        },
+        request
+    )
 
 
 @has_access(MEMBER_USER)

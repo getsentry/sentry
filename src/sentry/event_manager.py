@@ -516,6 +516,40 @@ class EventManager(object):
 
         transaction.savepoint_commit(sid, using)
 
+    def _simons_experimentation(self, group):
+        # XXX: IF you see this, burn it with fire, nuke it from orbit or something similarly devastating!
+        # This is here only as my personal doodles method, and was commited by MY! mistake!
+        from django.db import connection
+
+        settings.DEBUG = True
+        with open("SentryDoodlePad.txt", "a") as f:
+            f.write("Num of querries before =" + str(len(connection.queries)) + "\n")
+            # XXX limit the number of events, and not the number of tags!
+            # how to sort than?
+            event_list = Event.objects.filter(
+                id__in=EventFilterTagValue.objects.filter(
+                    group_id=group.id,
+                    grouptagvalue__key="tag3",
+                    grouptagvalue__value="test13",
+                ).values_list('event_id').order_by('-id')[:1]  # limit and reverse date ordered
+            )
+            # Event.objects.bind_nodes(event_list, 'data')
+            e = event_list.values(
+                'eventfiltertagvalue__grouptagvalue__key',
+                'eventfiltertagvalue__grouptagvalue__key',
+                'id',
+                'message',
+                'data',
+                'datetime'
+            )
+
+            # event_list.eventfiltertagvalue.gouptagvalue_set.all()
+            f.write(str(e) + "\n")
+#                 for something in EventFilterTagValue.objects.select_related().filter(group_id=group.id):
+#                 f.write(str(something)+" hmm " + str(something.event.message) + str(something.event.id)+ " \n" )
+            f.write("Num of querries after =" + str(len(connection.queries)) + "\n")
+        settings.DEBUG = False
+
     def _process_existing_aggregate(self, group, event, data):
         date = max(event.datetime, group.last_seen)
         extra = {
