@@ -110,6 +110,23 @@
             return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         },
 
+        parseLinkHeader: function(header) {
+          if (header === null) {
+            return {};
+          }
+
+          var header_vals = header.split(','),
+              links = {};
+
+          $.each(header_vals, function(_, val){
+              var match = /<([^>]+)>; rel="([^"]+)"/g.exec(val);
+
+              links[match[2]] = match[1];
+          });
+
+          return links;
+        },
+
         getSearchUsersUrl: function(){
             return appConfig.urlPrefix + '/api/' + appConfig.selectedTeam.slug + '/users/search/';
         },

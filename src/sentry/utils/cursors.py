@@ -25,6 +25,10 @@ class Cursor(object):
         return '<%s: value=%s offset=%s is_prev=%s>' % (
             type(self), self.value, self.offset, int(self.is_prev))
 
+    @classmethod
+    def from_string(cls, value):
+        return cls(*value.split(':'))
+
 
 class CursorResult(Sequence):
     def __init__(self, results, next, prev, has_next=None, has_prev=None):
