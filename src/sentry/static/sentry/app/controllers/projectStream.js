@@ -65,17 +65,24 @@
   SentryApp.controller('ProjectStreamCtrl', [
     '$http', '$modal', '$scope', '$timeout', 'Collection', 'GroupModel', 'selectedProject',
     function($http, $modal, $scope, $timeout, Collection, GroupModel, selectedProject) {
-      var timeoutId;
+      var timeoutId,
+          pollingCursor,
+          params = app.utils.getQueryParams(),
+          endpoint = getEndpoint(selectedProject, params);
+
       var pollForChanges = function() {
-        var params = app.utils.getQueryParams();
-        var endpoint = getEndpoint(selectedProject, params);
         $http.get(endpoint)
-          .success(function(data){
-            var duration = $scope.chartDuration;
-            data = $.map(data, GroupModel);
-            angular.forEach(data, function(group){
-              group.activeChartData = group.stats[duration];
-            });
+          .success(function(data, code, headers){
+            if (data.length) {
+              var duration = $scope.chartDuration;
+              data = $.map(data, GroupModel);
+              angular.forEach(data, function(group){
+                group.activeChartData = group.stats[duration];
+              });
+
+              var links = app.utils.parseLinkHeader(headers('Link'));
+              endpoint = links.previous;
+            }
 
             $timeout(function(){
               $scope.groupList.extend(data);
