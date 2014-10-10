@@ -40,19 +40,18 @@ class Endpoint(APIView):
         assert per_page <= 100
 
         paginator = Paginator(**kwargs)
-        cursor = paginator.get_cursor(
+        cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,
         )
 
         # map results based on callback
-        results = on_results(cursor.results)
+        results = on_results(cursor_result.results)
 
-        links = []
-        if cursor.has_prev:
-            links.append(('previous', cursor.prev))
-        if cursor.has_next:
-            links.append(('next', cursor.next))
+        links = [
+            ('previous', str(cursor_result.prev)),
+            ('next', str(cursor_result.next)),
+        ]
 
         querystring = u'&'.join(
             u'{0}={1}'.format(quote(k), quote(v))

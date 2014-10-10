@@ -19,6 +19,7 @@ class GroupEventsEndpoint(Endpoint):
         return self.paginate(
             request=request,
             queryset=events,
-            order_by='-datetime',
+            # TODO(dcramer): we want to sort by datetime
+            order_by='-id',
             on_results=lambda x: serialize(x, request.user),
         )
