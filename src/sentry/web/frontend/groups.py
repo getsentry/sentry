@@ -386,8 +386,8 @@ def group_tag_list(request, team, project, group):
     tag_list = []
     for tag_key in TagKey.objects.filter(project=project, key__in=group.get_tags()):
         tag_list.append((tag_key, [
-            (value, times_seen, percent(group.times_seen, times_seen))
-            for (value, times_seen, first_seen, last_seen)
+            (value, times_seen, percent(group.times_seen, times_seen), id)
+            for (value, times_seen, first_seen, last_seen, id)
             in group.get_unique_tags(tag_key.key)[:5]
         ], group.get_unique_tags(tag_key.key).count()))
 

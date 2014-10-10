@@ -5,11 +5,12 @@
     <div class="tag-widget">
         <h6>{{ title }}</h6>
         <ul class="nav nav-stacked">
-            {% for tag_value, times_seen, _, _ in unique_tags %}
+            {% for tag_value, times_seen, _, _, id in unique_tags %}
                 <li>
                     <div class="progressbar">
                         <div style="width:{% percent times_seen total_count %}%">{{ times_seen }}</div>
-                        <a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_name }}={{ tag_value }}">
+                        <!-- <a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_name }}={{ tag_value }}"> -->
+                        <a href="{% url 'sentry-group-tag-events' group.team.slug group.project.slug group.id id%}">
                             {{ tag_value }}
                             <span title="{{ times_seen }} event(s)">{% percent times_seen total_count %}%</span>
                         </a>
