@@ -10,11 +10,8 @@ from __future__ import absolute_import
 
 from sentry.search.base import SearchBackend, SearchResult
 from sentry.search.django.constants import (
-    SORT_CLAUSES, SCORE_CLAUSES,
-    SQLITE_SORT_CLAUSES, SQLITE_SCORE_CLAUSES,
-    MYSQL_SORT_CLAUSES, MYSQL_SCORE_CLAUSES,
-    MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES, MSSQL_ENGINES,
-    ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES
+    SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
+    MSSQL_ENGINES, ORACLE_SORT_CLAUSES
 )
 from sentry.utils.db import get_db_engine
 
@@ -79,28 +76,20 @@ class DjangoSearchBackend(SearchBackend):
         engine = get_db_engine('default')
         if engine.startswith('sqlite'):
             score_clause = SQLITE_SORT_CLAUSES[sort_by]
-            filter_clause = SQLITE_SCORE_CLAUSES[sort_by]
         elif engine.startswith('mysql'):
             score_clause = MYSQL_SORT_CLAUSES[sort_by]
-            filter_clause = MYSQL_SCORE_CLAUSES[sort_by]
         elif engine.startswith('oracle'):
             score_clause = ORACLE_SORT_CLAUSES[sort_by]
-            filter_clause = ORACLE_SCORE_CLAUSES[sort_by]
         elif engine in MSSQL_ENGINES:
             score_clause = MSSQL_SORT_CLAUSES[sort_by]
-            filter_clause = MSSQL_SCORE_CLAUSES[sort_by]
         else:
             score_clause = SORT_CLAUSES[sort_by]
-            filter_clause = SCORE_CLAUSES[sort_by]
 
         if sort_by == 'tottime':
             queryset = queryset.filter(time_spent_count__gt=0)
         elif sort_by == 'avgtime':
             queryset = queryset.filter(time_spent_count__gt=0)
 
-        queryset = queryset.extra(
-            select={'sort_value': score_clause},
-        )
         # HACK: don't sort by the same column twice
         if sort_by == 'date':
             queryset = queryset.order_by('-last_seen')
