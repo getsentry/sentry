@@ -107,7 +107,6 @@ class GroupSerializer(Serializer):
             'firstSeen': obj.first_seen,
             'lastSeen': obj.last_seen,
             'timeSpent': obj.avg_time_spent,
-            'canResolve': user.is_authenticated(),
             'status': status_label,
             'isPublic': obj.is_public,
             # 'score': getattr(obj, 'sort_value', 0),
