@@ -14,7 +14,7 @@ from __future__ import division
 import re
 
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -132,14 +132,22 @@ def wall_display(request, team):
 @has_access
 def group_list(request, team, project):
     from sentry.api.endpoints.project_group_index import ProjectGroupIndexEndpoint
+
+    m_request = HttpRequest()
+    m_request.auth = None
+    m_request.user = request.user
+    m_request.META = request.META
+    m_request.GET = request.GET.copy()
+    m_request.GET.setdefault('query', 'is:unresolved')
+
     endpoint = ProjectGroupIndexEndpoint()
-    request.auth = None
-    response = endpoint.get(request, project_id=project.id)
+    response = endpoint.get(m_request, project_id=project.id)
 
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'project': project,
         'event_list': response.data,
+        'query': m_request.GET['query'],
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
 
