@@ -20,10 +20,7 @@ from django.utils.translation import ugettext_lazy as _
 
 import six
 
-from sentry.constants import (
-    LOG_LEVELS, STATUS_LEVELS, MAX_CULPRIT_LENGTH, STATUS_RESOLVED,
-    STATUS_UNRESOLVED, STATUS_MUTED
-)
+from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
     sane_repr
@@ -31,6 +28,13 @@ from sentry.db.models import (
 from sentry.manager import GroupManager
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
+
+
+# TODO(dcramer): pull in enum library
+class GroupStatus(object):
+    UNRESOLVED = 0
+    RESOLVED = 1
+    MUTED = 2
 
 
 class Group(Model):
@@ -50,8 +54,11 @@ class Group(Model):
     checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
-    status = BoundedPositiveIntegerField(
-        default=0, choices=STATUS_LEVELS, db_index=True)
+    status = BoundedPositiveIntegerField(default=0, choices=(
+        (GroupStatus.UNRESOLVED, _('Unresolved')),
+        (GroupStatus.RESOLVED, _('Resolved')),
+        (GroupStatus.MUTED, _('Muted')),
+    ), db_index=True)
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -113,14 +120,14 @@ class Group(Model):
         return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
 
     def is_muted(self):
-        return self.get_status() == STATUS_MUTED
+        return self.get_status() == GroupStatus.MUTED
 
     def is_resolved(self):
-        return self.get_status() == STATUS_RESOLVED
+        return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
-        if self.status == STATUS_UNRESOLVED and self.is_over_resolve_age():
-            return STATUS_RESOLVED
+        if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
+            return GroupStatus.RESOLVED
         return self.status
 
     def get_score(self):

@@ -8,15 +8,17 @@ sentry.models.grouprulestatus
 from django.db import models
 from django.utils import timezone
 
-from sentry.constants import STATUS_ACTIVE
 from sentry.db.models import Model, sane_repr
 
 
 class GroupRuleStatus(Model):
+    ACTIVE = 0
+    INACTIVE = 1
+
     project = models.ForeignKey('sentry.Project')
     rule = models.ForeignKey('sentry.Rule')
     group = models.ForeignKey('sentry.Group')
-    status = models.PositiveSmallIntegerField(default=STATUS_ACTIVE)
+    status = models.PositiveSmallIntegerField(default=ACTIVE)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

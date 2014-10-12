@@ -30,9 +30,7 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.app import tsdb
-from sentry.constants import (
-    MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
-)
+from sentry.constants import MEMBER_USER
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
@@ -41,7 +39,7 @@ from sentry.coreapi import (
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupTagValue, Project, TagValue, Activity, User)
+    Group, GroupStatus, GroupTagValue, Project, TagValue, Activity, User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
@@ -417,7 +415,7 @@ def resolve_group(request, team, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at=timezone.now(),
     )
     if happened:
@@ -442,7 +440,7 @@ def mute_group(request, team, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_MUTED,
+        status=GroupStatus.MUTED,
         resolved_at=timezone.now(),
     )
     if happened:
@@ -467,7 +465,7 @@ def unresolve_group(request, team, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         active_at=timezone.now(),
     )
     if happened:
@@ -572,7 +570,7 @@ def get_group_trends(request, team=None, project=None):
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(base_qs.filter(
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         last_seen__gte=cutoff_dt
     ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
@@ -606,7 +604,7 @@ def get_new_groups(request, team=None, project=None):
 
     group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         active_at__gte=cutoff_dt,
     ).extra(select={'sort_value': 'score'}).order_by('-score', '-first_seen')[:limit])
 
@@ -640,7 +638,7 @@ def get_resolved_groups(request, team=None, project=None):
 
     group_list = list(Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at__gte=cutoff_dt,
     ).order_by('-score')[:limit])
 
@@ -687,7 +685,7 @@ def get_stats(request, team=None, project=None):
     # TODO(dcramer); move this into tsdb
     num_resolved = Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at__gte=start,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 

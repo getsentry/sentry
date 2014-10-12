@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.constants import STATUS_RESOLVED
+from sentry.models import GroupStatus
 from sentry.testutils import TestCase
 from sentry.search.utils import parse_query
 
@@ -36,7 +36,7 @@ class ParseQueryTest(TestCase):
 
     def test_is_resolved(self):
         result = parse_query('is:resolved', self.user)
-        assert result == {'status': STATUS_RESOLVED, 'tags': {}, 'query': ''}
+        assert result == {'status': GroupStatus.RESOLVED, 'tags': {}, 'query': ''}
 
     def test_assigned_me(self):
         result = parse_query('assigned:me', self.user)

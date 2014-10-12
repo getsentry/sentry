@@ -8,8 +8,8 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
-from sentry.constants import STATUS_CHOICES, STATUS_RESOLVED
-from sentry.models import Activity, Group, GroupBookmark, GroupSeen
+from sentry.constants import STATUS_CHOICES
+from sentry.models import Activity, Group, GroupBookmark, GroupSeen, GroupStatus
 
 
 class GroupSerializer(serializers.Serializer):
@@ -93,12 +93,12 @@ class GroupDetailsEndpoint(Endpoint):
             now = timezone.now()
 
             group.resolved_at = now
-            group.status = STATUS_RESOLVED
+            group.status = GroupStatus.RESOLVED
 
             happened = Group.objects.filter(
                 id=group.id,
-            ).exclude(status=STATUS_RESOLVED).update(
-                status=STATUS_RESOLVED,
+            ).exclude(status=GroupStatus.RESOLVED).update(
+                status=GroupStatus.RESOLVED,
                 resolved_at=now,
             )
 

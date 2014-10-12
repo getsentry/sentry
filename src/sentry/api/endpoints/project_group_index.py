@@ -11,11 +11,11 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import (
-    DEFAULT_SORT_OPTION, STATUS_CHOICES, STATUS_RESOLVED
+    DEFAULT_SORT_OPTION, STATUS_CHOICES
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupBookmark, GroupMeta, Project, TagKey
+    Activity, Group, GroupBookmark, GroupMeta, GroupStatus, Project, TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -182,9 +182,9 @@ class ProjectGroupIndexEndpoint(Endpoint):
             now = timezone.now()
 
             happened = Group.objects.filter(filters).exclude(
-                status=STATUS_RESOLVED,
+                status=GroupStatus.RESOLVED,
             ).update(
-                status=STATUS_RESOLVED,
+                status=GroupStatus.RESOLVED,
                 resolved_at=now,
             )
 
