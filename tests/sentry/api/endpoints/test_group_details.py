@@ -2,8 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import STATUS_RESOLVED
-from sentry.models import Group, GroupBookmark
+from sentry.models import Group, GroupBookmark, GroupStatus
 from sentry.testutils import APITestCase
 
 
@@ -38,7 +37,7 @@ class GroupDetailsTest(APITestCase):
             id=group.id,
             project=group.project.id,
         )
-        assert group.status == STATUS_RESOLVED
+        assert group.status == GroupStatus.RESOLVED
 
     def test_bookmark(self):
         self.login_as(user=self.user)
