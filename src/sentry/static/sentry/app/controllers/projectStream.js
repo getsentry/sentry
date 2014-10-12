@@ -71,26 +71,86 @@
           endpoint = getEndpoint(selectedProject, params);
 
       var pollForChanges = function() {
-        $http.get(endpoint)
-          .success(function(data, code, headers){
-            if (data.length) {
-              var duration = $scope.chartDuration;
-              data = $.map(data, GroupModel);
-              angular.forEach(data, function(group){
-                group.activeChartData = group.stats[duration];
-              });
-
-              var links = app.utils.parseLinkHeader(headers('Link'));
-              endpoint = links.previous;
+        $.ajax({
+          url: endpoint,
+          method: 'GET',
+          success: function(data, textStatus, jqXHR){
+            if (!data.length) {
+              return;
             }
+            var duration = $scope.chartDuration;
+            data = $.map(data, GroupModel);
+            angular.forEach(data, function(group){
+              group.activeChartData = group.stats[duration];
+            });
+
+            var links = app.utils.parseLinkHeader(jqXHR.getResponseHeader('Link'));
+            endpoint = links.previous;
 
             $timeout(function(){
               $scope.groupList.extend(data);
             });
-          }).finally(function(){
+          },
+          complete: function(){
             timeoutId = window.setTimeout(pollForChanges, 3000);
-          });
+          }
+        });
       };
+
+      $scope.selectAllActive = false;
+      $scope.multiSelected = false;
+      $scope.anySelected = false;
+      $('.stream-actions .chk-select-all').change(function(){
+        var checked = $(this).is(':checked');
+
+        $('.group-list .chk-select').prop('checked', checked);
+
+        var numSelected = $('.group-list .chk-select:checked').length;
+
+        $timeout(function(){
+          $scope.selectAllActive = checked;
+          $scope.anySelected = numSelected !== 0;
+          $scope.multiSelected = numSelected > 1;
+        });
+      });
+
+      // TODO(dcramer): this is pretty shitty, but I'm not sure of a good
+      // way to bind the events and maintain the global status
+      var checkboxHandler = function(){
+        var allSelected = !$('.group-list .chk-select').is(':not(:checked)'),
+            numSelected = $('.group-list .chk-select:checked').length;
+
+        $('.stream-actions .chk-select-all').prop('checked', allSelected);
+
+        $timeout(function(){
+          $scope.selectAllActive = allSelected;
+          $scope.anySelected = numSelected !== 0;
+          $scope.multiSelected = numSelected > 1;
+        });
+      };
+
+      $scope.$watch('anySelected', function(anySelected){
+        if (!anySelected) {
+          $('.stream-actions .action').addClass('disabled').prop('disabled', true);
+        } else {
+          $('.stream-actions .action').removeClass('disabled').prop('disabled', false);
+        }
+      });
+
+      $scope.$watch('multiSelected', function(multiSelected){
+        if (!multiSelected) {
+          $('.stream-actions .action-merge').addClass('disabled').prop('disabled', true);
+        } else {
+          $('.stream-actions .action-merge').removeClass('disabled').prop('disabled', false);
+        }
+      });
+
+      $scope.$watchCollection('groupList', function(){
+        $timeout(function(){
+          $('.group-list').delegate('.chk-select', 'change', checkboxHandler);
+        });
+      });
+
       var groupList = $.map(window.groupList, GroupModel);
 
       $scope.groupList = new Collection(groupList, {
@@ -111,20 +171,6 @@
           group.activeChartData = group.stats[duration];
         });
       };
-
-      $scope.selectAllActive = false;
-      $('.stream-actions .chk-select-all').change(function(){
-        var checked = $(this).is(':checked');
-        $scope.selectAllActive = checked;
-        $('.group-list .chk-select').prop('checked', checked);
-      });
-
-      $('.group-list').delegate('.chk-select', 'change', function(){
-        var allSelected = !$('.group-list .chk-select').is(':not(:checked)');
-
-        $scope.selectAllActive = allSelected;
-        $('.stream-actions .chk-select-all').prop('checked', allSelected);
-      });
 
       var sortBy = params.sort || 'date',
           sortLabel;
@@ -231,6 +277,7 @@
               ids: selectedGroupIds,
               data: {merge: '1'}
             });
+            // TODO(dcramer): show flash message
           }
         });
       });
@@ -245,6 +292,7 @@
               ids: selectedGroupIds,
               method: 'DELETE',
             });
+            // TODO(dcramer): show flash message
           }
         });
       });
