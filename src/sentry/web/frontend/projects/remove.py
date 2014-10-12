@@ -12,7 +12,8 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_OWNER, STATUS_HIDDEN
+from sentry.constants import MEMBER_OWNER
+from sentry.models import ProjectStatus
 from sentry.permissions import can_remove_project
 from sentry.tasks.deletion import delete_project
 from sentry.web.decorators import has_access
@@ -29,8 +30,8 @@ def remove_project(request, team, project):
     form = RemoveProjectForm(request.user, request.POST or None)
 
     if form.is_valid():
-        if project.status != STATUS_HIDDEN:
-            project.update(status=STATUS_HIDDEN)
+        if project.status == ProjectStatus.VISIBLE:
+            project.update(status=ProjectStatus.PENDING_DELETION)
             delete_project.delay(object_id=project.id)
 
         messages.add_message(

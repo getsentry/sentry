@@ -44,9 +44,6 @@ SEARCH_SORT_OPTIONS = SortedDict((
     ('new', _('First Seen')),
 ))
 
-STATUS_VISIBLE = 0
-STATUS_HIDDEN = 1
-
 STATUS_ACTIVE = 0
 STATUS_INACTIVE = 1
 
