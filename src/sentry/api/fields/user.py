@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from rest_framework import serializers
 
 from sentry.models import User
+from sentry.utils.auth import find_users
 
 
 class UserField(serializers.WritableField):
@@ -13,7 +14,13 @@ class UserField(serializers.WritableField):
         if not data:
             return None
 
+        if data.isdigit():
+            try:
+                return User.objects.get(id=data)
+            except User.DoesNotExist:
+                pass
+
         try:
-            return User.objects.get(username__iexact=data)
-        except User.DoesNotExist:
+            return find_users(data)[0]
+        except IndexError:
             raise serializers.ValidationError('Unable to find user')
