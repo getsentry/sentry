@@ -23,17 +23,19 @@ def merge_group(from_object_id, to_object_id, **kwargs):
         EventMapping, Event
     )
 
+    logger = merge_group.get_logger()
+
     try:
         group = Group.objects.get(id=from_object_id)
     except Group.DoesNotExist:
+        logger.warn('merge_group called with invalid from_object_id: %s', from_object_id)
         return
 
     try:
         new_group = Group.objects.get(id=to_object_id)
     except Group.DoesNotExist:
+        logger.warn('merge_group called with invalid to_object_id: %s', to_object_id)
         return
-
-    logger = merge_group.get_logger()
 
     model_list = (
         GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping, Event
