@@ -18,6 +18,7 @@ from sentry.models import (
     Activity, Group, GroupBookmark, GroupMeta, Project, TagKey
 )
 from sentry.search.utils import parse_query
+from sentry.tasks.deletion import delete_group
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import parse_date
 
@@ -142,7 +143,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
         - isBookmarked=[1|0]
 
         If any ids are out of scope this operation will succeed without any data
-        mutation
+        mutation.
         """
         project = Project.objects.get_from_cache(
             id=project_id,
@@ -246,6 +247,8 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if not group_ids:
             return Response(status=204)
 
-        group_list.delete()
+        # TODO(dcramer): set status to pending deletion
+        for group in group_list:
+            delete_group.delay(object_id=group.id)
 
         return Response(status=204)
