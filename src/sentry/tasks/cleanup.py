@@ -55,7 +55,7 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
 
     log.info("Removing expired values for LostPasswordHash")
     LostPasswordHash.objects.filter(
-        date_added__lte=timezone.now() - datetime.timedelta(days=1)
+        date_added__lte=timezone.now() - datetime.timedelta(hours=48)
     ).delete()
 
     # TODO: we should move this into individual backends
