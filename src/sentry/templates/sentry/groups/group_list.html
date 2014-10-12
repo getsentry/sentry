@@ -29,8 +29,6 @@
 
                     <ul class="dropdown-menu more-menu" style="left: 0">
                       <li><a href="#">Merge events</a></li>
-                      <li class="divider"></li>
-                      <li><a href="#">Delete all events</a></li>
                     </ul>
                 </div>
 
@@ -40,7 +38,10 @@
                     </a>
                 </div>
                 <div class="btn-group">
-                    <a href="#" class="btn dropdown-toggle btn-sm" data-toggle="dropdown">{% blocktrans with sort_label as label %}<span class="hidden-sm hidden-xs">Sort by:</span> {{ label }}{% endblocktrans %} <span aria-hidden="true" class="icon-arrow-down"></span></a>
+                    <a href="#" class="btn dropdown-toggle btn-sm" data-toggle="dropdown">
+                      <span class="hidden-sm hidden-xs">Sort by:</span> <% sortLabel %>
+                      <span aria-hidden="true" class="icon-arrow-down"></span>
+                    </a>
                     <ul class="dropdown-menu">
                         <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
                         <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
