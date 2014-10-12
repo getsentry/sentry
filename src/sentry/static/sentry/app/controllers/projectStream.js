@@ -126,6 +126,31 @@
         $('.stream-actions .chk-select-all').prop('checked', allSelected);
       });
 
+      var sortBy = params.sort || 'date',
+          sortLabel;
+
+      switch (sortBy) {
+        case 'new':
+          sortLabel = 'First Seen';
+          break;
+        case 'priority':
+          sortLabel = 'Priority';
+          break;
+        case 'freq':
+          sortLabel = 'Frequency';
+          break;
+        case 'tottime':
+          sortLabel = 'Total Time Spent';
+          break;
+        case 'avgtime':
+          sortLabel = 'Average Time Spent';
+          break;
+        default:
+          sortLabel = 'Last Seen';
+          sortBy = 'date';
+      }
+      $scope.sortLabel = sortLabel;
+
       function confirmAction(options){
         var selectedGroupIds = $.map($('.group-list .chk-select:checked'), function(item){
           return $(item).val();
