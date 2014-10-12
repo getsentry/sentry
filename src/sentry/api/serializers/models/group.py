@@ -9,7 +9,7 @@ from sentry.api.serializers import Serializer, register
 from sentry.app import tsdb
 from sentry.constants import TAG_LABELS
 from sentry.models import (
-    Group, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus
+    Group, GroupAssignee, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -58,6 +58,13 @@ class GroupSerializer(Serializer):
             rollup=3600 * 24,
         )
 
+        assignees = dict(
+            (a.group_id, a.user)
+            for a in GroupAssignee.objects.filter(
+                group__in=item_list,
+            ).select_related('user')
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
@@ -75,6 +82,7 @@ class GroupSerializer(Serializer):
                 }
 
             result[item] = {
+                'assigned_to': assignees.get(item),
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'tags': tags,
@@ -117,6 +125,7 @@ class GroupSerializer(Serializer):
                 '24h': attrs['hourly_stats'],
                 '30d': attrs['daily_stats'],
             },
+            'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'hasSeen': attrs['has_seen'],
             'tags': attrs['tags'],
