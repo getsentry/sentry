@@ -9,7 +9,7 @@
         link: function(scope, element, attrs) {
           scope.group = scope.$eval(attrs.group);
         },
-        controller: ['$scope', 'projectMemberList', function($scope, projectMemberList){
+        controller: ['$scope', '$timeout', 'projectMemberList', function($scope, $timeout, projectMemberList){
           projectMemberList.success(function(data){
             $scope.projectMemberList = data;
           });
@@ -18,11 +18,14 @@
             $.ajax({
               url: '/api/0/groups/' + $scope.group.id + '/',
               method: 'PUT',
-              data: {
-                assignedTo: user.id
-              },
+              data: JSON.stringify({
+                assignedTo: user.email
+              }),
+              contentType: 'application/json',
               success: function(data){
-                scope.group.assignedTo = user;
+                $timeout(function(){
+                  $scope.group.assignedTo = user;
+                });
               }
             });
           };
