@@ -220,6 +220,21 @@
         });
       });
 
+      $('.stream-actions .action-merge').click(function(e){
+        e.preventDefault();
+
+        confirmAction({
+          actionLabel: 'Merge',
+          canActionAll: true,
+          action: function(selectedGroupIds){
+            actionGroups({
+              ids: selectedGroupIds,
+              data: {merge: '1'}
+            });
+          }
+        });
+      });
+
       $('.stream-actions .action-delete').click(function(e){
         e.preventDefault();
 
