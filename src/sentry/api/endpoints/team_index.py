@@ -1,24 +1,13 @@
+from __future__ import absolute_import, print_function
+
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
-from sentry.models import Team, User
+from sentry.api.fields import UserField
+from sentry.models import Team
 from sentry.permissions import can_create_teams
-
-
-class UserField(serializers.WritableField):
-    def to_native(self, obj):
-        return obj.username
-
-    def from_native(self, data):
-        if not data:
-            return None
-
-        try:
-            return User.objects.get(username__iexact=data)
-        except User.DoesNotExist:
-            raise serializers.ValidationError('Unable to find user')
 
 
 class TeamSerializer(serializers.Serializer):

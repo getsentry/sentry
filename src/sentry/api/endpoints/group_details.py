@@ -6,10 +6,13 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
+from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
-from sentry.models import Activity, Group, GroupBookmark, GroupSeen, GroupStatus
+from sentry.models import (
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus, Project
+)
 
 
 class GroupSerializer(serializers.Serializer):
@@ -17,6 +20,7 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    assignedTo = UserField()
 
 
 class GroupDetailsEndpoint(Endpoint):
@@ -77,7 +81,7 @@ class GroupDetailsEndpoint(Endpoint):
 
         return Response(data)
 
-    def post(self, request, group_id):
+    def put(self, request, group_id):
         group = Group.objects.get(
             id=group_id,
         )
@@ -89,6 +93,10 @@ class GroupDetailsEndpoint(Endpoint):
             return Response(status=400)
 
         result = serializer.object
+
+        if result.get('assignedTo') and group.project not in Project.objects.get_for_user(result['assignedTo']):
+            return Response(status=400)
+
         if result.get('status') == 'resolved':
             now = timezone.now()
 
@@ -125,6 +133,47 @@ class GroupDetailsEndpoint(Endpoint):
                 group=group,
                 user=request.user,
             ).delete()
+
+        if 'assignedTo' in result:
+            now = timezone.now()
+
+            if result['assignedTo']:
+                assignee, created = GroupAssignee.objects.get_or_create(
+                    group=group,
+                    defaults={
+                        'project': group.project,
+                        'user': result['assignedTo'],
+                        'date_added': now,
+                    }
+                )
+
+                if not created:
+                    affected = GroupAssignee.objects.filter(
+                        group=group,
+                    ).exclude(
+                        user=result['assignedTo'],
+                    ).update(
+                        user=result['assignedTo'],
+                        date_added=now
+                    )
+                else:
+                    affected = True
+            else:
+                affected = GroupAssignee.objects.filter(
+                    group=group,
+                ).delete()
+
+            if affected:
+                create_or_update(
+                    Activity,
+                    project=group.project,
+                    group=group,
+                    type=Activity.ASSIGNED,
+                    user=request.user,
+                    data={
+                        'assignee': result['assignedTo'].id,
+                    }
+                )
 
         return Response(serialize(group, request.user))
 
