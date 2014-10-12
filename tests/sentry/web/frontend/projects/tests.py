@@ -8,8 +8,9 @@ import logging
 from django.core.urlresolvers import reverse
 from exam import before, fixture
 
-from sentry.constants import STATUS_HIDDEN
-from sentry.models import Project, ProjectKey, ProjectOption, TagKey
+from sentry.models import (
+    Project, ProjectKey, ProjectOption, ProjectStatus, TagKey
+)
 from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
@@ -170,7 +171,9 @@ class RemoveProjectTest(TestCase):
         assert resp.status_code == 302
         delete_project.delay.assert_called_once_with(
             object_id=self.project.id)
-        assert Project.objects.get(id=self.project.id).status == STATUS_HIDDEN
+
+        project = Project.objects.get(id=self.project.id)
+        assert project.status == ProjectStatus.PENDING_DELETION
 
 
 class ManageProjectTagsTest(TestCase):

@@ -6,7 +6,8 @@ from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import MEMBER_ADMIN
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
+from sentry.tasks.deletion import delete_project
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -68,7 +69,9 @@ class ProjectDetailsEndpoint(Endpoint):
         if not (request.user.is_superuser or project.team.owner_id == request.user.id):
             return Response('{"error": "form"}', status=status.HTTP_403_FORBIDDEN)
 
-        # TODO(dcramer): this needs to push it into the queue
-        project.delete()
+        project.update(status=ProjectStatus.PENDING_DELETION)
+
+        # we delay the task for 5 minutes so we can implement an undo
+        delete_project.delay(object_id=project.id, countdown=60 * 5)
 
         return Response(status=204)

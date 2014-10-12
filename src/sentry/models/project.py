@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import (
-    PLATFORM_TITLES, PLATFORM_LIST, STATUS_VISIBLE, STATUS_HIDDEN
+    PLATFORM_TITLES, PLATFORM_LIST
 )
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, sane_repr
@@ -22,6 +22,14 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.manager import ProjectManager
 from sentry.utils.http import absolute_uri
+
+
+# TODO(dcramer): pull in enum library
+class ProjectStatus(object):
+    VISIBLE = 0
+    HIDDEN = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
 
 
 class Project(Model):
@@ -44,8 +52,10 @@ class Project(Model):
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(default=0, choices=(
-        (STATUS_VISIBLE, _('Visible')),
-        (STATUS_HIDDEN, _('Hidden')),
+        (ProjectStatus.VISIBLE, _('Visible')),
+        (ProjectStatus.HIDDEN, _('Hidden')),
+        (ProjectStatus.PENDING_DELETION, _('Pending Deletion')),
+        (ProjectStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), db_index=True)
     platform = models.CharField(max_length=32, choices=PLATFORM_CHOICES, null=True)
 

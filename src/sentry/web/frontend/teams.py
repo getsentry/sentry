@@ -14,7 +14,7 @@ from django.utils.translation import ugettext as _
 
 from sudo.decorators import sudo_required
 
-from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
+from sentry.constants import MEMBER_USER, MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
     can_add_team_member, can_remove_team, can_create_projects,
@@ -128,8 +128,6 @@ def manage_team_projects(request, team):
         return HttpResponseRedirect(reverse('sentry'))
 
     project_list = team.project_set.all()
-    if not request.user.is_superuser:
-        project_list = project_list.filter(status=STATUS_VISIBLE)
     project_list = sorted(project_list, key=lambda o: o.slug)
     for project in project_list:
         project.team = team

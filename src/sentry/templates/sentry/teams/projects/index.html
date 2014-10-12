@@ -15,18 +15,17 @@
             <colgroup>
                 <col/>
                 <col width="140px"/>
+                <col width="140px"/>
             </colgroup>
             <tbody>
             {% for project in project_list %}
                 <tr>
                     <td>
                         <strong><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a></strong>
-                        {% if project.status == STATUS_HIDDEN %}
-                            (pending deletion)
-                        {% endif %}<br>
                          {{ team.slug }}/{{ project.slug }}
                     </td>
-                    <td style="text-align:right;">
+                    <td style="text-align:center">{{ project.get_status_display }}</td>
+                    <td style="text-align:right">
                       {% trans "Created" %} {{ project.date_added|timesince }}
                     </td>
                 </tr>
