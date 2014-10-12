@@ -7,9 +7,9 @@ from sentry.api.base import Endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN, STATUS_HIDDEN
+from sentry.constants import MEMBER_ADMIN
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Project
+    AuditLogEntry, AuditLogEntryEvent, Project, ProjectStatus
 )
 from sentry.tasks.deletion import delete_project
 
@@ -80,8 +80,8 @@ class ProjectDetailsEndpoint(Endpoint):
         if not (request.user.is_superuser or project.team.owner_id == request.user.id):
             return Response('{"error": "form"}', status=status.HTTP_403_FORBIDDEN)
 
-        if project.status != STATUS_HIDDEN:
-            project.update(status=STATUS_HIDDEN)
+        if project.status == ProjectStatus.VISIBLE:
+            project.update(status=ProjectStatus.PENDING_DELETION)
             delete_project.delay(object_id=project.id)
 
             AuditLogEntry.objects.create(

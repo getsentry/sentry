@@ -7,9 +7,9 @@ from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
 from sentry.app import tsdb
-from sentry.constants import STATUS_RESOLVED, STATUS_MUTED, TAG_LABELS
+from sentry.constants import TAG_LABELS
 from sentry.models import (
-    Group, GroupBookmark, GroupTagKey, GroupSeen
+    Group, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -85,9 +85,9 @@ class GroupSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         status = obj.get_status()
-        if status == STATUS_RESOLVED:
+        if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-        elif status == STATUS_MUTED:
+        elif status == GroupStatus.MUTED:
             status_label = 'muted'
         else:
             status_label = 'unresolved'
@@ -107,7 +107,7 @@ class GroupSerializer(Serializer):
             'firstSeen': obj.first_seen,
             'lastSeen': obj.last_seen,
             'timeSpent': obj.avg_time_spent,
-            'isResolved': obj.get_status() == STATUS_RESOLVED,
+            'isResolved': obj.get_status() == GroupStatus.RESOLVED,
             'status': status_label,
             'isPublic': obj.is_public,
             # 'score': getattr(obj, 'sort_value', 0),

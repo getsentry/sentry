@@ -4,8 +4,7 @@ import mock
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import STATUS_HIDDEN
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -60,4 +59,4 @@ class RemoveProjectTest(TestCase):
         assert resp.status_code == 302
         delete_project.delay.assert_called_once_with(
             object_id=self.project.id)
-        assert Project.objects.get(id=self.project.id).status == STATUS_HIDDEN
+        assert Project.objects.get(id=self.project.id).status == ProjectStatus.PENDING_DELETION

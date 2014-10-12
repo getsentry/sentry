@@ -10,7 +10,9 @@ from sentry.app import search
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import DEFAULT_SORT_OPTION, STATUS_CHOICES
+from sentry.constants import (
+    DEFAULT_SORT_OPTION, STATUS_CHOICES
+)
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Group, GroupBookmark, GroupMeta, GroupStatus, Project, TagKey

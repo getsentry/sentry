@@ -34,7 +34,7 @@ class RemoveTeamView(TeamView):
         form = self.get_form(request)
 
         if form.is_valid():
-            if team.status != TeamStatus.PENDING_DELETION:
+            if team.status == TeamStatus.VISIBLE:
                 team.update(status=TeamStatus.PENDING_DELETION)
                 delete_team.delay(object_id=team.id, countdown=60 * 5)
 

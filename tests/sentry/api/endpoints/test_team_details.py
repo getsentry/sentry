@@ -60,23 +60,10 @@ class TeamDeleteTest(APITestCase):
 
         assert team.status == TeamStatus.PENDING_DELETION
 
-        delete_team.apply_async.assert_called_once_with(
-            kwargs={"object_id": team.id},
+        delete_team.delay.assert_called_once_with(
+            object_id=team.id,
             countdown=60 * 5,
         )
-
-    def test_internal_project(self):
-        team = self.create_team()
-        project = self.create_project(team=team)
-
-        self.login_as(user=self.user)
-
-        url = reverse('sentry-api-0-team-details', kwargs={'team_id': team.id})
-
-        with self.settings(SENTRY_PROJECT=project.id):
-            response = self.client.delete(url)
-
-        assert response.status_code == 403
 
     def test_as_member(self):
         team = self.create_team(owner=self.user)

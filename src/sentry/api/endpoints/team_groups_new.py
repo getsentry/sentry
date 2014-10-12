@@ -7,8 +7,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import STATUS_UNRESOLVED
-from sentry.models import Group, Project, Team
+from sentry.models import Group, GroupStatus, Project, Team
 
 
 class TeamGroupsNewEndpoint(Endpoint):
@@ -38,7 +37,7 @@ class TeamGroupsNewEndpoint(Endpoint):
 
         group_list = list(Group.objects.filter(
             project__in=project_dict.keys(),
-            status=STATUS_UNRESOLVED,
+            status=GroupStatus.UNRESOLVED,
             active_at__gte=cutoff_dt,
         ).extra(
             select={'sort_value': 'score'},
