@@ -135,7 +135,6 @@ def recover(request):
             password_hash.date_added = timezone.now()
             password_hash.set_hash()
 
-    if form.is_valid():
         password_hash.send_recover_mail()
 
         request.session.pop('needs_captcha', None)

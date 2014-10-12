@@ -65,6 +65,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-xmpp <https://github.com/chroto/sentry-xmpp>`_
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_
 * `sentry-slack <https://github.com/getsentry/sentry-slack>`_
+* `sentry-zabbix <https://github.com/m0n5t3r/sentry-zabbix>`_
 
 Have an extension that should be listed here? Submit a `pull request <https://github.com/getsentry/sentry>`_ and we'll
 get it added.
