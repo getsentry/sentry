@@ -114,8 +114,6 @@
         });
       });
 
-      // TODO(dcramer): this is pretty shitty, but I'm not sure of a good
-      // way to bind the events and maintain the global status
       var checkboxHandler = function(){
         var allSelected = !$('.group-list .chk-select').is(':not(:checked)'),
             numSelected = $('.group-list .chk-select:checked').length;
@@ -145,8 +143,11 @@
         }
       });
 
+      // TODO(dcramer): this is pretty shitty, but I'm not sure of a good
+      // way to bind the events and maintain the global status
       $scope.$watchCollection('groupList', function(){
         $timeout(function(){
+          $('.group-list').undelegate('.chk-select', 'change', checkboxHandler);
           $('.group-list').delegate('.chk-select', 'change', checkboxHandler);
         });
       });
