@@ -32,7 +32,7 @@ import six
 from six.moves import range
 
 from sentry import options
-from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE
+from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
@@ -367,11 +367,6 @@ def percent(value, total):
 @register.filter
 def titlize(value):
     return value.replace('_', ' ').title()
-
-
-@register.filter
-def is_muted(value):
-    return value == STATUS_MUTED
 
 
 @register.filter
