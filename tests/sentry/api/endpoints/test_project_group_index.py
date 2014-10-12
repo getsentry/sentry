@@ -3,8 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.constants import STATUS_MUTED, STATUS_RESOLVED, STATUS_UNRESOLVED
-from sentry.models import Group, GroupBookmark
+from sentry.models import Group, GroupBookmark, GroupStatus
 from sentry.testutils import APITestCase
 
 
@@ -22,12 +21,12 @@ class GroupListTest(APITestCase):
 
 class GroupUpdateTest(APITestCase):
     def test_global_status_update(self):
-        group1 = self.create_group(checksum='a' * 32, status=STATUS_RESOLVED)
-        group2 = self.create_group(checksum='b' * 32, status=STATUS_UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=STATUS_MUTED)
+        group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
-            checksum='b' * 32, status=STATUS_UNRESOLVED)
+            checksum='b' * 32, status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
@@ -38,28 +37,28 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 204
 
         new_group1 = Group.objects.get(id=group1.id)
-        assert new_group1.status == STATUS_RESOLVED
+        assert new_group1.status == GroupStatus.RESOLVED
         assert new_group1.resolved_at is None
 
         new_group2 = Group.objects.get(id=group2.id)
-        assert new_group2.status == STATUS_RESOLVED
+        assert new_group2.status == GroupStatus.RESOLVED
         assert new_group2.resolved_at is not None
 
         new_group3 = Group.objects.get(id=group3.id)
-        assert new_group3.status == STATUS_RESOLVED
+        assert new_group3.status == GroupStatus.RESOLVED
         assert new_group3.resolved_at is not None
 
         new_group4 = Group.objects.get(id=group4.id)
-        assert new_group4.status == STATUS_UNRESOLVED
+        assert new_group4.status == GroupStatus.UNRESOLVED
         assert new_group4.resolved_at is None
 
     def test_selective_status_update(self):
-        group1 = self.create_group(checksum='a' * 32, status=STATUS_RESOLVED)
-        group2 = self.create_group(checksum='b' * 32, status=STATUS_UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=STATUS_MUTED)
+        group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
-            checksum='b' * 32, status=STATUS_UNRESOLVED)
+            checksum='b' * 32, status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
@@ -80,23 +79,23 @@ class GroupUpdateTest(APITestCase):
 
         new_group2 = Group.objects.get(id=group2.id)
         assert new_group2.resolved_at is not None
-        assert new_group2.status == STATUS_RESOLVED
+        assert new_group2.status == GroupStatus.RESOLVED
 
         new_group3 = Group.objects.get(id=group3.id)
         assert new_group3.resolved_at is None
-        assert new_group3.status == STATUS_MUTED
+        assert new_group3.status == GroupStatus.MUTED
 
         new_group4 = Group.objects.get(id=group4.id)
         assert new_group4.resolved_at is None
-        assert new_group4.status == STATUS_UNRESOLVED
+        assert new_group4.status == GroupStatus.UNRESOLVED
 
     def test_set_bookmarked(self):
-        group1 = self.create_group(checksum='a' * 32, status=STATUS_RESOLVED)
-        group2 = self.create_group(checksum='b' * 32, status=STATUS_UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=STATUS_MUTED)
+        group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
-            checksum='b' * 32, status=STATUS_UNRESOLVED)
+            checksum='b' * 32, status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
@@ -161,12 +160,12 @@ class GroupDeleteTest(APITestCase):
         assert response.status_code == 400
 
     def test_delete_by_id(self):
-        group1 = self.create_group(checksum='a' * 32, status=STATUS_RESOLVED)
-        group2 = self.create_group(checksum='b' * 32, status=STATUS_UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=STATUS_MUTED)
+        group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
-            checksum='b' * 32, status=STATUS_UNRESOLVED)
+            checksum='b' * 32, status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
@@ -177,7 +176,9 @@ class GroupDeleteTest(APITestCase):
             group2=group2,
             group4=group4,
         )
-        response = self.client.delete(url, format='json')
+
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            response = self.client.delete(url, format='json')
         assert response.status_code == 204
 
         new_group1 = Group.objects.filter(id=group1.id)
