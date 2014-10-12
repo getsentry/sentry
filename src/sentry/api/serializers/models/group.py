@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import TAG_LABELS
 from sentry.models import (
@@ -82,7 +82,7 @@ class GroupSerializer(Serializer):
                 }
 
             result[item] = {
-                'assigned_to': assignees.get(item),
+                'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'tags': tags,

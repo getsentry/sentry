@@ -90,7 +90,7 @@ class GroupDetailsEndpoint(Endpoint):
 
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
-            return Response(status=400)
+            return Response(serializer.errors, status=400)
 
         result = serializer.object
 
@@ -158,22 +158,32 @@ class GroupDetailsEndpoint(Endpoint):
                     )
                 else:
                     affected = True
+
+                if affected:
+                    create_or_update(
+                        Activity,
+                        project=group.project,
+                        group=group,
+                        type=Activity.ASSIGNED,
+                        user=request.user,
+                        data={
+                            'assignee': result['assignedTo'].id,
+                        }
+                    )
+
             else:
                 affected = GroupAssignee.objects.filter(
                     group=group,
                 ).delete()
 
-            if affected:
-                create_or_update(
-                    Activity,
-                    project=group.project,
-                    group=group,
-                    type=Activity.ASSIGNED,
-                    user=request.user,
-                    data={
-                        'assignee': result['assignedTo'].id,
-                    }
-                )
+                if affected:
+                    create_or_update(
+                        Activity,
+                        project=group.project,
+                        group=group,
+                        type=Activity.UNASSIGNED,
+                        user=request.user,
+                    )
 
         return Response(serialize(group, request.user))
 
