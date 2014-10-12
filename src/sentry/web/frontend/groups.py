@@ -289,6 +289,9 @@ def group_event_list(request, team, project, group):
     # TODO: we need the event data to bind after we limit
     event_list = group.event_set.all().order_by('-datetime')[:100]
 
+    for event in event_list:
+        event.project = project
+
     Event.objects.bind_nodes(event_list, 'data')
 
     return render_with_group_context(group, 'sentry/groups/event_list.html', {
