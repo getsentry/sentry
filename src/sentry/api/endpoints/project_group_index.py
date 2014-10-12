@@ -17,6 +17,7 @@ from sentry.models import (
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
+from sentry.tasks.merge import merge_group
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import parse_date
 
@@ -26,6 +27,7 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    merge = serializers.BooleanField()
 
 
 class ProjectGroupIndexEndpoint(Endpoint):
@@ -125,6 +127,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         - status=[resolved|unresolved|muted]
         - isBookmarked=[1|0]
+        - merge=[1|0]
 
         If any ids are out of scope this operation will succeed without any data
         mutation.
@@ -199,6 +202,18 @@ class ProjectGroupIndexEndpoint(Endpoint):
                 group__in=group_ids,
                 user=request.user,
             ).delete()
+
+        # XXX(dcramer): this feels a bit shady like it should be its own
+        # endpoint
+        if result.get('merge') and len(group_list) > 1:
+            primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
+            for group in group_list:
+                if group == primary_group:
+                    continue
+                merge_group.delay(
+                    from_object_id=group.id,
+                    to_object_id=primary_group.id,
+                )
 
         return Response(status=204)
 
