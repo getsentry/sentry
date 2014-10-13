@@ -1409,6 +1409,7 @@ a.icon-share {
     min-width: 180px;
     padding-top: 0;
     overflow: hidden;
+    max-width: 250px;
 
     .form-control {
       border: 0;
@@ -1428,11 +1429,15 @@ a.icon-share {
       overflow: auto;
       margin: 0;
     }
+    
     li a {
       padding: 4px 8px;
       display: block;
       padding-left: 35px;
       position: relative;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
 
       img {
         margin-right: 5px;
