@@ -11,11 +11,16 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import (
-    DEFAULT_SORT_OPTION, STATUS_CHOICES, STATUS_RESOLVED
+    DEFAULT_SORT_OPTION, STATUS_CHOICES
 )
 from sentry.db.models.query import create_or_update
-from sentry.models import Activity, Group, GroupBookmark, Project, TagKey
+from sentry.models import (
+    Activity, Group, GroupBookmark, GroupMeta, GroupStatus, Project, TagKey
+)
 from sentry.search.utils import parse_query
+from sentry.tasks.deletion import delete_group
+from sentry.tasks.merge import merge_group
+from sentry.utils.cursors import Cursor
 from sentry.utils.dates import parse_date
 
 
@@ -24,6 +29,7 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    merge = serializers.BooleanField()
 
 
 class ProjectGroupIndexEndpoint(Endpoint):
@@ -61,13 +67,9 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if request.user.is_authenticated() and request.GET.get('assigned'):
             query_kwargs['assigned_to'] = request.user
 
-        sort_by = request.GET.get('sort') or request.session.get('streamsort')
+        sort_by = request.GET.get('sort')
         if sort_by is None:
             sort_by = DEFAULT_SORT_OPTION
-
-        # Save last sort in session
-        if sort_by != request.session.get('streamsort'):
-            request.session['streamsort'] = sort_by
 
         query_kwargs['sort_by'] = sort_by
 
@@ -102,7 +104,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
         # TODO: proper pagination support
         cursor = request.GET.get('cursor')
         if cursor:
-            query_kwargs['cursor'] = cursor
+            query_kwargs['cursor'] = Cursor.from_string(cursor)
 
         query = request.GET.get('query', 'is:unresolved')
         if query is not None:
@@ -110,7 +112,20 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         results = search.query(**query_kwargs)
 
-        return Response(serialize(list(results), request.user))
+        GroupMeta.objects.populate_cache(results)
+
+        # TODO(dcramer): we need create a public API for 'sort_value'
+        context = serialize(list(results), request.user)
+        for group, data in zip(results, context):
+            data['sortWeight'] = group.sort_value
+
+        headers = {}
+        headers['Link'] = ', '.join([
+            self.build_cursor_link(request, 'previous', results.prev),
+            self.build_cursor_link(request, 'next', results.next),
+        ])
+
+        return Response(context, headers=headers)
 
     def put(self, request, project_id):
         """
@@ -128,9 +143,10 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         - status=[resolved|unresolved|muted]
         - isBookmarked=[1|0]
+        - merge=[1|0]
 
         If any ids are out of scope this operation will succeed without any data
-        mutation
+        mutation.
         """
         project = Project.objects.get_from_cache(
             id=project_id,
@@ -166,9 +182,9 @@ class ProjectGroupIndexEndpoint(Endpoint):
             now = timezone.now()
 
             happened = Group.objects.filter(filters).exclude(
-                status=STATUS_RESOLVED,
+                status=GroupStatus.RESOLVED,
             ).update(
-                status=STATUS_RESOLVED,
+                status=GroupStatus.RESOLVED,
                 resolved_at=now,
             )
 
@@ -203,6 +219,18 @@ class ProjectGroupIndexEndpoint(Endpoint):
                 user=request.user,
             ).delete()
 
+        # XXX(dcramer): this feels a bit shady like it should be its own
+        # endpoint
+        if result.get('merge') and len(group_list) > 1:
+            primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
+            for group in group_list:
+                if group == primary_group:
+                    continue
+                merge_group.delay(
+                    from_object_id=group.id,
+                    to_object_id=primary_group.id,
+                )
+
         return Response(status=204)
 
     def delete(self, request, project_id):
@@ -234,6 +262,8 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if not group_ids:
             return Response(status=204)
 
-        group_list.delete()
+        # TODO(dcramer): set status to pending deletion
+        for group in group_list:
+            delete_group.delay(object_id=group.id)
 
         return Response(status=204)

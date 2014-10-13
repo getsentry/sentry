@@ -65,31 +65,99 @@
   SentryApp.controller('ProjectStreamCtrl', [
     '$http', '$modal', '$scope', '$timeout', 'Collection', 'GroupModel', 'selectedProject',
     function($http, $modal, $scope, $timeout, Collection, GroupModel, selectedProject) {
-      var timeoutId;
+      var timeoutId,
+          pollingCursor,
+          params = app.utils.getQueryParams(),
+          endpoint = getEndpoint(selectedProject, params);
+
       var pollForChanges = function() {
-        var params = app.utils.getQueryParams();
-        var endpoint = getEndpoint(selectedProject, params);
-        $http.get(endpoint)
-          .success(function(data){
+        $.ajax({
+          url: endpoint,
+          method: 'GET',
+          success: function(data, textStatus, jqXHR){
+            if (!data.length) {
+              return;
+            }
             var duration = $scope.chartDuration;
             data = $.map(data, GroupModel);
             angular.forEach(data, function(group){
               group.activeChartData = group.stats[duration];
             });
 
+            var links = app.utils.parseLinkHeader(jqXHR.getResponseHeader('Link'));
+            endpoint = links.previous;
+
             $timeout(function(){
               $scope.groupList.extend(data);
             });
-          }).finally(function(){
+          },
+          complete: function(){
             timeoutId = window.setTimeout(pollForChanges, 3000);
-          });
+          }
+        });
       };
+
+      $scope.selectAllActive = false;
+      $scope.multiSelected = false;
+      $scope.anySelected = false;
+      $('.stream-actions .chk-select-all').change(function(){
+        var checked = $(this).is(':checked');
+
+        $('.group-list .chk-select').prop('checked', checked);
+
+        var numSelected = $('.group-list .chk-select:checked').length;
+
+        $timeout(function(){
+          $scope.selectAllActive = checked;
+          $scope.anySelected = numSelected !== 0;
+          $scope.multiSelected = numSelected > 1;
+        });
+      });
+
+      var checkboxHandler = function(){
+        var allSelected = !$('.group-list .chk-select').is(':not(:checked)'),
+            numSelected = $('.group-list .chk-select:checked').length;
+
+        $('.stream-actions .chk-select-all').prop('checked', allSelected);
+
+        $timeout(function(){
+          $scope.selectAllActive = allSelected;
+          $scope.anySelected = numSelected !== 0;
+          $scope.multiSelected = numSelected > 1;
+        });
+      };
+
+      $scope.$watch('anySelected', function(anySelected){
+        if (!anySelected) {
+          $('.stream-actions .action').addClass('disabled').prop('disabled', true);
+        } else {
+          $('.stream-actions .action').removeClass('disabled').prop('disabled', false);
+        }
+      });
+
+      $scope.$watch('multiSelected', function(multiSelected){
+        if (!multiSelected) {
+          $('.stream-actions .action-merge').addClass('disabled').prop('disabled', true);
+        } else {
+          $('.stream-actions .action-merge').removeClass('disabled').prop('disabled', false);
+        }
+      });
+
+      // TODO(dcramer): this is pretty shitty, but I'm not sure of a good
+      // way to bind the events and maintain the global status
+      $scope.$watchCollection('groupList', function(){
+        $timeout(function(){
+          $('.group-list').undelegate('.chk-select', 'change', checkboxHandler);
+          $('.group-list').delegate('.chk-select', 'change', checkboxHandler);
+        });
+      });
+
       var groupList = $.map(window.groupList, GroupModel);
 
       $scope.groupList = new Collection(groupList, {
         sortFunc: function(data) {
           app.utils.sortArray(data, function(item){
-            return [item.score];
+            return [item.sortWeight];
           });
         },
         canUpdate: function(current, pending) {
@@ -105,19 +173,30 @@
         });
       };
 
-      $scope.selectAllActive = false;
-      $('.stream-actions .chk-select-all').change(function(){
-        var checked = $(this).is(':checked');
-        $scope.selectAllActive = checked;
-        $('.group-list .chk-select').prop('checked', checked);
-      });
+      var sortBy = params.sort || 'date',
+          sortLabel;
 
-      $('.group-list').delegate('.chk-select', 'change', function(){
-        var allSelected = !$('.group-list .chk-select').is(':not(:checked)');
-
-        $scope.selectAllActive = allSelected;
-        $('.stream-actions .chk-select-all').prop('checked', allSelected);
-      });
+      switch (sortBy) {
+        case 'new':
+          sortLabel = 'First Seen';
+          break;
+        case 'priority':
+          sortLabel = 'Priority';
+          break;
+        case 'freq':
+          sortLabel = 'Frequency';
+          break;
+        case 'tottime':
+          sortLabel = 'Total Time Spent';
+          break;
+        case 'avgtime':
+          sortLabel = 'Average Time Spent';
+          break;
+        default:
+          sortLabel = 'Last Seen';
+          sortBy = 'date';
+      }
+      $scope.sortLabel = sortLabel;
 
       function confirmAction(options){
         var selectedGroupIds = $.map($('.group-list .chk-select:checked'), function(item){
@@ -188,6 +267,22 @@
         });
       });
 
+      $('.stream-actions .action-merge').click(function(e){
+        e.preventDefault();
+
+        confirmAction({
+          actionLabel: 'Merge',
+          canActionAll: true,
+          action: function(selectedGroupIds){
+            actionGroups({
+              ids: selectedGroupIds,
+              data: {merge: '1'}
+            });
+            // TODO(dcramer): show flash message
+          }
+        });
+      });
+
       $('.stream-actions .action-delete').click(function(e){
         e.preventDefault();
 
@@ -198,6 +293,7 @@
               ids: selectedGroupIds,
               method: 'DELETE',
             });
+            // TODO(dcramer): show flash message
           }
         });
       });

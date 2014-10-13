@@ -7,13 +7,14 @@ sentry.web.views
 """
 from __future__ import absolute_import, print_function
 
-import datetime
 import logging
-from functools import wraps
+import six
 
+from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
+from django.db import connections
 from django.db.models import Sum, Q
 from django.http import (
     HttpResponse, HttpResponseBadRequest,
@@ -24,16 +25,12 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
-
-import six
-
+from functools import wraps
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.app import tsdb
-from sentry.constants import (
-    MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
-    EVENTS_PER_PAGE)
+from sentry.constants import MEMBER_USER
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
@@ -42,17 +39,17 @@ from sentry.coreapi import (
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupBookmark, Project, TagValue, Activity, User)
+    Group, GroupStatus, GroupTagValue, Project, TagValue, Activity, User)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json
 from sentry.utils.data_scrubber import SensitiveDataFilter
+from sentry.utils.db import get_db_engine
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
-from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
 
 error_logger = logging.getLogger('sentry.errors')
@@ -362,61 +359,6 @@ class StoreView(APIView):
 
 
 @csrf_exempt
-@has_access
-@never_cache
-@api
-def poll(request, team, project):
-    offset = 0
-    limit = EVENTS_PER_PAGE
-
-    response = _get_group_list(
-        request=request,
-        project=project,
-    )
-
-    event_list = response['event_list']
-    event_list = list(event_list[offset:limit])
-
-    return to_json(event_list, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
-def resolve(request, team, project):
-    gid = request.REQUEST.get('gid')
-    if not gid:
-        return HttpResponseForbidden()
-
-    try:
-        group = Group.objects.get(pk=gid)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    now = timezone.now()
-
-    happened = Group.objects.filter(
-        pk=group.pk,
-    ).exclude(status=STATUS_RESOLVED).update(
-        status=STATUS_RESOLVED,
-        resolved_at=now,
-    )
-    group.status = STATUS_RESOLVED
-    group.resolved_at = now
-
-    if happened:
-        Activity.objects.create(
-            project=project,
-            group=group,
-            type=Activity.SET_RESOLVED,
-            user=request.user,
-        )
-
-    return to_json(group, request)
-
-
-@csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
 @api
@@ -473,7 +415,7 @@ def resolve_group(request, team, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at=timezone.now(),
     )
     if happened:
@@ -498,7 +440,7 @@ def mute_group(request, team, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_MUTED,
+        status=GroupStatus.MUTED,
         resolved_at=timezone.now(),
     )
     if happened:
@@ -523,7 +465,7 @@ def unresolve_group(request, team, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         active_at=timezone.now(),
     )
     if happened:
@@ -561,57 +503,48 @@ def remove_group(request, team, project, group_id):
 
 
 @csrf_exempt
-@has_access
-@never_cache
-@api
-def bookmark(request, team, project):
-    gid = request.REQUEST.get('gid')
-    if not gid:
-        return HttpResponseForbidden()
-
-    if not request.user.is_authenticated():
-        return HttpResponseForbidden()
-
-    try:
-        group = Group.objects.get(pk=gid)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    gb, created = GroupBookmark.objects.get_or_create(
-        project=group.project,
-        user=request.user,
-        group=group,
-    )
-    if not created:
-        gb.delete()
-
-    return to_json(group, request)
-
-
-@csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
-def clear(request, team, project):
-    queryset = Group.objects.filter(
-        project=project,
-        status=STATUS_UNRESOLVED,
-    )
-    rows_affected = queryset.update(status=STATUS_RESOLVED)
-    if rows_affected > 1000:
-        logger.warning(
-            'Large resolve on %s of %s rows', project.slug, rows_affected)
+@api
+def get_group_tags(request, team, project, group_id, tag_name):
+    # XXX(dcramer): Consider this API deprecated as soon as it was implemented
+    cutoff = timezone.now() - timedelta(days=7)
 
-    if rows_affected:
-        Activity.objects.create(
-            project=project,
-            type=Activity.SET_RESOLVED,
-            user=request.user,
-        )
+    engine = get_db_engine('default')
+    if 'postgres' in engine:
+        # This doesnt guarantee percentage is accurate, but it does ensure
+        # that the query has a maximum cost
+        cursor = connections['default'].cursor()
+        cursor.execute("""
+            SELECT SUM(t)
+            FROM (
+                SELECT times_seen as t
+                FROM sentry_messagefiltervalue
+                WHERE group_id = %s
+                AND key = %s
+                AND last_seen > NOW() - INTERVAL '7 days'
+                LIMIT 10000
+            ) as a
+        """, [group_id, tag_name])
+        total = cursor.fetchone()[0] or 0
+    else:
+        total = GroupTagValue.objects.filter(
+            group=group_id,
+            key=tag_name,
+            last_seen__gte=cutoff,
+        ).aggregate(t=Sum('times_seen'))['t'] or 0
 
-    data = []
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
+    unique_tags = GroupTagValue.objects.filter(
+        group=group_id,
+        key=tag_name,
+        last_seen__gte=cutoff,
+    ).values_list('value', 'times_seen').order_by('-times_seen')[:10]
+
+    return json.dumps({
+        'name': tag_name,
+        'values': list(unique_tags),
+        'total': total,
+    })
 
 
 @never_cache
@@ -633,11 +566,11 @@ def get_group_trends(request, team=None, project=None):
         status=0,
     )
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(base_qs.filter(
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         last_seen__gte=cutoff_dt
     ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
@@ -666,12 +599,12 @@ def get_new_groups(request, team=None, project=None):
 
     project_dict = dict((p.id, p) for p in project_list)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         active_at__gte=cutoff_dt,
     ).extra(select={'sort_value': 'score'}).order_by('-score', '-first_seen')[:limit])
 
@@ -700,12 +633,12 @@ def get_resolved_groups(request, team=None, project=None):
 
     project_dict = dict((p.id, p) for p in project_list)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at__gte=cutoff_dt,
     ).order_by('-score')[:limit])
 
@@ -731,7 +664,7 @@ def get_stats(request, team=None, project=None):
     else:
         project_list = Project.objects.get_for_user(request.user, team=team)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
 
     end = timezone.now()
     start = end - cutoff
@@ -752,7 +685,7 @@ def get_stats(request, team=None, project=None):
     # TODO(dcramer); move this into tsdb
     num_resolved = Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at__gte=start,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 

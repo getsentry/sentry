@@ -154,6 +154,7 @@ def has_group_access(func=None, **kwargs):
 
             if allow_public and (group.is_public or group.project.public):
                 team = Team.objects.get_from_cache(slug=team_slug)
+                group.project.team = team
                 return func(request, team=team, project=group.project, group=group, *args, **kwargs)
 
             return prv_func(request, team_slug=team_slug, project_id=project_id, group=group, *args, **kwargs)

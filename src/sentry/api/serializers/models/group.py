@@ -5,11 +5,11 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
-from sentry.constants import STATUS_RESOLVED, STATUS_MUTED, TAG_LABELS
+from sentry.constants import TAG_LABELS
 from sentry.models import (
-    Group, GroupBookmark, GroupTagKey, GroupSeen
+    Group, GroupAssignee, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -58,6 +58,13 @@ class GroupSerializer(Serializer):
             rollup=3600 * 24,
         )
 
+        assignees = dict(
+            (a.group_id, a.user)
+            for a in GroupAssignee.objects.filter(
+                group__in=item_list,
+            ).select_related('user')
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
@@ -75,6 +82,7 @@ class GroupSerializer(Serializer):
                 }
 
             result[item] = {
+                'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'tags': tags,
@@ -85,9 +93,9 @@ class GroupSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         status = obj.get_status()
-        if status == STATUS_RESOLVED:
+        if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-        elif status == STATUS_MUTED:
+        elif status == GroupStatus.MUTED:
             status_label = 'muted'
         else:
             status_label = 'unresolved'
@@ -107,10 +115,8 @@ class GroupSerializer(Serializer):
             'firstSeen': obj.first_seen,
             'lastSeen': obj.last_seen,
             'timeSpent': obj.avg_time_spent,
-            'canResolve': user.is_authenticated(),
             'status': status_label,
             'isPublic': obj.is_public,
-            # 'score': getattr(obj, 'sort_value', 0),
             'project': {
                 'name': obj.project.name,
                 'slug': obj.project.slug,
@@ -119,6 +125,7 @@ class GroupSerializer(Serializer):
                 '24h': attrs['hourly_stats'],
                 '30d': attrs['daily_stats'],
             },
+            'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'hasSeen': attrs['has_seen'],
             'tags': attrs['tags'],

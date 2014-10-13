@@ -13,7 +13,6 @@ import logging
 from django.conf import settings
 from hashlib import md5
 
-from sentry.constants import STATUS_ACTIVE, STATUS_INACTIVE
 from sentry.plugins import plugins
 from sentry.rules import EventState, rules
 from sentry.tasks.base import instrumented_task
@@ -88,7 +87,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             group=event.group,
             defaults={
                 'project': project,
-                'status': STATUS_INACTIVE,
+                'status': GroupRuleStatus.INACTIVE,
             },
         )
 
@@ -96,7 +95,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             is_new=is_new,
             is_regression=is_regression,
             is_sample=is_sample,
-            rule_is_active=rule_status.status == STATUS_ACTIVE,
+            rule_is_active=rule_status.status == GroupRuleStatus.ACTIVE,
         )
 
         condition_iter = (
@@ -119,18 +118,18 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
                                match, rule.id)
             continue
 
-        if passed and rule_status.status == STATUS_INACTIVE:
+        if passed and rule_status.status == GroupRuleStatus.INACTIVE:
             # we only fire if we're able to say that the state has changed
             GroupRuleStatus.objects.filter(
                 id=rule_status.id,
-                status=STATUS_INACTIVE,
-            ).update(status=STATUS_ACTIVE)
-        elif not passed and rule_status.status == STATUS_ACTIVE:
+                status=GroupRuleStatus.INACTIVE,
+            ).update(status=GroupRuleStatus.ACTIVE)
+        elif not passed and rule_status.status == GroupRuleStatus.ACTIVE:
             # update the state to suggest this rule can fire again
             GroupRuleStatus.objects.filter(
                 id=rule_status.id,
-                status=STATUS_ACTIVE,
-            ).update(status=STATUS_INACTIVE)
+                status=GroupRuleStatus.ACTIVE,
+            ).update(status=GroupRuleStatus.INACTIVE)
 
         if passed:
             execute_rule.apply_async(

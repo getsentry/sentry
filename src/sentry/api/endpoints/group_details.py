@@ -6,10 +6,13 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
+from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
-from sentry.constants import STATUS_CHOICES, STATUS_RESOLVED
-from sentry.models import Activity, Group, GroupBookmark, GroupSeen
+from sentry.constants import STATUS_CHOICES
+from sentry.models import (
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus, Project
+)
 
 
 class GroupSerializer(serializers.Serializer):
@@ -17,6 +20,7 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    assignedTo = UserField()
 
 
 class GroupDetailsEndpoint(Endpoint):
@@ -77,7 +81,7 @@ class GroupDetailsEndpoint(Endpoint):
 
         return Response(data)
 
-    def post(self, request, group_id):
+    def put(self, request, group_id):
         group = Group.objects.get(
             id=group_id,
         )
@@ -86,19 +90,23 @@ class GroupDetailsEndpoint(Endpoint):
 
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
-            return Response(status=400)
+            return Response(serializer.errors, status=400)
 
         result = serializer.object
+
+        if result.get('assignedTo') and group.project not in Project.objects.get_for_user(result['assignedTo']):
+            return Response(status=400)
+
         if result.get('status') == 'resolved':
             now = timezone.now()
 
             group.resolved_at = now
-            group.status = STATUS_RESOLVED
+            group.status = GroupStatus.RESOLVED
 
             happened = Group.objects.filter(
                 id=group.id,
-            ).exclude(status=STATUS_RESOLVED).update(
-                status=STATUS_RESOLVED,
+            ).exclude(status=GroupStatus.RESOLVED).update(
+                status=GroupStatus.RESOLVED,
                 resolved_at=now,
             )
 
@@ -126,15 +134,68 @@ class GroupDetailsEndpoint(Endpoint):
                 user=request.user,
             ).delete()
 
+        if 'assignedTo' in result:
+            now = timezone.now()
+
+            if result['assignedTo']:
+                assignee, created = GroupAssignee.objects.get_or_create(
+                    group=group,
+                    defaults={
+                        'project': group.project,
+                        'user': result['assignedTo'],
+                        'date_added': now,
+                    }
+                )
+
+                if not created:
+                    affected = GroupAssignee.objects.filter(
+                        group=group,
+                    ).exclude(
+                        user=result['assignedTo'],
+                    ).update(
+                        user=result['assignedTo'],
+                        date_added=now
+                    )
+                else:
+                    affected = True
+
+                if affected:
+                    create_or_update(
+                        Activity,
+                        project=group.project,
+                        group=group,
+                        type=Activity.ASSIGNED,
+                        user=request.user,
+                        data={
+                            'assignee': result['assignedTo'].id,
+                        }
+                    )
+
+            else:
+                affected = GroupAssignee.objects.filter(
+                    group=group,
+                ).delete()
+
+                if affected:
+                    create_or_update(
+                        Activity,
+                        project=group.project,
+                        group=group,
+                        type=Activity.UNASSIGNED,
+                        user=request.user,
+                    )
+
         return Response(serialize(group, request.user))
 
     def delete(self, request, group_id):
+        from sentry.tasks.deletion import delete_group
+
         group = Group.objects.get(
             id=group_id,
         )
 
         assert_perm(group, request.user, request.auth)
 
-        group.delete()
+        delete_group.delay(object_id=group.id)
 
-        return Response()
+        return Response(status=202)

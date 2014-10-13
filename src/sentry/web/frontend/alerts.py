@@ -13,8 +13,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 
-from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
-from sentry.models import Alert
+from sentry.models import Alert, AlertStatus
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
 
@@ -24,7 +23,7 @@ from sentry.web.helpers import render_to_response
 def alert_list(request, team, project=None):
     alert_list = Alert.objects.filter(
         group__isnull=True,
-        status=STATUS_UNRESOLVED,
+        status=AlertStatus.UNRESOLVED,
         datetime__gte=timezone.now() - timedelta(days=3),
     ).order_by('-datetime')
 
@@ -72,6 +71,6 @@ def resolve_alert(request, team, project, alert_id):
     except Alert.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-alerts', args=[team.slug, project.slug]))
 
-    alert.update(status=STATUS_RESOLVED)
+    alert.update(status=AlertStatus.RESOLVED)
 
     return HttpResponseRedirect(reverse('sentry-alert-details', args=[team.slug, project.slug, alert.id]))

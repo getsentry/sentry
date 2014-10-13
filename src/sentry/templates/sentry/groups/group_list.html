@@ -19,18 +19,20 @@
                     <input type="checkbox" class="chk-select-all">
                 </div>
                 <div class="btn-group">
-                    <a href="javascript:void(0)" class="btn btn-default btn-sm action-resolve">
+                    <a href="javascript:void(0)" class="btn btn-default btn-sm action action-resolve">
                         <i aria-hidden="true" class="icon-checkmark"></i>
                     </a>
-                    <a href="javascript:void(0)" class="btn btn-default btn-sm action-bookmark">
+                    <a href="javascript:void(0)" class="btn btn-default btn-sm action action-bookmark">
                         <span class="icon icon-bookmark"></span>
                     </a>
-                    <a class="btn btn-default btn-sm hidden-xs action-more dropdown-toggle" data-toggle="dropdown"><span class="icon-ellipsis"></span></a>
+                    <a class="btn btn-default btn-sm hidden-xs action action-more dropdown-toggle" data-toggle="dropdown">
+                      <span class="icon-ellipsis"></span>
+                    </a>
 
                     <ul class="dropdown-menu more-menu" style="left: 0">
-                      <li><a href="#">Merge events</a></li>
+                      <li><a href="javascript:void(0)" class="action action-merge">Merge events</a></li>
                       <li class="divider"></li>
-                      <li><a href="#">Delete all events</a></li>
+                      <li><a href="javascript:void(0)" class="action action-delete">Delete events</a></li>
                     </ul>
                 </div>
 
@@ -40,7 +42,10 @@
                     </a>
                 </div>
                 <div class="btn-group">
-                    <a href="#" class="btn dropdown-toggle btn-sm" data-toggle="dropdown">{% blocktrans with sort_label as label %}<span class="hidden-sm hidden-xs">Sort by:</span> {{ label }}{% endblocktrans %} <span aria-hidden="true" class="icon-arrow-down"></span></a>
+                    <a href="#" class="btn dropdown-toggle btn-sm" data-toggle="dropdown">
+                      <span class="hidden-sm hidden-xs">Sort by:</span> <% sortLabel %>
+                      <span aria-hidden="true" class="icon-arrow-down"></span>
+                    </a>
                     <ul class="dropdown-menu">
                         <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
                         <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
@@ -143,13 +148,17 @@
                 <span class="icon icon-bookmark" ng-if="group.isBookmarked"></span>
                 <% group.title %></a>
               </h3>
+              <div class="event-message">
+                <span class="message"><% group.culprit %></span>
+              </div>
               <div class="event-meta">
-                  <span class="message"><% group.culprit %></span>
-                  &middot; <time time-since="group.firstSeen"></time>
+                <span class="last-seen"><time time-since="group.lastSeen"></time></span>
+                <span class="first-seen">(First seen <time time-since="group.firstSeen"></time>)</span>
+                <span class="in-release">in current release</span>
               </div>
             </div>
             <div class="event-assignee event-cell hidden-xs hidden-sm">
-                <assignee-selector></assignee-selector>
+                <assignee-selector group="group"></assignee-selector>
             </div>
             <div class="hidden-sm hidden-xs event-graph align-right event-cell">
               <barchart data="group.activeChartData" options="chartOptions" class="sparkline"></barchart>
@@ -193,6 +202,6 @@
       </div>
     </div>
     <script>
-    window.groupList = {% serialize event_list %}
+    window.groupList = {% convert_to_json event_list %};
     </script>
 {% endblock %}

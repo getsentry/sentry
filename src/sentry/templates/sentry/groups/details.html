@@ -32,7 +32,7 @@
             <div class="row">
               <div class="col-xs-4 assigned-to">
 
-                  <assignee-selector></assignee-selector>
+                  <assignee-selector group="selectedGroup"></assignee-selector>
                   <div class="is-assigned"><span class="hidden-sm">is</span> assigned</div>
               </div>
               <div class="col-xs-4 event-count align-right">
@@ -43,14 +43,18 @@
             </div>
           </div>
       </div>
-      <div class="seen-by hidden-xs" ng-if="selectedGroup.seenBy">
+      {% if seen_by_faces %}
+      <div class="seen-by">
         <ul>
-          <li>Seen by</li>
-          <li ng-repeat="user in selectedGroup.seenBy">
-            <img src="{{user.avatarUrl}}" />
-          </li>
+          <li>Seen by:</li>
+          {% for s_user, s_last_seen in seen_by_faces %}
+              <li>
+                  <img src="{% gravatar_url s_user.email size 32 %}" class="tip" rel="tooltip" title="<strong>{{ s_user|user_display_name|force_escape }}</strong><br>{{ s_last_seen|timesince }}">
+              </li>
+          {% endfor %}
         </ul>
       </div>
+      {% endif %}
       <div class="group-actions">
         <div class="btn-group">
           <a href="#" class="group-resolve btn btn-default btn-sm"
@@ -153,16 +157,20 @@
                 <h4>
                 <span title="{{ event.datetime }}">{% localized_datetime event.datetime %}</span> [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
             </div>
-            {% comment %}
-            {% include "sentry/partial/event_nav.html" %}
-            {% endcomment %}
 
             {% if group.is_muted %}
                 <div class="alert alert-info">This event has been muted. You will not be notified of any changes and it will not show up in the default feed.</div>
             {% endif %}
 
             {% if event.has_two_part_message %}
-                <pre id="full-message">{{ event.message }}</pre>
+                <div class="box">
+                  <div class="box-header">
+                      <h3>{% trans "Full message" %}</h3>
+                  </div>
+                  <div class="box-content with-padding">
+                    <pre id="full-message">{{ event.message }}</pre>
+                  </div>
+                </div>
             {% endif %}
 
             {% include "sentry/partial/_event_details.html" %}
@@ -202,22 +210,6 @@
             {% endif %}
         </dl>
     </div>
-
-    {% if seen_by_faces %}
-        <h6>{% trans "Seen By" %}</h6>
-        <ul class="seen-by">
-            {% for s_user, s_last_seen in seen_by_faces %}
-                <li>
-                    <img src="{% gravatar_url s_user.email size 32 %}" class="tip" rel="tooltip" title="<strong>{{ s_user|user_display_name|force_escape }}</strong><br>{{ s_last_seen|timesince }}">
-                </li>
-            {% endfor %}
-            {% if seen_by_extra %}
-                <li class="tip" rel="tooltip" title="{% for s_user, _ in seen_by %}- {{ s_user|user_display_name|force_escape }}<br>{% endfor %}">
-                    &middot;&middot;&middot;
-                </li>
-            {% endif %}
-        </ul>
-    {% endif %}
 
     <div class="hidden-xs">
       {% for tag in group.get_tags %}

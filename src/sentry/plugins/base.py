@@ -479,7 +479,7 @@ class IPlugin(local):
 
     def is_regression(self, group, event, **kwargs):
         """
-        Called on new events when the group's status is STATUS_RESOLVED.
+        Called on new events when the group's status is resolved.
         Return True if this event is a regression, False if it is not,
         None to defer to other plugins.
 

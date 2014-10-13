@@ -22,7 +22,6 @@ from urllib import quote
 
 from django import template
 from django.conf import settings
-from django.db.models import Sum
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
@@ -33,8 +32,8 @@ from django.utils.translation import ugettext as _
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Team, GroupTagValue
+from sentry.constants import EVENTS_PER_PAGE, MEMBER_OWNER
+from sentry.models import Team
 from sentry.web.helpers import group_is_public
 from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -359,17 +358,9 @@ def with_metadata(group_list, request):
 def render_tag_widget(group, tag):
     cutoff = timezone.now() - timedelta(days=7)
 
-    total = GroupTagValue.objects.filter(
-        group=group,
-        key=tag,
-        last_seen__gte=cutoff,
-    ).aggregate(t=Sum('times_seen'))['t'] or 0
-
     return {
         'title': tag.replace('_', ' ').title(),
         'tag_name': tag,
-        'unique_tags': list(group.get_unique_tags(tag, cutoff)[:10]),
-        'total_count': total,
         'group': group,
     }
 
@@ -384,11 +375,6 @@ def percent(value, total):
 @register.filter
 def titlize(value):
     return value.replace('_', ' ').title()
-
-
-@register.filter
-def is_muted(value):
-    return value == STATUS_MUTED
 
 
 @register.filter
