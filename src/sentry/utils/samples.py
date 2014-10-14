@@ -42,6 +42,14 @@ def load_data(platform, default=None):
         ('foo', 'bar'),
         ('version', '1.0'),
     ]
+    data['extra'] = {
+        'session': {
+            'foo': 'bar',
+        },
+        'results': [1, 2, 3, 4, 5],
+        'emptyList': [],
+        'emptyMap': {},
+    }
     data['sentry.interfaces.Http'] = {
         "cookies": {},
         "url": "http://example.com/foo",
