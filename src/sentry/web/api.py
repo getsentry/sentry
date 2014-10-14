@@ -340,7 +340,7 @@ class StoreView(APIView):
             raise APIError(u'Invalid data: %s (%s)' % (six.text_type(e), type(e)))
 
         # mutates data
-        manager = EventManager(data)
+        manager = EventManager(data, version=auth.version)
         data = manager.normalize()
 
         # insert IP address if not available

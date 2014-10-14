@@ -75,6 +75,10 @@ class Event(Model):
     def team(self):
         return self.project.team
 
+    @property
+    def version(self):
+        return self.data.get('version', '5')
+
     @memoize
     def ip_address(self):
         http_data = self.data.get('sentry.interfaces.Http')
