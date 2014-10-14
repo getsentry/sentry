@@ -333,6 +333,7 @@
 
         confirmAction({
           neverConfirm: true,
+          onlyIfBulk: true,
           confirmLabel: 'Bookmark',
           action: function(selectedGroupIds){
             actionGroups({
@@ -348,6 +349,7 @@
 
         confirmAction({
           neverConfirm: true,
+          onlyIfBulk: true,
           actionLabel: 'remove these {count} events from your bookmarks',
           action: function(selectedGroupIds){
             actionGroups({
