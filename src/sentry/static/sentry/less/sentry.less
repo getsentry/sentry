@@ -1164,11 +1164,10 @@ a.icon-share {
       font-size: 95%;
       position: relative;
       top: 2px;
-      padding-right: 0;
       color: #D4DBDF;
-      width: 0;
+      width: auto;
+      padding-right: 3px;
       overflow: hidden;
-      margin-left: -4px;
       .transition(all .2s ease-in-out);
     }
 
@@ -1184,16 +1183,10 @@ a.icon-share {
       z-index: 100;
       .transition(all .2s ease-in-out);
     }
+
     &.seen {
       .event-details:after {
         background: transparent;
-      }
-    }
-    &.bookmarked {
-      .icon-bookmark {
-        width: auto;
-        margin-left: 0;
-        padding-right: 3px;
       }
     }
 
