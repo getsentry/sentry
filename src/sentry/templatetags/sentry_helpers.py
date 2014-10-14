@@ -402,7 +402,7 @@ def github_button(user, repo):
 def render_values(value, threshold=5, collapse_to=3):
     if isinstance(value, (list, tuple)):
         value = dict(enumerate(value))
-        is_list, is_dict = True, True
+        is_list, is_dict = bool(value), True
     else:
         is_list, is_dict = False, isinstance(value, dict)
 
