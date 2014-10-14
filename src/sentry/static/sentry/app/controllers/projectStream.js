@@ -64,8 +64,8 @@
   ]);
 
   SentryApp.controller('ProjectStreamCtrl', [
-    '$http', '$modal', '$scope', '$timeout', 'Collection', 'GroupModel', 'selectedProject',
-    function($http, $modal, $scope, $timeout, Collection, GroupModel, selectedProject) {
+    '$http', '$modal', '$scope', '$timeout', 'Collection', 'flash', 'GroupModel', 'selectedProject',
+    function($http, $modal, $scope, $timeout, Collection, flash, GroupModel, selectedProject) {
       var timeoutId,
           pollingCursor,
           params = app.utils.getQueryParams(),
@@ -249,6 +249,22 @@
         }).result.then(options.action);
       }
 
+      function collectGroups(selection) {
+        var groupList = [];
+        if (selection === ALL) {
+           groupList = $scope.groupList;
+        } else {
+          $.each(selection, function(_, id){
+            var idx = $scope.groupList.indexOf({id: id});
+            if (idx === -1) {
+              return;
+            }
+            groupList.push($scope.groupList[idx]);
+          });
+        }
+        return groupList;
+      }
+
       function actionGroups(options) {
         var data = options.data || {},
             url = options.url || '/api/0/projects/' + selectedProject.id + '/groups/';
@@ -261,22 +277,15 @@
           data: data
         });
         $timeout(function(){
-          var groupList = [];
-          if (options.ids === ALL) {
-             groupList = $scope.groupList;
-          } else {
-            $.each(options.ids, function(_, id){
-              var idx = $scope.groupList.indexOf({id: id});
-              if (idx === -1) {
-                return;
-              }
-              groupList.push($scope.groupList[idx]);
-            });
-          }
+          groupList = collectGroups(options.ids);
           $.each(groupList, function(_, item){
             item.version = new Date().getTime() + 10;
             $.extend(true, item, data);
           });
+
+          if (typeof options.success !== "undefined") {
+            options.success(groupList);
+          }
         });
         $('.stream-actions .chk-select-all').prop('checked', false);
         $('.group-list .chk-select').prop('checked', false);
@@ -306,9 +315,11 @@
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
-              data: {merge: '1'}
+              data: {merge: '1'},
+              success: function() {
+                flash('info', 'The selected events have been scheduled to merge.');
+              }
             });
-            // TODO(dcramer): show flash message
           }
         });
       });
@@ -322,8 +333,10 @@
             actionGroups({
               ids: selectedGroupIds,
               method: 'DELETE',
+              success: function() {
+                flash('info', 'The selected events have been scheduled for deletion.');
+              }
             });
-            // TODO(dcramer): show flash message
           }
         });
       });
