@@ -129,9 +129,9 @@
 
       $scope.$watch('anySelected', function(anySelected){
         if (!anySelected) {
-          $('.stream-actions .action').addClass('disabled').prop('disabled', true);
+          $('.stream-actions .btn.action').addClass('disabled').prop('disabled', true);
         } else {
-          $('.stream-actions .action').removeClass('disabled').prop('disabled', false);
+          $('.stream-actions .btn.action').removeClass('disabled').prop('disabled', false);
         }
       });
 
