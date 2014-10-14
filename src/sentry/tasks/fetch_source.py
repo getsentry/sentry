@@ -299,12 +299,12 @@ def expand_javascript_source(data, **kwargs):
         else:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
 
-        sourcemap_key = hashlib.md5(sourcemap).hexdigest()
-
         if is_data_uri(sourcemap):
             sourcemap_url = result.url
         else:
             sourcemap_url = sourcemap_url
+
+        sourcemap_key = hashlib.md5(sourcemap_url).hexdigest()
 
         source_code[filename] = (result.body.splitlines(), sourcemap_url, sourcemap_key)
 
