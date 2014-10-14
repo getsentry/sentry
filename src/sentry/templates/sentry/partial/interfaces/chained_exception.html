@@ -29,7 +29,7 @@
                     <h3><span title="{{ exception.fullname }}">{{ exception.exception_type }}</span>{% if not newest_first %} <small>Root Cause</small>{% endif %}</h3>
                 {% endif %}
                 {% if exception.exception_value %}
-                    <p>{{ exception.exception_value }}</p>
+                    <pre>{{ exception.exception_value }}</pre>
                 {% endif %}
                 {% with exception.stacktrace.frames as frames %}
                     {% with stack_id=exception.stack_id first_frame_omitted=exception.stacktrace.first_frame_omitted last_frame_omitted=exception.stacktrace.last_frame_omitted %}
