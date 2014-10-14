@@ -169,6 +169,16 @@ class EventManagerTest(TestCase):
         data = manager.normalize()
         assert len(data['message']) == settings.SENTRY_MAX_MESSAGE_LENGTH
 
+    def test_default_version(self):
+        manager = EventManager(self.make_event())
+        data = manager.normalize()
+        assert data['version'] == '5'
+
+    def test_explicit_version(self):
+        manager = EventManager(self.make_event(), '6')
+        data = manager.normalize()
+        assert data['version'] == '6'
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
