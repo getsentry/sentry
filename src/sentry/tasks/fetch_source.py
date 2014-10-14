@@ -350,7 +350,7 @@ def expand_javascript_source(data, **kwargs):
                 source, _, _ = source_code[abs_path]
             except KeyError:
                 frame.data = {
-                    'sourcemap_url': sourcemap_url,
+                    'sourcemap': sourcemap_url,
                 }
                 logger.debug('Failed mapping path %r', abs_path)
             else:
@@ -361,7 +361,7 @@ def expand_javascript_source(data, **kwargs):
                     'orig_function': frame.function,
                     'orig_abs_path': frame.abs_path,
                     'orig_filename': frame.filename,
-                    'sourcemap_url': sourcemap_url,
+                    'sourcemap': sourcemap_url,
                 }
 
                 # SourceMap's return zero-indexed lineno's
@@ -378,7 +378,7 @@ def expand_javascript_source(data, **kwargs):
                 frame.module = generate_module(state.src)
         elif sourcemap_key in sourmap_idxs:
             frame.data = {
-                'sourcemap_url': sourcemap_url,
+                'sourcemap': sourcemap_url,
             }
 
         has_changes = True
