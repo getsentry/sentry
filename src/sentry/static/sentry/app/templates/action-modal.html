@@ -6,7 +6,7 @@
   <h4 class="modal-title">Please confirm</h4>
 </div>
 <div class="modal-body">
-  <p><strong>Are you sure that you want to <% actionLabel.toLowerCase() %> these <% numEvents %> events?</strong></p>
+  <p><strong>Are you sure that you want to <% actionLabel %>?</strong></p>
   <p>This action cannot be undone.</p>
 </div>
 <div class="modal-footer">
@@ -14,7 +14,7 @@
           ng-click="close()">Cancel</button>
   <button type="button" class="btn btn-danger"
           ng-if="canActionAll"
-          ng-click="actionAll()"><% actionLabel %> all recorded events</button>
+          ng-click="actionAll()"><% confirmLabel %> all recorded events</button>
   <button type="button" class="btn btn-primary"
-          ng-click="actionSelected()"><% actionLabel %> <% numEvents %> selected events</button>
+          ng-click="actionSelected()"><% confirmLabel %> <% numEvents %> selected events</button>
 </div>
