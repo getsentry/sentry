@@ -429,6 +429,7 @@ SENTRY_STATIC_BUNDLES = {
 
                 "sentry/app/modules/charts.js",
                 "sentry/app/modules/collection.js",
+                "sentry/app/modules/flash.js",
                 "sentry/app/modules/forms.js",
 
                 "sentry/app/controllers/default.js",
