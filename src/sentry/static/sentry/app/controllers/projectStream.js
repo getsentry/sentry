@@ -16,7 +16,8 @@
     '$scope', '$modalInstance', 'context',
     function($scope, $modalInstance, context) {
       $scope.numEvents = context.selectedGroupIds.length;
-      $scope.actionLabel = context.actionLabel;
+      $scope.actionLabel = context.actionLabel.replace('{count}', $scope.numEvents);
+      $scope.confirmLabel = context.confirmLabel;
       $scope.canActionAll = context.canActionAll;
       $scope.cancel = function(){
         $modalInstance.dismiss('cancel');
@@ -163,6 +164,9 @@
         canUpdate: function(current, pending) {
           return (current.version < pending.version);
         },
+        equals: function(self, other) {
+          return self.id === other.id;
+        },
         limit: 50
       });
 
@@ -198,12 +202,34 @@
       }
       $scope.sortLabel = sortLabel;
 
+      function defaultActionLabel(confirmLabel) {
+        return confirmLabel.toLowerCase() + ' these {count} events';
+      }
+
       function confirmAction(options){
         var selectedGroupIds = $.map($('.group-list .chk-select:checked'), function(item){
           return $(item).val();
         });
         if (selectedGroupIds.length === 0) {
           return;
+        }
+
+        var shouldConfirm = true;
+        // if skipConfirm is set we never actually show the modal
+        if (options.skipConfirm === true) {
+          shouldConfirm = false;
+        // if onlyIfBulk is set and we've selected a single item, we skip
+        // showing the modal
+        } else if (options.onlyIfBulk === true && !$scope.selectAllActive) {
+          shouldConfirm = false;
+        }
+
+        if (!shouldConfirm) {
+          return options.action(selectedGroupIds);
+        }
+
+        if (typeof options.confirmLabel === 'undefined') {
+          options.confirmLabel = 'Edit';
         }
 
         var modal = $modal.open({
@@ -214,7 +240,8 @@
               return {
                 selectAllActive: $scope.selectAllActive,
                 selectedGroupIds: selectedGroupIds,
-                actionLabel: options.actionLabel,
+                actionLabel: options.actionLabel || defaultActionLabel(options.confirmLabel),
+                confirmLabel: options.confirmLabel,
                 canActionAll: options.canActionAll && $scope.selectAllActive || false
               };
             }
@@ -239,8 +266,11 @@
              groupList = $scope.groupList;
           } else {
             $.each(options.ids, function(_, id){
-              var item = groupList[groupList.indexOf({id: id})];
-              groupList.push(item);
+              var idx = $scope.groupList.indexOf({id: id});
+              if (idx === -1) {
+                return;
+              }
+              groupList.push($scope.groupList[idx]);
             });
           }
           $.each(groupList, function(_, item){
@@ -256,8 +286,9 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Resolve',
+          confirmLabel: 'Resolve',
           canActionAll: true,
+          onlyIfBulk: true,
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
@@ -271,8 +302,7 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Merge',
-          canActionAll: true,
+          confirmLabel: 'Merge',
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
@@ -287,7 +317,7 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Delete',
+          confirmLabel: 'Delete',
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
@@ -302,11 +332,27 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Bookmark',
+          neverConfirm: true,
+          confirmLabel: 'Bookmark',
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
               data: {isBookmarked: 1}
+            });
+          }
+        });
+      });
+
+      $('.stream-actions .action-remove-bookmark').click(function(e){
+        e.preventDefault();
+
+        confirmAction({
+          neverConfirm: true,
+          actionLabel: 'remove these {count} events from your bookmarks',
+          action: function(selectedGroupIds){
+            actionGroups({
+              ids: selectedGroupIds,
+              data: {isBookmarked: 0}
             });
           }
         });
