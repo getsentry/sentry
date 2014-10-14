@@ -3,6 +3,7 @@ var SentryApp = angular.module('sentry', [
 
   'sentry.charts',
   'sentry.collection',
+  'sentry.flash',
   'sentry.forms',
 
   'sentry.directives.assigneeSelector',
