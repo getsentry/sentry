@@ -66,6 +66,9 @@ class User(Model, AbstractBaseUser):
         # the admin requires this method
         return self.is_superuser
 
+    def get_display_name(self):
+        return self.first_name or self.email
+
     def get_full_name(self):
         return self.first_name
 
