@@ -238,12 +238,12 @@
           if (options.ids === ALL) {
              groupList = $scope.groupList;
           } else {
-            $.each(options.ids, function(id){
+            $.each(options.ids, function(_, id){
               var item = groupList[groupList.indexOf({id: id})];
               groupList.push(item);
             });
           }
-          $.each(groupList, function(item){
+          $.each(groupList, function(_, item){
             item.version = new Date().getTime() + 10;
             $.extend(true, item, data);
           });
