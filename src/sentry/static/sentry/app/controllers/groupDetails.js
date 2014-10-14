@@ -44,7 +44,7 @@
       });
 
       $('a[data-action="resolve"]').click(function(){
-        $http.post('/api/0/groups/' + selectedGroup.id + '/', {
+        $http.put('/api/0/groups/' + selectedGroup.id + '/', {
           status: (selectedGroup.status != 'resolved' ? 'resolved' : 'unresolved')
         }).success(function(data) {
           selectedGroup.status = data.status;
@@ -52,7 +52,7 @@
       });
 
       $('a[data-action="bookmark"]').click(function(){
-        $http.post('/api/0/groups/' + selectedGroup.id + '/', {
+        $http.put('/api/0/groups/' + selectedGroup.id + '/', {
           isBookmarked: (selectedGroup.isBookmarked ? '0' : '1')
         }).success(function(data) {
           selectedGroup.isBookmarked = data.isBookmarked;
