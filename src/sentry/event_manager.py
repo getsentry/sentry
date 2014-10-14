@@ -122,13 +122,16 @@ class ScoreClause(object):
 
 
 class EventManager(object):
-    def __init__(self, data):
+    def __init__(self, data, version='5'):
         self.data = data
+        self.version = version
 
     def normalize(self):
         # TODO(dcramer): store http.env.REMOTE_ADDR as user.ip
         # First we pull out our top-level (non-data attr) kwargs
         data = self.data
+
+        data['version'] = self.version
 
         if not isinstance(data.get('level'), (six.string_types, int)):
             data['level'] = logging.ERROR
