@@ -299,8 +299,14 @@ def expand_javascript_source(data, **kwargs):
         else:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
 
-        sourcemap_key = hashlib.md5(sourcemap).hexdigest()
-        source_code[filename] = (result.body.splitlines(), sourcemap, sourcemap_key)
+        if is_data_uri(sourcemap):
+            sourcemap_url = result.url
+        else:
+            sourcemap_url = sourcemap
+
+        sourcemap_key = hashlib.md5(sourcemap_url).hexdigest()
+
+        source_code[filename] = (result.body.splitlines(), sourcemap_url, sourcemap_key)
 
         if sourcemap in sourmap_idxs:
             continue
@@ -311,14 +317,11 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
-        if is_data_uri(sourcemap):
-            sourmap_idxs[sourcemap_key] = (index, result.url)
-        else:
-            sourmap_idxs[sourcemap_key] = (index, sourcemap)
+        sourmap_idxs[sourcemap_key] = (index, sourcemap_url)
 
         # queue up additional source files for download
         for source in index.sources:
-            next_filename = urljoin(sourcemap, source)
+            next_filename = urljoin(sourcemap_url, source)
             if next_filename not in done_file_list:
                 if index.content:
                     source_code[next_filename] = (index.content[source], None, None)
@@ -331,7 +334,7 @@ def expand_javascript_source(data, **kwargs):
     has_changes = False
     for frame in frames:
         try:
-            source, sourcemap, sourcemap_key = source_code[frame.abs_path]
+            source, sourcemap_url, sourcemap_key = source_code[frame.abs_path]
         except KeyError:
             # we must've failed pulling down the source
             continue
@@ -347,7 +350,7 @@ def expand_javascript_source(data, **kwargs):
                 source, _, _ = source_code[abs_path]
             except KeyError:
                 frame.data = {
-                    'sourcemap': sourcemap,
+                    'sourcemap_url': sourcemap_url,
                 }
                 logger.debug('Failed mapping path %r', abs_path)
             else:
@@ -358,7 +361,7 @@ def expand_javascript_source(data, **kwargs):
                     'orig_function': frame.function,
                     'orig_abs_path': frame.abs_path,
                     'orig_filename': frame.filename,
-                    'sourcemap': sourcemap,
+                    'sourcemap_url': sourcemap_url,
                 }
 
                 # SourceMap's return zero-indexed lineno's
@@ -375,7 +378,7 @@ def expand_javascript_source(data, **kwargs):
                 frame.module = generate_module(state.src)
         elif sourcemap_key in sourmap_idxs:
             frame.data = {
-                'sourcemap': sourcemap,
+                'sourcemap_url': sourcemap_url,
             }
 
         has_changes = True
