@@ -317,7 +317,7 @@
               ids: selectedGroupIds,
               data: {merge: '1'},
               success: function() {
-                flash('info', 'The selected events have been scheduled to merge.');
+                flash('success', 'The selected events have been scheduled to merge.');
               }
             });
           }
@@ -334,7 +334,7 @@
               ids: selectedGroupIds,
               method: 'DELETE',
               success: function() {
-                flash('info', 'The selected events have been scheduled for deletion.');
+                flash('success', 'The selected events have been scheduled for deletion.');
               }
             });
           }
