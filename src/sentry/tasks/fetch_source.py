@@ -262,7 +262,7 @@ def expand_javascript_source(data, **kwargs):
     done_file_list = set()
     sourcemap_capable = set()
     source_code = {}
-    sourmap_idxs = {}
+    sourcemap_idxs = {}
 
     for f in frames:
         pending_file_list.add(f.abs_path)
@@ -299,16 +299,12 @@ def expand_javascript_source(data, **kwargs):
         else:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
 
-        if is_data_uri(sourcemap):
-            sourcemap_url = result.url
-        else:
-            sourcemap_url = sourcemap[:1000]
-
+        sourcemap_url = result.url[:1000]
         sourcemap_key = hashlib.md5(sourcemap_url).hexdigest()
 
         source_code[filename] = (result.body.splitlines(), sourcemap_url, sourcemap_key)
 
-        if sourcemap in sourmap_idxs:
+        if sourcemap in sourcemap_idxs:
             continue
 
         # pull down sourcemap
@@ -317,7 +313,9 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
-        sourmap_idxs[sourcemap_key] = (index, sourcemap_url)
+        print(sourcemap_url, index)
+
+        sourcemap_idxs[sourcemap_key] = (index, sourcemap_url)
 
         # queue up additional source files for download
         for source in index.sources:
@@ -340,8 +338,8 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if sourcemap_key in sourmap_idxs and frame.colno is not None:
-            index, relative_to = sourmap_idxs[sourcemap_key]
+        if sourcemap_key in sourcemap_idxs and frame.colno is not None:
+            index, relative_to = sourcemap_idxs[sourcemap_key]
             last_state = state
             state = find_source(index, frame.lineno, frame.colno)
             abs_path = urljoin(relative_to, state.src)
@@ -376,7 +374,7 @@ def expand_javascript_source(data, **kwargs):
                 frame.abs_path = abs_path
                 frame.filename = state.src
                 frame.module = generate_module(state.src)
-        elif sourcemap_key in sourmap_idxs:
+        elif sourcemap_key in sourcemap_idxs:
             frame.data = {
                 'sourcemap': sourcemap_url,
             }
