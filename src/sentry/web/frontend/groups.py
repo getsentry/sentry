@@ -35,8 +35,7 @@ from sentry.utils import json
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
-# just temporarly for debug purposes
-from __builtin__ import open
+
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
@@ -258,8 +257,8 @@ def group_tag_list(request, team, project, group):
     tag_list = []
     for tag_key in TagKey.objects.filter(project=project, key__in=group.get_tags()):
         tag_list.append((tag_key, [
-            (value, times_seen, percent(group.times_seen, times_seen), id)
-            for (value, times_seen, first_seen, last_seen, id)
+            (value, times_seen, percent(group.times_seen, times_seen))
+            for (value, times_seen, first_seen, last_seen)
             in group.get_unique_tags(tag_key.key)[:5]
         ], group.get_unique_tags(tag_key.key).count()))
 
@@ -314,11 +313,6 @@ def group_tag_event_list(request, team, project, group, grouptagvalue):
         ).values_list('event_id')
     ).order_by('-datetime')[:100]
 
-    fil = open("SentryDoodlePad.txt", "a")
-    fil.write("\n**********************************\n")
-    fil.write("group tag event list \n")
-    fil.write("grouptagvalue" + str(grouptagvalue) + "\n")
-    fil.write("event_list" + str(event_list) + "\n")
     full_list = event_list.values(
         'eventfiltertagvalue__grouptagvalue__key',
         'eventfiltertagvalue__grouptagvalue__value',
@@ -328,11 +322,8 @@ def group_tag_event_list(request, team, project, group, grouptagvalue):
         'project__team__slug',
         'group_id'
     )
-    for e in full_list:
-        fil.write(str(e) + "\n")
+
     Event.objects.bind_nodes(event_list, 'data')
-    # event_list = group.event_set.all().order_by('-datetime')[:100]
-    # Event.objects.bind_nodes(event_list, 'data')
 
     return render_with_group_context(
         group,

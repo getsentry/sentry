@@ -160,7 +160,6 @@ class Group(Model):
             'times_seen',
             'first_seen',
             'last_seen',
-            'id',
         ).order_by(order_by)
 
     def get_tags(self):

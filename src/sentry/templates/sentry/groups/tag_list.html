@@ -19,7 +19,7 @@
                     <h4>{{ tag_key.get_label }} <small>({{ values_seen|small_count }})</small></h4>
                 </div>
                 <ul class="tag-list">
-                    {% for tag_value, times_seen, percent, id in tag_values %}
+                    {% for tag_value, times_seen, percent in tag_values %}
                         <li>
                             <div class="progressbar">
                                 <div style="width:{{ percent }}%;">{{ times_seen }}</div>
