@@ -27,6 +27,8 @@
 @iconSpritePath:          "../bootstrap/img/glyphicons-halflings.png";
 @iconWhiteSpritePath:     "../bootstrap/img/glyphicons-halflings-white.png";
 
+@font-family-base: "Avenir Next", "Avenir", "Helvetica Neue", helvetica, sans-serif;
+@font-family-code: Monaco, Consolas, "Courier New", monospace;
 
 /* =============================  Global  ============================== */
 
@@ -37,7 +39,10 @@ body {
   line-height: 20px;
   color: #454C50;
   -webkit-font-smoothing: antialiased;
-  font-family: "Avenir Next", "Avenir", "Helvetica Neue", helvetica, sans-serif;
+}
+
+pre, code, kbd, sample {
+  font-family: @font-family-code;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -216,9 +221,14 @@ header {
     }
 
     .icon-settings,
-    .icon-book {
+    .icon-book,
+    .icon-envelope {
       line-height: 0;
       padding-right: 5px;
+    }
+
+    .icon-settings, .icon-envelope {
+      top: 1px;
     }
 
     .icon-book {
@@ -1154,11 +1164,10 @@ a.icon-share {
       font-size: 95%;
       position: relative;
       top: 2px;
-      padding-right: 0;
       color: #D4DBDF;
-      width: 0;
+      width: auto;
+      padding-right: 3px;
       overflow: hidden;
-      margin-left: -4px;
       .transition(all .2s ease-in-out);
     }
 
@@ -1174,16 +1183,10 @@ a.icon-share {
       z-index: 100;
       .transition(all .2s ease-in-out);
     }
+
     &.seen {
       .event-details:after {
         background: transparent;
-      }
-    }
-    &.bookmarked {
-      .icon-bookmark {
-        width: auto;
-        margin-left: 0;
-        padding-right: 3px;
       }
     }
 
@@ -1409,6 +1412,7 @@ a.icon-share {
     min-width: 180px;
     padding-top: 0;
     overflow: hidden;
+    max-width: 250px;
 
     .form-control {
       border: 0;
@@ -1428,11 +1432,15 @@ a.icon-share {
       overflow: auto;
       margin: 0;
     }
+
     li a {
       padding: 4px 8px;
       display: block;
       padding-left: 35px;
       position: relative;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
 
       img {
         margin-right: 5px;
@@ -1542,20 +1550,15 @@ ul.traceback {
   }
 }
 
-.traceback > p {
-  color: #282B2E;
-  font-size: 13px;
-  white-space: pre-wrap;
-  border: 1px solid #E2E5EB;
-  padding: 10px 15px;
-  border-radius: 4px;
-  margin-top: -10px;
-  background: rgba(247, 248, 249, 0.5);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.02);
+.traceback > pre {
+  color: @gray-dark;
+  font-size: 12px;
+  padding: 0;
+  background: inherit;
+  margin: -20px 0 20px;
 }
 
 .traceback > .traceback {
-  margin-top: 10px;
   padding-bottom: 5px;
 }
 .subtraceback {
@@ -1563,12 +1566,8 @@ ul.traceback {
   padding-right: 15px;
   position: relative;
 
-  > p {
-    margin-top: -20px;
-  }
-
   > h3 {
-    line-height: 50px
+    line-height: 26px;
   }
 
   > h3:before {
@@ -1579,7 +1578,7 @@ ul.traceback {
     border-bottom: 1px solid #E9EBEC;
     position: absolute;
     left: -15px;
-    top: 23px;
+    top: 11px;
   }
 }
 
@@ -1698,7 +1697,7 @@ ol.context {
 
   > li {
     padding-left: 20px;
-    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+    font-family: @font-family-code;
     color: #222;
     background-color: #f6f7f8;
     line-height: 22px;
@@ -2072,6 +2071,7 @@ header + .messages-container {
     top: -2px;
     box-shadow: none;
     .transition(opacity .15s);
+    color: #fff;
 
     &:hover {
       box-shadow: none;
@@ -2191,7 +2191,11 @@ header + .messages-container {
       .message {
         font-size: 13px;
         margin: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
+
       .time {
         font-size: 12px;
         margin: 0;
@@ -2228,11 +2232,11 @@ table.table td .select2-container {
 
   li a {
     .transition(none);
-    color: #878e94;
+    color: #7a8188;
 
     &:hover {
       background: #f1f2f3;
-      color: darken(#878e94, 15);
+      color: darken(#878e94, 20);
     }
   }
 
@@ -2243,6 +2247,16 @@ table.table td .select2-container {
 
   .divider {
     margin: 4px 0;
+  }
+
+  .disabled {
+    opacity: .4;
+    cursor: default;
+
+    &:hover {
+      background: #fff;
+      color: #7a8188;
+    }
   }
 }
 
@@ -2314,8 +2328,7 @@ table.table, table.vars {
 
     > pre {
       background-color: inherit;
-      color: rgba(0,0,0,.75);
-      padding: 1px 3px;
+      padding: 0;
       border: 0;
       margin-bottom: 0;
     }
@@ -2408,7 +2421,7 @@ table.integrations {
           width: 16px;
           height: 16px;
           display: block;
-          border-radius: 16px;
+          border-radius: 3px;
         }
 
         &.sentry {

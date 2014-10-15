@@ -162,6 +162,8 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
             if not group_ids:
                 return Response(status=204)
+        else:
+            group_list = None
 
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
@@ -188,8 +190,10 @@ class ProjectGroupIndexEndpoint(Endpoint):
                 resolved_at=now,
             )
 
-            if group_ids and happened:
+            if group_list and happened:
                 for group in group_list:
+                    group.status = GroupStatus.RESOLVED
+                    group.resolved_at = now
                     create_or_update(
                         Activity,
                         project=group.project,
@@ -200,11 +204,14 @@ class ProjectGroupIndexEndpoint(Endpoint):
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
-            Group.objects.filter(filters).exclude(
+            happened = Group.objects.filter(filters).exclude(
                 status=new_status,
             ).update(
                 status=new_status,
             )
+            if group_list and happened:
+                for group in group_list:
+                    group.status = new_status
 
         if result.get('isBookmarked'):
             for group in group_list:
@@ -230,6 +237,12 @@ class ProjectGroupIndexEndpoint(Endpoint):
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
                 )
+
+        if group_list:
+            GroupMeta.objects.populate_cache(group_list)
+            # TODO(dcramer): we need create a public API for 'sort_value'
+            context = serialize(list(group_list), request.user)
+            return Response(context)
 
         return Response(status=204)
 

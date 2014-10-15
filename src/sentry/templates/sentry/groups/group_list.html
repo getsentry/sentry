@@ -30,9 +30,10 @@
                     </a>
 
                     <ul class="dropdown-menu more-menu" style="left: 0">
-                      <li><a href="javascript:void(0)" class="action action-merge">Merge events</a></li>
+                      <li><a href="javascript:void(0)" class="action action-merge">Merge Events</a></li>
+                      <li><a href="javascript:void(0)" class="action action-remove-bookmark">Remove from Bookmarks</a></li>
                       <li class="divider"></li>
-                      <li><a href="javascript:void(0)" class="action action-delete">Delete events</a></li>
+                      <li><a href="javascript:void(0)" class="action action-delete">Delete Events</a></li>
                     </ul>
                 </div>
 
@@ -153,8 +154,8 @@
               </div>
               <div class="event-meta">
                 <span class="last-seen"><time time-since="group.lastSeen"></time></span>
-                <span class="first-seen">(First seen <time time-since="group.firstSeen"></time>)</span>
-                <span class="in-release">in current release</span>
+                &mdash;
+                <span class="first-seen">from <time time-since="group.firstSeen"></time></span>
               </div>
             </div>
             <div class="event-assignee event-cell hidden-xs hidden-sm">

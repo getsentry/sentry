@@ -16,7 +16,8 @@
     '$scope', '$modalInstance', 'context',
     function($scope, $modalInstance, context) {
       $scope.numEvents = context.selectedGroupIds.length;
-      $scope.actionLabel = context.actionLabel;
+      $scope.actionLabel = context.actionLabel.replace('{count}', $scope.numEvents);
+      $scope.confirmLabel = context.confirmLabel;
       $scope.canActionAll = context.canActionAll;
       $scope.cancel = function(){
         $modalInstance.dismiss('cancel');
@@ -63,8 +64,8 @@
   ]);
 
   SentryApp.controller('ProjectStreamCtrl', [
-    '$http', '$modal', '$scope', '$timeout', 'Collection', 'GroupModel', 'selectedProject',
-    function($http, $modal, $scope, $timeout, Collection, GroupModel, selectedProject) {
+    '$http', '$modal', '$scope', '$timeout', 'Collection', 'flash', 'GroupModel', 'selectedProject',
+    function($http, $modal, $scope, $timeout, Collection, flash, GroupModel, selectedProject) {
       var timeoutId,
           pollingCursor,
           params = app.utils.getQueryParams(),
@@ -129,9 +130,9 @@
 
       $scope.$watch('anySelected', function(anySelected){
         if (!anySelected) {
-          $('.stream-actions .action').addClass('disabled').prop('disabled', true);
+          $('.stream-actions .btn.action').addClass('disabled').prop('disabled', true);
         } else {
-          $('.stream-actions .action').removeClass('disabled').prop('disabled', false);
+          $('.stream-actions .btn.action').removeClass('disabled').prop('disabled', false);
         }
       });
 
@@ -162,6 +163,9 @@
         },
         canUpdate: function(current, pending) {
           return (current.version < pending.version);
+        },
+        equals: function(self, other) {
+          return self.id === other.id;
         },
         limit: 50
       });
@@ -198,12 +202,34 @@
       }
       $scope.sortLabel = sortLabel;
 
+      function defaultActionLabel(confirmLabel) {
+        return confirmLabel.toLowerCase() + ' these {count} events';
+      }
+
       function confirmAction(options){
         var selectedGroupIds = $.map($('.group-list .chk-select:checked'), function(item){
           return $(item).val();
         });
         if (selectedGroupIds.length === 0) {
           return;
+        }
+
+        var shouldConfirm = true;
+        // if skipConfirm is set we never actually show the modal
+        if (options.skipConfirm === true) {
+          shouldConfirm = false;
+        // if onlyIfBulk is set and we've selected a single item, we skip
+        // showing the modal
+        } else if (options.onlyIfBulk === true && !$scope.selectAllActive) {
+          shouldConfirm = false;
+        }
+
+        if (!shouldConfirm) {
+          return options.action(selectedGroupIds);
+        }
+
+        if (typeof options.confirmLabel === 'undefined') {
+          options.confirmLabel = 'Edit';
         }
 
         var modal = $modal.open({
@@ -214,12 +240,29 @@
               return {
                 selectAllActive: $scope.selectAllActive,
                 selectedGroupIds: selectedGroupIds,
-                actionLabel: options.actionLabel,
+                actionLabel: options.actionLabel || defaultActionLabel(options.confirmLabel),
+                confirmLabel: options.confirmLabel,
                 canActionAll: options.canActionAll && $scope.selectAllActive || false
               };
             }
           }
         }).result.then(options.action);
+      }
+
+      function collectGroups(selection) {
+        var groupList = [];
+        if (selection === ALL) {
+           groupList = $scope.groupList;
+        } else {
+          $.each(selection, function(_, id){
+            var idx = $scope.groupList.indexOf({id: id});
+            if (idx === -1) {
+              return;
+            }
+            groupList.push($scope.groupList[idx]);
+          });
+        }
+        return groupList;
       }
 
       function actionGroups(options) {
@@ -234,19 +277,15 @@
           data: data
         });
         $timeout(function(){
-          var groupList = [];
-          if (options.ids === ALL) {
-             groupList = $scope.groupList;
-          } else {
-            $.each(options.ids, function(id){
-              var item = groupList[groupList.indexOf({id: id})];
-              groupList.push(item);
-            });
-          }
-          $.each(groupList, function(item){
+          groupList = collectGroups(options.ids);
+          $.each(groupList, function(_, item){
             item.version = new Date().getTime() + 10;
             $.extend(true, item, data);
           });
+
+          if (typeof options.success !== "undefined") {
+            options.success(groupList);
+          }
         });
         $('.stream-actions .chk-select-all').prop('checked', false);
         $('.group-list .chk-select').prop('checked', false);
@@ -256,8 +295,9 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Resolve',
+          confirmLabel: 'Resolve',
           canActionAll: true,
+          onlyIfBulk: true,
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
@@ -271,14 +311,15 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Merge',
-          canActionAll: true,
+          confirmLabel: 'Merge',
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
-              data: {merge: '1'}
+              data: {merge: '1'},
+              success: function() {
+                flash('success', 'The selected events have been scheduled to merge.');
+              }
             });
-            // TODO(dcramer): show flash message
           }
         });
       });
@@ -287,13 +328,15 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Delete',
+          confirmLabel: 'Delete',
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
               method: 'DELETE',
+              success: function() {
+                flash('success', 'The selected events have been scheduled for deletion.');
+              }
             });
-            // TODO(dcramer): show flash message
           }
         });
       });
@@ -302,11 +345,29 @@
         e.preventDefault();
 
         confirmAction({
-          actionLabel: 'Bookmark',
+          neverConfirm: true,
+          onlyIfBulk: true,
+          confirmLabel: 'Bookmark',
           action: function(selectedGroupIds){
             actionGroups({
               ids: selectedGroupIds,
               data: {isBookmarked: 1}
+            });
+          }
+        });
+      });
+
+      $('.stream-actions .action-remove-bookmark').click(function(e){
+        e.preventDefault();
+
+        confirmAction({
+          neverConfirm: true,
+          onlyIfBulk: true,
+          actionLabel: 'remove these {count} events from your bookmarks',
+          action: function(selectedGroupIds){
+            actionGroups({
+              ids: selectedGroupIds,
+              data: {isBookmarked: 0}
             });
           }
         });
