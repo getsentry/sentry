@@ -62,6 +62,9 @@
               '<div ng-repeat="m in messages" class="alert alert-{{m.type}}">' +
                 '<div class="container">' +
                   '<button type="button" class="close" ng-click=close($index)>&times;</button>' +
+                  '<span class="icon icon-checkmark"></span>' +
+                  '<span class="icon icon-x"></span>' +
+                  '<span class="icon icon-sentry-logo"></span>' +
                   '{{m.text}}' +
                 '</div>' +
               '</div>' +
