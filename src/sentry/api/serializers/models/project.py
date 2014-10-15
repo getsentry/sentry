@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from sentry.api.serializers import Serializer, register
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team

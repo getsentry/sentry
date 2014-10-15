@@ -5,6 +5,10 @@ sentry.web.forms.fields
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
+import six
+
 from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea, Widget
 from django.forms.util import flatatt
@@ -13,8 +17,6 @@ from django.utils.encoding import force_unicode
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
-
-import six
 
 from sentry.models import User
 

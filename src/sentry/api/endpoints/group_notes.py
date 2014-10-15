@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from datetime import timedelta
 from django import forms
 from django.utils import timezone

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.response import Response

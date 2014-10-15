@@ -5,6 +5,7 @@ sentry.models.useroption
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 from celery.signals import task_postrun
 from django.core.signals import request_finished

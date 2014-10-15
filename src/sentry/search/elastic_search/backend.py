@@ -1,4 +1,4 @@
-'''
+"""
 sentry.search.elastic_search.backend
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -31,9 +31,9 @@ GET /_search
 - kopf plugin
 - kibana/marvel
 
-'''
+"""
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from elasticsearch import Elasticsearch
 

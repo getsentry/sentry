@@ -5,6 +5,8 @@ sentry.templatetags.sentry_activity
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django import template
 from django.utils.html import escape, urlize, linebreaks
 from django.utils.safestring import mark_safe

@@ -1,5 +1,6 @@
-from rest_framework.response import Response
+from __future__ import absolute_import
 
+from rest_framework.response import Response
 from six.moves import range
 
 from sentry.app import tsdb

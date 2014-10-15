@@ -5,10 +5,12 @@ sentry.plugins.sentry_useragents.models
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from ua_parser.user_agent_parser import Parse
+from __future__ import absolute_import
+
 import sentry
 
 from django.utils.translation import ugettext_lazy as _
+from ua_parser.user_agent_parser import Parse
 
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin

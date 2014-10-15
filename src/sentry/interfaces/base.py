@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.conf import settings
 from django.utils.html import escape
 from django.utils.translation import ugettext as _

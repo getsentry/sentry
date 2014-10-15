@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from datetime import datetime, timedelta
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication

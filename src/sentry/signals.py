@@ -1,5 +1,7 @@
-from functools import wraps
+from __future__ import absolute_import
+
 from django.dispatch import Signal
+from functools import wraps
 
 
 class BetterSignal(Signal):
