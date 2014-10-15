@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.contrib.auth import login, logout
 from rest_framework.response import Response
 

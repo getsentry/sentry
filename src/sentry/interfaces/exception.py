@@ -6,6 +6,8 @@ sentry.interfaces.exception
 :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import absolute_import
+
 __all__ = ('Exception',)
 
 from django.conf import settings

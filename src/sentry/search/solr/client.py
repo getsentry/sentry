@@ -13,6 +13,8 @@ dependency on the ``requests`` library.
 :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import absolute_import, print_function
+
 import urllib3
 
 try:

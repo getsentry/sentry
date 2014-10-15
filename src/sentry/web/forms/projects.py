@@ -5,6 +5,8 @@ sentry.web.forms.projects
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _

@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 from django.conf import settings
 from django.contrib.auth.signals import user_logged_in

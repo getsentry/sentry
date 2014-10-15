@@ -1,4 +1,3 @@
-
 """
 sentry.management.commands.create_sample_event
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -6,6 +5,8 @@ sentry.management.commands.create_sample_event
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django.core.management.base import BaseCommand, CommandError, make_option
 
 

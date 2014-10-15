@@ -5,15 +5,17 @@ sentry.plugins.bases.issue
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from sentry.models import GroupMeta
-from sentry.plugins import Plugin
+from __future__ import absolute_import
+
 from django import forms
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from social_auth.models import UserSocialAuth
-from sentry.models import Activity
+
+from sentry.models import GroupMeta, Activity
+from sentry.plugins import Plugin
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 

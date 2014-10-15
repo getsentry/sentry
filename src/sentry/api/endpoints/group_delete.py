@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from sentry.api.base import Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.models import Group

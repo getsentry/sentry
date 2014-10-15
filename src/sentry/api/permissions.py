@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import MEMBER_USER

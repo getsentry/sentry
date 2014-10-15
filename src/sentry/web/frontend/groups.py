@@ -9,7 +9,7 @@ TODO: Move all events.py views into here, and rename this file to events.
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from __future__ import division
+from __future__ import absolute_import, division
 
 import datetime
 import re

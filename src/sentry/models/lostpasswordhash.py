@@ -5,14 +5,14 @@ sentry.models.useroption
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 from datetime import timedelta
-from urlparse import urlparse
-
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
+from urlparse import urlparse
 
 from sentry.db.models import Model, sane_repr
 from sentry.utils.http import absolute_uri
