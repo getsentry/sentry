@@ -302,7 +302,7 @@ def expand_javascript_source(data, **kwargs):
         if is_data_uri(sourcemap):
             sourcemap_url = result.url
         else:
-            sourcemap_url = sourcemap
+            sourcemap_url = sourcemap[:1000]
 
         sourcemap_key = hashlib.md5(sourcemap_url).hexdigest()
 
