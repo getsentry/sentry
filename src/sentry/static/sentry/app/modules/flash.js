@@ -57,17 +57,22 @@
         restrict: 'E',
         replace: true,
         template:
-          '<ol class="alert-list" id="flash-messages">' +
-            '<li ng-repeat="m in messages" class="alert alert-{{m.type}} alert-dismissable">' +
-              '<div class="container">' +
-                '<button type="button" class="close" ng-click=close($index)>&times;</button>' +
-                '{{m.text}}' +
+          '<div class="messages-container" ng-show="messages" data-spy="affix" data-offset-top="67">' +
+            '<div class="alert-list" id="messages">' +
+              '<div ng-repeat="m in messages" class="alert alert-{{m.type}}">' +
+                '<div class="container">' +
+                  '<button type="button" class="close" ng-click=close($index)>&times;</button>' +
+                  '{{m.text}}' +
+                '</div>' +
               '</div>' +
-            '</li>' +
-          '</ol>',
+            '</div>' +
+          '</div>',
         controller: function($scope, $rootScope) {
           $scope.close = function(index){
             $scope.messages.splice(index, 1);
+            if (!!messages) {
+              $(".messages-container").remove();
+            }
           };
 
           $rootScope.$on('flash:message', function(_, messages, done) {
