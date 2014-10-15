@@ -313,8 +313,6 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
-        print(sourcemap_url, index)
-
         sourcemap_idxs[sourcemap_key] = (index, sourcemap_url)
 
         # queue up additional source files for download
