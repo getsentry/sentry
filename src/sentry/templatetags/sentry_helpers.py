@@ -7,6 +7,7 @@ sentry.templatetags.sentry_helpers
 """
 # XXX: Import django-paging's template tags so we don't have to worry about
 #      INSTALLED_APPS
+from __future__ import absolute_import
 
 import os.path
 import pytz
