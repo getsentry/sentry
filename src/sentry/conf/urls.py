@@ -7,10 +7,10 @@ These are additional urls used by the Sentry-provided web server
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import os
 
-from sentry.web.urls import urlpatterns as web_urlpatterns
 try:
     from django.conf.urls import include, patterns, url
 except ImportError:
@@ -19,9 +19,11 @@ except ImportError:
 from django.contrib import admin
 from django.views.defaults import page_not_found
 
+from sentry.web.urls import urlpatterns as web_urlpatterns
+
+
 admin.autodiscover()
 admin_media_dir = os.path.join(os.path.dirname(admin.__file__), 'media')
-
 
 handler404 = lambda x: page_not_found(x, template_name='sentry/404.html')
 

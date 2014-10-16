@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import itertools
 
 from celery import current_app

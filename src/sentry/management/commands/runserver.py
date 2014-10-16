@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.core.management.commands.runserver import Command as RunserverCommand
 
 

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django import template
 from django.utils.html import mark_safe
 

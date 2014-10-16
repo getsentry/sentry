@@ -1,8 +1,9 @@
+from __future__ import absolute_import
+
 from functools import wraps
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
-
 from sudo.decorators import sudo_required
 
 from sentry.constants import MEMBER_OWNER

@@ -5,11 +5,12 @@ sentry.permissions
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from functools import wraps
-
-from django.conf import settings
+from __future__ import absolute_import
 
 import six
+
+from django.conf import settings
+from functools import wraps
 
 from sentry.constants import MEMBER_OWNER
 from sentry.plugins import plugins

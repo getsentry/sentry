@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
+import socket
+
 from httplib import HTTPConnection, HTTPSConnection
 from urllib import urlencode
 from urlparse import urlparse
-import socket
 
 
 class Replayer(object):

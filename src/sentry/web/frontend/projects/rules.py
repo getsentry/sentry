@@ -5,9 +5,11 @@ sentry.web.frontend.projects.rules
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import re
-from collections import defaultdict
+from __future__ import absolute_import
 
+import re
+
+from collections import defaultdict
 from django.contrib import messages
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse

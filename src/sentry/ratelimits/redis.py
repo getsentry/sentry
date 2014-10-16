@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.conf import settings
 from nydus.db import create_cluster
 from time import time

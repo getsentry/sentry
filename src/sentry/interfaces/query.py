@@ -6,6 +6,8 @@ sentry.interfaces.query
 :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import absolute_import
+
 __all__ = ('Query',)
 
 from sentry.interfaces.base import Interface
