@@ -8,6 +8,8 @@ sentry.search.django.backend
 
 from __future__ import absolute_import
 
+from django.db.models import Q
+
 from sentry.search.base import SearchBackend, SearchResult
 from sentry.search.django.constants import (
     SORT_CLAUSES, SCORE_CLAUSES,
@@ -30,7 +32,14 @@ class DjangoSearchBackend(SearchBackend):
 
         queryset = Group.objects.filter(project=project)
         if query:
-            queryset = queryset.filter(message__icontains=query)
+            # TODO(dcramer): if we want to continue to support search on SQL
+            # we should at least optimize this in Postgres so that it does
+            # the query filter **after** the index filters, and restricts the
+            # result set
+            queryset = queryset.filter(
+                Q(message__icontains=query) |
+                Q(culprit__icontains=query)
+            )
 
         if status is not None:
             queryset = queryset.filter(status=status)
