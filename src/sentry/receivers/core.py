@@ -11,8 +11,9 @@ from sentry.constants import MEMBER_OWNER
 from sentry.db.models import update
 from sentry.db.models.utils import slugify_instance
 from sentry.models import (
-    Project, User, Team, ProjectKey, UserOption, TagKey, TagValue,
-    GroupTagValue, GroupTagKey, Activity, TeamMember, Alert)
+    Organization, Project, User, Team, ProjectKey, UserOption, TagKey, TagValue,
+    GroupTagValue, GroupTagKey, Activity, TeamMember, Alert
+)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.safe import safe_execute
 
@@ -58,10 +59,18 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
             }
         )
 
-    team, _ = Team.objects.get_or_create(
+    org, _ = Organization.objects.get_or_create(
         name='Sentry',
         defaults={
             'owner': user,
+        }
+    )
+
+    team, _ = Team.objects.get_or_create(
+        name='Sentry',
+        defaults={
+            'owner': org.owner,
+            'organization': org,
         }
     )
 

@@ -136,7 +136,8 @@ class ProjectManager(BaseManager):
 
 
 class TeamManager(BaseManager):
-    def get_for_user(self, user, access=None, access_groups=True, with_projects=False):
+    def get_for_user(self, user, access=None, access_groups=True,
+                     with_projects=False, organization=None):
         """
         Returns a SortedDict of all teams a user has some level of access to.
 
@@ -157,6 +158,8 @@ class TeamManager(BaseManager):
         ).select_related('team')
         if access is not None:
             qs = qs.filter(type__lte=access)
+        if organization is not None:
+            qs = qs.filter(team__organization=organization)
 
         for tm in qs:
             team = tm.team
@@ -169,6 +172,8 @@ class TeamManager(BaseManager):
             ).select_related('team')
             if access is not None:
                 qs = qs.filter(type__lte=access)
+            if organization is not None:
+                qs = qs.filter(team__organization=organization)
 
             for group in qs:
                 team = group.team
@@ -176,7 +181,11 @@ class TeamManager(BaseManager):
                 all_teams.add(team)
 
         if settings.SENTRY_PUBLIC and access is None:
-            for team in self.iterator():
+            qs = self.all()
+            if organization is not None:
+                qs = qs.filter(organization=organization)
+
+            for team in qs:
                 all_teams.add(team)
                 team.access_type = MEMBER_USER
 
