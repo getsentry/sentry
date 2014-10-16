@@ -34,11 +34,11 @@ class Team(Model):
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
-    status = BoundedPositiveIntegerField(default=0, choices=(
+    status = BoundedPositiveIntegerField(choices=(
         (TeamStatus.VISIBLE, _('Visible')),
         (TeamStatus.PENDING_DELETION, _('Pending Deletion')),
         (TeamStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-    ))
+    ), default=TeamStatus.VISIBLE)
     date_added = models.DateTimeField(default=timezone.now, null=True)
     members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.TeamMember', related_name='team_memberships')
 
