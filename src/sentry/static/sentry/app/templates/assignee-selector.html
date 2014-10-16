@@ -1,12 +1,12 @@
 <div class="user-selector" ng-cloak>
-  <div class="btn-group">
-    <a href="#" class="btn btn-sm btn-default dropdown-toggle">
+  <div dropdown>
+    <a href="#" class="btn btn-sm btn-default" dropdown-toggle>
       <span ng-if="group.assignedTo">
         <img ng-src="<% group.assignedTo.avatarUrl %>" class="avatar">
       </span>
       <span aria-hidden="true" class="icon-arrow-down"></span>
     </a>
-    <div class="dropdown-menu" ng-click="$event.stopPropagation()">
+    <div class="dropdown-menu" role="menu">
       <input type="text" class="form-control input-sm" placeholder="Filter people">
       <ul>
         <li ng-repeat="projectMember in projectMemberList">
