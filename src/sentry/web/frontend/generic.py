@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
-from sentry.models import Team
+from sentry.models import Organization, Team
 from sentry.permissions import can_create_teams
 from sentry.plugins import plugins
 from sentry.plugins.base import Response
@@ -21,18 +21,17 @@ from sentry.web.helpers import render_to_response
 
 @login_required
 def dashboard(request, template='dashboard.html'):
-    team_list = Team.objects.get_for_user(request.user, with_projects=True)
-    if not team_list:
-        if can_create_teams(request.user):
-            return HttpResponseRedirect(reverse('sentry-new-team'))
-
-        return render_to_response('sentry/generic_error.html', {
-            'title': _('No Membership'),
-            'message': _('You are not a member of any teams in Sentry and you do not have access to create a new team.'),
-        }, request)
+    org_list = []
+    for org in Organization.objects.get_for_user(request.user):
+        team_list = Team.objects.get_for_user(
+            organization=org,
+            user=request.user,
+            with_projects=True,
+        )
+        org_list.append((org, team_list.values()))
 
     return render_to_response('sentry/select_team.html', {
-        'team_list': team_list.values(),
+        'org_list': org_list,
         'can_create_teams': can_create_teams(request.user),
     }, request)
 

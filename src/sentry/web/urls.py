@@ -34,6 +34,10 @@ import sentry.web.frontend.projects.tags
 
 __all__ = ('urlpatterns',)
 
+from sentry.web.frontend.create_team import CreateTeamView
+from sentry.web.frontend.manage_team import ManageTeamView
+from sentry.web.frontend.remove_team import RemoveTeamView
+
 
 def init_all_applications():
     """
@@ -100,12 +104,14 @@ urlpatterns += patterns('',
         name='sentry-account-settings-notifications'),
     url(r'^account/settings/social/', include('social_auth.urls')),
 
-    # Settings - Teams
-    url(r'^account/teams/new/$', teams.create_new_team,
+    # Organizations
+    url(r'^organizations/(?P<organization_id>\d+)/teams/new/$', CreateTeamView.as_view(),
         name='sentry-new-team'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/settings/$', teams.manage_team,
+
+    # Settings - Teams
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/settings/$', ManageTeamView.as_view(),
         name='sentry-manage-team'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/remove/$', teams.remove_team,
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/$', teams.manage_access_groups,
         name='sentry-manage-access-groups'),
