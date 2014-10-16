@@ -72,6 +72,11 @@
           endpoint = getEndpoint(selectedProject, params);
 
       var pollForChanges = function() {
+        if (!$scope.pollingActive) {
+          timeoutId = window.setTimeout(pollForChanges, 3000);
+          return;
+        }
+
         $.ajax({
           url: endpoint,
           method: 'GET',
@@ -97,6 +102,19 @@
           }
         });
       };
+
+      $scope.pollingActive = true;
+      $('.stream-actions .realtime-control').click(function(){
+        var $icon = $(this).find('.icon');
+        if ($scope.pollingActive) {
+          $icon.removeClass('icon-pause');
+          $icon.addClass('icon-play');
+        } else {
+          $icon.addClass('icon-pause');
+          $icon.removeClass('icon-play');
+        }
+        $scope.pollingActive = !$scope.pollingActive;
+      });
 
       $scope.selectAllActive = false;
       $scope.multiSelected = false;
