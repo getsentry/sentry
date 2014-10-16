@@ -40,9 +40,6 @@ class ModelTest(TestCase):
             DummyModel.objects.create(normint=9223372036854775807L, foo='bar')
 
         with self.assertRaises(AssertionError):
-            DummyModel.objects.create(id=9223372036854775807L, foo='bar')
-
-        with self.assertRaises(AssertionError):
             DummyModel.objects.create(bigint=9223372036854775808L, foo='bar')
 
         with self.assertRaises(AssertionError):
