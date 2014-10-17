@@ -111,8 +111,11 @@ class Project(Model):
             fv.delete()
         self.delete()
 
-    def is_default_project(self):
-        return str(self.id) == str(settings.SENTRY_PROJECT) or str(self.slug) == str(settings.SENTRY_PROJECT)
+    def is_internal_project(self):
+        for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
+            if str(self.id) == str(value) or str(self.slug) == str(value):
+                return True
+        return False
 
     def get_tags(self):
         from sentry.models import TagKey

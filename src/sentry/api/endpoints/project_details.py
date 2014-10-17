@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -64,8 +63,8 @@ class ProjectDetailsEndpoint(Endpoint):
     def delete(self, request, project_id):
         project = Project.objects.get(id=project_id)
 
-        if project.id == settings.SENTRY_PROJECT:
-            return Response('{"error": "Cannot remove default project."}',
+        if project.is_internal_project():
+            return Response('{"error": "Cannot remove projects internally used by Sentry."}',
                             status=status.HTTP_403_FORBIDDEN)
 
         if not (request.user.is_superuser or project.team.owner_id == request.user.id):

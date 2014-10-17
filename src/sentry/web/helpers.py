@@ -105,6 +105,7 @@ def get_default_context(request, existing_context=None, team=None):
         'URL_PREFIX': settings.SENTRY_URL_PREFIX,
         'PLUGINS': plugins,
         'STATUS_HIDDEN': STATUS_HIDDEN,
+        'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
     }
 
     if request:
