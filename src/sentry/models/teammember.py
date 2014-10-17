@@ -10,9 +10,16 @@ from __future__ import absolute_import, print_function
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_TYPES, MEMBER_USER
 from sentry.db.models import Model, BoundedIntegerField, BaseManager, sane_repr
+
+
+# TODO(dcramer): pull in enum library
+class TeamMemberType(object):
+    ADMIN = 0
+    MEMBER = 50
+    BOT = 100
 
 
 class TeamMember(Model):
@@ -25,7 +32,11 @@ class TeamMember(Model):
     """
     team = models.ForeignKey('sentry.Team', related_name="member_set")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
-    type = BoundedIntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    type = BoundedIntegerField(choices=(
+        (TeamMemberType.MEMBER, _('Member')),
+        (TeamMemberType.ADMIN, _('Admin')),
+        (TeamMemberType.BOT, _('Bot')),
+    ), default=TeamMemberType.MEMBER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
