@@ -59,7 +59,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         )
 
     team, _ = Team.objects.get_or_create(
-        name='sentry',
+        name='Sentry',
         defaults={
             'owner': user,
         }
