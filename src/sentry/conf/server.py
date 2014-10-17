@@ -511,7 +511,13 @@ STATSD_CLIENT = 'django_statsd.clients.null'
 # Sentry and Raven configuration
 
 SENTRY_PUBLIC = False
+
+# Default project ID for recording internal exceptions
 SENTRY_PROJECT = 1
+
+# Project ID for recording frontend (javascript) exceptions
+SENTRY_FRONTEND_PROJECT = None
+
 SENTRY_CACHE_BACKEND = 'default'
 
 SENTRY_FILTERS = (
