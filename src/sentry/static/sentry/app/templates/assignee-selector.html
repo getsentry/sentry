@@ -1,16 +1,16 @@
-<div class="user-selector">
-  <div class="btn-group">
-    <a href="#" class="btn btn-sm btn-default dropdown-toggle">
+<div class="user-selector" ng-cloak>
+  <div dropdown>
+    <a href="#" class="btn btn-sm btn-default" dropdown-toggle>
       <span ng-if="group.assignedTo">
-        <img src="<% group.assignedTo.avatarUrl %>" class="avatar">
+        <img ng-src="<% group.assignedTo.avatarUrl %>" class="avatar">
       </span>
       <span aria-hidden="true" class="icon-arrow-down"></span>
     </a>
-    <div class="dropdown-menu" ng-click="$event.stopPropagation()">
+    <div class="dropdown-menu" role="menu">
       <input type="text" class="form-control input-sm" placeholder="Filter people">
       <ul>
         <li ng-repeat="projectMember in projectMemberList">
-          <a href="javascript:void(0)" ng-click="assignTo(projectMember)"><img src="<% projectMember.avatarUrl %>" class="avatar"> <% projectMember.name || projectMember.email %></a>
+          <a href="javascript:void(0)" ng-click="assignTo(projectMember)"><img ng-src="<% projectMember.avatarUrl %>" class="avatar"> <% projectMember.name || projectMember.email %></a>
         </li>
       </ul>
     </div>

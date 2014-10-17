@@ -6,7 +6,7 @@ sentry.rules.actions.base
 :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from sentry.rules.base import RuleBase
 

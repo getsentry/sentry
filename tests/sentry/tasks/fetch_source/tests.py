@@ -165,7 +165,7 @@ class ExpandJavascriptSourceTest(TestCase):
                     'stacktrace': {
                         'frames': [
                             {
-                                'abs_path': 'http://example.com/test.js',
+                                'abs_path': 'http://example.com/test.min.js',
                                 'filename': 'test.js',
                                 'lineno': 1,
                                 'colno': 0,
@@ -176,10 +176,11 @@ class ExpandJavascriptSourceTest(TestCase):
             }
         }
         discover_sourcemap.return_value = base64_sourcemap
+        fetch_url.return_value.url = 'http://example.com/test.min.js'
         fetch_url.return_value.body = '\n'.join('<generated source>')
 
         expand_javascript_source(data)
-        fetch_url.assert_called_once_with('http://example.com/test.js')
+        fetch_url.assert_called_once_with('http://example.com/test.min.js')
 
         frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
         frame = frame_list[0]

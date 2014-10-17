@@ -30,6 +30,12 @@
 @font-family-base: "Avenir Next", "Avenir", "Helvetica Neue", helvetica, sans-serif;
 @font-family-code: Monaco, Consolas, "Courier New", monospace;
 
+/* =============================  Angular  ============================= */
+
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
+}
+
 /* =============================  Global  ============================== */
 
 body {
@@ -916,6 +922,16 @@ a.icon-share {
   .icon-checkmark, .icon-trash, .icon-pause {
     position: relative;
     top: 1px;
+    margin-right: -1px;
+  }
+
+  .icon-play {
+    font-size: 14px;
+    position: relative;
+    top: 2px;
+    width: 0;
+    margin-right: -5px;
+    margin-left: -1px;
   }
 
 }
@@ -1470,6 +1486,7 @@ pre, code {
 
 pre {
   border: 0;
+  word-break: normal;
 }
 
 code {
@@ -3188,14 +3205,4 @@ table.integrations {
     margin-left: -300px;
     margin-top: -91px;
   }
-}
-
-
-pre {
-  word-break: normal;
-}
-
-
-pre {
-  word-break: normal;
 }

@@ -5,8 +5,10 @@ sentry.buffer.base
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 from django.db.models import F
+
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 
