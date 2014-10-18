@@ -34,6 +34,9 @@ import sentry.web.frontend.projects.tags
 
 __all__ = ('urlpatterns',)
 
+from sentry.web.frontend.organization_members import OrganizationMembersView
+from sentry.web.frontend.organization_settings import OrganizationSettingsView
+from sentry.web.frontend.organization_teams import OrganizationTeamsView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.manage_team import ManageTeamView
 from sentry.web.frontend.remove_team import RemoveTeamView
@@ -105,6 +108,12 @@ urlpatterns += patterns('',
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Organizations
+    url(r'^organizations/(?P<organization_id>\d+)/members/$', OrganizationMembersView.as_view(),
+        name='sentry-organization-members'),
+    url(r'^organizations/(?P<organization_id>\d+)/settings/$', OrganizationSettingsView.as_view(),
+        name='sentry-organization-settings'),
+    url(r'^organizations/(?P<organization_id>\d+)/teams/$', OrganizationTeamsView.as_view(),
+        name='sentry-organization-teams'),
     url(r'^organizations/(?P<organization_id>\d+)/teams/new/$', CreateTeamView.as_view(),
         name='sentry-new-team'),
 

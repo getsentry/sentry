@@ -1,0 +1,35 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Organization Details" %}</h2>
+        </div>
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+
+            {% if form.errors %}
+                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+            {% endif %}
+
+            {{ form|as_crispy_errors }}
+
+            <fieldset>
+                {% for field in form %}
+                    {{ field|as_crispy_field }}
+                {% endfor %}
+            </fieldset>
+
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </fieldset>
+        </form>
+    </section>
+{% endblock %}
