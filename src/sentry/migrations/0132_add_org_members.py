@@ -12,11 +12,11 @@ class Migration(DataMigration):
         TeamMember = orm['sentry.TeamMember']
 
         for org in Organization.objects.all():
-            for tm in TeamMember.objects.filter(team__organization=org):
+            for team in org.team_set.all():
                 OrganizationMember.objects.get_or_create(
                     organization=org,
-                    user=tm.user,
-                    defaults={'type': tm.type},
+                    user=team.owner,
+                    defaults={'type': 100},  # ADMIN
                 )
 
     def backwards(self, orm):

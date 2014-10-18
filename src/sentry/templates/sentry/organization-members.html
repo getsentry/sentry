@@ -1,0 +1,36 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Admins" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Admins" %}</h2>
+        </div>
+
+        <table class="table table-striped">
+            <colgroup>
+                <col>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "User" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in member_list %}
+                    <tr>
+                        <td>
+                            {{ member.user.get_display_name }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endblock %}

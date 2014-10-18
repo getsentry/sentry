@@ -19,16 +19,10 @@ class RemoveTeamForm(forms.Form):
 class RemoveTeamView(TeamView):
     required_access = TeamMemberType.ADMIN
 
-    def dispatch(self, request, organization, team):
-        if not can_remove_team(request.user, team):
-            return HttpResponseRedirect(reverse('sentry'))
-
-        return super(RemoveTeamView, self).dispatch(request, organization, team)
-
     def get_form(self, request):
         return RemoveTeamForm(request.POST or None)
 
-    def remove_team(self, request, team):
+    def get(self, request, organization, team):
         form = self.get_form(request)
 
         context = {
@@ -37,7 +31,10 @@ class RemoveTeamView(TeamView):
 
         return self.respond('sentry/teams/remove.html', context)
 
-    def post(self, request, team):
+    def post(self, request, organization, team):
+        if not can_remove_team(request.user, team):
+            return HttpResponseRedirect(reverse('sentry'))
+
         form = self.get_form(request)
 
         if form.is_valid():

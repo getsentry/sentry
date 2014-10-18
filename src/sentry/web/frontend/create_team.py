@@ -23,16 +23,13 @@ class NewTeamForm(forms.ModelForm):
 class CreateTeamView(OrganizationView):
     required_access = OrganizationMemberType.ADMIN
 
-    def dispatch(self, request, organization, team):
-        if not can_create_teams(request.user):
-            return missing_perm(request, Permissions.ADD_TEAM)
-
-        return super(CreateTeamView, self).dispatch(request, organization, team)
-
     def get_form(self, request):
         return NewTeamForm(request.POST or None)
 
     def get(self, request, organization):
+        if not can_create_teams(request.user):
+            return missing_perm(request, Permissions.ADD_TEAM)
+
         form = self.get_form(request)
 
         context = {
@@ -42,6 +39,9 @@ class CreateTeamView(OrganizationView):
         return self.respond('sentry/teams/new.html', context)
 
     def post(self, request, organization):
+        if not can_create_teams(request.user):
+            return missing_perm(request, Permissions.ADD_TEAM)
+
         form = self.get_form(request)
         if form.is_valid():
             team = form.save(commit=False)

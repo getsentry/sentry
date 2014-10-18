@@ -14,21 +14,18 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
-from sudo.decorators import sudo_required
-
 from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
-    can_add_team_member, can_remove_team, can_create_projects,
-    can_create_teams, can_edit_team_member, can_remove_team_member,
+    can_add_team_member, can_create_projects,
+    can_edit_team_member, can_remove_team_member,
     Permissions)
 from sentry.plugins import plugins
 from sentry.utils.samples import create_sample_event
-from sentry.web.decorators import login_required, has_access
+from sentry.web.decorators import has_access
 from sentry.web.forms.teams import (
-    NewTeamForm, NewTeamAdminForm,
-    EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm,
-    InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm,
+    EditTeamMemberForm, NewTeamMemberForm,
+    InviteTeamMemberForm, AcceptInviteForm, NewAccessGroupForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
 from sentry.web.helpers import render_to_response
@@ -42,34 +39,6 @@ def render_with_team_context(team, template, context, request=None):
     })
 
     return render_to_response(template, context, request)
-
-
-@has_access(MEMBER_OWNER)
-@csrf_protect
-def remove_team(request, team):
-    if not can_remove_team(request.user, team):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    if request.method == 'POST':
-        form = RemoveTeamForm(request.POST)
-    else:
-        form = RemoveTeamForm()
-
-    if form.is_valid():
-        team.delete()
-        messages.add_message(
-            request, messages.SUCCESS,
-            _(u'The team %r was permanently deleted.') % (team.name.encode('utf-8'),))
-        return HttpResponseRedirect(reverse('sentry'))
-
-    context = csrf(request)
-    context.update({
-        'page': 'settings',
-        'form': form,
-        'SUBSECTION': 'settings',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/remove.html', context, request)
 
 
 @has_access(MEMBER_OWNER)

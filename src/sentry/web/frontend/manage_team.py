@@ -37,13 +37,6 @@ class EditTeamAdminForm(EditTeamForm):
 class ManageTeamView(TeamView):
     required_access = TeamMemberType.ADMIN
 
-    def dispatch(self, request, organization, team):
-        result = plugins.first('has_perm', request.user, 'edit_team', team)
-        if result is False and not request.user.is_superuser:
-            return HttpResponseRedirect(reverse('sentry'))
-
-        return super(ManageTeamView, self).dispatch(request, organization, team)
-
     def get_default_context(self, request, **kwargs):
         context = super(ManageTeamView, self).get_default_context(request, **kwargs)
         context.update({
@@ -66,6 +59,10 @@ class ManageTeamView(TeamView):
         }, instance=team)
 
     def get(self, request, organization, team):
+        result = plugins.first('has_perm', request.user, 'edit_team', team)
+        if result is False and not request.user.is_superuser:
+            return HttpResponseRedirect(reverse('sentry'))
+
         form = self.get_form(request, team)
 
         context = {
@@ -75,6 +72,10 @@ class ManageTeamView(TeamView):
         return self.respond('sentry/teams/manage.html', context)
 
     def post(self, request, organization, team):
+        result = plugins.first('has_perm', request.user, 'edit_team', team)
+        if result is False and not request.user.is_superuser:
+            return HttpResponseRedirect(reverse('sentry'))
+
         form = self.get_form(request, team)
         # XXX: form.is_valid() changes the foreignkey
         original_owner = team.owner

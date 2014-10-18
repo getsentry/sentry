@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
 
 from sentry.models import Organization, Project, Team
-from sentry.web.helpers import get_login_url
+from sentry.web.helpers import get_login_url, render_to_response
 
 
 class OrganizationMixin(object):
@@ -121,7 +121,7 @@ class BaseView(View, OrganizationMixin):
         if context:
             default_context.update(context)
 
-        return render_with_response(template, default_context, self.request)
+        return render_to_response(template, default_context, self.request)
 
 
 class OrganizationView(BaseView):
@@ -134,7 +134,7 @@ class OrganizationView(BaseView):
     required_access = None
 
     def get_context_data(self, request, organization, **kwargs):
-        context = super(OrganizationView, self).get_context_data()
+        context = super(OrganizationView, self).get_context_data(request)
         context['organization'] = organization
         return context
 
@@ -174,7 +174,7 @@ class TeamView(BaseView):
     required_access = None
 
     def get_context_data(self, request, organization, team, **kwargs):
-        context = super(TeamView, self).get_context_data()
+        context = super(TeamView, self).get_context_data(request)
         context['organization'] = organization
         context['team'] = team
         return context
@@ -213,7 +213,7 @@ class ProjectView(BaseView):
     required_access = None
 
     def get_context_data(self, request, organization, team, project, **kwargs):
-        context = super(TeamView, self).get_context_data()
+        context = super(TeamView, self).get_context_data(request)
         context['organization'] = organization
         context['project'] = project
         context['team'] = team

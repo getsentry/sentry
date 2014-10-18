@@ -90,3 +90,6 @@ class User(Model, AbstractBaseUser):
             obj.update(user=to_user)
         for obj in UserOption.objects.filter(user=from_user):
             obj.update(user=to_user)
+
+    def get_display_name(self):
+        return self.first_name or self.username

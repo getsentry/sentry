@@ -1,0 +1,39 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Teams" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Teams" %}</h2>
+        </div>
+
+        <table class="table table-striped">
+            <colgroup>
+                <col>
+                <col style="width:100px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Name" %}</th>
+                    <th style="text-align:center;">{% trans "Status" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in team_list %}
+                    <tr>
+                        <td>
+                            {{ team.name }}
+                        </td>
+                        <td style="text-align:center">{{ team.get_status_display }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endblock %}

@@ -7,12 +7,12 @@ from django.db.models.signals import post_syncdb, post_save, pre_delete
 from pkg_resources import parse_version as Version
 
 from sentry import options
-from sentry.constants import MEMBER_OWNER
 from sentry.db.models import update
 from sentry.db.models.utils import slugify_instance
 from sentry.models import (
-    Organization, Project, User, Team, ProjectKey, UserOption, TagKey, TagValue,
-    GroupTagValue, GroupTagKey, Activity, TeamMember, Alert
+    Organization, OrganizationMemberType, Project, User, Team, ProjectKey,
+    UserOption, TagKey, TagValue, GroupTagValue, GroupTagKey, Activity,
+    TeamMember, TeamMemberType, Alert
 )
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.safe import safe_execute
@@ -140,7 +140,20 @@ def create_team_member_for_owner(instance, created, **kwargs):
 
     instance.member_set.get_or_create(
         user=instance.owner,
-        type=MEMBER_OWNER,
+        type=TeamMemberType.ADMIN,
+    )
+
+
+def create_org_member_for_owner(instance, created, **kwargs):
+    if not created:
+        return
+
+    if not instance.owner:
+        return
+
+    instance.member_set.get_or_create(
+        user=instance.owner,
+        type=OrganizationMemberType.ADMIN,
     )
 
 
@@ -230,6 +243,12 @@ post_save.connect(
     create_team_member_for_owner,
     sender=Team,
     dispatch_uid="create_team_member_for_owner",
+    weak=False,
+)
+post_save.connect(
+    create_org_member_for_owner,
+    sender=Organization,
+    dispatch_uid="create_org_member_for_owner",
     weak=False,
 )
 pre_delete.connect(
