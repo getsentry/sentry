@@ -1,11 +1,9 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/organization.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
-
-{% block bodyclass %}{% endblock %}
+{% block org_settings_nav %} class="active"{% endblock %}
 
 {% block main %}
     <section class="body">

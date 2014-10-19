@@ -19,23 +19,6 @@ from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
 
 
-@login_required
-def dashboard(request, template='dashboard.html'):
-    org_list = []
-    for org in Organization.objects.get_for_user(request.user):
-        team_list = Team.objects.get_for_user(
-            organization=org,
-            user=request.user,
-            with_projects=True,
-        )
-        org_list.append((org, team_list.values()))
-
-    return render_to_response('sentry/select_team.html', {
-        'org_list': org_list,
-        'can_create_teams': can_create_teams(request.user),
-    }, request)
-
-
 def static_media(request, **kwargs):
     """
     Serve static files below a given point in the directory structure.

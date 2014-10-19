@@ -34,6 +34,7 @@ import sentry.web.frontend.projects.tags
 
 __all__ = ('urlpatterns',)
 
+from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.organization_teams import OrganizationTeamsView
@@ -231,7 +232,7 @@ urlpatterns += patterns('',
         name='sentry-new-project-rule'),
 
     # Generic
-    url(r'^$', generic.dashboard,
+    url(r'^$', HomeView.as_view(),
         name='sentry'),
 
     # Admin

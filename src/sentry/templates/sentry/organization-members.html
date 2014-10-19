@@ -1,18 +1,14 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/organization.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Admins" %} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %}{% endblock %}
+{% block org_members_nav %} class="active"{% endblock %}
 
 {% block main %}
     <section class="body">
-        <div class="page-header">
-            <h2>{% trans "Admins" %}</h2>
-        </div>
-
         <table class="table table-striped">
             <colgroup>
                 <col>
