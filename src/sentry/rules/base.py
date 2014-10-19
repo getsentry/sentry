@@ -37,6 +37,7 @@ by the rule's logic. Each rule condition may be associated with a form.
 
 from __future__ import absolute_import
 
+import logging
 import re
 
 from django.utils.html import escape
@@ -53,6 +54,8 @@ class RuleDescriptor(type):
 class RuleBase(object):
     label = None
     form_cls = None
+
+    logger = logging.getLogger('sentry.rules')
 
     __metaclass__ = RuleDescriptor
 
