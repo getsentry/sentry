@@ -116,7 +116,7 @@ class BaseView(View, OrganizationMixin):
         context = csrf(request)
         return context
 
-    def respond(self, template, request, context=None):
+    def respond(self, template, context=None):
         default_context = self.default_context
         if context:
             default_context.update(context)
