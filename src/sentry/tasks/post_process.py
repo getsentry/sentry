@@ -158,7 +158,7 @@ def execute_rule(rule_id, event, state):
             rules_logger.error('Unregistered action %r', action['id'])
             continue
 
-        action_inst = action_cls(project)
+        action_inst = action_cls(project, data=rule.data)
         safe_execute(action_inst.after, event=event, state=state)
 
 
