@@ -83,10 +83,26 @@ class PostProcessGroupTest(TestCase):
             Rule(
                 id=1,
                 data={
-                    'actions': [{'id': action_id}],
-                    'conditions': [{'id': condition_id}],
+                    'actions': [{
+                        'id': 'sentry.rules.actions.notify_event.NotifyEventAction',
+                    }],
+                    'conditions': [{
+                        'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                    }],
                 }
-            )
+            ),
+            Rule(
+                id=2,
+                data={
+                    'actions': [{
+                        'id': 'sentry.rules.actions.notify_event_service.NotifyEventAction',
+                        'service': 'mail',
+                    }],
+                    'conditions': [{
+                        'id': 'sentry.rules.conditions.every_event.EveryEventCondition',
+                    }],
+                }
+            ),
         ]
 
         post_process_group(
@@ -98,7 +114,9 @@ class PostProcessGroupTest(TestCase):
 
         mock_get_rules.assert_called_once_with(self.project)
 
-        assert not mock_execute_rule.apply_async.called
+        assert len(mock_execute_rule.apply_async.mock_calls) == 1
+
+        mock_execute_rule.apply_async.reset_mock()
 
         post_process_group(
             event=event,
@@ -107,7 +125,9 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
-        assert len(mock_execute_rule.apply_async.mock_calls) == 1
+        assert len(mock_execute_rule.apply_async.mock_calls) == 2
+
+        mock_execute_rule.apply_async.reset_mock()
 
         post_process_group(
             event=event,
