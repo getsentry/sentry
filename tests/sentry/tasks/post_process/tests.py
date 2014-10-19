@@ -144,11 +144,12 @@ class ExecuteRuleTest(TestCase):
     def test_simple(self, mock_rules):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
+        action_data = {'id': 'a.rule.id', 'foo': 'bar'}
         rule = Rule.objects.create(
             project=event.project,
             data={
                 'actions': [
-                    {'id': 'a.rule.id'},
+                    action_data,
                 ],
             }
         )
@@ -168,7 +169,7 @@ class ExecuteRuleTest(TestCase):
 
         mock_rules.get.assert_called_once_with('a.rule.id')
         mock_rule_inst = mock_rules.get.return_value
-        mock_rule_inst.assert_called_once_with(self.project, data=rule.data)
+        mock_rule_inst.assert_called_once_with(self.project, data=action_data)
         mock_rule_inst.return_value.after.assert_called_once_with(
             event=event,
             state=state,
