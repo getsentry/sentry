@@ -10,7 +10,7 @@
             {% for org, team_list in org_list %}
                 {% if can_create_teams %}
                 <div class="pull-right">
-                    <a href="{% url 'sentry-new-team' org.id %}" class="btn btn-default">{% trans "Settings" %}</a>
+                    <a href="{% url 'sentry-organization-settings' org.id %}" class="btn btn-default">{% trans "Settings" %}</a>
                     <a href="{% url 'sentry-new-team' org.id %}" class="btn btn-default">{% trans "New Team" %}</a>
                 </div>
                 {% endif %}
