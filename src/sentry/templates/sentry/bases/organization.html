@@ -1,0 +1,23 @@
+{% extends "sentry/layout.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block bodyclass %}{% endblock %}
+{% block wrapperclass %}windowed{% endblock %}
+
+{% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
+
+{% block page_header %}
+    <ul class="nav nav-tabs">
+        <li{% block org_teams_nav %}{% endblock %}>
+            <a href="{% url 'sentry-organization-teams' organization.id %}">{% trans "Teams" %}</a>
+        </li>
+        <li{% block org_settings_nav %}{% endblock %}>
+            <a href="{% url 'sentry-organization-settings' organization.id %}">{% trans "Settings" %}</a>
+        </li>
+        <li{% block org_members_nav %}{% endblock %}>
+            <a href="{% url 'sentry-organization-members' organization.id %}">{% trans "Admins" %}</a>
+        </li>
+    </ul>
+{% endblock %}

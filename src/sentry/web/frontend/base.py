@@ -32,21 +32,23 @@ class OrganizationMixin(object):
                     )
                 except Organization.DoesNotExist:
                     return None
-            else:
-                organizations = Organization.objects.get_for_user(
-                    user=request.user,
-                    access=access,
-                )
 
-                try:
-                    active_organization = (
-                        o for o in organizations
-                        if o.id == organization_id
-                    ).next()
-                except StopIteration:
-                    if is_implicit:
-                        del request.session['activeorg']
-                    active_organization = None
+        if active_organization is None:
+            organizations = Organization.objects.get_for_user(
+                user=request.user,
+                access=access,
+            )
+
+        if active_organization is None and organization_id:
+            try:
+                active_organization = (
+                    o for o in organizations
+                    if o.id == organization_id
+                ).next()
+            except StopIteration:
+                if is_implicit:
+                    del request.session['activeorg']
+                active_organization = None
 
         if active_organization is None:
             if not is_implicit:

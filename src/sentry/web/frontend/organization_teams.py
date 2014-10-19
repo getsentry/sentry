@@ -8,8 +8,14 @@ class OrganizationTeamsView(OrganizationView):
     required_access = OrganizationMemberType.ADMIN
 
     def get(self, request, organization):
+        team_list = Team.objects.get_for_user(
+            organization=organization,
+            user=request.user,
+            with_projects=True,
+        ).values()
+
         context = {
-            'team_list': Team.objects.filter(organization=organization),
+            'team_list': team_list,
         }
 
         return self.respond('sentry/organization-teams.html', context)
