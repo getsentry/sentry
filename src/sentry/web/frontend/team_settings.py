@@ -100,4 +100,4 @@ class TeamSettingsView(TeamView):
             'form': form,
         }
 
-        return self.respond(team, 'sentry/teams/manage.html', context)
+        return self.respond('sentry/teams/manage.html', context)

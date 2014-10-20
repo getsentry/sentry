@@ -13,12 +13,14 @@ class TeamSettingsTest(TestCase):
         return reverse('sentry-manage-team', args=[self.team.slug])
 
     def test_renders_with_context(self):
+        self.login_as(self.team.owner)
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
         assert resp.context['team'] == self.team
 
     def test_valid_params(self):
+        self.login_as(self.team.owner)
         resp = self.client.post(self.path, {
             'name': 'bar',
             'slug': self.team.slug,
@@ -30,7 +32,8 @@ class TeamSettingsTest(TestCase):
         self.assertEquals(team.name, 'bar')
 
     def test_superuser_can_set_owner(self):
-        user2 = self.create_user(username='other@example.com')
+        self.login_as(self.team.owner)
+        user2 = self.create_user('other@example.com')
 
         resp = self.client.post(self.path, {
             'name': self.team.name,
