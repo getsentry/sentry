@@ -13,7 +13,9 @@ from django.utils.text import slugify
 from exam import fixture
 from uuid import uuid4
 
-from sentry.models import Activity, Event, Group, Project, Team, User
+from sentry.models import (
+    Activity, Event, Group, Organization, Project, Team, User
+)
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
 
@@ -32,8 +34,15 @@ class Fixtures(object):
         return self.create_user('admin@localhost', username='admin')
 
     @fixture
+    def organization(self):
+        return self.create_organization(
+            name='foo',
+            owner=self.user)
+
+    @fixture
     def team(self):
         return self.create_team(
+            organization=self.organization,
             name='foo',
             slug='foo',
             owner=self.user)
@@ -63,12 +72,21 @@ class Fixtures(object):
             data={}
         )
 
+    def create_organization(self, **kwargs):
+        kwargs.setdefault('name', 'foo')
+        if not kwargs.get('owner'):
+            kwargs['owner'] = self.user
+
+        return Organization.objects.create(**kwargs)
+
     def create_team(self, **kwargs):
         kwargs.setdefault('name', 'foo')
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
+        if not kwargs.get('organization'):
+            kwargs['organization'] = self.organization
         if not kwargs.get('owner'):
-            kwargs['owner'] = self.user
+            kwargs['owner'] = kwargs['organization'].owner
 
         return Team.objects.create(**kwargs)
 

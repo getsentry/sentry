@@ -10,5 +10,7 @@ class HomeView(BaseView):
     def get(self, request):
         # TODO(dcramer): deal with no orgs
         organization = self.get_active_organization(request)
+        if organization is None:
+            raise NotImplementedError
         url = reverse('sentry-organization-home', args=[organization.id])
         return HttpResponseRedirect(url)
