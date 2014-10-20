@@ -32,11 +32,11 @@ admin.site.register(Broadcast, BroadcastAdmin)
 
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('full_slug', 'owner', 'platform', 'status', 'date_added')
+    list_display = ('full_slug', 'platform', 'status', 'date_added')
     list_filter = ('status', 'platform', 'public')
-    search_fields = ('name', 'owner__username', 'owner__email', 'team__slug',
+    search_fields = ('name', 'team__owner__username', 'team__owner__email', 'team__slug',
                      'team__name', 'slug')
-    raw_id_fields = ('owner', 'team')
+    raw_id_fields = ('team',)
 
     def full_slug(self, instance):
         if not instance.team:
@@ -59,8 +59,8 @@ class TeamMemberInline(admin.TabularInline):
 class TeamAdmin(admin.ModelAdmin):
     list_display = ('name', 'owner', 'slug', 'status')
     list_filter = ('status',)
-    search_fields = ('name', 'owner__username', 'owner__email', 'slug')
-    raw_id_fields = ('owner',)
+    search_fields = ('name', 'organization__name', 'owner__username', 'owner__email', 'slug')
+    raw_id_fields = ('owner', 'organization')
     inlines = (TeamMemberInline,)
 
 admin.site.register(Team, TeamAdmin)
