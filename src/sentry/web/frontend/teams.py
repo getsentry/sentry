@@ -14,7 +14,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
-from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
+from sentry.constants import MEMBER_USER, MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
     can_add_team_member, can_create_projects,
@@ -39,52 +39,6 @@ def render_with_team_context(team, template, context, request=None):
     })
 
     return render_to_response(template, context, request)
-
-
-@has_access(MEMBER_OWNER)
-@csrf_protect
-def manage_team_projects(request, team):
-    result = plugins.first('has_perm', request.user, 'edit_team', team)
-    if result is False and not request.user.is_superuser:
-        return HttpResponseRedirect(reverse('sentry'))
-
-    project_list = team.project_set.all()
-    if not request.user.is_superuser:
-        project_list = project_list.filter(status=STATUS_VISIBLE)
-    project_list = sorted(project_list, key=lambda o: o.slug)
-    for project in project_list:
-        project.team = team
-
-    context = csrf(request)
-    context.update({
-        'page': 'projects',
-        'team': team,
-        'project_list': project_list,
-        'SUBSECTION': 'projects',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/projects/index.html', context, request)
-
-
-@has_access(MEMBER_OWNER)
-@csrf_protect
-def manage_team_members(request, team):
-    result = plugins.first('has_perm', request.user, 'edit_team', team)
-    if result is False and not request.user.is_superuser:
-        return HttpResponseRedirect(reverse('sentry'))
-
-    member_list = [(pm, pm.user) for pm in team.member_set.select_related('user').order_by('user__username')]
-    pending_member_list = [(pm, pm.email) for pm in team.pending_member_set.all().order_by('email')]
-
-    context = csrf(request)
-    context.update({
-        'page': 'members',
-        'member_list': member_list,
-        'pending_member_list': pending_member_list,
-        'SUBSECTION': 'members',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/members/index.html', context, request)
 
 
 @csrf_protect
