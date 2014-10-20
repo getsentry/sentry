@@ -112,6 +112,9 @@ def get_default_context(request, existing_context=None, team=None):
         if existing_context and not team and 'team' in existing_context:
             team = existing_context['team']
 
+        if team:
+            context['organization'] = team.organization
+
         context.update({
             'request': request,
         })
