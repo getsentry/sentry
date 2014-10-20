@@ -11,21 +11,8 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_TYPES
-from sentry.models import TeamMember, AccessGroup, Project
+from sentry.models import AccessGroup, Project
 from sentry.web.forms.fields import UserField
-
-
-class BaseTeamMemberForm(forms.ModelForm):
-    class Meta:
-        fields = ('type',)
-        model = TeamMember
-
-    def __init__(self, team, *args, **kwargs):
-        self.team = team
-        super(BaseTeamMemberForm, self).__init__(*args, **kwargs)
-
-
-EditTeamMemberForm = BaseTeamMemberForm
 
 
 class AcceptInviteForm(forms.Form):
