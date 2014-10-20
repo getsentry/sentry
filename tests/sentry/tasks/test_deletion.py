@@ -8,10 +8,9 @@ from sentry.testutils import TestCase
 class DeleteTeamTest(TestCase):
     @patch.object(delete_team, 'delay')
     def test_simple(self, delete_team_delay):
-        user = self.create_user(email='foo@example.com')
-        team = Team.objects.create(owner=user, name='test', slug='test')
-        project1 = Project.objects.create(team=team, name='test1', slug='test1')
-        project2 = Project.objects.create(team=team, name='test2', slug='test2')
+        team = self.create_team(name='test', slug='test')
+        project1 = self.create_project(team=team, name='test1', slug='test1')
+        project2 = self.create_project(team=team, name='test2', slug='test2')
 
         # remove relations from team so delete_team tests are faster
         team.member_set.all().delete()

@@ -13,7 +13,8 @@ from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
     GroupTagValue, TagValue, PendingTeamMember,
-    LostPasswordHash, User)
+    LostPasswordHash
+)
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
 from sentry.utils.strings import compress
@@ -26,7 +27,7 @@ class ProjectTest(TestCase):
         self.project = Project.objects.get(id=1)
 
     def test_migrate(self):
-        project2 = Project.objects.create(name='Test')
+        project2 = self.create_project(name='Test')
         self.project.merge_to(project2)
 
         self.assertFalse(Project.objects.filter(pk=1).exists())
@@ -67,15 +68,9 @@ class ProjectKeyTest(TestCase):
         with self.settings(SENTRY_ENDPOINT='http://endpoint.com'):
             self.assertEquals(key.get_dsn(), 'http://public:secret@endpoint.com/1')
 
-    def test_key_is_created_for_project_with_existing_team(self):
-        user = User.objects.create(username='admin')
-        team = Team.objects.create(name='Test', slug='test', owner=user)
-        project = Project.objects.create(name='Test', slug='test', owner=user, team=team)
-        assert project.key_set.filter(user__isnull=True).exists() is True
-
-    def test_key_is_created_for_project_with_new_team(self):
-        user = User.objects.create(username='admin')
-        project = Project.objects.create(name='Test', slug='test', owner=user)
+    def test_key_is_created_for_project(self):
+        team = self.create_team(owner=self.user)
+        project = Project.objects.create(name='Test', slug='test', team=team)
         assert project.key_set.filter(user__isnull=True).exists() is True
 
 

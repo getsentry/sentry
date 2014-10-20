@@ -45,7 +45,7 @@ class ProjectManagerTest(TestCase):
     def setUp(self):
         self.project = Project.objects.get()
         self.project.update(public=True)
-        self.project2 = Project.objects.create(name='Test', slug='test', owner=self.user, public=False)
+        self.project2 = self.create_project(name='Test', slug='test', public=False)
 
     @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))
     def test_does_not_include_public_projects(self):
@@ -75,7 +75,7 @@ class TeamManagerTest(TestCase):
         user = User.objects.create(username='foo')
         user2 = User.objects.create(username='bar')
         user3 = User.objects.create(username='baz')
-        team = Team.objects.create(name='Test', owner=user)
+        team = self.create_team(name='Test', owner=user)
         group = AccessGroup.objects.create(name='Test', type=MEMBER_USER, team=team)
         group.members.add(user2)
 

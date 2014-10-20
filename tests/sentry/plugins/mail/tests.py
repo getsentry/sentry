@@ -155,9 +155,9 @@ class MailPluginTest(TestCase):
             self.team.name, self.project.name)
 
     def test_get_sendable_users(self):
-        from sentry.models import Project, UserOption, User
+        from sentry.models import UserOption, User
 
-        user = User.objects.create(username='foo', email='foo@example.com', is_active=True)
+        user = self.user
         user2 = User.objects.create(username='baz', email='baz@example.com', is_active=True)
         user3 = User.objects.create(username='baz2', email='bar@example.com', is_active=True)
 
@@ -166,7 +166,7 @@ class MailPluginTest(TestCase):
         # user not in any groups
         User.objects.create(username='bar2', email='bar@example.com', is_active=True)
 
-        project = Project.objects.create(name='Test', slug='test', owner=user)
+        project = self.create_project(name='Test', slug='test')
         project.team.member_set.get_or_create(user=user)
         project.team.member_set.get_or_create(user=user2)
 

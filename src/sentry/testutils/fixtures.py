@@ -53,7 +53,6 @@ class Fixtures(object):
             name='Bar',
             slug='bar',
             team=self.team,
-            owner=self.user,
         )
 
     @fixture
@@ -96,8 +95,6 @@ class Fixtures(object):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('team'):
             kwargs['team'] = self.team
-        if not kwargs.get('owner'):
-            kwargs['owner'] = kwargs['team'].owner
 
         return Project.objects.create(**kwargs)
 

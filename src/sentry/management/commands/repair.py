@@ -29,13 +29,6 @@ class Command(BaseCommand):
         else:
             owner = None
 
-        if owner:
-            print("Assigning ownerless projects to %s" % owner.username)
-            # Assign unowned projects
-            for project in Project.objects.filter(owner__isnull=True):
-                update(project, owner=owner)
-                print("* Changed owner of %s" % project)
-
         # Create teams for any projects that are missing them
         print("Creating missing teams on projects")
         for project in Project.objects.filter(team__isnull=True, owner__isnull=False):
