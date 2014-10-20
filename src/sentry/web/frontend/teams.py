@@ -14,7 +14,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
-from sentry.constants import MEMBER_USER, MEMBER_OWNER
+from sentry.constants import MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
     can_edit_team_member, can_remove_team_member,
@@ -22,7 +22,7 @@ from sentry.permissions import (
 from sentry.plugins import plugins
 from sentry.web.decorators import has_access
 from sentry.web.forms.teams import (
-    EditTeamMemberForm, AcceptInviteForm, NewAccessGroupForm,
+    EditTeamMemberForm, AcceptInviteForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
 from sentry.web.helpers import render_to_response
@@ -194,30 +194,6 @@ def reinvite_pending_team_member(request, team, member_id):
         _('An email was sent to the pending team member.'))
 
     return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def new_access_group(request, team):
-    initial = {
-        'type': MEMBER_USER,
-    }
-
-    form = NewAccessGroupForm(request.POST or None, initial=initial)
-    if form.is_valid():
-        inst = form.save(commit=False)
-        inst.team = team
-        inst.managed = False
-        inst.save()
-        return HttpResponseRedirect(reverse('sentry-manage-access-groups', args=[team.slug]))
-
-    context = csrf(request)
-    context.update({
-        'form': form,
-        'SUBSECTION': 'groups',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/groups/new.html', context, request)
 
 
 @has_access(MEMBER_OWNER)

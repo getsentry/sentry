@@ -12,23 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_TYPES
 from sentry.models import TeamMember, AccessGroup, Project
-from sentry.web.forms.fields import UserField, get_team_choices
-
-
-class SelectTeamForm(forms.Form):
-    team = forms.TypedChoiceField(choices=(), coerce=int)
-
-    def __init__(self, team_list, data, *args, **kwargs):
-        super(SelectTeamForm, self).__init__(data=data, *args, **kwargs)
-        self.team_list = dict((t.pk, t) for t in team_list.itervalues())
-        self.fields['team'].choices = get_team_choices(self.team_list)
-        self.fields['team'].widget.choices = self.fields['team'].choices
-
-    def clean_team(self):
-        value = self.cleaned_data.get('team')
-        if not value or value == -1:
-            return None
-        return self.team_list.get(value)
+from sentry.web.forms.fields import UserField
 
 
 class BaseTeamMemberForm(forms.ModelForm):
@@ -57,10 +41,6 @@ class BaseAccessGroupForm(forms.ModelForm):
     class Meta:
         fields = ('name', 'type')
         model = AccessGroup
-
-
-class NewAccessGroupForm(BaseAccessGroupForm):
-    pass
 
 
 class EditAccessGroupForm(BaseAccessGroupForm):
