@@ -26,7 +26,7 @@ from sentry.db.models import create_or_update
 from sentry.models import (
     Project, Group, GroupMeta, Event, Activity, TagKey, GroupSeen,
     EventFilterTagValue
-, eventfiltertagvalue)
+)
 from sentry.permissions import (
     can_admin_group, can_remove_group, can_create_projects
 )
@@ -312,8 +312,6 @@ def group_event_tag_list(request, team, project, group, grouptagvalue):
             grouptagvalue_id=grouptagvalue,
         ).values_list('event_id')
     ).order_by('-datetime')
-
-
 
     full_list = event_list.values(
         'eventfiltertagvalue__grouptagvalue__key',
