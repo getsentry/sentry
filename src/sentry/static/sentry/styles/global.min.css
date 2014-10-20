@@ -8250,11 +8250,12 @@ section.body .page-header:first-child {
 #daterange {
   display: none;
 }
-.avatar {
+img.avatar {
   width: 20px;
   height: 20px;
   vertical-align: middle;
   border-radius: 3px;
+  max-width: none;
 }
 .nav-pills > li.active > a {
   background-color: #70ace6;
