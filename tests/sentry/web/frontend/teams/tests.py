@@ -94,46 +94,6 @@ class NewTeamTest(BaseTeamTest):
         self.assertEquals(member.type, MEMBER_OWNER)
 
 
-class ManageTeamTest(BaseTeamTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-manage-team', args=[self.team.slug])
-
-    def test_renders_with_context(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
-        assert resp.context['team'] == self.team
-
-    def test_valid_params(self):
-        resp = self.client.post(self.path, {
-            'name': 'bar',
-            'slug': self.team.slug,
-            'owner': self.team.owner.username,
-        })
-        assert resp.status_code == 302
-        self.assertEquals(resp['Location'], 'http://testserver' + self.path)
-        team = Team.objects.get(pk=self.team.pk)
-        self.assertEquals(team.name, 'bar')
-
-    def test_superuser_can_set_owner(self):
-        resp = self.client.post(self.path, {
-            'name': self.team.name,
-            'slug': self.team.slug,
-            'owner': self.user2.username,
-        })
-        assert resp.status_code == 302
-
-        team = Team.objects.get(id=self.team.id)
-
-        assert team.owner == self.user2
-
-        members = [(t.user, t.type) for t in self.team.member_set.all()]
-
-        assert (self.user2, MEMBER_OWNER) in members
-        assert (self.user, MEMBER_OWNER) in members
-
-
 class RemoveTeamTest(BaseTeamTest):
     @fixture
     def path(self):
@@ -159,7 +119,7 @@ class RemoveTeamTest(BaseTeamTest):
         assert not Team.objects.filter(pk=self.team.pk).exists()
 
 
-class NewTeamMemberTest(BaseTeamTest):
+class CreateTeamMemberTest(BaseTeamTest):
     @fixture
     def path(self):
         return reverse('sentry-new-team-member', args=[self.team.slug])
@@ -169,7 +129,7 @@ class NewTeamMemberTest(BaseTeamTest):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/members/new.html')
 
-    @mock.patch('sentry.web.frontend.teams.can_add_team_member')
+    @mock.patch('sentry.web.frontend.create_team_member.can_add_team_member')
     def test_missing_permission(self, can_add_team_member):
         can_add_team_member.return_value = False
         resp = self.client.get(self.path)
@@ -392,8 +352,6 @@ class ManageProjectsTest(BaseTeamTest):
         self.assertTemplateUsed(resp, 'sentry/teams/projects/index.html')
         assert list(resp.context['project_list']) == [project]
         assert resp.context['team'] == self.team
-        assert resp.context['page'] == 'projects'
-        assert resp.context['SUBSECTION'] == 'projects'
 
 
 class ManageMembersTest(BaseTeamTest):
@@ -414,5 +372,3 @@ class ManageMembersTest(BaseTeamTest):
             (pm, pm.email),
         ]
         assert resp.context['team'] == self.team
-        assert resp.context['page'] == 'members'
-        assert resp.context['SUBSECTION'] == 'members'
