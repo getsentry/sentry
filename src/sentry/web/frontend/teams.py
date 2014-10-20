@@ -293,19 +293,6 @@ def create_new_team_project(request, team):
     return render_with_team_context(team, 'sentry/teams/projects/new.html', context, request)
 
 
-@has_access(MEMBER_OWNER)
-@csrf_protect
-def manage_access_groups(request, team):
-    context = csrf(request)
-    context.update({
-        'can_add_group': True,
-        'group_list': AccessGroup.objects.filter(team=team),
-        'SUBSECTION': 'groups',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/groups/list.html', context, request)
-
-
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def new_access_group(request, team):

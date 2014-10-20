@@ -41,6 +41,7 @@ from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.organization_teams import OrganizationTeamsView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.remove_team import RemoveTeamView
+from sentry.web.frontend.team_access_groups import TeamAccessGroupsView
 from sentry.web.frontend.team_members import TeamMembersView
 from sentry.web.frontend.team_projects import TeamProjectsView
 from sentry.web.frontend.team_settings import TeamSettingsView
@@ -128,7 +129,7 @@ urlpatterns += patterns('',
         name='sentry-manage-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/$', teams.manage_access_groups,
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/$', TeamAccessGroupsView.as_view(),
         name='sentry-manage-access-groups'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/new/$', teams.new_access_group,
         name='sentry-new-access-group'),
