@@ -70,12 +70,6 @@ class BaseProjectForm(forms.ModelForm):
         model = Project
 
 
-class RemoveProjectForm(forms.Form):
-    def __init__(self, user, *args, **kwargs):
-        super(RemoveProjectForm, self).__init__(*args, **kwargs)
-        self.user = user
-
-
 class EditProjectForm(BaseProjectForm):
     public = forms.BooleanField(required=False,
         help_text=_('Imply public access to any event for this project.'))

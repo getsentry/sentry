@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 from django.core.context_processors import csrf
-from django.http import Http404, HttpResponseRedirect
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
@@ -164,8 +165,7 @@ class OrganizationView(BaseView):
             organization_id=organization_id,
         )
         if active_organization is None:
-            # TODO
-            raise Http404
+            return HttpResponseRedirect(reverse('sentry'))
 
         kwargs['organization'] = active_organization
 
@@ -202,8 +202,7 @@ class TeamView(BaseView):
             access=self.required_access,
         )
         if active_team is None:
-            # TODO
-            raise Http404
+            return HttpResponseRedirect(reverse('sentry'))
 
         kwargs['team'] = active_team
         kwargs['organization'] = active_team.organization
@@ -225,7 +224,7 @@ class ProjectView(BaseView):
     required_access = None
 
     def get_context_data(self, request, organization, team, project, **kwargs):
-        context = super(TeamView, self).get_context_data(request)
+        context = super(ProjectView, self).get_context_data(request)
         context['organization'] = organization
         context['project'] = project
         context['team'] = team
@@ -243,8 +242,7 @@ class ProjectView(BaseView):
             team_slug=team_slug,
         )
         if active_team is None:
-            # TODO
-            raise Http404
+            return HttpResponseRedirect(reverse('sentry'))
 
         active_project = self.get_active_project(
             request=request,
@@ -253,8 +251,7 @@ class ProjectView(BaseView):
             access=self.required_access,
         )
         if active_project is None:
-            # TODO
-            raise Http404
+            return HttpResponseRedirect(reverse('sentry'))
 
         kwargs['project'] = active_project
         kwargs['team'] = active_team

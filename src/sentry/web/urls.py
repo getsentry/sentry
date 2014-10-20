@@ -27,7 +27,6 @@ import sentry.web.frontend.projects.keys
 import sentry.web.frontend.projects.notifications
 import sentry.web.frontend.projects.plugins
 import sentry.web.frontend.projects.quotas
-import sentry.web.frontend.projects.remove
 import sentry.web.frontend.projects.rules
 import sentry.web.frontend.projects.settings
 import sentry.web.frontend.projects.tags
@@ -43,6 +42,7 @@ from sentry.web.frontend.create_access_group import CreateAccessGroupView
 from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.create_team_member import CreateTeamMemberView
+from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.team_access_groups import TeamAccessGroupsView
 from sentry.web.frontend.team_members import TeamMembersView
@@ -212,8 +212,8 @@ urlpatterns += patterns('',
         sentry.web.frontend.projects.plugins.enable_project_plugin,
         name='sentry-enable-project-plugin'),
 
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/remove/$',
-        sentry.web.frontend.projects.remove.remove_project,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/remove/$',
+        RemoveProjectView.as_view(),
         name='sentry-remove-project'),
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/tags/$',
