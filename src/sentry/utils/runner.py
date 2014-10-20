@@ -325,7 +325,7 @@ def apply_legacy_settings(config):
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
     if not settings.SERVER_EMAIL and hasattr(settings, 'SENTRY_SERVER_EMAIL'):
-        warnings.warn('SENTRY_SERVER_URL is deprecated. Please use SERVER_URL instead.')
+        warnings.warn('SENTRY_SERVER_EMAIL is deprecated. Please use SERVER_EMAIL instead.')
         settings.SERVER_EMAIL = settings.SENTRY_SERVER_EMAIL
 
 
