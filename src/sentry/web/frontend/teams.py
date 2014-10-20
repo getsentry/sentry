@@ -16,15 +16,13 @@ from django.utils.translation import ugettext as _
 
 from sentry.constants import MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
-from sentry.permissions import (
-    can_edit_team_member, can_remove_team_member,
-)
+from sentry.permissions import can_remove_team_member
 from sentry.plugins import plugins
 from sentry.web.decorators import has_access
 from sentry.web.forms.teams import (
-    EditTeamMemberForm, AcceptInviteForm,
-    EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
-    RemoveAccessGroupForm)
+    AcceptInviteForm, EditAccessGroupForm, NewAccessGroupMemberForm,
+    NewAccessGroupProjectForm, RemoveAccessGroupForm
+)
 from sentry.web.helpers import render_to_response
 
 
@@ -91,40 +89,6 @@ def accept_invite(request, member_id, token):
     context['form'] = form
 
     return render_to_response('sentry/teams/members/accept_invite.html', context, request)
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def edit_team_member(request, team, member_id):
-    try:
-        member = team.member_set.get(pk=member_id)
-    except TeamMember.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    if member.user == team.owner:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    if not can_edit_team_member(request.user, member):
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    form = EditTeamMemberForm(team, request.POST or None, instance=member)
-    if form.is_valid():
-        member = form.save(commit=True)
-
-        messages.add_message(request, messages.SUCCESS,
-            _('Changes to your team member were saved.'))
-
-        return HttpResponseRedirect(request.path)
-
-    context = csrf(request)
-    context.update({
-        'page': 'members',
-        'member': member,
-        'form': form,
-        'SUBSECTION': 'members',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/members/edit.html', context, request)
 
 
 @csrf_protect
