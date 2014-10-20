@@ -123,13 +123,6 @@ def get_default_context(request, existing_context=None, team=None):
                 with_projects=True,
             ).values()
 
-        if not existing_context or 'TEAM_LIST' in existing_context and 'PROJECT_LIST' not in existing_context:
-            # HACK:
-            for t, p_list in context['TEAM_LIST']:
-                if t == team:
-                    context['PROJECT_LIST'] = p_list
-                    break
-
     return context
 
 
