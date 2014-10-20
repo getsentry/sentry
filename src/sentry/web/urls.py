@@ -42,6 +42,7 @@ from sentry.web.frontend.organization_teams import OrganizationTeamsView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.team_members import TeamMembersView
+from sentry.web.frontend.team_projects import TeamProjectsView
 from sentry.web.frontend.team_settings import TeamSettingsView
 
 
@@ -155,7 +156,7 @@ urlpatterns += patterns('',
         name='sentry-remove-pending-team-member'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/pending/(?P<member_id>\d+)/reinvite/$', teams.reinvite_pending_team_member,
         name='sentry-reinvite-pending-team-member'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/$', teams.manage_team_projects,
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/$', TeamProjectsView.as_view(),
         name='sentry-manage-team-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', teams.create_new_team_project,
         name='sentry-new-project'),
