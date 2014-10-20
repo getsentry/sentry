@@ -39,6 +39,7 @@ from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.organization_teams import OrganizationTeamsView
+from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.team_access_groups import TeamAccessGroupsView
@@ -159,7 +160,7 @@ urlpatterns += patterns('',
         name='sentry-reinvite-pending-team-member'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/$', TeamProjectsView.as_view(),
         name='sentry-manage-team-projects'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', teams.create_new_team_project,
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),
         name='sentry-new-project'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', teams.accept_invite,
         name='sentry-accept-invite'),

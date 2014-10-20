@@ -17,11 +17,9 @@ from django.utils.translation import ugettext as _
 from sentry.constants import MEMBER_USER, MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
-    can_add_team_member, can_create_projects,
-    can_edit_team_member, can_remove_team_member,
-    Permissions)
+    can_add_team_member, can_edit_team_member, can_remove_team_member,
+)
 from sentry.plugins import plugins
-from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import has_access
 from sentry.web.forms.teams import (
     EditTeamMemberForm, NewTeamMemberForm,
@@ -29,7 +27,6 @@ from sentry.web.forms.teams import (
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
 from sentry.web.helpers import render_to_response
-from sentry.web.frontend.generic import missing_perm
 
 
 def render_with_team_context(team, template, context, request=None):
@@ -250,47 +247,6 @@ def reinvite_pending_team_member(request, team, member_id):
         _('An email was sent to the pending team member.'))
 
     return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def create_new_team_project(request, team):
-    from sentry.web.forms.projects import NewProjectAdminForm, NewProjectForm
-
-    if not can_create_projects(request.user, team):
-        return missing_perm(request, Permissions.ADD_PROJECT, team=team)
-
-    if request.user.is_superuser:
-        form_cls = NewProjectAdminForm
-        initial = {
-            'owner': request.user.username,
-        }
-    else:
-        form_cls = NewProjectForm
-        initial = {}
-
-    form = form_cls(request.POST or None, initial=initial)
-    if form.is_valid():
-        project = form.save(commit=False)
-        project.team = team
-        if not project.owner:
-            project.owner = request.user
-        project.save()
-
-        create_sample_event(project)
-
-        if project.platform not in (None, 'other'):
-            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.team.slug, project.slug, project.platform]))
-        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.team.slug, project.slug]))
-
-    context = csrf(request)
-    context.update({
-        'form': form,
-        'page': 'projects',
-        'SUBSECTION': 'new_project',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/projects/new.html', context, request)
 
 
 @csrf_protect

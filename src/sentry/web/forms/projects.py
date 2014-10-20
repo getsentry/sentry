@@ -70,18 +70,6 @@ class BaseProjectForm(forms.ModelForm):
         model = Project
 
 
-class NewProjectForm(BaseProjectForm):
-    pass
-
-
-class NewProjectAdminForm(NewProjectForm):
-    owner = UserField(required=False)
-
-    class Meta:
-        fields = ('name', 'platform')
-        model = Project
-
-
 class RemoveProjectForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)
