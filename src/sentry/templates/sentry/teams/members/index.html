@@ -10,21 +10,25 @@
 {% block inner %}
     <table class="table table-striped">
         <colgroup>
+            <col width="20px"/>
             <col/>
             <col width="100px"/>
             <col width="100px"/>
         </colgroup>
         <thead>
             <tr>
-                <th>{% trans "User" %}</th>
+                <th colspan="2">&nbsp;</th>
                 <th style="text-align:center;">{% trans "Access" %}</th>
                 <th style="text-align:center">{% trans "Actions" %}</th>
             </tr>
         </thead>
         <tbody>
             {% for member, user in member_list %}
-                {% if user == team.owner %}
-                    <tr>
+                <tr>
+                    <td>
+                        <img class="avatar" src="{% gravatar_url user.email size 20 %}">
+                    </td>
+                    {% if user == team.owner %}
                         <td>
                             {% if user.first_name %}{{ user.first_name }} &mdash; {% endif %}{{ user.username }}</a><br>
                             {% if user.email != user.username %}
@@ -37,9 +41,7 @@
                         <td style="text-align:center;">
                             <em>{% trans "unavailable for owner" %}</em>
                         </td>
-                    </tr>
-                {% else %}
-                    <tr>
+                    {% else %}
                         <td>
                             <a href="{% url 'sentry-edit-team-member' team.slug member.pk %}">{% if user.first_name %}{{ user.first_name }} &mdash; {% endif %}{{ user.username }}</a><br>
                             {{ user.email }}
@@ -50,8 +52,8 @@
                         <td style="text-align:center;">
                             <a href="{% url 'sentry-remove-team-member' team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
                         </td>
+                    {% endif %}
                     </tr>
-                {% endif %}
             {% endfor %}
         </tbody>
     </table>
