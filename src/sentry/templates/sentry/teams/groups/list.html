@@ -27,7 +27,10 @@
                     <tr>
                         <td><a href="{% url 'sentry-edit-access-group' team.slug group.id %}">{{ group.name }}</a>{% if group.managed %} ({% trans "automatically managed" %}){% endif %}</td>
                         <td style="text-align:center">{{ group.get_type_display }}</td>
-                        <td style="text-align:center"><a href="{% url 'sentry-remove-access-group' team.slug group.id %}" class="btn btn-danger">{% trans "Remove" %}</a></td>
+                        <td style="text-align:center">
+                            <a href="{% url 'sentry-remove-access-group' team.slug group.id %}"
+                               class="btn btn-small btn-danger">{% trans "Remove" %}</a>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
