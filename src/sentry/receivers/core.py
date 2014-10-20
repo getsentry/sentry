@@ -77,7 +77,6 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         public=False,
         name=name,
         slug=slug,
-        owner=user,
         team=team,
         **kwargs
     )

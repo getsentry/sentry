@@ -90,9 +90,6 @@ class TeamSettingsView(TeamView):
                         'type': TeamMemberType.ADMIN,
                     }
                 )
-                team.project_set.update(
-                    owner=team.owner,
-                )
 
             messages.add_message(request, messages.SUCCESS,
                 _('Changes to your team were saved.'))

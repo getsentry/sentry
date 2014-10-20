@@ -42,7 +42,6 @@ project, _ = Project.objects.get_or_create(
     team=team,
     name='Backend',
     slug='backend',
-    owner=team.owner,
 )
 
 event1 = create_sample_event(project, 'python')

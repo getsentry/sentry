@@ -15,7 +15,7 @@ from gzip import GzipFile
 from exam import fixture
 from raven import Client
 
-from sentry.models import Group, Event, User
+from sentry.models import Group, Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.compat import StringIO
@@ -75,8 +75,7 @@ class RavenIntegrationTest(TestCase):
     happen between Raven <--> Sentry over HTTP communication.
     """
     def setUp(self):
-        self.user = User.objects.create(username='coreapi')
-        self.project = self.create_project(owner=self.user, slug='bar')
+        self.project = self.create_project(slug='bar')
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 

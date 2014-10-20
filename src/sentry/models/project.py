@@ -29,9 +29,6 @@ class Project(Model):
     """
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
-
-    A project may be owned by only a single team, and may or may not
-    have an owner (which is thought of as a project creator).
     """
     PLATFORM_CHOICES = tuple(
         (p, PLATFORM_TITLES.get(p, p.title()))
@@ -40,8 +37,7 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_owned_project_set", null=True)
-    team = models.ForeignKey('sentry.Team', null=True)
+    team = models.ForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(default=0, choices=(
@@ -60,7 +56,7 @@ class Project(Model):
         db_table = 'sentry_project'
         unique_together = (('team', 'slug'),)
 
-    __repr__ = sane_repr('team_id', 'slug', 'owner_id')
+    __repr__ = sane_repr('team_id', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)

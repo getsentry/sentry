@@ -12,8 +12,6 @@ from sentry.models import Project
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    owner = serializers.Field(source='owner.username')
-
     class Meta:
         model = Project
         fields = ('name', 'slug')
