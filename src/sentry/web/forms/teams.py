@@ -11,7 +11,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_TYPES
-from sentry.models import TeamMember, PendingTeamMember, AccessGroup, Project
+from sentry.models import TeamMember, AccessGroup, Project
 from sentry.web.forms.fields import UserField, get_team_choices
 
 
@@ -42,43 +42,6 @@ class BaseTeamMemberForm(forms.ModelForm):
 
 
 EditTeamMemberForm = BaseTeamMemberForm
-
-
-class InviteTeamMemberForm(BaseTeamMemberForm):
-    class Meta:
-        fields = ('type', 'email')
-        model = PendingTeamMember
-
-    def clean_email(self):
-        value = self.cleaned_data['email']
-        if not value:
-            return None
-
-        if self.team.member_set.filter(user__email__iexact=value).exists():
-            raise forms.ValidationError(_('There is already a member with this email address'))
-
-        if self.team.pending_member_set.filter(email__iexact=value).exists():
-            raise forms.ValidationError(_('There is already a pending invite for this user'))
-
-        return value
-
-
-class NewTeamMemberForm(BaseTeamMemberForm):
-    user = UserField()
-
-    class Meta:
-        fields = ('type', 'user')
-        model = TeamMember
-
-    def clean_user(self):
-        value = self.cleaned_data['user']
-        if not value:
-            return None
-
-        if self.team.member_set.filter(user=value).exists():
-            raise forms.ValidationError(_('User is already a member of this team'))
-
-        return value
 
 
 class AcceptInviteForm(forms.Form):
