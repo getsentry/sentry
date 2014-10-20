@@ -17,13 +17,12 @@ from django.utils.translation import ugettext as _
 from sentry.constants import MEMBER_USER, MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
-    can_add_team_member, can_edit_team_member, can_remove_team_member,
+    can_edit_team_member, can_remove_team_member,
 )
 from sentry.plugins import plugins
 from sentry.web.decorators import has_access
 from sentry.web.forms.teams import (
-    EditTeamMemberForm, NewTeamMemberForm,
-    InviteTeamMemberForm, AcceptInviteForm, NewAccessGroupForm,
+    EditTeamMemberForm, AcceptInviteForm, NewAccessGroupForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
 from sentry.web.helpers import render_to_response
@@ -36,58 +35,6 @@ def render_with_team_context(team, template, context, request=None):
     })
 
     return render_to_response(template, context, request)
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def new_team_member(request, team):
-    from django.conf import settings
-
-    if not can_add_team_member(request.user, team):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    initial = {
-        'type': MEMBER_USER,
-    }
-
-    if settings.SENTRY_ENABLE_INVITES:
-        invite_form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
-    else:
-        invite_form = None
-
-    add_form = NewTeamMemberForm(team, request.POST or None, initial=initial, prefix='add')
-
-    if add_form.is_valid():
-        pm = add_form.save(commit=False)
-        pm.team = team
-        pm.save()
-
-        messages.add_message(request, messages.SUCCESS,
-            _('The team member was added.'))
-
-        return HttpResponseRedirect(reverse('sentry-manage-team-members', args=[team.slug]))
-
-    elif invite_form and invite_form.is_valid():
-        pm = invite_form.save(commit=False)
-        pm.team = team
-        pm.save()
-
-        pm.send_invite_email()
-
-        messages.add_message(request, messages.SUCCESS,
-            _('An invitation email was sent to %s.') % (pm.email,))
-
-        return HttpResponseRedirect(reverse('sentry-manage-team-members', args=[team.slug]))
-
-    context = csrf(request)
-    context.update({
-        'page': 'members',
-        'add_form': add_form,
-        'invite_form': invite_form,
-        'SUBSECTION': 'members',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/members/new.html', context, request)
 
 
 @csrf_protect
