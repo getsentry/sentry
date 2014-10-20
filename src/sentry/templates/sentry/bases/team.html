@@ -30,9 +30,11 @@
             <li{% block team_projects_nav %}{% endblock %}>
                 <a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a>
             </li>
-            <li{% block team_accessgroups_nav %}{% endblock %}>
-                <a href="{% url 'sentry-manage-access-groups' team.slug %}">{% trans "Access Groups" %}</a>
-            </li>
+            {% if team|has_access_groups %}
+                <li{% block team_accessgroups_nav %}{% endblock %}>
+                    <a href="{% url 'sentry-manage-access-groups' team.slug %}">{% trans "Access Groups" %}</a>
+                </li>
+            {% endif %}
         </ul>
 
         {% block inner %}
