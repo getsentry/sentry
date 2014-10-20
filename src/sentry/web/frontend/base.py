@@ -125,6 +125,13 @@ class BaseView(View, OrganizationMixin):
 
         return render_to_response(template, default_context, self.request)
 
+    def get_team_list(self, user, organization):
+        return Team.objects.get_for_user(
+            organization=organization,
+            user=user,
+            with_projects=True,
+        ).values()
+
 
 class OrganizationView(BaseView):
     """
@@ -138,6 +145,8 @@ class OrganizationView(BaseView):
     def get_context_data(self, request, organization, **kwargs):
         context = super(OrganizationView, self).get_context_data(request)
         context['organization'] = organization
+        context['TEAM_LIST'] = self.get_team_list(request.user, organization)
+
         return context
 
     def dispatch(self, request, organization_id=None, *args, **kwargs):
@@ -179,6 +188,7 @@ class TeamView(BaseView):
         context = super(TeamView, self).get_context_data(request)
         context['organization'] = organization
         context['team'] = team
+        context['TEAM_LIST'] = self.get_team_list(request.user, organization)
         return context
 
     def dispatch(self, request, team_slug, *args, **kwargs):
@@ -219,6 +229,8 @@ class ProjectView(BaseView):
         context['organization'] = organization
         context['project'] = project
         context['team'] = team
+        context['TEAM_LIST'] = self.get_team_list(request.user, organization)
+
         return context
 
     def dispatch(self, request, team_slug, project_slug, *args, **kwargs):

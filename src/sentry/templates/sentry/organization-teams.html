@@ -1,38 +1,37 @@
 {% extends "sentry/bases/organization.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block bodyclass %}team-index {{ block.super }}{% endblock %}
+{% block title %}{% trans "Admins" %} | {{ block.super }}{% endblock %}
 
 {% block org_teams_nav %} class="active"{% endblock %}
 
 {% block main %}
     <section class="body">
-        <ul class="team-list">
-            {% for team, project_list in team_list %}
-                <li>
-                    <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
-                        <div class="sparkline">
-                            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                            <span class="loading">{% trans "Loading historical data..." %}</span>
-                        </div>
-                    </div>
-                    <h3><a href="{% url 'sentry' team.slug %}">{{ team.name }}</a></h3>
-                    <ul>
-                        {% for project in project_list %}
-                            <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </li>
-            {% endfor %}
-        </ul>
+        <table class="table table-striped">
+            <colgroup>
+                <col>
+                <col style="width:100px">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Team" %}</th>
+                    <th>{% trans "Status" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in team_list %}
+                    <tr>
+                        <td>
+                            {{ team.name }}
+                        </td>
+                        <td>
+                            {{ team.get_status_display }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </section>
-{% endblock %}
-
-{% block content_after %}
-    <script type="text/javascript">
-    $(function(){
-        new app.SelectTeamPage();
-    })
-    </script>
 {% endblock %}

@@ -1,23 +1,31 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block bodyclass %}{% endblock %}
-{% block wrapperclass %}windowed{% endblock %}
+{% block bodyclass %}with-left-sidebar{% endblock %}
 
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-    <ul class="nav nav-tabs">
-        <li{% block org_teams_nav %}{% endblock %}>
-            <a href="{% url 'sentry-organization-teams' organization.id %}">{% trans "Teams" %}</a>
-        </li>
+{% block sidebar %}
+    <ul class="nav nav-list">
+        <li class="nav-header">{% trans "Organization" %}</li>
         <li{% block org_settings_nav %}{% endblock %}>
-            <a href="{% url 'sentry-organization-settings' organization.id %}">{% trans "Settings" %}</a>
+            <a href="{% url 'sentry-organization-settings' organization.id %}">Basics</a>
         </li>
         <li{% block org_members_nav %}{% endblock %}>
-            <a href="{% url 'sentry-organization-members' organization.id %}">{% trans "Admins" %}</a>
+            <a href="{% url 'sentry-organization-members' organization.id %}">Admins</a>
         </li>
+        <li class="divider"></li>
+        <li class="nav-header">
+            <a href="{% url 'sentry-new-team' organization.id %}"
+               class="pull-right">Add Team</a>
+            {% trans "Teams" %}
+        </li>
+        {% for t, _ in TEAM_LIST %}
+            <li{% if t == team %} class="active"{% endif %}>
+                <a href="{% url 'sentry-manage-team' t.slug %}">{{ t.name }}</a>
+            </li>
+        {% endfor %}
     </ul>
 {% endblock %}

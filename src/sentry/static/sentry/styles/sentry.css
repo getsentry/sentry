@@ -7164,12 +7164,16 @@ h3 {
 #content .sidebar .nav-list {
   margin: 0 -29px 8px -30px;
 }
+#content .sidebar .nav-list li a {
+  padding: 5px 30px;
+}
 #content .sidebar .nav-list li.nav-header {
   padding-left: 30px;
   padding-right: 30px;
 }
-#content .sidebar .nav-list li a {
-  padding: 5px 30px;
+#content .sidebar .nav-list li.nav-header a {
+  padding: 0;
+  font-size: 11px;
 }
 #content .sidebar .nav-list li.active a {
   background-color: #56AFE8;
@@ -8549,6 +8553,9 @@ section.body .page-header:first-child {
 .btn.btn-primary[disabled] {
   background: #56AFE8;
 }
+.btn.btn-primary .caret {
+  border-top-color: #fff;
+}
 .btn.btn-danger {
   background: #da4f49;
   color: #fff;
@@ -8557,6 +8564,17 @@ section.body .page-header:first-child {
 .btn.btn-danger:hover {
   background: #d7433c;
   border-color: #a9302a;
+}
+.btn-small {
+  padding: 2px 10px;
+  font-size: 11.05px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+}
+.btn-small [class^="icon-"],
+.btn-small [class*=" icon-"] {
+  margin-top: 0;
 }
 section.body textarea,
 section.body input[type="text"],

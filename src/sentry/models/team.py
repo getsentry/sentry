@@ -36,7 +36,7 @@ class Team(Model):
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     status = BoundedPositiveIntegerField(choices=(
-        (TeamStatus.VISIBLE, _('Visible')),
+        (TeamStatus.VISIBLE, _('Active')),
         (TeamStatus.PENDING_DELETION, _('Pending Deletion')),
         (TeamStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), default=TeamStatus.VISIBLE)

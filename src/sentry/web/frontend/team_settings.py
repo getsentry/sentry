@@ -34,14 +34,12 @@ class EditTeamAdminForm(EditTeamForm):
         return value
 
 
-class ManageTeamView(TeamView):
+class TeamSettingsView(TeamView):
     required_access = TeamMemberType.ADMIN
 
     def get_default_context(self, request, **kwargs):
-        context = super(ManageTeamView, self).get_default_context(request, **kwargs)
+        context = super(TeamSettingsView, self).get_default_context(request, **kwargs)
         context.update({
-            'page': 'details',
-            'SUBSECTION': 'settings',
             'can_remove_team': can_remove_team(request.user, kwargs['team']),
         })
         return context

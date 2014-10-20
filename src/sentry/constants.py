@@ -147,6 +147,7 @@ MAX_CULPRIT_LENGTH = 200
 # which we don't want to worry about conflicts on.
 RESERVED_TEAM_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
+    'organizations',
 )
 
 LOG_LEVELS = {

@@ -13,6 +13,7 @@ from django.conf import settings
 from functools import wraps
 
 from sentry.constants import MEMBER_OWNER
+from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
 
@@ -99,6 +100,28 @@ def can_set_public_projects(user):
         return result
 
     return True
+
+
+@requires_login
+def can_manage_org(user, organization):
+    if user.is_superuser:
+        return True
+
+    if organization.member_set.filter(user=user, type=OrganizationMemberType.ADMIN).exists():
+        return True
+
+    return False
+
+
+@requires_login
+def can_manage_team(user, team):
+    if can_manage_org(user, team.organization):
+        return True
+
+    if team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+        return True
+
+    return False
 
 
 @requires_login

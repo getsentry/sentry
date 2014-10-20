@@ -668,13 +668,17 @@ h3 {
       }
     }
     .nav-list {
+      margin: 0 -29px 8px -30px;
+      li a {
+        padding: 5px 30px;
+      }
       li.nav-header {
         padding-left: 30px;
         padding-right: 30px;
       }
-      margin: 0 -29px 8px -30px;
-      li a {
-        padding: 5px 30px;
+      li.nav-header a {
+        padding: 0;
+        font-size: 11px;
       }
       li.active a {
         background-color: #56AFE8;
@@ -2070,6 +2074,10 @@ section.body .page-header:first-child {
     &.disabled, &[disabled] {
       background: #56AFE8;
     }
+
+    .caret {
+      border-top-color: #fff;
+    }
   }
 
   &.btn-danger {
@@ -2081,7 +2089,17 @@ section.body .page-header:first-child {
       border-color: darken(#bd362f, 5);
     }
   }
+}
 
+// Small
+.btn-small {
+  padding: @paddingSmall;
+  font-size: @fontSizeSmall;
+  .border-radius(@borderRadiusSmall);
+}
+.btn-small [class^="icon-"],
+.btn-small [class*=" icon-"] {
+  margin-top: 0;
 }
 
 section.body {

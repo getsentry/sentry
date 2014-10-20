@@ -35,12 +35,14 @@ import sentry.web.frontend.projects.tags
 __all__ = ('urlpatterns',)
 
 from sentry.web.frontend.home import HomeView
+from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.organization_teams import OrganizationTeamsView
 from sentry.web.frontend.create_team import CreateTeamView
-from sentry.web.frontend.manage_team import ManageTeamView
 from sentry.web.frontend.remove_team import RemoveTeamView
+from sentry.web.frontend.team_members import TeamMembersView
+from sentry.web.frontend.team_settings import TeamSettingsView
 
 
 def init_all_applications():
@@ -109,6 +111,8 @@ urlpatterns += patterns('',
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Organizations
+    url(r'^organizations/(?P<organization_id>\d+)/$', OrganizationHomeView.as_view(),
+        name='sentry-organization-home'),
     url(r'^organizations/(?P<organization_id>\d+)/members/$', OrganizationMembersView.as_view(),
         name='sentry-organization-members'),
     url(r'^organizations/(?P<organization_id>\d+)/settings/$', OrganizationSettingsView.as_view(),
@@ -119,7 +123,7 @@ urlpatterns += patterns('',
         name='sentry-new-team'),
 
     # Settings - Teams
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/settings/$', ManageTeamView.as_view(),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/settings/$', TeamSettingsView.as_view(),
         name='sentry-manage-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
@@ -139,7 +143,7 @@ urlpatterns += patterns('',
         name='sentry-access-group-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/projects/(?P<project_id>\d+)/remove/$',
         teams.remove_access_group_project, name='sentry-remove-access-group-project'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/$', teams.manage_team_members,
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/$', TeamMembersView.as_view(),
         name='sentry-manage-team-members'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/new/$', teams.new_team_member,
         name='sentry-new-team-member'),

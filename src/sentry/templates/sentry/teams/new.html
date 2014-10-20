@@ -1,4 +1,4 @@
-{% extends "sentry/teams/base.html" %}
+{% extends "sentry/bases/organization.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -11,7 +11,7 @@
             <h2>{% trans "Create a New Team" %}</h2>
         </div>
 
-        <p>{% blocktrans %}Teams in Sentry represent a collection of users and projects. They're the top level component
+        <p>{% blocktrans %}Teams in Sentry represent a collection of users and projects. They're the the primary component
            of your organization allowing you to control access and scope of events.{% endblocktrans %}</p>
 
         <br>

@@ -45,7 +45,7 @@ class Project(Model):
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(default=0, choices=(
-        (STATUS_VISIBLE, _('Visible')),
+        (STATUS_VISIBLE, _('Active')),
         (STATUS_HIDDEN, _('Hidden')),
     ), db_index=True)
     platform = models.CharField(max_length=32, choices=PLATFORM_CHOICES, null=True)

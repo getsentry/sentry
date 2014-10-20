@@ -459,17 +459,6 @@ def recent_alerts(context, project, asvar):
 
 
 @register.filter
-def reorder_teams(team_list, team):
-    pending = []
-    for t, p_list in team_list:
-        if t == team:
-            pending.insert(0, (t, p_list))
-        else:
-            pending.append((t, p_list))
-    return pending
-
-
-@register.filter
 def urlquote(value, safe=''):
     return quote(value.encode('utf8'), safe)
 

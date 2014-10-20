@@ -1,26 +1,41 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/organization.html" %}
 
 {% load i18n %}
+{% load sentry_permissions %}
 
 {% block title %}{{ team.name }} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-    <div class="pull-right">
-        <a class="btn btn-primary" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
-    </div>
+{% block main %}
+    <section class="body">
+        <div class="pull-right btn-group">
+            <a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
+                <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a href="{% url 'sentry-new-project' team.slug %}">{% trans "New Project" %}</a></li>
+                {% if user|can_add_team_member:team %}
+                    <li><a href="{% url 'sentry-new-team-member' team.slug %}">{% trans "New Member" %}</a></li>
+                {% endif %}
+                <li><a href="{% url 'sentry-new-access-group' team.slug %}">{% trans "New Access Group" %}</a></li>
+            </ul>
+        </div>
 
-    <ul class="nav nav-tabs">
-        <li{% if SUBSECTION == 'settings' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-team' team.slug %}">{% trans "Settings" %}</a>
-        </li>
-        <li{% if SUBSECTION == 'projects' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a>
-        </li>
-        <li{% if SUBSECTION == 'members' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-team-members' team.slug %}">{% trans "Members" %}</a>
-        </li>
-        <li{% if SUBSECTION == 'groups' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-access-groups' team.slug %}">{% trans "Access Groups" %}</a>
-        </li>
-    </ul>
+        <ul class="nav nav-tabs">
+            <li{% block team_settings_nav %}{% endblock %}>
+                <a href="{% url 'sentry-manage-team' team.slug %}">{% trans "Settings" %}</a>
+            </li>
+            <li{% block team_members_nav %}{% endblock %}>
+                <a href="{% url 'sentry-manage-team-members' team.slug %}">{% trans "Members" %}</a>
+            </li>
+            <li{% block team_projects_nav %}{% endblock %}>
+                <a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a>
+            </li>
+            <li{% block team_accessgroups_nav %}{% endblock %}>
+                <a href="{% url 'sentry-manage-access-groups' team.slug %}">{% trans "Access Groups" %}</a>
+            </li>
+        </ul>
+
+        {% block inner %}
+        {% endblock %}
+    </section>
 {% endblock %}
