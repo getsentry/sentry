@@ -40,7 +40,6 @@ class TeamProjectIndexEndpoint(Endpoint):
         if serializer.is_valid():
             project = serializer.object
             project.team = team
-            project.owner = team.owner
             project.save()
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

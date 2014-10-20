@@ -53,8 +53,6 @@ class CreateProjectView(TeamView):
         if form.is_valid():
             project = form.save(commit=False)
             project.team = team
-            if not project.owner:
-                project.owner = request.user
             project.save()
 
             create_sample_event(project)

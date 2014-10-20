@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.constants import MEMBER_USER
-from sentry.models import Project, TeamMember, Team, User
+from sentry.models import TeamMember, User
 from sentry.testutils import TestCase
 
 
@@ -144,8 +144,6 @@ class PermissionBase(TestCase):
         user.set_password('owner')
         user.save()
 
-        Team.objects.create(owner=user, name='foo', slug='foo')
-
         return user
 
     @fixture
@@ -153,13 +151,16 @@ class PermissionBase(TestCase):
         return TeamMember.objects.get(user=self.member, team=self.team)
 
     @fixture
+    def organization(self):
+        return self.create_organization(owner=self.owner)
+
+    @fixture
     def team(self):
-        return Team.objects.get(owner=self.owner, slug='foo')
+        return self.create_team(slug='foo', organization=self.organization)
 
     @fixture
     def project(self):
-        project = Project.objects.get(id=1)
-        project.update(public=False, team=self.team)
+        project = self.create_project(slug='test')
         return project
 
     def _assertPerm(self, path, template, account=None, want=True):

@@ -34,7 +34,7 @@ class Command(BaseCommand):
         for project in Project.objects.filter(team__isnull=True, owner__isnull=False):
             team = Team(
                 name=project.name,
-                owner=project.owner,
+                owner=owner,
             )
             base_slug = slugify(team.name)
             slug = base_slug
