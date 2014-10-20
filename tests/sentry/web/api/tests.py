@@ -7,16 +7,12 @@ import mock
 from django.core.urlresolvers import reverse
 from exam import before, fixture
 
-from sentry.models import Team, Project, TeamMember, AccessGroup, User
+from sentry.models import TeamMember, AccessGroup, User
 from sentry.testutils import TestCase
 from sentry.utils import json
 
 
 class StoreViewTest(TestCase):
-    @fixture
-    def project(self):
-        return Project.objects.create(name='foo', slug='foo')
-
     @fixture
     def path(self):
         return reverse('sentry-api-store', kwargs={'project_id': self.project.slug})
@@ -73,10 +69,6 @@ class StoreViewTest(TestCase):
 
 
 class CrossDomainXmlTest(TestCase):
-    @fixture
-    def project(self):
-        return Project.objects.create(name='foo', slug='foo', public=True)
-
     @fixture
     def path(self):
         return reverse('sentry-api-crossdomain-xml', kwargs={'project_id': self.project.slug})
@@ -202,7 +194,7 @@ class SearchProjectsTest(TestCase):
         self.login()
 
     def test_finds_projects_from_team(self):
-        project = Project.objects.create(team=self.team, name='Sample')
+        project = self.create_project(team=self.team, name='Sample')
         resp = self.client.get(self.path, {'query': 'sample'})
 
         assert resp.status_code == 200
@@ -217,8 +209,8 @@ class SearchProjectsTest(TestCase):
         }
 
     def test_does_not_include_projects_from_other_teams(self):
-        team = Team.objects.create(owner=self.user, name='Sample')
-        Project.objects.create(team=team, name='Sample')
+        team = self.create_team(owner=self.user, name='Sample')
+        self.create_project(team=team, name='Sample')
 
         resp = self.client.get(self.path, {'query': 'sample'})
 
