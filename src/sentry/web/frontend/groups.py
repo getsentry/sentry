@@ -316,6 +316,7 @@ def group_event_tag_list(request, team, project, group, grouptagvalue):
     full_list = event_list.values(
         'eventfiltertagvalue__grouptagvalue__key',
         'eventfiltertagvalue__grouptagvalue__value',
+        'eventfiltertagvalue__grouptagvalue__id',
         'id',
         'message',
         'project__slug',
