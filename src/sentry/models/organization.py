@@ -32,23 +32,30 @@ class OrganizationManager(BaseManager):
         Each <Organization> returned has an ``member_type`` attribute which
         holds the OrganizationMemberType value.
         """
-        from sentry.models import OrganizationMember
+        from sentry.models import OrganizationMember, OrganizationMemberType
 
         results = []
 
         if not user.is_authenticated():
             return results
 
-        qs = OrganizationMember.objects.filter(
-            user=user,
-        ).select_related('organization')
-        if access is not None:
-            qs = qs.filter(type__lte=access)
+        if settings.SENTRY_PUBLIC and access is None:
+            qs = self.all()
+            for org in qs:
+                org.member_type = OrganizationMemberType.MEMBER
+                results.append(org)
 
-        for om in qs:
-            org = om.organization
-            org.member_type = om.type
-            results.append(org)
+        else:
+            qs = OrganizationMember.objects.filter(
+                user=user,
+            ).select_related('organization')
+            if access is not None:
+                qs = qs.filter(type__lte=access)
+
+            for om in qs:
+                org = om.organization
+                org.member_type = om.type
+                results.append(org)
 
         return results
 
