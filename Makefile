@@ -27,6 +27,11 @@ dev-mysql: develop
 dev-docs:
 	pip install -r docs/requirements.txt
 
+reset-db:
+	dropdb sentry || true
+	createdb -E utf-8 sentry
+	sentry upgrade
+
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
