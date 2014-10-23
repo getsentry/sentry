@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -19,6 +21,10 @@ class OrganizationMixin(object):
         if no organization.
         """
         active_organization = None
+        try:
+            organization_id = int(organization_id)
+        except (TypeError, ValueError):
+            return None
 
         is_implicit = organization_id is None
 
@@ -32,6 +38,8 @@ class OrganizationMixin(object):
                         id=organization_id,
                     )
                 except Organization.DoesNotExist:
+                    logging.info('Active organization [%s] not found',
+                                 organization_id)
                     return None
 
         if active_organization is None:
@@ -47,6 +55,8 @@ class OrganizationMixin(object):
                     if o.id == organization_id
                 ).next()
             except StopIteration:
+                logging.info('Active organization [%s] not found in scope',
+                             organization_id)
                 if is_implicit:
                     del request.session['activeorg']
                 active_organization = None
@@ -58,6 +68,7 @@ class OrganizationMixin(object):
             try:
                 active_organization = organizations[0]
             except IndexError:
+                logging.info('User is not a member of any organizations')
                 pass
 
         return active_organization
