@@ -21,15 +21,18 @@ class OrganizationMixin(object):
         if no organization.
         """
         active_organization = None
-        try:
-            organization_id = int(organization_id)
-        except (TypeError, ValueError):
-            return None
 
         is_implicit = organization_id is None
 
         if is_implicit:
             organization_id = request.session.get('activeorg')
+
+        if organization_id:
+            try:
+                organization_id = int(organization_id)
+            except (TypeError, ValueError):
+                if not is_implicit:
+                    return None
 
         if organization_id is not None:
             if request.user.is_superuser:
@@ -65,6 +68,7 @@ class OrganizationMixin(object):
             if not is_implicit:
                 return None
 
+            print(organizations)
             try:
                 active_organization = organizations[0]
             except IndexError:
