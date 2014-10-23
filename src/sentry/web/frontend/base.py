@@ -120,11 +120,25 @@ class OrganizationMixin(object):
 
 
 class BaseView(View, OrganizationMixin):
+    auth_required = True
+
     @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
+        if self.auth_required and not request.user.is_authenticated():
+            request.session['_next'] = request.get_full_path()
+            return HttpResponseRedirect(get_login_url())
+
+        if not self.has_permission(request, *args, **kwargs):
+            redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
+            return HttpResponseRedirect(redirect_uri)
+
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
+
         return super(BaseView, self).dispatch(request, *args, **kwargs)
+
+    def has_permission(self, request, *args, **kwargs):
+        return True
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)
@@ -162,10 +176,6 @@ class OrganizationView(BaseView):
         return context
 
     def dispatch(self, request, organization_id=None, *args, **kwargs):
-        if not request.user.is_authenticated():
-            request.session['_next'] = request.get_full_path()
-            return HttpResponseRedirect(get_login_url())
-
         # TODO:
         # if access is MEMBER_OWNER:
         #     _wrapped = login_required(sudo_required(_wrapped))
