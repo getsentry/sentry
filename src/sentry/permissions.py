@@ -31,8 +31,9 @@ class Permission(object):
 
 
 class Permissions(object):
-    ADD_PROJECT = Permission('add_project', 'create new projects')
+    ADD_ORGANIZATION = Permission('add_organization', 'create new organizations')
     ADD_TEAM = Permission('add_team', 'create new teams')
+    ADD_PROJECT = Permission('add_project', 'create new projects')
 
 
 def requires_login(func):
@@ -43,6 +44,40 @@ def requires_login(func):
 
         return func(user, *args, **kwargs)
     return wrapped
+
+
+@cached_for_request
+@requires_login
+def can_create_organizations(user):
+    """
+    Returns a boolean describing whether a user has the ability to
+    create new organizations.
+    """
+    if user.is_superuser:
+        return True
+
+    result = plugins.first('has_perm', user, 'add_organization')
+    if result is False:
+        return result
+
+    return True
+
+
+@cached_for_request
+@requires_login
+def can_create_teams(user):
+    """
+    Returns a boolean describing whether a user has the ability to
+    create new teams.
+    """
+    if user.is_superuser:
+        return True
+
+    result = plugins.first('has_perm', user, 'add_team')
+    if result is False:
+        return result
+
+    return True
 
 
 @cached_for_request
@@ -60,23 +95,6 @@ def can_create_projects(user, team=None):
         return False
 
     result = plugins.first('has_perm', user, 'add_project', team)
-    if result is False:
-        return result
-
-    return True
-
-
-@cached_for_request
-@requires_login
-def can_create_teams(user):
-    """
-    Returns a boolean describing whether a user has the ability to
-    create new projects.
-    """
-    if user.is_superuser:
-        return True
-
-    result = plugins.first('has_perm', user, 'add_team')
     if result is False:
         return result
 
