@@ -41,6 +41,7 @@ org, _ = Organization.objects.get_or_create(
 team, _ = Team.objects.get_or_create(
     name='Earth', slug='earth',
     defaults={
+        'organization': org,
         'owner': org.owner,
     },
 )
