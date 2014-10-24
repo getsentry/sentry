@@ -147,8 +147,8 @@ h3 {
   #team-banner > a {
     position: relative;
     letter-spacing: -1px;
-    font-weight: bold;
-    font-size: 22px;
+    font-weight: 600;
+    font-size: 18px;
     color: #eef5fc;
     max-width: 430px;
     height: 56px;
@@ -181,20 +181,28 @@ h3 {
   #team-banner {
     > a small {
       font-weight: normal;
-      font-size: 18px;
       margin-left: 5px;
-      color: #dde5ec;
+      color: darken(#dde5ec, 5);
+      font-size: 100%;
     }
+
+    .divider {
+      padding: 0 2px;
+      opacity: .75;
+    }
+
     &.open > a.dropdown-toggle {
       background: darken(#465262, 10%);
     }
+
     .dropdown-menu {
       max-height: 400px;
+      min-width: 320px;
       overflow: auto;
       top: 0px;
       position: relative;
       min-height: 50px;
-      padding: 10px;
+      padding: 10px 10px 0;
       margin: 0;
       background: darken(#465262, 10%);
       .box-shadow(none);
@@ -202,6 +210,11 @@ h3 {
       border-top: none;
       color: #fff;
       .border-radius(0 0 6px 6px);
+
+      select {
+        border: 0;
+        width: 100%;
+      }
 
       h6 {
         color: darken(#e4e8ed, 30%);
