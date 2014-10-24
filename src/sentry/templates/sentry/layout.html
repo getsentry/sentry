@@ -67,6 +67,7 @@
                             <div id="team-banner">
                                 {% if TEAM_LIST %}
                                     <a class="dropdown-toggle" data-toggle="dropdown">
+                                        <span class="org">Sentry</span> <span class="divider">/</span>
                                         {% if team %}
                                             {{ team.name }}
                                             {% if project %}
@@ -78,6 +79,10 @@
                                         <span class="caret"></span>
                                     </a>
                                     <nav class="dropdown-menu">
+                                        <select class="select2">
+                                          <option>Sentry</option>
+                                          <option>Sup</option>
+                                        </select>
                                         <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
                                         {% for t, p_list in TEAM_LIST %}
                                             <h6><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>

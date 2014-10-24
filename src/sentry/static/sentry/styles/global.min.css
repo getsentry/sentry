@@ -2157,7 +2157,7 @@ table th[class*="span"],
 .icon-edit {
   background-position: -96px -72px;
 }
-.icon-share {
+.icon-popout {
   background-position: -120px -72px;
 }
 .icon-check {
@@ -2244,7 +2244,7 @@ table th[class*="span"],
 .icon-arrow-down {
   background-position: -312px -96px;
 }
-.icon-share-alt {
+.icon-popout-alt {
   background-position: -336px -96px;
 }
 .icon-resize-full {
@@ -6595,8 +6595,8 @@ h3 {
 .navbar #team-banner > a {
   position: relative;
   letter-spacing: -1px;
-  font-weight: bold;
-  font-size: 22px;
+  font-weight: 600;
+  font-size: 18px;
   color: #eef5fc;
   max-width: 430px;
   height: 56px;
@@ -6628,20 +6628,25 @@ h3 {
 }
 .navbar #team-banner > a small {
   font-weight: normal;
-  font-size: 18px;
   margin-left: 5px;
-  color: #dde5ec;
+  color: #cdd8e3;
+  font-size: 100%;
+}
+.navbar #team-banner .divider {
+  padding: 0 2px;
+  opacity: .75;
 }
 .navbar #team-banner.open > a.dropdown-toggle {
   background: #313944;
 }
 .navbar #team-banner .dropdown-menu {
   max-height: 400px;
+  min-width: 320px;
   overflow: auto;
   top: 0px;
   position: relative;
   min-height: 50px;
-  padding: 10px;
+  padding: 10px 10px 0;
   margin: 0;
   background: #313944;
   -webkit-box-shadow: none;
@@ -6655,6 +6660,10 @@ h3 {
   -webkit-border-radius: 0 0 6px 6px;
   -moz-border-radius: 0 0 6px 6px;
   border-radius: 0 0 6px 6px;
+}
+.navbar #team-banner .dropdown-menu select {
+  border: 0;
+  width: 100%;
 }
 .navbar #team-banner .dropdown-menu h6 {
   color: #889ab0;
