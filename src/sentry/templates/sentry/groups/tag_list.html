@@ -6,7 +6,7 @@
 {% block inner %}
     {% if tag_list %}
 
-        {% for tag_key, tag_values, values_seen, id in tag_list %}
+        {% for tag_key, tag_values, values_seen in tag_list %}
             {% if not forloop.counter|divisibleby:2 %}
                 {% if not forloop.first %}
                     </div>
