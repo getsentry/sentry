@@ -4,37 +4,36 @@
 {% load sentry_helpers %}
 
 {% block main %}
-<div class="box">
-    <div class="box-header">
-        <a class="btn pull-right btn-primary btn-sm" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
-        <h3>{% trans "Projects" %}</h3>
+
+  <a class="btn pull-right btn-primary btn-sm" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
+  <h3>{% trans "Projects" %}</h3>
+
+  {% if project_list %}
+    <table class="table table-bordered">
+        <colgroup>
+            <col/>
+            <col width="180px"/>
+            <col width="180px"/>
+        </colgroup>
+        <tbody>
+        {% for project in project_list %}
+            <tr>
+                <td>
+                    <strong><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a></strong><br>
+                     {{ team.slug }}/{{ project.slug }}
+                </td>
+                <td style="text-align:center; vertical-align: middle;">{{ project.get_status_display }}</td>
+                <td style="text-align:right;  vertical-align: middle;">
+                  {% trans "Created" %} {{ project.date_added|timesince }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+  {% else %}
+    <div class="well">
+      <p>{% trans "There are no projects managed by this team." %}</p>
     </div>
-    <div class="box-content with-padding">
-    {% if project_list %}
-        <table class="table vars">
-            <colgroup>
-                <col/>
-                <col width="140px"/>
-                <col width="140px"/>
-            </colgroup>
-            <tbody>
-            {% for project in project_list %}
-                <tr>
-                    <td>
-                        <strong><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a></strong>
-                         {{ team.slug }}/{{ project.slug }}
-                    </td>
-                    <td style="text-align:center">{{ project.get_status_display }}</td>
-                    <td style="text-align:right">
-                      {% trans "Created" %} {{ project.date_added|timesince }}
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>{% trans "There are no projects managed by this team." %}</p>
-    {% endif %}
-    </div>
-</div>
+  {% endif %}
+
 {% endblock %}

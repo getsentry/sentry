@@ -129,6 +129,10 @@ h3 {
   font-size: 22px;
 }
 
+ul,ol {
+  margin: 0 0 20px;
+}
+
 .align-right {
   text-align: right;
 }
@@ -1823,6 +1827,13 @@ ol.context-line {
     &.with-padding {
       padding: 15px 15px 5px;
     }
+
+    .form-actions {
+      padding-left: 15px;
+      padding-right: 15px;
+      margin-left: -15px;
+      margin-right: -15px;
+    }
   }
 }
 
@@ -2211,6 +2222,7 @@ header + .messages-container {
       float: left;
       padding-top: 2px;
       text-align: center;
+      line-height: 54px;
     }
     .dashboard-details {
       width: 86%;
@@ -2929,6 +2941,7 @@ table.integrations {
   border: 1px solid #E9EBEC;
   box-shadow: none;
   background: #fff;
+  padding-bottom: 10px;
 }
 
 /* Small screens */
