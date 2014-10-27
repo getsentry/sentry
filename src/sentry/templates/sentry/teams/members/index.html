@@ -7,18 +7,17 @@
 {% block bodyclass %} with-sidebar{% endblock %}
 
 {% block inner %}
-<div class="box">
-    <div class="box-header">
-        {% if user|can_add_team_member:team %}
-            <a href="{% url 'sentry-new-team-member' team.slug %}" class="btn pull-right btn-primary btn-sm">{% trans "New Member" %}</a>
-        {% endif %}
-        <h3>{% trans "Members" %}</h3>
-    </div>
-    <div class="box-content with-padding">
+
+{% if user|can_add_team_member:team %}
+    <a href="{% url 'sentry-new-team-member' team.slug %}" class="btn pull-right btn-primary btn-sm">{% trans "New Member" %}</a>
+{% endif %}
+<h3>{% trans "Members" %}</h3>
+
+
       {% url 'sentry-manage-access-groups' team.slug as link %}
       <p>{% blocktrans %}This page lists team-wide memberships whom have access to all projects owned by this team. If you wish to add memberships bound to individual projects, you can do so with <a href="{{ link }}">Access Groups</a>.{% endblocktrans %}</p>
 
-      <table class="table vars">
+      <table class="table table-bordered">
           <colgroup>
               <col/>
               <col width="100px"/>
@@ -63,45 +62,39 @@
               {% endfor %}
           </tbody>
       </table>
-  </div>
-  </div>
+
     {% if pending_member_list %}
-    <div class="box">
-        <div class="box-header">
-            <h3>{% trans "Pending Members" %}</h3>
-        </div>
-        <div class="box-content with-padding">
-        <table class="table vars">
-            <colgroup>
-                <col/>
-                <col width="100px"/>
-                <col width="200px"/>
-            </colgroup>
-            <thead>
-                <tr>
-                    <th>{% trans "User" %}</th>
-                    <th style="text-align:center">{% trans "Access" %}</th>
-                    <th style="text-align:center">{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for member, email in pending_member_list %}
-                    <tr>
-                        <td style="vertical-align: middle">
-                            {{ email }}
-                        </td>
-                        <td style="text-align:center; vertical-align: middle">
-                            {{ member.get_type_display }}
-                        </td>
-                        <td style="text-align:center; vertical-align: middle">
-                            <a href="{% url 'sentry-remove-pending-team-member' team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
-                            <a href="{% url 'sentry-reinvite-pending-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-      </div>
-    </div>
+      <h3>{% trans "Pending Members" %}</h3>
+
+      <table class="table table-bordered">
+          <colgroup>
+              <col/>
+              <col width="100px"/>
+              <col width="200px"/>
+          </colgroup>
+          <thead>
+              <tr>
+                  <th>{% trans "User" %}</th>
+                  <th style="text-align:center">{% trans "Access" %}</th>
+                  <th style="text-align:center">{% trans "Actions" %}</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for member, email in pending_member_list %}
+                  <tr>
+                      <td style="vertical-align: middle">
+                          {{ email }}
+                      </td>
+                      <td style="text-align:center; vertical-align: middle">
+                          {{ member.get_type_display }}
+                      </td>
+                      <td style="text-align:center; vertical-align: middle">
+                          <a href="{% url 'sentry-remove-pending-team-member' team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
+                          <a href="{% url 'sentry-reinvite-pending-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
+                      </td>
+                  </tr>
+              {% endfor %}
+          </tbody>
+      </table>
     {% endif %}
 {% endblock %}

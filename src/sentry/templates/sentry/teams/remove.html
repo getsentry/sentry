@@ -21,9 +21,11 @@
               </ul>
             </section>
             <p><label><input ng-model="confirm" type="checkbox" value="1" required> I understand and want to delete this team.</label></p>
-            <button class="btn btn-danger"
-                    ng-click="saveForm()"
-                    ng-disabled="form.$invalid">Delete</button>
+            <div class="form-actions">
+              <button class="btn btn-danger"
+                      ng-click="saveForm()"
+                      ng-disabled="form.$invalid">Delete team</button>
+            </div>
         </form>
     </div>
 </div>

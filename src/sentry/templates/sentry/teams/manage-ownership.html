@@ -30,10 +30,11 @@
         </div>
 
         <p><label><input ng-model="confirm" type="checkbox" value="1" required> I understand and want to transfer this team.</label></p>
-
-        <button class="btn btn-primary"
-                ng-click="saveForm()"
-                ng-disabled="form.$invalid || isUnchanged(newOwner)">Save</button>
+        <div class="form-actions">
+          <button class="btn btn-primary"
+                  ng-click="saveForm()"
+                  ng-disabled="form.$invalid || isUnchanged(newOwner)">Transfer ownership</button>
+        </div>
       </form>
     </div>
   </div>

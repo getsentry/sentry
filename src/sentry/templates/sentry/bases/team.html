@@ -9,7 +9,7 @@
 {% block sidebar %}
     <ul class="nav nav-stacked">
         <li{% if SUBSECTION == 'settings' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-team' team.slug %}">{% trans "Settings" %}</a>
+            <a href="{% url 'sentry-manage-team' team.slug %}">{% trans "Team Settings" %}</a>
         </li>
         <li{% if SUBSECTION == 'projects' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a>
