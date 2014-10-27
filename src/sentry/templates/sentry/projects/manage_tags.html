@@ -6,9 +6,7 @@
 {% block title %}{% trans "Manage Tags" %} | {{ block.super }}{% endblock %}
 
 {% block inner %}
-    <div class="page-header">
-        <h2>{% trans "Manage Tags" %}</h2>
-    </div>
+    <h3>{% trans "Manage Tags" %}</h3>
     {% if form %}
         <p>{% blocktrans %}Each event in Sentry may be annotated with various tags (key and value pairs). For more information on how send additional tags, see your client's documentation.{% endblocktrans %}</p>
         <form action="." method="post">
@@ -17,19 +15,19 @@
 
             <div class="row">
                 <div class="col-xs-6">
-                    <h3>{% trans "Stream Filters" %}</h3>
+                    <h4>{% trans "Stream Filters" %}</h4>
                     <p><small>{% blocktrans %}Filters allow you to do limited searching on the stream view based on a tag's value. They are selectable via the sidebar on the stream.{% endblocktrans %}</small></p>
                     {{ form.filters|as_crispy_field }}
                 </div>
                 <div class="col-xs-6">
-                    <h3>{% trans "Stream Annotations" %}</h3>
+                    <h4>{% trans "Stream Annotations" %}</h4>
                     <p><small>{% blocktrans %}Annotations display the total number of unique values that have been seen for an event. They are rendered on the stream with each individual event.{% endblocktrans %}</small></p>
                     {{ form.annotations|as_crispy_field }}
                 </div>
             </div>
 
             <div class="form-actions" style="margin-top: 10px;">
-                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
             </div>
         </form>
     {% else %}
