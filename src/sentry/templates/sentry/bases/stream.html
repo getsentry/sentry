@@ -20,7 +20,8 @@
         {% if team and request.user|can_admin_team:team %}
             <li>
                 <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}" title="{% trans "Project Settings" %}">
-                    {% trans "Settings" %}
+                    <span class="icon-settings"></span>
+                    {% trans "Project Settings" %}
                 </a>
             </li>
         {% endif %}
