@@ -7,14 +7,14 @@
 {% block controller %}EditProjectRuleCtrl{% endblock %}
 
 {% block inner %}
-    <h2>
+    <h3>
         {% if rule.id %}
             {% trans "Edit Rule" %}
         {% else %}
             {% trans "New Rule" %}
         {% endif %}
         <small>Applying to Events</small>
-    </h2>
+    </h3>
 
     <form method="POST" action="." name="editRuleForm">
         {% csrf_token %}
@@ -74,7 +74,7 @@
         </div>
 
         <div class="actions">
-            <button type="submit" class="btn btn-primary">{% trans "Save Rule" %}</button>
+            <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Rule" %}</button>
         </div>
     </form>
 

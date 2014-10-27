@@ -2308,8 +2308,25 @@ table.table td .select2-container {
   vertical-align: middle;
 }
 
-.table-bordered {
+.table.table-bordered {
   border: 1px solid #E9EBEC;
+  border-radius: 4px !important;
+  border-collapse: separate !important;
+  overflow: hidden;
+
+  th {
+    background: #f9fafa;
+  }
+
+  td, th {
+    padding: 10px 12px;
+    border: 0 !important;
+    border-bottom: 1px solid #E9EBEC !important;
+  }
+
+  tr:last-child td {
+    border-bottom: 0 !important;
+  }
 }
 
 
