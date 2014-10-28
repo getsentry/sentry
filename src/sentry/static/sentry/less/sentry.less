@@ -1134,6 +1134,10 @@ a.icon-share {
   }
 
   .assigned-to {
+    text-align: right;
+    position: relative;
+    top: -1px;
+
     .btn-group {
       margin-top: -3px;
       float: right;
@@ -1223,7 +1227,7 @@ a.icon-share {
   display: table;
   width: 100%;
   border-radius: 4px;
-  border-collapse: collapse;
+  border-collapse: separate;
 
   .group {
     display: table-row;
@@ -1300,7 +1304,7 @@ a.icon-share {
     .transition(all 1s linear);
     position: relative;
     display: table-cell;
-    border: 1px solid #E9EBEC;
+    border-bottom: 1px solid #E9EBEC;
     border-left: 0;
     border-right: 0;
     padding: 14px 0;
@@ -1323,7 +1327,7 @@ a.icon-share {
   .checkbox {
     position: absolute;
     left: 16px;
-    top: 4px;
+    top: 3px;
   }
 
   .event-details {
@@ -1383,13 +1387,19 @@ a.icon-share {
   }
 
   .event-assignee {
-    width: 40px;
+    width: 80px;
     padding: 0 30px;
+    text-align: right;
 
     .open .dropdown-toggle {
       background: #f1f2f3 !important;
       border-color: #cacccc;
       box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+    }
+
+    .dropdown-menu {
+      right: 31px;
+      top: 54px;
     }
   }
 
@@ -1471,7 +1481,14 @@ a.icon-share {
     border-radius: 4px;
     width: 50px;
     box-shadow: none;
-    span {
+    text-align: right;
+
+    .icon-user {
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-arrow-down {
       top: 3px;
     }
     .avatar {
@@ -1481,11 +1498,12 @@ a.icon-share {
 
   .dropdown-menu {
     left: auto;
-    right: 0;
+    right: 16px;
     min-width: 180px;
     padding-top: 0;
     overflow: hidden;
     max-width: 250px;
+    top: 29px;
 
     .form-control {
       border: 0;
@@ -1520,6 +1538,27 @@ a.icon-share {
         position: absolute;
         left: 8px;
       }
+    }
+  }
+
+  &.unassigned {
+    .btn {
+      border-color: transparent;
+      width: 48px;
+      padding-top: 5px;
+      padding-bottom: 3px;
+    }
+
+    .icon-arrow-down {
+      top: 1px;
+    }
+
+    .icon-user {
+      margin-right: 3px;
+      margin-top: 1px;
+      position: relative;
+      top: 1px;
+      font-size: 16px;
     }
   }
 }

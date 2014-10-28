@@ -1,9 +1,10 @@
-<div class="user-selector" ng-cloak>
+<div class="user-selector" ng-cloak ng-class="{unassigned: !group.assignedTo }">
   <div dropdown>
     <a href="#" class="btn btn-sm btn-default" dropdown-toggle>
       <span ng-if="group.assignedTo">
         <img ng-src="<% group.assignedTo.avatarUrl %>" class="avatar">
       </span>
+      <span class="icon-user" ng-if="!group.assignedTo"></span>
       <span aria-hidden="true" class="icon-arrow-down"></span>
     </a>
     <div class="dropdown-menu" role="menu">
