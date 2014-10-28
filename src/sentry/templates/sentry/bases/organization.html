@@ -14,7 +14,7 @@
             <a href="{% url 'sentry-organization-settings' organization.id %}">Basics</a>
         </li>
         <li{% block org_members_nav %}{% endblock %}>
-            <a href="{% url 'sentry-organization-members' organization.id %}">Admins</a>
+            <a href="{% url 'sentry-organization-members' organization.id %}">Members</a>
         </li>
         <li class="divider"></li>
         <li class="nav-header">
