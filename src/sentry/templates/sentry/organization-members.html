@@ -4,17 +4,17 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{% trans "Admins" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Members" %} | {{ block.super }}{% endblock %}
 
 {% block org_members_nav %} class="active"{% endblock %}
 
 {% block main %}
     <section class="body">
         <div class="page-header">
-            <h2>Admins</h2>
+            <h2>Members</h2>
         </div>
 
-        <p>{% blocktrans %}Administrators of your organization gain slightly elevated permissions over individual team managers. They are given the ability to create new teams as well as managing all organization settings (including the list of admins).{% endblocktrans %}</p>
+        <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
 
         <br>
 
@@ -26,6 +26,9 @@
                     </td>
                     <td>
                         {{ member.user.get_display_name }}
+                    </td>
+                    <td width="100">
+                        {{ member.get_type_display }}
                     </td>
                 </tr>
             {% endfor %}
