@@ -201,7 +201,7 @@ header {
     width: 22px;
     border-radius: 3px;
     position: relative;
-    top: -4px;
+    top: -2px;
   }
 
   [class^="icon-"], [class*=" icon-"] {
@@ -210,20 +210,47 @@ header {
   }
 
   .user-nav {
-    margin-top: 5px;
+    margin-top: 3px;
     margin-bottom: 0;
-
-    .dropdown {
-      float: right;
-    }
 
     .clearfix();
     .dropdown-menu {
       left: auto;
       right: 0;
       border-radius: 0 0 4px 4px;
-      top: 40px;
+      top: 41px;
+      color: @gray;
+
+      &.orgs li {
+
+        a {
+          padding-left: 12px;
+          padding-right: 36px;
+          position: relative;
+        }
+        .icon-settings {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          margin-left: 10px;
+        }
+
+        .icon-building, .icon-user {
+          opacity: .5;
+          padding-right: 5px;
+        }
+
+        .icon-user {
+          top: 1px;
+        }
+      }
     }
+
+    h6 {
+      margin: 6px 12px;
+      font-size: 14px;
+    }
+
     > li {
       list-style: none;
       float: left;
@@ -237,8 +264,9 @@ header {
 
     .icon-settings,
     .icon-book,
-    .icon-envelope {
-      line-height: 0;
+    .icon-envelope,
+    .icon-building {
+      line-height: 1;
       padding-right: 5px;
     }
 
@@ -248,7 +276,15 @@ header {
 
     .icon-book {
       top: 2px;
-      line-height: 0;
+    }
+
+    .icon-building {
+      top: 1px;
+    }
+
+    .icon-arrow-down {
+      top: 2px;
+      line-height: 1;
     }
   }
 
