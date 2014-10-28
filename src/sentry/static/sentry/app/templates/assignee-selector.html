@@ -8,7 +8,7 @@
       <span aria-hidden="true" class="icon-arrow-down"></span>
     </a>
     <div class="dropdown-menu" role="menu">
-      <input type="text" class="form-control input-sm" placeholder="Filter people">
+      <input type="text" class="form-control input-sm" placeholder="Filter people" ng-click="$event.stopPropagation();">
       <ul>
         <li ng-repeat="projectMember in projectMemberList">
           <a href="javascript:void(0)" ng-click="assignTo(projectMember)"><img ng-src="<% projectMember.avatarUrl %>" class="avatar"> <% projectMember.name || projectMember.email %></a>
