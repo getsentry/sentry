@@ -68,7 +68,6 @@ class OrganizationMixin(object):
             if not is_implicit:
                 return None
 
-            print(organizations)
             try:
                 active_organization = organizations[0]
             except IndexError:
