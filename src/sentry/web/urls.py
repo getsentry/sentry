@@ -36,6 +36,7 @@ __all__ = ('urlpatterns',)
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
+from sentry.web.frontend.organization_member_settings import OrganizationMemberSettingsView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.organization_teams import OrganizationTeamsView
 from sentry.web.frontend.create_access_group import CreateAccessGroupView
@@ -124,6 +125,8 @@ urlpatterns += patterns('',
         name='sentry-organization-home'),
     url(r'^organizations/(?P<organization_id>\d+)/members/$', OrganizationMembersView.as_view(),
         name='sentry-organization-members'),
+    url(r'^organizations/(?P<organization_id>\d+)/members/(?P<member_id>\d+)/$', OrganizationMemberSettingsView.as_view(),
+        name='sentry-organization-member-settings'),
     url(r'^organizations/(?P<organization_id>\d+)/settings/$', OrganizationSettingsView.as_view(),
         name='sentry-organization-settings'),
     url(r'^organizations/(?P<organization_id>\d+)/teams/$', OrganizationTeamsView.as_view(),
