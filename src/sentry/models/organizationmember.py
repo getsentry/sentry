@@ -7,12 +7,17 @@ sentry.models.organizationmember
 """
 from __future__ import absolute_import, print_function
 
+import logging
+
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from hashlib import md5
 
-from sentry.db.models import Model, BoundedPositiveIntegerField, BaseManager, sane_repr
+from sentry.db.models import Model, BoundedPositiveIntegerField, sane_repr
+from sentry.utils.http import absolute_uri
 
 
 # TODO(dcramer): pull in enum library
@@ -31,19 +36,63 @@ class OrganizationMember(Model):
     be set to ownership.
     """
     organization = models.ForeignKey('sentry.Organization', related_name="member_set")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_orgmember_set")
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
+                             related_name="sentry_orgmember_set")
+    email = models.EmailField(null=True)
+
     type = BoundedPositiveIntegerField(choices=(
         (OrganizationMemberType.MEMBER, _('Member')),
         (OrganizationMemberType.ADMIN, _('Admin')),
         (OrganizationMemberType.BOT, _('Bot')),
     ), default=OrganizationMemberType.MEMBER)
     date_added = models.DateTimeField(default=timezone.now)
-
-    objects = BaseManager()
+    has_global_access = models.BooleanField(default=True)
+    teams = models.ManyToManyField('sentry.Team')
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_organizationmember'
-        unique_together = (('organization', 'user'),)
+        unique_together = (('organization', 'user'), ('organization', 'email'))
 
     __repr__ = sane_repr('organization_id', 'user_id', 'type')
+
+    def save(self, *args, **kwargs):
+        assert self.user_id or self.email, \
+            'Must set user or email'
+        return super(OrganizationMember, self).save(*args, **kwargs)
+
+    @property
+    def is_pending(self):
+        return self.user_id is None
+
+    @property
+    def token(self):
+        checksum = md5()
+        for x in (str(self.organization_id), self.email, settings.SECRET_KEY):
+            checksum.update(x)
+        return checksum.hexdigest()
+
+    def send_invite_email(self):
+        from sentry.utils.email import MessageBuilder
+
+        context = {
+            'email': self.email,
+            'organization': self.organization,
+            'url': absolute_uri(reverse('sentry-accept-invite', kwargs={
+                'member_id': self.id,
+                'token': self.token,
+            })),
+        }
+
+        msg = MessageBuilder(
+            subject='Invite to join organization: %s' % (self.organization.name,),
+            template='sentry/emails/member_invite.txt',
+            context=context,
+        )
+
+        try:
+            msg.send([self.email])
+        except Exception as e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
