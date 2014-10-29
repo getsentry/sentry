@@ -19,19 +19,58 @@
         <br>
 
         <table class="table table-striped">
-            {% for member in member_list %}
-                <tr>
-                    <td width="20">
-                        <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
-                    </td>
-                    <td>
-                        {{ member.user.get_display_name }}
-                    </td>
-                    <td width="100">
-                        {{ member.get_type_display }}
-                    </td>
-                </tr>
-            {% endfor %}
+            <colgroup>
+                <col width="20px"/>
+                <col/>
+                <col width="100px"/>
+                <col width="20px"/>
+            </colgroup>
+            <tbody>
+                {% for member in member_list %}
+                    <tr>
+                        <td>
+                            <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
+                        </td>
+                        <td>
+                            {{ member.user.get_display_name }}
+                        </td>
+                        <td>
+                            <a href="#">3 teams</a>
+                        </td>
+                        <td>
+                            <a href=""><span class="icon icon-remove"></span></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
+                        </td>
+                        <td>
+                            {{ member.user.get_display_name }}
+                        </td>
+                        <td>
+                            &infin;
+                        </td>
+                        <td>
+                            <a href=""><span class="icon icon-remove"></span></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
+                        </td>
+                        <td>
+                            {{ member.user.get_display_name }}
+                        </td>
+                        <td>
+                            <a href="#">Backend</a>
+                        </td>
+                        <td>
+                            <a href=""><span class="icon icon-remove"></span></a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </section>
 {% endblock %}
