@@ -32,7 +32,9 @@
                             <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
                         </td>
                         <td>
-                            {{ member.user.get_display_name }}
+                            <a href="{% url 'sentry-organization-member-settings' organization.id member.id %}">
+                                {{ member.user.get_display_name }}
+                            </a>
                         </td>
                         <td>
                             {% if member.has_global_access %}
