@@ -106,6 +106,11 @@ a {
 }
 
 p {
+  margin: 0 0 20px;
+
+  &:last-child {
+    margin-bottom: 10px;
+  }
 }
 
 h1, h2, h3, h4, h5 {
@@ -121,7 +126,11 @@ h2 {
 }
 h3 {
   line-height: 27px;
-  font-size: 18px;
+  font-size: 22px;
+}
+
+ul,ol {
+  margin: 0 0 20px;
 }
 
 .align-right {
@@ -192,7 +201,7 @@ header {
     width: 22px;
     border-radius: 3px;
     position: relative;
-    top: -4px;
+    top: -2px;
   }
 
   [class^="icon-"], [class*=" icon-"] {
@@ -201,20 +210,47 @@ header {
   }
 
   .user-nav {
-    margin-top: 5px;
+    margin-top: 3px;
     margin-bottom: 0;
-
-    .dropdown {
-      float: right;
-    }
 
     .clearfix();
     .dropdown-menu {
       left: auto;
       right: 0;
       border-radius: 0 0 4px 4px;
-      top: 40px;
+      top: 41px;
+      color: @gray;
+
+      &.orgs li {
+
+        a {
+          padding-left: 12px;
+          padding-right: 36px;
+          position: relative;
+        }
+        .icon-settings {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          margin-left: 10px;
+        }
+
+        .icon-building, .icon-user {
+          opacity: .5;
+          padding-right: 5px;
+        }
+
+        .icon-user {
+          top: 1px;
+        }
+      }
     }
+
+    h6 {
+      margin: 6px 12px;
+      font-size: 14px;
+    }
+
     > li {
       list-style: none;
       float: left;
@@ -228,8 +264,9 @@ header {
 
     .icon-settings,
     .icon-book,
-    .icon-envelope {
-      line-height: 0;
+    .icon-envelope,
+    .icon-building {
+      line-height: 1;
       padding-right: 5px;
     }
 
@@ -239,7 +276,15 @@ header {
 
     .icon-book {
       top: 2px;
-      line-height: 0;
+    }
+
+    .icon-building {
+      top: 1px;
+    }
+
+    .icon-arrow-down {
+      top: 2px;
+      line-height: 1;
     }
   }
 
@@ -364,6 +409,13 @@ header {
       display: inline-block;
     }
   }
+
+  .icon-settings {
+    position: relative;
+    top: 1px;
+    margin-right: 2px;
+    opacity: .45;
+  }
 }
 
 .nav-tabs {
@@ -422,6 +474,10 @@ footer {
 }
 
 /* =============================  Modules  ============================== */
+
+.generic-list {
+
+}
 
 .form-control {
   box-shadow: inset 0 1px 1px rgba(70, 82, 98, 0.05);
@@ -508,6 +564,7 @@ footer {
   border-color: lighten(@gray, 58);
   background: #fff;
   opacity: 1;
+  text-shadow: none;
 }
 
 .nav {
@@ -1077,6 +1134,10 @@ a.icon-share {
   }
 
   .assigned-to {
+    text-align: right;
+    position: relative;
+    top: -1px;
+
     .btn-group {
       margin-top: -3px;
       float: right;
@@ -1166,7 +1227,7 @@ a.icon-share {
   display: table;
   width: 100%;
   border-radius: 4px;
-  border-collapse: collapse;
+  border-collapse: separate;
 
   .group {
     display: table-row;
@@ -1243,7 +1304,7 @@ a.icon-share {
     .transition(all 1s linear);
     position: relative;
     display: table-cell;
-    border: 1px solid #E9EBEC;
+    border-bottom: 1px solid #E9EBEC;
     border-left: 0;
     border-right: 0;
     padding: 14px 0;
@@ -1266,7 +1327,7 @@ a.icon-share {
   .checkbox {
     position: absolute;
     left: 16px;
-    top: 4px;
+    top: 3px;
   }
 
   .event-details {
@@ -1326,13 +1387,19 @@ a.icon-share {
   }
 
   .event-assignee {
-    width: 40px;
+    width: 80px;
     padding: 0 30px;
+    text-align: right;
 
     .open .dropdown-toggle {
       background: #f1f2f3 !important;
       border-color: #cacccc;
       box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+    }
+
+    .dropdown-menu {
+      right: 31px;
+      top: 54px;
     }
   }
 
@@ -1414,7 +1481,14 @@ a.icon-share {
     border-radius: 4px;
     width: 50px;
     box-shadow: none;
-    span {
+    text-align: right;
+
+    .icon-user {
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-arrow-down {
       top: 3px;
     }
     .avatar {
@@ -1424,11 +1498,12 @@ a.icon-share {
 
   .dropdown-menu {
     left: auto;
-    right: 0;
+    right: 16px;
     min-width: 180px;
     padding-top: 0;
     overflow: hidden;
     max-width: 250px;
+    top: 29px;
 
     .form-control {
       border: 0;
@@ -1457,12 +1532,35 @@ a.icon-share {
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: left;
 
       img {
         margin-right: 5px;
         position: absolute;
         left: 8px;
       }
+    }
+  }
+
+  &.unassigned {
+    .btn {
+      border-color: transparent;
+      width: 48px;
+      padding-top: 5px;
+      padding-bottom: 3px;
+      color: #949ea4;
+    }
+
+    .icon-arrow-down {
+      top: 1px;
+    }
+
+    .icon-user {
+      margin-right: 3px;
+      margin-top: 1px;
+      position: relative;
+      top: 1px;
+      font-size: 16px;
     }
   }
 }
@@ -1805,6 +1903,13 @@ ol.context-line {
   .box-content {
     &.with-padding {
       padding: 15px 15px 5px;
+    }
+
+    .form-actions {
+      padding-left: 15px;
+      padding-right: 15px;
+      margin-left: -15px;
+      margin-right: -15px;
     }
   }
 }
@@ -2194,6 +2299,7 @@ header + .messages-container {
       float: left;
       padding-top: 2px;
       text-align: center;
+      line-height: 54px;
     }
     .dashboard-details {
       width: 86%;
@@ -2299,8 +2405,25 @@ table.table td .select2-container {
   vertical-align: middle;
 }
 
-.table-bordered {
+.table.table-bordered {
   border: 1px solid #E9EBEC;
+  border-radius: 4px !important;
+  border-collapse: separate !important;
+  overflow: hidden;
+
+  th {
+    background: #f9fafa;
+  }
+
+  td, th {
+    padding: 10px 12px;
+    border: 0 !important;
+    border-bottom: 1px solid #E9EBEC !important;
+  }
+
+  tr:last-child td {
+    border-bottom: 0 !important;
+  }
 }
 
 
@@ -2895,6 +3018,7 @@ table.integrations {
   border: 1px solid #E9EBEC;
   box-shadow: none;
   background: #fff;
+  padding-bottom: 10px;
 }
 
 /* Small screens */

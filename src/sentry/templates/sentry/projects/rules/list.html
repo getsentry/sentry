@@ -4,11 +4,11 @@
 
 {% block inner %}
     <div class="page-header">
-        <a href="{% url 'sentry-new-project-rule' project.team.slug project.slug %}" class="btn pull-right btn-primary">{% trans "New Rule" %}</a>
-        <h2>{% trans "Rules" %}</h2>
+        <a href="{% url 'sentry-new-project-rule' project.team.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "New Rule" %}</a>
+        <h3>{% trans "Rules" %}</h3>
     </div>
     {% if rule_list %}
-        <table class="table">
+        <table class="table table-bordered">
             <thead>
                 <tr>
                     <th>Rule</th>
@@ -23,7 +23,7 @@
                         </td>
                         <td style="text-align: right">
                             <a href="{% url 'sentry-remove-project-rule' project.team.slug project.slug rule.id %}" class="btn btn-sm btn-default"
-                               onclick="confirm('Are you sure you want to remove this rule?')"><span class="icon-trash"></span> Delete</a>
+                               onclick="confirm('Are you sure you want to remove this rule?')"><span class="icon-trash" style="margin-right: 3px;"></span> Delete</a>
                         </td>
                     </tr>
                 {% endfor %}

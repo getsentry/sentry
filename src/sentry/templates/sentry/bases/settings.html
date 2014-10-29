@@ -11,7 +11,7 @@
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
         <li class="active">
-            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{% trans "Settings" %}</a>
+            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}"><span class="icon-settings"></span> {% trans "Project Settings" %}</a>
         </li>
     </ul>
 {% endblock %}

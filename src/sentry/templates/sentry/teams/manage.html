@@ -13,6 +13,7 @@
 
 {% block main %}
   {% block inner %}
+  <h3>{% trans "Team Settings" %}</h3>
   <div class="box">
       <div class="box-header">
           <h3>{% trans "Team Details" %}</h3>
@@ -48,13 +49,12 @@
                   <span ng-show="form.slug.$error.required">Enter a valid team slug.</span>
                 </div>
               </div>
-
-              <div class="form-actions">
-                  <button class="btn btn-primary"
-                          ng-click="saveForm()"
-                          ng-disabled="form.$invalid || isUnchanged()">{% trans "Save Changes" %}</button>
-              </div>
           </form>
+          <div class="form-actions">
+              <button class="btn btn-primary"
+                      ng-click="saveForm()"
+                      ng-disabled="form.$invalid || isUnchanged()">{% trans "Save Changes" %}</button>
+          </div>
       </div>
   </div>
   {% endblock %}

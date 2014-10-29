@@ -126,15 +126,26 @@
                   <ul class="pull-right user-nav">
                       {% block account_nav %}
                           {% if request.user.is_authenticated %}
+                              <li class="dropdown">
+                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="icon-building"></span> Sentry <span class="icon-arrow-down"></span></a>
+                                  <ul class="orgs dropdown-menu">
+                                    <li><h6><a href="" class="icon-plus pull-right"></a>Organizations</h6></li>
+                                    <li class="active"><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> Sentry</a></li>
+                                    <li class=""><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> GitHub</a></li>
+                                    <li class=""><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> Captain Planet, Inc</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href="#"><span class="icon-user"></span> ckj</a></li>
+                                  </ul>
+                              </li>
                               {% if team and request.user|can_admin_team:team %}
-                                  <li class="hidden-xs"><a href="{% url 'sentry-manage-team' team.slug %}"><span class="icon icon-settings"></span> {% trans "Team Settings" %}</a></li>
+                              <li class="hidden-xs"><a href="{% url 'sentry-manage-team' team.slug %}"><span class="icon icon-settings"></span> {% trans "Team Settings" %}</a></li>
                               {% endif %}
                               <li class="hidden-xs">
                                 <a href="{% url 'sentry-help' %}">
                                     <span class="icon icon-book"></span> {% trans "Docs" %}
                                 </a>
                               </li>
-                              <li class="dropdown">
+                              <li class="pull-right dropdown">
                                   <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="user-avatar" src="{% gravatar_url user.email size 44 %}"> <span class="icon-arrow-down"></span></a>
                                   <ul class="dropdown-menu">
                                       <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>

@@ -1,13 +1,14 @@
-<div class="user-selector" ng-cloak>
+<div class="user-selector" ng-cloak ng-class="{unassigned: !group.assignedTo }">
   <div dropdown>
     <a href="#" class="btn btn-sm btn-default" dropdown-toggle>
       <span ng-if="group.assignedTo">
         <img ng-src="<% group.assignedTo.avatarUrl %>" class="avatar">
       </span>
+      <span class="icon-user" ng-if="!group.assignedTo"></span>
       <span aria-hidden="true" class="icon-arrow-down"></span>
     </a>
     <div class="dropdown-menu" role="menu">
-      <input type="text" class="form-control input-sm" placeholder="Filter people">
+      <input type="text" class="form-control input-sm" placeholder="Filter people" ng-click="$event.stopPropagation();">
       <ul>
         <li ng-repeat="projectMember in projectMemberList">
           <a href="javascript:void(0)" ng-click="assignTo(projectMember)"><img ng-src="<% projectMember.avatarUrl %>" class="avatar"> <% projectMember.name || projectMember.email %></a>

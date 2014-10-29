@@ -9,11 +9,11 @@
 {% block inner %}
     <div class="page-header">
         {% if can_add_key %}
-            <a href="{% url 'sentry-new-project-key' project.team.slug project.slug %}" class="btn pull-right btn-primary">{% trans "Generate New Key" %}</a>
+            <a href="{% url 'sentry-new-project-key' project.team.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
         {% endif %}
-        <h2>
+        <h3>
             {% trans "Manage API Keys" %}
-        </h2>
+        </h3>
     </div>
     <table class="table table-bordered">
         <colgroup>
@@ -22,8 +22,8 @@
         </colgroup>
         <thead>
             <tr>
-                <th>{% trans "API Key" %}</th>
-                <th style="text-align:center">{% trans "Actions" %}</th>
+                <th colspan="2">{% trans "API Key" %}</th>
+
             </tr>
         </thead>
         <tbody>
@@ -44,7 +44,7 @@
                         {% if key.can_remove %}
                             <form method="POST" action="{% url 'sentry-remove-project-key' project.team.slug project.slug key.id %}" style="display:inline">
                                 {% csrf_token %}
-                                <input type="submit" class="btn btn-danger btn-small" value="{% trans "Revoke" %}">
+                                <input type="submit" class="btn btn-danger btn-sm" value="{% trans "Revoke" %}">
                             </form>
                         {% else %}
                             &mdash;
