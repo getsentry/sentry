@@ -1036,27 +1036,29 @@ a.icon-share {
 
   .stream-actions-graph {
     vertical-align: middle;
-    width: 100px;
+    width: 120px;
     font-size: 13px;
-    padding-right: 0;
+    padding-right: 10px;
+    padding-left: 10px;
   }
 
   .stram-actions-assignee {
     width: 40px;
   }
 
-  .stream-actions-occurrences {
-    width: 100px;
-    padding-left: 30px;
+  .stream-actions-occurrences,
+  .stream-actions-users {
+    width: 90px;
+    padding-left: 10px;
+    padding-left: 10px;
     font-size: 13px;
   }
+
   .stream-actions-users {
-    width: 100px;
-    padding-left: 30px;
     border-radius: 0 4px 0 0;
-    font-size: 13px;
     border-right: 1px solid #e1e4e5;
   }
+
   .realtime-paused {
     .btn-danger();
   }
@@ -1388,24 +1390,18 @@ a.icon-share {
 
   .event-assignee {
     width: 80px;
-    padding: 0 30px;
+    padding: 0 20px;
     text-align: right;
 
-    .open .dropdown-toggle {
-      background: #f1f2f3 !important;
-      border-color: #cacccc;
-      box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
-    }
-
     .dropdown-menu {
-      right: 31px;
-      top: 54px;
+      right: 21px;
+      top: 58px;
     }
   }
 
   .event-graph {
-    width: 100px;
-    margin-left: 30px;
+    width: 120px;
+    padding: 0 10px;
   }
 
   .event-users {
@@ -1414,9 +1410,10 @@ a.icon-share {
 
   .event-users, .event-occurrences {
     vertical-align: middle;
-    padding-left: 30px;
+    padding-left: 10px;
     padding-right: 10px;
-    width: 100px;
+    width: 90px;
+
     span {
       color: #949ea4;
       font-size: 20px;
@@ -1496,6 +1493,12 @@ a.icon-share {
     }
   }
 
+  .open .btn {
+    background: #f6f7f8 !important;
+    border-color: #cacccc !important;
+    box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+  }
+
   .dropdown-menu {
     left: auto;
     right: 16px;
@@ -1503,7 +1506,7 @@ a.icon-share {
     padding-top: 0;
     overflow: hidden;
     max-width: 250px;
-    top: 29px;
+    top: 32px;
 
     .form-control {
       border: 0;
@@ -3173,12 +3176,6 @@ table.integrations {
     .assigned-to .btn-group {
       float: none;
       margin-left: -6px;
-
-      &.open .dropdown-toggle {
-        background: #f1f2f3 !important;
-        border-color: #cacccc ;
-        box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
-      }
 
       .dropdown-menu {
         left: 0;
