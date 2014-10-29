@@ -6595,8 +6595,8 @@ h3 {
 .navbar #team-banner > a {
   position: relative;
   letter-spacing: -1px;
-  font-weight: bold;
-  font-size: 22px;
+  font-weight: 600;
+  font-size: 18px;
   color: #eef5fc;
   max-width: 430px;
   height: 56px;
@@ -6628,20 +6628,25 @@ h3 {
 }
 .navbar #team-banner > a small {
   font-weight: normal;
-  font-size: 18px;
   margin-left: 5px;
-  color: #dde5ec;
+  color: #cdd8e3;
+  font-size: 100%;
+}
+.navbar #team-banner .divider {
+  padding: 0 2px;
+  opacity: .75;
 }
 .navbar #team-banner.open > a.dropdown-toggle {
   background: #313944;
 }
 .navbar #team-banner .dropdown-menu {
   max-height: 400px;
+  min-width: 320px;
   overflow: auto;
-  top: 0px;
-  position: relative;
+  top: 56px;
+  position: absolute;
   min-height: 50px;
-  padding: 10px;
+  padding: 10px 10px 0;
   margin: 0;
   background: #313944;
   -webkit-box-shadow: none;
@@ -6655,6 +6660,10 @@ h3 {
   -webkit-border-radius: 0 0 6px 6px;
   -moz-border-radius: 0 0 6px 6px;
   border-radius: 0 0 6px 6px;
+}
+.navbar #team-banner .dropdown-menu select {
+  border: 0;
+  width: 100%;
 }
 .navbar #team-banner .dropdown-menu h6 {
   color: #889ab0;
@@ -6820,6 +6829,35 @@ h3 {
   -webkit-box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
   -moz-box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
   box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.org-dropdown .dropdown-menu .new {
+  display: inline;
+  padding: 0;
+}
+.org-dropdown .dropdown-menu .new .icon-plus {
+  background: none;
+}
+.org-dropdown .dropdown-menu h6 {
+  margin: 0 8px 4px 12px;
+}
+.org-dropdown .dropdown-menu .divider {
+  margin: 4px 0;
+}
+.org-dropdown .dropdown-menu li {
+  position: relative;
+}
+.org-dropdown .dropdown-menu li a {
+  padding-right: 34px;
+  padding-left: 12px;
+}
+.org-dropdown .dropdown-menu li .org-settings {
+  position: absolute;
+  right: 9px;
+  top: 4px;
+  padding: 0;
+}
+.org-dropdown .dropdown-menu li .org-settings span {
+  background: none;
 }
 #search input[type=text] {
   width: 212px;

@@ -33,7 +33,7 @@ from six.moves import range
 
 from sentry import options
 from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Team
+from sentry.models import Organization, Team
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -494,3 +494,8 @@ def localized_datetime(context, dt, format='DATETIME_FORMAT'):
     dt = dt.astimezone(timezone)
 
     return date(dt, format)
+
+
+@register.filter
+def list_organizations(user):
+    return Organization.objects.get_for_user(user)

@@ -110,11 +110,12 @@
                                               <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ organization.name }} <span class="caret"></span></a>
                                               <ul class="dropdown-menu">
                                                 <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>Organizations</h6></li>
-                                                <li class="active"><a href="{% url 'sentry-organization-home' organization.id %}">{{ organization.name }}</a> <a href="{% url 'sentry-organization-settings' organization.id %}" class="org-settings"><span class="icon-cog"></span></a></li>
-                                                <li>
-                                                  <a href="#">Captain Planet, Inc</a>
-                                                  <a href="#" class="org-settings"><span class="icon-cog"></span></a>
-                                                </li>
+                                                {% for o in request.user|list_organizations %}
+                                                    <li{% if o == organization %} class="active"{% endif %}>
+                                                        <a href="{% url 'sentry-organization-home' o.id %}">{{ o.name }}</a>
+                                                        <a href="{% url 'sentry-organization-settings' o.id %}" class="org-settings"><span class="icon-cog"></span></a>
+                                                    </li>
+                                                {% endfor %}
                                               </ul>
                                             </li>
                                         {% endif %}
