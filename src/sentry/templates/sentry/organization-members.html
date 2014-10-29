@@ -26,7 +26,7 @@
                 <col width="20px"/>
             </colgroup>
             <tbody>
-                {% for member in member_list %}
+                {% for member, team_list in member_list %}
                     <tr>
                         <td>
                             <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
@@ -35,35 +35,16 @@
                             {{ member.user.get_display_name }}
                         </td>
                         <td>
-                            <a href="#">3 teams</a>
-                        </td>
-                        <td>
-                            <a href=""><span class="icon icon-remove"></span></a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
-                        </td>
-                        <td>
-                            {{ member.user.get_display_name }}
-                        </td>
-                        <td>
-                            &infin;
-                        </td>
-                        <td>
-                            <a href=""><span class="icon icon-remove"></span></a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
-                        </td>
-                        <td>
-                            {{ member.user.get_display_name }}
-                        </td>
-                        <td>
-                            <a href="#">Backend</a>
+                            {% if member.has_global_access %}
+                                <span class="tip" title="Access to all teams">&infin;</span>
+                            {% elif team_list|length > 1 %}
+                                <span class="tip"
+                                      title="{% for team in team_list %}{{ team.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                                    {{ team_list|length }} teams
+                                </span>
+                            {% else %}
+                                {{ team_list.0.name }}
+                            {% endif %}
                         </td>
                         <td>
                             <a href=""><span class="icon icon-remove"></span></a>
