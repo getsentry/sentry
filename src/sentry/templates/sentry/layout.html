@@ -67,7 +67,6 @@
                             <div id="team-banner">
                                 {% if TEAM_LIST %}
                                     <a class="dropdown-toggle" data-toggle="dropdown">
-                                        <span class="org">Sentry</span> <span class="divider">/</span>
                                         {% if team %}
                                             {{ team.name }}
                                             {% if project %}
@@ -79,10 +78,6 @@
                                         <span class="caret"></span>
                                     </a>
                                     <nav class="dropdown-menu">
-                                        <select class="select2">
-                                          <option>Sentry</option>
-                                          <option>Sup</option>
-                                        </select>
                                         <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
                                         {% for t, p_list in TEAM_LIST %}
                                             <h6><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>
@@ -111,8 +106,16 @@
                                 {% block account_nav %}
                                     {% if request.user.is_authenticated %}
                                         {% if organization and request.user|can_manage_org:organization %}
-                                            <li>
-                                                <a href="{% url 'sentry-organization-settings' organization.id %}">Organization Settings</a>
+                                            <li class="dropdown org-dropdown">
+                                              <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ organization.name }} <span class="caret"></span></a>
+                                              <ul class="dropdown-menu">
+                                                <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>Organizations</h6></li>
+                                                <li class="active"><a href="{% url 'sentry-organization-home' organization.id %}">{{ organization.name }}</a> <a href="{% url 'sentry-organization-settings' organization.id %}" class="org-settings"><span class="icon-cog"></span></a></li>
+                                                <li>
+                                                  <a href="#">Captain Planet, Inc</a>
+                                                  <a href="#" class="org-settings"><span class="icon-cog"></span></a>
+                                                </li>
+                                              </ul>
                                             </li>
                                         {% endif %}
                                         <li class="dropdown">
