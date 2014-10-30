@@ -170,9 +170,6 @@
                                 {% endif %}
                                 <span class="icon-arrow-down"></span>
                             </a>
-                            {% if team and request.user|can_admin_team:team %}
-                            <a href="{% url 'sentry-manage-team' team.slug %}" title="{% trans "Team Settings" %}" class="team-settings hidden-xs"><span class="icon icon-settings"></span></a>
-                            {% endif %}
                             <div class="dropdown-menu">
                                 <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
                                 {% for t, p_list in TEAM_LIST|reorder_teams:team %}
