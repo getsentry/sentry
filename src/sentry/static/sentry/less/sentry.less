@@ -15,14 +15,14 @@
 @black: #111;
 @white: #fff;
 @sentry-orange: #fb4226;
-@blue: darken(#56AFE8, 2);
+@blue: #409AED;
 @green: #07CC6D;
 @yellow: #f5db00;
 @red: #e03c38;
 
-@linkColor: darken(@blue, 10%);
+@linkColor: @blue;
 
-@linkColorHover: darken(@blue, 25%);
+@linkColorHover: darken(@blue, 15%);
 
 @iconSpritePath:          "../bootstrap/img/glyphicons-halflings.png";
 @iconWhiteSpritePath:     "../bootstrap/img/glyphicons-halflings-white.png";
@@ -99,6 +99,7 @@ a {
   text-decoration: none;
   .transition(color linear .2s);
   cursor: pointer;
+
   &:hover {
     color: @linkColorHover;
     text-decoration: none;
@@ -550,11 +551,12 @@ footer {
 .btn-primary {
   color: #ffffff;
   background-color: @blue;
-  border-color: darken(@blue, 15);
+  border-color: darken(@blue, 20);
   box-shadow: 0 1px 1px rgba(70, 82, 98, 0.16);
   text-shadow: 0 -1px 0 rgba(70, 82, 98, 0.4);
   &:hover, &:focus, &:active {
-    background-color: darken(@blue, 10);
+
+    background-color: darken(@blue, 4);
     border-color: darken(@blue, 30);
   }
 }
@@ -595,6 +597,7 @@ footer {
     font-weight: 600;
     padding: 8px 14px;
     border-radius: 4px;
+
     &:hover {
       background: #f1f2f3;
     }
@@ -603,8 +606,7 @@ footer {
   &.active {
     a, a:hover {
       color: #fff;
-      background: #2598e1;
-      border-color: #1a7ebe;
+      background: @blue;
     }
   }
 }
@@ -649,15 +651,15 @@ footer {
 
     &.active {
       &:after, &:before {
-        background: #1a7ebe;
+        background: darken(@blue, 20);
       }
     }
   }
   .btn.active {
     color: #fff;
     box-shadow: none;
-    background: #2598e1;
-    border-color: #1a7ebe;
+    background: @blue;
+    border-color: darken(@blue, 20);
   }
 }
 
@@ -1272,7 +1274,7 @@ a.icon-share {
       bottom: -1px;
       left: -1px;
       width: 4px;
-      background: #54adff;
+      background: lighten(@blue, 5);
       z-index: 100;
       .transition(all .2s ease-in-out);
     }
@@ -2352,7 +2354,7 @@ table.table td .select2-container {
 
 
 .navbar-inverse .nav .active > a, .navbar-inverse .nav .active > a:hover, .navbar-inverse .nav .active > a:focus {
-  background: #56AFE8;
+  background: @blue;
 }
 
 .nav-list > li > a, .nav-list > li > a:hover, .nav-list > li.active > a, .nav-list > li.active > a:hover {
@@ -2381,7 +2383,7 @@ table.table td .select2-container {
   }
 
   li.active a, li.active a:hover {
-    background: #56AFE8;
+    background: @blue;
     color: #fff;
   }
 
@@ -2633,10 +2635,9 @@ table.integrations {
       display: block;
       margin: 0 0 20px 0;
       padding: 18px 20px 12px;
-      border: 1px solid darken(#E9EBEC, 2.5);
-      box-shadow: 0 1px 2px rgba(70, 82, 98, .06);
+      border: 1px solid darken(#E9EBEC, 5);
       position: relative;
-      border-radius: 5px;
+      border-radius: 4px;
       overflow: hidden;
 
       .loading {
@@ -2644,7 +2645,6 @@ table.integrations {
       }
 
       &:hover {
-        border-color: #56AFE8;
         h2 {
           color: #000;
         }
@@ -2677,6 +2677,7 @@ table.integrations {
         right: 0;
         bottom: -1px;
         top: 10px;
+        opacity: .75;
       }
 
       > ul {
@@ -2734,7 +2735,7 @@ table.integrations {
 }
 .popover-title {
   font-size: 10px;
-  background: #56AFE8;
+  background: @blue;
   color: #fff;
 }
 .popover-title,
