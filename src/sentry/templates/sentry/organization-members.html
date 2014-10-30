@@ -11,6 +11,10 @@
 {% block main %}
     <section class="body">
         <div class="page-header">
+            <div class="pull-right">
+                <a href="{% url 'sentry-create-organization-member' organization.id %}"
+                   class="btn btn-primary">New Member</a>
+            </div>
             <h2>Members</h2>
         </div>
 
@@ -29,11 +33,11 @@
                 {% for member, team_list in member_list %}
                     <tr>
                         <td>
-                            <img class="avatar" src="{% gravatar_url member.user.email size 20 %}">
+                            <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
                         </td>
                         <td>
                             <a href="{% url 'sentry-organization-member-settings' organization.id member.id %}">
-                                {{ member.user.get_display_name }}
+                                {{ member.get_display_name }}
                             </a>
                         </td>
                         <td>

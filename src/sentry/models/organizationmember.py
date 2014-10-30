@@ -96,3 +96,13 @@ class OrganizationMember(Model):
         except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
+
+    def get_display_name(self):
+        if self.user_id:
+            return self.user.get_display_name()
+        return self.email
+
+    def get_email(self):
+        if self.user_id:
+            return self.user.email
+        return self.email

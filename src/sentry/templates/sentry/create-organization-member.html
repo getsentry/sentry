@@ -1,0 +1,25 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Member Settings" %} | {{ block.super }}{% endblock %}
+
+{% block org_members_nav %} class="active"{% endblock %}
+
+{% block inner %}
+    <fieldset>
+        <legend>{% trans "Add Member" %}</legend>
+        {% if is_invite %}
+            <p>{% trans "Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
+            <p>{% trans "You will be able to configure permissions and team access on the following page." %}</p>
+            {% trans "Send Invite" as submit_label %}
+            {% include "sentry/partial/_form.html" %}
+        {% else %}
+            <p>{% trans "You may add a user by their username if they already have an account." %}</p>
+            <p>{% trans "You will be able to configure permissions and team access on the following page." %}</p>
+            {% include "sentry/partial/_form.html" %}
+        {% endif %}
+    </fieldset>
+{% endblock %}
