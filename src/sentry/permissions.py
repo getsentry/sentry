@@ -184,6 +184,47 @@ def can_remove_team_member(user, member):
 
 
 @requires_login
+def can_add_organization_member(user, organization):
+    # must be an owner of the team
+    if user.is_superuser:
+        return True
+
+    if not organization.member_set.filter(user=user, type=OrganizationMemberType.ADMIN).exists():
+        return False
+
+    result = plugins.first('has_perm', user, 'add_organization_member', organization)
+    if result is False:
+        return False
+
+    return True
+
+
+@requires_login
+def can_manage_organization_member(user, member, perm):
+    # permissions always take precedence
+    if user.is_superuser:
+        return True
+
+    # must be an owner of the team
+    if not member.organization.member_set.filter(user=user, type=OrganizationMemberType.ADMIN).exists():
+        return False
+
+    result = plugins.first('has_perm', user, perm, member)
+    if result is False:
+        return False
+
+    return True
+
+
+def can_edit_organization_member(user, member):
+    return can_manage_organization_member(user, member, 'edit_organization_member')
+
+
+def can_remove_organization_member(user, member):
+    return can_manage_organization_member(user, member, 'remove_organization_member')
+
+
+@requires_login
 def can_remove_team(user, team):
     if user.is_superuser:
         return True

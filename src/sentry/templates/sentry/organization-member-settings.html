@@ -24,7 +24,18 @@
             <div class="control-group">
                 <label>{% trans "User" %}</label>
                 <div class="controls">
-                    {{ member.user.username }}
+                    {{ member.get_display_name }}
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>{% trans "Status" %}</label>
+                <div class="controls">
+                    {% if member.is_pending %}
+                        Invited
+                    {% else %}
+                        Active
+                    {% endif %}
                 </div>
             </div>
 
