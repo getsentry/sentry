@@ -11,39 +11,44 @@
 {% block logo %}<a id="logo" href="{% url 'sentry' %}" style="font-size: 22px;"><span class="icon-sentry-logo-full"></span></a>{% endblock %}
 
 {% block content %}
-    <section class="body">
-        {% if team_list %}
-            {% if can_create_teams %}
-            <div class="pull-right">
-                <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a New Team" %}</a>
+  {% if team_list %}
+      <h2><span class="icon-building" style="padding-right: 5px; position: relative; top: 1px; font-size: 24px; opacity: .5"></span> Sentry</h2>
+      {% if can_create_teams %}
+        <a href="{% url 'sentry-new-team' %}" class="btn btn-primary btn-sm pull-right">{% trans "Create a New Team" %}</a>
+      {% endif %}
+      <ul class="nav nav-tabs" style="margin-bottom: 30px;">
+        <li class="active"><a href="#">Teams</a></li>
+        <li class=""><a href="#">Members</a></li>
+        <li class=""><a href="#">Admin</a></li>
+      </ul>
+      <div class="team-list">
+          {% for team, project_list in team_list %}
+            <div class="box">
+              <div class="box-header">
+                <h3>
+                    <a href="{% url 'sentry' team.slug %}">{{ team.name }}</a>
+                    {% if team.status %}
+                        <small>{{ team.get_status_display }}</small>
+                    {% endif %}
+                </h3>
+              </div>
+              <div class="box-content with-padding">
+                <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
+                    <div class="sparkline">
+                        <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                        <span class="loading">{% trans "Loading historical data..." %}</span>
+                    </div>
+                </div>
+                <ul>
+                    {% for project in project_list %}
+                        <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
+                    {% endfor %}
+                </ul>
+              </div>
             </div>
-            {% endif %}
-            <h2>{% trans "Your teams" %}</h2>
-            <ul class="team-list">
-                {% for team, project_list in team_list %}
-                    <li>
-                        <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
-                            <div class="sparkline">
-                                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                                <span class="loading">{% trans "Loading historical data..." %}</span>
-                            </div>
-                        </div>
-                        <h2>
-                            <a href="{% url 'sentry' team.slug %}">{{ team.name }}</a>
-                            {% if team.status %}
-                                <small>{{ team.get_status_display }}</small>
-                            {% endif %}
-                        </h2>
-                        <ul>
-                            {% for project in project_list %}
-                                <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <div class="alert alert-info">{% trans "You are not a member of any teams." %}</div>
-        {% endif %}
-    </section>
+          {% endfor %}
+      </div>
+  {% else %}
+      <div class="alert alert-info">{% trans "You are not a member of any teams." %}</div>
+  {% endif %}
 {% endblock %}

@@ -2641,76 +2641,50 @@ table.integrations {
     list-style: none;
     padding-left: 0;
 
-    > li {
-      display: block;
-      margin: 0 0 20px 0;
-      padding: 18px 20px 12px;
-      border: 1px solid darken(#E9EBEC, 5);
+    h3 a {
+      color: @gray;
+    }
+
+    .box-content {
       position: relative;
-      border-radius: 4px;
       overflow: hidden;
+    }
 
-      .loading {
-        display: none;
-      }
+    .loading {
+      display: none;
+    }
 
-      &:hover {
-        h2 {
-          color: #000;
-        }
-      }
+    .chart {
+      display: block;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      top: 10px;
+      opacity: .75;
+    }
 
-      h2 {
-        width: 100%;
-        position: relative;
+    ul {
+      position: relative;
+
+      overflow: hidden;
+      padding-left: 0;
+      list-style: circle;
+      margin-left: -2%;
+      margin-bottom: 0;
+
+      > li {
+        float: left;
+        width: 23%;
+        margin-left: 2%;
         margin-bottom: 8px;
-        line-height: 26px;
-        font-size: 22px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: @grayDark;
-        font-weight: 500;
 
         a {
-          color: inherit;
-          &:hover {
-            color: @linkColorHover;
-          }
-        }
-      }
-
-      .chart {
-        display: block;
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: -1px;
-        top: 10px;
-        opacity: .75;
-      }
-
-      > ul {
-        position: relative;
-
-        overflow: hidden;
-        padding-left: 0;
-        list-style: circle;
-        margin-left: -2%;
-
-        > li {
-          float: left;
-          width: 23%;
-          margin-left: 2%;
-          margin-bottom: 5px;
-
-          a {
-            display: block;
-            font-size: 17px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
+          display: block;
+          font-size: 17px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       }
     }
