@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.models import Event, Group
 
 
 class GroupEventsEndpoint(Endpoint):
+    doc_section = DocSection.EVENTS
+
     def get(self, request, group_id):
         group = Group.objects.get(
             id=group_id,
