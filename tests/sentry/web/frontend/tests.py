@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.constants import MEMBER_USER
-from sentry.models import TeamMember, User
+from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
 
 
@@ -124,11 +124,12 @@ class PermissionBase(TestCase):
         user.set_password('member')
         user.save()
 
-        TeamMember.objects.create(
+        om = OrganizationMember.objects.create(
+            organization=self.team.organization,
             user=user,
-            team=self.team,
             type=MEMBER_USER,
         )
+        om.teams.add(self.team)
         return user
 
     @fixture
@@ -145,10 +146,6 @@ class PermissionBase(TestCase):
         user.save()
 
         return user
-
-    @fixture
-    def tm(self):
-        return TeamMember.objects.get(user=self.member, team=self.team)
 
     @fixture
     def organization(self):
@@ -274,72 +271,3 @@ class RemoveProjectTest(PermissionBase):
     def test_member_cannot_load(self):
         with self.settings(SENTRY_PROJECT=-1):
             self._assertPerm(self.path, self.template, self.member.username, False)
-
-
-class NewTeamMemberTest(PermissionBase):
-    template = 'sentry/teams/members/new.html'
-
-    @fixture
-    def path(self):
-        return reverse('sentry-new-team-member', kwargs={'team_slug': self.team.slug})
-
-    def test_admin_can_load(self):
-        self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_owner_can_load(self):
-        self._assertPerm(self.path, self.template, self.owner.username)
-
-    def test_anonymous_cannot_load(self):
-        self._assertPerm(self.path, self.template, None, False)
-
-    def test_user_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.nobody.username, False)
-
-    def test_member_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.member.username, False)
-
-
-class EditTeamMemberTest(PermissionBase):
-    template = 'sentry/teams/members/edit.html'
-
-    @fixture
-    def path(self):
-        return reverse('sentry-edit-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
-
-    def test_admin_can_load(self):
-        self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_owner_can_load(self):
-        self._assertPerm(self.path, self.template, self.owner.username)
-
-    def test_anonymous_cannot_load(self):
-        self._assertPerm(self.path, self.template, None, False)
-
-    def test_user_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.nobody.username, False)
-
-    def test_member_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.member.username, False)
-
-
-class RemoveTeamMemberTest(PermissionBase):
-    template = 'sentry/teams/members/remove.html'
-
-    @fixture
-    def path(self):
-        return reverse('sentry-remove-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
-
-    def test_admin_can_load(self):
-        self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_owner_can_load(self):
-        self._assertPerm(self.path, self.template, self.owner.username)
-
-    def test_anonymous_cannot_load(self):
-        self._assertPerm(self.path, self.template, None, False)
-
-    def test_user_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.nobody.username, False)
-
-    def test_member_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.member.username, False)

@@ -9,6 +9,7 @@ class Migration(DataMigration):
     def forwards(self, orm):
         Organization = orm['sentry.Organization']
         OrganizationMember = orm['sentry.OrganizationMember']
+        PendingTeamMember = orm['sentry.PendingTeamMember']
         TeamMember = orm['sentry.TeamMember']
 
         for org in Organization.objects.all():
@@ -17,9 +18,18 @@ class Migration(DataMigration):
                     om, _ = OrganizationMember.objects.get_or_create(
                         organization=org,
                         user=tm.user,
-                        defaults={'type': tm.type},  # ADMIN
+                        defaults={'type': tm.type},
                     )
                     om.teams.add(team)
+
+                for pm in PendingTeamMember.objects.filter(team=team):
+                    om, _ = OrganizationMember.objects.get_or_create(
+                        organization=org,
+                        email=pm.email,
+                        defaults={'type': pm.type},
+                    )
+                    om.teams.add(team)
+
 
     def backwards(self, orm):
         pass

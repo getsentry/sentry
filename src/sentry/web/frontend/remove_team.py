@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import TeamMemberType, TeamStatus
+from sentry.models import OrganizationMemberType, TeamStatus
 from sentry.permissions import can_remove_team
 from sentry.tasks.deletion import delete_team
 from sentry.web.frontend.base import TeamView
@@ -17,7 +17,7 @@ class RemoveTeamForm(forms.Form):
 
 
 class RemoveTeamView(TeamView):
-    required_access = TeamMemberType.ADMIN
+    required_access = OrganizationMemberType.ADMIN
 
     def get_form(self, request):
         return RemoveTeamForm(request.POST or None)

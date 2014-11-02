@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import STATUS_HIDDEN
-from sentry.models import TeamMemberType
+from sentry.models import OrganizationMemberType
 from sentry.permissions import can_remove_project
 from sentry.tasks.deletion import delete_project
 from sentry.web.frontend.base import ProjectView
@@ -18,7 +18,7 @@ class RemoveProjectForm(forms.Form):
 
 
 class RemoveProjectView(ProjectView):
-    required_access = TeamMemberType.ADMIN
+    required_access = OrganizationMemberType.ADMIN
 
     def get_form(self, request):
         return RemoveProjectForm(request.POST or None)

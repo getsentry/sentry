@@ -16,7 +16,7 @@ from sentry.tasks.base import instrumented_task, retry
 @retry
 def delete_team(object_id, **kwargs):
     from sentry.models import (
-        Team, TeamStatus, Project, AccessGroup, PendingTeamMember, TeamMember,
+        Team, TeamStatus, Project, AccessGroup,
     )
 
     try:
@@ -36,9 +36,7 @@ def delete_team(object_id, **kwargs):
         delete_team.delay(object_id=object_id)
         return
 
-    model_list = (
-        AccessGroup, PendingTeamMember, TeamMember,
-    )
+    model_list = (AccessGroup,)
 
     has_more = delete_objects(model_list, relation={'team': t}, logger=logger)
     if has_more:

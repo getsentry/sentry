@@ -45,12 +45,9 @@ from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_team import CreateTeamView
-from sentry.web.frontend.create_team_member import CreateTeamMemberView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.team_access_groups import TeamAccessGroupsView
-from sentry.web.frontend.team_members import TeamMembersView
-from sentry.web.frontend.team_member_settings import TeamMemberSettingsView
 from sentry.web.frontend.team_projects import TeamProjectsView
 from sentry.web.frontend.team_settings import TeamSettingsView
 
@@ -161,18 +158,6 @@ urlpatterns += patterns('',
         name='sentry-access-group-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/projects/(?P<project_id>\d+)/remove/$',
         teams.remove_access_group_project, name='sentry-remove-access-group-project'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/$', TeamMembersView.as_view(),
-        name='sentry-manage-team-members'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/new/$', CreateTeamMemberView.as_view(),
-        name='sentry-new-team-member'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/(?P<member_id>\d+)/edit/$', TeamMemberSettingsView.as_view(),
-        name='sentry-edit-team-member'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/(?P<member_id>\d+)/remove/$', teams.remove_team_member,
-        name='sentry-remove-team-member'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/pending/(?P<member_id>\d+)/remove/$', teams.remove_pending_team_member,
-        name='sentry-remove-pending-team-member'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/pending/(?P<member_id>\d+)/reinvite/$', teams.reinvite_pending_team_member,
-        name='sentry-reinvite-pending-team-member'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/$', TeamProjectsView.as_view(),
         name='sentry-manage-team-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),

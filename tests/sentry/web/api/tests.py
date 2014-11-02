@@ -7,7 +7,7 @@ import mock
 from django.core.urlresolvers import reverse
 from exam import before, fixture
 
-from sentry.models import TeamMember, AccessGroup, User
+from sentry.models import AccessGroup, OrganizationMember, User
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -134,9 +134,12 @@ class SearchUsersTest(TestCase):
     def login_user(self):
         self.login()
 
-    def test_finds_users_from_team_members(self):
+    def test_finds_users_from_organization_members(self):
         otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
-        TeamMember.objects.create(team=self.team, user=otheruser)
+        OrganizationMember.objects.create(
+            organization=self.team.organization,
+            user=otheruser,
+        )
 
         resp = self.client.get(self.path, {'query': 'bob'})
 

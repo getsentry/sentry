@@ -13,9 +13,6 @@
             </a>
             <ul class="dropdown-menu">
                 <li><a href="{% url 'sentry-new-project' team.slug %}">{% trans "New Project" %}</a></li>
-                {% if user|can_add_team_member:team %}
-                    <li><a href="{% url 'sentry-new-team-member' team.slug %}">{% trans "New Member" %}</a></li>
-                {% endif %}
                 <li><a href="{% url 'sentry-new-access-group' team.slug %}">{% trans "New Access Group" %}</a></li>
             </ul>
         </div>
@@ -26,9 +23,6 @@
             </li>
             <li{% block team_projects_nav %}{% endblock %}>
                 <a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a>
-            </li>
-            <li{% block team_members_nav %}{% endblock %}>
-                <a href="{% url 'sentry-manage-team-members' team.slug %}">{% trans "Members" %}</a>
             </li>
             {% if team|has_access_groups %}
                 <li{% block team_accessgroups_nav %}{% endblock %}>

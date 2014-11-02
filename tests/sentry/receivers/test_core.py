@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from django.conf import settings
 
 from sentry.models import (
-    Organization, Project, ProjectKey, Team, TeamMemberType, User
+    Organization, Project, ProjectKey, Team, User
 )
 from sentry.receivers.core import create_default_projects
 from sentry.testutils import TestCase
@@ -62,14 +62,3 @@ class CreateDefaultProjectsTest(TestCase):
 
         # ensure that we dont hit an error here
         create_default_projects(created_models=[Project])
-
-
-class CreateTeamMemberForOwner(TestCase):
-    def test_simple(self):
-        user = User.objects.create(username='foo')
-        team = Team.objects.create(name='foo', slug='foo', owner=user,
-                                   organization=self.organization)
-        assert team.member_set.filter(
-            user=user,
-            type=TeamMemberType.ADMIN,
-        ).exists()

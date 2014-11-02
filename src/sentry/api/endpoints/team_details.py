@@ -9,7 +9,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import MEMBER_ADMIN, RESERVED_TEAM_SLUGS
-from sentry.models import Team, TeamMember, TeamStatus
+from sentry.models import Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 
 
@@ -58,13 +58,6 @@ class TeamDetailsEndpoint(Endpoint):
 
         if serializer.is_valid():
             team = serializer.save()
-            TeamMember.objects.create_or_update(
-                user=team.owner,
-                team=team,
-                defaults={
-                    'type': MEMBER_ADMIN,
-                }
-            )
             return Response(serialize(team, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
