@@ -48,7 +48,7 @@ class OrganizationMember(Model):
     ), default=OrganizationMemberType.MEMBER)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
-    teams = models.ManyToManyField('sentry.Team')
+    teams = models.ManyToManyField('sentry.Team', blank=True)
 
     class Meta:
         app_label = 'sentry'
