@@ -19,7 +19,7 @@ class GroupMarkSeenEndpoint(Endpoint):
         assert_perm(group, request.user, request.auth)
 
         if group.project not in Project.objects.get_for_user(
-                request.user, team=group.project.team, superuser=False):
+                team=group.project.team, user=request.user):
             return Response(status=400)
 
         instance, created = create_or_update(

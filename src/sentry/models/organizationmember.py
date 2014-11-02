@@ -106,3 +106,5 @@ class OrganizationMember(Model):
         if self.user_id:
             return self.user.email
         return self.email
+
+OrganizationMemberTeams = OrganizationMember.teams.through

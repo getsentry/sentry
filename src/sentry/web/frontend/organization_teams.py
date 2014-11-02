@@ -11,7 +11,7 @@ class OrganizationTeamsView(OrganizationView):
         team_list = Team.objects.get_for_user(
             organization=organization,
             user=request.user,
-        ).values()
+        )
 
         context = {
             'team_list': team_list,

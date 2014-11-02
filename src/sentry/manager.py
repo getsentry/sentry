@@ -10,14 +10,11 @@ from __future__ import absolute_import
 
 import six
 
-from django.conf import settings
 from django.contrib.auth.models import UserManager
-from django.utils.datastructures import SortedDict
 
 from sentry.app import buffer, tsdb
-from sentry.constants import MAX_TAG_VALUE_LENGTH, MEMBER_USER
+from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import BaseManager
-from sentry.utils.db import attach_foreignkey
 
 
 class UserManager(BaseManager, UserManager):
@@ -91,114 +88,18 @@ class GroupManager(BaseManager):
 
 
 class ProjectManager(BaseManager):
-    def get_for_user(self, user=None, access=None, hidden=False, team=None,
-                     superuser=True):
+    def get_for_user(self, team, user, access=None):
         """
         Returns a SortedDict of all projects a user has some level of access to.
         """
-        from sentry.models import Team
-
         if not (user and user.is_authenticated()):
             return []
 
-        # TODO: the result of this function should be cached
-        is_authenticated = (user and user.is_authenticated())
+        base_qs = self.filter(team=team)
 
-        base_qs = self
-        if not hidden:
-            base_qs = base_qs.filter(status=0)
-        if team:
-            base_qs = base_qs.filter(team=team)
+        project_list = []
+        for project in base_qs:
+            project.team = team
+            project_list.append(project)
 
-        if team and user.is_superuser and superuser:
-            projects = set(base_qs)
-        else:
-            projects_qs = base_qs
-            if not settings.SENTRY_PUBLIC:
-                # If the user is authenticated, include their memberships
-                teams = Team.objects.get_for_user(
-                    user, access, access_groups=False).values()
-                if not teams:
-                    projects_qs = self.none()
-                if team and team not in teams:
-                    projects_qs = self.none()
-                elif not team:
-                    projects_qs = projects_qs.filter(team__in=teams)
-
-            projects = set(projects_qs)
-
-            if is_authenticated:
-                projects |= set(base_qs.filter(accessgroup__members=user))
-
-        attach_foreignkey(projects, self.model.team)
-
-        return sorted(projects, key=lambda x: x.name.lower())
-
-
-class TeamManager(BaseManager):
-    def get_for_user(self, user, access=None, access_groups=True,
-                     with_projects=False, organization=None):
-        """
-        Returns a SortedDict of all teams a user has some level of access to.
-
-        Each <Team> returned has an ``access_type`` attribute which holds the
-        MEMBER_TYPE value.
-        """
-        from sentry.models import TeamMember, AccessGroup, Project
-
-        results = SortedDict()
-
-        if not user.is_authenticated():
-            return results
-
-        all_teams = set()
-
-        qs = TeamMember.objects.filter(
-            user=user,
-        ).select_related('team')
-        if access is not None:
-            qs = qs.filter(type__lte=access)
-        if organization is not None:
-            qs = qs.filter(team__organization=organization)
-
-        for tm in qs:
-            team = tm.team
-            team.access_type = tm.type
-            all_teams.add(team)
-
-        if access_groups:
-            qs = AccessGroup.objects.filter(
-                members=user,
-            ).select_related('team')
-            if access is not None:
-                qs = qs.filter(type__lte=access)
-            if organization is not None:
-                qs = qs.filter(team__organization=organization)
-
-            for group in qs:
-                team = group.team
-                team.access_type = group.type
-                all_teams.add(team)
-
-        if settings.SENTRY_PUBLIC and access is None:
-            qs = self.all()
-            if organization is not None:
-                qs = qs.filter(organization=organization)
-
-            for team in qs:
-                all_teams.add(team)
-                team.access_type = MEMBER_USER
-
-        for team in sorted(all_teams, key=lambda x: x.name.lower()):
-            results[team.slug] = team
-
-        if with_projects:
-            # these kinds of queries make people sad :(
-            new_results = SortedDict()
-            for team in results.itervalues():
-                project_list = list(Project.objects.get_for_user(
-                    user, team=team))
-                new_results[team.slug] = (team, project_list)
-            results = new_results
-
-        return results
+        return sorted(project_list, key=lambda x: x.name.lower())

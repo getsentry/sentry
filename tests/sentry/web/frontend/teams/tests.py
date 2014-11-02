@@ -9,7 +9,7 @@ from exam import before, fixture
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.models import (
-    Team, TeamMember, PendingTeamMember, AccessGroup, Project, User)
+    Team, TeamMember, PendingTeamMember, User)
 from sentry.testutils import TestCase
 
 
@@ -119,73 +119,6 @@ class RemoveTeamTest(BaseTeamTest):
         assert not Team.objects.filter(pk=self.team.pk).exists()
 
 
-class CreateTeamMemberTest(BaseTeamTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-new-team-member', args=[self.team.slug])
-
-    def test_does_load(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/members/new.html')
-
-    @mock.patch('sentry.web.frontend.create_team_member.can_add_team_member')
-    def test_missing_permission(self, can_add_team_member):
-        can_add_team_member.return_value = False
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 302)
-        can_add_team_member.assert_called_once_with(self.user, self.team)
-
-    def test_cannot_add_existing_member(self):
-        resp = self.client.post(self.path, {
-            'add-type': MEMBER_USER,
-            'add-user': self.team.owner.username,
-        })
-        self.assertEquals(resp.status_code, 200)
-        self.assertIn('user', resp.context['add_form'].errors)
-
-    def test_does_add_existing_user_as_member(self):
-        user = User.objects.create(username='newuser')
-        resp = self.client.post(self.path, {
-            'add-type': MEMBER_USER,
-            'add-user': user.username,
-        })
-        self.assertEquals(resp.status_code, 302, resp.context['add_form'].errors if resp.status_code != 302 else None)
-        member = self.team.member_set.get(user=user)
-        self.assertEquals(member.type, MEMBER_USER)
-
-    def test_cannot_invite_existing_member(self):
-        resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': self.team.owner.email,
-        })
-        self.assertEquals(resp.status_code, 200)
-        self.assertIn('email', resp.context['invite_form'].errors)
-
-    @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
-    def test_does_invite_already_registered_user(self, send_invite_email):
-        user = User.objects.create(username='newuser', email='newuser@example.com')
-        resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': user.email,
-        })
-        self.assertEquals(resp.status_code, 302)
-        ptm = PendingTeamMember.objects.get(email=user.email, team=self.team)
-        self.assertEquals(ptm.type, MEMBER_USER)
-        send_invite_email.assert_called_once_with()
-
-    @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
-    def test_does_invite_unregistered_user(self, send_invite_email):
-        resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': 'newuser@example.com',
-        })
-        self.assertEquals(resp.status_code, 302)
-        ptm = PendingTeamMember.objects.get(email='newuser@example.com', team=self.team)
-        self.assertEquals(ptm.type, MEMBER_USER)
-        send_invite_email.assert_called_once_with()
-
-
 class AcceptInviteTest(BaseTeamTest):
     def test_invalid_member_id(self):
         resp = self.client.get(reverse('sentry-accept-invite', args=[1, 2]))
@@ -241,104 +174,6 @@ class AcceptInviteTest(BaseTeamTest):
         self.assertEquals(resp.status_code, 200)
 
 
-class BaseAccessGroupTest(BaseTeamTest):
-    @before
-    def create_group(self):
-        self.group = AccessGroup.objects.create(team=self.team, name='Test')
-        self.group.members.add(self.user)
-        self.group.projects.add(self.project)
-
-
-class ManageAccessGroupsTest(BaseAccessGroupTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-manage-access-groups', args=[self.team.slug])
-
-    def test_does_render_with_context(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/teams/groups/list.html')
-        assert list(resp.context['group_list']) == [self.group]
-
-
-class AccessGroupDetailsTest(BaseAccessGroupTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-edit-access-group', args=[self.team.slug, self.group.id])
-
-    def test_does_render_with_context(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/teams/groups/details.html')
-        assert 'form' in resp.context
-        assert resp.context['group'] == self.group
-
-
-class RemoveAccessGroupTest(BaseAccessGroupTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-remove-access-group', args=[self.team.slug, self.group.id])
-
-    def test_does_render_with_context(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/teams/groups/remove.html')
-        assert 'form' in resp.context
-        assert resp.context['group'] == self.group
-
-    def test_does_delete(self):
-        resp = self.client.post(self.path, {})
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-manage-access-groups', args=[self.team.slug])
-        assert not AccessGroup.objects.filter(id=self.group.id).exists()
-
-
-class AccessGroupMembersTest(BaseAccessGroupTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-access-group-members', args=[self.team.slug, self.group.id])
-
-    def test_does_render_with_context(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/teams/groups/members.html')
-        assert 'form' in resp.context
-        assert resp.context['group'] == self.group
-        assert list(resp.context['member_list']) == [self.user]
-
-    def test_does_add_member(self):
-        user = User.objects.create(username='bobross')
-        resp = self.client.post(self.path, {
-            'user': user.username
-        })
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + self.path
-        assert self.group.members.filter(id=user.id).exists()
-
-
-class AccessGroupProjectsTest(BaseAccessGroupTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-access-group-projects', args=[self.team.slug, self.group.id])
-
-    def test_does_render_with_context(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/teams/groups/projects.html')
-        assert 'form' in resp.context
-        assert resp.context['group'] == self.group
-        assert list(resp.context['project_list']) == [self.project]
-
-    def test_does_add_member(self):
-        project = Project.objects.create(team=self.team, name='Sample')
-        resp = self.client.post(self.path, {
-            'project': project.id
-        })
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + self.path
-        assert self.group.projects.filter(id=project.id).exists()
-
-
 class ManageProjectsTest(BaseTeamTest):
     @fixture
     def path(self):
@@ -351,24 +186,4 @@ class ManageProjectsTest(BaseTeamTest):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/teams/projects/index.html')
         assert list(resp.context['project_list']) == [project]
-        assert resp.context['team'] == self.team
-
-
-class ManageMembersTest(BaseTeamTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-manage-team-members', args=[self.team.slug])
-
-    def test_does_render_with_context(self):
-        pm = self.team.pending_member_set.create(email='foo@example.com')
-        tm = self.team.member_set.get()
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/teams/members/index.html')
-        assert list(resp.context['member_list']) == [
-            (tm, tm.user),
-        ]
-        assert list(resp.context['pending_member_list']) == [
-            (pm, pm.email),
-        ]
         assert resp.context['team'] == self.team

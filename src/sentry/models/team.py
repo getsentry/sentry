@@ -14,10 +14,64 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import RESERVED_TEAM_SLUGS
-from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+)
 from sentry.db.models.utils import slugify_instance
-from sentry.manager import TeamManager
 from sentry.utils.http import absolute_uri
+
+
+class TeamManager(BaseManager):
+    def get_for_user(self, organization, user, access=None, access_groups=True,
+                     with_projects=False):
+        """
+        Returns a SortedDict of all teams a user has some level of access to.
+
+        Each <Team> returned has an ``access_type`` attribute which holds the
+        MEMBER_TYPE value.
+        """
+        from sentry.models import (
+            OrganizationMember, Project
+        )
+
+        if not user.is_authenticated():
+            return []
+
+        all_teams = set()
+
+        qs = OrganizationMember.objects.filter(
+            user=user,
+            organization=organization,
+        )
+        if access is not None:
+            qs = qs.filter(type__lte=access)
+
+        try:
+            om = qs.get()
+        except OrganizationMember.DoesNotExist:
+            return []
+
+        if om.has_global_access:
+            team_qs = self.filter(organization=organization)
+        else:
+            team_qs = om.teams.all()
+
+        for team in team_qs:
+            team.access_type = om.type
+            all_teams.add(team)
+
+        results = sorted(all_teams, key=lambda x: x.name.lower())
+
+        if with_projects:
+            # these kinds of queries make people sad :(
+            for idx, team in enumerate(results):
+                project_list = list(Project.objects.get_for_user(
+                    team=team,
+                    user=user,
+                ))
+                results[idx] = (team, project_list)
+
+        return results
 
 
 # TODO(dcramer): pull in enum library

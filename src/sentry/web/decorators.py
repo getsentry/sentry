@@ -49,17 +49,19 @@ def has_access(access_or_func=None, team=None, access=None):
 
             # Pull in team if it's part of the URL arguments
             if team_slug:
-                if request.user.is_superuser:
-                    try:
-                        team = Team.objects.get_from_cache(slug=team_slug)
-                    except Team.DoesNotExist:
-                        return HttpResponseRedirect(reverse('sentry'))
-                else:
-                    team_list = Team.objects.get_for_user(request.user, access)
+                try:
+                    team = Team.objects.get_from_cache(slug=team_slug)
+                except Team.DoesNotExist:
+                    return HttpResponseRedirect(reverse('sentry'))
 
-                    try:
-                        team = team_list[team_slug]
-                    except KeyError:
+                if not request.user.is_superuser:
+                    team_list = Team.objects.get_for_user(
+                        organization=team.organization,
+                        user=request.user,
+                        access=access,
+                    )
+
+                    if team not in team_list:
                         return HttpResponseRedirect(reverse('sentry'))
             else:
                 team = None
@@ -86,7 +88,11 @@ def has_access(access_or_func=None, team=None, access=None):
                         else:
                             return HttpResponseRedirect(reverse('sentry'))
                 else:
-                    project_list = Project.objects.get_for_user(request.user, access, team=team)
+                    project_list = Project.objects.get_for_user(
+                        team=team,
+                        user=request.user,
+                        access=access,
+                    )
 
                     if project_id.isdigit():
                         key = 'id'

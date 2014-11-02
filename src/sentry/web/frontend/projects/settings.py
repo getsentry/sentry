@@ -30,7 +30,11 @@ def manage_project(request, team, project):
     if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
-    team_list = Team.objects.get_for_user(team.owner, MEMBER_OWNER)
+    team_list = Team.objects.get_for_user(
+        organization=team.organization,
+        user=team.owner,
+        access=MEMBER_OWNER,
+    )
 
     form = EditProjectForm(request, team_list, request.POST or None, instance=project, initial={
         'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
