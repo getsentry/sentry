@@ -109,4 +109,13 @@ class OrganizationMember(Model):
             return self.user.email
         return self.email
 
+    def get_audit_log_data(self):
+        return {
+            'email': self.email,
+            'user': self.user_id,
+            'teams': [t.id for t in self.teams.all()],
+            'has_global_access': self.has_global_access,
+        }
+
+
 OrganizationMemberTeams = OrganizationMember.teams.through
