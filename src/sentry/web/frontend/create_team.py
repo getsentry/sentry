@@ -36,7 +36,7 @@ class CreateTeamView(OrganizationView):
             'form': form,
         }
 
-        return self.respond('sentry/teams/new.html', context)
+        return self.respond('sentry/create-team.html', context)
 
     def post(self, request, organization):
         if not can_create_teams(request.user):
@@ -54,4 +54,4 @@ class CreateTeamView(OrganizationView):
             'form': form,
         }
 
-        return self.respond('sentry/teams/new.html', context)
+        return self.respond('sentry/create-team.html', context)
