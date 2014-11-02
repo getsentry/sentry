@@ -301,7 +301,7 @@ def group(request, team, project, group, event_id=None):
         add_note_form = NewNoteForm()
 
     if project in Project.objects.get_for_user(
-            request.user, team=team, superuser=False):
+            team=team, user=request.user):
         # update that the user has seen this group
         create_or_update(
             GroupSeen,

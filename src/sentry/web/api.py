@@ -669,7 +669,7 @@ def get_group_trends(request, team=None, project=None):
     if not team and project:
         project_list = [project]
     else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+        project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -707,7 +707,7 @@ def get_new_groups(request, team=None, project=None):
     if not team and project:
         project_list = [project]
     else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+        project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -741,7 +741,7 @@ def get_resolved_groups(request, team=None, project=None):
     if not team and project:
         project_list = [project]
     else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+        project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -774,7 +774,7 @@ def get_stats(request, team=None, project=None):
     if not team and project:
         project_list = [project]
     else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+        project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     cutoff = timedelta(minutes=minutes)
 

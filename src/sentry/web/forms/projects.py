@@ -86,14 +86,14 @@ class EditProjectForm(BaseProjectForm):
 
     def __init__(self, request, team_list, data, instance, *args, **kwargs):
         super(EditProjectForm, self).__init__(data=data, instance=instance, *args, **kwargs)
-        self.team_list = dict((t.pk, t) for t in team_list.itervalues())
+        self.team_map = dict((t.pk, t) for t in team_list)
 
         if not can_set_public_projects(request.user):
             del self.fields['public']
-        if len(team_list) == 1 and instance.team == team_list.values()[0]:
+        if len(team_list) == 1 and instance.team == team_list[0]:
             del self.fields['team']
         else:
-            self.fields['team'].choices = get_team_choices(self.team_list, instance.team)
+            self.fields['team'].choices = get_team_choices(self.team_map, instance.team)
             self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_team(self):

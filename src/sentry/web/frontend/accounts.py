@@ -260,7 +260,11 @@ def appearance_settings(request):
 def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)
 
-    project_list = Project.objects.get_for_user(request.user, access=MEMBER_USER)
+    # TODO(dcramer): we need to list out all projects by org/team
+    project_list = Project.objects.get_for_user(
+        user=request.user,
+        access=MEMBER_USER,
+    )
     project_forms = [
         (project, ProjectEmailOptionsForm(
             project, request.user,

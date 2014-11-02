@@ -17,7 +17,11 @@ def has_perm(object, user, project_key, access=MEMBER_USER):
     if type(object) == Team:
         if project_key:
             return object == project_key.project.team and access == MEMBER_USER
-        return object.slug in Team.objects.get_for_user(user, access=access)
+        return object in Team.objects.get_for_user(
+            organization=object.organization,
+            user=user,
+            access=access,
+        )
 
     if hasattr(object, 'project'):
         object = object.project
@@ -28,7 +32,11 @@ def has_perm(object, user, project_key, access=MEMBER_USER):
 
         return any(
             object == o
-            for o in Project.objects.get_for_user(user, access=access)
+            for o in Project.objects.get_for_user(
+                team=object.team,
+                user=user,
+                access=access,
+            )
         )
 
     raise TypeError(type(object))

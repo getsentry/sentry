@@ -9,9 +9,18 @@ from sentry.utils.db import attach_foreignkey
 @register(Project)
 class ProjectSerializer(Serializer):
     def attach_metadata(self, objects, user):
+        if not objects:
+            return
+
+        organization = objects[0].team.organization
+
         team_map = dict(
-            (t.id, t) for t in Team.objects.get_for_user(user).itervalues()
+            (t.id, t) for t in Team.objects.get_for_user(
+                organization=organization,
+                user=user,
+            )
         )
+
         for project in objects:
             try:
                 team = team_map[project.team_id]

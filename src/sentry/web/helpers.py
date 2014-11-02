@@ -8,13 +8,11 @@ sentry.web.helpers
 from __future__ import absolute_import, print_function
 
 import logging
-import warnings
 
 from django.conf import settings
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
-from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry import options
@@ -22,14 +20,6 @@ from sentry.constants import EVENTS_PER_PAGE, STATUS_HIDDEN
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 
 logger = logging.getLogger('sentry.errors')
-
-
-def get_project_list(user=None, access=None, hidden=False, key='id', team=None):
-    warnings.warn('get_project_list is Deprecated. Use Project.objects.get_for_user instead.', DeprecationWarning)
-    return SortedDict(
-        (getattr(p, key), p)
-        for p in Project.objects.get_for_user(user, access)
-    )
 
 
 def group_is_public(group, user):
@@ -50,14 +40,9 @@ def group_is_public(group, user):
     if user.is_superuser:
         return False
     # project owners can view events
-    if group.project in get_project_list(user).values():
+    if group.project in Project.objects.get_for_user(team=group.project.team, user=user):
         return False
     return True
-
-
-def get_team_list(user, access=None):
-    warnings.warn('get_team_list is Deprecated. Use Team.objects.get_for_user instead.', DeprecationWarning)
-    return Team.objects.get_for_user(user, access)
 
 
 _LOGIN_URL = None
@@ -124,7 +109,7 @@ def get_default_context(request, existing_context=None, team=None):
                 organization=team.organization,
                 user=request.user,
                 with_projects=True,
-            ).values()
+            )
 
     return context
 

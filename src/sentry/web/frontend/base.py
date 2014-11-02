@@ -81,45 +81,42 @@ class OrganizationMixin(object):
         Returns the currently selected team for the request or None
         if no match.
         """
-        if request.user.is_superuser:
-            try:
-                return Team.objects.get_from_cache(slug=team_slug)
-            except Team.DoesNotExist:
+        try:
+            team = Team.objects.get_from_cache(slug=team_slug)
+        except Team.DoesNotExist:
+            return None
+
+        if not request.user.is_superuser:
+            team_list = Team.objects.get_for_user(
+                organization=team.organization,
+                user=request.user,
+                access=access,
+            )
+
+            if team not in team_list:
                 return None
 
-        team_list = Team.objects.get_for_user(
-            user=request.user,
-            access=access,
-        )
-
-        try:
-            return team_list[team_slug]
-        except KeyError:
-            return None
+        return team
 
     def get_active_project(self, request, team, project_slug, access=None):
-        if request.user.is_superuser:
-            try:
-                return Project.objects.get_from_cache(
-                    slug=project_slug,
-                    team=team,
-                )
-            except Project.DoesNotExist:
+        try:
+            project = Project.objects.get_from_cache(
+                slug=project_slug,
+                team=team,
+            )
+        except Project.DoesNotExist:
+            return None
+
+        if not request.user.is_superuser:
+            project_list = Project.objects.get_for_user(
+                user=request.user,
+                team=team,
+                access=access,
+            )
+            if project not in project_list:
                 return None
 
-        project_list = Project.objects.get_for_user(
-            user=request.user,
-            team=team,
-            access=access,
-        )
-
-        try:
-            return (
-                p for p in project_list
-                if p.slug == project_slug
-            ).next()
-        except StopIteration:
-            return None
+        return project
 
 
 class BaseView(View, OrganizationMixin):
@@ -159,7 +156,7 @@ class BaseView(View, OrganizationMixin):
             organization=organization,
             user=user,
             with_projects=True,
-        ).values()
+        )
 
 
 class OrganizationView(BaseView):

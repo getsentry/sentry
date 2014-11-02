@@ -19,13 +19,13 @@ register = template.Library()
 
 # TODO: Django doesn't seem to introspect function args correctly for filters
 # so we can't just register.filter(can_add_team_member)
-register.filter('can_create_teams')(lambda a, b: can_create_teams)
-register.filter('can_create_projects')(lambda a, b: can_create_projects)
+register.filter('can_create_teams')(lambda a, b: can_create_teams(a, b))
+register.filter('can_create_projects')(lambda a, b: can_create_projects(a, b))
 register.filter('can_add_team_member')(lambda a, b: can_add_team_member(a, b))
 register.filter('can_manage_team')(lambda a, b: can_manage_team(a, b))
 register.filter('can_manage_org')(lambda a, b: can_manage_org(a, b))
-register.filter('can_remove_team')(lambda a, b: can_remove_team)
-register.filter('can_remove_project')(lambda a, b: can_remove_project)
+register.filter('can_remove_team')(lambda a, b: can_remove_team(a, b))
+register.filter('can_remove_project')(lambda a, b: can_remove_project(a, b))
 
 
 @register.filter

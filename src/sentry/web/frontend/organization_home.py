@@ -10,7 +10,7 @@ class OrganizationHomeView(OrganizationView):
             organization=organization,
             user=request.user,
             with_projects=True,
-        ).values()
+        )
 
         context = {
             'team_list': team_list,

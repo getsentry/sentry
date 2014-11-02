@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 
-from sentry.models import OrganizationMember, OrganizationMemberType
+from sentry.models import (
+    OrganizationMember, OrganizationMemberTeams, OrganizationMemberType
+)
 from sentry.web.frontend.base import OrganizationView
-
-OrganizationMemberTeams = OrganizationMember.teams.through
 
 
 class OrganizationMembersView(OrganizationView):

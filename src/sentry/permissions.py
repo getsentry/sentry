@@ -82,7 +82,7 @@ def can_create_teams(user):
 
 @cached_for_request
 @requires_login
-def can_create_projects(user, team=None):
+def can_create_projects(user, team):
     """
     Returns a boolean describing whether a user has the ability to
     create new projects.
@@ -90,8 +90,9 @@ def can_create_projects(user, team=None):
     if user.is_superuser:
         return True
 
-    # must be an owner of team
-    if team and not team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    # must be an organization admin
+    if not team.organization.member_set.filter(
+            user=user, type=OrganizationMemberType.ADMIN, teams=team).exists():
         return False
 
     result = plugins.first('has_perm', user, 'add_project', team)
@@ -267,9 +268,12 @@ def can_admin_group(user, group, is_remove=False):
         return True
 
     # We make the assumption that we have a valid membership here
-    try:
-        Team.objects.get_for_user(user)[group.project.team.slug]
-    except KeyError:
+        # TODO(dcramer): this is a really inefficient way to test this
+    teams = Team.objects.get_for_user(
+        organization=group.project.team.organization,
+        user=user,
+    )
+    if group.project.team not in teams:
         return False
 
     # The "remove_event" permission was added after "admin_event".

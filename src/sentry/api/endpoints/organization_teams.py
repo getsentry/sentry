@@ -57,9 +57,9 @@ class OrganizationTeamsEndpoint(Endpoint):
                 return Response(status=403)
         else:
             teams = Team.objects.get_for_user(
-                user=request.user,
                 organization=organization,
-            ).values()
+                user=request.user,
+            )
         return Response(serialize(teams, request.user))
 
     def post(self, request, organization_id):
