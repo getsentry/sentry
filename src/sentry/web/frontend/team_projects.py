@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from sentry.models import TeamMemberType
+from sentry.models import OrganizationMemberType
 from sentry.web.frontend.base import TeamView
 
 
 class TeamProjectsView(TeamView):
-    required_access = TeamMemberType.MEMBER
+    required_access = OrganizationMemberType.MEMBER
 
     def get(self, request, organization, team):
         project_list = team.project_set.all()

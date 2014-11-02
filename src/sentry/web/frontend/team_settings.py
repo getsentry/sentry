@@ -7,10 +7,9 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import RESERVED_TEAM_SLUGS
-from sentry.models import Team, TeamMember, TeamMemberType
+from sentry.models import Team, OrganizationMemberType
 from sentry.permissions import can_remove_team
 from sentry.plugins import plugins
-from sentry.web.forms.fields import UserField
 from sentry.web.frontend.base import TeamView
 
 
@@ -21,10 +20,8 @@ class EditTeamForm(forms.ModelForm):
 
 
 class EditTeamAdminForm(EditTeamForm):
-    owner = UserField(required=True)
-
     class Meta:
-        fields = ('name', 'slug', 'owner',)
+        fields = ('name', 'slug',)
         model = Team
 
     def clean_slug(self):
@@ -35,7 +32,7 @@ class EditTeamAdminForm(EditTeamForm):
 
 
 class TeamSettingsView(TeamView):
-    required_access = TeamMemberType.ADMIN
+    required_access = OrganizationMemberType.ADMIN
 
     def get_default_context(self, request, **kwargs):
         context = super(TeamSettingsView, self).get_default_context(request, **kwargs)
@@ -45,16 +42,14 @@ class TeamSettingsView(TeamView):
         return context
 
     def get_form(self, request, team):
-        can_admin_team = request.user == team.owner or request.user.is_superuser
+        can_admin_team = request.user.is_superuser
 
         if can_admin_team:
             form_cls = EditTeamAdminForm
         else:
             form_cls = EditTeamForm
 
-        return form_cls(request.POST or None, initial={
-            'owner': team.owner,
-        }, instance=team)
+        return form_cls(request.POST or None, instance=team)
 
     def get(self, request, organization, team):
         result = plugins.first('has_perm', request.user, 'edit_team', team)
@@ -75,21 +70,8 @@ class TeamSettingsView(TeamView):
             return HttpResponseRedirect(reverse('sentry'))
 
         form = self.get_form(request, team)
-        # XXX: form.is_valid() changes the foreignkey
-        original_owner = team.owner
         if form.is_valid():
-
             team = form.save()
-            if team.owner != original_owner:
-                # Update access for new membership if it's changed
-                # (e.g. member used to be USER, but is now OWNER)
-                TeamMember.objects.create_or_update(
-                    user=team.owner,
-                    team=team,
-                    defaults={
-                        'type': TeamMemberType.ADMIN,
-                    }
-                )
 
             messages.add_message(request, messages.SUCCESS,
                 _('Changes to your team were saved.'))

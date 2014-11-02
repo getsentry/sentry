@@ -15,9 +15,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
 from sentry.constants import MEMBER_OWNER
-from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
-from sentry.permissions import can_remove_team_member
-from sentry.plugins import plugins
+from sentry.models import AccessGroup, User
 from sentry.web.decorators import has_access
 from sentry.web.forms.teams import (
     EditAccessGroupForm, NewAccessGroupMemberForm,
@@ -33,75 +31,6 @@ def render_with_team_context(team, template, context, request=None):
     })
 
     return render_to_response(template, context, request)
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def remove_team_member(request, team, member_id):
-    try:
-        member = team.member_set.get(pk=member_id)
-    except TeamMember.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    if member.user == team.owner:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    if not can_remove_team_member(request.user, member):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    if request.POST:
-        member.delete()
-
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    context = csrf(request)
-    context.update({
-        'page': 'members',
-        'member': member,
-        'SUBSECTION': 'members',
-    })
-
-    return render_with_team_context(team, 'sentry/teams/members/remove.html', context, request)
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def remove_pending_team_member(request, team, member_id):
-    try:
-        member = team.pending_member_set.get(pk=member_id)
-    except PendingTeamMember.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    result = plugins.first('has_perm', request.user, 'remove_team_member', member)
-    if result is False and not request.user.is_superuser:
-        return HttpResponseRedirect(reverse('sentry'))
-
-    member.delete()
-
-    messages.add_message(request, messages.SUCCESS,
-        _('The team member was removed.'))
-
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def reinvite_pending_team_member(request, team, member_id):
-    try:
-        member = team.pending_member_set.get(pk=member_id)
-    except PendingTeamMember.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    result = plugins.first('has_perm', request.user, 'add_team_member', member)
-    if result is False and not request.user.is_superuser:
-        return HttpResponseRedirect(reverse('sentry'))
-
-    member.send_invite_email()
-
-    messages.add_message(request, messages.SUCCESS,
-        _('An email was sent to the pending team member.'))
-
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
 
 @has_access(MEMBER_OWNER)

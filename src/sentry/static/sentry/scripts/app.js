@@ -565,9 +565,6 @@
 
     });
 
-    app.AddTeamMemberPage = BasePage.extend({
-    });
-
     app.AccessGroupMembersPage = BasePage.extend({
         initialize: function(){
             BasePage.prototype.initialize.apply(this, arguments);
