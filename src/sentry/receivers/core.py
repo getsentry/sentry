@@ -142,6 +142,7 @@ def create_org_member_for_owner(instance, created, **kwargs):
     instance.member_set.get_or_create(
         user=instance.owner,
         type=OrganizationMemberType.ADMIN,
+        has_global_access=True,
     )
 
 
