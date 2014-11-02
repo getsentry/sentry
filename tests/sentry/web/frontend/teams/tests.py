@@ -33,67 +33,6 @@ class BaseTeamTest(TestCase):
         self.login_as(self.user)
 
 
-class NewTeamTest(BaseTeamTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-new-team')
-
-    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=False))
-    def test_missing_permission(self):
-        resp = self.client.post(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/generic_error.html')
-
-    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
-    def test_missing_params(self):
-        resp = self.client.post(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/new.html')
-
-    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
-    def test_valid_params(self):
-        resp = self.client.post(self.path, {
-            'name': 'Test Team',
-            'slug': 'test-team',
-            'owner': self.user.username,
-        })
-        self.assertEquals(resp.status_code, 302)
-        path = reverse('sentry-new-project', args=['test-team'])
-        self.assertEquals(resp['Location'], 'http://testserver%s' % (path,))
-
-        team = Team.objects.filter(name='Test Team')
-        self.assertTrue(team.exists())
-        team = team.get()
-
-        self.assertEquals(team.owner, self.user)
-
-        member_set = list(team.member_set.all())
-
-        self.assertEquals(len(member_set), 1)
-        member = member_set[0]
-        self.assertEquals(member.user, self.user)
-        self.assertEquals(member.type, MEMBER_OWNER)
-
-    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
-    def test_superuser_can_set_owner(self):
-        resp = self.client.post(self.path, {
-            'name': 'Test Team',
-            'slug': 'test',
-            'owner': self.user2.username,
-        })
-        self.assertNotEquals(resp.status_code, 200)
-
-        team = Team.objects.get(name='Test Team')
-        self.assertEquals(team.owner, self.user2)
-
-        member_set = list(team.member_set.all())
-
-        self.assertEquals(len(member_set), 1)
-        member = member_set[0]
-        self.assertEquals(member.user, self.user2)
-        self.assertEquals(member.type, MEMBER_OWNER)
-
-
 class RemoveTeamTest(BaseTeamTest):
     @fixture
     def path(self):
