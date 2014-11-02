@@ -127,10 +127,10 @@
                       {% block account_nav %}
                           {% if request.user.is_authenticated %}
                               <li class="dropdown">
-                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="icon-building"></span> Sentry <span class="icon-arrow-down"></span></a>
+                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="icon-building"></span> Hanna-Barbera <span class="icon-arrow-down"></span></a>
                                   <ul class="orgs dropdown-menu">
                                     <li><h6><a href="" class="icon-plus pull-right"></a>Organizations</h6></li>
-                                    <li class="active"><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> Sentry</a></li>
+                                    <li class="active"><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> Hanna-Barbera</a></li>
                                     <li class=""><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> GitHub</a></li>
                                     <li class=""><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> Captain Planet, Inc</a></li>
                                     <li class="divider"></li>
@@ -255,6 +255,35 @@
         jQuery('select').selectize();
 
         moment.lang(window.SentryConfig.lang);
+
+
+        $(function() {
+          $(".team-settings-toggle, .team-settings-cancel").click(function() {
+
+            toggleSettings(this);
+
+          });
+
+          function toggleSettings(target) {
+            if ($(target).closest(".box").hasClass("settings-open")) {
+
+              // close settings
+
+              $(target).closest(".box").removeClass("settings-open");
+              $(target).closest(".box").find(".team-settings").slideUp();
+              $(target).closest(".box").find(".team-list").show();
+
+            } else {
+
+              // open settings
+
+              $(target).closest(".box").addClass("settings-open");
+              $(target).closest(".box").find(".team-settings").slideDown();
+              $(target).closest(".box").find(".team-list").hide();
+            }
+          }
+        });
+
         </script>
         {% endblock %}
     </body>

@@ -2689,6 +2689,30 @@ table.integrations {
       }
     }
   }
+
+  // Team settings
+
+  .team-settings-toggle {
+    position: relative;
+    top: 2px;
+    margin-left: 4px;
+    opacity: .50;
+    .transition(.2s opacity);
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  .team-settings {
+    display: none;
+  }
+
+  .settings-open {
+    .team-settings-toggle {
+      opacity: 1;
+    }
+  }
 }
 
 .narrow {
