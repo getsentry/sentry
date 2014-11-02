@@ -8,8 +8,7 @@ from django.core.urlresolvers import reverse
 from exam import before, fixture
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import (
-    Team, TeamMember, PendingTeamMember, User)
+from sentry.models import Team, User
 from sentry.testutils import TestCase
 
 
@@ -56,61 +55,6 @@ class RemoveTeamTest(BaseTeamTest):
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry')
         assert not Team.objects.filter(pk=self.team.pk).exists()
-
-
-class AcceptInviteTest(BaseTeamTest):
-    def test_invalid_member_id(self):
-        resp = self.client.get(reverse('sentry-accept-invite', args=[1, 2]))
-        self.assertEquals(resp.status_code, 302)
-
-    def test_invalid_token(self):
-        ptm = PendingTeamMember.objects.create(
-            email='newuser@example.com',
-            team=self.team,
-        )
-        resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, 2]))
-        self.assertEquals(resp.status_code, 302)
-
-    def test_renders_unauthenticated_template(self):
-        self.client.logout()
-        ptm = PendingTeamMember.objects.create(
-            email='newuser@example.com',
-            team=self.team,
-        )
-        resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')
-
-    def test_renders_authenticated_template(self):
-        ptm = PendingTeamMember.objects.create(
-            email='newuser@example.com',
-            team=self.team,
-        )
-        resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite.html')
-
-    def test_can_accept_while_authenticated(self):
-        ptm = PendingTeamMember.objects.create(
-            email='newuser@example.com',
-            type=MEMBER_USER,
-            team=self.team,
-        )
-        resp = self.client.post(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
-        self.assertEquals(resp.status_code, 302, resp.context['form'].errors if resp.status_code != 302 else None)
-        self.assertFalse(PendingTeamMember.objects.filter(id=ptm.id).exists())
-        self.assertTrue(TeamMember.objects.filter(user=self.user, team=self.team).exists())
-
-    def test_cannot_accept_while_unauthenticated(self):
-        self.client.logout()
-        ptm = PendingTeamMember.objects.create(
-            email='newuser@example.com',
-            type=MEMBER_USER,
-            team=self.team,
-        )
-        resp = self.client.post(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
-        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')
-        self.assertEquals(resp.status_code, 200)
 
 
 class ManageProjectsTest(BaseTeamTest):
