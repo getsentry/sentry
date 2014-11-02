@@ -20,7 +20,7 @@ from sentry.permissions import can_remove_team_member
 from sentry.plugins import plugins
 from sentry.web.decorators import has_access
 from sentry.web.forms.teams import (
-    AcceptInviteForm, EditAccessGroupForm, NewAccessGroupMemberForm,
+    EditAccessGroupForm, NewAccessGroupMemberForm,
     NewAccessGroupProjectForm, RemoveAccessGroupForm
 )
 from sentry.web.helpers import render_to_response
@@ -33,62 +33,6 @@ def render_with_team_context(team, template, context, request=None):
     })
 
     return render_to_response(template, context, request)
-
-
-@csrf_protect
-def accept_invite(request, member_id, token):
-    try:
-        pending_member = PendingTeamMember.objects.get(pk=member_id)
-    except PendingTeamMember.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry'))
-
-    if pending_member.token != token:
-        return HttpResponseRedirect(reverse('sentry'))
-
-    team = pending_member.team
-
-    project_list = list(team.project_set.filter(status=0))
-    for project in project_list:
-        project.team = team
-
-    context = {
-        'team': team,
-        'team_owner': team.get_owner_name(),
-        'project_list': project_list,
-    }
-
-    if not request.user.is_authenticated():
-        # Show login or register form
-        request.session['_next'] = request.get_full_path()
-        request.session['can_register'] = True
-
-        return render_to_response('sentry/teams/members/accept_invite_unauthenticated.html', context, request)
-
-    if request.method == 'POST':
-        form = AcceptInviteForm(request.POST)
-    else:
-        form = AcceptInviteForm()
-
-    if form.is_valid():
-        team.member_set.get_or_create(
-            user=request.user,
-            defaults={
-                'type': pending_member.type,
-            }
-        )
-
-        request.session.pop('can_register', None)
-
-        pending_member.delete()
-
-        messages.add_message(request, messages.SUCCESS,
-            _('You have been added to the %r team.') % (team.name.encode('utf-8'),))
-
-        return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
-
-    context['form'] = form
-
-    return render_to_response('sentry/teams/members/accept_invite.html', context, request)
 
 
 @csrf_protect

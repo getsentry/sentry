@@ -1,0 +1,53 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Team Invite" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="row">
+      <div class="span7">
+        <div class="page-header">
+          <h2>{% trans "Organization Invite" %}</h2>
+        </div>
+
+        <p style="font-size: 1.3em;">
+          {% blocktrans with org_name=organization.name %}<strong>{{ org_name }}</strong> is using Sentry to aggregate errors.{% endblocktrans %}
+        </p>
+
+        <p>{% blocktrans with project_count=project_list|length %}You have been invited to join this organization, which manages <strong>{{ project_count }}</strong> project(s):{% endblocktrans %}</p>
+        <ul>
+          {% for project in project_list|slice:"5" %}
+            <li>
+              {{ project.name }}
+            </li>
+          {% endfor %}
+        </ul>
+
+        {% if needs_authentication %}
+          <p>{% trans "To continue, you must either login to your existing account, or create a new one." %}</p>
+
+          <fieldset class="form-actions">
+            <div class="pull-right" style="margin-top: 5px;">
+              <a href="{% url 'sentry-login' %}">{% trans "Login as an existing user" %}</a>
+            </div>
+            <a href="{% url 'sentry-register' %}" class="btn btn-primary">{% trans "Create a new account" %}</a>
+          </fieldset>
+        {% else %}
+          <form method="POST">
+            {% csrf_token %}
+            <p>
+              <button type="submit" class="btn btn-primary">
+                {% blocktrans with org_name=organization.name %}Join the {{ org_name }} organization{% endblocktrans %}
+              </button>
+            </p>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

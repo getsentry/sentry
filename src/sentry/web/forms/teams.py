@@ -15,10 +15,6 @@ from sentry.models import AccessGroup, Project
 from sentry.web.forms.fields import UserField
 
 
-class AcceptInviteForm(forms.Form):
-    pass
-
-
 class BaseAccessGroupForm(forms.ModelForm):
     name = forms.CharField(label=_('Group Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('API Team')}))

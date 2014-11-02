@@ -126,15 +126,18 @@ class BaseView(View, OrganizationMixin):
     def dispatch(self, request, *args, **kwargs):
         if self.auth_required and not request.user.is_authenticated():
             request.session['_next'] = request.get_full_path()
-            return HttpResponseRedirect(get_login_url())
+            return self.redirect(get_login_url())
 
         if not self.has_permission(request, *args, **kwargs):
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
-            return HttpResponseRedirect(redirect_uri)
+            return self.redirect(redirect_uri)
 
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
+        return self.handle(request, *args, **kwargs)
+
+    def handle(self, request, *args, **kwargs):
         return super(BaseView, self).dispatch(request, *args, **kwargs)
 
     def has_permission(self, request, *args, **kwargs):
@@ -150,6 +153,9 @@ class BaseView(View, OrganizationMixin):
             default_context.update(context)
 
         return render_to_response(template, default_context, self.request)
+
+    def redirect(self, url):
+        return HttpResponseRedirect(url)
 
     def get_team_list(self, user, organization):
         return Team.objects.get_for_user(
@@ -186,7 +192,7 @@ class OrganizationView(BaseView):
             organization_id=organization_id,
         )
         if active_organization is None:
-            return HttpResponseRedirect(reverse('sentry'))
+            return self.redirect(reverse('sentry'))
 
         kwargs['organization'] = active_organization
 
@@ -215,7 +221,7 @@ class TeamView(BaseView):
     def dispatch(self, request, team_slug, *args, **kwargs):
         if not request.user.is_authenticated():
             request.session['_next'] = request.get_full_path()
-            return HttpResponseRedirect(get_login_url())
+            return self.redirect(get_login_url())
 
         active_team = self.get_active_team(
             request=request,
@@ -223,7 +229,7 @@ class TeamView(BaseView):
             access=self.required_access,
         )
         if active_team is None:
-            return HttpResponseRedirect(reverse('sentry'))
+            return self.redirect(reverse('sentry'))
 
         kwargs['team'] = active_team
         kwargs['organization'] = active_team.organization
@@ -256,14 +262,14 @@ class ProjectView(BaseView):
     def dispatch(self, request, team_slug, project_slug, *args, **kwargs):
         if not request.user.is_authenticated():
             request.session['_next'] = request.get_full_path()
-            return HttpResponseRedirect(get_login_url())
+            return self.redirect(get_login_url())
 
         active_team = self.get_active_team(
             request=request,
             team_slug=team_slug,
         )
         if active_team is None:
-            return HttpResponseRedirect(reverse('sentry'))
+            return self.redirect(reverse('sentry'))
 
         active_project = self.get_active_project(
             request=request,
@@ -272,7 +278,7 @@ class ProjectView(BaseView):
             access=self.required_access,
         )
         if active_project is None:
-            return HttpResponseRedirect(reverse('sentry'))
+            return self.redirect(reverse('sentry'))
 
         kwargs['project'] = active_project
         kwargs['team'] = active_team

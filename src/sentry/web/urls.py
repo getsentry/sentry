@@ -33,6 +33,7 @@ import sentry.web.frontend.projects.tags
 
 __all__ = ('urlpatterns',)
 
+from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
@@ -136,6 +137,8 @@ urlpatterns += patterns('',
         name='sentry-organization-teams'),
     url(r'^organizations/(?P<organization_id>\d+)/teams/new/$', CreateTeamView.as_view(),
         name='sentry-new-team'),
+    url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
+        name='sentry-accept-invite'),
 
     # Settings - Teams
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/settings/$', TeamSettingsView.as_view(),
@@ -174,8 +177,6 @@ urlpatterns += patterns('',
         name='sentry-manage-team-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),
         name='sentry-new-project'),
-    url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', teams.accept_invite,
-        name='sentry-accept-invite'),
 
     # Settings - Projects
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$',

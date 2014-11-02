@@ -68,6 +68,8 @@ class OrganizationMember(Model):
 
     @property
     def token(self):
+        assert self.email
+
         checksum = md5()
         for x in (str(self.organization_id), self.email, settings.SECRET_KEY):
             checksum.update(x)
