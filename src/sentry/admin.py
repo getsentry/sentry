@@ -17,7 +17,9 @@ from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-from sentry.models import Broadcast, Project, Team, TeamMember, User
+from sentry.models import (
+    Broadcast, Organization, OrganizationMember, Project, Team, User
+)
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
@@ -49,19 +51,28 @@ class ProjectAdmin(admin.ModelAdmin):
 admin.site.register(Project, ProjectAdmin)
 
 
-class TeamMemberInline(admin.TabularInline):
-    model = TeamMember
+class OrganizationMemberInline(admin.TabularInline):
+    model = OrganizationMember
     extra = 1
 
-    raw_id_fields = ('user', 'team')
+    raw_id_fields = ('user', 'organization')
+
+
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = ('name', 'owner', 'status')
+    list_filter = ('status',)
+    search_fields = ('name', 'owner__username', 'owner__email')
+    raw_id_fields = ('owner',)
+    inlines = (OrganizationMemberInline,)
+
+admin.site.register(Organization, OrganizationAdmin)
 
 
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'slug', 'status')
+    list_display = ('name', 'slug', 'status')
     list_filter = ('status',)
-    search_fields = ('name', 'organization__name', 'owner__username', 'owner__email', 'slug')
+    search_fields = ('name', 'organization__name', 'slug')
     raw_id_fields = ('owner', 'organization')
-    inlines = (TeamMemberInline,)
 
 admin.site.register(Team, TeamAdmin)
 
@@ -88,7 +99,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_managed')
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('username',)
-    inlines = (TeamMemberInline,)
+    inlines = (OrganizationMemberInline,)
 
     def get_fieldsets(self, request, obj=None):
         if not obj:
