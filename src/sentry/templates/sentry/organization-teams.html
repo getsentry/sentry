@@ -8,30 +8,30 @@
 {% block org_teams_nav %} class="active"{% endblock %}
 
 {% block main %}
-    <section class="body">
-        <table class="table table-striped">
-            <colgroup>
-                <col>
-                <col style="width:100px">
-            </colgroup>
-            <thead>
-                <tr>
-                    <th>{% trans "Team" %}</th>
-                    <th>{% trans "Status" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for team in team_list %}
-                    <tr>
-                        <td>
-                            {{ team.name }}
-                        </td>
-                        <td>
-                            {{ team.get_status_display }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
+  <section class="body">
+    <table class="table table-striped">
+      <colgroup>
+        <col>
+        <col style="width:100px">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>{% trans "Team" %}</th>
+          <th>{% trans "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for team in team_list %}
+          <tr>
+            <td>
+              {{ team.name }}
+            </td>
+            <td>
+              {{ team.get_status_display }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
 {% endblock %}

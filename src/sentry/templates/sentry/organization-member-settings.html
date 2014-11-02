@@ -9,48 +9,48 @@
 {% block org_members_nav %} class="active"{% endblock %}
 
 {% block inner %}
-    <form class="form-stacked" action="" method="post">
-        {% csrf_token %}
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
 
-        {% if form.errors %}
-            <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-        {% endif %}
+    {% if form.errors %}
+      <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+    {% endif %}
 
-        {{ form|as_crispy_errors }}
+    {{ form|as_crispy_errors }}
 
-        <fieldset>
-            <legend>{% trans "Details" %}</legend>
+    <fieldset>
+      <legend>{% trans "Details" %}</legend>
 
-            <div class="control-group">
-                <label>{% trans "User" %}</label>
-                <div class="controls">
-                    {{ member.get_display_name }}
-                </div>
-            </div>
-
-            <div class="control-group">
-                <label>{% trans "Status" %}</label>
-                <div class="controls">
-                    {% if member.is_pending %}
-                        Invited
-                    {% else %}
-                        Active
-                    {% endif %}
-                </div>
-            </div>
-
-            {{ form.type|as_crispy_field }}
-        </fieldset>
-
-        <fieldset>
-            <legend>{% trans "Access" %}</legend>
-
-            {{ form.has_global_access|as_crispy_field }}
-            {{ form.teams|as_crispy_field }}
-        </fieldset>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+      <div class="control-group">
+        <label>{% trans "User" %}</label>
+        <div class="controls">
+          {{ member.get_display_name }}
         </div>
-    </form>
+      </div>
+
+      <div class="control-group">
+        <label>{% trans "Status" %}</label>
+        <div class="controls">
+          {% if member.is_pending %}
+            Invited
+          {% else %}
+            Active
+          {% endif %}
+        </div>
+      </div>
+
+      {{ form.type|as_crispy_field }}
+    </fieldset>
+
+    <fieldset>
+      <legend>{% trans "Access" %}</legend>
+
+      {{ form.has_global_access|as_crispy_field }}
+      {{ form.teams|as_crispy_field }}
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+    </div>
+  </form>
 {% endblock %}

@@ -6,28 +6,28 @@
 {% block org_settings_nav %} class="active"{% endblock %}
 
 {% block main %}
-    <section class="body">
-        <div class="page-header">
-            <h2>{% trans "Details" %}</h2>
-        </div>
-        <form class="form-stacked" action="" method="post">
-            {% csrf_token %}
+  <section class="body">
+    <div class="page-header">
+      <h2>{% trans "Details" %}</h2>
+    </div>
+    <form class="form-stacked" action="" method="post">
+      {% csrf_token %}
 
-            {% if form.errors %}
-                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-            {% endif %}
+      {% if form.errors %}
+        <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+      {% endif %}
 
-            {{ form|as_crispy_errors }}
+      {{ form|as_crispy_errors }}
 
-            <fieldset>
-                {% for field in form %}
-                    {{ field|as_crispy_field }}
-                {% endfor %}
-            </fieldset>
+      <fieldset>
+        {% for field in form %}
+          {{ field|as_crispy_field }}
+        {% endfor %}
+      </fieldset>
 
-            <fieldset class="form-actions">
-                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-            </fieldset>
-        </form>
-    </section>
+      <fieldset class="form-actions">
+        <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+      </fieldset>
+    </form>
+  </section>
 {% endblock %}
