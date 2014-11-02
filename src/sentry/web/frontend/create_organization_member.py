@@ -8,7 +8,10 @@ from django.db import transaction, IntegrityError
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import OrganizationMember, OrganizationMemberType
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
+    OrganizationMemberType
+)
 from sentry.permissions import can_add_organization_member
 from sentry.web.forms.fields import UserField
 from sentry.web.frontend.base import OrganizationView
@@ -19,7 +22,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         fields = ('email',)
         model = OrganizationMember
 
-    def save(self, organization):
+    def save(self, actor, organization):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
         om.type = OrganizationMemberType.MEMBER
@@ -35,6 +38,14 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             ), False
         transaction.savepoint_commit(sid, using='default')
 
+        AuditLogEntry.objects.create(
+            organization=organization,
+            actor=actor,
+            target_object=om.id,
+            event=AuditLogEntryEvent.MEMBER_INVITE,
+            data=om.get_audit_log_data(),
+        )
+
         return om, True
 
 
@@ -45,7 +56,7 @@ class NewOrganizationMemberForm(forms.ModelForm):
         fields = ('user',)
         model = OrganizationMember
 
-    def save(self, organization):
+    def save(self, actor, organization):
         om = super(NewOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
         om.type = OrganizationMemberType.MEMBER
@@ -60,6 +71,15 @@ class NewOrganizationMemberForm(forms.ModelForm):
                 organization=organization,
             ), False
         transaction.savepoint_commit(sid, using='default')
+
+        AuditLogEntry.objects.create(
+            organization=organization,
+            actor=actor,
+            target_object=om.id,
+            target_user=om.user,
+            event=AuditLogEntryEvent.MEMBER_ADD,
+            data=om.get_audit_log_data(),
+        )
 
         return om, True
 
@@ -98,7 +118,7 @@ class CreateOrganizationMemberView(OrganizationView):
 
         form = self.get_form(request)
         if form.is_valid():
-            om, created = form.save(organization)
+            om, created = form.save(request.user, organization)
 
             if created:
                 messages.add_message(request, messages.SUCCESS,

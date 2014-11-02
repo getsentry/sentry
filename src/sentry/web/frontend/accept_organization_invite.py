@@ -5,7 +5,9 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
-from sentry.models import OrganizationMember, Project
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember, Project
+)
 from sentry.web.frontend.base import BaseView
 
 
@@ -82,6 +84,15 @@ class AcceptOrganizationInviteView(BaseView):
             om.user = request.user
             om.email = None
             om.save()
+
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                target_object=om.id,
+                target_user=request.user,
+                event=AuditLogEntryEvent.MEMBER_ACCEPT,
+                data=om.get_audit_log_data(),
+            )
 
             request.session.pop('can_register', None)
 

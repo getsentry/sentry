@@ -3,7 +3,10 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from exam import before
 
-from sentry.models import OrganizationMember, OrganizationMemberType
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
+    OrganizationMemberType
+)
 from sentry.testutils import TestCase
 
 
@@ -63,6 +66,16 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.get(id=om.id)
         assert om.email is None
         assert om.user == self.user
+
+        ale = AuditLogEntry.objects.get(
+            organization=self.organization,
+            event=AuditLogEntryEvent.MEMBER_ACCEPT,
+        )
+
+        assert ale.actor == self.user
+        assert ale.target_object == om.id
+        assert ale.target_user == self.user
+        assert ale.data
 
     def test_cannot_accept_while_unauthenticated(self):
         om = OrganizationMember.objects.create(
