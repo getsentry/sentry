@@ -23,16 +23,42 @@
       </ul>
       <div class="team-list">
           {% for team, project_list in team_list %}
-            <div class="box">
+            <div class="box" id="team-{{ team.id }}">
               <div class="box-header">
                 <h3>
-                    <a href="{% url 'sentry' team.slug %}">{{ team.name }}</a>
+                    <a href="{% url 'sentry' team.slug %}">{{ team.name }}</a> <a href="#" class="team-settings-toggle"><span class="icon-settings"></span></a>
                     {% if team.status %}
                         <small>{{ team.get_status_display }}</small>
                     {% endif %}
                 </h3>
               </div>
-              <div class="box-content with-padding">
+              <div class="box-content with-padding team-settings">
+                <div class="row">
+                  <div class="col-sm-7">
+                    <form role="form">
+                      <div class="form-group">
+                        <label for="teamName">Team name</label>
+                        <input type="text" class="form-control" id="teamName" value="{{ team.name }}">
+                      </div>
+                      <div class="form-group">
+                        <label for="teamSlug">Slug</label>
+                        <input type="text" class="form-control" id="teamSlug" value="{{ team.slug }}">
+                      </div>
+                      <div class="form-group">
+                        <label for="teamOwner">Owner</label>
+                        <select id="teamOwner">
+                          <option value="dcramer">dcramer</option>
+                        </select>
+                      </div>
+                    </form>
+                  </div>
+                  <div class="col-sm-5"></div>
+                </div>
+                <div class="form-actions" style="padding: 15px;">
+                  <a href="#" class="btn btn-default team-settings-cancel">Cancel</a> <a href="#" class="btn btn-primary">Save</a>
+                </div>
+              </div>
+              <div class="box-content with-padding team-list">
                 <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
                     <div class="sparkline">
                         <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
