@@ -104,7 +104,8 @@ of flexibility on things like line length. We always give way for the `Zen of Py
 
 You can run all linters with ``make lint``, or respectively ``lint-python`` or ``lint-js``.
 
-Regarding spacing, we do things differently for each language:
+Spacing
+~~~~~~~
 
 Python:
   4 Spaces
@@ -117,6 +118,16 @@ CSS:
 
 HTML:
   2 Spaces
+
+
+Django Templates
+~~~~~~~~~~~~~~~~
+
+Newer style code prefers a flat hierarchy of templates to ensure simplicity.
+
+For example, the "create team" template lives at sentry/create-team.html, whereas legacy templates have a url-like hierarchy.
+
+**All new templates that are not partials or base layouts must follow this hierarchy.**
 
 
 Running the Test Suite
