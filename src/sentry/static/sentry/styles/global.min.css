@@ -8995,6 +8995,9 @@ table.vars table.vars th {
 .team-index #page-header {
   display: none;
 }
+.team-index .nav-tabs {
+  border-bottom: 2px solid #dee3e9;
+}
 .team-index .body h2 {
   font-size: 26px;
   margin: 0 0 20px;
@@ -9008,7 +9011,7 @@ table.vars table.vars th {
   display: block;
   margin: 0 0 20px 0;
   padding: 18px 22px;
-  border: 5px solid #DEE3E9;
+  border: 2px solid #DEE3E9;
   position: relative;
   -webkit-border-radius: 7px;
   -moz-border-radius: 7px;

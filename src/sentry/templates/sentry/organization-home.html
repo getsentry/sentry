@@ -8,6 +8,13 @@
 
 {% block main %}
   <section class="body">
+    <h2>{{ organization.name }}</h2>
+    <a class="btn btn-primary btn-small pull-right" href="{% url 'sentry-new-team' organization.id %}">Create a New team</a>
+    <ul class="nav nav-tabs">
+      <li class="active"><a href="#">Teams</a></li>
+      <li><a href="#">Members</a></li>
+      <li><a href="#">Admin</a></li>
+    </ul>
     <ul class="team-list">
       {% for team, project_list in team_list %}
         <li>
