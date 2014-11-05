@@ -118,13 +118,6 @@ class BaseTestCase(Fixtures, Exam):
     def _makePostMessage(self, data):
         return base64.b64encode(self._makeMessage(data))
 
-    def _postWithKey(self, data, key=None):
-        resp = self.client.post(reverse('sentry-api-store'), {
-            'data': self._makePostMessage(data),
-            'key': settings.SENTRY_KEY,
-        })
-        return resp
-
     def _postWithHeader(self, data, key=None, secret=None):
         if key is None:
             key = self.projectkey.public_key
