@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import re
 import sentry
 import socket
-import urllib2
+import requests
 import zlib
 
 from django.conf import settings
@@ -29,13 +29,6 @@ DEFAULT_HEADERS = (
 DEFAULT_USER_AGENT = 'sentry/%s' % sentry.VERSION
 
 DISALLOWED_IPS = set((IPNetwork(i) for i in settings.SENTRY_DISALLOWED_IPS))
-
-
-class NoRedirectionHandler(urllib2.HTTPErrorProcessor):
-    def http_response(self, request, response):
-        return response
-
-    https_response = http_response
 
 
 def is_valid_url(url):
@@ -69,22 +62,15 @@ def safe_urlopen(url, data=None, headers=DEFAULT_HEADERS,
     if not is_valid_url(url):
         raise SuspiciousOperation('%s matches the URL blacklist' % (url,))
 
-    req = urllib2.Request(url, data)
-    req.add_header('User-Agent', user_agent)
-    for key, value in headers:
-        req.add_header(key, value)
+    all_headers = {header[0]: header[1] for header in headers}
+    all_headers.update({'User-Agent': user_agent})
 
-    handlers = []
-    if not allow_redirects:
-        handlers.append(NoRedirectionHandler)
-
-    opener = urllib2.build_opener(*handlers)
-
-    return opener.open(req, timeout=timeout)
+    return requests.get(url, headers=all_headers, data=data, stream=True,
+                        allow_redirects=allow_redirects, timeout=timeout)
 
 
 def safe_urlread(request):
-    body = request.read()
+    body = request.raw.read()
 
     if request.headers.get('content-encoding') == 'gzip':
         # Content doesn't *have* to respect the Accept-Encoding header
