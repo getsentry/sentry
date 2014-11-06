@@ -27,13 +27,23 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         om.organization = organization
         om.type = OrganizationMemberType.MEMBER
 
+        try:
+            existing = OrganizationMember.objects.get(
+                organization=organization,
+                user__email__iexact=om.email,
+            )
+        except OrganizationMember.DoesNotExist:
+            pass
+        else:
+            return existing, False
+
         sid = transaction.savepoint(using='default')
         try:
             om.save()
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
             return OrganizationMember.objects.get(
-                email=om.email,
+                email__iexact=om.email,
                 organization=organization,
             ), False
         transaction.savepoint_commit(sid, using='default')
