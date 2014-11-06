@@ -72,10 +72,8 @@
                                             {% if project %}
                                                 <small>{{ project.name }}</small>
                                             {% endif %}
-                                        {% else %}
-                                            <small>{% trans "Select a project" %}</small>
+                                            <span class="caret"></span>
                                         {% endif %}
-                                        <span class="caret"></span>
                                     </a>
                                     <nav class="dropdown-menu">
                                         <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
