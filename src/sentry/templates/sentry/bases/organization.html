@@ -3,29 +3,35 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block bodyclass %}with-left-sidebar{% endblock %}
-
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
 
-{% block sidebar %}
-    <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Organization" %}</li>
-        <li{% block org_settings_nav %}{% endblock %}>
-            <a href="{% url 'sentry-organization-settings' organization.id %}">Basics</a>
-        </li>
-        <li{% block org_members_nav %}{% endblock %}>
-            <a href="{% url 'sentry-organization-members' organization.id %}">Members</a>
-        </li>
-        <li class="divider"></li>
-        <li class="nav-header">
-            <a href="{% url 'sentry-new-team' organization.id %}"
-               class="pull-right">Add Team</a>
-            {% trans "Teams" %}
-        </li>
-        {% for t, _ in TEAM_LIST %}
-            <li{% if t == team %} class="active"{% endif %}>
-                <a href="{% url 'sentry-manage-team' t.slug %}">{{ t.name }}</a>
-            </li>
-        {% endfor %}
+{% block main %}
+  <section class="body">
+    <div class="page-header">
+      <h2>{{ organization.name }}</h2>
+    </div>
+
+    <div class="pull-right">
+      <a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
+        <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu">
+        <li><a href="{% url 'sentry-new-team' organization.id %}">{% trans "New Team" %}</a></li>
+        <li><a href="{% url 'sentry-create-organization-member' organization.id %}">{% trans "New Member" %}</a></li>
+      </ul>
+    </div>
+
+    <ul class="nav nav-tabs">
+      <li{% block org_teams_nav %}{% endblock %}>
+        <a href="{% url 'sentry-organization-home' organization.id %}">Teams</a>
+      </li>
+      <li{% block org_members_nav %}{% endblock %}>
+        <a href="{% url 'sentry-organization-members' organization.id %}">Members</a>
+      </li>
+      <li{% block org_settings_nav %}{% endblock %}>
+        <a href="{% url 'sentry-organization-settings' organization.id %}">Settings</a>
+      </li>
     </ul>
+    {% block inner %}{% endblock %}
+  </section>
 {% endblock %}

@@ -2525,89 +2525,71 @@ table.vars {
   }
 }
 
-.team-index {
-  #page-header {
-    display: none;
-  }
+.team-list {
+  list-style: none;
+  margin-left: 0;
 
-  .nav-tabs {
-    border-bottom: 2px solid #dee3e9;
-  }
+  > li {
+    display: block;
+    margin: 0 0 20px 0;
+    padding: 18px 22px;
+    border: 2px solid #DEE3E9;
+    position: relative;
+    .border-radius(7px);
 
-  .body {
-    h2 {
-      font-size: 26px;
-      margin: 0 0 20px;
-      letter-spacing: -1px;
+    .loading {
+      display: none;
     }
 
-    .team-list {
-      list-style: none;
-      margin-left: 0;
-
-      > li {
-        display: block;
-        margin: 0 0 20px 0;
-        padding: 18px 22px;
-        border: 2px solid #DEE3E9;
-        position: relative;
-        .border-radius(7px);
-
-        .loading {
-          display: none;
-        }
-
-        &:hover {
-          border-color: #56AFE8;
-          h3 {
-            color: #000;
-          }
-        }
-
-        h3 {
-          width: 100%;
-          position: relative;
-          margin-bottom: 0;
-          line-height: 24px;
-          height: 24px;
-          font-size: 22px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          color: #465262;
-          font-weight: bold;
-          a {
-            color: inherit;
-            &:hover {
-              color: @linkColorHover;
-            }
-          }
-        }
-
-        > ul {
-          position: relative;
-          overflow: hidden;
-          margin-left: 0;
-          margin-bottom: 0;
-          list-style: circle;
-
-          > li {
-            display: inline-block;
-            width: 142px;
-            margin-right: 5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            line-height: 26px;
-
-            a {
-              font-size: 17px;
-            }
-          }
-        }
-
+    &:hover {
+      border-color: #56AFE8;
+      h3 {
+        color: #000;
       }
     }
+
+    h3 {
+      width: 100%;
+      position: relative;
+      margin-bottom: 0;
+      line-height: 24px;
+      height: 24px;
+      font-size: 22px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #465262;
+      font-weight: bold;
+      a {
+        color: inherit;
+        &:hover {
+          color: @linkColorHover;
+        }
+      }
+    }
+
+    > ul {
+      position: relative;
+      overflow: hidden;
+      margin-left: 0;
+      margin-bottom: 0;
+      list-style: circle;
+
+      > li {
+        display: inline-block;
+        width: 142px;
+        margin-right: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 26px;
+
+        a {
+          font-size: 17px;
+        }
+      }
+    }
+
   }
 }
 

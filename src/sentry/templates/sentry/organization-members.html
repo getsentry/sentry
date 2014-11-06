@@ -8,56 +8,46 @@
 
 {% block org_members_nav %} class="active"{% endblock %}
 
-{% block main %}
-  <section class="body">
-    <div class="page-header">
-      <div class="pull-right">
-        <a href="{% url 'sentry-create-organization-member' organization.id %}"
-        class="btn btn-primary">New Member</a>
-      </div>
-      <h2>Members</h2>
-    </div>
+{% block inner %}
+  <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
 
-    <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
+  <br>
 
-    <br>
-
-    <table class="table table-striped">
-      <colgroup>
-        <col width="20px"/>
-        <col/>
-        <col width="100px"/>
-        <col width="20px"/>
-      </colgroup>
-      <tbody>
-        {% for member, team_list in member_list %}
-          <tr>
-            <td>
-              <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
-            </td>
-            <td>
-              <a href="{% url 'sentry-organization-member-settings' organization.id member.id %}">
-                {{ member.get_display_name }}
-              </a>
-            </td>
-            <td>
-              {% if member.has_global_access %}
-                <span class="tip" title="Access to all teams">&infin;</span>
-              {% elif team_list|length > 1 %}
-                <span class="tip"
-                      title="{% for team in team_list %}{{ team.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
-                  {{ team_list|length }} teams
-                </span>
-              {% else %}
-                {{ team_list.0.name }}
-              {% endif %}
-            </td>
-            <td>
-              <a href=""><span class="icon icon-remove"></span></a>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
+  <table class="table table-striped">
+    <colgroup>
+      <col width="20px"/>
+      <col/>
+      <col width="100px"/>
+      <col width="20px"/>
+    </colgroup>
+    <tbody>
+      {% for member, team_list in member_list %}
+        <tr>
+          <td>
+            <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
+          </td>
+          <td>
+            <a href="{% url 'sentry-organization-member-settings' organization.id member.id %}">
+              {{ member.get_display_name }}
+            </a>
+          </td>
+          <td>
+            {% if member.has_global_access %}
+              <span class="tip" title="Access to all teams">&infin;</span>
+            {% elif team_list|length > 1 %}
+              <span class="tip"
+                    title="{% for team in team_list %}{{ team.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                {{ team_list|length }} teams
+              </span>
+            {% else %}
+              {{ team_list.0.name }}
+            {% endif %}
+          </td>
+          <td>
+            <a href=""><span class="icon icon-remove"></span></a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}
