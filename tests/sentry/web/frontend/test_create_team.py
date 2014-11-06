@@ -9,7 +9,7 @@ from sentry.testutils import TestCase
 class CreateTeamTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization()
-        path = reverse('sentry-new-team', args=[organization.id])
+        path = reverse('sentry-create-team', args=[organization.id])
         self.login_as(self.user)
         resp = self.client.get(path)
         assert resp.status_code == 200
@@ -19,7 +19,7 @@ class CreateTeamTest(TestCase):
 
     def test_valid_params(self):
         organization = self.create_organization()
-        path = reverse('sentry-new-team', args=[organization.id])
+        path = reverse('sentry-create-team', args=[organization.id])
         self.login_as(self.user)
         resp = self.client.post(path, {
             'name': 'bar',
