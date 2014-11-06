@@ -1,12 +1,10 @@
-{% extends "sentry/bases/organization.html" %}
+{% extends "sentry/organization-members.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Member Settings" %} | {{ block.super }}{% endblock %}
-
-{% block org_members_nav %} class="active"{% endblock %}
 
 {% block inner %}
   <form class="form-stacked" action="" method="post">

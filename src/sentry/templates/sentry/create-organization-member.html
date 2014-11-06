@@ -1,4 +1,4 @@
-{% extends "sentry/bases/organization.html" %}
+{% extends "sentry/organization-members.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -6,11 +6,9 @@
 
 {% block title %}{% trans "Add Member" %} | {{ block.super }}{% endblock %}
 
-{% block org_members_nav %} class="active"{% endblock %}
-
 {% block inner %}
+  <h2>{% trans "Add Member" %}</h2>
   <fieldset>
-    <legend>{% trans "Add Member" %}</legend>
     {% if is_invite %}
       <p>{% trans "Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
       <p>{% trans "You will be able to configure permissions and team access on the following page." %}</p>
