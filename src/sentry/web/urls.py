@@ -133,7 +133,7 @@ urlpatterns += patterns('',
     url(r'^organizations/(?P<organization_id>\d+)/teams/$', OrganizationTeamsView.as_view(),
         name='sentry-organization-teams'),
     url(r'^organizations/(?P<organization_id>\d+)/teams/new/$', CreateTeamView.as_view(),
-        name='sentry-new-team'),
+        name='sentry-create-team'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
         name='sentry-accept-invite'),
 

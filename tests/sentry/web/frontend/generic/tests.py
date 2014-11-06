@@ -25,7 +25,7 @@ class DashboardTest(TestCase):
 
         can_create_teams.assert_called_once_with(self.user)
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-new-team')
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-team')
 
     @mock.patch('sentry.web.frontend.generic.can_create_teams', mock.Mock(return_value=True))
     def test_shows_team_selector_with_single(self):

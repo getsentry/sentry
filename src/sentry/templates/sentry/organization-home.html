@@ -5,7 +5,7 @@
 {% block org_teams_nav %}active{% endblock %}
 
 {% block actions %}
-  <a href="{% url 'sentry-new-team' organization.id %}"
+  <a href="{% url 'sentry-create-team' organization.id %}"
      class="btn btn-small btn-primary">{% trans "New Team" %}</a>
 {% endblock %}
 
