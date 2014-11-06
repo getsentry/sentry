@@ -1,39 +1,28 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/organization.html" %}
 
 {% load i18n %}
 
-{% block bodyclass %}team-index {{ block.super }}{% endblock %}
-
 {% block org_teams_nav %} class="active"{% endblock %}
 
-{% block main %}
-  <section class="body">
-    <h2>{{ organization.name }}</h2>
-    <a class="btn btn-primary btn-small pull-right" href="{% url 'sentry-new-team' organization.id %}">Create a New team</a>
-    <ul class="nav nav-tabs">
-      <li class="active"><a href="#">Teams</a></li>
-      <li><a href="#">Members</a></li>
-      <li><a href="#">Admin</a></li>
-    </ul>
-    <ul class="team-list">
-      {% for team, project_list in team_list %}
-        <li>
-          <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
-            <div class="sparkline">
-              <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-              <span class="loading">{% trans "Loading historical data..." %}</span>
-            </div>
+{% block inner %}
+  <ul class="team-list">
+    {% for team, project_list in team_list %}
+      <li>
+        <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
+          <div class="sparkline">
+            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+            <span class="loading">{% trans "Loading historical data..." %}</span>
           </div>
-          <h3><a href="{% url 'sentry' team.slug %}">{{ team.name }}</a></h3>
-          <ul>
-            {% for project in project_list %}
-              <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
-            {% endfor %}
-          </ul>
-        </li>
-      {% endfor %}
-    </ul>
-  </section>
+        </div>
+        <h3><a href="{% url 'sentry' team.slug %}">{{ team.name }}</a></h3>
+        <ul>
+          {% for project in project_list %}
+            <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
+          {% endfor %}
+        </ul>
+      </li>
+    {% endfor %}
+  </ul>
 {% endblock %}
 
 {% block content_after %}

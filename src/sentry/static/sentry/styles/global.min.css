@@ -8992,22 +8992,11 @@ table.vars table.vars th {
 .share-form label.checkbox {
   padding: 0 5px 0 29px;
 }
-.team-index #page-header {
-  display: none;
-}
-.team-index .nav-tabs {
-  border-bottom: 2px solid #dee3e9;
-}
-.team-index .body h2 {
-  font-size: 26px;
-  margin: 0 0 20px;
-  letter-spacing: -1px;
-}
-.team-index .body .team-list {
+.team-list {
   list-style: none;
   margin-left: 0;
 }
-.team-index .body .team-list > li {
+.team-list > li {
   display: block;
   margin: 0 0 20px 0;
   padding: 18px 22px;
@@ -9017,16 +9006,16 @@ table.vars table.vars th {
   -moz-border-radius: 7px;
   border-radius: 7px;
 }
-.team-index .body .team-list > li .loading {
+.team-list > li .loading {
   display: none;
 }
-.team-index .body .team-list > li:hover {
+.team-list > li:hover {
   border-color: #56AFE8;
 }
-.team-index .body .team-list > li:hover h3 {
+.team-list > li:hover h3 {
   color: #000;
 }
-.team-index .body .team-list > li h3 {
+.team-list > li h3 {
   width: 100%;
   position: relative;
   margin-bottom: 0;
@@ -9039,20 +9028,20 @@ table.vars table.vars th {
   color: #465262;
   font-weight: bold;
 }
-.team-index .body .team-list > li h3 a {
+.team-list > li h3 a {
   color: inherit;
 }
-.team-index .body .team-list > li h3 a:hover {
+.team-list > li h3 a:hover {
   color: #12659a;
 }
-.team-index .body .team-list > li > ul {
+.team-list > li > ul {
   position: relative;
   overflow: hidden;
   margin-left: 0;
   margin-bottom: 0;
   list-style: circle;
 }
-.team-index .body .team-list > li > ul > li {
+.team-list > li > ul > li {
   display: inline-block;
   width: 142px;
   margin-right: 5px;
@@ -9061,7 +9050,7 @@ table.vars table.vars th {
   text-overflow: ellipsis;
   line-height: 26px;
 }
-.team-index .body .team-list > li > ul > li a {
+.team-list > li > ul > li a {
   font-size: 17px;
 }
 .toggle-expand {
