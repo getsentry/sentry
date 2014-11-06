@@ -2,7 +2,12 @@
 
 {% load i18n %}
 
-{% block org_teams_nav %} class="active"{% endblock %}
+{% block org_teams_nav %}active{% endblock %}
+
+{% block actions %}
+  <a href="{% url 'sentry-new-team' organization.id %}"
+     class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+{% endblock %}
 
 {% block inner %}
   <ul class="team-list">

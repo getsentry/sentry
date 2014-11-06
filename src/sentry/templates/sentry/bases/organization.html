@@ -12,24 +12,25 @@
     </div>
 
     <div class="pull-right">
-      <a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
-        <span class="caret"></span>
-      </a>
-      <ul class="dropdown-menu">
-        <li><a href="{% url 'sentry-new-team' organization.id %}">{% trans "New Team" %}</a></li>
-        <li><a href="{% url 'sentry-create-organization-member' organization.id %}">{% trans "New Member" %}</a></li>
-      </ul>
+      {% block actions %}
+      {% endblock %}
     </div>
 
     <ul class="nav nav-tabs">
-      <li{% block org_teams_nav %}{% endblock %}>
-        <a href="{% url 'sentry-organization-home' organization.id %}">Teams</a>
+      <li class="{% block org_teams_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-home' organization.id %}">
+          {% trans "Teams" %}
+        </a>
       </li>
-      <li{% block org_members_nav %}{% endblock %}>
-        <a href="{% url 'sentry-organization-members' organization.id %}">Members</a>
+      <li class="{% block org_members_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-members' organization.id %}">
+          {% trans "Members" %}
+        </a>
       </li>
-      <li{% block org_settings_nav %}{% endblock %}>
-        <a href="{% url 'sentry-organization-settings' organization.id %}">Settings</a>
+      <li class="{% block org_settings_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-settings' organization.id %}">
+          {% trans "Admin" %}
+        </a>
       </li>
     </ul>
     {% block inner %}{% endblock %}
