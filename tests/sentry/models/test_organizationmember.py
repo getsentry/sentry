@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from django import mail
+from django.core import mail
 
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
