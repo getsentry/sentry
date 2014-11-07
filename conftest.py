@@ -93,6 +93,8 @@ def pytest_configure(config):
     settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
     settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
+    settings.CELERY_ALWAYS_EAGER = False
+
     settings.CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
