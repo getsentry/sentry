@@ -102,7 +102,9 @@ class RavenIntegrationTest(TestCase):
             dsn='http://%s:%s@localhost:8000/%s' % (
                 self.pk.public_key, self.pk.secret_key, self.pk.project_id)
         )
-        client.capture('Message', message='foo')
+
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            client.capture('Message', message='foo')
 
         send_remote.assert_called_once()
         self.assertEquals(Group.objects.count(), 1)
@@ -199,12 +201,13 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        resp = self.client.post(
-            self.path, message,
-            content_type='application/octet-stream',
-            HTTP_CONTENT_ENCODING='deflate',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                self.path, message,
+                content_type='application/octet-stream',
+                HTTP_CONTENT_ENCODING='deflate',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
 
         assert resp.status_code == 200, resp.content
 
@@ -229,12 +232,13 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        resp = self.client.post(
-            self.path, fp.getvalue(),
-            content_type='application/octet-stream',
-            HTTP_CONTENT_ENCODING='gzip',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                self.path, fp.getvalue(),
+                content_type='application/octet-stream',
+                HTTP_CONTENT_ENCODING='gzip',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
 
         assert resp.status_code == 200, resp.content
 

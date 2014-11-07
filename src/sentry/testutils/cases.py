@@ -131,11 +131,12 @@ class BaseTestCase(Fixtures, Exam):
             secret = self.projectkey.secret_key
 
         message = self._makePostMessage(data)
-        resp = self.client.post(
-            reverse('sentry-api-store'), message,
-            content_type='application/octet-stream',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                reverse('sentry-api-store'), message,
+                content_type='application/octet-stream',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
         return resp
 
     def _getWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
@@ -153,10 +154,11 @@ class BaseTestCase(Fixtures, Exam):
             'sentry_key': key,
             'sentry_data': message,
         }
-        resp = self.client.get(
-            '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
-            **headers
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.get(
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                **headers
+            )
         return resp
 
     _postWithSignature = _postWithHeader
