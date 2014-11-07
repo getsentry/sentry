@@ -63,7 +63,6 @@ def pytest_configure(config):
         'tests',
     )
     # Need a predictable key for tests that involve checking signatures
-    settings.SENTRY_KEY = 'abc123'
     settings.SENTRY_PUBLIC = False
 
     # This speeds up the tests considerably, pbkdf2 is by design, slow.
