@@ -8,15 +8,42 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
+    OrganizationMemberType, Team
 )
 from sentry.web.frontend.base import OrganizationView
 
 
 class EditOrganizationMemberForm(forms.ModelForm):
+    type = forms.TypedChoiceField(label=_('Membership Type'), choices=(
+        (OrganizationMemberType.MEMBER, _('Member')),
+        (OrganizationMemberType.ADMIN, _('Admin')),
+    ), coerce=int)
+    has_global_access = forms.BooleanField(
+        label=_('This member should have access to all teams within the organization.'),
+        required=False,
+    )
+    teams = forms.ModelMultipleChoiceField(
+        queryset=Team.objects.none(),
+        widget=forms.CheckboxSelectMultiple(),
+        required=False,
+    )
+
     class Meta:
         fields = ('type', 'has_global_access', 'teams')
         model = OrganizationMember
+
+    def __init__(self, *args, **kwargs):
+        super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
+
+        self.fields['teams'].queryset = Team.objects.filter(
+            organization=self.instance.organization,
+        )
+
+    def save(self, *args, **kwargs):
+        print self.cleaned_data
+        if self.cleaned_data['has_global_access']:
+            self.cleaned_data['teams'] = []
+        return super(EditOrganizationMemberForm, self).save(*args, **kwargs)
 
 
 class OrganizationMemberSettingsView(OrganizationView):
