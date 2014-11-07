@@ -95,7 +95,8 @@ class EventManagerTest(TestCase):
             message='foo bar', event_id='b' * 32,
             checksum='a' * 32,
         ))
-        event2 = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event2 = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
 
@@ -110,8 +111,8 @@ class EventManagerTest(TestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        event = manager.save(1)
-        print(event)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
         group.status = STATUS_RESOLVED
@@ -138,7 +139,8 @@ class EventManagerTest(TestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        event = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
         group.status = STATUS_RESOLVED
