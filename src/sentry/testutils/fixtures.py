@@ -45,7 +45,7 @@ class Fixtures(object):
             organization=self.organization,
             name='foo',
             slug='foo',
-            owner=self.user)
+            owner=self.organization.owner)
 
     @fixture
     def project(self):
