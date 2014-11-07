@@ -155,10 +155,6 @@ is not a fully supported database and should not be used in production**.
     # No trailing slash!
     SENTRY_URL_PREFIX = 'http://sentry.example.com'
 
-    # SENTRY_KEY is a unique randomly generated secret key for your server, and it
-    # acts as a signing token
-    SENTRY_KEY = '0123456789abcde'
-
     SENTRY_WEB_HOST = '0.0.0.0'
     SENTRY_WEB_PORT = 9000
     SENTRY_WEB_OPTIONS = {

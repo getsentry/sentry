@@ -209,7 +209,10 @@ def safely_load_json_string(json_string):
 
 
 def process_data_timestamp(data, current_datetime=None):
-    if is_float(data['timestamp']):
+    if not data['timestamp']:
+        del data['timestamp']
+        return data
+    elif is_float(data['timestamp']):
         try:
             data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
         except Exception:
