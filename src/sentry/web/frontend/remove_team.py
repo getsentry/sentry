@@ -20,7 +20,9 @@ class RemoveTeamView(TeamView):
     required_access = OrganizationMemberType.ADMIN
 
     def get_form(self, request):
-        return RemoveTeamForm(request.POST or None)
+        if request.method == 'POST':
+            return RemoveTeamForm(request.POST)
+        return RemoveTeamForm(None)
 
     def get(self, request, organization, team):
         form = self.get_form(request)

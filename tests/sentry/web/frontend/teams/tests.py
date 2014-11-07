@@ -2,13 +2,11 @@
 
 from __future__ import absolute_import
 
-import mock
-
 from django.core.urlresolvers import reverse
 from exam import before, fixture
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import Team, User
+from sentry.models import User
 from sentry.testutils import TestCase
 
 
@@ -30,31 +28,6 @@ class BaseTeamTest(TestCase):
     @before
     def login_user(self):
         self.login_as(self.user)
-
-
-class RemoveTeamTest(BaseTeamTest):
-    @fixture
-    def path(self):
-        return reverse('sentry-remove-team', args=[self.team.slug])
-
-    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=False))
-    def test_missing_permission(self):
-        resp = self.client.post(self.path)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry'))
-
-    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
-    def test_loads(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/remove.html')
-
-    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
-    def test_valid_params(self):
-        resp = self.client.post(self.path)
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry')
-        assert not Team.objects.filter(pk=self.team.pk).exists()
 
 
 class ManageProjectsTest(BaseTeamTest):
