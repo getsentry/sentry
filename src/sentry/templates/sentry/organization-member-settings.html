@@ -17,7 +17,7 @@
     {{ form|as_crispy_errors }}
 
     <fieldset>
-      <legend>{% trans "Details" %}</legend>
+      <h2>{% trans "Basics" %}</h2>
 
       <div class="control-group">
         <label>{% trans "User" %}</label>
@@ -41,14 +41,50 @@
     </fieldset>
 
     <fieldset>
-      <legend>{% trans "Access" %}</legend>
+      <h2>{% trans "Teams" %}</h2>
 
       {{ form.has_global_access|as_crispy_field }}
-      {{ form.teams|as_crispy_field }}
+
+      <fieldset class="team-choices">
+        {% for team_id, team_name in form.teams.field.choices %}
+          <div class="control-group">
+            <div class="controls">
+              <label class="checkbox">
+                <input type="checkbox" name="teams" value="{{ team_id }}"
+                       class="checkboxinput">
+                  {{ team_name }}
+                </label>
+            </div>
+          </div>
+        {% endfor %}
+      </fieldset>
     </fieldset>
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </div>
   </form>
+
+  <script>
+  $(function(){
+    var selectedTeams = [];
+    $('#id_has_global_access').change(function(){
+      var $this = $(this);
+      var checked = $this.is(':checked');
+      var selector = $('.team-choices input[type=checkbox]');
+
+      if (checked) {
+        selectedTeams = $('.team-choices input[type=checkbox]:checked').slice(0, selector.length);
+        selector.prop('checked', true);
+      } else {
+        selector.prop('checked', false);
+        $(selectedTeams).prop('checked', true);
+        selectedTeams = [];
+      }
+
+      $('.team-choices').prop('disabled', checked);
+
+    }).change();
+  });
+  </script>
 {% endblock %}
