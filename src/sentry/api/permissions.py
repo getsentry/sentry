@@ -28,15 +28,13 @@ def has_perm(object, user, project_key, access=MEMBER_USER):
 
     if type(object) == Project:
         if project_key:
+            print object == project_key.project, access == MEMBER_USER
             return object == project_key.project and access == MEMBER_USER
 
-        return any(
-            object == o
-            for o in Project.objects.get_for_user(
-                team=object.team,
-                user=user,
-                access=access,
-            )
+        return object in Project.objects.get_for_user(
+            team=object.team,
+            user=user,
+            access=access,
         )
 
     raise TypeError(type(object))

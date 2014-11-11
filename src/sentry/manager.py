@@ -89,10 +89,17 @@ class GroupManager(BaseManager):
 
 class ProjectManager(BaseManager):
     def get_for_user(self, team, user, access=None):
-        """
-        Returns a SortedDict of all projects a user has some level of access to.
-        """
+        from sentry.models import Team
+
         if not (user and user.is_authenticated()):
+            return []
+
+        team_list = Team.objects.get_for_user(
+            organization=team.organization,
+            user=user,
+            access=access,
+        )
+        if team not in team_list:
             return []
 
         base_qs = self.filter(team=team)
