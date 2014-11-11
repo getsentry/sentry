@@ -19,7 +19,9 @@ class SentryManagerTest(TestCase):
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')
         group = event.group
-        Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
+
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
 
         results = list(GroupTagValue.objects.filter(
             group=group, key='foo').order_by('id'))

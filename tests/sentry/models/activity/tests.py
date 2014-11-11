@@ -21,7 +21,8 @@ class SendNotificationTest(TestCase):
 
         self.project.team.member_set.create(user=user_foo)
 
-        activity.send_notification()
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            activity.send_notification()
 
         assert len(mail.outbox) == 1
 

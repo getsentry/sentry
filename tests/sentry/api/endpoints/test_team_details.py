@@ -1,8 +1,7 @@
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.constants import MEMBER_ADMIN
-from sentry.models import Team, TeamStatus
+from sentry.models import OrganizationMemberType, Team, TeamStatus
 from sentry.testutils import APITestCase
 
 
@@ -40,44 +39,23 @@ class TeamUpdateTest(APITestCase):
         })
         assert resp.status_code == 400, resp.content
 
-    def test_owner_can_change_owner(self):
-        user = self.create_user('owner@example.com', is_superuser=False)
-        new_user = self.create_user('new-owner@example.com')
-        team = self.create_team(owner=user)
-
-        url = reverse('sentry-api-0-team-details', kwargs={'team_id': team.id})
-
-        self.login_as(user=user)
-
-        resp = self.client.put(url, {
-            'name': 'Test Team',
-            'slug': 'test',
-            'owner': new_user.username,
-        })
-        assert resp.status_code == 200, resp.content
-
-        team = Team.objects.get(name='Test Team')
-        assert team.owner == new_user
-
-        member_set = list(team.member_set.all())
-
-        self.assertEquals(len(member_set), 2)
-        member_set.sort(key=lambda x: x.user_id)
-        member = member_set[0]
-        self.assertEquals(member.user, user)
-        self.assertEquals(member.type, MEMBER_ADMIN)
-        member = member_set[1]
-        self.assertEquals(member.user, new_user)
-        self.assertEquals(member.type, MEMBER_ADMIN)
-
 
 class TeamDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.team_details.delete_team')
-    def test_simple(self, delete_team):
+    def test_as_admin(self, delete_team):
         team = self.create_team()
         project = self.create_project(team=team)  # NOQA
 
-        self.login_as(user=self.user)
+        user = self.create_user(email='foo@example.com', is_superuser=False)
+
+        team.organization.member_set.create_or_update(
+            user=user,
+            defaults={
+                'type': OrganizationMemberType.ADMIN,
+            }
+        )
+
+        self.login_as(user)
 
         url = reverse('sentry-api-0-team-details', kwargs={'team_id': team.id})
 
@@ -107,13 +85,18 @@ class TeamDeleteTest(APITestCase):
 
         assert response.status_code == 403
 
-    def test_as_non_owner(self):
+    def test_as_member(self):
         team = self.create_team(owner=self.user)
         project = self.create_project(team=team)  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
-        team.member_set.create(user=user, type=MEMBER_ADMIN)
+        team.organization.member_set.create_or_update(
+            user=user,
+            defaults={
+                'type': OrganizationMemberType.MEMBER,
+            }
+        )
 
         self.login_as(user=user)
 
