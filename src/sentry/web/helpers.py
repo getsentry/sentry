@@ -212,7 +212,7 @@ def plugin_config(plugin, project, request):
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
                 else:
-                    Option.objects.set_value(key, value)
+                    options.set(key, value)
 
             return ('redirect', None)
 
