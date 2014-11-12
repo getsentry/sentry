@@ -15,14 +15,14 @@
 @black: #111;
 @white: #fff;
 @sentry-orange: #fb4226;
-@blue: darken(#56AFE8, 2);
+@blue: #409AED;
 @green: #07CC6D;
 @yellow: #f5db00;
 @red: #e03c38;
 
-@linkColor: darken(@blue, 10%);
+@linkColor: @blue;
 
-@linkColorHover: darken(@blue, 25%);
+@linkColorHover: darken(@blue, 15%);
 
 @iconSpritePath:          "../bootstrap/img/glyphicons-halflings.png";
 @iconWhiteSpritePath:     "../bootstrap/img/glyphicons-halflings-white.png";
@@ -99,6 +99,7 @@ a {
   text-decoration: none;
   .transition(color linear .2s);
   cursor: pointer;
+
   &:hover {
     color: @linkColorHover;
     text-decoration: none;
@@ -284,7 +285,7 @@ header {
 
     .icon-arrow-down {
       top: 2px;
-      line-height: 1;
+      line-height: 0;
     }
   }
 
@@ -368,6 +369,18 @@ header {
       font-weight: 400;
       color: #B5B9C0;
       margin-left: 3px;
+    }
+
+    .team-settings {
+      opacity: .3;
+      margin-left: 6px;
+      margin-top: 1px;
+      font-size: 16px;
+      .transition(.2s all);
+
+      &:hover {
+        opacity: 1;
+      }
     }
   }
 }
@@ -538,11 +551,12 @@ footer {
 .btn-primary {
   color: #ffffff;
   background-color: @blue;
-  border-color: darken(@blue, 15);
+  border-color: darken(@blue, 20);
   box-shadow: 0 1px 1px rgba(70, 82, 98, 0.16);
   text-shadow: 0 -1px 0 rgba(70, 82, 98, 0.4);
   &:hover, &:focus, &:active {
-    background-color: darken(@blue, 10);
+
+    background-color: darken(@blue, 4);
     border-color: darken(@blue, 30);
   }
 }
@@ -583,6 +597,7 @@ footer {
     font-weight: 600;
     padding: 8px 14px;
     border-radius: 4px;
+
     &:hover {
       background: #f1f2f3;
     }
@@ -591,8 +606,7 @@ footer {
   &.active {
     a, a:hover {
       color: #fff;
-      background: #2598e1;
-      border-color: #1a7ebe;
+      background: @blue;
     }
   }
 }
@@ -637,15 +651,15 @@ footer {
 
     &.active {
       &:after, &:before {
-        background: #1a7ebe;
+        background: darken(@blue, 20);
       }
     }
   }
   .btn.active {
     color: #fff;
     box-shadow: none;
-    background: #2598e1;
-    border-color: #1a7ebe;
+    background: @blue;
+    border-color: darken(@blue, 20);
   }
 }
 
@@ -900,13 +914,13 @@ a.icon-share {
       bottom: 0;
       left: 0;
       right: 1px;
-      background: #dfe3e9;
-      border: 1px solid #dfe3e9;
+      background: lighten(#949ea4, 10);
       min-width: 1px;
       height: 0;
       overflow: hidden;
       text-indent: -9999px;
-
+      text-align: left;
+      min-height: 2px;
     }
   }
 }
@@ -1036,27 +1050,31 @@ a.icon-share {
 
   .stream-actions-graph {
     vertical-align: middle;
-    width: 100px;
+    width: 120px;
     font-size: 13px;
-    padding-right: 0;
+    padding-right: 10px;
+    padding-left: 10px;
   }
 
-  .stram-actions-assignee {
-    width: 40px;
+  .stream-actions-assignee {
+    width: 90px;
+    padding-left: 20px;
+    padding-left: 20px;
   }
 
-  .stream-actions-occurrences {
-    width: 100px;
-    padding-left: 30px;
-    font-size: 13px;
-  }
+  .stream-actions-occurrences,
   .stream-actions-users {
-    width: 100px;
-    padding-left: 30px;
-    border-radius: 0 4px 0 0;
+    width: 90px;
+    padding-left: 10px;
+    padding-left: 10px;
     font-size: 13px;
+  }
+
+  .stream-actions-users {
+    border-radius: 0 4px 0 0;
     border-right: 1px solid #e1e4e5;
   }
+
   .realtime-paused {
     .btn-danger();
   }
@@ -1131,6 +1149,7 @@ a.icon-share {
   .is-assigned {
     clear: both;
     text-align: right;
+    padding-top: 1px;
   }
 
   .assigned-to {
@@ -1256,7 +1275,7 @@ a.icon-share {
       bottom: -1px;
       left: -1px;
       width: 4px;
-      background: #54adff;
+      background: lighten(@blue, 5);
       z-index: 100;
       .transition(all .2s ease-in-out);
     }
@@ -1388,24 +1407,18 @@ a.icon-share {
 
   .event-assignee {
     width: 80px;
-    padding: 0 30px;
+    padding: 0 20px;
     text-align: right;
 
-    .open .dropdown-toggle {
-      background: #f1f2f3 !important;
-      border-color: #cacccc;
-      box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
-    }
-
     .dropdown-menu {
-      right: 31px;
-      top: 54px;
+      right: 21px;
+      top: 58px;
     }
   }
 
   .event-graph {
-    width: 100px;
-    margin-left: 30px;
+    width: 120px;
+    padding: 0 10px;
   }
 
   .event-users {
@@ -1414,9 +1427,10 @@ a.icon-share {
 
   .event-users, .event-occurrences {
     vertical-align: middle;
-    padding-left: 30px;
+    padding-left: 10px;
     padding-right: 10px;
-    width: 100px;
+    width: 90px;
+
     span {
       color: #949ea4;
       font-size: 20px;
@@ -1482,6 +1496,7 @@ a.icon-share {
     width: 50px;
     box-shadow: none;
     text-align: right;
+    border-color: transparent;
 
     .icon-user {
       width: 16px;
@@ -1496,6 +1511,12 @@ a.icon-share {
     }
   }
 
+  .open .btn {
+    background: #f6f7f8 !important;
+    border-color: #cacccc !important;
+    box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+  }
+
   .dropdown-menu {
     left: auto;
     right: 16px;
@@ -1503,7 +1524,7 @@ a.icon-share {
     padding-top: 0;
     overflow: hidden;
     max-width: 250px;
-    top: 29px;
+    top: 32px;
 
     .form-control {
       border: 0;
@@ -1889,6 +1910,13 @@ ol.context-line {
     .nav-pills {
       position: relative;
       right: -6px;
+
+      a {
+        padding: 2px 8px;
+        font-size: 12px;
+        border-radius: 4px;
+      }
+
       .active {
         a {
           background: @blue;
@@ -2275,7 +2303,8 @@ header + .messages-container {
 
     .nav-pills {
       position: relative;
-      top: -2px;
+      top: 1px;
+      right: -2px;
       margin: 0 0 -4px;
     }
   }
@@ -2335,7 +2364,7 @@ table.table td .select2-container {
 
 
 .navbar-inverse .nav .active > a, .navbar-inverse .nav .active > a:hover, .navbar-inverse .nav .active > a:focus {
-  background: #56AFE8;
+  background: @blue;
 }
 
 .nav-list > li > a, .nav-list > li > a:hover, .nav-list > li.active > a, .nav-list > li.active > a:hover {
@@ -2364,7 +2393,7 @@ table.table td .select2-container {
   }
 
   li.active a, li.active a:hover {
-    background: #56AFE8;
+    background: @blue;
     color: #fff;
   }
 
@@ -2612,79 +2641,76 @@ table.integrations {
     list-style: none;
     padding-left: 0;
 
-    > li {
-      display: block;
-      margin: 0 0 20px 0;
-      padding: 18px 20px 12px;
-      border: 1px solid darken(#E9EBEC, 2.5);
-      box-shadow: 0 1px 2px rgba(70, 82, 98, .06);
+    h3 a {
+      color: @gray;
+    }
+
+    .box-content {
       position: relative;
-      border-radius: 5px;
       overflow: hidden;
+    }
 
-      .loading {
-        display: none;
-      }
+    .loading {
+      display: none;
+    }
 
-      &:hover {
-        border-color: #56AFE8;
-        h2 {
-          color: #000;
-        }
-      }
+    .chart {
+      display: block;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      top: 10px;
+      opacity: .75;
+    }
 
-      h2 {
-        width: 100%;
-        position: relative;
+    ul {
+      position: relative;
+
+      overflow: hidden;
+      padding-left: 0;
+      list-style: circle;
+      margin-left: -2%;
+      margin-bottom: 0;
+
+      > li {
+        float: left;
+        width: 23%;
+        margin-left: 2%;
         margin-bottom: 8px;
-        line-height: 26px;
-        font-size: 22px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: @grayDark;
-        font-weight: 500;
 
         a {
-          color: inherit;
-          &:hover {
-            color: @linkColorHover;
-          }
+          display: block;
+          font-size: 17px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       }
+    }
+  }
 
-      .chart {
-        display: block;
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: -1px;
-        top: 10px;
-      }
+  // Team settings
 
-      > ul {
-        position: relative;
+  .team-settings-toggle {
+    position: relative;
+    top: 2px;
+    margin-left: 4px;
+    opacity: .50;
+    .transition(.2s opacity);
 
-        overflow: hidden;
-        padding-left: 0;
-        list-style: circle;
-        margin-left: -2%;
+    &:hover {
+      opacity: 1;
+    }
+  }
 
-        > li {
-          float: left;
-          width: 23%;
-          margin-left: 2%;
-          margin-bottom: 5px;
+  .team-settings {
+    display: none;
+  }
 
-          a {
-            display: block;
-            font-size: 17px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-        }
-      }
+  .settings-open {
+    .team-settings-toggle {
+      opacity: 1;
     }
   }
 }
@@ -2717,7 +2743,7 @@ table.integrations {
 }
 .popover-title {
   font-size: 10px;
-  background: #56AFE8;
+  background: @blue;
   color: #fff;
 }
 .popover-title,
@@ -3173,12 +3199,6 @@ table.integrations {
     .assigned-to .btn-group {
       float: none;
       margin-left: -6px;
-
-      &.open .dropdown-toggle {
-        background: #f1f2f3 !important;
-        border-color: #cacccc ;
-        box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
-      }
 
       .dropdown-menu {
         left: 0;
