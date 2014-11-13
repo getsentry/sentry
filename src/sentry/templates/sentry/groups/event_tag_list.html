@@ -4,12 +4,90 @@
 {% load sentry_helpers %}
 
 {% block inner %}
+    <div class="btn-group">
+        <a href="#" class="btn dropdown-toggle btn-sm" onclick="" data-toggle="dropdown">
+           {% if from_date %}
+               {% if not to_date %}
+                   Since: {{ from_date|date:"M jS" }}
+               {% else %}
+                   Between: {{ from_date|date:"M jS" }} <small>and</small> {{ to_date|date:"M jS" }}
+               {% endif %}
+           {% else %}
+               {% if to_date %}
+                   Before: {{ to_date|date:"M jS" }}
+               {% else %}
+                   Date
+               {% endif %}
+           {% endif %}
+        <span aria-hidden="true" class="icon-arrow-down"></span></a>
+       <!--  <div class="datepicker-box dropdown-menu" id="daterange"> -->
+            <form method="GET" action=".">
+                {% for key, value in request.GET.iteritems %}
+                    {% if key != df and key != tf and key != dt and key != tt and key != page %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+                <div class="input">
+                  <div class="inline-inputs">
+                    <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"
+                           name="df" class="form-control date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" placeholder="Date" />
+                    <input class="time form-control" type="text" name="tf" value="{% if from_date %}{{ from_date|time:"h:i A" }}{% endif %}" placeholder="Time" />
+                    to
+                    <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"
+                           name="dt" class="date form-control" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" placeholder="Date"/>
+                    <input class="time form-control" type="text" name="tt" value="{% if to_date %}{{ to_date|time:"h:i A" }}{% endif %}" placeholder="Time" />
+                  </div>
+                  <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
+                </div>
+                <div class="submit">
+                    <div class="pull-right">
+                        <button class="btn btn-default btn-sm" onclick="$('#daterange input[type=text]').val(''); this.form.submit();">
+                            {% trans "Clear" %}
+                        </button>
+                        <button class="btn btn-primary btn-sm">{% trans "Apply" %}</button>
+                    </div>
+                </div>
+            </form>
+        <!-- </div> -->
+    </div>
+    <div class="search">
+        <form class="form-horizontal" action="." method="GET">
+            <div>
+                <input type="text" class="search-input form-control"
+                       placeholder="Search for messages."
+                       name="query"
+                       value="{% if query %}{{query}}{% endif %}">
+                <span class="icon-search"></span>
+            </div>
+            <!-- <div class="search-dropdown" style="display:none">
+              <ul class="search-helper search-autocomplete-list">
+                <li class="search-autocomplete-item">
+                  <span class="icon icon-tag"></span>
+                  <h4>Tag - <span class="search-description">key/value pair associated to an event</span></h4>
+                  <p class="search-example">browser:"Chrome 34"</p>
+                </li>
+                <li class="search-autocomplete-item">
+                  <span class="icon icon-toggle"></span>
+                  <h4>Status - <span class="search-description">State of an event</span></h4>
+                  <p class="search-example">is:resolved, unresolved, muted</p>
+                </li>
+                <li class="search-autocomplete-item">
+                  <span class="icon icon-user"></span>
+                  <h4>Assigned - <span class="search-description">team member assigned to an event</span></h4>
+                  <p class="search-example">assigned:[me|user@example.com]</p>
+                </li>
+              </ul>
+            </div> -->
+        </form>
+    </div>
     {% paginate event_list from request as event_list per_page EVENTS_PER_PAGE %}
 
     {% if event_list.objects %}
         {% url 'sentry-help' as link %}
-        <p class="alert alert-info">{% blocktrans %}This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
+        <!-- <p class="alert alert-info">{% blocktrans %}This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p> -->
 
+
+        <p>
         <ul class="events similar-events">
             {% for event in event_list.objects %}
 

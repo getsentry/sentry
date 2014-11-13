@@ -304,14 +304,56 @@ def group_event_list(request, team, project, group):
 
 @has_group_access
 def group_event_tag_list(request, team, project, group, grouptagvalue):
-    # now we need all the events with spacific GroupTagValueId id
-    # and all their tag_values
+    # Lets try to do some sorting and queriing
+    from sentry.utils.dates import parse_date
+    from datetime import timedelta
+#     assert_perm(project, request.user, request.auth)
+    query = request.GET.get('query')
+
+    # TODO: dates should include timestamps
+    date_from = request.GET.get('df')
+    time_from = request.GET.get('tf')
+
+    date_to = request.GET.get('dt')
+    time_to = request.GET.get('tt')
+
+    today = timezone.now()
+    # date format is Y-m-d
+
     event_list = Event.objects.filter(
         id__in=EventFilterTagValue.objects.filter(
             group_id=group.id,
             grouptagvalue_id=grouptagvalue,
-        ).values_list('event_id')
-    ).order_by('-datetime')
+        ).values_list('event_id'),
+    )
+    with open("simon_sentry_doodle.log", 'w') as f:
+        if any(x is not None for x in [date_from, time_from, date_to, time_to]):
+            date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
+            f.write("1date from to " + str(date_from) + " " + str(date_to) + "\n")
+        else:
+            date_from = today - timedelta(days=5)
+            date_to = None
+
+        if query is not None:
+            f.write("2query " + query + "\n")
+
+            event_list = event_list.filter(
+                message__icontains=query
+            )
+        if date_from is not None and date_to is not None:
+            f.write("3date_from " + str(date_from) + "\n")
+            f.write("4date_to " + str(date_to) + "\n")
+            event_list = event_list.filter(
+                datetime__range=(date_from, date_to)
+            )
+        elif date_from is not None:
+            f.write("5date_from " + str(date_from) + "\n")
+            event_list = event_list.filter(
+                datetime__gt=date_from
+            )
+
+    # now we need all the events with spacific GroupTagValueId id
+    # and all their tag_values
 
     full_list = event_list.values(
         'eventfiltertagvalue__grouptagvalue__key',
@@ -330,9 +372,12 @@ def group_event_tag_list(request, team, project, group, grouptagvalue):
         group,
         'sentry/groups/event_tag_list.html',
         {
-            'event_list': event_list,
+            'event_list': event_list.order_by('-datetime'),
             'full_list': full_list,
             'page': 'event_list',
+            'query': query,
+            'from_date': date_from,
+            'to_date': date_to
         },
         request
     )
