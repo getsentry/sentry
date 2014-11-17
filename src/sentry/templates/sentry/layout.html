@@ -118,47 +118,80 @@
     </head>
 
     <body class="{% block wrapperclass %}{% endblock %}" ng-app="sentry">
+      {% if request.user.is_authenticated %}
+      <div class="app-sidebar">
+        <div class="user-info">
+          <img src="{% gravatar_url user.email size 72 %}">
+          <p><strong><a href="#">{{ user.username }}</a></strong></p>
+          <p><small><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a>
+            {% if request.user.is_staff %}<a class="divider" href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>{% endif %}
+            <a class="divider" href="{% url 'sentry-logout' %}">{% trans "Sign Out" %}</a>
+            </small></p>
+        </div>
+        <div class="user-options">
+          <ul class="list-unstyled">
+            <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
+            <li><strong><a href="#"><span class="icon icon-question"></span>Support</a></strong></li>
+            <li><strong><a href="#"><span class="icon icon-comments"></span>Chat</a></strong></li>
+          </ul>
+        </div>
+        <div class="organizations">
+          <h6>Organizations</h6>
+          <ul class="list-unstyled">
+            <li class="active"><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">Hanna Barbera</a></strong></li>
+            <li><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">GitHub</a></strong></li>
+            <li><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">Sentry</a></strong></li>
+
+          </ul>
+        </div>
+        <div class="teams">
+          {% if TEAM_LIST %}
+              {% for t, p_list in TEAM_LIST|reorder_teams:team %}
+                <div class="team">
+                    <h6><a class="pull-right" href="#"><span class="icon-settings"></span></a><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>
+                    <ul class="project-list list-unstyled">
+                        {% for p in p_list %}
+                            <li{% if p.id == project.id %} class="active"{% endif %}>
+                                <strong><a href="{% url 'sentry-stream' t.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a></strong>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+              {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="app">
         {% block body %}
         {% block header %}
             <header>
                 <div class="container">
-                  {% block logo %}<a id="logo" href="{% url 'sentry' %}"><span class="icon-sentry-logo"></span></a>{% endblock %}
-                  <ul class="pull-right user-nav">
+                  {% if request.user.is_authenticated %}
+                    <a class="sidebar-toggle" onclick="$('body').toggleClass('show-sidebar');">
+                      <span class="icon-menu"></span>
+                    </a>
+                  {% endif %}
+
+                  <div class="pull-right">
                       {% block account_nav %}
                           {% if request.user.is_authenticated %}
-                              <li class="dropdown">
-                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="icon-building"></span> Hanna-Barbera <span class="icon-arrow-down"></span></a>
-                                  <ul class="orgs dropdown-menu">
-                                    <li><h6><a href="" class="icon-plus pull-right"></a>Organizations</h6></li>
-                                    <li class="active"><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> Hanna-Barbera</a></li>
-                                    <li class=""><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> GitHub</a></li>
-                                    <li class=""><a href="#"><span class="icon-building"></span><span class="icon-settings"></span> Captain Planet, Inc</a></li>
-                                    <li class="divider"></li>
-                                    <li><a href="#"><span class="icon-user"></span> ckj</a></li>
-                                  </ul>
-                              </li>
-                              <li class="hidden-xs">
-                                <a href="{% url 'sentry-help' %}">
-                                    <span class="icon icon-book"></span> {% trans "Docs" %}
-                                </a>
-                              </li>
-                              <li class="pull-right dropdown">
-                                  <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="user-avatar" src="{% gravatar_url user.email size 44 %}"> <span class="icon-arrow-down"></span></a>
-                                  <ul class="dropdown-menu">
-                                      <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-                                      <li><a href="{% url 'sentry' %}">{% trans "Teams" %}</a></li>
-                                      {% if request.user.is_staff %}
-                                          <li><a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a></li>
-                                      {% endif %}
-                                      <li class="divider">
-                                      <li><a href="{% url 'sentry-logout' %}">{% trans "Logout" %}</a></li>
-                                  </ul>
-                              </li>
+                          <div class="dropdown new-dropdown">
+                            <a class="dropdown-toggle new-menu">
+                              <span class="icon-new"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                              <li><a href="#">Organization</a></li>
+                              <li><a href="#">Team</a></li>
+                              <li><a href="#">Project</a></li>
+                              <li><a href="#">Member</a></li>
+                            </ul>
+                          </div>
                           {% else %}
-                              <li><a href="{% url 'sentry-login' %}">{% trans "Login" %}</a></li>
+                              <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
                           {% endif %}
                       {% endblock %}
-                  </ul>
+                  </div>
                     <!-- <a id="logo" href="{% url 'sentry' %}">Sentry</a> -->
                     {% if team %}
                     <div class="project-dropdown">
@@ -286,5 +319,6 @@
 
         </script>
         {% endblock %}
+      </div>
     </body>
 </html>
