@@ -11,9 +11,6 @@
     {{ block.super }}
     <a href="{% url 'sentry' team.slug %}" class="back-button icon-arrow-left hidden-xs"></a>
     <ul class="nav nav-tabs project-nav hidden-xs" style="margin-bottom: 20px;">
-        <li class="pull-right hidden-xs broadcast">
-            <broadcast></broadcast>
-        </li>
         <li class="active">
             <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
@@ -25,6 +22,9 @@
                 </a>
             </li>
         {% endif %}
+        <li class="pull-right hidden-xs broadcast">
+            <broadcast></broadcast>
+        </li>
     </ul>
 
     <div class="filter-nav" ng-controller="ProjectStreamControlsCtrl">
