@@ -186,7 +186,8 @@
             <a href="{% url 'sentry-group-tags' group.team.slug group.project.slug group.id %}">{% trans "Tags" %}</a>
         </li>
         <li{% if page == 'event_list' or page == 'event' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-group-events' group.team.slug group.project.slug group.id %}">{% trans "Similar Events" %}</a>
+        <!--     <a href="{% url 'sentry-group-events' group.team.slug group.project.slug group.id %}">{% trans "Similar Events" %}</a> -->
+            <a href="{% url 'sentry-group-events-tag' group.team.slug group.project.slug group.id %}">{% trans "Similar Events" %}</a>
         </li>
     </ul>
 

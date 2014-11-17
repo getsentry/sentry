@@ -303,7 +303,7 @@ def group_event_list(request, team, project, group):
 
 
 @has_group_access
-def group_event_tag_list(request, team, project, group, grouptagvalue):
+def group_event_tag_list(request, team, project, group, grouptagvalue=None):
     # Lets try to do some sorting and queriing
     from sentry.utils.dates import parse_date
     from datetime import timedelta
@@ -320,37 +320,44 @@ def group_event_tag_list(request, team, project, group, grouptagvalue):
     today = timezone.now()
     # date format is Y-m-d
 
+
     event_list = Event.objects.filter(
         id__in=EventFilterTagValue.objects.filter(
             group_id=group.id,
-            grouptagvalue_id=grouptagvalue,
         ).values_list('event_id'),
     )
-    with open("simon_sentry_doodle.log", 'w') as f:
-        if any(x is not None for x in [date_from, time_from, date_to, time_to]):
-            date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
-            f.write("1date from to " + str(date_from) + " " + str(date_to) + "\n")
-        else:
-            date_from = today - timedelta(days=5)
-            date_to = None
 
-        if query is not None:
-            f.write("2query " + query + "\n")
+    if grouptagvalue is not None:
+        event_list = Event.objects.filter(
+            id__in=EventFilterTagValue.objects.filter(
+                group_id=group.id,
+                grouptagvalue_id=grouptagvalue,
+            ).values_list('event_id'),
+        )
 
-            event_list = event_list.filter(
-                message__icontains=query
-            )
-        if date_from is not None and date_to is not None:
-            f.write("3date_from " + str(date_from) + "\n")
-            f.write("4date_to " + str(date_to) + "\n")
-            event_list = event_list.filter(
-                datetime__range=(date_from, date_to)
-            )
-        elif date_from is not None:
-            f.write("5date_from " + str(date_from) + "\n")
-            event_list = event_list.filter(
-                datetime__gt=date_from
-            )
+    if any(x is None for x in [date_from, time_from, date_to, time_to]):
+        date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
+    else:
+        date_from = today - timedelta(days=30)
+        date_to = today
+
+    if query is not None:
+        event_list = event_list.filter(
+            message__icontains=query
+        )
+
+    if date_from is not None and date_to is not None:
+        event_list = event_list.filter(
+            datetime__range=(date_from, date_to)
+        )
+    elif date_from is not None:
+        event_list = event_list.filter(
+            datetime__gt=date_from
+        )
+    elif date_to is not None:
+        event_list = event_list.filter(
+            datetime__lt=date_from
+        )
 
     # now we need all the events with spacific GroupTagValueId id
     # and all their tag_values
