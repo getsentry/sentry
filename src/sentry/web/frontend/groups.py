@@ -320,7 +320,6 @@ def group_event_tag_list(request, team, project, group, grouptagvalue=None):
     today = timezone.now()
     # date format is Y-m-d
 
-
     event_list = Event.objects.filter(
         id__in=EventFilterTagValue.objects.filter(
             group_id=group.id,
