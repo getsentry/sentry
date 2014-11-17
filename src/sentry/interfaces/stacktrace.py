@@ -83,7 +83,7 @@ def is_newest_frame_first(event):
 
 
 def is_url(filename):
-    return filename.startswith(('http:', 'https:', 'file:'))
+    return '://' in filename
 
 
 def remove_function_outliers(function):
