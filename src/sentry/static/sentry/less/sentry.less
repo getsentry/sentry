@@ -275,9 +275,19 @@ ul,ol {
   }
 
   .divider-top {
-    border-top: 1px solid rgba(0,0,0, .1);
-    padding: 0 22px;
-    margin: 0 -22px;
+    position: relative;
+    padding-top: 4px;
+
+    &:after {
+      position: absolute;
+      top: 0;
+      width: 26px;
+      height: 2px;
+      content: "";
+      display: block;
+      background: rgba(0,0,0, .14);
+      border-radius: 3px;
+    }
   }
 }
 
@@ -319,7 +329,7 @@ header {
   color: @gray;
   padding: 20px 0 18px;
   margin: 0 0 30px;
-  border-bottom: 1px solid #e1e4e5;
+  border-bottom: 2px solid #E8EBEC;
   position: relative;
   text-align: center;
 
