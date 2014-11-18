@@ -142,10 +142,13 @@ class Frame(Interface):
         if not abs_path:
             abs_path = filename
 
-        if not filename:
+        if filename:
+            have_filename = True
+        else:
+            have_filename = False
             filename = abs_path
 
-        if abs_path and is_url(abs_path):
+        if not have_filename and abs_path and is_url(abs_path):
             urlparts = urlparse(abs_path)
             if urlparts.path:
                 filename = urlparts.path
