@@ -117,15 +117,15 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %}" ng-app="sentry">
+    <body class="{% block wrapperclass %}{% endblock %} show-sidebar" ng-app="sentry">
       {% if request.user.is_authenticated %}
       <div class="app-sidebar">
         <div class="user-info">
           <img src="{% gravatar_url user.email size 72 %}">
           <p><strong><a href="#">{{ user.username }}</a></strong></p>
-          <p><small><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a>
-            {% if request.user.is_staff %}<a class="divider" href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>{% endif %}
-            <a class="divider" href="{% url 'sentry-logout' %}">{% trans "Sign Out" %}</a>
+          <p><small>
+            <a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a>
+            <a class="divider" href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a>
             </small></p>
         </div>
         <div class="user-options">
@@ -133,6 +133,9 @@
             <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
             <li><strong><a href="#"><span class="icon icon-question"></span>Support</a></strong></li>
             <li><strong><a href="#"><span class="icon icon-comments"></span>Chat</a></strong></li>
+            {% if request.user.is_staff %}
+            <li><strong><a href="{% url 'sentry-admin-status' %}"> <span class="icon icon-settings"></span>{% trans "Admin" %}</a></strong></li>
+            {% endif %}
           </ul>
         </div>
         <div class="organizations">
