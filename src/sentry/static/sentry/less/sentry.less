@@ -298,8 +298,8 @@ body.show-sidebar {
     left: 0;
   }
 
-  .group-header-container {
-    margin-left: -15px;
+  .group-header-container.affix {
+    left: 220px;
   }
 
   .sidebar-toggle {
@@ -1187,7 +1187,7 @@ a.icon-share {
 .group-header-container {
   margin-bottom: -45px;
   > .container {
-    left: -15px;
+    padding: 0;
   }
 
   &.affix {
@@ -1197,6 +1197,8 @@ a.icon-share {
     right: 0;
     box-shadow: 0 1px 0 rgba(0,0,0, .1), 0 1px 2px rgba(0,0,0, .06);
     background: #f9f9f9;
+    padding-left: 30px;
+    padding-right: 30px;
 
     .group-header {
       margin-bottom: 0;
