@@ -138,7 +138,7 @@
             {% endif %}
           </ul>
         </div>
-        <div class="organizations">
+        <div class="organizations divider-top">
           <h6>Organizations</h6>
           <ul class="list-unstyled">
             <li class="active"><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">Hanna Barbera</a></strong></li>
@@ -147,7 +147,7 @@
 
           </ul>
         </div>
-        <div class="teams">
+        <div class="teams divider-top">
           {% if TEAM_LIST %}
               {% for t, p_list in TEAM_LIST|reorder_teams:team %}
                 <div class="team">
