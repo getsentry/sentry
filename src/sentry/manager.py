@@ -143,7 +143,7 @@ class TeamManager(BaseManager):
         Each <Team> returned has an ``access_type`` attribute which holds the
         MEMBER_TYPE value.
         """
-        from sentry.models import TeamMember, AccessGroup, Project
+        from sentry.models import TeamMember, TeamStatus, AccessGroup, Project
 
         results = SortedDict()
 
@@ -160,8 +160,9 @@ class TeamManager(BaseManager):
 
         for tm in qs:
             team = tm.team
-            team.access_type = tm.type
-            all_teams.add(team)
+            if team.status == TeamStatus.VISIBLE:
+                team.access_type = tm.type
+                all_teams.add(team)
 
         if access_groups:
             qs = AccessGroup.objects.filter(
