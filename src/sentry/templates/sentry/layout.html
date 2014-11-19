@@ -122,7 +122,7 @@
       <div class="app-sidebar">
         <div class="user-info">
           <img src="{% gravatar_url user.email size 72 %}">
-          <p><strong><a href="#">{{ user.username }}</a></strong></p>
+          <p><strong><a class="username" href="#">{{ user.username }}</a></strong></p>
           <p><small>
             <a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a>
             <a class="divider" href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a>
@@ -130,7 +130,7 @@
         </div>
         <div class="user-options">
           {% block account_nav %}
-          <ul class="list-unstyled">
+          <ul class="list-unstyled truncate">
               <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
               {% block support_link %}{% endblock %}
               <li><strong><a href="https://kiwiirc.com/client/irc.freenode.net/#sentry" target="_blank"><span class="icon icon-comments"></span>Chat</a></strong></li>
@@ -142,7 +142,7 @@
         </div>
         <div class="organizations divider-top">
           <h6>Organizations</h6>
-          <ul class="list-unstyled">
+          <ul class="list-unstyled truncate">
             <li class="active"><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">Hanna Barbera</a></strong></li>
             <li><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">GitHub</a></strong></li>
             <li><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">Sentry</a></strong></li>
@@ -154,7 +154,7 @@
               {% for t, p_list in TEAM_LIST|reorder_teams:team %}
                 <div class="team">
                     <h6><a class="pull-right" href="#"><span class="icon-settings"></span></a><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>
-                    <ul class="project-list list-unstyled">
+                    <ul class="project-list list-unstyled truncate">
                         {% for p in p_list %}
                             <li{% if p.id == project.id %} class="active"{% endif %}>
                                 <strong><a href="{% url 'sentry-stream' t.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a></strong>

@@ -187,6 +187,8 @@ ul,ol {
   padding: 20px 22px;
   overflow: hidden;
   color: #fff;
+  overflow: auto;
+
   .transition(.1s left ease-in-out);
 
   a {
@@ -288,6 +290,17 @@ ul,ol {
       background: rgba(0,0,0, .14);
       border-radius: 3px;
     }
+  }
+
+  h6, .truncate li strong a, .username {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .organizations .truncate li strong a {
+    margin-right: 20px;
   }
 }
 
