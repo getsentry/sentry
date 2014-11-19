@@ -129,14 +129,16 @@
             </small></p>
         </div>
         <div class="user-options">
+          {% block account_nav %}
           <ul class="list-unstyled">
-            <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
-            <li><strong><a href="#"><span class="icon icon-question"></span>Support</a></strong></li>
-            <li><strong><a href="#"><span class="icon icon-comments"></span>Chat</a></strong></li>
-            {% if request.user.is_staff %}
-            <li><strong><a href="{% url 'sentry-admin-status' %}"> <span class="icon icon-settings"></span>{% trans "Admin" %}</a></strong></li>
-            {% endif %}
+              <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
+              {% block support_link %}{% endblock %}
+              <li><strong><a href="https://kiwiirc.com/client/irc.freenode.net/#sentry" target="_blank"><span class="icon icon-comments"></span>Chat</a></strong></li>
+              {% if request.user.is_staff %}
+              <li><strong><a href="{% url 'sentry-admin-status' %}"> <span class="icon icon-settings"></span>{% trans "Admin" %}</a></strong></li>
+              {% endif %}
           </ul>
+          {% endblock%}
         </div>
         <div class="organizations divider-top">
           <h6>Organizations</h6>
@@ -170,14 +172,15 @@
         {% block header %}
             <header>
                 <div class="container">
-                  {% if request.user.is_authenticated %}
-                    <a class="sidebar-toggle" onclick="$('body').toggleClass('show-sidebar');">
-                      <span class="icon-menu"></span>
-                    </a>
-                  {% endif %}
-
+                  {% block menu_toggle %}
+                    {% if request.user.is_authenticated %}
+                      <a class="sidebar-toggle" onclick="$('body').toggleClass('show-sidebar');">
+                        <span class="icon-menu"></span>
+                      </a>
+                    {% endif %}
+                  {% endblock %}
                   <div class="pull-right">
-                      {% block account_nav %}
+                      {% block header_action %}
                           {% if request.user.is_authenticated %}
                           <div class="dropdown new-dropdown">
                             <a class="dropdown-toggle new-menu">
