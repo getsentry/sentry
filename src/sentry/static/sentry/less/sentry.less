@@ -365,7 +365,32 @@ header {
   margin: 0 0 30px;
   border-bottom: 2px solid #E8EBEC;
   position: relative;
-  text-align: center;
+
+  .breadcrumb {
+    background: none;
+    padding: 0;
+    margin-bottom: 0;
+    font-size: 16px;
+    line-height: 1.65;
+    li{
+      float: left;
+      position: relative;
+
+      &:first-child {
+        font-weight: 600;
+      }
+
+      &+li {
+        padding-left: 23px;
+
+        &:before {
+          position: absolute;
+          left: 9px;
+          padding: 0;
+        }
+      }
+    }
+  }
 
   .sidebar-toggle {
     padding: 10px;
@@ -563,108 +588,6 @@ header {
       left: auto;
       right: 0;
       text-align: left;
-    }
-  }
-
-  .project-dropdown {
-    position: relative;
-    margin: 0 40px;
-
-    .dropdown-menu {
-      width: 540px;
-      max-height: 400px;
-      overflow: auto;
-      padding: 0;
-      top: 45px;
-      left: 50%;
-      margin-left: -270px;
-      border-radius: 0 0 4px 4px;
-      text-align: left;
-
-      .team {
-        border-bottom: 1px solid #E9EBEC;
-        padding: 14px 15px 8px;
-        &:last-child {
-          border-bottom: 0;
-        }
-      }
-
-      h5 {
-        margin: 0 0 7px;
-        a {
-          color: @gray;
-          &:hover {
-            color: @gray-dark;
-          }
-        }
-      }
-
-      ul {
-        .clearfix;
-        .list-unstyled;
-        margin-bottom: 0;
-
-        li {
-          width: 31%;
-          float: left;
-          margin: 0 10px 0 0;
-          min-height: 24px;
-          a {
-            display: block;
-            .text-overflow;
-            padding: 1px 5px;
-            position: relative;
-            left: -5px;
-            border-radius: 3px;
-          }
-          &.active, &:hover {
-            a {
-              color: @gray;
-              background: rgba(0, 0, 0, 0.04);
-            }
-          }
-        }
-      }
-
-      a {
-        color: @link-color;
-        &:hover {
-          color: @link-hover-color;
-        }
-      }
-    }
-    .team-name {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: -0.5px;
-      z-index: 2;
-      position: relative;
-      line-height: 1.5;
-      cursor: pointer;
-    }
-
-    .project-name {
-      font-weight: 400;
-      color: #B5B9C0;
-      margin-left: 3px;
-    }
-
-    .team-settings {
-      opacity: .3;
-      margin-left: 6px;
-      margin-top: 1px;
-      font-size: 16px;
-      .transition(.2s all);
-
-      &:hover {
-        opacity: 1;
-      }
-    }
-
-    &.open {
-      .team-name, .project-name {
-        color: @blue;
-      }
     }
   }
 }
