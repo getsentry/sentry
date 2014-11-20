@@ -117,7 +117,7 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} show-sidebar" ng-app="sentry">
+    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %}" ng-app="sentry">
       {% if request.user.is_authenticated %}
       <div class="app-sidebar">
         <div class="user-info">
@@ -184,6 +184,8 @@
                         <span class="icon-menu"></span>
                         <span class="badge badge-error">12</span>
                       </a>
+                    {% else %}
+                      <a href="/"><span class="icon-sentry-logo-full"></span></a>
                     {% endif %}
                   {% endblock %}
                   <div class="pull-right">
