@@ -350,9 +350,9 @@ body.show-sidebar {
 
   .sidebar-toggle {
     .icon-menu {
-      background: @blue;
+      background: @blue !important;
       &:before, &:after {
-        background: @blue;
+        background: @blue !important;
       }
     }
   }
@@ -361,7 +361,7 @@ body.show-sidebar {
 header {
   background: #FCFCFC;
   color: @gray;
-  padding: 20px 0 18px;
+  padding: 20px 0 17px;
   margin: 0 0 30px;
   border-bottom: 2px solid #E8EBEC;
   position: relative;
@@ -371,7 +371,7 @@ header {
     padding: 0;
     margin-bottom: 0;
     font-size: 16px;
-    line-height: 1.65;
+    line-height: 1.7;
     li{
       float: left;
       position: relative;
@@ -394,7 +394,7 @@ header {
 
   .sidebar-toggle {
     padding: 10px;
-    margin: -5px 2px -2px -10px;
+    margin: -5px 4px -2px -10px;
     height: 34px;
     border-radius: 3px;
     float: left;
@@ -402,19 +402,21 @@ header {
 
     .icon-menu {
       display: block;
-      background: @gray;
+      background: lighten(@gray, 30);
       width: 22px;
       height: 3px;
       border-radius: 4px;
+      .transition(.2s all);
 
       &:before, &:after {
         display: block;
         content: "";
         position: absolute;
-        background: @gray;
+        background: lighten(@gray, 30);
         width: 22px;
         height: 3px;
         border-radius: 4px;
+        .transition(.2s all);
       }
 
       &:before {
@@ -422,6 +424,13 @@ header {
       }
       &:after {
         top: 12px;
+      }
+    }
+
+    &:hover .icon-menu {
+      background: @gray;
+      &:before, &:after {
+        background: @gray;
       }
     }
 
@@ -444,8 +453,9 @@ header {
         display: block;
         content: "";
         position: absolute;
-        background: @gray;
+        background: lighten(@gray, 35);
         border-radius: 4px;
+        .transition(.2s all);
       }
 
       &:before {
@@ -459,6 +469,12 @@ header {
         left: 9px;
         width: 3px;
         height: 21px;
+      }
+    }
+
+    &:hover .icon-new {
+      &:before, &:after {
+        background: @gray;
       }
     }
   }
