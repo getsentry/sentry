@@ -45,7 +45,7 @@ body {
   line-height: 20px;
   color: #454C50;
   -webkit-font-smoothing: antialiased;
-  .transition(.1s padding-left ease-in-out);
+  .transition(.1s padding ease-in-out);
 }
 
 pre, code, kbd, sample {
@@ -80,10 +80,8 @@ th, dt, strong {
 }
 
 .container {
-  // max-width: 1020px;
-  width: auto !important;
+  max-width: 1120px;
   position: relative;
-  .transition(.1s padding ease-in-out);
   padding-left: 30px;
   padding-right: 30px;
 }
@@ -307,6 +305,10 @@ ul,ol {
 body.show-sidebar {
   padding-left: 220px;
 
+  .app .container {
+    width: auto !important;
+  }
+
   .app-sidebar {
     left: 0;
   }
@@ -315,24 +317,17 @@ body.show-sidebar {
     left: 220px;
   }
 
+  .group-header-container > .container {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
   .sidebar-toggle {
     .icon-menu {
       background: @blue;
       &:before, &:after {
         background: @blue;
       }
-    }
-
-    &:after {
-      position: fixed;
-      display: block;
-      content: "";
-      left: 220px;
-      right: 0;
-      bottom: 0;
-      top: 67px;
-      // background: rgba(255,255,255, .6);
-      // z-index: 1000;
     }
   }
 }
@@ -1201,6 +1196,7 @@ a.icon-share {
   margin-bottom: -45px;
   > .container {
     padding: 0;
+    padding-right: 60px;
   }
 
   &.affix {
@@ -1219,6 +1215,8 @@ a.icon-share {
 
     .container {
       left: 0;
+      padding-left: 30px;
+      padding-right: 30px;
     }
 
     .stream-actions-left, .stream-actions-users {
@@ -1292,7 +1290,7 @@ a.icon-share {
 
   .checkbox {
     position: absolute;
-    left: 15px;
+    left: 16px;
     top: 2px;
   }
 
@@ -1546,7 +1544,7 @@ a.icon-share {
       right: 0;
       bottom: -1px;
       left: -1px;
-      width: 4px;
+      width: 3px;
       background: lighten(@blue, 5);
       z-index: 100;
       .transition(all .2s ease-in-out);
