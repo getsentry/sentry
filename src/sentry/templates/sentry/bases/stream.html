@@ -3,7 +3,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
+{% block title %}{{ project.name }} | {{ team.name }} | {{ block.super }}{% endblock %}
 
 {% block wrapperclass %}stream{% endblock %}
 
