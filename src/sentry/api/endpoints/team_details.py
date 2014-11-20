@@ -84,8 +84,8 @@ class TeamDetailsEndpoint(Endpoint):
 
         team.update(status=TeamStatus.PENDING_DELETION)
 
-        # TODO(dcramer): set status to pending deletion
         # we delay the task for 5 minutes so we can implement an undo
-        delete_team.delay(object_id=team.id, countdown=60 * 5)
+        kwargs = {'object_id': team.id}
+        delete_team.apply_async(kwargs=kwargs, countdown=60 * 5)
 
         return Response(status=204)
