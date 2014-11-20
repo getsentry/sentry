@@ -2,7 +2,7 @@
 
 {% load i18n %}
 
-{% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
+{% block title %}{{ team.name }} | {{ block.super }}{% endblock %}
 
 {% block controller %}TeamDashboardCtrl{% endblock %}
 
