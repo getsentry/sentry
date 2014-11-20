@@ -14,6 +14,11 @@
 
 {% block wrapperclass %}sidebar-right{% endblock %}
 
+{% block breadcrumb_inner %}
+  {{ block.super }}
+  <li>{{ group.title }}</li>
+{% endblock %}
+
 {% block content_before %}
     <!-- <div id="details">
         <div id="event_list" class="inactive"></div>

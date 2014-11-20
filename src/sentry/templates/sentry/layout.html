@@ -216,7 +216,7 @@
 
                           {% if project %}
                           <li>
-                            <a class="project-name" href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a>
+                            <a class="project-name" href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a> <a href="{% url 'sentry-manage-project' team.slug project.slug %}"><span class="icon-settings"></span></a>
                           </li>
                           {% endif %}
 
