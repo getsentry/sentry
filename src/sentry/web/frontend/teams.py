@@ -17,12 +17,14 @@ from django.utils.translation import ugettext as _
 from sudo.decorators import sudo_required
 
 from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
-from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
+from sentry.models import (
+    PendingTeamMember, TeamMember, TeamStatus, AccessGroup, User)
 from sentry.permissions import (
     can_add_team_member, can_remove_team, can_create_projects,
     can_create_teams, can_edit_team_member, can_remove_team_member,
     Permissions)
 from sentry.plugins import plugins
+from sentry.tasks.deletion import delete_team
 from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (
@@ -141,10 +143,16 @@ def remove_team(request, team):
         form = RemoveTeamForm()
 
     if form.is_valid():
-        team.delete()
+        if team.status == TeamStatus.VISIBLE:
+            team.update(status=TeamStatus.PENDING_DELETION)
+            # we delay the task for 5 minutes so we can implement an undo
+            kwargs = {'object_id': team.id}
+            delete_team.apply_async(kwargs=kwargs, countdown=60 * 5)
+
         messages.add_message(
             request, messages.SUCCESS,
-            _(u'The team %r was permanently deleted.') % (team.name.encode('utf-8'),))
+            _('Deletion has been queued and will happen automatically.'))
+
         return HttpResponseRedirect(reverse('sentry'))
 
     context = csrf(request)
