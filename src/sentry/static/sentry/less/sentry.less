@@ -2277,10 +2277,28 @@ ol.context-line {
 .event-toolbar {
   text-align: center;
   margin-bottom: 30px;
+  margin-left: 0;
+
+  border: 1px solid #e1e4e5;
+  border-radius: 4px;
+
+  .btn {
+    padding: 14px 20px 13px;
+  }
+
+  .prev {
+    margin: -1px 0 -1px -1px;
+    border-radius: 4px 0 0 4px;
+  }
+
+  .next {
+    margin: -1px -1px -1px 0;
+    border-radius: 0 4px 4px 0;
+  }
 
   h4 {
-    font-size: 16px;
-    margin: 5px 0 0;
+    font-size: 14px;
+    margin: 9px 0 0;
   }
 }
 
