@@ -18,7 +18,7 @@
 @blue: #409AED;
 @green: #07CC6D;
 @yellow: #f5db00;
-@red: #e03c38;
+@red: #ED4043;
 
 @linkColor: @blue;
 
@@ -46,6 +46,7 @@ body {
   color: #454C50;
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
+  overflow-x: hidden;
 }
 
 pre, code, kbd, sample {
@@ -182,12 +183,37 @@ ul,ol {
   top: 0;
   left: -220px;
   bottom: 0;
-  padding: 20px 22px;
-  overflow: hidden;
+  padding: 20px 22px 44px;
   color: #fff;
   overflow: auto;
-
   .transition(.1s left ease-in-out);
+
+  .broadcast {
+    display: none;
+    background: @blue;
+    .transition(.1s left ease-in-out);
+    position: fixed;
+    bottom: 0;
+    left: -220px;
+    width: 220px;
+    padding: 10px 10px 8px;
+
+
+    .logo {
+      padding-right: 2px;
+      line-height: 1;
+      position: relative;
+      top: 1px;
+    }
+
+    .update {
+      line-height: 1;
+    }
+
+    .icon-arrow-right {
+      line-height: 1;
+    }
+  }
 
   a {
     color: #fff;
@@ -309,7 +335,7 @@ body.show-sidebar {
     width: auto !important;
   }
 
-  .app-sidebar {
+  .app-sidebar, .broadcast {
     left: 0;
   }
 
@@ -347,6 +373,7 @@ header {
     height: 34px;
     border-radius: 3px;
     float: left;
+    position: relative;
 
     .icon-menu {
       display: block;
@@ -371,6 +398,13 @@ header {
       &:after {
         top: 12px;
       }
+    }
+
+    .badge {
+      position: absolute;
+      top: 0;
+      right: -3px;
+      font-size: 10px;
     }
   }
 
@@ -645,35 +679,6 @@ header {
   margin: -10px 0 30px;
   border-radius: 3px 3px 0 0;
 
-  .broadcast {
-    font-size: 14px;
-    padding-top: 4px;
-
-    .badge {
-      line-height: .9;
-      position: relative;
-      top: -2px;
-      margin-right: 4px;
-      &.new {
-        background: @linkColor;
-        color: #fff;
-        font-size: 10px;
-        padding: 4px;
-        border-radius: 3px;
-        display: inline-block;
-        font-weight: 600;
-      }
-    }
-    .link {
-      color: @linkColor;
-      border: 0;
-      padding-right: 0;
-      padding-left: 0;
-      margin-right: 0;
-      display: inline-block;
-    }
-  }
-
   .icon-settings {
     position: relative;
     top: 1px;
@@ -799,6 +804,18 @@ footer {
 
 .generic-list {
 
+}
+
+.badge {
+  margin-top: 2px;
+  font-weight: 600;
+  padding: 2px 4px;
+  font-size: 11px;
+  display: none;
+
+  &.badge-error {
+    background: @red;
+  }
 }
 
 .form-control {
