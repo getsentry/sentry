@@ -753,6 +753,50 @@ footer {
 
 /* =============================  Modules  ============================== */
 
+.settings-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0, .65);
+  z-index: 10000;
+  overflow: auto;
+
+  .container {
+    max-width: 760px;
+  }
+
+  .settings-modal-wrap {
+    margin-top: 80px;
+    margin-bottom: 30px;
+    border-radius: 5px;
+    background: #fff;
+    z-index: 10000;
+  }
+
+  .settings-modal-header {
+    background: #f7f7f7;
+    padding: 15px 20px;
+    border-radius: 5px 5px 0 0;
+
+    h3 {
+      margin: 0;
+    }
+  }
+
+  .settings-modal-body {
+    padding: 20px;
+  }
+
+  .settings-modal-footer {
+    border-top: 1px solid #E9EBEC;
+    padding: 15px 20px;
+    text-align: right;
+  }
+}
+
 .generic-list {
 
 }
