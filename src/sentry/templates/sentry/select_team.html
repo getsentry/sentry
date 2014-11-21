@@ -2,21 +2,24 @@
 
 {% load i18n %}
 
-{% block title %}Your teams | {{ block.super }}{% endblock %}
+{% block title %}Sentry | {{ block.super }}{% endblock %}
 
 {% block bodyclass %}team-index {{ block.super }}{% endblock %}
 
 {% block controller %}TeamListCtrl{% endblock %}
 
+{% block breadcrumb_inner %}
+  <li>Sentry <span style="opacity: .4; margin-left: 4px;">Organization</span></li>
+{% endblock %}
+
 {% block logo %}<a id="logo" href="{% url 'sentry' %}" style="font-size: 22px;"><span class="icon-sentry-logo-full"></span></a>{% endblock %}
 
 {% block content %}
   {% if team_list %}
-      <h2><span class="icon-building" style="padding-right: 5px; position: relative; top: 1px; font-size: 24px; opacity: .5"></span> Sentry</h2>
       {% if can_create_teams %}
-        <a href="{% url 'sentry-new-team' %}" class="btn btn-primary btn-sm pull-right">{% trans "Create a New Team" %}</a>
+        <a href="{% url 'sentry-new-team' %}" class="btn btn-primary btn-sm pull-right" style="position: relative; top: -2px">{% trans "Create a New Team" %}</a>
       {% endif %}
-      <ul class="nav nav-tabs" style="margin-bottom: 30px;">
+      <ul class="nav nav-tabs" style="margin-bottom: 30px; margin-top: -5px;">
         <li class="active"><a href="#">Teams</a></li>
         <li class=""><a href="#">Members</a></li>
         <li class=""><a href="#">Admin</a></li>
