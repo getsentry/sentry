@@ -160,9 +160,8 @@ class TeamManager(BaseManager):
 
         for tm in qs:
             team = tm.team
-            if team.status == TeamStatus.VISIBLE:
-                team.access_type = tm.type
-                all_teams.add(team)
+            team.access_type = tm.type
+            all_teams.add(team)
 
         if access_groups:
             qs = AccessGroup.objects.filter(
@@ -182,7 +181,8 @@ class TeamManager(BaseManager):
                 team.access_type = MEMBER_USER
 
         for team in sorted(all_teams, key=lambda x: x.name.lower()):
-            results[team.slug] = team
+            if team.status == TeamStatus.VISIBLE:
+                results[team.slug] = team
 
         if with_projects:
             # these kinds of queries make people sad :(
