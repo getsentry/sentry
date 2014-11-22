@@ -31,36 +31,39 @@ class TeamManager(BaseManager):
         MEMBER_TYPE value.
         """
         from sentry.models import (
-            OrganizationMember, Project
+            OrganizationMember, OrganizationMemberType, Project
         )
 
         if not user.is_authenticated():
             return []
 
-        all_teams = set()
-
-        qs = OrganizationMember.objects.filter(
-            user=user,
-            organization=organization,
-        )
-        if access is not None:
-            qs = qs.filter(type__lte=access)
-
-        try:
-            om = qs.get()
-        except OrganizationMember.DoesNotExist:
-            return []
-
-        if om.has_global_access:
+        if settings.SENTRY_PUBLIC and access is None:
             team_qs = self.filter(organization=organization)
+            for team in team_qs:
+                team.access_type = OrganizationMemberType.MEMBER
+
         else:
-            team_qs = om.teams.all()
+            qs = OrganizationMember.objects.filter(
+                user=user,
+                organization=organization,
+            )
+            if access is not None:
+                qs = qs.filter(type__lte=access)
 
-        for team in team_qs:
-            team.access_type = om.type
-            all_teams.add(team)
+            try:
+                om = qs.get()
+            except OrganizationMember.DoesNotExist:
+                return []
 
-        results = sorted(all_teams, key=lambda x: x.name.lower())
+            if om.has_global_access:
+                team_qs = self.filter(organization=organization)
+            else:
+                team_qs = om.teams.all()
+
+            for team in team_qs:
+                team.access_type = om.type
+
+        results = sorted(team_qs, key=lambda x: x.name.lower())
 
         if with_projects:
             # these kinds of queries make people sad :(
