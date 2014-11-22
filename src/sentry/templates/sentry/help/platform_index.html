@@ -6,12 +6,15 @@
 {% block title %}{% trans "Platforms" %} | {{ block.super }}{% endblock %}
 {% block client_overview_class %}active{% endblock %}
 
-{% block breadcrumbs %}
-{{ block.super }}
-<li class="divider">/</li>
-<li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
+{% block breadcrumb_inner %}
+  {{ block.super }}
+  <li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
+{% endblock %}
 
-{% endblock%}
+{% block crumbs %}
+  {{ block.super }}
+  <li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
+{% endblock %}
 
 {% block main %}
     <h3>Sentry Clients</h3>

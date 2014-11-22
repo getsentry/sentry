@@ -3,10 +3,14 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block breadcrumbs %}
+{% block breadcrumb_inner %}
     {{ block.super }}
-    <li class="divider">/</li>
     <li><a href="{% url 'sentry-api-0-help' %}">Web API</a></li>
+{% endblock%}
+
+{% block crumbs %}
+  {{ block.super }}
+  <li><a href="{% url 'sentry-api-0-help' %}">Web API</a></li>
 {% endblock%}
 
 {% block main %}

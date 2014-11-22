@@ -185,7 +185,9 @@
                         <span class="badge badge-error">12</span>
                       </a>
                     {% else %}
-                      <a href="/"><span class="icon-sentry-logo-full"></span></a>
+                      {% block logo %}
+                        <a href="/"><span class="icon-sentry-logo-full"></span></a>
+                      {% endblock %}
                     {% endif %}
                   {% endblock %}
                   <div class="pull-right">
@@ -203,32 +205,32 @@
                             </ul>
                           </div>
                           {% else %}
+                            <div class="user-nav">
                               <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
+                            </div>
                           {% endif %}
                       {% endblock %}
                   </div>
-                  {% block breadcrumb_outer %}
-                    <ul class="breadcrumb">
-                      {% block breadcrumb_inner %}
-                        {% if team %}
-                          <li>
-                            <a class="team-name" href="{% url 'sentry' team.slug %}">{{ team.name }}</a>
-                          </li>
-
-
-                          {% if project %}
-                          <li>
-                            <a class="project-name" href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a> <a href="{% url 'sentry-manage-project' team.slug project.slug %}"><span class="icon-settings"></span></a>
-                          </li>
+                  {% if request.user.is_authenticated %}
+                    {% block breadcrumb_outer %}
+                      <ul class="breadcrumb">
+                        {% block breadcrumb_inner %}
+                          {% if team %}
+                            <li>
+                              <a class="team-name" href="{% url 'sentry' team.slug %}">{{ team.name }}</a>
+                            </li>
+                            {% if project %}
+                            <li>
+                              <a class="project-name" href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a> <a href="{% url 'sentry-manage-project' team.slug project.slug %}"><span class="icon-settings"></span></a>
+                            </li>
+                            {% endif %}
+                          {% else %}
+                              <li>{% block heading %}{% endblock %}</li>
                           {% endif %}
-
-
-                        {% else %}
-                            <li>{% block heading %}{% endblock %}</li>
-                        {% endif %}
+                        {% endblock %}
+                      </ul>
                       {% endblock %}
-                    </ul>
-                    {% endblock %}
+                    {% endif %}
                  </div>
             </header>
         {% endblock %}

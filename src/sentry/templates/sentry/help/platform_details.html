@@ -6,9 +6,13 @@
 {% block title %}{{ platform_title }} Client Configuration | {{ block.super }}{% endblock %}
 {% block client_overview_class %}{% endblock %}
 
-{% block breadcrumbs %}
+{% block breadcrumb_inner %}
   {{ block.super }}
-  <li class="divider">/</li>
+  <li>{{ platform_title }}</li>
+{% endblock %}
+
+{% block crumbs %}
+  {{ block.super }}
   <li>{{ platform_title }}</li>
 {% endblock %}
 
