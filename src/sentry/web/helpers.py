@@ -17,7 +17,7 @@ from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.constants import EVENTS_PER_PAGE, STATUS_HIDDEN
-from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
+from sentry.models import Project, Team, ProjectOption, ProjectKey
 
 logger = logging.getLogger('sentry.errors')
 
@@ -196,7 +196,7 @@ def plugin_config(plugin, project, request):
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
                 else:
-                    Option.objects.set_value(key, value)
+                    options.set(key, value)
 
             return ('redirect', None)
 

@@ -136,3 +136,8 @@ class Project(Model):
         from sentry.models import ProjectOption
 
         return ProjectOption.objects.get_value(self, *args, **kwargs)
+
+    def delete_option(self, *args, **kwargs):
+        from sentry.models import ProjectOption
+
+        return ProjectOption.objects.unset_value(self, *args, **kwargs)
