@@ -215,6 +215,7 @@ ul,ol {
   .icon-settings {
     opacity: .5;
     font-size: 14px;
+    color: #ACB9C5;
   }
 
   h6 {
@@ -222,6 +223,12 @@ ul,ol {
     opacity: .5;
     font-size: 13px;
     font-weight: 600;
+    color: #ACB9C5;
+
+    a {
+      color: #ACB9C5;
+    }
+
     .icon-settings {
       opacity: 1;
     }
@@ -242,7 +249,12 @@ ul,ol {
     }
 
     small {
-      opacity: .6;
+      a {
+        color: #ACB9C5;
+        &:hover {
+          color: lighten(#ACB9C5, 15);
+        }
+      }
     }
 
     img {
@@ -270,10 +282,11 @@ ul,ol {
   }
 
   .icon {
-    opacity: .4;
+    opacity: .5;
     margin-right: 10px;
     position: relative;
     top: 1px;
+    color: #ACB9C5;
   }
 
   .team-filter {
