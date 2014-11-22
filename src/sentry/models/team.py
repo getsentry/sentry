@@ -25,10 +25,10 @@ class TeamManager(BaseManager):
     def get_for_user(self, organization, user, access=None, access_groups=True,
                      with_projects=False):
         """
-        Returns a SortedDict of all teams a user has some level of access to.
+        Returns a list of all teams a user has some level of access to.
 
         Each <Team> returned has an ``access_type`` attribute which holds the
-        MEMBER_TYPE value.
+        OrganizationMemberType value.
         """
         from sentry.models import (
             OrganizationMember, OrganizationMemberType, Project
