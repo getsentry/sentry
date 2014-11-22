@@ -67,8 +67,8 @@ class TeamDeleteTest(APITestCase):
         assert team.status == TeamStatus.PENDING_DELETION
 
         assert response.status_code == 204
-        delete_team.delay.assert_called_once_with(
-            object_id=team.id,
+        delete_team.apply_async.assert_called_once_with(
+            kwargs={"object_id": team.id},
             countdown=60 * 5,
         )
 

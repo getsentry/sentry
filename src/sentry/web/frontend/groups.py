@@ -450,6 +450,8 @@ def group_plugin_action(request, team, project, group_id, slug):
     except KeyError:
         raise Http404('Plugin not found')
 
+    GroupMeta.objects.populate_cache([group])
+
     response = plugin.get_view_response(request, group)
     if response:
         return response
