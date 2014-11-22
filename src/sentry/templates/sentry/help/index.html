@@ -7,7 +7,12 @@
 {% block heading %}{% endblock %}
 {% block wrapperclass %}docs{% endblock %}
 
-{% block logo %}<a id="logo" href="{% url 'sentry' %}"><span class="icon-sentry-logo-full"></span></a>{% endblock %}
+{% block breadcrumb_inner %}
+  {% comment %}
+  //// Shown in header when user is logged in
+  {% endcomment %}
+  <li><a href="{% url 'sentry-help' %}">Docs</a></li>
+{% endblock %}
 
 {% block content %}
     {% block helpcontent %}
@@ -18,11 +23,16 @@
             {% endblock %}
           </div>
           <div class="col-sm-9 main">
-              <ul class="crumbs">
-                {% block breadcrumbs %}
-                <li><a href="{% url 'sentry-help' %}">Docs</a></li>
-                {% endblock %}
-              </ul>
+            {% if not request.user.is_authenticated %}
+            <ul class="breadcrumb">
+              {% block crumbs %}
+              {% comment %}
+              //// Shown in docs body when user is logged out
+              {% endcomment %}
+              <li><a href="{% url 'sentry-help' %}">Docs</a></li>
+              {% endblock %}
+            </ul>
+            {% endif %}
             {% block main %}
               <h3>Sentry Documentation</h3>
               <p>Welcome to the Sentry Docs. Reading through the guides and reference here will give you a complete understanding of how Sentry works and how to get the most out of it. We recommend that you read through the Guides first, then on to the client installation instructions for your specific platform.</p>

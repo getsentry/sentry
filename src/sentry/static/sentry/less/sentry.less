@@ -3075,16 +3075,8 @@ table.integrations {
   }
 
   header {
-    background: none;
-    color: @gray-dark;
-    padding: 30px 0;
-    margin-bottom: 0;
-
-    #logo {
-      font-size: 30px;
-    }
+    padding: 22px 0 22px;
     .user-nav {
-      margin-top: 8px;
       li > a {
         font-size: 16px;
       }
@@ -3099,9 +3091,14 @@ table.integrations {
     }
   }
 
+  .icon-sentry-logo-full {
+    font-size: 24px;
+    float: left;
+    margin-right: 30px;
+  }
+
   .content {
-    border-top: 1px solid lighten(#E9EBEC, 2);
-    padding-top: 40px;
+    padding-top: 10px;
 
     .sidebar {
       h4 {
@@ -3155,6 +3152,26 @@ table.integrations {
       line-height: 1.8;
       padding-top: 0;
 
+      .breadcrumb {
+        margin: 0 0 30px !important;
+        padding: 0;
+        background: none;
+        font-size: 18px;
+        line-height: 1.2 !important;
+        .clearfix();
+        color: lighten(@grayDark, 37);
+
+        a {
+          color: lighten(@grayDark, 37);
+        }
+
+        li + li:before {
+          padding: 0 11px 0 14px;
+          color: inherit;
+          opacity: .4;
+        }
+      }
+
       p, ul, ol {
         margin: 30px 0;
         line-height: 1.7;
@@ -3206,29 +3223,6 @@ table.integrations {
 
   .back-button {
     top: -2px;
-  }
-
-  .crumbs {
-    .list-unstyled();
-    margin: 0 0 30px !important;
-    font-size: 18px;
-    line-height: 1.2 !important;
-    .clearfix();
-    color: lighten(@grayDark, 45);
-
-    li {
-      float: left;
-      margin-right: 20px;
-
-      &:last-child, &:last-child a {
-        color: lighten(@grayDark, 15);
-      }
-    }
-
-    a {
-      color: lighten(@grayDark, 37);
-    }
-
   }
 }
 
