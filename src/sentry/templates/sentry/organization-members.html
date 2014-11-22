@@ -35,6 +35,9 @@
             <a href="{% url 'sentry-organization-member-settings' organization.id member.id %}">
               {{ member.get_display_name }}
             </a>
+            {% if member.is_pending %}
+              <small>&mdash; Invited</small>
+            {% endif %}
           </td>
           <td>
             {% if member.has_global_access %}
