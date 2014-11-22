@@ -5,7 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block bodyclass %} with-left-sidebar{% endblock %}
+{% block wrapperclass %} {{ block.super }} settings{% endblock %}
 
 {% block controller %}ManageProjectCtrl{% endblock %}
 
@@ -74,7 +74,7 @@
               </div>
             </div>
 
-            <div class="form-actions" style="border-top: 0; padding-top: 0;">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
             </div>
         </form>
