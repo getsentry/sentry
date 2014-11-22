@@ -56,6 +56,8 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             data=om.get_audit_log_data(),
         )
 
+        om.send_invite_email()
+
         return om, True
 
 
