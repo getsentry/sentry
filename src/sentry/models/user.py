@@ -9,13 +9,16 @@ from __future__ import absolute_import
 
 import warnings
 
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import Model
-from sentry.manager import UserManager
+from sentry.db.models import BaseManager, Model
+
+
+class UserManager(BaseManager, UserManager):
+    pass
 
 
 class User(Model, AbstractBaseUser):
