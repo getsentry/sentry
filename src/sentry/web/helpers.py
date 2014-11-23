@@ -104,7 +104,7 @@ def get_default_context(request, existing_context=None, team=None):
             'request': request,
         })
 
-        if not existing_context or 'TEAM_LIST' not in existing_context and team:
+        if (not existing_context or 'TEAM_LIST' not in existing_context) and team:
             context['TEAM_LIST'] = Team.objects.get_for_user(
                 organization=team.organization,
                 user=request.user,
