@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
-from exam import before, fixture
+from exam import fixture
 
 from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
@@ -130,9 +130,9 @@ class SearchUsersTest(TestCase):
     def path(self):
         return reverse('sentry-api-search-users', args=[self.team.slug])
 
-    @before
-    def login_user(self):
-        self.login()
+    def setUp(self):
+        super(SearchUsersTest, self).setUp()
+        self.login_as(self.user)
 
     def test_finds_users_from_organization_members(self):
         otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
@@ -173,9 +173,9 @@ class SearchProjectsTest(TestCase):
     def path(self):
         return reverse('sentry-api-search-projects', args=[self.team.slug])
 
-    @before
-    def login_user(self):
-        self.login()
+    def setUp(self):
+        super(SearchProjectsTest, self).setUp()
+        self.login_as(self.user)
 
     def test_finds_projects_from_team(self):
         project = self.create_project(team=self.team, name='Sample')

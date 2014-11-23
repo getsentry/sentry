@@ -6,7 +6,7 @@ import mock
 
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from exam import before, fixture
+from exam import fixture
 from social_auth.models import UserSocialAuth
 
 from sentry.models import UserOption, LostPasswordHash, User
@@ -307,8 +307,8 @@ class RecoverPasswordTest(TestCase):
 
 
 class RecoverPasswordConfirmTest(TestCase):
-    @before
-    def create_hash(self):
+    def setUp(self):
+        super(RecoverPasswordConfirmTest, self).setUp()
         self.password_hash = LostPasswordHash.objects.create(user=self.user)
 
     @fixture

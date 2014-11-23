@@ -6,7 +6,7 @@ import mock
 import logging
 
 from django.core.urlresolvers import reverse
-from exam import before, fixture
+from exam import fixture
 
 from sentry.models import ProjectKey, ProjectOption, TagKey
 from sentry.testutils import TestCase
@@ -52,8 +52,8 @@ class NewProjectKeyTest(TestCase):
 
 
 class RemoveProjectKeyTest(TestCase):
-    @before
-    def create_key(self):
+    def setUp(self):
+        super(RemoveProjectKeyTest, self).setUp()
         self.key = ProjectKey.objects.create(project=self.project)
 
     @fixture
