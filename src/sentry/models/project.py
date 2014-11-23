@@ -18,11 +18,35 @@ from sentry.constants import (
     PLATFORM_TITLES, PLATFORM_LIST, STATUS_VISIBLE, STATUS_HIDDEN
 )
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, sane_repr
+    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.manager import ProjectManager
 from sentry.utils.http import absolute_uri
+
+
+class ProjectManager(BaseManager):
+    def get_for_user(self, team, user, access=None):
+        from sentry.models import Team
+
+        if not (user and user.is_authenticated()):
+            return []
+
+        team_list = Team.objects.get_for_user(
+            organization=team.organization,
+            user=user,
+            access=access,
+        )
+        if team not in team_list:
+            return []
+
+        base_qs = self.filter(team=team)
+
+        project_list = []
+        for project in base_qs:
+            project.team = team
+            project_list.append(project)
+
+        return sorted(project_list, key=lambda x: x.name.lower())
 
 
 class Project(Model):
