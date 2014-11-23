@@ -11,11 +11,8 @@ from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
-from sentry.models import Organization, Team
-from sentry.permissions import can_create_teams
 from sentry.plugins import plugins
 from sentry.plugins.base import Response
-from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
 
 
