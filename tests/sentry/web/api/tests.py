@@ -7,7 +7,7 @@ import mock
 from django.core.urlresolvers import reverse
 from exam import before, fixture
 
-from sentry.models import AccessGroup, OrganizationMember, User
+from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -140,25 +140,6 @@ class SearchUsersTest(TestCase):
             organization=self.team.organization,
             user=otheruser,
         )
-
-        resp = self.client.get(self.path, {'query': 'bob'})
-
-        assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        assert json.loads(resp.content) == {
-            'results': [{
-                'id': otheruser.id,
-                'first_name': otheruser.first_name,
-                'username': otheruser.username,
-                'email': otheruser.email,
-            }],
-            'query': 'bob',
-        }
-
-    def test_finds_users_from_access_group_members(self):
-        otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
-        group = AccessGroup.objects.create(team=self.team, name='Test')
-        group.members.add(otheruser)
 
         resp = self.client.get(self.path, {'query': 'bob'})
 
