@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.constants import MEMBER_USER
-from sentry.models import Team, Project, User
+from sentry.models import (
+    Organization, OrganizationMember, OrganizationMemberType, Project, Team, User
+)
 
 
-def has_perm(object, user, project_key, access=MEMBER_USER):
+def has_perm(object, user, project_key, access=OrganizationMemberType.MEMBER):
     if not project_key and user.is_superuser:
         return True
 
@@ -16,20 +17,27 @@ def has_perm(object, user, project_key, access=MEMBER_USER):
 
     if type(object) == Team:
         if project_key:
-            return object == project_key.project.team and access == MEMBER_USER
+            return object == project_key.project.team and access == OrganizationMemberType.MEMBER
         return object in Team.objects.get_for_user(
             organization=object.organization,
             user=user,
-            access=access,
+            access=access
         )
+
+    if type(object) == Organization:
+        return OrganizationMember.objects.filter(
+            organization=object.organization,
+            type__lte=access,
+            user=user,
+        ).exists()
 
     if hasattr(object, 'project'):
         object = object.project
 
     if type(object) == Project:
         if project_key:
-            print object == project_key.project, access == MEMBER_USER
-            return object == project_key.project and access == MEMBER_USER
+            print object == project_key.project, access == OrganizationMemberType.MEMBER
+            return object == project_key.project and access == OrganizationMemberType.MEMBER
 
         return object in Project.objects.get_for_user(
             team=object.team,
