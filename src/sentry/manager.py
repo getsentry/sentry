@@ -85,28 +85,3 @@ class GroupManager(BaseManager):
 
         if tsdb_keys:
             tsdb.incr_multi(tsdb_keys)
-
-
-class ProjectManager(BaseManager):
-    def get_for_user(self, team, user, access=None):
-        from sentry.models import Team
-
-        if not (user and user.is_authenticated()):
-            return []
-
-        team_list = Team.objects.get_for_user(
-            organization=team.organization,
-            user=user,
-            access=access,
-        )
-        if team not in team_list:
-            return []
-
-        base_qs = self.filter(team=team)
-
-        project_list = []
-        for project in base_qs:
-            project.team = team
-            project_list.append(project)
-
-        return sorted(project_list, key=lambda x: x.name.lower())
