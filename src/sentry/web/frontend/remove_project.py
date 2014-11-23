@@ -21,7 +21,9 @@ class RemoveProjectView(ProjectView):
     required_access = OrganizationMemberType.ADMIN
 
     def get_form(self, request):
-        return RemoveProjectForm(request.POST or None)
+        if request.method == 'POST':
+            return RemoveProjectForm(request.POST)
+        return RemoveProjectForm()
 
     def get(self, request, organization, team, project):
         if not can_remove_project(request.user, project):

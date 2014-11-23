@@ -8,8 +8,7 @@ import logging
 from django.core.urlresolvers import reverse
 from exam import before, fixture
 
-from sentry.constants import STATUS_HIDDEN
-from sentry.models import Project, ProjectKey, ProjectOption, TagKey
+from sentry.models import ProjectKey, ProjectOption, TagKey
 from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
@@ -143,34 +142,6 @@ class GetStartedTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/get_started.html')
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
-
-
-class RemoveProjectTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-remove-project', args=[self.team.slug, self.project.id])
-
-    def test_requires_authentication(self):
-        self.assertRequiresAuthentication(self.path, 'POST')
-
-    def test_renders_template_with_get(self):
-        self.login_as(self.user)
-
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/projects/remove.html')
-        assert resp.context['team'] == self.team
-        assert resp.context['project'] == self.project
-
-    @mock.patch('sentry.web.frontend.projects.remove.delete_project')
-    def test_deletion_flow(self, delete_project):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, {'project': self.project.id})
-        assert resp.status_code == 302
-        delete_project.delay.assert_called_once_with(
-            object_id=self.project.id)
-        assert Project.objects.get(id=self.project.id).status == STATUS_HIDDEN
 
 
 class ManageProjectTagsTest(TestCase):
