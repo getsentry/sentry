@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 
 from django.core.context_processors import csrf
-from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -128,6 +127,8 @@ class BaseView(View, OrganizationMixin):
             request.session['_next'] = request.get_full_path()
             return self.redirect(get_login_url())
 
+        args, kwargs = self.convert_args(request, *args, **kwargs)
+
         if not self.has_permission(request, *args, **kwargs):
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
             return self.redirect(redirect_uri)
@@ -136,6 +137,9 @@ class BaseView(View, OrganizationMixin):
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
         return self.handle(request, *args, **kwargs)
+
+    def convert_args(self, request, *args, **kwargs):
+        return (args, kwargs)
 
     def handle(self, request, *args, **kwargs):
         return super(BaseView, self).dispatch(request, *args, **kwargs)
@@ -181,7 +185,10 @@ class OrganizationView(BaseView):
 
         return context
 
-    def dispatch(self, request, organization_id=None, *args, **kwargs):
+    def has_permission(self, request, organization, *args, **kwargs):
+        return organization is not None
+
+    def convert_args(self, request, organization_id=None, *args, **kwargs):
         # TODO:
         # if access is MEMBER_OWNER:
         #     _wrapped = login_required(sudo_required(_wrapped))
@@ -191,12 +198,10 @@ class OrganizationView(BaseView):
             access=self.required_access,
             organization_id=organization_id,
         )
-        if active_organization is None:
-            return self.redirect(reverse('sentry'))
 
         kwargs['organization'] = active_organization
 
-        return super(OrganizationView, self).dispatch(request, *args, **kwargs)
+        return (args, kwargs)
 
 
 class TeamView(BaseView):
@@ -218,23 +223,23 @@ class TeamView(BaseView):
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
         return context
 
-    def dispatch(self, request, team_slug, *args, **kwargs):
-        if not request.user.is_authenticated():
-            request.session['_next'] = request.get_full_path()
-            return self.redirect(get_login_url())
+    def has_permission(self, request, organization, team, *args, **kwargs):
+        return team is not None
 
+    def convert_args(self, request, team_slug, *args, **kwargs):
         active_team = self.get_active_team(
             request=request,
             team_slug=team_slug,
             access=self.required_access,
         )
-        if active_team is None:
-            return self.redirect(reverse('sentry'))
 
         kwargs['team'] = active_team
-        kwargs['organization'] = active_team.organization
+        if active_team:
+            kwargs['organization'] = active_team.organization
+        else:
+            kwargs['organization'] = None
 
-        return super(TeamView, self).dispatch(request, *args, **kwargs)
+        return (args, kwargs)
 
 
 class ProjectView(BaseView):
@@ -259,29 +264,30 @@ class ProjectView(BaseView):
 
         return context
 
-    def dispatch(self, request, team_slug, project_slug, *args, **kwargs):
-        if not request.user.is_authenticated():
-            request.session['_next'] = request.get_full_path()
-            return self.redirect(get_login_url())
+    def has_permission(self, request, organization, team, project, *args, **kwargs):
+        return project is not None
 
+    def convert_args(self, request, team_slug, project_slug, *args, **kwargs):
         active_team = self.get_active_team(
             request=request,
             team_slug=team_slug,
         )
-        if active_team is None:
-            return self.redirect(reverse('sentry'))
 
-        active_project = self.get_active_project(
-            request=request,
-            team=active_team,
-            project_slug=project_slug,
-            access=self.required_access,
-        )
-        if active_project is None:
-            return self.redirect(reverse('sentry'))
+        if active_team:
+            active_project = self.get_active_project(
+                request=request,
+                team=active_team,
+                project_slug=project_slug,
+                access=self.required_access,
+            )
+        else:
+            active_project = None
 
         kwargs['project'] = active_project
         kwargs['team'] = active_team
-        kwargs['organization'] = active_team.organization
+        if active_team:
+            kwargs['organization'] = active_team.organization
+        else:
+            kwargs['organization'] = None
 
-        return super(ProjectView, self).dispatch(request, *args, **kwargs)
+        return (args, kwargs)

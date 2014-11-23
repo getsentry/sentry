@@ -50,7 +50,12 @@ class OrganizationManager(BaseManager):
                 user=user,
             ).select_related('organization')
             if access is not None:
-                qs = qs.filter(type__lte=access)
+                # if we're requesting specific access the member *must* have
+                # global access to teams
+                qs = qs.filter(
+                    type__lte=access,
+                    has_global_access=True,
+                )
 
             for om in qs:
                 org = om.organization

@@ -12,7 +12,7 @@ from django import template
 from sentry.models import AccessGroup
 from sentry.permissions import (
     can_create_teams, can_create_projects, can_remove_team, can_remove_project,
-    can_add_team_member, can_manage_team, can_manage_org
+    can_manage_team, can_manage_org
 )
 
 register = template.Library()
@@ -21,7 +21,6 @@ register = template.Library()
 # so we can't just register.filter(can_add_team_member)
 register.filter('can_create_teams')(lambda a, b: can_create_teams(a, b))
 register.filter('can_create_projects')(lambda a, b: can_create_projects(a, b))
-register.filter('can_add_team_member')(lambda a, b: can_add_team_member(a, b))
 register.filter('can_manage_team')(lambda a, b: can_manage_team(a, b))
 register.filter('can_manage_org')(lambda a, b: can_manage_org(a, b))
 register.filter('can_remove_team')(lambda a, b: can_remove_team(a, b))
