@@ -12,31 +12,29 @@ class DeleteTeamTest(TestCase):
         project1 = self.create_project(team=team, name='test1', slug='test1')
         project2 = self.create_project(team=team, name='test2', slug='test2')
 
-        # remove relations from team so delete_team tests are faster
-        team.member_set.all().delete()
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            delete_team(object_id=team.id)
 
-        delete_team(object_id=team.id)
+            team = Team.objects.get(id=team.id)
 
-        team = Team.objects.get(id=team.id)
+            assert team.status == TeamStatus.DELETION_IN_PROGRESS
 
-        assert team.status == TeamStatus.DELETION_IN_PROGRESS
+            assert not Project.objects.filter(id=project1.id).exists()
 
-        assert not Project.objects.filter(id=project1.id).exists()
+            delete_team_delay.assert_called_once_with(object_id=team.id)
 
-        delete_team_delay.assert_called_once_with(object_id=team.id)
+            delete_team_delay.reset_mock()
 
-        delete_team_delay.reset_mock()
+            delete_team(object_id=team.id)
 
-        delete_team(object_id=team.id)
+            assert not Project.objects.filter(id=project2.id).exists()
 
-        assert not Project.objects.filter(id=project2.id).exists()
+            delete_team_delay.assert_called_once_with(object_id=team.id)
 
-        delete_team_delay.assert_called_once_with(object_id=team.id)
+            delete_team_delay.reset_mock()
 
-        delete_team_delay.reset_mock()
+            delete_team(object_id=team.id)
 
-        delete_team(object_id=team.id)
+            assert not delete_team_delay.called
 
-        assert not delete_team_delay.called
-
-        assert not Team.objects.filter(id=team.id).exists()
+            assert not Team.objects.filter(id=team.id).exists()
