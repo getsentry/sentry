@@ -31,7 +31,7 @@ class Fixtures(object):
 
     @fixture
     def user(self):
-        return self.create_user('admin@localhost', username='admin')
+        return self.create_user('admin@localhost', is_superuser=True)
 
     @fixture
     def organization(self):
