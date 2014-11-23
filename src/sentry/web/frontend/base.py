@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from django.core.context_processors import csrf
+from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -143,6 +144,9 @@ class BaseView(View, OrganizationMixin):
 
     def handle(self, request, *args, **kwargs):
         return super(BaseView, self).dispatch(request, *args, **kwargs)
+
+    def get_no_permission_url(request, *args, **kwargs):
+        return reverse('sentry')
 
     def has_permission(self, request, *args, **kwargs):
         return True
