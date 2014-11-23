@@ -8,8 +8,8 @@ from sentry.api.base import Endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN, RESERVED_TEAM_SLUGS
-from sentry.models import Team, TeamStatus
+from sentry.constants import RESERVED_TEAM_SLUGS
+from sentry.models import OrganizationMemberType, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 
 
@@ -47,7 +47,7 @@ class TeamDetailsEndpoint(Endpoint):
     def put(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         # TODO(dcramer): this permission logic is duplicated from the
         # transformer
@@ -66,14 +66,11 @@ class TeamDetailsEndpoint(Endpoint):
     def delete(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         if team.project_set.filter(id=settings.SENTRY_PROJECT).exists():
             return Response('{"error": "Cannot remove team containing default project."}',
                             status=status.HTTP_403_FORBIDDEN)
-
-        if not (request.user.is_superuser or team.owner_id == request.user.id):
-            return Response('{"error": "You do not have permission to remove this team."}', status=status.HTTP_403_FORBIDDEN)
 
         team.update(status=TeamStatus.PENDING_DELETION)
 

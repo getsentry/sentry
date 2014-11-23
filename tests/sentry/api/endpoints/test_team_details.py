@@ -1,7 +1,9 @@
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.models import OrganizationMemberType, Team, TeamStatus
+from sentry.models import (
+    OrganizationMemberType, Team, TeamStatus
+)
 from sentry.testutils import APITestCase
 
 
@@ -43,16 +45,16 @@ class TeamUpdateTest(APITestCase):
 class TeamDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.team_details.delete_team')
     def test_as_admin(self, delete_team):
-        team = self.create_team()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
         project = self.create_project(team=team)  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
-        team.organization.member_set.create_or_update(
+        org.member_set.create(
             user=user,
-            defaults={
-                'type': OrganizationMemberType.ADMIN,
-            }
+            has_global_access=True,
+            type=OrganizationMemberType.ADMIN,
         )
 
         self.login_as(user)
@@ -64,9 +66,10 @@ class TeamDeleteTest(APITestCase):
 
         team = Team.objects.get(id=team.id)
 
+        assert response.status_code == 204, response.data
+
         assert team.status == TeamStatus.PENDING_DELETION
 
-        assert response.status_code == 204
         delete_team.apply_async.assert_called_once_with(
             kwargs={"object_id": team.id},
             countdown=60 * 5,
