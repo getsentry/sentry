@@ -845,7 +845,7 @@ def search_users(request, team):
     results = list(User.objects.filter(
         Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
     ).filter(
-        Q(team_memberships=team) | Q(accessgroup__team=team),
+        sentry_orgmember_set__organization=team.organization,
     ).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
 
     response = HttpResponse(json.dumps({
