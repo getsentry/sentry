@@ -27,7 +27,7 @@ class CreateTeamView(OrganizationView):
         return NewTeamForm(request.POST or None)
 
     def get(self, request, organization):
-        if not can_create_teams(request.user):
+        if not can_create_teams(request.user, organization):
             return missing_perm(request, Permissions.ADD_TEAM)
 
         form = self.get_form(request)
@@ -39,7 +39,7 @@ class CreateTeamView(OrganizationView):
         return self.respond('sentry/create-team.html', context)
 
     def post(self, request, organization):
-        if not can_create_teams(request.user):
+        if not can_create_teams(request.user, organization):
             return missing_perm(request, Permissions.ADD_TEAM)
 
         form = self.get_form(request)

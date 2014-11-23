@@ -67,7 +67,7 @@ class OrganizationTeamsEndpoint(Endpoint):
         if organization is None:
             return Response(status=403)
 
-        if not can_create_teams(request.user):
+        if not can_create_teams(request.user, organization):
             return Response(status=403)
 
         if request.user.is_superuser:
