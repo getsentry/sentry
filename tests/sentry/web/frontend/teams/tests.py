@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from exam import before, fixture
+from exam import fixture
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.models import User
@@ -25,8 +25,8 @@ class BaseTeamTest(TestCase):
     def tm2(self):
         return self.team.member_set.get(user=self.user2)
 
-    @before
-    def login_user(self):
+    def setUp(self):
+        super(BaseTeamTest, self).setUp()
         self.login_as(self.user)
 
 

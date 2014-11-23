@@ -3,15 +3,14 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
-from exam import before
 
 from sentry.models import Team, TeamStatus
 from sentry.testutils import TestCase
 
 
 class RemoveTeamTest(TestCase):
-    @before
-    def setup_fixtures(self):
+    def setUp(self):
+        super(RemoveTeamTest, self).setUp()
         owner = self.create_user(email='example@example.com')
         organization = self.create_organization(owner=owner)
         self.team = self.create_team(name='bar', organization=organization)

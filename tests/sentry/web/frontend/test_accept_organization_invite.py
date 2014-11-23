@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from exam import before
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
@@ -11,8 +10,8 @@ from sentry.testutils import TestCase
 
 
 class AcceptInviteTest(TestCase):
-    @before
-    def setup_fixtures(self):
+    def setUp(self):
+        super(AcceptInviteTest, self).setUp()
         self.organization = self.create_organization(
             owner=self.create_user('foo@example.com'),
         )

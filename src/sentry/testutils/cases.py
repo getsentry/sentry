@@ -89,9 +89,6 @@ class BaseTestCase(Fixtures, Exam):
         }
         self.client.cookies[session_cookie].update(cookie_data)
 
-    def login(self):
-        self.login_as(self.user)
-
     def load_fixture(self, filepath):
         filepath = os.path.join(
             MODULE_ROOT,

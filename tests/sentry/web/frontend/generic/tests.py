@@ -1,7 +1,7 @@
 import mock
 
 from django.core.urlresolvers import reverse
-from exam import before, fixture
+from exam import fixture
 
 from sentry import options
 from sentry.models import Team
@@ -9,9 +9,9 @@ from sentry.testutils import TestCase
 
 
 class DashboardTest(TestCase):
-    @before
-    def login_user(self):
-        self.login()
+    def setUp(self):
+        super(DashboardTest, self).setUp()
+        self.login_as(self.user)
 
     @fixture
     def path(self):
@@ -60,10 +60,10 @@ class UpdateAvailableTest(TestCase):
 
     UPDATE_MESSAGE = "You're running a year old version of Sentry"
 
-    @before
-    def login_user(self):
+    def setUp(self):
+        super(UpdateAvailableTest, self).setUp()
         Team.objects.create(name='test', owner=self.user)
-        self.login()
+        self.login_as(self.user)
 
     @fixture
     def path(self):

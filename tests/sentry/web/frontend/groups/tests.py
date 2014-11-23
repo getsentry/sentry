@@ -7,7 +7,7 @@ import json
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from exam import before, fixture
+from exam import fixture
 
 from sentry.models import GroupSeen, Group
 from sentry.testutils import TestCase
@@ -23,7 +23,7 @@ class GroupDetailsTest(TestCase):
         })
 
     def test_simple(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
@@ -47,8 +47,8 @@ class GroupListTest(TestCase):
             'project_id': self.project.slug,
         })
 
-    @before
-    def create_a_couple_events(self):
+    def setUp(self):
+        super(GroupListTest, self).setUp()
         later = timezone.now()
         now = later - timedelta(hours=1)
         past = now - timedelta(hours=1)
@@ -69,7 +69,7 @@ class GroupListTest(TestCase):
         )
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
@@ -80,14 +80,14 @@ class GroupListTest(TestCase):
         assert resp.context['team'] == self.team
 
     def test_date_sort(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path + '?sort=date')
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
         assert list(resp.context['event_list']) == [self.group2, self.group1]
 
     def test_new_sort(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path + '?sort=new')
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
@@ -95,7 +95,7 @@ class GroupListTest(TestCase):
         assert list(resp.context['event_list']) == [self.group1, self.group2]
 
     def test_freq_sort(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path + '?sort=freq')
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
@@ -117,7 +117,7 @@ class GroupEventListTest(TestCase):
         event2 = self.create_event(
             event_id='b' * 32, datetime=timezone.now())
 
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
@@ -144,7 +144,7 @@ class GroupTagListTest(TestCase):
         })
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
@@ -168,7 +168,7 @@ class GroupEventDetailsTest(TestCase):
         })
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
@@ -193,7 +193,7 @@ class GroupEventJsonTest(TestCase):
         })
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'application/json'
