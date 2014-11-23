@@ -10,15 +10,9 @@ from __future__ import absolute_import
 
 import six
 
-from django.contrib.auth.models import UserManager
-
 from sentry.app import buffer, tsdb
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.db.models import BaseManager
-
-
-class UserManager(BaseManager, UserManager):
-    pass
 
 
 class GroupManager(BaseManager):
