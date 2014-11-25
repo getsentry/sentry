@@ -11,7 +11,7 @@ class Migration(DataMigration):
         Team = orm['sentry.Team']
 
         user_orgs = {}
-        team_list = Team.objects.all()
+        team_list = Team.objects.select_related('owner')
         for team in team_list:
             if team.owner not in user_orgs:
                 user_orgs[team.owner] = Organization.objects.create(
