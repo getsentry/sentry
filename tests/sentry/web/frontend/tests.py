@@ -202,29 +202,6 @@ class NewTeamProjectTest(PermissionBase):
         self._assertPerm(self.path, self.template, None, False)
 
 
-class ManageProjectTest(PermissionBase):
-    template = 'sentry/projects/manage.html'
-
-    @fixture
-    def path(self):
-        return reverse('sentry-manage-project', kwargs={'team_slug': self.team.slug, 'project_id': self.project.id})
-
-    def test_admin_can_load(self):
-        self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_owner_can_load(self):
-        self._assertPerm(self.path, self.template, self.owner.username)
-
-    def test_anonymous_cannot_load(self):
-        self._assertPerm(self.path, self.template, None, False)
-
-    def test_user_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.nobody.username, False)
-
-    def test_member_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.member.username, False)
-
-
 class RemoveProjectTest(PermissionBase):
     template = 'sentry/projects/remove.html'
 
