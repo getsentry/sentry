@@ -28,7 +28,6 @@ import sentry.web.frontend.projects.notifications
 import sentry.web.frontend.projects.plugins
 import sentry.web.frontend.projects.quotas
 import sentry.web.frontend.projects.rules
-import sentry.web.frontend.projects.settings
 import sentry.web.frontend.projects.tags
 
 __all__ = ('urlpatterns',)
@@ -45,6 +44,7 @@ from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_team import CreateTeamView
+from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.team_access_groups import TeamAccessGroupsView
@@ -168,8 +168,8 @@ urlpatterns += patterns('',
         sentry.web.frontend.projects.general.get_started,
         name='sentry-get-started'),
 
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/$',
-        sentry.web.frontend.projects.settings.manage_project,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
+        ProjectSettingsView.as_view(),
         name='sentry-manage-project'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/$',
         docs.client_help,
