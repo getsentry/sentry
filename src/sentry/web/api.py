@@ -13,6 +13,7 @@ import six
 from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db import connections
 from django.db.models import Sum, Q
@@ -349,12 +350,21 @@ class StoreView(APIView):
 
         event_id = data['event_id']
 
+        # TODO(dcramer): ideally we'd only validate this if the event_id was
+        # supplised by the user
+        cache_key = 'ev:%s:%s' % (project.id, event_id,)
+
+        if cache.get(cache_key) is not None:
+            logger.warning('Discarded recent duplicate event from project %s/%s (id=%s)', project.team.slug, project.slug, event_id)
+
         # We filter data immediately before it ever gets into the queue
         inst = SensitiveDataFilter()
         inst.apply(data)
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)
+
+        cache.set(cache_key, '', 60 * 5)
 
         logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, event_id)
 
