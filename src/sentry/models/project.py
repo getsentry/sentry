@@ -117,7 +117,7 @@ class Project(Model):
                 return True
         return False
 
-    def get_tags(self):
+    def get_tags(self, with_internal=True):
         from sentry.models import TagKey
 
         if not hasattr(self, '_tag_cache'):
@@ -125,7 +125,7 @@ class Project(Model):
             if tags is None:
                 tags = [
                     t for t in TagKey.objects.all_keys(self)
-                    if not t.startswith('sentry:')
+                    if with_internal or not t.startswith('sentry:')
                 ]
             self._tag_cache = tags
         return self._tag_cache
