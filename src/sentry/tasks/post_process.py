@@ -187,14 +187,15 @@ def record_affected_user(event, **kwargs):
 
     user_data = event.data.get('sentry.interfaces.User', {})
 
+    tag_data = {}
+    for key in ('id', 'email', 'username', 'data'):
+        value = user_data.get(key)
+        if value:
+            tag_data[key] = value
+    tag_data['ip'] = event.ip_address
+
     Group.objects.add_tags(event.group, [
-        ('sentry:user', user_ident, {
-            'id': user_data.get('id'),
-            'email': user_data.get('email'),
-            'username': user_data.get('username'),
-            'data': user_data.get('data'),
-            'ip': event.ip_address,
-        })
+        ('sentry:user', user_ident, tag_data)
     ])
 
 
