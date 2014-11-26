@@ -145,6 +145,7 @@ h3 {
 
   h1,
   #team-banner > a {
+    display: block;
     position: relative;
     letter-spacing: -1px;
     font-weight: bold;
@@ -154,7 +155,6 @@ h3 {
     height: 56px;
     line-height: 56px;
     padding: 0 25px 0 10px;
-    display: inline-block;
     cursor: pointer;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -191,9 +191,10 @@ h3 {
     .dropdown-menu {
       max-height: 400px;
       overflow: auto;
-      top: 0px;
-      position: relative;
+      top: 56px;
+      position: absolute;
       min-height: 50px;
+      min-width: 300px;
       padding: 10px;
       margin: 0;
       background: darken(#465262, 10%);
