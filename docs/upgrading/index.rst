@@ -25,6 +25,7 @@ An extremely large amount of changes happened between the 6.x and 7.x series. Ma
 
 - Redis is now a requirement
 - The queue and buffer systems are no longer optional for production systems
+- Time series data (graphs) have been moved to a new system (there is no data migration)
 - The default sentry.conf.py has greatly changed
 
 Due to the configuration generation being greatly improved, we recommend merging your existing settings with the new defaults. To do that just backup your `sentry.conf.py` and generate a new one using `sentry init`.
