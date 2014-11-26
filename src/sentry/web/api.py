@@ -351,7 +351,7 @@ class StoreView(APIView):
         event_id = data['event_id']
 
         # TODO(dcramer): ideally we'd only validate this if the event_id was
-        # supplised by the user
+        # supplied by the user
         cache_key = 'ev:%s:%s' % (project.id, event_id,)
 
         if cache.get(cache_key) is not None:
