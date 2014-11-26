@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from collections import defaultdict
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
@@ -12,23 +13,55 @@ class Migration(DataMigration):
         PendingTeamMember = orm['sentry.PendingTeamMember']
         TeamMember = orm['sentry.TeamMember']
 
-        for org in Organization.objects.all():
-            for team in org.team_set.all():
-                for tm in TeamMember.objects.filter(team=team):
-                    om, _ = OrganizationMember.objects.get_or_create(
-                        organization=org,
-                        user=tm.user,
-                        defaults={'type': tm.type},
-                    )
-                    om.teams.add(team)
+        teams_by_org = defaultdict(list)
 
-                for pm in PendingTeamMember.objects.filter(team=team):
-                    om, _ = OrganizationMember.objects.get_or_create(
-                        organization=org,
-                        email=pm.email,
-                        defaults={'type': pm.type},
-                    )
-                    om.teams.add(team)
+        for org in Organization.objects.all():
+            for team in Team.objects.filter(organization=org):
+                teams_by_org[org].append(team)
+
+        for org, team_list in teams_by_org.iteritems():
+            OrganizationMember.objects.get_or_create(
+                organization=org,
+                user=team.owner,
+                defaults={'type': 100},  # ADMIN
+            )
+
+            team_member_qs = TeamMember.objects.filter(
+                team__organization=org
+            ).select_related('user', 'team')
+
+            members_by_user = defaultdict(list)
+            for member in team_member_qs:
+                members_by_user[member.user].append(member)
+
+            total_teams = len(team_list)
+
+            for user, member_list in members_by_user.iteritems():
+                # if they were a member of all teams, give them global access
+                has_global_access = len(member_list) == total_teams
+
+                # give them the highest level access they had
+                access = min(m.type for m in member_list)
+
+                om, created = OrganizationMember.objects.get_or_create(
+                    organization=org,
+                    user=user,
+                    has_global_access=has_global_access,
+                    defaults={'type': access},  # ADMIN
+                )
+
+                if created and not has_global_access:
+                    for member in member_list:
+                        om.teams.add(member.team)
+
+            for pm in PendingTeamMember.objects.filter(team=team):
+                om, _ = OrganizationMember.objects.get_or_create(
+                    organization=org,
+                    email=pm.email,
+                    has_global_access=False,
+                    defaults={'type': pm.type},
+                )
+                om.teams.add(team)
 
 
     def backwards(self, orm):
