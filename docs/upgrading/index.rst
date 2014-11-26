@@ -44,3 +44,10 @@ Upgrading from <= 5.3
 
 If you were previously using social auth backends, take note that the callback URLs have been moved. They are now
 all prefixed with '/account/settings/social'.
+
+Upgrading from <= 7.0
+~~~~~~~~~~~~~~~~~~~~~
+
+An extremely large amount of changes happened between the 6.x and 7.x series. Many of them are backwards incompatible so you should review the setup guide again.
+
+Additionally the configuration generation was greatly improved, and we recommend merging your existing settings with the new defaults. To do that just backup your `sentry.conf.py` and generate a new one using `sentry init`.
