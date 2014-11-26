@@ -16,7 +16,7 @@ class Migration(DataMigration):
                 OrganizationMember.objects.get_or_create(
                     organization=org,
                     user=team.owner,
-                    defaults={'type': 100},  # ADMIN
+                    defaults={'type': 0},  # ADMIN
                 )
 
     def backwards(self, orm):
