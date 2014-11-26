@@ -356,6 +356,7 @@ class StoreView(APIView):
 
         if cache.get(cache_key) is not None:
             logger.warning('Discarded recent duplicate event from project %s/%s (id=%s)', project.team.slug, project.slug, event_id)
+            return
 
         # We filter data immediately before it ever gets into the queue
         inst = SensitiveDataFilter()
