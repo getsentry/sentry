@@ -185,7 +185,7 @@ def record_affected_user(event, **kwargs):
     if not user_ident:
         return
 
-    user_data = event.data.get('sentry.interfaces.User', {})
+    user_data = event.data.get('sentry.interfaces.User', event.data.get('user', {}))
 
     tag_data = {}
     for key in ('id', 'email', 'username', 'data'):
