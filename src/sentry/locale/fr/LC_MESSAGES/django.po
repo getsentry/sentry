@@ -1228,7 +1228,7 @@ msgid ""
 "This list only contains a portion of all events seen. For more information "
 "about how Sentry samples events, see the <a "
 "href=\"%(link)s\">documentation</a>."
-msgstr "Cette liste contient seulement une potion de tous les évènements vus. Pour plus d'informations sur la manière dont Sentry échantillonne les évènements, regardez <a href=\"%(link)s\">la documentation</a>."
+msgstr "Cette liste contient seulement une portion de tous les évènements vus. Pour plus d'informations sur la manière dont Sentry échantillonne les évènements, regardez <a href=\"%(link)s\">la documentation</a>."
 
 #: templates/sentry/groups/event_list.html:23
 #: templates/sentry/plugins/bases/tag/index.html:41
