@@ -12,6 +12,7 @@ class Migration(DataMigration):
         OrganizationMember = orm['sentry.OrganizationMember']
         PendingTeamMember = orm['sentry.PendingTeamMember']
         TeamMember = orm['sentry.TeamMember']
+        Team = orm['sentry.Team']
 
         teams_by_org = defaultdict(list)
 
