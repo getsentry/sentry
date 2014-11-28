@@ -31,7 +31,7 @@ class TeamManager(BaseManager):
         OrganizationMemberType value.
         """
         from sentry.models import (
-            OrganizationMember, OrganizationMemberType, Project
+            AccessGroup, OrganizationMember, OrganizationMemberType, Project
         )
 
         if not user.is_authenticated():
@@ -43,27 +43,46 @@ class TeamManager(BaseManager):
                 team.access_type = OrganizationMemberType.MEMBER
 
         else:
-            qs = OrganizationMember.objects.filter(
+            om_qs = OrganizationMember.objects.filter(
                 user=user,
                 organization=organization,
             )
             if access is not None:
-                qs = qs.filter(type__lte=access)
+                om_qs = om_qs.filter(type__lte=access)
 
             try:
-                om = qs.get()
+                om = om_qs.get()
             except OrganizationMember.DoesNotExist:
-                return []
-
-            if om.has_global_access:
-                team_qs = self.filter(organization=organization)
+                team_qs = self.none()
             else:
-                team_qs = om.teams.all()
+                if om.has_global_access:
+                    team_qs = self.filter(organization=organization)
+                else:
+                    team_qs = om.teams.all()
 
-            for team in team_qs:
-                team.access_type = om.type
+                for team in team_qs:
+                    team.access_type = om.type
 
-        results = sorted(team_qs, key=lambda x: x.name.lower())
+            team_list = set(team_qs)
+
+            # TODO(dcramer): remove all of this junk when access groups are
+            # killed
+            ag_qs = AccessGroup.objects.filter(
+                members=user,
+                team__organization=organization,
+            ).select_related('team')
+            if access is not None:
+                ag_qs = ag_qs.filter(type__lte=access)
+
+            for ag in ag_qs:
+                if ag.team in team_list:
+                    continue
+
+                ag.team.is_access_group = True
+                ag.team.access_type = ag.type
+                team_list.add(ag.team)
+
+        results = sorted(team_list, key=lambda x: x.name.lower())
 
         if with_projects:
             # these kinds of queries make people sad :(
@@ -71,6 +90,7 @@ class TeamManager(BaseManager):
                 project_list = list(Project.objects.get_for_user(
                     team=team,
                     user=user,
+                    _skip_team_check=True
                 ))
                 results[idx] = (team, project_list)
 
