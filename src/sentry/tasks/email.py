@@ -25,7 +25,7 @@ def _get_user_from_email(group, email):
         # Make sure that the user actually has access to this project
         if group.project not in Project.objects.get_for_user(
                 user, team=group.team, superuser=False):
-            logger.warning('User %r does not have access to group %r', (user, group))
+            logger.warning('User %r does not have access to group %r', user, group)
             continue
 
         return user
