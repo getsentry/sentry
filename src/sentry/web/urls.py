@@ -33,6 +33,7 @@ import sentry.web.frontend.projects.tags
 __all__ = ('urlpatterns',)
 
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
+from sentry.web.frontend.access_group_migration import AccessGroupMigrationView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
@@ -120,6 +121,8 @@ urlpatterns += patterns('',
     # Organizations
     url(r'^organizations/new/$', CreateOrganizationView.as_view(),
         name='sentry-create-organization'),
+    url(r'^organizations/(?P<organization_id>\d+)/access-groups/$', AccessGroupMigrationView.as_view(),
+        name='sentry-organization-access-group-migration'),
     url(r'^organizations/(?P<organization_id>\d+)/$', OrganizationHomeView.as_view(),
         name='sentry-organization-home'),
     url(r'^organizations/(?P<organization_id>\d+)/members/$', OrganizationMembersView.as_view(),
