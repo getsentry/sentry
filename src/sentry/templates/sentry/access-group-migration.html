@@ -1,0 +1,25 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Access Group Migration" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Access Group Migration" %}</h2>
+    </div>
+
+    {% if member_list %}
+        <p>Below is a list of all members who are part of an access group within this organization. You'll need to select which team(s) they should gain access to. Alternatively you can choose to remove the user if they no longer need access.</p>
+
+        <p>Note: Unlike access groups, organization membership cannot be restricted per-project. If you need to refine access to that level you should create additional teams and move to the projects where applicable.</p>
+
+        <ul>
+            {% for member, project_list in member_list %}
+                <li>{{ member.get_display_name }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Your work is done here! There are no access groups which need migrated.</p>
+    {% endif %}
+{% endblock %}
