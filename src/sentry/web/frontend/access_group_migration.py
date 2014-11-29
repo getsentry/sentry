@@ -16,6 +16,8 @@ class AccessGroupMigrationView(OrganizationView):
 
         group_list = set(m.accessgroup for m in member_list)
 
+        team_list = organization.team_set.all()
+
         project_list = list(AccessGroup.projects.through.objects.filter(
             accessgroup__in=group_list,
         ).select_related('project'))
@@ -39,6 +41,7 @@ class AccessGroupMigrationView(OrganizationView):
         context = {
             'member_list': results,
             'group_list': group_list,
+            'team_list': team_list,
         }
 
         return self.respond('sentry/access-group-migration.html', context)
