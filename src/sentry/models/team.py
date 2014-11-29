@@ -38,8 +38,8 @@ class TeamManager(BaseManager):
             return []
 
         if settings.SENTRY_PUBLIC and access is None:
-            team_qs = self.filter(organization=organization)
-            for team in team_qs:
+            team_list = list(self.filter(organization=organization))
+            for team in team_list:
                 team.access_type = OrganizationMemberType.MEMBER
 
         else:
