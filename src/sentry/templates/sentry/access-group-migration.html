@@ -74,7 +74,7 @@
 
   <script>
   $(function(){
-    var selectedTeams = [];
+    var selectedTeamsByParent = {};
     $('input.global-access').change(function(){
       var $this = $(this);
       var $parent = $this.parent().parent();
@@ -82,12 +82,12 @@
       var selector = $parent.find('.team-choices input[type=checkbox]');
 
       if (checked) {
-        selectedTeams = $parent.find('.team-choices input[type=checkbox]:checked').slice(0, selector.length);
+        selectedTeamsByParent[$parent] = $parent.find('.team-choices input[type=checkbox]:checked').slice(0, selector.length);
         selector.prop('checked', true);
       } else {
         selector.prop('checked', false);
-        $(selectedTeams).prop('checked', true);
-        selectedTeams = [];
+        $(selectedTeamsByParent[$parent]).prop('checked', true);
+        selectedTeamsByParent[$parent] = [];
       }
 
       $('.team-choices').prop('disabled', checked);
