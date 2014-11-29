@@ -8,7 +8,9 @@ from pytz import utc
 from random import randint
 
 from sentry.app import tsdb
-from sentry.models import Activity, User, Organization, Project, Team
+from sentry.models import (
+    AccessGroup, Activity, User, Organization, Project, Team
+)
 from sentry.utils.samples import create_sample_event
 
 def create_sample_time_series(event):
@@ -31,6 +33,10 @@ def create_sample_time_series(event):
 
 user = User.objects.filter(is_superuser=True)[0]
 
+dummy_user, _ = User.objects.get_or_create(
+    username='dummy@example.com'
+)
+
 org, _ = Organization.objects.get_or_create(
     name='Default',
     defaults={
@@ -51,6 +57,14 @@ project, _ = Project.objects.get_or_create(
     name='Backend',
     slug='backend',
 )
+
+
+accessgroup, _ = AccessGroup.objects.get_or_create(
+    name='Example',
+    team=team,
+)
+accessgroup.projects.add(project)
+accessgroup.members.add(dummy_user)
 
 event1 = create_sample_event(project, 'python')
 create_sample_time_series(event1)
