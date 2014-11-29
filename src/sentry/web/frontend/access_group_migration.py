@@ -20,7 +20,7 @@ class AccessGroupMigrationView(OrganizationView):
 
         project_list = list(AccessGroup.projects.through.objects.filter(
             accessgroup__in=group_list,
-        ).select_related('project'))
+        ).select_related('project', 'project__team'))
 
         # sort projects by group
         projects_by_group = defaultdict(list)
