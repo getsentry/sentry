@@ -13,30 +13,40 @@
   </div>
 
   {% if member_list %}
-    <p>Below is a list of all members who are part of an access group within this organization. You'll need to select which team(s) they should gain access to. Alternatively you can choose to remove the user if they no longer need access.</p>
+    <p>Below is a list of all members who are part of any access group within this organization. You'll need to select which team(s) they should gain access to. Alternatively you can choose to remove the user if they no longer need access.</p>
 
     <p>Note: Unlike access groups, organization membership cannot be restricted per-project. If you need to refine access to that level you should create additional teams and move to the projects where applicable.</p>
 
     <table class="table table-striped access-group-migration">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th style="width:100px;text-align:center">Projects</th>
+          <th style="width:100px;text-align:center">Remove?</th>
+        </tr>
+      </thead>
       {% for member, project_list in member_list %}
         <tr>
           <td>
             <h4>{{ member.get_display_name }}</h4>
             <label class="checkbox">
-              <input type="checkbox" name="global_access" value="1" class="checkboxinput">
+              <input type="checkbox" name="user[{{ user.id }}][global_access]" value="1" class="checkboxinput global-access">
               <strong>All Teams</strong>
             </label>
             <fieldset class="team-choices">
               {% for team in team_list %}
                 <label class="checkbox">
-                  <input type="checkbox" name="team" value="{{ team.slug }}" class="checkboxinput">
+                  <input type="checkbox" name="user[{{ user.id }}][team]" value="{{ team.slug }}" class="checkboxinput">
                   {{ team.slug }}
                 </label>
               {% endfor %}
             </fieldset>
           </td>
-          <td style="text-align:center;width:150px;vertical-align:top">
-            <a class="tip" title="{% for project in project_list %}{{ project.slug }}{% if not forloop.last %}, {% endif %}{% endfor %}">{{ project_list|length }} project(s)</a>
+          <td style="text-align:center;vertical-align:top">
+            <a class="tip" title="{% for project in project_list %}{{ project.team.slug }} / {{ project.slug }}<br>{% endfor %}">{{ project_list|length }} project(s)</a>
+          </td>
+          <td style="text-align:center;vertical-align:top">
+            <input type="checkbox" name="user[{{ user.id }}][remove]" value="1" class="checkboxinput">
           </td>
         </tr>
       {% endfor %}
@@ -46,6 +56,10 @@
   {% endif %}
 
   <style>
+  table.access-group-migration td,
+  table.access-group-migration th {
+    padding: 8px;
+  }
   .access-group-migration td > h4 {
     margin-bottom: 10px;
     display: block;
@@ -61,7 +75,7 @@
   <script>
   $(function(){
     var selectedTeams = [];
-    $('input[name="global_access"]').change(function(){
+    $('input.global-access').change(function(){
       var $this = $(this);
       var $parent = $this.parent().parent();
       var checked = $this.is(':checked');
