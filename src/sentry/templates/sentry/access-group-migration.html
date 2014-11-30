@@ -17,40 +17,56 @@
 
     <p>Note: Unlike access groups, organization membership cannot be restricted per-project. If you need to refine access to that level you should create additional teams and transfer the projects where applicable.</p>
 
-    <table class="table table-striped access-group-migration">
-      <thead>
-        <tr>
-          <th>Member</th>
-          <th style="width:100px;text-align:center">Projects</th>
-          <th style="width:100px;text-align:center">Remove?</th>
-        </tr>
-      </thead>
-      {% for member, project_list in member_list %}
-        <tr>
-          <td>
-            <h4>{{ member.get_display_name }}</h4>
-            <label class="checkbox">
-              <input type="checkbox" name="user[{{ user.id }}][global_access]" value="1" class="checkboxinput global-access">
-              <strong>All Teams</strong>
-            </label>
-            <fieldset class="team-choices">
-              {% for team in team_list %}
-                <label class="checkbox">
-                  <input type="checkbox" name="user[{{ user.id }}][team]" value="{{ team.slug }}" class="checkboxinput">
-                  {{ team.slug }}
-                </label>
-              {% endfor %}
-            </fieldset>
-          </td>
-          <td style="text-align:center;vertical-align:top">
-            <a class="tip" title="{% for project in project_list %}{{ project.team.slug }} / {{ project.slug }}<br>{% endfor %}">{{ project_list|length }} project(s)</a>
-          </td>
-          <td style="text-align:center;vertical-align:top">
-            <input type="checkbox" name="user[{{ user.id }}][remove]" value="1" class="checkboxinput">
-          </td>
-        </tr>
-      {% endfor %}
-    </table>
+    <form method="POST" action=".">
+      {% csrf_token %}
+
+      <table class="table table-striped access-group-migration">
+        <thead>
+          <tr>
+            <th></th>
+            <th style="width:200px"></th>
+            <th style="width:100px"></th>
+            <th style="width:100px;text-align:center">Remove?</th>
+          </tr>
+        </thead>
+        {% for member, project_list in member_list %}
+          <tr>
+            <td>
+              <h4>{{ member.get_display_name }}</h4>
+              <label class="checkbox">
+                <input type="checkbox" name="user[{{ member.id }}][global_access]" value="1" class="checkboxinput global-access">
+                <strong>All Teams</strong>
+              </label>
+              <fieldset class="team-choices">
+                {% for team in team_list %}
+                  <label class="checkbox">
+                    <input type="checkbox" name="user[{{ member.id }}][team]" value="{{ team.slug }}" class="checkboxinput">
+                    {{ team.slug }}
+                  </label>
+                {% endfor %}
+              </fieldset>
+            </td>
+            <td style="vertical-align:top">
+              <select name="user[{{ member.id }}][type]" style="width:150px">
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </td>
+            <td style="vertical-align:top">
+              <a class="tip" title="{% for project in project_list %}{{ project.team.slug }} / {{ project.slug }}<br>{% endfor %}"
+                 style="line-height:28px;">{{ project_list|length }} project(s)</a>
+            </td>
+            <td style="text-align:center;vertical-align:top">
+              <input type="checkbox" name="user[{{ member.id }}][remove]" value="1" class="checkboxinput">
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+
+      <fieldset class="form-actions">
+        <button type="submit" class="btn btn-primary" name="action_save">{% trans "Save Changes" %}</button>
+      </fieldset>
+    </form>
   {% else %}
     <p>Your work is done here! There are no access groups which need migrated.</p>
   {% endif %}
