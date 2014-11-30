@@ -30,14 +30,16 @@ class AccessGroupMigrationView(OrganizationView):
 
             global_access = global_access == '1'
 
-            om = OrganizationMember.objects.create(
+            om, created = OrganizationMember.objects.get_or_create(
                 organization=organization,
-                has_global_access=global_access,
-                type=access_type,
                 user=member.user,
+                defaults={
+                    'has_global_access': global_access,
+                    'type': access_type,
+                }
             )
 
-            if not global_access:
+            if created and not global_access:
                 for team in teams:
                     om.teams.add(Team.objects.get_from_cache(slug=team))
 
