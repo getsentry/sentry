@@ -500,3 +500,16 @@ def localized_datetime(context, dt, format='DATETIME_FORMAT'):
 @register.filter
 def list_organizations(user):
     return Organization.objects.get_for_user(user)
+
+
+@register.filter
+def needs_access_group_migration(user, organization):
+    from sentry.models import AccessGroup, OrganizationMember, OrganizationMemberType
+
+    return OrganizationMember.objects.filter(
+        user=user,
+        organization=organization,
+        type=OrganizationMemberType.ADMIN,
+    ).exists() and AccessGroup.objects.filter(
+        team__organization=organization
+    ).exists()
