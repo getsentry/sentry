@@ -20,7 +20,7 @@ from django.conf import settings
 from sentry.web import api
 from sentry.web.frontend import (
     alerts, accounts, generic, groups, events,
-    admin, docs, teams, users, explore, explore_code)
+    admin, docs, users, explore, explore_code)
 
 import sentry.web.frontend.projects.general
 import sentry.web.frontend.projects.keys
@@ -40,7 +40,6 @@ from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_member_settings import OrganizationMemberSettingsView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.organization_teams import OrganizationTeamsView
-from sentry.web.frontend.create_access_group import CreateAccessGroupView
 from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
@@ -48,7 +47,6 @@ from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
-from sentry.web.frontend.team_access_groups import TeamAccessGroupsView
 from sentry.web.frontend.team_projects import TeamProjectsView
 from sentry.web.frontend.team_settings import TeamSettingsView
 
@@ -145,22 +143,6 @@ urlpatterns += patterns('',
         name='sentry-manage-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/$', TeamAccessGroupsView.as_view(),
-        name='sentry-manage-access-groups'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/new/$', CreateAccessGroupView.as_view(),
-        name='sentry-new-access-group'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/edit/$', teams.access_group_details,
-        name='sentry-edit-access-group'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/remove/$', teams.remove_access_group,
-        name='sentry-remove-access-group'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/members/$', teams.access_group_members,
-        name='sentry-access-group-members'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/members/(?P<user_id>\d+)/remove/$',
-        teams.remove_access_group_member, name='sentry-remove-access-group-member'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/projects/$', teams.access_group_projects,
-        name='sentry-access-group-projects'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/groups/(?P<group_id>\d+)/projects/(?P<project_id>\d+)/remove/$',
-        teams.remove_access_group_project, name='sentry-remove-access-group-project'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/$', TeamProjectsView.as_view(),
         name='sentry-manage-team-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),
