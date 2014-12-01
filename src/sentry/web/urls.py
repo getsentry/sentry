@@ -39,7 +39,6 @@ from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_member_settings import OrganizationMemberSettingsView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
-from sentry.web.frontend.organization_teams import OrganizationTeamsView
 from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
@@ -131,8 +130,6 @@ urlpatterns += patterns('',
         name='sentry-organization-member-settings'),
     url(r'^organizations/(?P<organization_id>\d+)/settings/$', OrganizationSettingsView.as_view(),
         name='sentry-organization-settings'),
-    url(r'^organizations/(?P<organization_id>\d+)/teams/$', OrganizationTeamsView.as_view(),
-        name='sentry-organization-teams'),
     url(r'^organizations/(?P<organization_id>\d+)/teams/new/$', CreateTeamView.as_view(),
         name='sentry-create-team'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
