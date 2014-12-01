@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.models import OrganizationMember, OrganizationMemberType
@@ -18,7 +19,7 @@ class CreateOrganizationMemberTest(TestCase):
         assert resp.context['form']
 
     def test_valid_for_invites(self):
-        organization = self.create_organization()
+        organization = self.create_organization(name='Default')
         path = reverse('sentry-create-organization-member', args=[organization.id])
         self.login_as(self.user)
 
@@ -39,6 +40,10 @@ class CreateOrganizationMemberTest(TestCase):
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.id, member.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == ['foo@example.com']
+        assert mail.outbox[0].subject == 'Invite to join organization: Default'
 
     def test_existing_user_for_invite(self):
         organization = self.create_organization()
