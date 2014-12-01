@@ -16,7 +16,7 @@ class Migration(DataMigration):
 
         teams_by_org = defaultdict(list)
 
-        for org in Organization.objects.all():
+        for org in Organization.objects.iterator():
             for team in Team.objects.filter(organization=org):
                 teams_by_org[org].append(team)
 
@@ -32,7 +32,7 @@ class Migration(DataMigration):
             ).select_related('user', 'team')
 
             members_by_user = defaultdict(list)
-            for member in team_member_qs:
+            for member in team_member_qs.iterator():
                 members_by_user[member.user].append(member)
 
             total_teams = len(team_list)

@@ -11,8 +11,8 @@ class Migration(DataMigration):
         OrganizationMember = orm['sentry.OrganizationMember']
         TeamMember = orm['sentry.TeamMember']
 
-        for org in Organization.objects.all():
-            for team in org.team_set.all():
+        for org in Organization.objects.all().iterator():
+            for team in org.team_set.all().iterator():
                 OrganizationMember.objects.get_or_create(
                     organization=org,
                     user=team.owner,
