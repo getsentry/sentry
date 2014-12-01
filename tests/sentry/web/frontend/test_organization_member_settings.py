@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
@@ -126,3 +127,31 @@ class OrganizationMemberSettingsTest(TestCase):
         assert ale.target_object == member.id
         assert ale.target_user == user
         assert ale.data
+
+    def test_reinvite(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team_1 = self.create_team(name='foo', organization=organization)
+        team_2 = self.create_team(name='bar', organization=organization)
+
+        user = self.create_user('bar@example.com')
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            email='bar@example.com',
+        )
+
+        path = reverse('sentry-organization-member-settings',
+                       args=[organization.id, member.id])
+
+        self.login_as(self.user)
+
+        resp = self.client.post(path, {
+            'op': 'reinvite',
+            'teams': [team_1.id, team_2.id],
+            'type': OrganizationMemberType.ADMIN,
+        })
+
+        assert resp.status_code == 302
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == ['bar@example.com']
+        assert mail.outbox[0].subject == 'Invite to join organization: foo'
