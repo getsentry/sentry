@@ -7,17 +7,21 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        Organization = orm['sentry.Organization']
         OrganizationMember = orm['sentry.OrganizationMember']
-        TeamMember = orm['sentry.TeamMember']
+        Team = orm['sentry.Team']
 
-        for org in Organization.objects.all().iterator():
-            for team in org.team_set.all().iterator():
-                OrganizationMember.objects.get_or_create(
-                    organization=org,
-                    user=team.owner,
-                    defaults={'type': 0},  # ADMIN
-                )
+        existing = set()
+
+        for team in Team.objects.select_related('organization').iterator():
+            if team.owner_id in existing:
+                continue
+
+            OrganizationMember.objects.get_or_create(
+                organization=team.organization,
+                user=team.owner,
+                defaults={'type': 0},  # ADMIN
+            )
+            existing.add(team.owner_id)
 
     def backwards(self, orm):
         pass
