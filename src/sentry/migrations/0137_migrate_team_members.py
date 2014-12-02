@@ -21,18 +21,14 @@ class Migration(DataMigration):
                 teams_by_org[org].append(team)
 
         for org, team_list in teams_by_org.iteritems():
-            OrganizationMember.objects.get_or_create(
-                organization=org,
-                user=team.owner,
-                defaults={'type': 100},  # ADMIN
-            )
-
             team_member_qs = TeamMember.objects.filter(
                 team__organization=org
             ).select_related('user', 'team')
 
             members_by_user = defaultdict(list)
             for member in team_member_qs.iterator():
+                if member.user == member.team.owner:
+                    continue  # team owners are already present
                 members_by_user[member.user].append(member)
 
             total_teams = len(team_list)
