@@ -43,8 +43,10 @@ class Migration(DataMigration):
                 om, created = OrganizationMember.objects.get_or_create(
                     organization=org,
                     user=user,
-                    has_global_access=has_global_access,
-                    defaults={'type': access},  # ADMIN
+                    defaults={
+                        'type': access,
+                        'has_global_access': has_global_access,
+                    },  # ADMIN
                 )
 
                 if created and not has_global_access:
@@ -59,7 +61,6 @@ class Migration(DataMigration):
                     defaults={'type': pm.type},
                 )
                 om.teams.add(team)
-
 
     def backwards(self, orm):
         pass
