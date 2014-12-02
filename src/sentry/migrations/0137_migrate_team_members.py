@@ -27,7 +27,7 @@ class Migration(DataMigration):
 
             members_by_user = defaultdict(list)
             for member in team_member_qs.iterator():
-                if member.user == member.team.owner:
+                if member.user_id == member.team.owner_id:
                     continue  # team owners are already present
                 members_by_user[member.user].append(member)
 
