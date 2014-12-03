@@ -95,7 +95,7 @@ install_requires = [
     'simplejson>=3.1.0,<3.4.0',
     'six>=1.6.0,<1.7.0',
     'setproctitle>=1.1.7,<1.2.0',
-    'South==0.8.2',
+    'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.3.5',
     'urllib3>=1.7.1,<1.8.0',
