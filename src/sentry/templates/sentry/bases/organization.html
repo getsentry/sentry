@@ -33,6 +33,9 @@
           {% trans "Admin" %}
         </a>
       </li>
+      {% block organization_nav %}
+        {% comment %}This block is utilized by getsentry.com{% endcomment %}
+      {% endblock %}
     </ul>
 
     {% if request.user|needs_access_group_migration:organization %}
