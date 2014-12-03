@@ -111,7 +111,6 @@ class EventManagerTest(TestCase):
             timestamp=1403007314,
         ))
         event = manager.save(1)
-        print(event)
 
         group = Group.objects.get(id=event.group_id)
         group.status = STATUS_RESOLVED
@@ -154,6 +153,29 @@ class EventManagerTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
+
+    @patch('sentry.models.Group.is_resolved')
+    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
+        # N.B. EventManager won't unresolve the group unless the event2 has a
+        # later timestamp than event1. MySQL doesn't support microseconds.
+
+        mock_is_resolved.return_value = False
+        manager = EventManager(self.make_event(
+            event_id='a' * 32, checksum='a' * 32,
+            timestamp=1403007314,
+        ))
+        event = manager.save(1)
+
+        mock_is_resolved.return_value = True
+        manager = EventManager(self.make_event(
+            event_id='b' * 32, checksum='a' * 32,
+            timestamp=1403007315,
+        ))
+        event2 = manager.save(1)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group.id)
+        assert group.active_at == event2.datetime
 
     def test_long_culprit(self):
         manager = EventManager(self.make_event(
