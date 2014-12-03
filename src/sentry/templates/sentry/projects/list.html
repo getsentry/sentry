@@ -23,7 +23,6 @@
                     <tr>
                         <th>{% trans "Name" %}</th>
                         <th style="text-align:center;">{% trans "Membership" %}</th>
-                        <th style="text-align:center;">{% trans "Owner" %}</th>
                         <th style="text-align:center;">{% trans "Status" %}</th>
                     </tr>
                 </thead>
@@ -37,13 +36,6 @@
                                 {% endif %}
                             </td>
                             <td style="text-align:center;vertical-align:middle;">{{ project.member_type }}</td>
-                            <td style="text-align:center;vertical-align:middle;">
-                                {% if project.owner %}
-                                    {{ project.owner.username }}
-                                {% else %}
-                                    <em>{% trans "no owner" %}</em>
-                                {% endif %}
-                            </td>
                             <td style="text-align:center;vertical-align:middle;">{{ project.get_status_display }}</td>
                         </tr>
                     {% endfor %}

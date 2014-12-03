@@ -8,8 +8,6 @@ from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.constants import MEMBER_OWNER
-from sentry.db.models import update
-from sentry.db.models.utils import slugify_instance
 from sentry.models import (
     Project, User, Team, ProjectKey, UserOption, TagKey, TagValue,
     GroupTagValue, GroupTagKey, Activity, TeamMember, Alert)
@@ -70,7 +68,6 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         public=False,
         name=name,
         slug=slug,
-        owner=user,
         team=team,
         **kwargs
     )
@@ -103,7 +100,7 @@ def set_sentry_version(latest=None, **kwargs):
     options.set('sentry:latest_version', (latest or current))
 
 
-def create_team_and_keys_for_project(instance, created, **kwargs):
+def create_keys_for_project(instance, created, **kwargs):
     if not created or kwargs.get('raw'):
         return
 
@@ -111,15 +108,6 @@ def create_team_and_keys_for_project(instance, created, **kwargs):
         ProjectKey.objects.create(
             project=instance,
         )
-
-    if not instance.owner:
-        return
-
-    if not instance.team:
-        team = Team(owner=instance.owner, name=instance.name)
-        slugify_instance(team, instance.slug)
-        team.save()
-        update(instance, team=team)
 
 
 def create_team_member_for_owner(instance, created, **kwargs):
@@ -212,9 +200,9 @@ post_syncdb.connect(
     weak=False,
 )
 post_save.connect(
-    create_team_and_keys_for_project,
+    create_keys_for_project,
     sender=Project,
-    dispatch_uid="create_team_and_keys_for_project",
+    dispatch_uid="create_keys_for_project",
     weak=False,
 )
 post_save.connect(

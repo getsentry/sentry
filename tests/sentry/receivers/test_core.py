@@ -20,7 +20,6 @@ class CreateDefaultProjectsTest(TestCase):
         create_default_projects(created_models=[Project])
 
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
-        assert project.owner == user
         assert project.public is False
         assert project.name == 'Backend'
         assert project.slug == 'backend'
@@ -46,7 +45,6 @@ class CreateDefaultProjectsTest(TestCase):
         user = User.objects.get(username='sentry')
 
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
-        assert project.owner == user
         assert project.public is False
         assert project.name == 'Backend'
         assert project.slug == 'backend'

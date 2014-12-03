@@ -111,9 +111,6 @@ def manage_team(request, team):
                     'type': MEMBER_OWNER,
                 }
             )
-            team.project_set.update(
-                owner=team.owner,
-            )
 
         messages.add_message(request, messages.SUCCESS,
             _('Changes to your team were saved.'))
@@ -443,8 +440,6 @@ def create_new_team_project(request, team):
     if form.is_valid():
         project = form.save(commit=False)
         project.team = team
-        if not project.owner:
-            project.owner = request.user
         project.save()
 
         create_sample_event(project)

@@ -40,7 +40,6 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey('sentry.Team', null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
