@@ -68,8 +68,9 @@ class ProjectKeyTest(TestCase):
             self.assertEquals(key.get_dsn(), 'http://public:secret@endpoint.com/1')
 
     def test_key_is_created_for_project(self):
-        team = self.create_team(owner=self.user)
-        project = Project.objects.create(name='Test', slug='test', team=team)
+        user = self.create_user('admin@example.com')
+        team = self.create_team(name='Test', owner=user)
+        project = self.create_project(name='Test', team=team)
         assert project.key_set.filter(user__isnull=True).exists() is True
 
 

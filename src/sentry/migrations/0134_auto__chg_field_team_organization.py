@@ -1,30 +1,19 @@
 # -*- coding: utf-8 -*-
 import datetime
 from south.db import db
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
 from django.db import models
 
-class Migration(DataMigration):
+
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        OrganizationMember = orm['sentry.OrganizationMember']
-        Team = orm['sentry.Team']
-
-        existing = set()
-
-        for team in Team.objects.select_related('organization').iterator():
-            if team.owner_id in existing:
-                continue
-
-            OrganizationMember.objects.get_or_create(
-                organization=team.organization,
-                user=team.owner,
-                defaults={'type': 0},  # ADMIN
-            )
-            existing.add(team.owner_id)
+        # Changing field 'Team.organization'
+        db.alter_column('sentry_team', 'organization_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Organization']))
 
     def backwards(self, orm):
-        pass
+        # Changing field 'Team.organization'
+        db.alter_column('sentry_team', 'organization_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Organization'], null=True))
 
     models = {
         'sentry.accessgroup': {
@@ -232,7 +221,6 @@ class Migration(DataMigration):
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_owned_project_set'", 'null': 'True', 'to': "orm['sentry.User']"}),
             'platform': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'null': 'True'}),
@@ -298,7 +286,7 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'members': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'team_memberships'", 'symmetrical': 'False', 'through': "orm['sentry.TeamMember']", 'to': "orm['sentry.User']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
-            'organization': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Organization']", 'null': 'True'}),
+            'organization': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Organization']"}),
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.User']"}),
             'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50'}),
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
@@ -337,4 +325,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['sentry']
-    symmetrical = True

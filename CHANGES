@@ -14,7 +14,8 @@ Backwards Incompatible Changes
 - GroupMeta.objects.get_value no longer errors when a value is missing.
 - sentry.plugins.sentry_sites has been removed
 - The Search API has been rewritten and now powers the entire stream.
-- Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
+- Removed Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
+- Removed Project.owner.
 
 Version 6.4.0
 -------------

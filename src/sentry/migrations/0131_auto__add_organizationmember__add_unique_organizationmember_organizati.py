@@ -1,29 +1,55 @@
 # -*- coding: utf-8 -*-
 import datetime
 from south.db import db
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
 from django.db import models
 
-class Migration(DataMigration):
+
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        Organization = orm['sentry.Organization']
-        Team = orm['sentry.Team']
+        # Adding model 'OrganizationMember'
+        db.create_table('sentry_organizationmember', (
+            ('id', self.gf('sentry.db.models.fields.BoundedBigAutoField')(primary_key=True)),
+            ('organization', self.gf('django.db.models.fields.related.ForeignKey')(related_name='member_set', to=orm['sentry.Organization'])),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='sentry_orgmember_set', to=orm['sentry.User'])),
+            ('type', self.gf('django.db.models.fields.PositiveIntegerField')(default=50)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+        ))
+        db.send_create_signal('sentry', ['OrganizationMember'])
 
-        user_orgs = {}
-        team_list = Team.objects.select_related('owner')
-        for team in team_list.iterator():
-            if team.owner not in user_orgs:
-                user_orgs[team.owner] = Organization.objects.create(
-                    name=team.name,
-                    owner=team.owner,
-                )
+        # Adding unique constraint on 'OrganizationMember', fields ['organization', 'user']
+        db.create_unique('sentry_organizationmember', ['organization_id', 'user_id'])
 
-            team.organization = user_orgs[team.owner]
-            team.save()
+        # Adding model 'Organization'
+        db.create_table('sentry_organization', (
+            ('id', self.gf('sentry.db.models.fields.BoundedBigAutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
+            ('owner', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.User'])),
+            ('status', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+        ))
+        db.send_create_signal('sentry', ['Organization'])
+
+        # Adding field 'Team.organization'
+        db.add_column('sentry_team', 'organization',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Organization'], null=True),
+                      keep_default=False)
+
 
     def backwards(self, orm):
-        pass
+        # Removing unique constraint on 'OrganizationMember', fields ['organization', 'user']
+        db.delete_unique('sentry_organizationmember', ['organization_id', 'user_id'])
+
+        # Deleting model 'OrganizationMember'
+        db.delete_table('sentry_organizationmember')
+
+        # Deleting model 'Organization'
+        db.delete_table('sentry_organization')
+
+        # Deleting field 'Team.organization'
+        db.delete_column('sentry_team', 'organization_id')
+
 
     models = {
         'sentry.accessgroup': {
@@ -231,7 +257,6 @@ class Migration(DataMigration):
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_owned_project_set'", 'null': 'True', 'to': "orm['sentry.User']"}),
             'platform': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'null': 'True'}),
@@ -336,4 +361,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['sentry']
-    symmetrical = True

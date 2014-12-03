@@ -17,7 +17,9 @@ from sentry.testutils import TestCase
 
 class BaseAPITest(TestCase):
     def setUp(self):
-        self.project = self.create_project(slug='bar')
+        self.user = self.create_user('coreapi@example.com')
+        self.team = self.create_team(name='Foo', owner=self.user)
+        self.project = self.create_project(team=self.team)
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 
