@@ -286,7 +286,7 @@ def manage_teams(request):
 
 @requires_admin
 def status_env(request):
-    reserved = ('PASSWORD', 'SECRET')
+    reserved = ('PASSWORD', 'SECRET', 'KEY')
     config = []
     for k in sorted(dir(settings)):
         v_repr = repr(getattr(settings, k))
