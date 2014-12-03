@@ -54,7 +54,7 @@ admin.site.register(Project, ProjectAdmin)
 class OrganizationMemberInline(admin.TabularInline):
     model = OrganizationMember
     extra = 1
-
+    fields = ('user', 'type', 'organization')
     raw_id_fields = ('user', 'organization')
 
 

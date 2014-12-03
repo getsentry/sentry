@@ -37,9 +37,9 @@ class OrganizationMember(Model):
     """
     organization = models.ForeignKey('sentry.Organization', related_name="member_set")
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                              related_name="sentry_orgmember_set")
-    email = models.EmailField(null=True)
+    email = models.EmailField(null=True, blank=True)
 
     type = BoundedPositiveIntegerField(choices=(
         (OrganizationMemberType.MEMBER, _('Member')),
