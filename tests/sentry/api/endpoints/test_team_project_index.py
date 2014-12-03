@@ -37,5 +37,4 @@ class TeamProjectCreateTest(APITestCase):
         project = Project.objects.get(id=resp.data['id'])
         assert project.name == 'hello world'
         assert project.slug == 'foobar'
-        assert project.owner == self.user
         assert project.team == team

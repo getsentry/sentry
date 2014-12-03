@@ -45,7 +45,8 @@ class ProjectManagerTest(TestCase):
     def setUp(self):
         self.project = Project.objects.get()
         self.project.update(public=True)
-        self.project2 = Project.objects.create(name='Test', slug='test', owner=self.user, public=False)
+        self.team2 = self.create_team(owner=self.user)
+        self.project2 = self.create_project(team=self.team2, name='Test', public=False)
 
     @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))
     def test_does_not_include_public_projects(self):

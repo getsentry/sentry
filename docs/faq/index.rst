@@ -43,7 +43,6 @@ How do I
 
      project = Project()
      project.team = team
-     project.owner = user
      project.name = 'Default'
      project.save()
 

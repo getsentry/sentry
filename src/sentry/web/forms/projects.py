@@ -15,7 +15,8 @@ from sentry.constants import TAG_LABELS
 from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import (
-    UserField, OriginsField, RangeField, get_team_choices)
+    OriginsField, RangeField, get_team_choices
+)
 
 
 BLANK_CHOICE = [("", "")]
@@ -75,8 +76,6 @@ class NewProjectForm(BaseProjectForm):
 
 
 class NewProjectAdminForm(NewProjectForm):
-    owner = UserField(required=False)
-
     class Meta:
         fields = ('name', 'platform')
         model = Project
@@ -96,10 +95,9 @@ class EditProjectForm(BaseProjectForm):
         help_text=_('Separate multiple entries with a newline.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
         required=False, min_value=0, max_value=168, step_value=1)
-    owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
+        fields = ('name', 'platform', 'public', 'team', 'slug')
         model = Project
 
     def __init__(self, request, team_list, data, instance, *args, **kwargs):

@@ -15,6 +15,7 @@ Backwards Incompatible Changes
 - sentry.plugins.sentry_sites has been removed
 - The Search API has been rewritten and now powers the entire stream.
 - Removed Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
+- Removed Project.owner.
 
 Version 6.4.0
 -------------
