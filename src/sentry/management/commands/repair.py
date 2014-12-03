@@ -32,6 +32,7 @@ class Command(BaseCommand):
         # Create teams for any projects that are missing them
         print("Creating missing teams on projects")
         for project in Project.objects.filter(team__isnull=True, owner__isnull=False):
+            # TODO(dcramer): this needs owners
             team = Team(
                 name=project.name,
                 owner=owner,

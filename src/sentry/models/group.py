@@ -219,7 +219,7 @@ class Group(Model):
             'last_seen',
         ).order_by(order_by)
 
-    def get_tags(self):
+    def get_tags(self, with_internal=True):
         from sentry.models import GroupTagKey
 
         if not hasattr(self, '_tag_cache'):
@@ -228,7 +228,7 @@ class Group(Model):
                     group=self,
                     project=self.project,
                 ).values_list('key', flat=True)
-                if not t.startswith('sentry:')
+                if with_internal or not t.startswith('sentry:')
             ])
         return self._tag_cache
 

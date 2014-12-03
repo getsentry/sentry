@@ -9,8 +9,9 @@ class ProjectReleasesTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        project1 = self.create_project(name='foo')
-        project2 = self.create_project(name='bar')
+        team = self.create_team(owner=self.user)
+        project1 = self.create_project(team=team, name='foo')
+        project2 = self.create_project(team=team, name='bar')
 
         release1 = Release.objects.create(
             project=project1,

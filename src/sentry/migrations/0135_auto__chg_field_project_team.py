@@ -8,14 +8,12 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-
-        # Changing field 'Team.organization'
-        db.alter_column('sentry_team', 'organization_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Organization']))
+        # Changing field 'Project.team'
+        db.alter_column('sentry_project', 'team_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Team']))
 
     def backwards(self, orm):
-
-        # Changing field 'Team.organization'
-        db.alter_column('sentry_team', 'organization_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Organization'], null=True))
+        # Changing field 'Project.team'
+        db.alter_column('sentry_project', 'team_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Team'], null=True))
 
     models = {
         'sentry.accessgroup': {
@@ -223,12 +221,11 @@ class Migration(SchemaMigration):
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_owned_project_set'", 'null': 'True', 'to': "orm['sentry.User']"}),
             'platform': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'null': 'True'}),
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
-            'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Team']", 'null': 'True'})
+            'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Team']"})
         },
         'sentry.projectkey': {
             'Meta': {'object_name': 'ProjectKey'},
