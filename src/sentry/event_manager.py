@@ -483,7 +483,7 @@ class EventManager(object):
             ).exclude(
                 # add 30 seconds to the regression window to account for
                 # races here
-                active_at__gte=date - timedelta(seconds=30),
+                active_at__gte=date - timedelta(seconds=5),
             ).update(active_at=date, status=STATUS_UNRESOLVED))
 
             transaction.commit_unless_managed(using=group._state.db)
