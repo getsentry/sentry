@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 import logging
 import six
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -478,12 +478,14 @@ class EventManager(object):
 
         is_regression = False
         if group.is_resolved() and plugin_is_regression(group, event):
-            # Making things atomic
+            # add 30 seconds to the regression window to account for
+            # races here
+            active_date = date + timedelta(seconds=30)
             is_regression = bool(Group.objects.filter(
                 id=group.id,
             ).exclude(
-                active_at__gte=date,
-            ).update(active_at=date, status=STATUS_UNRESOLVED))
+                active_at__gte=active_date,
+            ).update(active_at=active_date, status=STATUS_UNRESOLVED))
 
             transaction.commit_unless_managed(using=group._state.db)
 
