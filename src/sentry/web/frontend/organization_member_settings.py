@@ -12,12 +12,15 @@ from sentry.models import (
 )
 from sentry.web.frontend.base import OrganizationView
 
+MEMBERSHIP_CHOICES = (
+    (OrganizationMemberType.MEMBER, _('Member')),
+    (OrganizationMemberType.ADMIN, _('Admin')),
+    (OrganizationMemberType.OWNER, _('Owner')),
+)
+
 
 class EditOrganizationMemberForm(forms.ModelForm):
-    type = forms.TypedChoiceField(label=_('Membership Type'), choices=(
-        (OrganizationMemberType.MEMBER, _('Member')),
-        (OrganizationMemberType.ADMIN, _('Admin')),
-    ), coerce=int)
+    type = forms.TypedChoiceField(label=_('Membership Type'), choices=(), coerce=int)
     has_global_access = forms.BooleanField(
         label=_('This member should have access to all teams within the organization.'),
         required=False,
@@ -32,15 +35,19 @@ class EditOrganizationMemberForm(forms.ModelForm):
         fields = ('type', 'has_global_access', 'teams')
         model = OrganizationMember
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, authorizing_access, *args, **kwargs):
         super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
+
+        self.fields['type'].choices = [
+            m for m in MEMBERSHIP_CHOICES
+            if m[0] >= authorizing_access
+        ]
 
         self.fields['teams'].queryset = Team.objects.filter(
             organization=self.instance.organization,
         )
 
     def save(self, *args, **kwargs):
-        print self.cleaned_data
         if self.cleaned_data['has_global_access']:
             self.cleaned_data['teams'] = []
         return super(EditOrganizationMemberForm, self).save(*args, **kwargs)
@@ -55,7 +62,14 @@ class OrganizationMemberSettingsView(OrganizationView):
             'has_global_access': True,
         }
 
+        if request.user.is_superuser:
+            authorizing_access = OrganizationMemberType.OWNER
+        else:
+            membership = OrganizationMember.objects.get(user=request.user)
+            authorizing_access = membership.type
+
         return EditOrganizationMemberForm(
+            authorizing_access=authorizing_access,
             data=request.POST or None,
             instance=member,
             initial=initial,

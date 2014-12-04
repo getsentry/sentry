@@ -22,7 +22,8 @@ from sentry.utils.http import absolute_uri
 
 # TODO(dcramer): pull in enum library
 class OrganizationMemberType(object):
-    ADMIN = 0
+    OWNER = 0
+    ADMIN = 25
     MEMBER = 50
     BOT = 100
 
@@ -42,9 +43,10 @@ class OrganizationMember(Model):
     email = models.EmailField(null=True, blank=True)
 
     type = BoundedPositiveIntegerField(choices=(
+        (OrganizationMemberType.BOT, _('Bot')),
         (OrganizationMemberType.MEMBER, _('Member')),
         (OrganizationMemberType.ADMIN, _('Admin')),
-        (OrganizationMemberType.BOT, _('Bot')),
+        (OrganizationMemberType.OWNER, _('Owner')),
     ), default=OrganizationMemberType.MEMBER)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)

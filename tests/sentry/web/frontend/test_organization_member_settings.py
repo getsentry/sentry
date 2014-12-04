@@ -155,3 +155,39 @@ class OrganizationMemberSettingsTest(TestCase):
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ['bar@example.com']
         assert mail.outbox[0].subject == 'Invite to join organization: foo'
+
+    def test_ensure_admin_cant_set_owner(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        admin = self.create_user('bar@example.com', is_superuser=False)
+        user = self.create_user('baz@example.com')
+
+        OrganizationMember.objects.create(
+            organization=organization,
+            user=admin,
+            type=OrganizationMemberType.ADMIN,
+            has_global_access=True,
+        )
+
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            user=user,
+        )
+
+        path = reverse('sentry-organization-member-settings',
+                       args=[organization.id, member.id])
+
+        self.login_as(admin)
+
+        resp = self.client.post(path, {
+            'type': OrganizationMemberType.OWNER,
+        })
+
+        assert resp.status_code == 200
+        assert resp.context['form'].errors['type']
+
+        resp = self.client.post(path, {
+            'type': OrganizationMemberType.MEMBER,
+        })
+
+        assert resp.status_code == 302

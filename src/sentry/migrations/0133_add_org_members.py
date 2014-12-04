@@ -19,7 +19,7 @@ class Migration(DataMigration):
             OrganizationMember.objects.get_or_create(
                 organization=team.organization,
                 user=team.owner,
-                defaults={'type': 0},  # ADMIN
+                defaults={'type': 0},  # OWNER
             )
             existing.add(team.owner_id)
 
