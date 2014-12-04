@@ -16,6 +16,7 @@ Backwards Incompatible Changes
 - The Search API has been rewritten and now powers the entire stream.
 - Removed Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
 - Removed Project.owner.
+- `is_new` in post_process will *only* be set if the event is brand new
 
 Version 6.4.0
 -------------

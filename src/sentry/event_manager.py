@@ -332,7 +332,7 @@ class EventManager(object):
             post_process_group.delay(
                 group=group,
                 event=event,
-                is_new=is_new or is_regression,  # backwards compat
+                is_new=is_new,
                 is_sample=is_sample,
                 is_regression=is_regression,
             )
