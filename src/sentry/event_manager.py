@@ -478,14 +478,13 @@ class EventManager(object):
 
         is_regression = False
         if group.is_resolved() and plugin_is_regression(group, event):
-            # add 30 seconds to the regression window to account for
-            # races here
-            active_date = date + timedelta(seconds=30)
             is_regression = bool(Group.objects.filter(
                 id=group.id,
             ).exclude(
-                active_at__gte=active_date,
-            ).update(active_at=active_date, status=STATUS_UNRESOLVED))
+                # add 30 seconds to the regression window to account for
+                # races here
+                active_at__gte=date - timedelta(seconds=30),
+            ).update(active_at=date, status=STATUS_UNRESOLVED))
 
             transaction.commit_unless_managed(using=group._state.db)
 
