@@ -11,6 +11,38 @@ from __future__ import absolute_import
 from sentry.tasks.base import instrumented_task, retry
 
 
+@instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry
+def delete_organization(object_id, **kwargs):
+    from sentry.models import (
+        Organization, OrganizationMember, OrganizationStatus, Team
+    )
+
+    try:
+        o = Organization.objects.get(id=object_id)
+    except Team.DoesNotExist:
+        return
+
+    if o.status != OrganizationStatus.DELETION_IN_PROGRESS:
+        o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
+
+    logger = delete_organization.get_logger()
+    for team in Team.objects.filter(organization=o).order_by('id')[:1]:
+        logger.info('Removing Team id=%s where organization=%s', team.id, o.id)
+        delete_team(team.id)
+        delete_organization.delay(object_id=object_id)
+        return
+
+    model_list = (OrganizationMember,)
+
+    has_more = delete_objects(model_list, relation={'organization': o}, logger=logger)
+    if has_more:
+        delete_organization.delay(object_id=object_id)
+        return
+    o.delete()
+
+
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
