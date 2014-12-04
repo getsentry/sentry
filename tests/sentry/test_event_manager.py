@@ -172,7 +172,7 @@ class EventManagerTest(TestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        assert group.active_at > event2.datetime > event.datetime
+        assert group.active_at == event2.datetime != event.datetime
 
     def test_long_culprit(self):
         manager = EventManager(self.make_event(
