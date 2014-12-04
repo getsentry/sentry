@@ -166,11 +166,12 @@ class MailPluginTest(TestCase):
         # user not in any groups
         self.create_user(email='bar2@example.com', is_active=True)
 
-        team = self.create_team(owner=user)
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
 
         project = self.create_project(name='Test', team=team)
-        team.member_set.get_or_create(user=user)
-        team.member_set.get_or_create(user=user2)
+        organization.member_set.get_or_create(user=user)
+        organization.member_set.get_or_create(user=user2)
 
         ag = AccessGroup.objects.create(team=team)
         ag.members.add(user3)
@@ -188,7 +189,7 @@ class MailPluginTest(TestCase):
 
         user4 = User.objects.create(username='baz4', email='bar@example.com',
                                     is_active=True)
-        project.team.member_set.get_or_create(user=user4)
+        organization.member_set.get_or_create(user=user4)
 
         assert user4.pk in self.plugin.get_sendable_users(project)
 

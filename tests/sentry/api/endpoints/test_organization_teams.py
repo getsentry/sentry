@@ -2,7 +2,6 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 from mock import Mock, patch
 
-from sentry.constants import MEMBER_OWNER
 from sentry.models import Team
 from sentry.testutils import APITestCase
 
@@ -50,15 +49,7 @@ class OrganizationTeamsCreateTest(APITestCase):
         team = Team.objects.get(id=resp.data['id'])
         assert team.name == 'hello world'
         assert team.slug == 'foobar'
-        assert team.owner == self.user
         assert team.organization == self.organization
-
-        member_set = list(team.member_set.all())
-
-        assert len(member_set) == 1
-        member = member_set[0]
-        assert member.user == team.owner
-        assert member.type == MEMBER_OWNER
 
     @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
     def test_without_slug(self):
@@ -70,25 +61,3 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         team = Team.objects.get(id=resp.data['id'])
         assert team.slug == 'hello-world'
-
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
-    def test_superuser_can_set_owner(self):
-        self.login_as(user=self.user)
-
-        user2 = self.create_user(email='user2@example.com')
-
-        resp = self.client.post(self.path, {
-            'name': 'hello world',
-            'slug': 'foobar',
-            'owner': user2.username,
-        })
-        assert resp.status_code == 201, resp.content
-        team = Team.objects.get(id=resp.data['id'])
-        assert team.owner == user2
-
-        member_set = list(team.member_set.all())
-
-        assert len(member_set) == 1
-        member = member_set[0]
-        assert member.user == team.owner
-        assert member.type == MEMBER_OWNER
