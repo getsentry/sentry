@@ -8,7 +8,7 @@ from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 
 
-class PendingTeamMemberTest(TestCase):
+class PendingOrganizationMemberTest(TestCase):
     def test_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email='foo@example.com')
         with self.settings(SECRET_KEY='a'):

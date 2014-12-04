@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -118,7 +119,6 @@ class Team(Model):
         (TeamStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), default=TeamStatus.VISIBLE)
     date_added = models.DateTimeField(default=timezone.now, null=True)
-    members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.TeamMember', related_name='team_memberships')
 
     objects = TeamManager(cache_fields=(
         'pk',
@@ -151,3 +151,10 @@ class Team(Model):
         if self.owner.email:
             return self.owner.email.split('@', 1)[0]
         return self.owner.username
+
+    @property
+    def member_set(self):
+        return self.organization.member_set.filter(
+            Q(teams=self) | Q(has_global_access=True),
+            user__is_active=True,
+        )

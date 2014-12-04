@@ -19,7 +19,7 @@ class SendNotificationTest(TestCase):
             },
         )
 
-        self.project.team.member_set.create(user=user_foo)
+        self.project.team.organization.member_set.create(user=user_foo)
 
         with self.settings(CELERY_ALWAYS_EAGER=True):
             activity.send_notification()
