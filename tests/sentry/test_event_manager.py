@@ -119,7 +119,7 @@ class EventManagerTest(TestCase):
 
         manager = EventManager(self.make_event(
             event_id='b' * 32, checksum='a' * 32,
-            timestamp=1403007315,
+            timestamp=1403007345,
         ))
         event2 = manager.save(1)
         assert event.group_id == event2.group_id
