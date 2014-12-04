@@ -20,7 +20,7 @@ class BasePermissionTest(TestCase):
         self.organization.member_set.get_or_create(
             user=self.member, type=OrganizationMemberType.MEMBER)
         self.organization.member_set.get_or_create(
-            user=self.admin, type=OrganizationMemberType.ADMIN)
+            user=self.admin, type=OrganizationMemberType.OWNER)
 
 
 class TeamPermissionTest(BasePermissionTest):
