@@ -23,6 +23,7 @@
     </fieldset>
 
     <fieldset class="form-actions">
+      <a href="{% url 'sentry-remove-organization' organization.id %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </fieldset>
   </form>
