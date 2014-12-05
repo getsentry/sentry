@@ -103,15 +103,19 @@
                             <ul class="nav pull-right">
                                 {% block account_nav %}
                                     {% if request.user.is_authenticated %}
-                                        {% if organization and request.user|can_manage_org:organization %}
+                                        {% if organization %}
                                             <li class="dropdown org-dropdown">
                                               <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ organization.name }} <span class="caret"></span></a>
                                               <ul class="dropdown-menu">
-                                                <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>Organizations</h6></li>
+                                                {% if request.user|can_create_organizations %}
+                                                    <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>Organizations</h6></li>
+                                                {% endif %}
                                                 {% for o in request.user|list_organizations %}
                                                     <li{% if o == organization %} class="active"{% endif %}>
                                                         <a href="{% url 'sentry-organization-home' o.id %}">{{ o.name }}</a>
-                                                        <a href="{% url 'sentry-organization-settings' o.id %}" class="org-settings"><span class="icon-cog"></span></a>
+                                                        {% if request.user|can_manage_org:o %}
+                                                            <a href="{% url 'sentry-organization-settings' o.id %}" class="org-settings"><span class="icon-cog"></span></a>
+                                                        {% endif %}
                                                     </li>
                                                 {% endfor %}
                                               </ul>
