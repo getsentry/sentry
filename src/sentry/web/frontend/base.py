@@ -8,7 +8,6 @@ from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
-from sudo.utils import has_sudo_privileges
 from sudo.views import redirect_to_sudo
 
 from sentry.models import Organization, Project, Team
@@ -132,7 +131,7 @@ class BaseView(View, OrganizationMixin):
             request.session['_next'] = request.get_full_path()
             return self.redirect(get_login_url())
 
-        if self.sudo_required and not has_sudo_privileges(request):
+        if self.sudo_required and not request.is_sudo():
             return redirect_to_sudo(request.get_full_path())
 
         args, kwargs = self.convert_args(request, *args, **kwargs)
