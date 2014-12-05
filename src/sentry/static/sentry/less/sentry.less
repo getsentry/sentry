@@ -2546,10 +2546,25 @@ table.vars {
       h3 {
         color: #000;
       }
+      .actions a {
+        color: #666;
+      }
+    }
+
+    .actions {
+      color: #ccc;
+
+      > a {
+        color: #999;
+
+        &:hover {
+          color: @linkColorHover;
+        }
+      }
     }
 
     h3 {
-      width: 100%;
+      max-width: 100%;
       position: relative;
       margin-bottom: 0;
       line-height: 24px;

@@ -22,6 +22,10 @@
               <span class="loading">{% trans "Loading historical data..." %}</span>
             </div>
           </div>
+          <div class="pull-right actions">
+            <a href="{% url 'sentry-new-project' team.slug %}">New Project</a> &mdash;
+            <a href="{% url 'sentry-manage-team' team.slug %}">Team Settings</a>
+          </div>
           <h3><a href="{% url 'sentry' team.slug %}">{{ team.name }}</a></h3>
           {% if not project_list %}
             <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-new-project' team.slug %}">create a project</a>?</p>

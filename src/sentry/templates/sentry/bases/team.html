@@ -1,31 +1,3 @@
 {% extends "sentry/bases/organization.html" %}
 
-{% load i18n %}
-{% load sentry_permissions %}
-
 {% block title %}{{ team.name }} | {{ block.super }}{% endblock %}
-
-{% block main %}
-    <section class="body">
-        <div class="pull-right btn-group">
-            <a class="btn btn-primary btn-small dropdown-toggle" data-toggle="dropdown">
-                <span class="caret"></span>
-            </a>
-            <ul class="dropdown-menu">
-                <li><a href="{% url 'sentry-new-project' team.slug %}">{% trans "New Project" %}</a></li>
-            </ul>
-        </div>
-
-        <ul class="nav nav-tabs">
-            <li{% block team_settings_nav %}{% endblock %}>
-                <a href="{% url 'sentry-manage-team' team.slug %}">{% trans "Settings" %}</a>
-            </li>
-            <li{% block team_projects_nav %}{% endblock %}>
-                <a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a>
-            </li>
-        </ul>
-
-        {% block inner %}
-        {% endblock %}
-    </section>
-{% endblock %}

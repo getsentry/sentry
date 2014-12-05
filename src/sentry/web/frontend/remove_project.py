@@ -53,7 +53,7 @@ class RemoveProjectView(ProjectView):
                 request, messages.SUCCESS,
                 _('Deletion has been queued and will happen automatically.'))
 
-            return HttpResponseRedirect(reverse('sentry-manage-team-projects', args=[team.slug]))
+            return HttpResponseRedirect(reverse('sentry-organization-home', args=[team.organization.id]))
 
         context = {
             'form': form,

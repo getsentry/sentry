@@ -47,7 +47,6 @@ from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
-from sentry.web.frontend.team_projects import TeamProjectsView
 from sentry.web.frontend.team_settings import TeamSettingsView
 
 
@@ -143,8 +142,6 @@ urlpatterns += patterns('',
         name='sentry-manage-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/$', TeamProjectsView.as_view(),
-        name='sentry-manage-team-projects'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),
         name='sentry-new-project'),
 
