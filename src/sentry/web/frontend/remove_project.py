@@ -19,6 +19,7 @@ class RemoveProjectForm(forms.Form):
 
 class RemoveProjectView(ProjectView):
     required_access = OrganizationMemberType.ADMIN
+    sudo_required = True
 
     def get_form(self, request):
         if request.method == 'POST':

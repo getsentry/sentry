@@ -19,6 +19,7 @@ class RemoveOrganizationForm(forms.Form):
 
 class RemoveOrganizationView(OrganizationView):
     required_access = OrganizationMemberType.OWNER
+    sudo_required = True
 
     def get_form(self, request, organization):
         if request.method == 'POST':
