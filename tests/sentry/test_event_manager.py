@@ -121,7 +121,7 @@ class EventManagerTest(TestCase):
 
         manager = EventManager(self.make_event(
             event_id='b' * 32, checksum='a' * 32,
-            timestamp=1403007315,
+            timestamp=1403007345,
         ))
         event2 = manager.save(1)
         assert event.group_id == event2.group_id
@@ -156,6 +156,28 @@ class EventManagerTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
+
+    @patch('sentry.models.Group.is_resolved')
+    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
+        mock_is_resolved.return_value = False
+        manager = EventManager(self.make_event(
+            event_id='a' * 32, checksum='a' * 32,
+            timestamp=1403007314,
+        ))
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
+
+        mock_is_resolved.return_value = True
+        manager = EventManager(self.make_event(
+            event_id='b' * 32, checksum='a' * 32,
+            timestamp=1403007414,
+        ))
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event2 = manager.save(1)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group.id)
+        assert group.active_at == event2.datetime != event.datetime
 
     def test_long_culprit(self):
         manager = EventManager(self.make_event(

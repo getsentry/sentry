@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 import logging
 import six
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -20,8 +20,7 @@ from uuid import uuid4
 
 from sentry.app import buffer, tsdb
 from sentry.constants import (
-    STATUS_RESOLVED, STATUS_UNRESOLVED, LOG_LEVELS,
-    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
+    STATUS_UNRESOLVED, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
 from sentry.models import Event, EventMapping, Group, GroupHash, Project
 from sentry.plugins import plugins
@@ -333,7 +332,7 @@ class EventManager(object):
             post_process_group.delay(
                 group=group,
                 event=event,
-                is_new=is_new or is_regression,  # backwards compat
+                is_new=is_new,
                 is_sample=is_sample,
                 is_regression=is_regression,
             )
@@ -479,12 +478,12 @@ class EventManager(object):
 
         is_regression = False
         if group.is_resolved() and plugin_is_regression(group, event):
-            # Making things atomic
             is_regression = bool(Group.objects.filter(
                 id=group.id,
-                status=STATUS_RESOLVED,
             ).exclude(
-                active_at__gte=date,
+                # add 30 seconds to the regression window to account for
+                # races here
+                active_at__gte=date - timedelta(seconds=5),
             ).update(active_at=date, status=STATUS_UNRESOLVED))
 
             transaction.commit_unless_managed(using=group._state.db)
