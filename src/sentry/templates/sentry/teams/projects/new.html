@@ -1,19 +1,23 @@
-{% extends "sentry/bases/team.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load i18n %}
-
-{% block team_projects_nav %} class="active"{% endblock %}
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
 
 {% block inner %}
-    <div class="page-header">
-        <h2>{% trans "Create a New Project" %}</h2>
+  <div class="page-header">
+    <div class="pull-right">
+      <a href="{% url 'sentry' team.slug %}">Back to Team Dashboard</a>
     </div>
+    <h2>
+      {% trans "Create a New Project" %}
+      <small>{{ team.name }}</small>
+    </h2>
+  </div>
 
-    <p>{% blocktrans %}Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.{% endblocktrans %}</p>
+  <p>{% blocktrans %}Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.{% endblocktrans %}</p>
 
-    <br>
+  <br>
 
-    {% include "sentry/partial/_form.html" %}
+  {% include "sentry/partial/_form.html" %}
 {% endblock %}
