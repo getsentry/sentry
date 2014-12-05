@@ -8,9 +8,10 @@ from sentry.web.frontend.base import BaseView
 
 class HomeView(BaseView):
     def get(self, request):
-        # TODO(dcramer): deal with no orgs
+        # TODO(dcramer): deal with case when the user cannot create orgs
         organization = self.get_active_organization(request)
         if organization is None:
-            raise NotImplementedError
-        url = reverse('sentry-organization-home', args=[organization.id])
+            url = reverse('sentry-create-organization')
+        else:
+            url = reverse('sentry-organization-home', args=[organization.id])
         return HttpResponseRedirect(url)
