@@ -6646,12 +6646,7 @@ h3 {
   top: 56px;
   position: absolute;
   min-height: 50px;
-<<<<<<< HEAD
   padding: 10px 10px 0;
-=======
-  min-width: 300px;
-  padding: 10px;
->>>>>>> master
   margin: 0;
   background: #313944;
   -webkit-box-shadow: none;
@@ -9020,8 +9015,20 @@ table.vars table.vars th {
 .team-list > li:hover h3 {
   color: #000;
 }
+.team-list > li:hover .actions a {
+  color: #666;
+}
+.team-list > li .actions {
+  color: #ccc;
+}
+.team-list > li .actions > a {
+  color: #999;
+}
+.team-list > li .actions > a:hover {
+  color: #12659a;
+}
 .team-list > li h3 {
-  width: 100%;
+  max-width: 100%;
   position: relative;
   margin-bottom: 0;
   line-height: 24px;
