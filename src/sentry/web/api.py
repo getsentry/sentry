@@ -318,7 +318,13 @@ class StoreView(APIView):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
         if rate_limit is not None and rate_limit.is_limited:
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_rejected, project.id),
+            ])
             raise APIRateLimited(rate_limit.retry_after)
+        else:
+            app.tsdb.incr(app.tsdb.models.project_total_received, project.id)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
