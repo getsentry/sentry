@@ -1,0 +1,28 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block org_settings_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="row">
+    <div class="span" style="width:600px">
+      {% block org_settings_inner %}{% endblock %}
+    </div>
+
+    <div class="span" style="width:220px">
+      <ul class="nav nav-list">
+        <li class="nav-header">{% trans "Organization" %}</li>
+        <li class="{% block org_sidebar_settings_nav %}{% endblock %}">
+          <a href="{% url 'sentry-organization-settings' organization.id %}">{% trans "Settings" %}</a>
+        </li>
+        <li class="{% block org_sidebar_remove_nav %}{% endblock %}">
+          <a href="{% url 'sentry-remove-organization' organization.id %}">{% trans "Remove Organization" %}</a>
+        </li>
+        {% block org_sidebar_nav_extra %}
+          {% comment %}This block is utilized by getsentry.com{% endcomment %}
+        {% endblock %}
+      </ul>
+    </div>
+{% endblock %}

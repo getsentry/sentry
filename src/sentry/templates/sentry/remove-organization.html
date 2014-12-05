@@ -1,18 +1,15 @@
-{% extends "sentry/bases/organization.html" %}
+{% extends "sentry/bases/organization_settings.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block org_settings_nav %}active{% endblock %}
+{% block org_sidebar_remove_nav %}active{% endblock %}
 
-{% block inner %}
-  <div class="page-header">
-    <h3>{% trans "Remove Organization" %}</h3>
-  </div>
+{% block org_settings_inner %}
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
-    <p>{% trans "Removing this organization is permanent and cannot be undone!" %}</p>
+    <p><strong>{% trans "Removing this organization is permanent and cannot be undone!" %}</strong></p>
 
     {% if team_list %}
       <p>{% trans "This will also remove the following teams and all associated data:" %}</p>

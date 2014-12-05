@@ -1,11 +1,11 @@
-{% extends "sentry/bases/organization.html" %}
+{% extends "sentry/bases/organization_settings.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block org_settings_nav %}active{% endblock %}
+{% block org_sidebar_settings_nav %}active{% endblock %}
 
-{% block inner %}
+{% block org_settings_inner %}
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
@@ -23,7 +23,6 @@
     </fieldset>
 
     <fieldset class="form-actions">
-      <a href="{% url 'sentry-remove-organization' organization.id %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </fieldset>
   </form>
