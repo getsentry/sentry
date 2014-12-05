@@ -8,6 +8,8 @@ from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
+from sudo.utils import has_sudo_privileges
+from sudo.views import redirect_to_sudo
 
 from sentry.models import Organization, Project, Team
 from sentry.web.helpers import get_login_url, render_to_response
@@ -121,12 +123,17 @@ class OrganizationMixin(object):
 
 class BaseView(View, OrganizationMixin):
     auth_required = True
+    # TODO(dcramer): change sudo so it can be required only on POST
+    sudo_required = False
 
     @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
         if self.auth_required and not request.user.is_authenticated():
             request.session['_next'] = request.get_full_path()
             return self.redirect(get_login_url())
+
+        if self.sudo_required and not has_sudo_privileges(request):
+            return redirect_to_sudo(request.get_full_path())
 
         args, kwargs = self.convert_args(request, *args, **kwargs)
 
