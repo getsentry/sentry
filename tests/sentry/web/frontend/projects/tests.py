@@ -94,7 +94,7 @@ class DashboardTest(TestCase):
         can_create_projects.assert_called_once_with(self.user, team=self.team)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-new-project', args=[self.team.slug])
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-project', args=[self.organization.id])
 
     @mock.patch('sentry.web.frontend.groups.can_create_projects')
     def test_does_not_reidrect_if_missing_project_permission(self, can_create_projects):

@@ -179,29 +179,6 @@ class PermissionBase(TestCase):
             self.assertTemplateNotUsed(resp, template)
 
 
-class NewTeamProjectTest(PermissionBase):
-    template = 'sentry/teams/projects/new.html'
-
-    @fixture
-    def path(self):
-        return reverse('sentry-new-project', args=[self.team.slug])
-
-    def test_admin_can_load(self):
-        self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_user_cannot_load(self):
-        self._assertPerm(self.path, self.template, self.nobody.username, False)
-
-    def test_anonymous_cannot_load(self):
-        self._assertPerm(self.path, self.template, None, False)
-
-    def test_public_creation_admin_can_load(self):
-        self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_public_anonymous_cannot_load(self):
-        self._assertPerm(self.path, self.template, None, False)
-
-
 class RemoveProjectTest(PermissionBase):
     template = 'sentry/projects/remove.html'
 

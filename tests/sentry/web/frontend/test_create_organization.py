@@ -35,5 +35,5 @@ class CreateOrganizationTest(TestCase):
         assert team.name == 'bar'
         assert team.owner == org.owner
 
-        redirect_uri = reverse('sentry-new-project', args=[team.slug])
+        redirect_uri = reverse('sentry-create-project', args=[org.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri

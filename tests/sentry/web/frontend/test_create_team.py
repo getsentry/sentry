@@ -30,5 +30,5 @@ class CreateTeamTest(TestCase):
 
         assert team.name == 'bar'
 
-        redirect_uri = reverse('sentry-new-project', args=[team.slug])
+        redirect_uri = reverse('sentry-create-project', args=[organization.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri

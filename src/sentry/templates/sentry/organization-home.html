@@ -7,6 +7,8 @@
 {% block actions %}
   <a href="{% url 'sentry-create-team' organization.id %}"
      class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+  <a href="{% url 'sentry-create-project' organization.id %}"
+     class="btn btn-small btn-primary">{% trans "New Project" %}</a>
 {% endblock %}
 
 {% block inner %}
@@ -23,12 +25,11 @@
             </div>
           </div>
           <div class="pull-right actions">
-            <a href="{% url 'sentry-new-project' team.slug %}">New Project</a> &mdash;
             <a href="{% url 'sentry-manage-team' team.slug %}">Team Settings</a>
           </div>
           <h3><a href="{% url 'sentry' team.slug %}">{{ team.name }}</a></h3>
           {% if not project_list %}
-            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-new-project' team.slug %}">create a project</a>?</p>
+            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.id %}">create a project</a>?</p>
           {% else %}
             <ul>
               {% for project in project_list %}

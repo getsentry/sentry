@@ -28,16 +28,7 @@ class CreateOrganizationView(BaseView):
             return False
         return True
 
-    def get(self, request):
-        form = self.get_form(request)
-
-        context = {
-            'form': form,
-        }
-
-        return self.respond('sentry/create-organization.html', context)
-
-    def post(self, request):
+    def handle(self, request):
         form = self.get_form(request)
         if form.is_valid():
             org = form.save(commit=False)
@@ -50,7 +41,7 @@ class CreateOrganizationView(BaseView):
                 organization=org,
                 owner=org.owner,
             )
-            return HttpResponseRedirect(reverse('sentry-new-project', args=[team.slug]))
+            return HttpResponseRedirect(reverse('sentry-create-project', args=[org.id]))
 
         context = {
             'form': form,
