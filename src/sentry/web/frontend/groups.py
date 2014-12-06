@@ -190,7 +190,7 @@ def dashboard(request, team):
     project_list = list(Project.objects.filter(team=team))
 
     if not project_list and can_create_projects(request.user, team=team):
-        return HttpResponseRedirect(reverse('sentry-new-project', args=[team.slug]))
+        return HttpResponseRedirect(reverse('sentry-create-project', args=[team.organization.id]))
 
     for project in project_list:
         project.team = team

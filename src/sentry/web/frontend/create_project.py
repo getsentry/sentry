@@ -5,16 +5,15 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Project, OrganizationMemberType
-from sentry.permissions import can_create_projects, Permissions
-from sentry.web.frontend.base import TeamView
-from sentry.web.frontend.generic import missing_perm
+from sentry.models import Project, OrganizationMemberType, Team
+from sentry.web.frontend.base import OrganizationView
 from sentry.utils.samples import create_sample_event
 
 BLANK_CHOICE = [("", "")]
 
 
 class NewProjectForm(forms.ModelForm):
+    team = forms.ChoiceField(choices=(), required=True)
     name = forms.CharField(label=_('Project Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('Production')}))
     platform = forms.ChoiceField(
@@ -23,36 +22,47 @@ class NewProjectForm(forms.ModelForm):
     )
 
     class Meta:
-        fields = ('name', 'platform')
+        fields = ('name', 'team', 'platform')
         model = Project
 
+    def __init__(self, user, team_list, *args, **kwargs):
+        super(NewProjectForm, self).__init__(*args, **kwargs)
 
-class CreateProjectView(TeamView):
+        self.team_list = team_list
+
+        self.fields['team'].choices = (
+            (t.slug, t.name)
+            for t in team_list
+        )
+        self.fields['team'].widget.choices = self.fields['team'].choices
+
+    def clean_team(self):
+        value = self.cleaned_data['team']
+        for team in self.team_list:
+            if value == team.slug:
+                return team
+        return None
+
+
+class CreateProjectView(OrganizationView):
+    # TODO(dcramer): I'm 95% certain the access is incorrect here as it would
+    # be probably validating against global org access, and all we care about is
+    # team admin
     required_access = OrganizationMemberType.ADMIN
 
-    def get_form(self, request):
-        return NewProjectForm(request.POST or None)
+    def get_form(self, request, organization):
+        team_list = Team.objects.get_for_user(
+            organization=organization,
+            user=request.user,
+            access=OrganizationMemberType.ADMIN,
+        )
 
-    def get(self, request, organization, team):
-        if not can_create_projects(request.user, team):
-            return missing_perm(request, Permissions.ADD_PROJECT, team=team)
+        return NewProjectForm(request.user, team_list, request.POST or None)
 
-        form = self.get_form(request)
-
-        context = {
-            'form': form,
-        }
-
-        return self.respond('sentry/teams/projects/new.html', context)
-
-    def post(self, request, organization, team):
-        if not can_create_projects(request.user, team):
-            return missing_perm(request, Permissions.ADD_PROJECT, team=team)
-
-        form = self.get_form(request)
+    def handle(self, request, organization):
+        form = self.get_form(request, organization)
         if form.is_valid():
             project = form.save(commit=False)
-            project.team = team
             project.save()
 
             create_sample_event(project)
@@ -67,4 +77,4 @@ class CreateProjectView(TeamView):
             'form': form,
         }
 
-        return self.respond('sentry/teams/projects/new.html', context)
+        return self.respond('sentry/create-project.html', context)
