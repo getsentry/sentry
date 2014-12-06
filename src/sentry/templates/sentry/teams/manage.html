@@ -1,4 +1,4 @@
-{% extends "sentry/bases/team.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -15,8 +15,7 @@
       <a href="{% url 'sentry-organization-home' organization.id %}">Back to Organization Home</a>
     </div>
     <h2>
-      {% trans "Team Settings" %}
-      <small>{{ team.name }}</small>
+      Settings for {{ team.name }}
     </h2>
   </div>
 

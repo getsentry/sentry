@@ -15,12 +15,6 @@ from sentry.web.frontend.base import TeamView
 
 class EditTeamForm(forms.ModelForm):
     class Meta:
-        fields = ('name',)
-        model = Team
-
-
-class EditTeamAdminForm(EditTeamForm):
-    class Meta:
         fields = ('name', 'slug',)
         model = Team
 
@@ -42,14 +36,7 @@ class TeamSettingsView(TeamView):
         return context
 
     def get_form(self, request, team):
-        can_admin_team = request.user.is_superuser
-
-        if can_admin_team:
-            form_cls = EditTeamAdminForm
-        else:
-            form_cls = EditTeamForm
-
-        return form_cls(request.POST or None, instance=team)
+        return EditTeamForm(request.POST or None, instance=team)
 
     def get(self, request, organization, team):
         result = plugins.first('has_perm', request.user, 'edit_team', team)
