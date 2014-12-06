@@ -57,11 +57,6 @@ class OrganizationMemberSettingsView(OrganizationView):
     required_access = OrganizationMemberType.ADMIN
 
     def get_form(self, request, member):
-        initial = {
-            'type': OrganizationMemberType.MEMBER,
-            'has_global_access': True,
-        }
-
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:
@@ -72,7 +67,6 @@ class OrganizationMemberSettingsView(OrganizationView):
             authorizing_access=authorizing_access,
             data=request.POST or None,
             instance=member,
-            initial=initial,
         )
 
     def get(self, request, organization, member_id):
