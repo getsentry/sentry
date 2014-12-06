@@ -8,7 +8,7 @@ UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 JS_TESTS = tests/js/index.html
 JS_REPORTER = dot
 
-develop: update-submodules setup-git
+develop: clean update-submodules setup-git
 	@echo "--> Installing dependencies"
 	npm install
 	pip install "setuptools>=0.9.8"
