@@ -9046,6 +9046,9 @@ table.vars table.vars th {
 .team-list > li h3 a:hover {
   color: #12659a;
 }
+.team-list > li p {
+  margin: 0;
+}
 .team-list > li > ul {
   position: relative;
   overflow: hidden;
