@@ -63,6 +63,7 @@ class CreateProjectView(OrganizationView):
         form = self.get_form(request, organization)
         if form.is_valid():
             project = form.save(commit=False)
+            project.organization = organization
             project.save()
 
             create_sample_event(project)

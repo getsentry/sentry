@@ -77,6 +77,7 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
+    organization = models.ForeignKey('sentry.Organization')
     team = models.ForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
@@ -94,7 +95,7 @@ class Project(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_project'
-        unique_together = (('team', 'slug'),)
+        unique_together = (('team', 'slug'), ('organization', 'slug'))
 
     __repr__ = sane_repr('team_id', 'slug')
 
@@ -103,7 +104,7 @@ class Project(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name, team=self.team)
+            slugify_instance(self, self.name, organization=self.organization)
         super(Project, self).save(*args, **kwargs)
 
     def get_absolute_url(self):

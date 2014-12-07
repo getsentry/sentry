@@ -12,7 +12,7 @@ from sentry.web.frontend.base import OrganizationView
 
 class OrganizationSettingsForm(forms.ModelForm):
     class Meta:
-        fields = ('name',)
+        fields = ('name', 'slug')
         model = Organization
 
 
@@ -25,16 +25,7 @@ class OrganizationSettingsView(OrganizationView):
             instance=organization
         )
 
-    def get(self, request, organization):
-        form = self.get_form(request, organization)
-
-        context = {
-            'form': form,
-        }
-
-        return self.respond('sentry/organization-settings.html', context)
-
-    def post(self, request, organization):
+    def handle(self, request, organization):
         form = self.get_form(request, organization)
         if form.is_valid():
             form.save()
