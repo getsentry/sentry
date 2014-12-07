@@ -34,10 +34,11 @@ class OrganizationSettingsTest(TestCase):
 
         self.login_as(self.user)
 
-        resp = self.client.post(path, {'name': 'bar'})
+        resp = self.client.post(path, {'name': 'bar', 'slug': 'bar'})
 
         assert resp.status_code == 302
 
         organization = Organization.objects.get(id=organization.id)
 
         assert organization.name == 'bar'
+        assert organization.slug == 'bar'

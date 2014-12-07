@@ -12,9 +12,11 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
+from sentry.db.models.utils import slugify_instance
 
 
 # TODO(dcramer): pull in enum library
@@ -70,6 +72,7 @@ class Organization(Model):
     A team represents a group of individuals which maintain ownership of projects.
     """
     name = models.CharField(max_length=64)
+    slug = models.SlugField(unique=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     status = BoundedPositiveIntegerField(choices=(
         (OrganizationStatus.VISIBLE, _('Visible')),
@@ -81,6 +84,7 @@ class Organization(Model):
 
     objects = OrganizationManager(cache_fields=(
         'pk',
+        'slug',
     ))
 
     class Meta:
@@ -91,3 +95,8 @@ class Organization(Model):
 
     def __unicode__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
+        super(Organization, self).save(*args, **kwargs)

@@ -145,10 +145,12 @@ MAX_CULPRIT_LENGTH = 200
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
-RESERVED_TEAM_SLUGS = (
+RESERVED_ORGANIZATION_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
     'organizations',
 )
+
+RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS
 
 LOG_LEVELS = {
     logging.DEBUG: 'debug',
