@@ -72,6 +72,8 @@ def manage_projects(request):
         order_by = '-date_added'
     elif sort == 'name':
         order_by = 'name'
+    elif sort == "events":
+        order_by = 'events'
 
     project_list = project_list.order_by(order_by)
 
