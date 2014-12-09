@@ -16,6 +16,12 @@
 
     <div class="pull-right">
       {% block actions %}
+        <a href="{% url 'sentry-create-team' organization.slug %}"
+           class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+        <a href="{% url 'sentry-create-project' organization.slug %}"
+           class="btn btn-small btn-primary">{% trans "New Project" %}</a>
+        <a href="{% url 'sentry-create-organization-member' organization.slug %}"
+           class="btn btn-small btn-primary">{% trans "New Member" %}</a>
       {% endblock %}
     </div>
 
