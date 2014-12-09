@@ -12,7 +12,7 @@ class Migration(DataMigration):
 
         Organization = orm['sentry.Organization']
 
-        for org in Organization.objects.filter(slug__isnull=True):
+        for org in Organization.objects.filter(slug__isnull=True).iterator():
             org.slug = slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
             org.save()
 
