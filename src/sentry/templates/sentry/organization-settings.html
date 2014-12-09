@@ -6,6 +6,10 @@
 {% block org_sidebar_settings_nav %}active{% endblock %}
 
 {% block org_settings_inner %}
+  <div class="page-header">
+    <h2>Organization Settings</h2>
+  </div>
+
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
@@ -16,7 +20,6 @@
     {{ form|as_crispy_errors }}
 
     <fieldset>
-      <legend>{% trans "Basics" %}</legend>
       {% for field in form %}
         {{ field|as_crispy_field }}
       {% endfor %}

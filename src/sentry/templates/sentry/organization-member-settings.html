@@ -1,4 +1,4 @@
-{% extends "sentry/organization-members.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -7,6 +7,16 @@
 {% block title %}{% trans "Member Settings" %} | {{ block.super }}{% endblock %}
 
 {% block inner %}
+  <div class="page-header">
+    <div class="pull-right">
+      <a href="{% url 'sentry-organization-members' organization.slug %}">Back to Organization Members</a>
+    </div>
+    <h2>
+      Member Settings
+      <small>{{ member.get_display_name }}</small>
+    </h2>
+  </div>
+
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
@@ -17,15 +27,6 @@
     {{ form|as_crispy_errors }}
 
     <fieldset>
-      <h2>{% trans "Basics" %}</h2>
-
-      <div class="control-group">
-        <label>{% trans "User" %}</label>
-        <div class="controls">
-          {{ member.get_display_name }}
-        </div>
-      </div>
-
       <div class="control-group">
         <label>{% trans "Status" %}</label>
         <div class="controls">

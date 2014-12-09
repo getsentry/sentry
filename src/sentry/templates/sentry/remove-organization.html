@@ -6,13 +6,17 @@
 {% block org_sidebar_remove_nav %}active{% endblock %}
 
 {% block org_settings_inner %}
+  <div class="page-header">
+    <h2>Remove Organization</h2>
+  </div>
+
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
     <p><strong>{% trans "Removing this organization is permanent and cannot be undone!" %}</strong></p>
 
     {% if team_list %}
-      <p>{% trans "This will also remove the following teams and all associated data:" %}</p>
+      <p>{% trans "This will also remove the following teams and all associated projects:" %}</p>
 
       <ul>
         {% for team in team_list %}
