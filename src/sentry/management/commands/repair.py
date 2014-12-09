@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
         print("Creating missing slugs for organizations")
         for org in Organization.objects.filter(slug__isnull=True):
-            org.slug = slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
+            slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
             print('Assigning slug %r for %s' % (org.slug, org.id))
             org.save()
 
@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 name=project.name,
                 owner=project.owner,
             )
-            team.slug = slugify_instance(team, team.name, RESERVED_ORGANIZATION_SLUGS)
+            slugify_instance(team, team.name, RESERVED_ORGANIZATION_SLUGS)
             team.save()
 
             update(project, team=team)
