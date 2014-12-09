@@ -57,8 +57,12 @@ def slugify_instance(inst, label, reserved=(), **kwargs):
     base_slug = slugify(label)
     if base_slug in reserved:
         base_slug = None
+    elif base_slug is not None:
+        base_slug = base_slug.strip()
+
     if not base_slug:
         base_slug = uuid4().hex[:12]
+
     manager = type(inst).objects
     inst.slug = base_slug
     n = 0
