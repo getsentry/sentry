@@ -14,7 +14,7 @@ class RemoveTeamTest(TestCase):
         owner = self.create_user(email='example@example.com')
         organization = self.create_organization(owner=owner)
         self.team = self.create_team(name='bar', organization=organization)
-        self.path = reverse('sentry-remove-team', args=[self.team.slug])
+        self.path = reverse('sentry-remove-team', args=[organization.slug, self.team.slug])
         self.login_as(self.organization.owner)
 
     @mock.patch('sentry.web.frontend.remove_team.can_remove_team', mock.Mock(return_value=True))

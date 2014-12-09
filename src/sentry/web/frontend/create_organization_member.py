@@ -140,7 +140,7 @@ class CreateOrganizationMemberView(OrganizationView):
                     _('The organization member already exists.'))
 
             redirect = reverse('sentry-organization-member-settings',
-                               args=[organization.id, om.id])
+                               args=[organization.slug, om.id])
 
             return HttpResponseRedirect(redirect)
 

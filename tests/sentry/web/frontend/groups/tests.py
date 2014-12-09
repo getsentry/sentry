@@ -17,7 +17,7 @@ class GroupDetailsTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
         })
@@ -27,12 +27,10 @@ class GroupDetailsTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
         assert resp.context['group'] == self.group
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
+        assert resp.context['organization'] == self.organization
 
         # ensure we've marked the group as seen
         assert GroupSeen.objects.filter(
@@ -43,7 +41,7 @@ class GroupListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-stream', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
         })
 
@@ -73,11 +71,10 @@ class GroupListTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-        assert 'project' in resp.context
-        assert 'team' in resp.context
         assert 'event_list' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
+        assert resp.context['organization'] == self.organization
 
     def test_date_sort(self):
         self.login_as(self.user)
@@ -106,7 +103,7 @@ class GroupEventListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-events', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
         })
@@ -121,13 +118,10 @@ class GroupEventListTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
-        assert 'event_list' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
         assert resp.context['group'] == self.group
+        assert resp.context['organization'] == self.organization
         event_list = resp.context['event_list']
         assert len(event_list) == 2
         assert event_list[0] == event2
@@ -138,7 +132,7 @@ class GroupTagListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-tags', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
         })
@@ -148,20 +142,18 @@ class GroupTagListTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
         assert 'tag_list' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
         assert resp.context['group'] == self.group
+        assert resp.context['organization'] == self.organization
 
 
 class GroupEventDetailsTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-event', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
             'event_id': self.event.id,
@@ -172,21 +164,18 @@ class GroupEventDetailsTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
-        assert 'event' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
         assert resp.context['group'] == self.group
         assert resp.context['event'] == self.event
+        assert resp.context['organization'] == self.organization
 
 
 class GroupEventJsonTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-event-json', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
             'event_id_or_latest': self.event.id,

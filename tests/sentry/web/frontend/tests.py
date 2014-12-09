@@ -94,7 +94,7 @@ class ReplayTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-replay', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
             'event_id': self.event.id,
@@ -184,7 +184,7 @@ class RemoveProjectTest(PermissionBase):
 
     @fixture
     def path(self):
-        return reverse('sentry-remove-project', kwargs={'team_slug': self.team.slug, 'project_slug': self.project.slug})
+        return reverse('sentry-remove-project', kwargs={'organization_slug': self.organization.slug, 'project_slug': self.project.slug})
 
     def test_admin_cannot_remove_default(self):
         with self.settings(SENTRY_PROJECT=self.project.id):

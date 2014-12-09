@@ -5,7 +5,7 @@
     <div class="page-header">
         <a href="javascript:void(0)" data-container="#copy_as_curl" data-title="Copy as cURL" class="popup btn small pull-right" style="margin-left: 5px">{% trans "Copy as cURL" %}</a>
         {% if not is_public %}
-            <a href="{% url 'sentry-replay' event.team.slug event.project.slug event.group_id event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
+            <a href="{% url 'sentry-replay' event.organization.slug event.project.slug event.group_id event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
         {% endif %}
         <h2>{% trans "Request" %}</h2>
     </div>

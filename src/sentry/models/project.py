@@ -12,7 +12,7 @@ import logging
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -182,3 +182,17 @@ class Project(Model):
         from sentry.models import ProjectOption
 
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
+
+    def has_access(self, user, access=None):
+        from sentry.models import OrganizationMember
+
+        queryset = OrganizationMember.objects.filter(
+            Q(teams=self.team) | Q(has_global_access=True),
+            user__is_active=True,
+            user=user,
+            organization=self.organization,
+        )
+        if access:
+            queryset = queryset.filter(type__lte=access)
+
+        return queryset.exists()

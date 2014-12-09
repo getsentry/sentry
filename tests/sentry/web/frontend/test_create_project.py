@@ -10,7 +10,7 @@ class CreateProjectTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization()
         team = self.create_team(organization=organization)
-        path = reverse('sentry-create-project', args=[organization.id])
+        path = reverse('sentry-create-project', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.get(path)
         assert resp.status_code == 200
@@ -21,7 +21,7 @@ class CreateProjectTest(TestCase):
     def test_valid_params(self):
         organization = self.create_organization()
         team = self.create_team(organization=organization, name='Foo', slug='foo')
-        path = reverse('sentry-create-project', args=[organization.id])
+        path = reverse('sentry-create-project', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.post(path, {
             'name': 'bar',
@@ -35,5 +35,5 @@ class CreateProjectTest(TestCase):
         assert project.platform == 'python'
         assert project.team == team
 
-        redirect_uri = reverse('sentry-docs-client', args=[team.slug, project.slug, project.platform])
+        redirect_uri = reverse('sentry-docs-client', args=[organization.slug, project.slug, project.platform])
         assert resp['Location'] == 'http://testserver' + redirect_uri

@@ -128,7 +128,7 @@ class CrossDomainXmlIndexTest(TestCase):
 class SearchUsersTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-search-users', args=[self.team.slug])
+        return reverse('sentry-api-search-users', args=[self.organization.slug])
 
     def setUp(self):
         super(SearchUsersTest, self).setUp()
@@ -171,14 +171,18 @@ class SearchUsersTest(TestCase):
 class SearchProjectsTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-search-projects', args=[self.team.slug])
+        return reverse('sentry-api-search-projects', args=[self.organization.slug])
 
     def setUp(self):
         super(SearchProjectsTest, self).setUp()
         self.login_as(self.user)
 
-    def test_finds_projects_from_team(self):
-        project = self.create_project(team=self.team, name='Sample')
+    def test_finds_projects_from_org(self):
+        project = self.create_project(
+            organization=self.organization,
+            team=self.team,
+            name='Sample',
+        )
         resp = self.client.get(self.path, {'query': 'sample'})
 
         assert resp.status_code == 200
@@ -192,9 +196,10 @@ class SearchProjectsTest(TestCase):
             'query': 'sample',
         }
 
-    def test_does_not_include_projects_from_other_teams(self):
-        team = self.create_team(owner=self.user, name='Sample')
-        self.create_project(team=team, name='Sample')
+    def test_does_not_include_projects_from_other_organizations(self):
+        org = self.create_organization(owner=self.user, name='Sample')
+        team = self.create_team(organization=org, owner=self.user, name='Sample')
+        self.create_project(organization=org, team=team, name='Sample')
 
         resp = self.client.get(self.path, {'query': 'sample'})
 

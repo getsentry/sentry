@@ -26,7 +26,7 @@ class OrganizationMemberSettingsTest(TestCase):
         member.teams.add(team_2)
 
         path = reverse('sentry-organization-member-settings',
-                       args=[organization.id, member.id])
+                       args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -54,7 +54,7 @@ class OrganizationMemberSettingsTest(TestCase):
         )
 
         path = reverse('sentry-organization-member-settings',
-                       args=[organization.id, member.id])
+                       args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -97,7 +97,7 @@ class OrganizationMemberSettingsTest(TestCase):
         )
 
         path = reverse('sentry-organization-member-settings',
-                       args=[organization.id, member.id])
+                       args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -140,7 +140,7 @@ class OrganizationMemberSettingsTest(TestCase):
         )
 
         path = reverse('sentry-organization-member-settings',
-                       args=[organization.id, member.id])
+                       args=[organization.slug, member.id])
 
         self.login_as(self.user)
 
@@ -175,7 +175,7 @@ class OrganizationMemberSettingsTest(TestCase):
         )
 
         path = reverse('sentry-organization-member-settings',
-                       args=[organization.id, member.id])
+                       args=[organization.slug, member.id])
 
         self.login_as(admin)
 

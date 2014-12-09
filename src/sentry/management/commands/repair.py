@@ -9,45 +9,31 @@ from __future__ import absolute_import, print_function
 
 from django.core.management.base import BaseCommand
 
-from optparse import make_option
-
 
 class Command(BaseCommand):
     help = 'Attempts to repair any invalid data within Sentry'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--owner', help='Username to transfer ownerless projects to.'),
-    )
-
     def handle(self, **options):
-        from django.template.defaultfilters import slugify
-        from sentry.models import Project, Team, ProjectKey, User
+        from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+        from sentry.models import Organization, Project, Team, ProjectKey
         from sentry.db.models import update
+        from sentry.db.models.utils import slugify_instance
 
-        if options.get('owner'):
-            owner = User.objects.get(username__iexact=options.get('owner'))
-        else:
-            owner = None
+        print("Creating missing slugs for organizations")
+        for org in Organization.objects.filter(slug__isnull=True):
+            org.slug = slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
+            print('Assigning slug %r for %s' % (org.slug, org.id))
+            org.save()
 
         # Create teams for any projects that are missing them
         print("Creating missing teams on projects")
-        for project in Project.objects.filter(team__isnull=True, owner__isnull=False):
+        for project in Project.objects.filter(team__isnull=True):
             # TODO(dcramer): this needs owners
             team = Team(
                 name=project.name,
-                owner=owner,
+                owner=project.owner,
             )
-            base_slug = slugify(team.name)
-            slug = base_slug
-            n = 0
-            while True:
-                if Team.objects.filter(slug=slug).exists():
-                    n += 1
-                    slug = base_slug + '-' + str(n)
-                    continue
-                team.slug = slug
-                break
-
+            team.slug = slugify_instance(team, team.name, RESERVED_ORGANIZATION_SLUGS)
             team.save()
 
             update(project, team=team)

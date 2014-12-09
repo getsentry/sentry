@@ -12,7 +12,7 @@ class RemoveOrganizationTest(TestCase):
 
         self.organization = self.create_organization(name='foo', owner=self.user)
         self.team = self.create_team(organization=self.organization)
-        self.path = reverse('sentry-remove-organization', args=[self.organization.id])
+        self.path = reverse('sentry-remove-organization', args=[self.organization.slug])
 
         self.login_as(self.user)
 

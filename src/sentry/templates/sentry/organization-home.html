@@ -5,15 +5,15 @@
 {% block org_teams_nav %}active{% endblock %}
 
 {% block actions %}
-  <a href="{% url 'sentry-create-team' organization.id %}"
+  <a href="{% url 'sentry-create-team' organization.slug %}"
      class="btn btn-small btn-primary">{% trans "New Team" %}</a>
-  <a href="{% url 'sentry-create-project' organization.id %}"
+  <a href="{% url 'sentry-create-project' organization.slug %}"
      class="btn btn-small btn-primary">{% trans "New Project" %}</a>
 {% endblock %}
 
 {% block inner %}
   {% if not team_list %}
-    <p>You don't have any teams for this organization yet. Get started by <a href="{% url 'sentry-create-team' organization.id %}">creating your first team</a>.</p>
+    <p>You don't have any teams for this organization yet. Get started by <a href="{% url 'sentry-create-team' organization.slug %}">creating your first team</a>.</p>
   {% else %}
     <ul class="team-list">
       {% for team, project_list in team_list %}
@@ -25,15 +25,15 @@
             </div>
           </div>
           <div class="pull-right actions">
-            <a href="{% url 'sentry-manage-team' team.slug %}">Team Settings</a>
+            <a href="{% url 'sentry-manage-team' organization.slug team.slug %}">Team Settings</a>
           </div>
-          <h3><a href="{% url 'sentry' team.slug %}">{{ team.name }}</a></h3>
+          <h3><a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}">{{ team.name }}</a></h3>
           {% if not project_list %}
-            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.id %}">create a project</a>?</p>
+            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.slug %}">create a project</a>?</p>
           {% else %}
             <ul>
               {% for project in project_list %}
-                <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
+                <li><a href="{% url 'sentry-stream' organization.slug project.slug %}">{{ project.name }}</a></li>
               {% endfor %}
             </ul>
           {% endif %}

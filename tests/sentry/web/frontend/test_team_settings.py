@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 class TeamSettingsTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-manage-team', args=[self.team.slug])
+        return reverse('sentry-manage-team', args=[self.organization.slug, self.team.slug])
 
     def test_renders_with_context(self):
         self.login_as(self.team.owner)

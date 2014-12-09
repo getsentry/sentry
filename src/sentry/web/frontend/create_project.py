@@ -57,7 +57,9 @@ class CreateProjectView(OrganizationView):
             access=OrganizationMemberType.ADMIN,
         )
 
-        return NewProjectForm(request.user, team_list, request.POST or None)
+        return NewProjectForm(request.user, team_list, request.POST or None, initial={
+            'team': request.GET.get('team'),
+        })
 
     def handle(self, request, organization):
         form = self.get_form(request, organization)
@@ -69,9 +71,9 @@ class CreateProjectView(OrganizationView):
             create_sample_event(project)
 
             if project.platform not in (None, 'other'):
-                url = reverse('sentry-docs-client', args=[project.team.slug, project.slug, project.platform])
+                url = reverse('sentry-docs-client', args=[organization.slug, project.slug, project.platform])
             else:
-                url = reverse('sentry-get-started', args=[project.team.slug, project.slug])
+                url = reverse('sentry-get-started', args=[organization.slug, project.slug])
             return HttpResponseRedirect(url)
 
         context = {

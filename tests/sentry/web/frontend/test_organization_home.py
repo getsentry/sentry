@@ -11,7 +11,7 @@ class OrganizationHomeTest(TestCase):
         team = self.create_team(organization=organization)
         project = self.create_project(team=team)
 
-        path = reverse('sentry-organization-home', args=[organization.id])
+        path = reverse('sentry-organization-home', args=[organization.slug])
 
         self.login_as(self.user)
 

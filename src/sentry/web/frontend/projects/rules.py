@@ -87,12 +87,13 @@ class RuleFormValidator(object):
 
 
 @has_access(MEMBER_OWNER)
-def list_rules(request, team, project):
+def list_rules(request, organization, project):
     rule_list = Rule.objects.filter(project=project)
 
     context = csrf(request)
     context.update({
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'page': 'rules',
         'project': project,
         'rule_list': rule_list,
@@ -103,12 +104,12 @@ def list_rules(request, team, project):
 
 @has_access(MEMBER_OWNER)
 @csrf_protect
-def create_or_edit_rule(request, team, project, rule_id=None):
+def create_or_edit_rule(request, organization, project, rule_id=None):
     if rule_id:
         try:
             rule = Rule.objects.get(project=project, id=rule_id)
         except Rule.DoesNotExist:
-            path = reverse('sentry-project-rules', args=[team.slug, project.slug])
+            path = reverse('sentry-project-rules', args=[organization.slug, project.slug])
             return HttpResponseRedirect(path)
     else:
         rule = Rule(project=project)
@@ -144,7 +145,7 @@ def create_or_edit_rule(request, team, project, rule_id=None):
             request, messages.SUCCESS,
             _('Changes to your rule were saved.'))
 
-        path = reverse('sentry-project-rules', args=[team.slug, project.slug])
+        path = reverse('sentry-project-rules', args=[organization.slug, project.slug])
         return HttpResponseRedirect(path)
 
     action_list = []
@@ -170,7 +171,8 @@ def create_or_edit_rule(request, team, project, rule_id=None):
         'form_is_valid': (not request.POST or validator.is_valid()),
         'form_errors': validator.errors,
         'form_data': form_data,
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'page': 'rules',
         'action_list': json.dumps(action_list),
         'condition_list': json.dumps(condition_list),
@@ -182,8 +184,8 @@ def create_or_edit_rule(request, team, project, rule_id=None):
 
 @has_access(MEMBER_OWNER)
 @csrf_protect
-def remove_rule(request, team, project, rule_id):
-    path = reverse('sentry-project-rules', args=[team.slug, project.slug])
+def remove_rule(request, organization, project, rule_id):
+    path = reverse('sentry-project-rules', args=[organization.slug, project.slug])
 
     try:
         rule = Rule.objects.get(project=project, id=rule_id)

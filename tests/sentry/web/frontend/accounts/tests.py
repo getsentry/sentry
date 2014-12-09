@@ -215,11 +215,6 @@ class LoginRedirectTest(TestCase):
         assert resp.status_code == 302
         assert resp['Location'] == reverse('sentry')
 
-    def test_standard_view_works(self):
-        resp = login_redirect(self.make_request(reverse('sentry', args=[1])))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry', args=[1])
-
 
 class NotificationSettingsTest(TestCase):
     @fixture
