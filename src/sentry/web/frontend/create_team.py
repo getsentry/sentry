@@ -48,7 +48,10 @@ class CreateTeamView(OrganizationView):
             team.organization = organization
             team.owner = organization.owner
             team.save()
-            return HttpResponseRedirect(reverse('sentry-create-project', args=[organization.id]))
+
+            url = reverse('sentry-create-project', args=[organization.slug])
+
+            return HttpResponseRedirect(url + '?team=' + team.slug)
 
         context = {
             'form': form,

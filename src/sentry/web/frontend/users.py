@@ -21,7 +21,7 @@ SORT_OPTIONS = {
 
 @has_access
 @login_required
-def user_list(request, team, project):
+def user_list(request, organization, project):
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
         sort = DEFAULT_SORT_OPTION
@@ -36,7 +36,8 @@ def user_list(request, team, project):
         tag_list = tag_list.order_by('-times_seen')
 
     return render_to_response('sentry/users/list.html', {
-        'team': team,
+        'team': project.team,
+        'organization': organization,
         'project': project,
         'tag_list': tag_list,
         'sort_label': SORT_OPTIONS[sort],
@@ -47,7 +48,7 @@ def user_list(request, team, project):
 
 @has_access
 @login_required
-def user_details(request, team, project, user_id):
+def user_details(request, organization, project, user_id):
     tag = TagValue.objects.get(
         project=project,
         key='sentry:user',
@@ -61,7 +62,8 @@ def user_details(request, team, project, user_id):
     )
 
     return render_to_response('sentry/users/details.html', {
-        'team': team,
+        'team': project.team,
+        'organization': organization,
         'project': project,
         'tag': tag,
         'event_list': event_list,

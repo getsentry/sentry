@@ -63,7 +63,7 @@ class TeamSettingsView(TeamView):
             messages.add_message(request, messages.SUCCESS,
                 _('Changes to your team were saved.'))
 
-            return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
+            return HttpResponseRedirect(reverse('sentry-manage-team', args=[organization.slug, team.slug]))
 
         context = {
             'form': form,

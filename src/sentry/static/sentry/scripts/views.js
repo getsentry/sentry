@@ -113,19 +113,19 @@
         },
 
         getResolveUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' +
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/' +
                     app.config.projectId + '/group/' + this.model.get('id') +
                     '/set/resolved/';
         },
 
         getUnresolveUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' +
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/' +
                     app.config.projectId + '/group/' + this.model.get('id') +
                     '/set/unresolved/';
         },
 
         getBookmarkUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/bookmark/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/' + app.config.projectId + '/bookmark/';
         },
 
         bookmark: function(){

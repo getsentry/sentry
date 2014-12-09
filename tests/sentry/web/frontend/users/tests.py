@@ -17,7 +17,7 @@ class UserListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-users', args=[
-            self.team.slug, self.project.slug])
+            self.organization.slug, self.project.slug])
 
     def test_missing_permission(self):
         resp = self.client.get(self.path)
@@ -48,7 +48,7 @@ class UserDetailsTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-user-details', args=[
-            self.team.slug, self.project.slug, self.tag.id])
+            self.organization.slug, self.project.slug, self.tag.id])
 
     @fixture
     def tag(self):

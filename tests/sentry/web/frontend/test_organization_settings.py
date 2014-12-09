@@ -12,7 +12,7 @@ class OrganizationSettingsTest(TestCase):
         team = self.create_team(organization=organization)
         project = self.create_project(team=team)
 
-        path = reverse('sentry-organization-settings', args=[organization.id])
+        path = reverse('sentry-organization-settings', args=[organization.slug])
 
         self.login_as(self.user)
 
@@ -30,7 +30,7 @@ class OrganizationSettingsTest(TestCase):
         team = self.create_team(organization=organization)
         project = self.create_project(team=team)
 
-        path = reverse('sentry-organization-settings', args=[organization.id])
+        path = reverse('sentry-organization-settings', args=[organization.slug])
 
         self.login_as(self.user)
 

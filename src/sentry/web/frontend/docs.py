@@ -43,11 +43,12 @@ def get_key_context(user, project):
 
 
 @has_access
-def client_help(request, team, project):
+def client_help(request, organization, project):
     context = {
         'page': 'client_help',
-        'project': project,
+        'organization': organization,
         'team': project.team,
+        'project': project,
         'SUBSECTION': 'projects',
         'SECTION': 'team',
     }
@@ -57,7 +58,7 @@ def client_help(request, team, project):
 
 
 @has_access
-def client_guide(request, team, project, platform):
+def client_guide(request, organization, project, platform):
     if platform not in PLATFORM_LIST:
         return HttpResponseRedirect(reverse('sentry'))
 
@@ -66,9 +67,10 @@ def client_guide(request, team, project, platform):
     context = {
         'platform': platform,
         'platform_title': PLATFORM_TITLES.get(platform, platform.title()),
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'page': 'client_help_%s' % (PLATFORM_ROOTS.get(platform, platform),),
-        'team': project.team,
         'SUBSECTION': 'projects',
         'SECTION': 'team',
     }

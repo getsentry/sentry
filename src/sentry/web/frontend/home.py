@@ -13,5 +13,5 @@ class HomeView(BaseView):
         if organization is None:
             url = reverse('sentry-create-organization')
         else:
-            url = reverse('sentry-organization-home', args=[organization.id])
+            url = reverse('sentry-organization-home', args=[organization.slug])
         return HttpResponseRedirect(url)

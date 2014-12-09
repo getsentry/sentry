@@ -16,7 +16,7 @@ class RemoveProjectTest(TestCase):
         organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(name='bar', organization=organization)
         self.project = self.create_project(name='bar', team=self.team)
-        self.path = reverse('sentry-remove-project', args=[self.team.slug, self.project.slug])
+        self.path = reverse('sentry-remove-project', args=[organization.slug, self.project.slug])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path, 'POST')

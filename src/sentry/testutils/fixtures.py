@@ -35,8 +35,11 @@ class Fixtures(object):
 
     @fixture
     def organization(self):
+        # XXX(dcramer): ensure that your org slug doesnt match your team slug
+        # and the same for your project slug
         return self.create_organization(
-            name='foo',
+            name='baz',
+            slug='baz',
             owner=self.user)
 
     @fixture

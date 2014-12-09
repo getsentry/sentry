@@ -41,7 +41,10 @@ class CreateOrganizationView(BaseView):
                 organization=org,
                 owner=org.owner,
             )
-            return HttpResponseRedirect(reverse('sentry-create-project', args=[org.id]))
+
+            url = reverse('sentry-create-project', args=[org.slug])
+
+            return HttpResponseRedirect('%s?team=%s' % (url, team.slug))
 
         context = {
             'form': form,

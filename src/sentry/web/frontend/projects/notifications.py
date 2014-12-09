@@ -25,7 +25,7 @@ from sentry.web.helpers import render_to_response
 
 @has_access(MEMBER_OWNER)
 @csrf_protect
-def notification_settings(request, team, project):
+def notification_settings(request, organization, project):
     general_form = NotificationSettingsForm(
         data=request.POST or None,
         prefix='general',
@@ -62,11 +62,12 @@ def notification_settings(request, team, project):
             request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
-        return HttpResponseRedirect(reverse('sentry-project-notifications', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-project-notifications', args=[project.organization.slug, project.slug]))
 
     context = csrf(request)
     context.update({
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'general_form': general_form,
         'alert_form': alert_form,

@@ -87,15 +87,15 @@
         },
 
         getSearchUsersUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/users/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/users/search/';
         },
 
         getSearchProjectsUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/projects/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/projects/search/';
         },
 
         getSearchTagsUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/tags/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/' + app.config.projectId + '/tags/search/';
         },
 
         makeSearchableInput: function(el, url, callback, options) {

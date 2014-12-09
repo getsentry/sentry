@@ -78,6 +78,10 @@ class Event(Model):
         return self.project.team
 
     @property
+    def organization(self):
+        return self.project.organization
+
+    @property
     def version(self):
         return self.data.get('version', '5')
 

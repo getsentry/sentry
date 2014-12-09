@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 class CreateOrganizationMemberTest(TestCase):
     def test_renders_with_context(self):
         organization = self.create_organization()
-        path = reverse('sentry-create-organization-member', args=[organization.id])
+        path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.get(path)
         assert resp.status_code == 200
@@ -20,7 +20,7 @@ class CreateOrganizationMemberTest(TestCase):
 
     def test_valid_for_invites(self):
         organization = self.create_organization(name='Default')
-        path = reverse('sentry-create-organization-member', args=[organization.id])
+        path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
 
         with self.settings(SENTRY_ENABLE_INVITES=True):
@@ -38,7 +38,7 @@ class CreateOrganizationMemberTest(TestCase):
         assert member.type == OrganizationMemberType.MEMBER
         assert member.user is None
 
-        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.id, member.id])
+        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri
 
         assert len(mail.outbox) == 1
@@ -47,7 +47,7 @@ class CreateOrganizationMemberTest(TestCase):
 
     def test_existing_user_for_invite(self):
         organization = self.create_organization()
-        path = reverse('sentry-create-organization-member', args=[organization.id])
+        path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
 
         user = self.create_user('foo@example.com')
@@ -75,12 +75,12 @@ class CreateOrganizationMemberTest(TestCase):
         assert member.user == user
         assert member.email is None
 
-        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.id, member.id])
+        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri
 
     def test_valid_for_direct_add(self):
         organization = self.create_organization()
-        path = reverse('sentry-create-organization-member', args=[organization.id])
+        path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
 
         user = self.create_user('foo@example.com')
@@ -100,12 +100,12 @@ class CreateOrganizationMemberTest(TestCase):
         assert member.type == OrganizationMemberType.MEMBER
         assert member.email is None
 
-        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.id, member.id])
+        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri
 
     def test_invalid_user_for_direct_add(self):
         organization = self.create_organization()
-        path = reverse('sentry-create-organization-member', args=[organization.id])
+        path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
 
         with self.settings(SENTRY_ENABLE_INVITES=False):

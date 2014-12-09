@@ -28,7 +28,7 @@ class OrganizationMembersTest(TestCase):
         )
         member_om.teams.add(team_2)
 
-        path = reverse('sentry-organization-members', args=[organization.id])
+        path = reverse('sentry-organization-members', args=[organization.slug])
 
         self.login_as(self.user)
 

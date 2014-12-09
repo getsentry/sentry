@@ -140,8 +140,10 @@ class Team(Model):
         super(Team, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return absolute_uri(reverse('sentry', args=[
-            self.slug]))
+        return absolute_uri(reverse('sentry-team-dashboard', args=[
+            self.organization.slug,
+            self.slug,
+        ]))
 
     def get_owner_name(self):
         if not self.owner:
@@ -158,3 +160,10 @@ class Team(Model):
             Q(teams=self) | Q(has_global_access=True),
             user__is_active=True,
         )
+
+    def has_access(self, user, access=None):
+        queryset = self.member_set.filter(user=user)
+        if access:
+            queryset = queryset.filter(type__lte=access)
+
+        return queryset.exists()

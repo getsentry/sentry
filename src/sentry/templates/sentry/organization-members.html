@@ -9,7 +9,7 @@
 {% block org_members_nav %}active{% endblock %}
 
 {% block actions %}
-  <a href="{% url 'sentry-create-organization-member' organization.id %}"
+  <a href="{% url 'sentry-create-organization-member' organization.slug %}"
      class="btn btn-small btn-primary">{% trans "New Member" %}</a>
 {% endblock %}
 
@@ -32,7 +32,7 @@
             <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
           </td>
           <td>
-            <a href="{% url 'sentry-organization-member-settings' organization.id member.id %}">
+            <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
               {{ member.get_display_name }}
             </a>
             {% if member.is_pending %}

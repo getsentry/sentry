@@ -28,7 +28,7 @@
     {% endfor %}
 
     <fieldset class="form-actions">
-      <button type="submit" class="btn btn-danger">{% trans "Remove Organization" %}</button> <a href="{% url 'sentry-organization-settings' organization.id %}" class="btn">{% trans "Cancel" %}</a>
+      <button type="submit" class="btn btn-danger">{% trans "Remove Organization" %}</button> <a href="{% url 'sentry-organization-settings' organization.slug %}" class="btn">{% trans "Cancel" %}</a>
     </fieldset>
   </form>
 {% endblock %}

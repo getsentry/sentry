@@ -22,17 +22,17 @@
 
     <ul class="nav nav-tabs">
       <li class="{% block org_teams_nav %}{% endblock %}">
-        <a href="{% url 'sentry-organization-home' organization.id %}">
+        <a href="{% url 'sentry-organization-home' organization.slug %}">
           {% trans "Teams" %}
         </a>
       </li>
       <li class="{% block org_members_nav %}{% endblock %}">
-        <a href="{% url 'sentry-organization-members' organization.id %}">
+        <a href="{% url 'sentry-organization-members' organization.slug %}">
           {% trans "Members" %}
         </a>
       </li>
       <li class="{% block org_settings_nav %}{% endblock %}">
-        <a href="{% url 'sentry-organization-settings' organization.id %}">
+        <a href="{% url 'sentry-organization-settings' organization.slug %}">
           {% trans "Admin" %}
         </a>
       </li>
@@ -40,7 +40,7 @@
 
     {% if request.user|needs_access_group_migration:organization %}
       <div class="alert alert-block alert-info">
-        <p>You have access groups that need to be migrated into the new organization structure. <a href="{% url 'sentry-organization-access-group-migration' organization.id %}">Get Started</a></p>
+        <p>You have access groups that need to be migrated into the new organization structure. <a href="{% url 'sentry-organization-access-group-migration' organization.slug %}">Get Started</a></p>
       </div>
     {% endif %}
     {% block inner %}{% endblock %}
