@@ -7,8 +7,9 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        from sentry.models import Project
         from sentry.receivers.rules import create_default_rules
+
+        Project = orm['sentry.Project']
 
         for project in Project.objects.all():
             create_default_rules(instance=project, created=True)
