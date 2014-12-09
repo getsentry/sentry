@@ -15,7 +15,7 @@ class Migration(DataMigration):
         for team in team_list.iterator():
             if team.owner not in user_orgs:
                 user_orgs[team.owner] = Organization.objects.create(
-                    name=team.name,
+                    name=team.name.strip() or 'Default',
                     owner=team.owner,
                 )
 
