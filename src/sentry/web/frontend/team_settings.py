@@ -6,7 +6,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import RESERVED_TEAM_SLUGS
 from sentry.models import Team, OrganizationMemberType
 from sentry.permissions import can_remove_team
 from sentry.plugins import plugins
@@ -17,12 +16,6 @@ class EditTeamForm(forms.ModelForm):
     class Meta:
         fields = ('name', 'slug',)
         model = Team
-
-    def clean_slug(self):
-        value = self.cleaned_data['slug']
-        if value in RESERVED_TEAM_SLUGS:
-            raise forms.ValidationError('You may not use "%s" as a slug' % (value,))
-        return value
 
 
 class TeamSettingsView(TeamView):
