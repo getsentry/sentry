@@ -20,7 +20,7 @@ class Migration(DataMigration):
                     name=team.name.strip() or 'Default',
                     owner=team.owner,
                 )
-                print 'Added organization %s (%s)' % (org.name, org.id)
+                print 'Added organization %s (%s)' % (org.id, org.name)
 
             team.organization = user_orgs[team.owner]
             team.save()

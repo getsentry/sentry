@@ -16,7 +16,7 @@ class Migration(DataMigration):
         queryset = Organization.objects.filter(slug__isnull=True)
 
         for org in RangeQuerySetWrapper(queryset):
-            print 'Updating organization', org.id
+            print 'Adding slug to organization %s (%s)' % (org.id, org.name)
             slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
             org.save()
 
