@@ -19,8 +19,8 @@ class Migration(DataMigration):
 
         user_orgs = {}
         for team in RangeQuerySetWrapperWithProgressBar(queryset):
-            if team.owner not in user_orgs:
-                user_orgs[team.owner_id] = org = Organization.objects.create(
+            if team.owner_id not in user_orgs:
+                user_orgs[team.owner_id] = Organization.objects.create(
                     name=team.name.strip() or 'Default',
                     owner_id=team.owner_id,
                 )

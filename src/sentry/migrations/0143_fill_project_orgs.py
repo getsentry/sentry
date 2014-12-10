@@ -2,7 +2,7 @@
 import datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 
 class Migration(DataMigration):
 
@@ -24,7 +24,7 @@ class Migration(DataMigration):
             sid = transaction.savepoint()
             try:
                 project.save()
-            except Exception:
+            except IntegrityError:
                 transaction.savepoint_rollback(sid)
                 # we also need to update the slug here based on the new constraints
                 slugify_instance(project, project.name, (
