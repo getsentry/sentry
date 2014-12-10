@@ -6,7 +6,6 @@ from django.db import models, transaction
 
 class Migration(DataMigration):
 
-    @transaction.autocommit
     def forwards(self, orm):
         from sentry.constants import RESERVED_ORGANIZATION_SLUGS
         from sentry.db.models.utils import slugify_instance
@@ -19,6 +18,7 @@ class Migration(DataMigration):
         for org in RangeQuerySetWrapperWithProgressBar(queryset):
             slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
             org.save()
+            transaction.commit()
 
     def backwards(self, orm):
         pass

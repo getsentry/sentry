@@ -6,7 +6,6 @@ from django.db import models, transaction
 
 class Migration(DataMigration):
 
-    @transaction.autocommit
     def forwards(self, orm):
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -27,6 +26,7 @@ class Migration(DataMigration):
 
             team.organization = user_orgs[team.owner_id]
             team.save()
+            transaction.commit()
 
     def backwards(self, orm):
         pass

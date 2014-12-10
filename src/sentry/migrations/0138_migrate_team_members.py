@@ -7,7 +7,6 @@ from django.db import IntegrityError, models, transaction
 
 class Migration(DataMigration):
 
-    @transaction.autocommit
     def forwards(self, orm):
         from sentry.utils.query import (
             RangeQuerySetWrapper, RangeQuerySetWrapperWithProgressBar,
@@ -72,6 +71,7 @@ class Migration(DataMigration):
                     defaults={'type': pm.type},
                 )
                 om.teams.add(team)
+            transaction.commit()
 
     def backwards(self, orm):
         pass

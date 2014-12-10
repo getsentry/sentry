@@ -6,7 +6,6 @@ from django.db import IntegrityError, models, transaction
 
 class Migration(DataMigration):
 
-    @transaction.autocommit
     def forwards(self, orm):
         from sentry.db.models import create_or_update
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -28,6 +27,7 @@ class Migration(DataMigration):
                 transaction.savepoint_rollback(sid)
             else:
                 transaction.savepoint_commit(sid)
+            transaction.commit()
 
     def backwards(self, orm):
         pass
