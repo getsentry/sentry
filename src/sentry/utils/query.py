@@ -27,6 +27,10 @@ class RangeQuerySetWrapper(object):
     Very efficient, but ORDER BY statements will not work.
     """
 
+    # TODO(dcramer): this *does not* guarantee an object is only listed once
+    # this is due to issues with filter() clauses which may actually remove
+    # results so a simple "offset from previous" is not valid
+
     def __init__(self, queryset, step=1000, limit=None, min_id=None,
                  order_by='pk', callbacks=()):
         # Support for slicing
@@ -68,9 +72,11 @@ class RangeQuerySetWrapper(object):
 
         # we implement basic cursor pagination for columns that are not unique
         last_value = None
-        offset = 0
         has_results = True
-        while ((max_value and cur_value <= max_value) or has_results) and (not self.limit or num < self.limit):
+        while has_results:
+            if (max_value and cur_value >= max_value) or (limit and num >= limit):
+                break
+
             start = num
 
             if cur_value is None:
@@ -80,7 +86,7 @@ class RangeQuerySetWrapper(object):
             elif not self.desc:
                 results = queryset.filter(**{'%s__gte' % self.order_by: cur_value})
 
-            results = list(results[offset:offset + self.step])
+            results = list(results[0:self.step])
 
             for cb in self.callbacks:
                 cb(results)
@@ -90,16 +96,7 @@ class RangeQuerySetWrapper(object):
 
                 num += 1
                 cur_value = getattr(result, self.order_by)
-                if cur_value == last_value:
-                    offset += 1
-                else:
-                    # offset needs to be based at 1 so we don't return a row
-                    # that was already selected
-                    last_value = cur_value
-                    offset = 1
-
-                if (max_value and cur_value >= max_value) or (limit and num >= limit):
-                    break
+                last_value = cur_value
 
             if cur_value is None:
                 break
