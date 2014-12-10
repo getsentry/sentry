@@ -53,8 +53,8 @@ def resolve_expression_node(instance, node):
     return runner
 
 
-def slugify_instance(inst, label, reserved=(), *args, **kwargs):
-    base_slug = slugify(label)
+def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
+    base_slug = slugify(label)[:max_length]
 
     if base_slug in reserved:
         base_slug = None
@@ -69,4 +69,4 @@ def slugify_instance(inst, label, reserved=(), *args, **kwargs):
     n = 0
     while manager.filter(slug__iexact=inst.slug, *args, **kwargs).exists():
         n += 1
-        inst.slug = base_slug + '-' + str(n)
+        inst.slug = base_slug[:max_length - len(str(n)) - 1] + '-' + str(n)
