@@ -1,11 +1,11 @@
-{% extends "sentry/bases/organization_settings.html" %}
+{% extends "sentry/bases/organization.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block org_sidebar_settings_nav %}active{% endblock %}
+{% block org_settings_nav %}active{% endblock %}
 
-{% block org_settings_inner %}
+{% block inner %}
   <div class="page-header">
     <h2>Organization Settings</h2>
   </div>
@@ -26,6 +26,7 @@
     </fieldset>
 
     <fieldset class="form-actions">
+      <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </fieldset>
   </form>

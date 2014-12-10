@@ -1,11 +1,11 @@
-{% extends "sentry/bases/organization_settings.html" %}
+{% extends "sentry/bases/organization.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block org_sidebar_remove_nav %}active{% endblock %}
+{% block org_settings_nav %}active{% endblock %}
 
-{% block org_settings_inner %}
+{% block inner %}
   <div class="page-header">
     <h2>Remove Organization</h2>
   </div>
