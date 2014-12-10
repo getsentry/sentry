@@ -10,7 +10,8 @@ class Migration(DataMigration):
     @transaction.autocommit
     def forwards(self, orm):
         from sentry.utils.query import (
-            RangeQuerySetWrapper, RangeQuerySetWrapperWithProgressBar
+            RangeQuerySetWrapper, RangeQuerySetWrapperWithProgressBar,
+            WithProgressBar
         )
 
         Organization = orm['sentry.Organization']
@@ -25,7 +26,7 @@ class Migration(DataMigration):
             for team in Team.objects.filter(organization=org):
                 teams_by_org[org].append(team)
 
-        for org, team_list in WithProgresBar(teams_by_org.items(), caption='Organizations'):
+        for org, team_list in WithProgressBar(teams_by_org.items(), caption='Organizations'):
             team_member_qs = TeamMember.objects.filter(
                 team__organization=org
             ).select_related('team')
