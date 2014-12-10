@@ -23,8 +23,8 @@ class Migration(DataMigration):
             if created:
                 print 'Added %s to %s (%s)' % (
                     team.owner.email or team.owner.username,
-                    team.organization.name,
                     team.organization.id,
+                    team.organization.name,
                 )
 
     def backwards(self, orm):

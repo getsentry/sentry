@@ -18,7 +18,7 @@ class Migration(DataMigration):
         ).select_related('team', 'team__organization')
 
         for project in RangeQuerySetWrapper(queryset):
-            print 'Updating project', project.id
+            print 'Adding organization to project %s (%s)' % (project.id, project.name)
             project.organization = project.team.organization
             # we also need to update the slug here based on the new constraints
             slugify_instance(project, project.name, (
