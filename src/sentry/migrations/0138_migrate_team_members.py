@@ -3,12 +3,15 @@ import datetime
 from collections import defaultdict
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import models, transaction
 
 class Migration(DataMigration):
 
+    @transaction.autocommit
     def forwards(self, orm):
-        from sentry.utils.query import RangeQuerySetWrapper
+        from sentry.utils.query import (
+            RangeQuerySetWrapper, RangeQuerySetWrapperWithProgressBar
+        )
 
         Organization = orm['sentry.Organization']
         OrganizationMember = orm['sentry.OrganizationMember']
@@ -22,7 +25,7 @@ class Migration(DataMigration):
             for team in Team.objects.filter(organization=org):
                 teams_by_org[org].append(team)
 
-        for org, team_list in teams_by_org.iteritems():
+        for org, team_list in WithProgresBar(teams_by_org.items(), caption='Organizations'):
             team_member_qs = TeamMember.objects.filter(
                 team__organization=org
             ).select_related('user', 'team')

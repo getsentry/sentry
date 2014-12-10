@@ -7,6 +7,8 @@ sentry.utils.query
 """
 from __future__ import absolute_import
 
+import progressbar
+
 from django.db import transaction, IntegrityError
 from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
@@ -103,6 +105,39 @@ class RangeQuerySetWrapper(object):
                 break
 
             has_results = num > start
+
+
+class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
+    def __iter__(self):
+        total_count = self.queryset.count()
+        iterator = super(RangeQuerySetWrapperWithProgressBar, self).__iter__()
+        label = self.queryset.model._meta.verbose_name_plural.title()
+        return iter(WithProgressBar(iterator, total_count, label))
+
+
+class WithProgressBar(object):
+    def __init__(self, iterator, count=None, caption=None):
+        if count is None and hasattr(iterator, '__len__'):
+            count = len(iterator)
+        self.iterator = iterator
+        self.count = count
+        self.caption = unicode(caption or u'Progress')
+
+    def __iter__(self):
+        widgets = [
+            '%s: ' % (self.caption,),
+            progressbar.Percentage(),
+            ' ',
+            progressbar.Bar(),
+            ' ',
+            progressbar.ETA(),
+        ]
+        pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
+        pbar.start()
+        for idx, item in enumerate(self.iterator):
+            yield item
+            pbar.update(idx)
+        pbar.finish()
 
 
 class EverythingCollector(Collector):
