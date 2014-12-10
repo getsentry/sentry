@@ -7,12 +7,16 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
+        from sentry.utils.query import RangeQuerySetWrapper
+
         OrganizationMember = orm['sentry.OrganizationMember']
         Team = orm['sentry.Team']
 
+        queryset = Team.objects.select_related('organization')
+
         existing = set()
 
-        for team in Team.objects.select_related('organization').iterator():
+        for team in RangeQuerySetWrapper(queryset):
             if team.owner_id in existing:
                 continue
 

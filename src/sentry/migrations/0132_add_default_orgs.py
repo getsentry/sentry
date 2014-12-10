@@ -7,17 +7,20 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
+        from sentry.utils.query import RangeQuerySetWrapper
+
         Organization = orm['sentry.Organization']
         Team = orm['sentry.Team']
 
         user_orgs = {}
         team_list = Team.objects.select_related('owner')
-        for team in team_list.iterator():
+        for team in RangeQuerySetWrapper(team_list):
             if team.owner not in user_orgs:
-                user_orgs[team.owner] = Organization.objects.create(
+                user_orgs[team.owner] = org = Organization.objects.create(
                     name=team.name.strip() or 'Default',
                     owner=team.owner,
                 )
+                print 'Added organization %s (%s)' % (org.name, org.slug)
 
             team.organization = user_orgs[team.owner]
             team.save()

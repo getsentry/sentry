@@ -8,6 +8,8 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
+        from sentry.utils.query import RangeQuerySetWrapper
+
         Organization = orm['sentry.Organization']
         OrganizationMember = orm['sentry.OrganizationMember']
         PendingTeamMember = orm['sentry.PendingTeamMember']
@@ -16,7 +18,7 @@ class Migration(DataMigration):
 
         teams_by_org = defaultdict(list)
 
-        for org in Organization.objects.iterator():
+        for org in RangeQuerySetWrapper(Organization.objects.all()):
             for team in Team.objects.filter(organization=org):
                 teams_by_org[org].append(team)
 
