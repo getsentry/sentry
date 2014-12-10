@@ -19,7 +19,9 @@ class Migration(DataMigration):
         for project in queryset:
             project.organization = project.team.organization
             # we also need to update the slug here based on the new constraints
-            slugify_instance(project, project.name, organization=project.organization)
+            slugify_instance(project, project.name, (
+                models.Q(organization=project.organization) | models.Q(team=project.team),
+            ))
             project.save()
 
     def backwards(self, orm):
