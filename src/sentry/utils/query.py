@@ -123,20 +123,21 @@ class WithProgressBar(object):
         self.caption = unicode(caption or u'Progress')
 
     def __iter__(self):
-        widgets = [
-            '%s: ' % (self.caption,),
-            progressbar.Percentage(),
-            ' ',
-            progressbar.Bar(),
-            ' ',
-            progressbar.ETA(),
-        ]
-        pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
-        pbar.start()
-        for idx, item in enumerate(self.iterator):
-            yield item
-            pbar.update(idx)
-        pbar.finish()
+        if self.count != 0:
+            widgets = [
+                '%s: ' % (self.caption,),
+                progressbar.Percentage(),
+                ' ',
+                progressbar.Bar(),
+                ' ',
+                progressbar.ETA(),
+            ]
+            pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
+            pbar.start()
+            for idx, item in enumerate(self.iterator):
+                yield item
+                pbar.update(idx)
+            pbar.finish()
 
 
 class EverythingCollector(Collector):
