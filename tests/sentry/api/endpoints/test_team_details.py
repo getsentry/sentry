@@ -31,16 +31,6 @@ class TeamUpdateTest(APITestCase):
         assert team.name == 'hello world'
         assert team.slug == 'foobar'
 
-    def test_invalid_slug(self):
-        team = self.team  # force creation
-        self.login_as(user=self.user)
-        url = reverse('sentry-api-0-team-details', kwargs={'team_id': team.id})
-        resp = self.client.put(url, data={
-            'name': 'hello world',
-            'slug': 'admin',
-        })
-        assert resp.status_code == 400, resp.content
-
 
 class TeamDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.team_details.delete_team')
