@@ -182,6 +182,7 @@ TAG_LABELS = {
     'sentry:user': _('User'),
     'sentry:filename': _('File'),
     'sentry:function': _('Function'),
+    'sentry:release': _('Release'),
     'os': _('OS'),
     'url': _('URL'),
     'server_name': _('Server'),

@@ -460,7 +460,7 @@ def group_plugin_action(request, organization, project, group_id, slug):
     if response:
         return response
 
-    redirect = request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={
+    redirect = request.META.get('HTTP_REFERER') or reverse('sentry-stream', kwargs={
         'organization_slug': organization.slug,
         'project_id': group.project.slug
     })
