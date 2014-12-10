@@ -151,7 +151,7 @@ class ProjectSettingsView(ProjectView):
         return True
 
     def get_form(self, request, project):
-        organization = project.team.organization
+        organization = project.organization
         if request.user.is_superuser:
             accessing_user = organization.owner
         else:
@@ -180,7 +180,7 @@ class ProjectSettingsView(ProjectView):
                 request, messages.SUCCESS,
                 _('Changes to your project were saved.'))
 
-            redirect = reverse('sentry-manage-project', args=[project.team.slug, project.slug])
+            redirect = reverse('sentry-manage-project', args=[project.organization.slug, project.slug])
 
             return HttpResponseRedirect(redirect)
 

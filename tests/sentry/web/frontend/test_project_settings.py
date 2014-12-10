@@ -59,7 +59,7 @@ class ProjectSettingsTest(TestCase):
 
     @fixture
     def path(self):
-        return reverse('sentry-manage-project', args=[self.team.slug, self.project.slug])
+        return reverse('sentry-manage-project', args=[self.organization.slug, self.project.slug])
 
     def test_renders_with_context(self):
         self.login_as(self.organization.owner)

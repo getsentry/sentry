@@ -4,7 +4,7 @@
 
 <pre>&lt;script src="//{{ raven_js_url }}"&gt;&lt;/script&gt;</pre>
 
-{% url 'sentry-manage-project' project.team.slug project.slug as project_link %}
+{% url 'sentry-manage-project' project.organization.slug project.slug as project_link %}
 
 <p>{% blocktrans %}Add any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
 
