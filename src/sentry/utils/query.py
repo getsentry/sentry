@@ -88,7 +88,7 @@ class RangeQuerySetWrapper(object):
                 cb(results)
 
             for result in results:
-                if result is last_object:
+                if result == last_object:
                     continue
 
                 yield result
