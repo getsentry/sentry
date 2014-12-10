@@ -32,6 +32,9 @@
       </a>
     </li>
   </ul>
+  {% block org_sidebar_nav_extra %}
+    {% comment %}This block is used by getsentry.com{% endcomment %}
+  {% endblock %}
 {% endblock %}
 
 {% block main %}
