@@ -26,11 +26,6 @@ class RangeQuerySetWrapper(object):
 
     Very efficient, but ORDER BY statements will not work.
     """
-
-    # TODO(dcramer): this *does not* guarantee an object is only listed once
-    # this is due to issues with filter() clauses which may actually remove
-    # results so a simple "offset from previous" is not valid
-
     def __init__(self, queryset, step=1000, limit=None, min_id=None,
                  order_by='pk', callbacks=()):
         # Support for slicing
@@ -72,6 +67,7 @@ class RangeQuerySetWrapper(object):
 
         # we implement basic cursor pagination for columns that are not unique
         last_value = None
+        last_object = None
         has_results = True
         while has_results:
             if (max_value and cur_value >= max_value) or (limit and num >= limit):
@@ -92,11 +88,15 @@ class RangeQuerySetWrapper(object):
                 cb(results)
 
             for result in results:
+                if result is last_object:
+                    continue
+
                 yield result
 
                 num += 1
                 cur_value = getattr(result, self.order_by)
                 last_value = cur_value
+                last_object = result
 
             if cur_value is None:
                 break
