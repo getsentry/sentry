@@ -9,6 +9,7 @@ class Migration(DataMigration):
     def forwards(self, orm):
         from sentry.constants import RESERVED_ORGANIZATION_SLUGS
         from sentry.db.models.utils import slugify_instance
+        from sentry.utils.query import RangeQuerySetWrapper
 
         Project = orm['sentry.Project']
 
@@ -16,7 +17,8 @@ class Migration(DataMigration):
             organization__isnull=True
         ).select_related('team', 'team__organization')
 
-        for project in queryset:
+        for project in RangeQuerySetWrapper(queryset):
+            print 'Updating project', project.id
             project.organization = project.team.organization
             # we also need to update the slug here based on the new constraints
             slugify_instance(project, project.name, (

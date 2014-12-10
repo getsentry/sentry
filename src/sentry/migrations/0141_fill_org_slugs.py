@@ -9,10 +9,14 @@ class Migration(DataMigration):
     def forwards(self, orm):
         from sentry.constants import RESERVED_ORGANIZATION_SLUGS
         from sentry.db.models.utils import slugify_instance
+        from sentry.utils.query import RangeQuerySetWrapper
 
         Organization = orm['sentry.Organization']
 
-        for org in Organization.objects.filter(slug__isnull=True).iterator():
+        queryset = Organization.objects.filter(slug__isnull=True)
+
+        for org in RangeQuerySetWrapper(queryset):
+            print 'Updating organization', org.id
             slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
             org.save()
 
