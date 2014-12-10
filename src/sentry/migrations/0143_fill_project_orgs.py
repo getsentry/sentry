@@ -2,14 +2,15 @@
 import datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import models, transaction
 
 class Migration(DataMigration):
 
+    @transaction.autocommit
     def forwards(self, orm):
         from sentry.constants import RESERVED_ORGANIZATION_SLUGS
         from sentry.db.models.utils import slugify_instance
-        from sentry.utils.query import RangeQuerySetWrapper
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
         Project = orm['sentry.Project']
 
@@ -17,14 +18,21 @@ class Migration(DataMigration):
             organization__isnull=True
         ).select_related('team', 'team__organization')
 
-        for project in RangeQuerySetWrapper(queryset):
-            print 'Adding organization to project %s (%s)' % (project.id, project.name)
+        for project in RangeQuerySetWrapperWithProgressBar(queryset):
             project.organization = project.team.organization
-            # we also need to update the slug here based on the new constraints
-            slugify_instance(project, project.name, (
-                models.Q(organization=project.organization) | models.Q(team=project.team),
-            ))
-            project.save()
+
+            sid = transaction.savepoint()
+            try:
+                project.save()
+            except Exception:
+                transaction.savepoint_rollback(sid)
+                # we also need to update the slug here based on the new constraints
+                slugify_instance(project, project.name, (
+                    models.Q(organization=project.organization) | models.Q(team=project.team),
+                ))
+                project.save()
+            else:
+                transaction.savepoint_commit(sid)
 
     def backwards(self, orm):
         pass

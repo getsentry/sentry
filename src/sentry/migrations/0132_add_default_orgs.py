@@ -2,27 +2,30 @@
 import datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import models, transaction
 
 class Migration(DataMigration):
 
+    @transaction.autocommit
     def forwards(self, orm):
-        from sentry.utils.query import RangeQuerySetWrapper
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
         Organization = orm['sentry.Organization']
         Team = orm['sentry.Team']
 
-        user_orgs = {}
-        team_list = Team.objects.select_related('owner')
-        for team in RangeQuerySetWrapper(team_list):
-            if team.owner not in user_orgs:
-                user_orgs[team.owner] = org = Organization.objects.create(
-                    name=team.name.strip() or 'Default',
-                    owner=team.owner,
-                )
-                print 'Added organization %s (%s)' % (org.id, org.name)
+        queryset = Team.objects.filter(
+            organization__isnull=True,
+        )
 
-            team.organization = user_orgs[team.owner]
+        user_orgs = {}
+        for team in RangeQuerySetWrapperWithProgressBar(queryset):
+            if team.owner not in user_orgs:
+                user_orgs[team.owner_id] = org = Organization.objects.create(
+                    name=team.name.strip() or 'Default',
+                    owner_id=team.owner_id,
+                )
+
+            team.organization = user_orgs[team.owner_id]
             team.save()
 
     def backwards(self, orm):

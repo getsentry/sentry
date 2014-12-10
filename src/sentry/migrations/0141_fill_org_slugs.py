@@ -2,21 +2,21 @@
 import datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import models, transaction
 
 class Migration(DataMigration):
 
+    @transaction.autocommit
     def forwards(self, orm):
         from sentry.constants import RESERVED_ORGANIZATION_SLUGS
         from sentry.db.models.utils import slugify_instance
-        from sentry.utils.query import RangeQuerySetWrapper
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
         Organization = orm['sentry.Organization']
 
         queryset = Organization.objects.filter(slug__isnull=True)
 
-        for org in RangeQuerySetWrapper(queryset):
-            print 'Adding slug to organization %s (%s)' % (org.id, org.name)
+        for org in RangeQuerySetWrapperWithProgressBar(queryset):
             slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
             org.save()
 
