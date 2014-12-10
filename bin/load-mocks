@@ -56,6 +56,9 @@ project, _ = Project.objects.get_or_create(
     team=team,
     name='Backend',
     slug='backend',
+    defaults={
+        'organization': org,
+    }
 )
 
 
