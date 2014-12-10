@@ -12,20 +12,20 @@ class Migration(DataMigration):
         OrganizationMember = orm['sentry.OrganizationMember']
         Team = orm['sentry.Team']
 
-        queryset = Team.objects.select_related('organization')
-
-        existing = set()
+        queryset = Team.objects.select_related('organization', 'owner')
 
         for team in RangeQuerySetWrapper(queryset):
-            if team.owner_id in existing:
-                continue
-
-            OrganizationMember.objects.get_or_create(
+            om, created = OrganizationMember.objects.get_or_create(
                 organization=team.organization,
                 user=team.owner,
                 defaults={'type': 0},  # OWNER
             )
-            existing.add(team.owner_id)
+            if created:
+                print 'Added %s to %s (%s)' % (
+                    team.owner.email or team.owner.username,
+                    team.organization.name,
+                    team.organization.id,
+                )
 
     def backwards(self, orm):
         pass
