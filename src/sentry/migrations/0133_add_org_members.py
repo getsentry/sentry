@@ -2,7 +2,7 @@
 import datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 
 class Migration(DataMigration):
 
@@ -14,15 +14,20 @@ class Migration(DataMigration):
         OrganizationMember = orm['sentry.OrganizationMember']
         Team = orm['sentry.Team']
 
-        queryset = Team.objects.select_related('organization', 'owner')
+        queryset = Team.objects.all()
 
         for team in RangeQuerySetWrapperWithProgressBar(queryset):
-            create_or_update(
-                OrganizationMember,
-                organization=team.organization,
-                user=team.owner,
-                defaults={'type': 0},  # OWNER
-            )
+            sid = transaction.savepoint()
+            try:
+                OrganizationMember.objects.create(
+                    organization_id=team.organization_id,
+                    user_id=team.owner_id,
+                    type=0,  # OWNER
+                )
+            except IntegrityError:
+                transaction.savepoint_rollback(sid)
+            else:
+                transaction.savepoint_commit(sid)
 
     def backwards(self, orm):
         pass

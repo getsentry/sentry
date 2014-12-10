@@ -3,7 +3,7 @@ import datetime
 from collections import defaultdict
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 
 class Migration(DataMigration):
 
@@ -28,33 +28,38 @@ class Migration(DataMigration):
         for org, team_list in WithProgresBar(teams_by_org.items(), caption='Organizations'):
             team_member_qs = TeamMember.objects.filter(
                 team__organization=org
-            ).select_related('user', 'team')
+            ).select_related('team')
 
             members_by_user = defaultdict(list)
             for member in team_member_qs.iterator():
                 if member.user_id == member.team.owner_id:
                     continue  # team owners are already present
-                members_by_user[member.user].append(member)
+                members_by_user[member.user_id].append(member)
 
             total_teams = len(team_list)
 
-            for user, member_list in members_by_user.iteritems():
+            for user_id, member_list in members_by_user.iteritems():
                 # if they were a member of all teams, give them global access
                 has_global_access = len(member_list) == total_teams
 
                 # give them the highest level access they had
                 access = min(m.type for m in member_list)
 
-                om, created = OrganizationMember.objects.get_or_create(
-                    organization=org,
-                    user=user,
-                    defaults={
-                        'type': access,
-                        'has_global_access': has_global_access,
-                    },  # ADMIN
-                )
+                sid = transaction.savepoint()
+                try:
+                    om = OrganizationMember.objects.create(
+                        organization=org,
+                        user_id=user_id,
+                        type=access,
+                        has_global_access=has_global_access,
+                    )
+                except IntegrityError:
+                    transaction.savepoint_rollback(sid)
+                    continue
+                else:
+                    transaction.savepoint_commit(sid)
 
-                if created and not has_global_access:
+                if not has_global_access:
                     for member in member_list:
                         om.teams.add(member.team)
 
