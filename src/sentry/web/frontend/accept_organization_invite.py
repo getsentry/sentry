@@ -103,7 +103,7 @@ class AcceptOrganizationInviteView(BaseView):
                 )
             )
 
-            return self.redirect(reverse('sentry-organization-home', args=[organization.id]))
+            return self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
 
         context['form'] = form
 
