@@ -9,16 +9,27 @@
 {% block bodyclass %}with-left-sidebar{% endblock %}
 
 {% block page_header_block %}
-    <section id="page-header" class="toolbar" style="height:5px;">
+    <section id="page-header" class="toolbar">
+      <div class="pull-right">
+        {% block actions %}
+        <a href="{% url 'sentry-create-team' organization.slug %}"
+        class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+        <a href="{% url 'sentry-create-project' organization.slug %}"
+        class="btn btn-small btn-primary">{% trans "New Project" %}</a>
+        <a href="{% url 'sentry-create-organization-member' organization.slug %}"
+        class="btn btn-small btn-primary">{% trans "New Member" %}</a>
+        {% endblock %}
+      </div>
+      <h3>{{ organization.name }} <small>Dashboard</small></h3>
     </section>
 {% endblock %}
 
 {% block sidebar %}
   <ul class="nav nav-list">
-    <li class="nav-header"><h6>{{ organization.name }}</h6></li>
+    <!-- <li class="nav-header"><h6>{{ organization.name }}</h6></li> -->
     <li class="{% block org_teams_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-home' organization.slug %}">
-        {% trans "Dashboard" %}
+        {% trans "Teams" %}
       </a>
     </li>
     <li class="{% block org_members_nav %}{% endblock %}">
@@ -39,23 +50,6 @@
 
 {% block main %}
   <section class="body">
-    <div class="page-header">
-      <div class="pull-right">
-        {% block actions %}
-          <a href="{% url 'sentry-create-team' organization.slug %}"
-             class="btn btn-small btn-primary">{% trans "New Team" %}</a>
-          <a href="{% url 'sentry-create-project' organization.slug %}"
-             class="btn btn-small btn-primary">{% trans "New Project" %}</a>
-          <a href="{% url 'sentry-create-organization-member' organization.slug %}"
-             class="btn btn-small btn-primary">{% trans "New Member" %}</a>
-        {% endblock %}
-      </div>
-
-      <h2>
-        {{ organization.name }}
-      </h2>
-    </div>
-
     {% if request.user|needs_access_group_migration:organization %}
       <div class="alert alert-block alert-info">
         <p>You have access groups that need to be migrated into the new organization structure. <a href="{% url 'sentry-organization-access-group-migration' organization.slug %}">Get Started</a></p>

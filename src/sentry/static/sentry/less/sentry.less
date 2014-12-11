@@ -43,7 +43,6 @@ body {
 a {
   color: @linkColor;
   text-decoration: none;
-  .transition(color linear .2s);
 }
 a:hover {
   color: @linkColorHover;
@@ -428,12 +427,34 @@ h3 {
 
 .toolbar {
   .clearfix();
-  background: #dee3e9;
+  background: #F0F2F5;
   padding: 0 30px;
-  height: 52px;
+  height: 50px;
 
   div.pull-right {
     margin: 12px 0 0;
+  }
+
+  .nav-tabs {
+    border: none;
+
+    li.active a {
+      border: none;
+      padding-top: 9px !important;
+      padding-bottom: 9px !important;
+    }
+  }
+
+  h3 {
+    margin-top: 5px;
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 40px;
+
+    small {
+      color: #B5BAC2;
+      font-size: 0.9em;
+    }
   }
 
   .navbar-search {
@@ -554,6 +575,11 @@ h3 {
         padding: 5px 15px;
         margin: 0;
         .border-radius(4px);
+
+        &:hover {
+          background: #F0F2F5;
+          color: #747B88;
+        }
       }
     }
     section.body {
@@ -763,12 +789,14 @@ h3 {
 footer {
   .box-sizing(border-box);
   .clearfix();
-  background: lighten(#dee3e9, 2);
-  padding: 70px 30px;
+  background: #F0F2F5;
+  padding: 40px 30px;
   color: #939aa4;
   font-weight: bold;
 
   .container {
+    line-height: 30px;
+
     .clearfix();
     > div {
       float: left;
@@ -2532,49 +2560,46 @@ table.vars {
   > li {
     display: block;
     margin: 0 0 20px 0;
-    padding: 18px 22px;
-    border: 2px solid #DEE3E9;
+    padding: 0 20px 2px;
+    border: 2px solid #ECEFF2;
     position: relative;
-    .border-radius(7px);
+    .border-radius(5px);
 
     .loading {
       display: none;
     }
 
-    &:hover {
-      border-color: #56AFE8;
-      h3 {
-        color: #000;
-      }
-      .actions a {
-        color: #666;
-      }
-    }
-
-    .actions {
-      color: #ccc;
-
-      > a {
-        color: #999;
-
-        &:hover {
-          color: @linkColorHover;
-        }
-      }
-    }
-
     h3 {
-      max-width: 100%;
       position: relative;
       margin-bottom: 0;
-      line-height: 24px;
-      height: 24px;
-      font-size: 22px;
+      line-height: 22px;
+      height: 22px;
+      font-size: 18px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       color: #465262;
       font-weight: bold;
+      border-bottom: 2px solid #ECEFF2;
+      padding: 10px 20px;
+      margin: 0px -20px 10px;
+      background: rgba(250, 250, 250, 0.55);
+      border-radius: 4px 4px 0 0;
+
+      .actions {
+        font-size: 14px;
+
+        a {
+          color: #949BA5;
+        }
+
+        .icon-cog {
+          background: none;
+          margin-top: 2px;
+          margin-right: 5px;
+        }
+      }
+
       a {
         color: inherit;
         &:hover {
