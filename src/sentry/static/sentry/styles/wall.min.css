@@ -6480,10 +6480,6 @@ body {
 a {
   color: #ffffff;
   text-decoration: none;
-  -webkit-transition: color linear 0.2s;
-  -moz-transition: color linear 0.2s;
-  -o-transition: color linear 0.2s;
-  transition: color linear 0.2s;
 }
 a:hover {
   color: #e6e6e6;
@@ -6593,6 +6589,7 @@ h3 {
 }
 .navbar h1,
 .navbar #team-banner > a {
+  display: block;
   position: relative;
   letter-spacing: -1px;
   font-weight: 600;
@@ -6602,7 +6599,6 @@ h3 {
   height: 56px;
   line-height: 56px;
   padding: 0 25px 0 10px;
-  display: inline-block;
   cursor: pointer;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6885,9 +6881,9 @@ h3 {
 }
 .toolbar {
   *zoom: 1;
-  background: #dee3e9;
+  background: #F0F2F5;
   padding: 0 30px;
-  height: 52px;
+  height: 50px;
 }
 .toolbar:before,
 .toolbar:after {
@@ -6900,6 +6896,24 @@ h3 {
 }
 .toolbar div.pull-right {
   margin: 12px 0 0;
+}
+.toolbar .nav-tabs {
+  border: none;
+}
+.toolbar .nav-tabs li.active a {
+  border: none;
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+}
+.toolbar h3 {
+  margin-top: 4px;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 40px;
+}
+.toolbar h3 small {
+  color: #B5BAC2;
+  font-size: 0.9em;
 }
 .toolbar .navbar-search {
   margin: 13px 0 0 10px;
@@ -7024,6 +7038,14 @@ h3 {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   border-radius: 4px;
+}
+#content.with-left-sidebar .sidebar .nav a:hover {
+  background: #F0F2F5;
+  color: #747B88;
+}
+#content.with-left-sidebar .sidebar .nav .active a:hover {
+  background: #56AFE8;
+  color: #fff;
 }
 #content.with-left-sidebar section.body {
   min-width: 0;
@@ -7240,8 +7262,8 @@ footer {
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   *zoom: 1;
-  background: #e4e8ed;
-  padding: 70px 30px;
+  background: #F0F2F5;
+  padding: 40px 30px;
   color: #939aa4;
   font-weight: bold;
 }
@@ -7255,6 +7277,7 @@ footer:after {
   clear: both;
 }
 footer .container {
+  line-height: 30px;
   *zoom: 1;
 }
 footer .container:before,
@@ -7282,18 +7305,13 @@ footer a:hover {
   color: #333;
 }
 footer .btn {
-  -webkit-transition: all 0.2s;
-  -moz-transition: all 0.2s;
-  -o-transition: all 0.2s;
-  transition: all 0.2s;
   color: #ecf0f5;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   background: #b6bbc2;
   position: relative;
   top: -2px;
   margin: 0 0 0 10px;
-  border-bottom-color: #a5abb4;
 }
 footer .btn:hover {
   color: #fff;
@@ -7301,7 +7319,8 @@ footer .btn:hover {
   border-color: #959ca6;
 }
 footer .btn:active {
-  border-color: #959ca6;
+  background: #959ca6;
+  top: -1px;
 }
 /* =============================  Modules  ============================== */
 .btn span {
@@ -8544,9 +8563,8 @@ img.avatar {
   font-weight: bold;
   text-shadow: none;
   font-size: 13px;
-  border-bottom: 2px solid #dee6ed;
   -webkit-font-smoothing: antialiased;
-  padding: 6px 12px;
+  padding: 7px 12px;
 }
 .btn i {
   background-image: none;
@@ -8570,11 +8588,10 @@ img.avatar {
 .btn:hover {
   color: #666d73;
   background: #ecf0f5;
-  border-bottom: 2px solid #d7e1e9;
 }
 .btn:active {
-  border-top: 2px solid #d7e1e9;
-  border-bottom: none;
+  position: relative;
+  top: 1px;
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
   box-shadow: none;
@@ -8605,8 +8622,8 @@ img.avatar {
   border-color: #a9302a;
 }
 .btn-small {
-  padding: 2px 10px;
-  font-size: 11.05px;
+  padding: 3px 11px;
+  font-size: 12px;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
@@ -8813,7 +8830,7 @@ table.vars table.vars th {
   background-color: #c4e3f3;
 }
 .nav-tabs {
-  border-bottom: 1px solid #dee3e9;
+  border-bottom: 2px solid #dee3e9;
 }
 .nav-tabs > li {
   margin-bottom: -2px;
@@ -8992,64 +9009,71 @@ table.vars table.vars th {
 .share-form label.checkbox {
   padding: 0 5px 0 29px;
 }
-.team-index #page-header {
-  display: none;
-}
-.team-index .body h2 {
-  font-size: 26px;
-  margin: 0 0 20px;
-  letter-spacing: -1px;
-}
-.team-index .body .team-list {
+.team-list {
   list-style: none;
   margin-left: 0;
 }
-.team-index .body .team-list > li {
+.team-list > li {
   display: block;
   margin: 0 0 20px 0;
-  padding: 18px 22px;
-  border: 5px solid #DEE3E9;
+  padding: 0 20px 2px;
+  border: 2px solid #ECEFF2;
   position: relative;
-  -webkit-border-radius: 7px;
-  -moz-border-radius: 7px;
-  border-radius: 7px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
 }
-.team-index .body .team-list > li .loading {
+.team-list > li .loading {
   display: none;
 }
-.team-index .body .team-list > li:hover {
-  border-color: #56AFE8;
-}
-.team-index .body .team-list > li:hover h3 {
-  color: #000;
-}
-.team-index .body .team-list > li h3 {
-  width: 100%;
+.team-list > li h3 {
   position: relative;
   margin-bottom: 0;
-  line-height: 24px;
-  height: 24px;
-  font-size: 22px;
+  line-height: 22px;
+  height: 22px;
+  font-size: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #465262;
   font-weight: bold;
+  border-bottom: 2px solid #ECEFF2;
+  padding: 10px 20px;
+  margin: 0px -20px 10px;
+  background: rgba(250, 250, 250, 0.55);
+  border-radius: 4px 4px 0 0;
 }
-.team-index .body .team-list > li h3 a {
+.team-list > li h3 > a:hover {
+  color: #6e7289;
+}
+.team-list > li h3 .actions {
+  font-size: 14px;
+}
+.team-list > li h3 .actions a {
+  color: #949BA5;
+}
+.team-list > li h3 .actions a:hover {
+  color: #6c7480;
+}
+.team-list > li h3 .actions .icon-cog {
+  background: none;
+  margin-top: 2px;
+  margin-right: 5px;
+}
+.team-list > li h3 a {
   color: inherit;
 }
-.team-index .body .team-list > li h3 a:hover {
-  color: #e6e6e6;
+.team-list > li p {
+  margin: 0;
 }
-.team-index .body .team-list > li > ul {
+.team-list > li > ul {
   position: relative;
   overflow: hidden;
   margin-left: 0;
   margin-bottom: 0;
   list-style: circle;
 }
-.team-index .body .team-list > li > ul > li {
+.team-list > li > ul > li {
   display: inline-block;
   width: 142px;
   margin-right: 5px;
@@ -9058,7 +9082,7 @@ table.vars table.vars th {
   text-overflow: ellipsis;
   line-height: 26px;
 }
-.team-index .body .team-list > li > ul > li a {
+.team-list > li > ul > li a {
   font-size: 17px;
 }
 .toggle-expand {
