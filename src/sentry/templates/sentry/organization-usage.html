@@ -1,0 +1,150 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Usage" %} | {{ block.super }}{% endblock %}
+
+{% block org_usage_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>Data Usage</h2>
+  </div>
+
+  <p>The chart below reflects events the system has received across your entire organization.</p>
+
+  <div id="chart" class="chart" data-api-url="">
+    <div class="sparkline">
+      <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+      <span class="loading">{% trans "Loading historical data..." %}</span>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content_after %}
+  <script type="text/javascript">
+  $(function(){
+    var $sparkline = $('#chart');
+    var pendingRequests = 2;
+    var stats = {received: null, rejected: null};
+    var statsEndpoint = '{% url 'sentry-api-0-organization-stats' organization.id %}';
+
+    $sparkline.height('250px');
+
+    $.each(stats, function(statName, _) {
+      $.ajax({
+        url: statsEndpoint,
+        type: 'get',
+        dataType: 'json',
+        data: {
+          since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+          resolution: '1h',
+          stat: statName
+        },
+        success: function(data){
+          stats[statName] = data;
+          pendingRequests -= 1;
+          if (pendingRequests === 0) {
+            renderChart();
+          }
+        },
+        error: function(data) {
+          $sparkline.html('<div class="error">There was an error loading statistics.</div>');
+        }
+      });
+    });
+
+    function renderChart() {
+      function convertPoint(point) {
+          // set timestamp to be in millis
+        return [[point[0] * 1000, point[1]]];
+      }
+
+      var points = [
+          {
+              // total number of events accepted (received - rejected)
+              data: $.map(stats.rejected, function(point, idx){
+                point = convertPoint(point)[0];
+                point[1] = stats.received[idx][1] - point[1];
+                return [point];
+              }),
+              label: 'Accepted',
+              color: 'rgba(86, 175, 232, 1)',
+              shadowSize: 0,
+              stack: true,
+              lines: {
+                  lineWidth: 2,
+                  show: true,
+                  fill: true
+              }
+          },
+          {
+              // total number of events rejected
+              data: $.map(stats.rejected, convertPoint),
+              color: 'rgba(244, 63, 32, 1)',
+              shadowSize: 0,
+              label: 'Rejected',
+              stack: true,
+              lines: {
+                  lineWidth: 2,
+                  show: true,
+                  fill: true
+              }
+          }
+      ];
+
+      var options = {
+        xaxis: {
+          mode: "time",
+          tickFormatter: Sentry.charts.tickFormatter
+        },
+        yaxis: {
+          min: 0,
+          tickFormatter: function(value) {
+            if (value > 999999) {
+              return (value / 1000000) + 'mm';
+            }
+            if (value > 999) {
+              return (value / 1000) + 'k';
+            }
+            return value;
+          }
+        },
+        tooltip: true,
+        tooltipOpts: {
+          content: function(label, xval, yval, flotItem) {
+            console.log(flotItem);
+            if(typeof yval.toLocaleString == "function") {
+                return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
+            }
+            return yval + ' events<br>' + moment(xval).format('llll');
+          },
+          defaultTheme: false
+        },
+        grid: {
+          show: true,
+          hoverable: true,
+          backgroundColor: '#ffffff',
+          borderColor: '#DEE3E9',
+          borderWidth: 2,
+          tickColor: '#DEE3E9'
+        },
+        hoverable: false,
+        legend: {
+            noColumns: 2,
+            position: 'nw'
+        },
+        lines: { show: false }
+      };
+
+      $.plot($sparkline, points, options);
+
+      $(window).resize(function(){
+        $.plot($sparkline, points, options);
+      });
+    }
+  });
+  </script>
+{% endblock %}

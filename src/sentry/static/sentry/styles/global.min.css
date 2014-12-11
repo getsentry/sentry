@@ -7380,16 +7380,6 @@ footer .btn:active {
   padding: 5px 8px;
   line-height: 100%;
 }
-.chart > .legend {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 40px;
-  padding-left: 10px;
-  height: 100%;
-  text-align: left;
-  color: #4593de;
-}
 legend + .control-group {
   margin-top: 0;
 }
