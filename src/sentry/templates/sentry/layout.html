@@ -115,9 +115,9 @@
                                                 {% endif %}
                                                 {% for o in request.user|list_organizations %}
                                                     <li{% if o == organization %} class="active"{% endif %}>
-                                                        <a href="{% url 'sentry-organization-home' o.id %}">{{ o.name }}</a>
+                                                        <a href="{% url 'sentry-organization-home' o.slug %}">{{ o.name }}</a>
                                                         {% if request.user|can_manage_org:o %}
-                                                            <a href="{% url 'sentry-organization-settings' o.id %}" class="org-settings"><span class="icon-cog"></span></a>
+                                                            <a href="{% url 'sentry-organization-settings' o.slug %}" class="org-settings"><span class="icon-cog"></span></a>
                                                         {% endif %}
                                                     </li>
                                                 {% endfor %}
