@@ -6480,10 +6480,6 @@ body {
 a {
   color: #4593de;
   text-decoration: none;
-  -webkit-transition: color linear 0.2s;
-  -moz-transition: color linear 0.2s;
-  -o-transition: color linear 0.2s;
-  transition: color linear 0.2s;
 }
 a:hover {
   color: #12659a;
@@ -6885,9 +6881,9 @@ h3 {
 }
 .toolbar {
   *zoom: 1;
-  background: #dee3e9;
+  background: #F0F2F5;
   padding: 0 30px;
-  height: 52px;
+  height: 50px;
 }
 .toolbar:before,
 .toolbar:after {
@@ -6900,6 +6896,24 @@ h3 {
 }
 .toolbar div.pull-right {
   margin: 12px 0 0;
+}
+.toolbar .nav-tabs {
+  border: none;
+}
+.toolbar .nav-tabs li.active a {
+  border: none;
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+}
+.toolbar h3 {
+  margin-top: 5px;
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 40px;
+}
+.toolbar h3 small {
+  color: #B5BAC2;
+  font-size: 0.9em;
 }
 .toolbar .navbar-search {
   margin: 13px 0 0 10px;
@@ -7024,6 +7038,10 @@ h3 {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   border-radius: 4px;
+}
+#content.with-left-sidebar .sidebar .nav a:hover {
+  background: #F0F2F5;
+  color: #747B88;
 }
 #content.with-left-sidebar section.body {
   min-width: 0;
@@ -7240,8 +7258,8 @@ footer {
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   *zoom: 1;
-  background: #e4e8ed;
-  padding: 70px 30px;
+  background: #F0F2F5;
+  padding: 40px 30px;
   color: #939aa4;
   font-weight: bold;
 }
@@ -7255,6 +7273,7 @@ footer:after {
   clear: both;
 }
 footer .container {
+  line-height: 30px;
   *zoom: 1;
 }
 footer .container:before,
@@ -8813,7 +8832,7 @@ table.vars table.vars th {
   background-color: #c4e3f3;
 }
 .nav-tabs {
-  border-bottom: 1px solid #dee3e9;
+  border-bottom: 2px solid #dee3e9;
 }
 .nav-tabs > li {
   margin-bottom: -2px;
@@ -8999,46 +9018,43 @@ table.vars table.vars th {
 .team-list > li {
   display: block;
   margin: 0 0 20px 0;
-  padding: 18px 22px;
-  border: 2px solid #DEE3E9;
+  padding: 0 20px 2px;
+  border: 2px solid #ECEFF2;
   position: relative;
-  -webkit-border-radius: 7px;
-  -moz-border-radius: 7px;
-  border-radius: 7px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
 }
 .team-list > li .loading {
   display: none;
 }
-.team-list > li:hover {
-  border-color: #56AFE8;
-}
-.team-list > li:hover h3 {
-  color: #000;
-}
-.team-list > li:hover .actions a {
-  color: #666;
-}
-.team-list > li .actions {
-  color: #ccc;
-}
-.team-list > li .actions > a {
-  color: #999;
-}
-.team-list > li .actions > a:hover {
-  color: #12659a;
-}
 .team-list > li h3 {
-  max-width: 100%;
   position: relative;
   margin-bottom: 0;
-  line-height: 24px;
-  height: 24px;
-  font-size: 22px;
+  line-height: 22px;
+  height: 22px;
+  font-size: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #465262;
   font-weight: bold;
+  border-bottom: 2px solid #ECEFF2;
+  padding: 10px 20px;
+  margin: 0px -20px 10px;
+  background: rgba(250, 250, 250, 0.55);
+  border-radius: 4px 4px 0 0;
+}
+.team-list > li h3 .actions {
+  font-size: 14px;
+}
+.team-list > li h3 .actions a {
+  color: #949BA5;
+}
+.team-list > li h3 .actions .icon-cog {
+  background: none;
+  margin-top: 2px;
+  margin-right: 5px;
 }
 .team-list > li h3 a {
   color: inherit;
