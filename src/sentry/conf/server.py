@@ -442,6 +442,7 @@ SENTRY_STATIC_BUNDLES = {
                 "sentry/scripts/lib/jquery.flot.js",
                 "sentry/scripts/lib/jquery.flot.dashes.js",
                 "sentry/scripts/lib/jquery.flot.resize.js",
+                "sentry/scripts/lib/jquery.flot.stack.js",
                 "sentry/scripts/lib/jquery.flot.time.js",
                 "sentry/scripts/lib/jquery.flot.tooltip.js",
                 "sentry/scripts/lib/moment.js",

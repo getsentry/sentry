@@ -16,6 +16,7 @@ from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
+from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
@@ -42,6 +43,9 @@ urlpatterns = patterns(
         name='sentry-api-0-user-details'),
 
     # Organizations
+    url(r'^organizations/(?P<organization_id>\d+)/stats/$',
+        OrganizationStatsEndpoint.as_view(),
+        name='sentry-api-0-organization-stats'),
     url(r'^organizations/(?P<organization_id>\d+)/teams/$',
         OrganizationTeamsEndpoint.as_view(),
         name='sentry-api-0-organization-teams'),

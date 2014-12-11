@@ -37,6 +37,10 @@
         {% trans "Members" %}
       </a>
     </li>
+    <li class="{% block org_usage_nav %}{% endblock %}">
+      <a href="{% url 'sentry-organization-usage' organization.slug %}">
+        {% trans "Usage" %}
+      </a>
     <li class="{% block org_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-settings' organization.slug %}">
         {% trans "Settings" %}
