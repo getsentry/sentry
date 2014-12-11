@@ -52,7 +52,7 @@
             <div class="controls">
               <label class="checkbox">
                 <input type="checkbox" name="teams" value="{{ team_id }}"
-                       class="checkboxinput">
+                       class="checkboxinput"{% if team_id in form.teams.value %} checked="checked"{% endif %}>
                   {{ team_name }}
                 </label>
             </div>
@@ -69,7 +69,7 @@
 
   <script>
   $(function(){
-    var selectedTeams = [];
+    var selectedTeams = $('.team-choices input[type=checkbox]:checked').slice(0, selector.length);
     $('#id_has_global_access').change(function(){
       var $this = $(this);
       var checked = $this.is(':checked');
@@ -85,7 +85,6 @@
       }
 
       $('.team-choices').prop('disabled', checked);
-
     }).change();
   });
   </script>

@@ -67,6 +67,9 @@ class OrganizationMemberSettingsView(OrganizationView):
             authorizing_access=authorizing_access,
             data=request.POST or None,
             instance=member,
+            initial={
+                'teams': member.teams.all(),
+            }
         )
 
     def get(self, request, organization, member_id):
