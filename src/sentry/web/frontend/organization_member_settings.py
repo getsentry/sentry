@@ -102,7 +102,7 @@ class OrganizationMemberSettingsView(OrganizationView):
             member.send_invite_email()
 
             redirect = reverse('sentry-organization-member-settings',
-                               args=[organization.id, member.id])
+                               args=[organization.slug, member.id])
 
             return HttpResponseRedirect(redirect)
 
@@ -123,7 +123,7 @@ class OrganizationMemberSettingsView(OrganizationView):
             )
 
             redirect = reverse('sentry-organization-member-settings',
-                               args=[organization.id, member.id])
+                               args=[organization.slug, member.id])
 
             return HttpResponseRedirect(redirect)
 

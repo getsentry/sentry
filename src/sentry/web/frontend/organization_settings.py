@@ -33,7 +33,7 @@ class OrganizationSettingsView(OrganizationView):
             messages.add_message(request, messages.SUCCESS,
                 _('Changes to your organization were saved.'))
 
-            return HttpResponseRedirect(reverse('sentry-organization-settings', args=[organization.id]))
+            return HttpResponseRedirect(reverse('sentry-organization-settings', args=[organization.slug]))
 
         context = {
             'form': form,
