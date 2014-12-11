@@ -7277,7 +7277,6 @@ footer:after {
   clear: both;
 }
 footer .container {
-  line-height: 30px;
   *zoom: 1;
 }
 footer .container:before,
