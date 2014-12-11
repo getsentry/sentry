@@ -581,6 +581,11 @@ h3 {
           color: #747B88;
         }
       }
+
+      .nav .active a:hover {
+        background: #56AFE8;
+        color: #fff;
+      }
     }
     section.body {
       min-width: 0;
@@ -2586,11 +2591,19 @@ table.vars {
       background: rgba(250, 250, 250, 0.55);
       border-radius: 4px 4px 0 0;
 
+      > a:hover {
+        color: darken(@gray, 20);
+      }
+
       .actions {
         font-size: 14px;
 
         a {
           color: #949BA5;
+
+          &:hover {
+            color: darken(#949BA5, 15);
+          }
         }
 
         .icon-cog {
@@ -2602,9 +2615,6 @@ table.vars {
 
       a {
         color: inherit;
-        &:hover {
-          color: @linkColorHover;
-        }
       }
     }
 
