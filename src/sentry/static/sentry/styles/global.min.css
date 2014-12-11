@@ -7043,6 +7043,10 @@ h3 {
   background: #F0F2F5;
   color: #747B88;
 }
+#content.with-left-sidebar .sidebar .nav .active a:hover {
+  background: #56AFE8;
+  color: #fff;
+}
 #content.with-left-sidebar section.body {
   min-width: 0;
 }
@@ -9045,11 +9049,17 @@ table.vars table.vars th {
   background: rgba(250, 250, 250, 0.55);
   border-radius: 4px 4px 0 0;
 }
+.team-list > li h3 > a:hover {
+  color: #1c2027;
+}
 .team-list > li h3 .actions {
   font-size: 14px;
 }
 .team-list > li h3 .actions a {
   color: #949BA5;
+}
+.team-list > li h3 .actions a:hover {
+  color: #6c7480;
 }
 .team-list > li h3 .actions .icon-cog {
   background: none;
@@ -9058,9 +9068,6 @@ table.vars table.vars th {
 }
 .team-list > li h3 a {
   color: inherit;
-}
-.team-list > li h3 a:hover {
-  color: #12659a;
 }
 .team-list > li p {
   margin: 0;
