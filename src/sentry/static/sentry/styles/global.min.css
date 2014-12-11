@@ -6906,7 +6906,7 @@ h3 {
   padding-bottom: 9px !important;
 }
 .toolbar h3 {
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: 21px;
   font-weight: 400;
   line-height: 40px;
@@ -7305,18 +7305,13 @@ footer a:hover {
   color: #333;
 }
 footer .btn {
-  -webkit-transition: all 0.2s;
-  -moz-transition: all 0.2s;
-  -o-transition: all 0.2s;
-  transition: all 0.2s;
   color: #ecf0f5;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   background: #b6bbc2;
   position: relative;
   top: -2px;
   margin: 0 0 0 10px;
-  border-bottom-color: #a5abb4;
 }
 footer .btn:hover {
   color: #fff;
@@ -7324,7 +7319,8 @@ footer .btn:hover {
   border-color: #959ca6;
 }
 footer .btn:active {
-  border-color: #959ca6;
+  background: #959ca6;
+  top: -1px;
 }
 /* =============================  Modules  ============================== */
 .btn span {
@@ -8567,9 +8563,8 @@ img.avatar {
   font-weight: bold;
   text-shadow: none;
   font-size: 13px;
-  border-bottom: 2px solid #dee6ed;
   -webkit-font-smoothing: antialiased;
-  padding: 6px 12px;
+  padding: 7px 12px;
 }
 .btn i {
   background-image: none;
@@ -8593,11 +8588,10 @@ img.avatar {
 .btn:hover {
   color: #666d73;
   background: #ecf0f5;
-  border-bottom: 2px solid #d7e1e9;
 }
 .btn:active {
-  border-top: 2px solid #d7e1e9;
-  border-bottom: none;
+  position: relative;
+  top: 1px;
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
   box-shadow: none;
@@ -8628,8 +8622,8 @@ img.avatar {
   border-color: #a9302a;
 }
 .btn-small {
-  padding: 2px 10px;
-  font-size: 11.05px;
+  padding: 3px 11px;
+  font-size: 12px;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;

@@ -446,7 +446,7 @@ h3 {
   }
 
   h3 {
-    margin-top: 5px;
+    margin-top: 4px;
     font-size: 21px;
     font-weight: 400;
     line-height: 40px;
@@ -821,22 +821,22 @@ footer {
   }
 
   .btn {
-    .transition(all .2s);
     color: #ecf0f5;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    padding-top: 4px;
+    padding-bottom: 4px;
     background: #b6bbc2;
     position: relative;
     top: -2px;
     margin: 0 0 0 10px;
-    border-bottom-color: darken(#b6bbc2, 6);
+
     &:hover {
       color: #fff;
       background: darken(#b6bbc2, 6);
       border-color: darken(#b6bbc2, 12);
     }
     &:active {
-      border-color: darken(#b6bbc2, 12);
+      background: darken(#b6bbc2, 12);
+      top: -1px;
     }
   }
 }
@@ -2115,9 +2115,8 @@ img.avatar {
   font-weight: bold;
   text-shadow: none;
   font-size: 13px;
-  border-bottom: 2px solid #dee6ed;
   -webkit-font-smoothing: antialiased;
-  padding: 6px 12px;
+  padding: 7px 12px;
 
   i {
     background-image: none;
@@ -2142,11 +2141,11 @@ img.avatar {
   &:hover {
     color: #666d73;
     background: darken(#eff3f7, 1);
-    border-bottom: 2px solid darken(#dee6ed, 2);
   }
+
   &:active {
-    border-top: 2px solid darken(#dee6ed, 2);
-    border-bottom: none;
+    position: relative;
+    top: 1px;
     .box-shadow(none);
   }
 
@@ -2181,8 +2180,8 @@ img.avatar {
 
 // Small
 .btn-small {
-  padding: @paddingSmall;
-  font-size: @fontSizeSmall;
+  padding: 3px 11px;
+  font-size: 12px;
   .border-radius(@borderRadiusSmall);
 }
 .btn-small [class^="icon-"],
