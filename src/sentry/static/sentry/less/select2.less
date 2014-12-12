@@ -25,7 +25,7 @@
 
   .select2-choice {
     .border-radius(3px);
-    .box-shadow(0 2px 0 rgba(205, 216, 227, .32));
+    .box-shadow(0 1px 1px rgba(205, 216, 227, .32));
     .background-clip(padding-box);
     -moz-background-clip: padding;
     background-color: #fff;
@@ -53,7 +53,7 @@
     abbr {
       display: block;
       position: absolute;
-      right: 14px;
+      right: 10px;
       top: 10px;
       width: 12px;
       height: 12px;
@@ -105,7 +105,8 @@
   z-index: 9999;
   width:100%;
   padding-top: 0;
-  .box-shadow(0 0 0 2px #a7aeb7);
+  border: 1px solid #C3C8CE;
+  .box-shadow(0 1px 2px rgba(0,0,0, .05));
   .border-radius(0 0 3px 3px);
 
   &:after {
@@ -122,17 +123,13 @@
 
 .select2-drop.select2-drop-above {
   .border-radius(4px 4px 0px 0px);
-  .box-shadow(0 0 0 2px #a7aeb7);
+  .box-shadow(0 1px 2px rgba(0,0,0, .05));
   border-bottom: 0;
 
   &:after {
     top: auto;
     bottom: -4px;
   }
-}
-
-.select2-drop.select2-drop-above.select2-drop-active {
-    border-top: 1px solid #5897fb;
 }
 
 .select2-drop-auto-width {
