@@ -14,7 +14,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         fields = ('email',)
         model = OrganizationMember
 
-    def save(self, actor, organization):
+    def save(self, actor, organization, ip_address):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
         om.type = OrganizationMemberType.MEMBER
@@ -43,6 +43,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         AuditLogEntry.objects.create(
             organization=organization,
             actor=actor,
+            ip_address=ip_address,
             target_object=om.id,
             event=AuditLogEntryEvent.MEMBER_INVITE,
             data=om.get_audit_log_data(),

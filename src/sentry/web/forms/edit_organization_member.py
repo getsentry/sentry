@@ -43,7 +43,7 @@ class EditOrganizationMemberForm(forms.ModelForm):
             organization=self.instance.organization,
         )
 
-    def save(self, actor, organization):
+    def save(self, actor, organization, ip_address=None):
         if self.cleaned_data['has_global_access']:
             self.cleaned_data['teams'] = []
 
@@ -52,6 +52,7 @@ class EditOrganizationMemberForm(forms.ModelForm):
         AuditLogEntry.objects.create(
             organization=organization,
             actor=actor,
+            ip_address=ip_address,
             target_object=om.id,
             target_user=om.user,
             event=AuditLogEntryEvent.MEMBER_EDIT,
