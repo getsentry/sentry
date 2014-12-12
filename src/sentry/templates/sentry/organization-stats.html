@@ -9,19 +9,6 @@
 {% block org_stats_nav %}active{% endblock %}
 
 {% block inner %}
-  <style>
-  .project-list td,
-  .project-list th {
-    text-align: center;
-    width: 100px;
-  }
-  .project-list td:first-child,
-  .project-list th:first-child {
-    text-align: left;
-    width: auto;
-  }
-  </style>
-
   <div class="page-header">
     <h2>Stats</h2>
   </div>
@@ -54,6 +41,18 @@
 {% endblock %}
 
 {% block content_after %}
+<style>
+.project-list td,
+.project-list th {
+  text-align: center;
+  width: 100px;
+}
+.project-list td:first-child,
+.project-list th:first-child {
+  text-align: left;
+  width: auto;
+}
+</style>
   <script type="text/javascript">
   $(function(){
     var $sparkline = $('#chart');
