@@ -100,3 +100,10 @@ class Organization(Model):
         if not self.slug:
             slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
         super(Organization, self).save(*args, **kwargs)
+
+    def get_audit_log_data(self):
+        return {
+            'slug': self.slug,
+            'name': self.name,
+            'status': self.status,
+        }

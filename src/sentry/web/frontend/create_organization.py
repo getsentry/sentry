@@ -5,7 +5,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Organization, Team
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, Organization
+)
 from sentry.permissions import can_create_organizations
 from sentry.web.frontend.base import BaseView
 
@@ -35,16 +37,18 @@ class CreateOrganizationView(BaseView):
             org.owner = request.user
             org.save()
 
-            # create a default team for this org
-            team = Team.objects.create(
-                name=org.name,
+            AuditLogEntry.objects.create(
                 organization=org,
-                owner=org.owner,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=org.id,
+                event=AuditLogEntryEvent.ORG_ADD,
+                data=org.get_audit_log_data(),
             )
 
-            url = reverse('sentry-create-project', args=[org.slug])
+            url = reverse('sentry-create-team', args=[org.slug])
 
-            return HttpResponseRedirect('%s?team=%s' % (url, team.slug))
+            return HttpResponseRedirect(url)
 
         context = {
             'form': form,

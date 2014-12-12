@@ -7,8 +7,11 @@ from sentry.api.base import Endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN
-from sentry.models import Project
+from sentry.constants import MEMBER_ADMIN, STATUS_HIDDEN
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, Project
+)
+from sentry.tasks.deletion import delete_project
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -48,6 +51,15 @@ class ProjectDetailsEndpoint(Endpoint):
             if 'sentry:resolve_age' in options:
                 project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
 
+            AuditLogEntry.objects.create(
+                organization=project.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_EDIT,
+                data=project.get_audit_log_data(),
+            )
+
             data = serialize(project, request.user)
             data['options'] = {
                 'sentry:origins': '\n'.join(project.get_option('sentry:origins', None) or []),
@@ -68,7 +80,17 @@ class ProjectDetailsEndpoint(Endpoint):
         if not (request.user.is_superuser or project.team.owner_id == request.user.id):
             return Response('{"error": "form"}', status=status.HTTP_403_FORBIDDEN)
 
-        # TODO(dcramer): this needs to push it into the queue
-        project.delete()
+        if project.status != STATUS_HIDDEN:
+            project.update(status=STATUS_HIDDEN)
+            delete_project.delay(object_id=project.id)
+
+            AuditLogEntry.objects.create(
+                organization=project.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_REMOVE,
+                data=project.get_audit_log_data(),
+            )
 
         return Response(status=204)

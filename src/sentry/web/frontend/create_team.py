@@ -5,7 +5,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import OrganizationMemberType, Project, Team
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
+)
 from sentry.permissions import can_create_teams, Permissions
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.frontend.generic import missing_perm
@@ -54,10 +56,28 @@ class CreateTeamView(OrganizationView):
             team.owner = organization.owner
             team.save()
 
+            AuditLogEntry.objects.create(
+                organization=team.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_ADD,
+                data=team.get_audit_log_data(),
+            )
+
             project = project_form.save(commit=False)
             project.team = team
             project.organization = organization
             project.save()
+
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_ADD,
+                data=project.get_audit_log_data(),
+            )
 
             if project.platform not in (None, 'other'):
                 url = reverse('sentry-docs-client', args=[organization.slug, project.slug, project.platform])

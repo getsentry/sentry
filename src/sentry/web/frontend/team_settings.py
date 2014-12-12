@@ -6,7 +6,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Team, OrganizationMemberType
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, Team, OrganizationMemberType
+)
 from sentry.permissions import can_remove_team
 from sentry.plugins import plugins
 from sentry.web.frontend.base import TeamView
@@ -52,6 +54,15 @@ class TeamSettingsView(TeamView):
         form = self.get_form(request, team)
         if form.is_valid():
             team = form.save()
+
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_EDIT,
+                data=team.get_audit_log_data(),
+            )
 
             messages.add_message(request, messages.SUCCESS,
                 _('Changes to your team were saved.'))

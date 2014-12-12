@@ -8,7 +8,9 @@ from sentry.api.base import Endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationMemberType, Team, TeamStatus
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Team, TeamStatus
+)
 from sentry.tasks.deletion import delete_team
 
 
@@ -55,6 +57,16 @@ class TeamDetailsEndpoint(Endpoint):
 
         if serializer.is_valid():
             team = serializer.save()
+
+            AuditLogEntry.objects.create(
+                organization=team.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_EDIT,
+                data=team.get_audit_log_data(),
+            )
+
             return Response(serialize(team, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -74,5 +86,14 @@ class TeamDetailsEndpoint(Endpoint):
         # we delay the task for 5 minutes so we can implement an undo
         kwargs = {'object_id': team.id}
         delete_team.apply_async(kwargs=kwargs, countdown=60 * 5)
+
+        AuditLogEntry.objects.create(
+            organization=team.organization,
+            actor=request.user,
+            ip_address=request.META['REMOTE_ADDR'],
+            target_object=team.id,
+            event=AuditLogEntryEvent.TEAM_REMOVE,
+            data=team.get_audit_log_data(),
+        )
 
         return Response(status=204)

@@ -5,7 +5,9 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
-from sentry.models import Organization, Team
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, Organization, Team
+)
 from sentry.permissions import can_create_teams
 
 
@@ -43,11 +45,22 @@ class OrganizationTeamsEndpoint(Endpoint):
 
         if serializer.is_valid():
             result = serializer.object
+
             team = Team.objects.create(
                 name=result['name'],
                 slug=result.get('slug'),
                 owner=result.get('owner') or organization.owner,
                 organization=organization,
             )
+
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_ADD,
+                data=team.get_audit_log_data(),
+            )
+
             return Response(serialize(team, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
