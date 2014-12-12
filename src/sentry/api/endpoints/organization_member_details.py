@@ -11,6 +11,19 @@ from sentry.models import (
 
 
 class OrganizationMemberDetailsEndpoint(Endpoint):
+    def _is_only_owner(self, member):
+        if member.type != OrganizationMemberType.OWNER:
+            return False
+
+        queryset = OrganizationMember.objects.filter(
+            organization=member.organization_id,
+            type=OrganizationMemberType.OWNER,
+        ).exclude(id=member.id)
+        if queryset.exists():
+            return False
+
+        return True
+
     def delete(self, request, organization_slug, member_id):
         try:
             organization = Organization.objects.get_from_cache(
@@ -37,7 +50,18 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
         except OrganizationMember.DoesNotExist:
             return Response(status=404)
 
+        if self._is_only_owner(om):
+            return Response(status=403)
+
         audit_data = om.get_audit_log_data()
+
+        if om.user_id == organization.owner_id:
+            # TODO(dcramer): while we still maintain an owner field on
+            # organization we need to ensure it transfers
+            organization.owner = OrganizationMember.objects.filter(
+                type=OrganizationMemberType.OWNER,
+            ).exclude(id=om.id)[0].user
+            organization.save()
 
         om.delete()
 
