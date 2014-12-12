@@ -8303,6 +8303,10 @@ img.avatar {
   border-radius: 3px;
   max-width: none;
 }
+img.avatar32 {
+  width: 32px;
+  height: 32px;
+}
 .nav-pills > li.active > a {
   background-color: #70ace6;
 }

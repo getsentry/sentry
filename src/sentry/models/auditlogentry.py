@@ -9,7 +9,6 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, GzippedDictField,
@@ -47,3 +46,15 @@ class AuditLogEntry(Model):
         db_table = 'sentry_auditlogentry'
 
     __repr__ = sane_repr('organization_id', 'type')
+
+    def get_note(self):
+        if self.event == AuditLogEntryEvent.MEMBER_INVITE:
+            return 'invited %s' % (self.data['email'],)
+        elif self.event == AuditLogEntryEvent.MEMBER_ADD:
+            return 'added %s' % (self.target_user.get_display_name(),)
+        elif self.event == AuditLogEntryEvent.MEMBER_ACCEPT:
+            return 'accepted the membership invite'
+        elif self.event == AuditLogEntryEvent.MEMBER_REMOVE:
+            return 'removed %s' % (self.data.get('email') or self.target_user.get_display_name(),)
+        elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
+            return 'edited %s' % (self.data.get('email') or self.target_user.get_display_name(),)
