@@ -24,8 +24,14 @@ def create_sample_time_series(event):
             (tsdb.models.project, group.project.id),
             (tsdb.models.group, group.id),
         ), now, count)
-        tsdb.incr(tsdb.models.project_total_received, group.project.id, now, int(count * 1.5))
-        tsdb.incr(tsdb.models.project_total_rejected, group.project.id, now, int(count * 0.5))
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_received, group.project.organization_id),
+            (tsdb.models.project_total_received, group.project.id),
+        ), now, int(count * 1.1))
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_rejected, group.project.organization_id),
+            (tsdb.models.project_total_rejected, group.project.id),
+        ), now, int(count * 0.1))
         now = now - timedelta(seconds=1)
 
     for _ in xrange(24 * 30):
@@ -34,8 +40,14 @@ def create_sample_time_series(event):
             (tsdb.models.project, group.project.id),
             (tsdb.models.group, group.id),
         ), now, count)
-        tsdb.incr(tsdb.models.project_total_received, group.project.id, now, int(count * 1.5))
-        tsdb.incr(tsdb.models.project_total_rejected, group.project.id, now, int(count * 0.5))
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_received, group.project.organization_id),
+            (tsdb.models.project_total_received, group.project.id),
+        ), now, int(count * 1.1))
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_rejected, group.project.organization_id),
+            (tsdb.models.project_total_rejected, group.project.id),
+        ), now, int(count * 0.1))
         now = now - timedelta(hours=1)
 
 

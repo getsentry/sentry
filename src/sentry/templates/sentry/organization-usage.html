@@ -9,6 +9,19 @@
 {% block org_usage_nav %}active{% endblock %}
 
 {% block inner %}
+  <style>
+  .project-list td,
+  .project-list th {
+    text-align: center;
+    width: 100px;
+  }
+  .project-list td:first-child,
+  .project-list th:first-child {
+    text-align: left;
+    width: auto;
+  }
+  </style>
+
   <div class="page-header">
     <h2>Data Usage</h2>
   </div>
@@ -21,19 +34,55 @@
       <span class="loading">{% trans "Loading historical data..." %}</span>
     </div>
   </div>
+
+  <div class="page-header">
+    <h3>Events by Project</h3>
+  </div>
+
+  <table class="table table-striped project-list">
+    <thead>
+      <tr>
+        <th>Project</th>
+        <th>Accepted</th>
+        <th>Rejected</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
 {% endblock %}
 
 {% block content_after %}
   <script type="text/javascript">
   $(function(){
     var $sparkline = $('#chart');
-    var pendingRequests = 2;
-    var stats = {received: null, rejected: null};
+    var rawData = {received: null, rejected: null};
     var statsEndpoint = '{% url 'sentry-api-0-organization-stats' organization.id %}';
+    var stats = {received: [], rejected: []};
+    var projectTotals = [];
+    var orgTotal = {received: 0, rejected: 0, accepted: 0};
+    var pendingRequests = 3;
+    var projectMap = {};
 
     $sparkline.height('250px');
 
-    $.each(stats, function(statName, _) {
+    $.ajax({
+      url: '{% url 'sentry-api-0-organization-projects' organization.id %}',
+      type: 'get',
+      dataType: 'json',
+      success: function(data) {
+        $.each(data, function(_, project){
+          projectMap[project.id] = project;
+        });
+        requestFinished();
+      },
+      error: function(data) {
+        $sparkline.html('<div class="error">There was an error loading statistics.</div>');
+      }
+    });
+
+    $.each(rawData, function(statName, _) {
       $.ajax({
         url: statsEndpoint,
         type: 'get',
@@ -41,14 +90,12 @@
         data: {
           since: new Date().getTime() / 1000 - 3600 * 24 * 7,
           resolution: '1h',
-          stat: statName
+          stat: statName,
+          group: 'project'
         },
         success: function(data){
-          stats[statName] = data;
-          pendingRequests -= 1;
-          if (pendingRequests === 0) {
-            renderChart();
-          }
+          rawData[statName] = data;
+          requestFinished();
         },
         error: function(data) {
           $sparkline.html('<div class="error">There was an error loading statistics.</div>');
@@ -56,43 +103,96 @@
       });
     });
 
-    function renderChart() {
-      function convertPoint(point) {
-          // set timestamp to be in millis
-        return [[point[0] * 1000, point[1]]];
+    function requestFinished() {
+      pendingRequests -= 1;
+      if (pendingRequests === 0) {
+        processData();
+        renderChart();
+        renderTable();
       }
+    }
 
-      var points = [
-          {
-              // total number of events accepted (received - rejected)
-              data: $.map(stats.rejected, function(point, idx){
-                point = convertPoint(point)[0];
-                point[1] = stats.received[idx][1] - point[1];
-                return [point];
-              }),
-              label: 'Accepted',
-              color: 'rgba(86, 175, 232, 1)',
-              shadowSize: 0,
-              stack: true,
-              lines: {
-                  lineWidth: 2,
-                  show: true,
-                  fill: true
-              }
-          },
-          {
-              // total number of events rejected
-              data: $.map(stats.rejected, convertPoint),
-              color: 'rgba(244, 63, 32, 1)',
-              shadowSize: 0,
-              label: 'Rejected',
-              stack: true,
-              lines: {
-                  lineWidth: 2,
-                  show: true,
-                  fill: true
-              }
+    function processData() {
+      var sReceived = {};
+      var sRejected = {};
+      $.each(rawData.received, function(projectId, data){
+        var pReceived = 0;
+        var pRejected = 0;
+        $.each(data, function(idx, point){
+          var dReceived = point[1];
+          var dRejected = rawData.rejected[projectId][idx][1];
+          var ts = point[0] * 1000;
+          if (sReceived[ts] === undefined) {
+            sReceived[ts] = dReceived;
+            sRejected[ts] = dRejected;
+          } else {
+            sReceived[ts] += dReceived;
+            sRejected[ts] += dRejected;
           }
+          pReceived += dReceived;
+          pRejected += dRejected;
+        });
+        projectTotals.push({
+          id: projectId,
+          received: pReceived,
+          rejected: pRejected,
+          accepted: pReceived - pRejected
+        });
+        orgTotal.received += pReceived;
+        orgTotal.rejected += pRejected;
+        orgTotal.accepted += pReceived - pRejected;
+      });
+      stats.rejected = $.map(sRejected, function(value, ts) { return [[ts, value]]; });
+      stats.accepted = $.map(sReceived, function(value, ts) {
+        // total number of events accepted (received - rejected)
+        return [[ts, value - sRejected[ts]]];
+      });
+
+      $(projectTotals).sort(function(a, b) { return a.received - b.received });
+    }
+
+    function renderTable() {
+      var $tbody = $('.project-list tbody')
+      $.each(projectTotals, function(_, item) {
+        var acceptedPercent = parseInt(item.accepted / orgTotal.accepted * 100);
+        var receivedPercent = parseInt(item.received / orgTotal.received * 100);
+        var rejectedPercent = parseInt(item.rejected / orgTotal.rejected * 100);
+        var project = projectMap[item.id];
+        $('<tr>' +
+            '<td><a href="/{{ organization.slug }}/' + project.slug + '/">' + app.utils.escape(project.name) + '</a></td>' +
+            '<td>' + app.utils.formatNumber(item.accepted) + '<br><small>%' + acceptedPercent + '</small></td>' +
+            '<td>' + app.utils.formatNumber(item.rejected) + '<br><small>%' + rejectedPercent + '</small></td>' +
+            '<td>' + app.utils.formatNumber(item.received) + '<br><small>%' + receivedPercent + '</small></td>' +
+          '</tr>').appendTo($tbody);
+      });
+    }
+
+    function renderChart() {
+      var points = [
+        {
+          data: stats.accepted,
+          label: 'Accepted',
+          color: 'rgba(86, 175, 232, 1)',
+          shadowSize: 0,
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        },
+        {
+          data: stats.rejected,
+          color: 'rgba(244, 63, 32, 1)',
+          shadowSize: 0,
+          label: 'Rejected',
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        }
       ];
 
       var options = {
@@ -115,7 +215,6 @@
         tooltip: true,
         tooltipOpts: {
           content: function(label, xval, yval, flotItem) {
-            console.log(flotItem);
             if(typeof yval.toLocaleString == "function") {
                 return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
             }
