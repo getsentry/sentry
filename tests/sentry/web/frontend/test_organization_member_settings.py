@@ -191,3 +191,27 @@ class OrganizationMemberSettingsTest(TestCase):
         })
 
         assert resp.status_code == 302
+
+    def test_cannot_edit_yourself(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team_1 = self.create_team(name='foo', organization=organization)
+        team_2 = self.create_team(name='bar', organization=organization)
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=self.user,
+        )
+
+        path = reverse('sentry-organization-member-settings',
+                       args=[organization.slug, member.id])
+
+        self.login_as(self.user)
+
+        resp = self.client.get(path)
+
+        assert resp.status_code == 200
+
+        self.assertTemplateUsed(resp, 'sentry/organization-member-details.html')
+
+        assert resp.context['organization'] == organization
+        assert resp.context['member'] == member
