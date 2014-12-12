@@ -23,7 +23,6 @@
 
 body {
   margin: 0;
-  font-family: @baseFontFamily;
   font-size: @baseFontSize;
   line-height: @baseLineHeight;
   color: @gray;
@@ -427,7 +426,7 @@ h3 {
 
 .toolbar {
   .clearfix();
-  background: #F0F2F5;
+  background: #f1f2f3;
   padding: 0 30px;
   height: 50px;
 
@@ -488,7 +487,7 @@ h3 {
     margin-top: 14px;
     margin-right: 10px;
     padding-right: 10px;
-    border-right: 3px solid #cad0d8;
+    border-right: 3px solid rgba(202, 208, 216, 0.41);
 
     > a {
       display: block;
@@ -794,7 +793,7 @@ h3 {
 footer {
   .box-sizing(border-box);
   .clearfix();
-  background: #F0F2F5;
+  background: #f1f2f3;
   padding: 40px 30px;
   color: #939aa4;
   font-weight: bold;
@@ -820,21 +819,21 @@ footer {
   }
 
   .btn {
-    color: #ecf0f5;
+    color: #f1f2f3;
     padding-top: 4px;
     padding-bottom: 4px;
-    background: #b6bbc2;
+    background: #A8AEB6;
     position: relative;
     top: -2px;
     margin: 0 0 0 10px;
 
     &:hover {
       color: #fff;
-      background: darken(#b6bbc2, 6);
-      border-color: darken(#b6bbc2, 12);
+      background: darken(#A8AEB6, 6);
+      border-color: darken(#A8AEB6, 12);
     }
-    &:active {
-      background: darken(#b6bbc2, 12);
+    &:active, &:focus {
+      background: darken(#A8AEB6, 12);
       top: -1px;
     }
   }
@@ -2099,7 +2098,7 @@ img.avatar32 {
 }
 
 .btn {
-  background: #eff3f7;
+  background: #F1F2F3;
   .border-radius(4px);
   .box-shadow(none);
   border: none;
@@ -2121,8 +2120,8 @@ img.avatar32 {
   }
 
   &.disabled, &[disabled] {
-    background: #ecf0f4;
-    .opacity(35);
+    background: #F1F2F3;
+    .opacity(50);
   }
 
   .caret {
