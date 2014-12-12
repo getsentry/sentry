@@ -41,6 +41,10 @@
                 app.config.projectId = null;
                 app.config.teamId = {{ team.slug|to_json|safe }};
                 app.config.organizationId = {{ team.organization.slug|to_json|safe }};
+            {% elif organization %}
+                app.config.projectId = null;
+                app.config.teamId = null;
+                app.config.organizationId = {{ organization.slug|to_json|safe }};
             {% else %}
                 app.config.projectId = null;
                 app.config.teamId = null;

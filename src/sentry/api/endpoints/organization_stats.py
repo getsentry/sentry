@@ -9,8 +9,10 @@ from sentry.models import Organization, Project, Team
 
 
 class OrganizationStatsEndpoint(BaseStatsEndpoint):
-    def get(self, request, organization_id):
-        organization = Organization.objects.get_from_cache(id=organization_id)
+    def get(self, request, organization_slug):
+        organization = Organization.objects.get_from_cache(
+            slug=organization_slug,
+        )
 
         assert_perm(organization, request.user, request.auth)
 

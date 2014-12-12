@@ -15,22 +15,10 @@ class TeamSerializer(serializers.Serializer):
 
 
 class OrganizationTeamsEndpoint(Endpoint):
-    def get_organization(self, request, organization_id):
-        organization_id = str(organization_id)
-        try:
-            return (
-                o for o in Organization.objects.get_for_user(
-                    user=request.user,
-                )
-                if str(o.id) == organization_id
-            ).next()
-        except StopIteration:
-            return
-
-    def get(self, request, organization_id):
-        organization = self.get_organization(request, organization_id)
-        if organization is None:
-            return Response(status=403)
+    def get(self, request, organization_slug):
+        organization = Organization.objects.get_from_cache(
+            slug=organization_slug,
+        )
 
         if request.auth:
             teams = [request.auth.project.team]
@@ -43,10 +31,10 @@ class OrganizationTeamsEndpoint(Endpoint):
             )
         return Response(serialize(teams, request.user))
 
-    def post(self, request, organization_id):
-        organization = self.get_organization(request, organization_id)
-        if organization is None:
-            return Response(status=403)
+    def post(self, request, organization_slug):
+        organization = Organization.objects.get_from_cache(
+            slug=organization_slug,
+        )
 
         if not can_create_teams(request.user, organization):
             return Response(status=403)
