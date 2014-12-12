@@ -10,15 +10,15 @@ from sentry.models import (
 from sentry.web.forms.fields import UserField
 
 
-class NewOrganizationMemberForm(forms.ModelForm):
+class AddOrganizationMemberForm(forms.ModelForm):
     user = UserField()
 
     class Meta:
         fields = ('user',)
         model = OrganizationMember
 
-    def save(self, actor, organization):
-        om = super(NewOrganizationMemberForm, self).save(commit=False)
+    def save(self, actor, organization, ip_address):
+        om = super(AddOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
         om.type = OrganizationMemberType.MEMBER
 
@@ -36,6 +36,7 @@ class NewOrganizationMemberForm(forms.ModelForm):
         AuditLogEntry.objects.create(
             organization=organization,
             actor=actor,
+            ip_address=ip_address,
             target_object=om.id,
             target_user=om.user,
             event=AuditLogEntryEvent.MEMBER_ADD,

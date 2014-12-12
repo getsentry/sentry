@@ -88,6 +88,7 @@ class AcceptOrganizationInviteView(BaseView):
             AuditLogEntry.objects.create(
                 organization=organization,
                 actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
                 target_object=om.id,
                 target_user=request.user,
                 event=AuditLogEntryEvent.MEMBER_ACCEPT,

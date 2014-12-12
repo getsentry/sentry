@@ -10,7 +10,7 @@ from sentry.models import OrganizationMemberType
 from sentry.permissions import can_add_organization_member
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.invite_organization_member import InviteOrganizationMemberForm
-from sentry.web.forms.new_organization_member import NewOrganizationMemberForm
+from sentry.web.forms.add_organization_member import AddOrganizationMemberForm
 
 
 class CreateOrganizationMemberView(OrganizationView):
@@ -24,7 +24,7 @@ class CreateOrganizationMemberView(OrganizationView):
         if settings.SENTRY_ENABLE_INVITES:
             form_cls = InviteOrganizationMemberForm
         else:
-            form_cls = NewOrganizationMemberForm
+            form_cls = AddOrganizationMemberForm
 
         return form_cls(request.POST or None, initial=initial)
 
@@ -34,7 +34,7 @@ class CreateOrganizationMemberView(OrganizationView):
 
         form = self.get_form(request)
         if form.is_valid():
-            om, created = form.save(request.user, organization)
+            om, created = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
             if created:
                 messages.add_message(request, messages.SUCCESS,

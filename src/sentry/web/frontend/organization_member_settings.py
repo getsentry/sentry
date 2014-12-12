@@ -50,7 +50,7 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         form = self.get_form(request, member)
         if form.is_valid():
-            member = form.save(request.user, organization)
+            member = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
             messages.add_message(request, messages.SUCCESS,
                 _('Your changes were saved.'))
