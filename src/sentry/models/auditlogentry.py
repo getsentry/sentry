@@ -30,12 +30,13 @@ class AuditLogEntry(Model):
     actor = models.ForeignKey('sentry.User', related_name='audit_actors')
     target_object = BoundedPositiveIntegerField(null=True)
     target_user = models.ForeignKey('sentry.User', null=True, related_name='audit_targets')
-    event = BoundedPositiveIntegerField(choices=(
-        (AuditLogEntryEvent.MEMBER_INVITE, _('Invited member')),
-        (AuditLogEntryEvent.MEMBER_ADD, _('Added member')),
-        (AuditLogEntryEvent.MEMBER_ACCEPT, _('Accepted Invite')),
-        (AuditLogEntryEvent.MEMBER_REMOVE, _('Removed member')),
-        (AuditLogEntryEvent.MEMBER_EDIT, _('Edited member')),
+    event = models.CharField(max_length=64, choices=(
+        # We emulate github a bit with event naming
+        (AuditLogEntryEvent.MEMBER_INVITE, _('org.invite-member')),
+        (AuditLogEntryEvent.MEMBER_ADD, _('org.add-member')),
+        (AuditLogEntryEvent.MEMBER_ACCEPT, _('org.accept-invite')),
+        (AuditLogEntryEvent.MEMBER_REMOVE, _('org.rempve-member')),
+        (AuditLogEntryEvent.MEMBER_EDIT, _('org.edit-member')),
     ))
     data = GzippedDictField()
     datetime = models.DateTimeField(default=timezone.now)
