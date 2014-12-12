@@ -196,3 +196,12 @@ class Project(Model):
             queryset = queryset.filter(type__lte=access)
 
         return queryset.exists()
+
+    def get_audit_log_data(self):
+        return {
+            'slug': self.slug,
+            'name': self.name,
+            'status': self.status,
+            'public': self.public,
+            'platform': self.platform,
+        }

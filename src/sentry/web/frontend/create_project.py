@@ -5,7 +5,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Project, OrganizationMemberType, Team
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, Project, OrganizationMemberType, Team
+)
 from sentry.web.frontend.base import OrganizationView
 from sentry.utils.samples import create_sample_event
 
@@ -67,6 +69,15 @@ class CreateProjectView(OrganizationView):
             project = form.save(commit=False)
             project.organization = organization
             project.save()
+
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_ADD,
+                data=project.get_audit_log_data(),
+            )
 
             create_sample_event(project)
 

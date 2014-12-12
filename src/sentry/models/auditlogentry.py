@@ -23,6 +23,19 @@ class AuditLogEntryEvent(object):
     MEMBER_EDIT = 4
     MEMBER_REMOVE = 5
 
+    ORG_ADD = 10
+    ORG_EDIT = 11
+
+    TEAM_ADD = 20
+    TEAM_EDIT = 21
+    TEAM_REMOVE = 22
+
+    PROJECT_ADD = 30
+    PROJECT_EDIT = 31
+    PROJECT_REMOVE = 32
+    PROJECT_SET_PUBLIC = 33
+    PROJECT_SET_PRIVATE = 34
+
 
 class AuditLogEntry(Model):
     organization = models.ForeignKey('sentry.Organization')
@@ -31,11 +44,24 @@ class AuditLogEntry(Model):
     target_user = models.ForeignKey('sentry.User', null=True, related_name='audit_targets')
     event = BoundedPositiveIntegerField(choices=(
         # We emulate github a bit with event naming
-        (AuditLogEntryEvent.MEMBER_INVITE, 'org.invite-member'),
-        (AuditLogEntryEvent.MEMBER_ADD, 'org.add-member'),
-        (AuditLogEntryEvent.MEMBER_ACCEPT, 'org.accept-invite'),
-        (AuditLogEntryEvent.MEMBER_REMOVE, 'org.rempoe-member'),
-        (AuditLogEntryEvent.MEMBER_EDIT, 'org.edit-member'),
+        (AuditLogEntryEvent.MEMBER_INVITE, 'member.invite'),
+        (AuditLogEntryEvent.MEMBER_ADD, 'member.add'),
+        (AuditLogEntryEvent.MEMBER_ACCEPT, 'member.accept-invite'),
+        (AuditLogEntryEvent.MEMBER_REMOVE, 'member.remove'),
+        (AuditLogEntryEvent.MEMBER_EDIT, 'member.edit'),
+
+        (AuditLogEntryEvent.TEAM_ADD, 'team.create'),
+        (AuditLogEntryEvent.TEAM_EDIT, 'team.edit'),
+        (AuditLogEntryEvent.TEAM_REMOVE, 'team.remove'),
+
+        (AuditLogEntryEvent.PROJECT_ADD, 'project.create'),
+        (AuditLogEntryEvent.PROJECT_EDIT, 'project.edit'),
+        (AuditLogEntryEvent.PROJECT_REMOVE, 'project.remove'),
+        (AuditLogEntryEvent.PROJECT_SET_PUBLIC, 'project.set-public'),
+        (AuditLogEntryEvent.PROJECT_SET_PRIVATE, 'project.set-private'),
+
+        (AuditLogEntryEvent.ORG_ADD, 'org.create'),
+        (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -49,12 +75,28 @@ class AuditLogEntry(Model):
 
     def get_note(self):
         if self.event == AuditLogEntryEvent.MEMBER_INVITE:
-            return 'invited %s' % (self.data['email'],)
+            return 'invited member %s' % (self.data['email'],)
         elif self.event == AuditLogEntryEvent.MEMBER_ADD:
-            return 'added %s' % (self.target_user.get_display_name(),)
+            return 'added member %s' % (self.target_user.get_display_name(),)
         elif self.event == AuditLogEntryEvent.MEMBER_ACCEPT:
             return 'accepted the membership invite'
         elif self.event == AuditLogEntryEvent.MEMBER_REMOVE:
-            return 'removed %s' % (self.data.get('email') or self.target_user.get_display_name(),)
+            return 'removed member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
         elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
-            return 'edited %s' % (self.data.get('email') or self.target_user.get_display_name(),)
+            return 'edited member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
+
+        elif self.event == AuditLogEntryEvent.TEAM_ADD:
+            return 'created team %s' % (self.data['slug'],)
+        elif self.event == AuditLogEntryEvent.TEAM_EDIT:
+            return 'edited team %s' % (self.data['slug'],)
+        elif self.event == AuditLogEntryEvent.TEAM_REMOVE:
+            return 'removed team %s' % (self.data['slug'],)
+
+        elif self.event == AuditLogEntryEvent.PROJECT_ADD:
+            return 'created project %s' % (self.data['slug'],)
+        elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
+            return 'edited project %s' % (self.data['slug'],)
+        elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
+            return 'removed project %s' % (self.data['slug'],)
+
+        return ''

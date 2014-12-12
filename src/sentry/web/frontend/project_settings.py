@@ -8,7 +8,9 @@ from django.http import HttpResponseRedirect
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import OrganizationMemberType, Project, Team
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
+)
 from sentry.permissions import can_remove_project, can_set_public_projects
 from sentry.plugins import plugins
 from sentry.web.forms.fields import RangeField
@@ -175,6 +177,15 @@ class ProjectSettingsView(ProjectView):
             project = form.save()
             project.update_option('sentry:origins', form.cleaned_data.get('origins') or [])
             project.update_option('sentry:resolve_age', form.cleaned_data.get('resolve_age'))
+
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=project.id,
+                event=AuditLogEntryEvent.PROJECT_EDIT,
+                data=project.get_audit_log_data(),
+            )
 
             messages.add_message(
                 request, messages.SUCCESS,
