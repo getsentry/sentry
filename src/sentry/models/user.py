@@ -79,9 +79,12 @@ class User(Model, AbstractBaseUser):
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models import (
-            GroupBookmark, OrganizationMember, ProjectKey, Team, UserOption
+            GroupBookmark, Organization, OrganizationMember, ProjectKey, Team,
+            UserOption
         )
 
+        for obj in Organization.objects.filter(owner=from_user):
+            obj.update(owner=to_user)
         for obj in ProjectKey.objects.filter(user=from_user):
             obj.update(user=to_user)
         for obj in OrganizationMember.objects.filter(user=from_user):
