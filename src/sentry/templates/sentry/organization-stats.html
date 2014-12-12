@@ -4,9 +4,9 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{% trans "Usage" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Stats" %} | {{ block.super }}{% endblock %}
 
-{% block org_usage_nav %}active{% endblock %}
+{% block org_stats_nav %}active{% endblock %}
 
 {% block inner %}
   <style>
@@ -23,7 +23,7 @@
   </style>
 
   <div class="page-header">
-    <h2>Data Usage</h2>
+    <h2>Stats</h2>
   </div>
 
   <p>The chart below reflects events the system has received across your entire organization.</p>
