@@ -24,6 +24,8 @@ class OrganizationMembersView(OrganizationView):
             organization=organization,
         ).select_related('user')
 
+        queryset = sorted(queryset, key=lambda x: x.user.get_display_name())
+
         member_list = []
         for om in queryset:
             member_list.append((om, team_map[om.id]))
