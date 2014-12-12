@@ -17,14 +17,6 @@
     </h2>
   </div>
 
-  <div class="alert alert-block alert-info">
-    {% if member.user == user %}
-      <p>You cannot make changes to your own membership, unless you're looking to <a href="#">leave this organization</a>.</p>
-    {% else %}
-      <p>You cannot make changes to this member as they have more access than you.</p>
-    {% endif %}
-  </div>
-
   <fieldset>
     <div class="control-group">
       <label>{% trans "Status" %}</label>
@@ -37,16 +29,26 @@
       </div>
     </div>
 
-    {{ member.get_type_display }}
+    <div class="control-group">
+      <label>{% trans "Membership Type" %}</label>
+      <div class="controls">
+        {{ member.get_type_display }}
+      </div>
+    </div>
   </fieldset>
 
   <fieldset>
     <h2>{% trans "Teams" %}</h2>
 
-    <label>
-      <input type="checkbox" disabled="disabled"{% if member.has_global_access %} checked="checked'{% endif %}">
-      This member should have access to all teams within the organization.
-    </label>
+    <div class="control-group">
+      <div class="controls">
+        <label class="checkbox">
+          <input type="checkbox" class="checkboxinput"
+                 disabled="disabled"{% if member.has_global_access %} checked="checked'{% endif %}">
+          This member should have access to all teams within the organization.
+        </label>
+      </div>
+    </div>
 
     <fieldset class="team-choices">
       {% for team in all_teams %}
@@ -62,4 +64,15 @@
       {% endfor %}
     </fieldset>
   </fieldset>
+
+  <div class="form-actions">
+    <div class="alert alert-block alert-info">
+      {% if member.user == user %}
+        <p>You cannot make changes to your own membership.</p>
+      {% else %}
+        <p>You cannot make changes to this member as they have more access than you.</p>
+      {% endif %}
+    </div>
+  </div>
+
 {% endblock %}

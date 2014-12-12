@@ -61,7 +61,7 @@ class OrganizationMemberSettingsView(OrganizationView):
             membership = OrganizationMember.objects.get(user=request.user)
             authorizing_access = membership.type
 
-        if authorizing_access > member.type:
+        if member.user == request.user or authorizing_access > member.type:
             return self.view_member(request, organization, member)
 
         form = self.get_form(request, member, authorizing_access)
