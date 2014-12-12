@@ -36,6 +36,11 @@ class TSDBModel(Enum):
     # the number of events rejected due to rate limiting
     project_total_rejected = 101
 
+    # the number of events sent to the server
+    organization_total_received = 200
+    # the number of events rejected due to rate limiting
+    organization_total_rejected = 201
+
 
 class BaseTSDB(object):
     models = TSDBModel

@@ -321,10 +321,15 @@ class StoreView(APIView):
             app.tsdb.incr_multi([
                 (app.tsdb.models.project_total_received, project.id),
                 (app.tsdb.models.project_total_rejected, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
             raise APIRateLimited(rate_limit.retry_after)
         else:
-            app.tsdb.incr(app.tsdb.models.project_total_received, project.id)
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+            ])
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
