@@ -8198,6 +8198,7 @@ small {
 .help-block {
   font-size: 12px;
   font-weight: normal;
+  color: #808690;
 }
 .controls > .inputs-list label:first-child,
 .controls > .inputs-list label:first-child {
@@ -9234,4 +9235,52 @@ table.vars table.vars th {
 }
 pre {
   word-break: normal;
+}
+.create-flow {
+  width: 575px;
+  margin: 0 auto;
+  padding: 45px 0 50px;
+}
+.create-flow .help-block {
+  font-size: 14px;
+  color: #465262;
+  line-height: 1.4;
+  margin-bottom: 20px;
+}
+.create-flow .control-group {
+  margin-bottom: 20px;
+}
+.create-flow input[type="text"] {
+  width: 400px;
+}
+.create-flow .steps {
+  *zoom: 1;
+  list-style-type: none;
+  padding: 0;
+  margin: 0 0 30px;
+}
+.create-flow .steps:before,
+.create-flow .steps:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.create-flow .steps:after {
+  clear: both;
+}
+.create-flow .steps li {
+  width: 33.33%;
+  float: left;
+  text-align: center;
+  font-size: 22px;
+  color: #D4D6D9;
+}
+.create-flow .steps li.active {
+  color: #465262;
+}
+.create-flow .steps li:first-child {
+  text-align: left;
+}
+.create-flow .steps li:last-child {
+  text-align: right;
 }

@@ -1730,6 +1730,7 @@ small {
 .help-block {
   font-size: 12px;
   font-weight: normal;
+  color: #808690;
 }
 
 
@@ -2792,4 +2793,53 @@ table.vars {
 
 pre {
   word-break: normal;
+}
+
+
+.create-flow {
+  width: 575px;
+  margin: 0 auto;
+  padding: 45px 0 50px;
+
+  .help-block {
+    font-size: 14px;
+    color: @gray;
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+
+  .control-group {
+    margin-bottom: 20px;
+  }
+
+  input[type="text"] {
+    width: 400px;
+  }
+
+  .steps {
+    .clearfix();
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 30px;
+
+    li {
+      width: 33.33%;
+      float: left;
+      text-align: center;
+      font-size: 22px;
+      color: #D4D6D9;
+
+      &.active {
+        color: @gray;
+      }
+
+      &:first-child {
+        text-align: left;
+      }
+
+      &:last-child {
+        text-align: right;
+      }
+    }
+  }
 }

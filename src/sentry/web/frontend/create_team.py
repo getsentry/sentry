@@ -17,7 +17,7 @@ BLANK_CHOICE = [("", "")]
 
 class NewTeamForm(forms.ModelForm):
     name = forms.CharField(label=_('Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('e.g. Website')}))
+        widget=forms.TextInput(attrs={'placeholder': _('E.g. Platform, API, Website, ...')}))
 
     class Meta:
         fields = ('name',)
