@@ -1,99 +1,16 @@
 from __future__ import absolute_import
 
-from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.db import transaction, IntegrityError
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
-)
+from sentry.models import OrganizationMemberType
 from sentry.permissions import can_add_organization_member
-from sentry.web.forms.fields import UserField
 from sentry.web.frontend.base import OrganizationView
-
-
-class InviteOrganizationMemberForm(forms.ModelForm):
-    class Meta:
-        fields = ('email',)
-        model = OrganizationMember
-
-    def save(self, actor, organization):
-        om = super(InviteOrganizationMemberForm, self).save(commit=False)
-        om.organization = organization
-        om.type = OrganizationMemberType.MEMBER
-
-        try:
-            existing = OrganizationMember.objects.get(
-                organization=organization,
-                user__email__iexact=om.email,
-            )
-        except OrganizationMember.DoesNotExist:
-            pass
-        else:
-            return existing, False
-
-        sid = transaction.savepoint(using='default')
-        try:
-            om.save()
-        except IntegrityError:
-            transaction.savepoint_rollback(sid, using='default')
-            return OrganizationMember.objects.get(
-                email__iexact=om.email,
-                organization=organization,
-            ), False
-        transaction.savepoint_commit(sid, using='default')
-
-        AuditLogEntry.objects.create(
-            organization=organization,
-            actor=actor,
-            target_object=om.id,
-            event=AuditLogEntryEvent.MEMBER_INVITE,
-            data=om.get_audit_log_data(),
-        )
-
-        om.send_invite_email()
-
-        return om, True
-
-
-class NewOrganizationMemberForm(forms.ModelForm):
-    user = UserField()
-
-    class Meta:
-        fields = ('user',)
-        model = OrganizationMember
-
-    def save(self, actor, organization):
-        om = super(NewOrganizationMemberForm, self).save(commit=False)
-        om.organization = organization
-        om.type = OrganizationMemberType.MEMBER
-
-        sid = transaction.savepoint(using='default')
-        try:
-            om.save()
-        except IntegrityError:
-            transaction.savepoint_rollback(sid, using='default')
-            return OrganizationMember.objects.get(
-                user=om.user,
-                organization=organization,
-            ), False
-        transaction.savepoint_commit(sid, using='default')
-
-        AuditLogEntry.objects.create(
-            organization=organization,
-            actor=actor,
-            target_object=om.id,
-            target_user=om.user,
-            event=AuditLogEntryEvent.MEMBER_ADD,
-            data=om.get_audit_log_data(),
-        )
-
-        return om, True
+from sentry.web.forms.invite_organization_member import InviteOrganizationMemberForm
+from sentry.web.forms.new_organization_member import NewOrganizationMemberForm
 
 
 class CreateOrganizationMemberView(OrganizationView):
@@ -111,20 +28,7 @@ class CreateOrganizationMemberView(OrganizationView):
 
         return form_cls(request.POST or None, initial=initial)
 
-    def get(self, request, organization):
-        if not can_add_organization_member(request.user, organization):
-            return HttpResponseRedirect(reverse('sentry'))
-
-        form = self.get_form(request)
-
-        context = {
-            'form': form,
-            'is_invite': settings.SENTRY_ENABLE_INVITES,
-        }
-
-        return self.respond('sentry/create-organization-member.html', context)
-
-    def post(self, request, organization):
+    def handle(self, request, organization):
         if not can_add_organization_member(request.user, organization):
             return HttpResponseRedirect(reverse('sentry'))
 
