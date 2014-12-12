@@ -1,56 +1,13 @@
 from __future__ import absolute_import
 
-from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _, ugettext
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType, Team
-)
+from sentry.models import OrganizationMember, OrganizationMemberType
 from sentry.web.frontend.base import OrganizationView
-
-MEMBERSHIP_CHOICES = (
-    (OrganizationMemberType.MEMBER, _('Member')),
-    (OrganizationMemberType.ADMIN, _('Admin')),
-    (OrganizationMemberType.OWNER, _('Owner')),
-)
-
-
-class EditOrganizationMemberForm(forms.ModelForm):
-    type = forms.TypedChoiceField(label=_('Membership Type'), choices=(), coerce=int)
-    has_global_access = forms.BooleanField(
-        label=_('This member should have access to all teams within the organization.'),
-        required=False,
-    )
-    teams = forms.ModelMultipleChoiceField(
-        queryset=Team.objects.none(),
-        widget=forms.CheckboxSelectMultiple(),
-        required=False,
-    )
-
-    class Meta:
-        fields = ('type', 'has_global_access', 'teams')
-        model = OrganizationMember
-
-    def __init__(self, authorizing_access, *args, **kwargs):
-        super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
-
-        self.fields['type'].choices = [
-            m for m in MEMBERSHIP_CHOICES
-            if m[0] >= authorizing_access
-        ]
-
-        self.fields['teams'].queryset = Team.objects.filter(
-            organization=self.instance.organization,
-        )
-
-    def save(self, *args, **kwargs):
-        if self.cleaned_data['has_global_access']:
-            self.cleaned_data['teams'] = []
-        return super(EditOrganizationMemberForm, self).save(*args, **kwargs)
+from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
 
 
 class OrganizationMemberSettingsView(OrganizationView):
@@ -93,19 +50,10 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         form = self.get_form(request, member)
         if form.is_valid():
-            member = form.save()
+            member = form.save(request.user, organization)
 
             messages.add_message(request, messages.SUCCESS,
                 _('Your changes were saved.'))
-
-            AuditLogEntry.objects.create(
-                organization=organization,
-                actor=request.user,
-                target_object=member.id,
-                target_user=member.user,
-                event=AuditLogEntryEvent.MEMBER_EDIT,
-                data=member.get_audit_log_data(),
-            )
 
             redirect = reverse('sentry-organization-member-settings',
                                args=[organization.slug, member.id])
