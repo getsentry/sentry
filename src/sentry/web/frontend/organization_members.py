@@ -24,7 +24,7 @@ class OrganizationMembersView(OrganizationView):
             organization=organization,
         ).select_related('user')
 
-        queryset = sorted(queryset, key=lambda x: x.user.get_display_name())
+        queryset = sorted(queryset, key=lambda x: x.email or x.user.get_display_name())
 
         member_list = []
         for om in queryset:
