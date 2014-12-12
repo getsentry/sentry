@@ -72,22 +72,7 @@ class OrganizationMemberSettingsView(OrganizationView):
             }
         )
 
-    def get(self, request, organization, member_id):
-        try:
-            member = OrganizationMember.objects.get(id=member_id)
-        except OrganizationMember.DoesNotExist:
-            return HttpResponseRedirect(reverse('sentry'))
-
-        form = self.get_form(request, member)
-
-        context = {
-            'member': member,
-            'form': form,
-        }
-
-        return self.respond('sentry/organization-member-settings.html', context)
-
-    def post(self, request, organization, member_id):
+    def handle(self, request, organization, member_id):
         try:
             member = OrganizationMember.objects.get(id=member_id)
         except OrganizationMember.DoesNotExist:
