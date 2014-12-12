@@ -5,56 +5,70 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import OrganizationMemberType, Team
+from sentry.models import OrganizationMemberType, Project, Team
 from sentry.permissions import can_create_teams, Permissions
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.frontend.generic import missing_perm
 
+BLANK_CHOICE = [("", "")]
+
 
 class NewTeamForm(forms.ModelForm):
-    name = forms.CharField(label=_('Team Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('example.com')}))
+    name = forms.CharField(label=_('Name'), max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. Website')}))
 
     class Meta:
         fields = ('name',)
         model = Team
 
 
+class NewProjectForm(forms.ModelForm):
+    name = forms.CharField(label=_('Name'), max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. Backend')}))
+    platform = forms.ChoiceField(
+        choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
+        widget=forms.Select(attrs={'data-placeholder': _('Select a platform')}),
+        help_text='Your platform choices helps us setup some defaults for this project.',
+    )
+
+    class Meta:
+        fields = ('name', 'platform')
+        model = Project
+
+
 class CreateTeamView(OrganizationView):
     required_access = OrganizationMemberType.ADMIN
 
-    def get_form(self, request):
-        return NewTeamForm(request.POST or None)
-
-    def get(self, request, organization):
+    def handle(self, request, organization):
         if not can_create_teams(request.user, organization):
             return missing_perm(request, Permissions.ADD_TEAM)
 
-        form = self.get_form(request)
+        team_form = NewTeamForm(request.POST or None, prefix='team_')
+        project_form = NewProjectForm(request.POST or None, prefix='project_')
 
-        context = {
-            'form': form,
-        }
+        all_forms = [team_form, project_form]
 
-        return self.respond('sentry/create-team.html', context)
-
-    def post(self, request, organization):
-        if not can_create_teams(request.user, organization):
-            return missing_perm(request, Permissions.ADD_TEAM)
-
-        form = self.get_form(request)
-        if form.is_valid():
-            team = form.save(commit=False)
+        if all(f.is_valid() for f in all_forms):
+            team = team_form.save(commit=False)
             team.organization = organization
             team.owner = organization.owner
             team.save()
 
-            url = reverse('sentry-create-project', args=[organization.slug])
+            project = project_form.save(commit=False)
+            project.team = team
+            project.organization = organization
+            project.save()
 
-            return HttpResponseRedirect(url + '?team=' + team.slug)
+            if project.platform not in (None, 'other'):
+                url = reverse('sentry-docs-client', args=[organization.slug, project.slug, project.platform])
+            else:
+                url = reverse('sentry-get-started', args=[organization.slug, project.slug])
+
+            return HttpResponseRedirect(url)
 
         context = {
-            'form': form,
+            'team_form': team_form,
+            'project_form': project_form,
         }
 
         return self.respond('sentry/create-team.html', context)
