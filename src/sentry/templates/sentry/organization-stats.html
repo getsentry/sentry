@@ -215,6 +215,7 @@
         tooltip: true,
         tooltipOpts: {
           content: function(label, xval, yval, flotItem) {
+            xval = parseInt(xval, 10);
             if(typeof yval.toLocaleString == "function") {
                 return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
             }
