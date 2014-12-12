@@ -11,7 +11,14 @@ from sentry.web.frontend.base import OrganizationView
 class OrganizationMembersView(OrganizationView):
     required_access = OrganizationMemberType.ADMIN
 
-    def get(self, request, organization):
+    def handle(self, request, organization):
+        if request.user.is_superuser:
+            authorizing_access = OrganizationMemberType.OWNER
+        else:
+            authorizing_access = OrganizationMember.objects.get(
+                user=request.user,
+            ).type
+
         queryset = OrganizationMemberTeams.objects.filter(
             organizationmember__organization=organization,
         ).select_related('team')
@@ -32,6 +39,7 @@ class OrganizationMembersView(OrganizationView):
 
         context = {
             'member_list': member_list,
+            'authorizing_access': authorizing_access,
         }
 
         return self.respond('sentry/organization-members.html', context)

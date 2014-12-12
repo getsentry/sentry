@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
@@ -11,9 +13,7 @@ class OrganizationProjectsTest(APITestCase):
         team = self.create_team(organization=org)
         project = self.create_project(team=team)
 
-        url = reverse('sentry-api-0-organization-projects', kwargs={
-            'organization_id': org.id,
-        })
+        url = reverse('sentry-api-0-organization-projects', args=[org.slug])
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

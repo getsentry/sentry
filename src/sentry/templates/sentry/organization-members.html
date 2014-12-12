@@ -17,7 +17,7 @@
 
   <br>
 
-  <table class="table table-striped">
+  <table class="table table-striped member-list">
     <colgroup>
       <col width="20px"/>
       <col/>
@@ -62,10 +62,38 @@
             {% endif %}
           </td>
           <td>
-            <a href=""><span class="icon icon-remove"></span></a>
+            {% if authorizing_access <= member.type %}
+              <a href="javascript:void(0)" class="remove-member" data-member-id="{{ member.id }}">
+                <span class="icon icon-remove"></span>
+              </a>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}
     </tbody>
   </table>
+{% endblock %}
+
+{% block content_after %}
+  <style>
+  .member-list form {
+    display: inline-block;
+  }
+  </style>
+  <script>
+  $('.remove-member').click(function(){
+    if (!confirm('Are you sure you wish to remove this member?')) {
+      return;
+    }
+
+    var $this = $(this);
+    $.ajax({
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
+      method: 'DELETE',
+      success: function() {
+        $this.parents('tr').remove();
+      }
+    });
+  });
+  </script>
 {% endblock %}

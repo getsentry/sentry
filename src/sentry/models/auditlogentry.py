@@ -34,7 +34,7 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.MEMBER_INVITE, 'org.invite-member'),
         (AuditLogEntryEvent.MEMBER_ADD, 'org.add-member'),
         (AuditLogEntryEvent.MEMBER_ACCEPT, 'org.accept-invite'),
-        (AuditLogEntryEvent.MEMBER_REMOVE, 'org.rempve-member'),
+        (AuditLogEntryEvent.MEMBER_REMOVE, 'org.rempoe-member'),
         (AuditLogEntryEvent.MEMBER_EDIT, 'org.edit-member'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)

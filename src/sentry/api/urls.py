@@ -16,6 +16,7 @@ from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
+from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -44,13 +45,16 @@ urlpatterns = patterns(
         name='sentry-api-0-user-details'),
 
     # Organizations
-    url(r'^organizations/(?P<organization_id>\d+)/projects/$',
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>\d+)/$',
+        OrganizationMemberDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-member-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/projects/$',
         OrganizationProjectsEndpoint.as_view(),
         name='sentry-api-0-organization-projects'),
-    url(r'^organizations/(?P<organization_id>\d+)/stats/$',
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
         OrganizationStatsEndpoint.as_view(),
         name='sentry-api-0-organization-stats'),
-    url(r'^organizations/(?P<organization_id>\d+)/teams/$',
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/teams/$',
         OrganizationTeamsEndpoint.as_view(),
         name='sentry-api-0-organization-teams'),
 

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.core.urlresolvers import reverse
 from exam import fixture
 from mock import Mock, patch
@@ -9,7 +11,7 @@ from sentry.testutils import APITestCase
 class OrganizationTeamsListTest(APITestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-0-organization-teams', args=[self.organization.id])
+        return reverse('sentry-api-0-organization-teams', args=[self.organization.slug])
 
     def test_simple(self):
         team = self.create_team()  # force creation
@@ -23,7 +25,7 @@ class OrganizationTeamsListTest(APITestCase):
 class OrganizationTeamsCreateTest(APITestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-0-organization-teams', args=[self.organization.id])
+        return reverse('sentry-api-0-organization-teams', args=[self.organization.slug])
 
     @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=False))
     def test_missing_permission(self):

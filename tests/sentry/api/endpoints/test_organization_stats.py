@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.core.urlresolvers import reverse
 
 from sentry.app import tsdb
@@ -12,9 +14,7 @@ class OrganizationStatsTest(APITestCase):
 
         tsdb.incr(tsdb.models.organization_total_received, org.id, count=3)
 
-        url = reverse('sentry-api-0-organization-stats', kwargs={
-            'organization_id': org.id,
-        })
+        url = reverse('sentry-api-0-organization-stats', args=[org.slug])
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
