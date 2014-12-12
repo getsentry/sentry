@@ -22,8 +22,18 @@
       <col width="20px"/>
       <col/>
       <col width="100px"/>
+      <col width="100px"/>
       <col width="20px"/>
     </colgroup>
+    <thead>
+      <tr>
+        <th>&nbsp;</th>
+        <th>Member</th>
+        <th>Type</th>
+        <th>Teams</th>
+        <th>&nbsp;</th>
+      </tr>
+    </thead>
     <tbody>
       {% for member, team_list in member_list %}
         <tr>
@@ -38,6 +48,7 @@
               <small>&mdash; Invited</small>
             {% endif %}
           </td>
+          <td>{{ member.get_type_display }}</td>
           <td>
             {% if member.has_global_access %}
               <span class="tip" title="Access to all teams">&infin;</span>
