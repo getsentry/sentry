@@ -26,7 +26,7 @@ def has_perm(object, user, project_key, access=OrganizationMemberType.MEMBER):
 
     if type(object) == Organization:
         return OrganizationMember.objects.filter(
-            organization=object.organization,
+            organization=object,
             type__lte=access,
             user=user,
         ).exists()
