@@ -25,7 +25,7 @@ class CreateTeamTest(TestCase):
         path = reverse('sentry-create-team', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.post(path, {
-            'op': 'submit',
+            'op': 'continue',
             'step': '0',
             'ctwizard-0-name': 'bar',
         })
@@ -62,7 +62,7 @@ class CreateTeamTest(TestCase):
         self.save_session()
 
         resp = self.client.post(path, {
-            'op': 'submit',
+            'op': 'continue',
             'step': '1',
         })
         assert resp.status_code == 200
@@ -104,7 +104,7 @@ class CreateTeamTest(TestCase):
         self.save_session()
 
         resp = self.client.post(path, {
-            'op': 'submit',
+            'op': 'continue',
             'step': '2',
             'ctwizard-2-name': 'bar',
             'ctwizard-2-platform': 'python',
