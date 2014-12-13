@@ -161,9 +161,6 @@ class CreateTeamView(OrganizationView):
 
         project = all_forms[2].save(request.user, team, request.META['REMOTE_ADDR'])
 
-        if project.platform not in (None, 'other'):
-            url = reverse('sentry-docs-client', args=[organization.slug, project.slug, project.platform])
-        else:
-            url = reverse('sentry-get-started', args=[organization.slug, project.slug])
+        url = reverse('sentry-stream', args=[organization.slug, project.slug])
 
         return self.redirect(url)

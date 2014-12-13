@@ -120,8 +120,6 @@ class CreateTeamTest(TestCase):
         assert project.name == 'bar'
         assert project.platform == 'python'
 
-        redirect_uri = reverse('sentry-docs-client', args=[
-            organization.slug, project.slug, project.platform
-        ])
+        redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
 
         assert resp['Location'] == 'http://testserver%s' % (redirect_uri,)
