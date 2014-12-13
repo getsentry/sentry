@@ -24,7 +24,7 @@ from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 from django.utils.importlib import import_module
-from exam import Exam
+from exam import before, Exam
 from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
 
@@ -60,9 +60,8 @@ class BaseTestCase(Fixtures, Exam):
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
 
-    def setUp(self):
-        super(BaseTestCase, self).setUp()
-
+    @before
+    def setup_session(self):
         engine = import_module(settings.SESSION_ENGINE)
 
         session = engine.SessionStore()
