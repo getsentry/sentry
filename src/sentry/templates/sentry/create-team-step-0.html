@@ -1,0 +1,20 @@
+{% extends "sentry/create-team.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block inner %}
+  <fieldset class="step step-1">
+    <div class="help-block">
+      {% comment %}
+      A team generally represents a group of people within your organization. It might be something like <strong>"Platform"</strong> or <strong>"API"</strong>, or it could just be a specific product that may (or may not) have sub-projects. You'll be able to select which teams a member in your organization has access to so they also act as ACLs.
+      {% endcomment %}
+      Teams group members' access to a specific focus, e.g. a major product or application that may have sub-projects.
+      <strong>Let’s add our first one:</strong>
+    </div>
+
+    {% for field in form %}
+      {{ field|as_crispy_field }}
+    {% endfor %}
+  </fieldset>
+{% endblock %}

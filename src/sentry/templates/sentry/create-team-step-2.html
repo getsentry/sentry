@@ -1,0 +1,18 @@
+{% extends "sentry/create-team.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block inner %}
+  <fieldset class="step step-1">
+    <h3>Project</h3>
+
+    <div class="help-block">
+      Projects generally pair up well with repositories. In addition to thinking about each repository being a project, also consider your environments. You might have something like <strong>"Backend"</strong> or <strong>"Frontend (Staging)"</strong>.
+    </div>
+
+    {% for field in form %}
+      {{ field|as_crispy_field }}
+    {% endfor %}
+  </fieldset>
+{% endblock %}
