@@ -3,32 +3,21 @@ from __future__ import absolute_import
 from django import forms
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
-from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Project, OrganizationMemberType, Team
-)
+from sentry.models import OrganizationMemberType, Project, Team
+from sentry.web.forms.add_project import AddProjectForm
 from sentry.web.frontend.base import OrganizationView
-from sentry.utils.samples import create_sample_event
-
-BLANK_CHOICE = [("", "")]
 
 
-class NewProjectForm(forms.ModelForm):
+class AddProjectWithTeamForm(AddProjectForm):
     team = forms.ChoiceField(choices=(), required=True)
-    name = forms.CharField(label=_('Project Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('Production')}))
-    platform = forms.ChoiceField(
-        choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
-        widget=forms.Select(attrs={'data-placeholder': _('Select a platform')})
-    )
 
     class Meta:
         fields = ('name', 'team', 'platform')
         model = Project
 
     def __init__(self, user, team_list, *args, **kwargs):
-        super(NewProjectForm, self).__init__(*args, **kwargs)
+        super(AddProjectWithTeamForm, self).__init__(*args, **kwargs)
 
         self.team_list = team_list
 
@@ -45,6 +34,10 @@ class NewProjectForm(forms.ModelForm):
                 return team
         return None
 
+    def save(self, actor, ip_address):
+        team = self.cleaned_data['team']
+        return super(AddProjectWithTeamForm, self).save(actor, team, ip_address)
+
 
 class CreateProjectView(OrganizationView):
     # TODO(dcramer): I'm 95% certain the access is incorrect here as it would
@@ -59,27 +52,14 @@ class CreateProjectView(OrganizationView):
             access=OrganizationMemberType.ADMIN,
         )
 
-        return NewProjectForm(request.user, team_list, request.POST or None, initial={
+        return AddProjectWithTeamForm(request.user, team_list, request.POST or None, initial={
             'team': request.GET.get('team'),
         })
 
     def handle(self, request, organization):
         form = self.get_form(request, organization)
         if form.is_valid():
-            project = form.save(commit=False)
-            project.organization = organization
-            project.save()
-
-            AuditLogEntry.objects.create(
-                organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_ADD,
-                data=project.get_audit_log_data(),
-            )
-
-            create_sample_event(project)
+            project = form.save(request.user, request.META['REMOTE_ADDR'])
 
             if project.platform not in (None, 'other'):
                 url = reverse('sentry-docs-client', args=[organization.slug, project.slug, project.platform])
