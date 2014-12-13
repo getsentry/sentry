@@ -163,4 +163,4 @@ class CreateTeamView(OrganizationView):
 
         url = reverse('sentry-stream', args=[organization.slug, project.slug])
 
-        return self.redirect(url)
+        return self.redirect(url + '?newinstall=1')

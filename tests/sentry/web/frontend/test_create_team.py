@@ -122,4 +122,4 @@ class CreateTeamTest(TestCase):
 
         redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
 
-        assert resp['Location'] == 'http://testserver%s' % (redirect_uri,)
+        assert resp['Location'] == 'http://testserver%s?newinstall=1' % (redirect_uri,)

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django import forms
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
 
 from sentry.models import OrganizationMemberType, Project, Team
 from sentry.web.forms.add_project import AddProjectForm
@@ -63,7 +62,7 @@ class CreateProjectView(OrganizationView):
 
             url = reverse('sentry-stream', args=[organization.slug, project.slug])
 
-            return HttpResponseRedirect(url)
+            return self.redirect(url + '?newinstall=1')
 
         context = {
             'form': form,
