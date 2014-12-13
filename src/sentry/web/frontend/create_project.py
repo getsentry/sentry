@@ -61,10 +61,8 @@ class CreateProjectView(OrganizationView):
         if form.is_valid():
             project = form.save(request.user, request.META['REMOTE_ADDR'])
 
-            if project.platform not in (None, 'other'):
-                url = reverse('sentry-docs-client', args=[organization.slug, project.slug, project.platform])
-            else:
-                url = reverse('sentry-get-started', args=[organization.slug, project.slug])
+            url = reverse('sentry-stream', args=[organization.slug, project.slug])
+
             return HttpResponseRedirect(url)
 
         context = {
