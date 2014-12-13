@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import Project, Team
 from sentry.testutils import TestCase
-from sentry.web.frontend.create_team import NewTeamForm, NewProjectForm
+from sentry.web.frontend.create_team import AddTeamForm, AddProjectForm
 
 
 class CreateTeamTest(TestCase):
@@ -18,7 +18,7 @@ class CreateTeamTest(TestCase):
         assert resp.context['organization'] == organization
         assert resp.context['step'] == 0
         assert resp.context['form']
-        assert type(resp.context['form']) == NewTeamForm
+        assert type(resp.context['form']) == AddTeamForm
 
     def test_step_0_valid_params(self):
         organization = self.create_organization()
@@ -88,7 +88,7 @@ class CreateTeamTest(TestCase):
         assert resp.context['organization'] == organization
         assert resp.context['step'] == 2
         assert resp.context['form']
-        assert type(resp.context['form']) == NewProjectForm
+        assert type(resp.context['form']) == AddProjectForm
 
     def test_step_2_valid_params(self):
         organization = self.create_organization()
