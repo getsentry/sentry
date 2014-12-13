@@ -9,45 +9,34 @@
   <section class="body">
     <div class="create-flow">
       <ul class="steps">
-        <li class="active">1. {% trans "Create a team" %}</li>
-        <li>2. {% trans "Invite members" %}</li>
-        <li>3. {% trans "Add a project" %}</li>
+        <li{% if current_step == 0 %} class="active"{% endif %}>1. {% trans "Create a team" %}</li>
+        <li{% if current_step == 1 %} class="active"{% endif %}>2. {% trans "Invite members" %}</li>
+        <li{% if current_step == 2 %} class="active"{% endif %}>3. {% trans "Add a project" %}</li>
       </ul>
 
-      <form class="form-stacked" action="" method="post">
+      <form class="form-stacked" action="." method="post">
         {% csrf_token %}
+
+        <input type="hidden" name="step" value="{{ current_step }}">
+
         {{ form|as_crispy_errors }}
 
-        <fieldset>
-          <div class="help-block">
-            {% comment %}
-            A team generally represents a group of people within your organization. It might be something like <strong>"Platform"</strong> or <strong>"API"</strong>, or it could just be a specific product that may (or may not) have sub-projects. You'll be able to select which teams a member in your organization has access to so they also act as ACLs.
-            {% endcomment %}
-            Teams group members' access to a specific focus, e.g. a major product or application that may have sub-projects.
-            <strong>Let’s add our first one:</strong>
-          </div>
-
-          {{ team_form.name|as_crispy_field }}
-        </fieldset>
-
-        {% comment %}
-        <fieldset>
-          <h3>Project</h3>
-
-          <div class="help-block">
-            Projects generally pair up well with repositories. In addition to thinking about each repository being a project, also consider your environments. You might have something like <strong>"Backend"</strong> or <strong>"Frontend (Staging)"</strong>.
-          </div>
-
-          {{ project_form.name|as_crispy_field }}
-
-          {{ project_form.platform|as_crispy_field }}
-
-        </fieldset>
-        {% endcomment%}
+        {% block inner %}
+        {% endblock %}
 
         <div class="actions">
-          <button type="submit" class="btn btn-primary">{% trans "Create Team" %}</button>
-          <a href="#" class="btn btn-default">{% trans "Skip this step" %}</a>
+          {% if current_step != first_step %}
+            <button name="op" value="skip" type="submit"
+                    class="btn btn-default">{% trans "Skip this step" %}</button>
+          {% endif %}
+          <div class="pull-right">
+            {% if current_step != first_step %}
+              <button name="op" value="back" type="submit"
+                      class="btn back-step">{% trans "Back" %}</butotn>
+            {% endif %}
+            <button name="op" value="continue" type="submit"
+                    class="btn btn-primary next-step">{% trans "Continue" %}</button>
+          </div>
         </div>
       </form>
     </div>
