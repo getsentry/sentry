@@ -40,8 +40,8 @@ def manage_project_quotas(request, organization, project):
         'page': 'quotas',
         # TODO(dcramer): has_quotas is an awful hack
         'has_quotas': type(app.quotas) != Quota,
-        'system_quota': app.quotas.get_system_quota(),
-        'team_quota': app.quotas.get_team_quota(project.team),
+        'system_quota': int(app.quotas.get_system_quota()),
+        'team_quota': int(app.quotas.get_team_quota(project.team)),
         'project': project,
         'form': form,
     }
