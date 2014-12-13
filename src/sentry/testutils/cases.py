@@ -24,7 +24,7 @@ from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 from django.utils.importlib import import_module
-from exam import Exam
+from exam import before, Exam
 from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
 
@@ -60,26 +60,18 @@ class BaseTestCase(Fixtures, Exam):
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
 
-    def login_as(self, user):
-        user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
+    @before
+    def setup_session(self):
         engine = import_module(settings.SESSION_ENGINE)
 
-        request = HttpRequest()
-        if self.client.session:
-            request.session = self.client.session
-        else:
-            request.session = engine.SessionStore()
+        session = engine.SessionStore()
+        session.save()
 
-        login(request, user)
-        request.user = user
+        self.session = session
 
-        # Save the session values.
-        request.session.save()
+    def save_session(self):
+        self.session.save()
 
-        # Set the cookie to represent the session.
-        session_cookie = settings.SESSION_COOKIE_NAME
-        self.client.cookies[session_cookie] = request.session.session_key
         cookie_data = {
             'max-age': None,
             'path': '/',
@@ -87,10 +79,25 @@ class BaseTestCase(Fixtures, Exam):
             'secure': settings.SESSION_COOKIE_SECURE or None,
             'expires': None,
         }
+
+        session_cookie = settings.SESSION_COOKIE_NAME
+        self.client.cookies[session_cookie] = self.session.session_key
         self.client.cookies[session_cookie].update(cookie_data)
 
     def login(self):
         self.login_as(self.user)
+
+    def login_as(self, user):
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        request = HttpRequest()
+        request.session = self.session
+
+        login(request, user)
+        request.user = user
+
+        # Save the session values.
+        self.save_session()
 
     def load_fixture(self, filepath):
         filepath = os.path.join(
@@ -103,14 +110,16 @@ class BaseTestCase(Fixtures, Exam):
             return fp.read()
 
     def _pre_setup(self):
+        super(BaseTestCase, self)._pre_setup()
+
         cache.clear()
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
-        super(BaseTestCase, self)._pre_setup()
 
     def _post_teardown(self):
-        flush_redis()
         super(BaseTestCase, self)._post_teardown()
+
+        flush_redis()
 
     def _makeMessage(self, data):
         return json.dumps(data)
