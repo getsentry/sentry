@@ -157,11 +157,22 @@
         var receivedPercent = parseInt(item.received / orgTotal.received * 100);
         var rejectedPercent = parseInt(item.rejected / orgTotal.rejected * 100);
         var project = projectMap[item.id];
+
+        var getPercent = function(item, total) {
+          if (total === 0) {
+            return '';
+          };
+          if (item === 0) {
+            return '0%';
+          }
+          return parseInt(item / total * 100) + '%';
+        }
+
         $('<tr>' +
             '<td><a href="/{{ organization.slug }}/' + project.slug + '/">' + app.utils.escape(project.name) + '</a></td>' +
-            '<td>' + app.utils.formatNumber(item.accepted) + '<br><small>%' + acceptedPercent + '</small></td>' +
-            '<td>' + app.utils.formatNumber(item.rejected) + '<br><small>%' + rejectedPercent + '</small></td>' +
-            '<td>' + app.utils.formatNumber(item.received) + '<br><small>%' + receivedPercent + '</small></td>' +
+            '<td>' + app.utils.formatNumber(item.accepted) + '<br><small>' + getPercent(item.accepted, orgTotal.accepted) + '</small></td>' +
+            '<td>' + app.utils.formatNumber(item.rejected) + '<br><small>' + getPercent(item.rejected, orgTotal.rejected) + '</small></td>' +
+            '<td>' + app.utils.formatNumber(item.received) + '<br><small>' + getPercent(item.received, orgTotal.received) + '</small></td>' +
           '</tr>').appendTo($tbody);
       });
     }
