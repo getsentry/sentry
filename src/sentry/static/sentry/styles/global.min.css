@@ -9313,6 +9313,9 @@ pre {
 .create-flow input[type="text"] {
   width: 400px;
 }
+.create-flow .actions {
+  text-align: right;
+}
 .create-flow .steps {
   *zoom: 1;
   list-style-type: none;

@@ -56,14 +56,12 @@ class NewProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Name'), max_length=200,
         widget=forms.TextInput(attrs={
             'placeholder': _('e.g. Backend'),
-            'required': '',
         }),
     )
     platform = forms.ChoiceField(
         choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
         widget=forms.Select(attrs={
             'data-placeholder': _('Select a platform'),
-            'required': '',
         }),
         help_text='Your platform choice helps us setup some defaults for this project.',
     )
@@ -140,7 +138,7 @@ class CreateTeamView(OrganizationView):
 
         op = request.POST.get('op')
         form = self.get_step_form(current_step, request.POST or None)
-        if op == 'submit' and form.is_valid():
+        if op == 'continue' and form.is_valid():
             session_data['step%d' % current_step] = form.cleaned_data
             request.session[self.session_key] = session_data
             if current_step == last_step:
@@ -153,7 +151,7 @@ class CreateTeamView(OrganizationView):
         elif op == 'back' and current_step > 0:
             return self.render_next_step(request, organization, current_step - 1)
 
-        elif op == 'skip' and current_step > 1:
+        elif op == 'skip' and current_step > 0:
             session_data['step%d' % current_step] = {}
             request.session[self.session_key] = session_data
             if current_step == last_step:
@@ -182,6 +180,7 @@ class CreateTeamView(OrganizationView):
             'current_step': step,
             'step': step,
             'form': form,
+            'first_step': 0,
         }
         return self.respond('sentry/%s' % (template,), context)
 
