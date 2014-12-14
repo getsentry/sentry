@@ -68,7 +68,7 @@ class MailPlugin(NotificationPlugin):
 
     def get_project_url(self, project):
         return absolute_uri(reverse('sentry-stream', args=[
-            project.team.slug,
+            project.organization.slug,
             project.slug,
         ]))
 

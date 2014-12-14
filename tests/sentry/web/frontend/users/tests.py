@@ -64,7 +64,7 @@ class UserDetailsTest(TestCase):
 
     def test_invalid_tuser_id(self):
         resp = self.client.get(reverse('sentry-user-details', args=[
-            self.team.slug, self.project.slug, 0]))
+            self.organization.slug, self.project.slug, 0]))
         assert resp.status_code == 302
 
     def test_does_load(self):

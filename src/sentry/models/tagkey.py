@@ -68,7 +68,7 @@ class TagKey(Model):
         except KeyError:
             url_name = self.DEFAULT_URL_NAME
             return absolute_uri(reverse(url_name, args=[
-                self.project.team.slug, self.project.slug, self.key]))
+                self.project.organization.slug, self.project.slug, self.key]))
 
         return absolute_uri(reverse(url_name, args=[
-            self.project.team.slug, self.project.slug]))
+            self.project.organization.slug, self.project.slug]))

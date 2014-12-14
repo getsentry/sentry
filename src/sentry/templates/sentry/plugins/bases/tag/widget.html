@@ -2,7 +2,7 @@
 {% load sentry_helpers %}
 
 <ul class="nav nav-list counted-list tag-widget"
-    data-url="{% url 'sentry-api-group-tags' group.team.slug group.project.slug group.id tag_name %}">
+    data-url="{% url 'sentry-api-group-tags' group.organization.slug group.project.slug group.id tag_name %}">
     <li class="nav-header">{{ title }}</li>
     <li class="loading">Loading...</li>
 </ul>

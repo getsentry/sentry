@@ -11,7 +11,7 @@
     <dl>
         <dt>{% trans "Key:" %}</dt>
         <dd>
-            <a href="{% url 'sentry-explore-tag' team.slug project.slug tag_key.key %}">{{ tag_key.get_label }}</a>
+            <a href="{% url 'sentry-explore-tag' organization.slug project.slug tag_key.key %}">{{ tag_key.get_label }}</a>
         </dd>
         <dt>First Seen:</dt>
         <dd>{{ tag_value.first_seen|timesince }}</dd>

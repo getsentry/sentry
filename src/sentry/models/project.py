@@ -109,7 +109,7 @@ class Project(Model):
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-stream', args=[
-            self.team.slug, self.slug]))
+            self.organization.slug, self.slug]))
 
     def merge_to(self, project):
         from sentry.models import (

@@ -44,7 +44,7 @@ class IssuePlugin(Plugin):
         output = [
             absolute_uri(reverse('sentry-group', kwargs={
                 'project_id': group.project.slug,
-                'team_slug': group.team.slug,
+                'team_slug': group.organization.slug,
                 'group_id': group.id,
             })),
         ]
@@ -190,7 +190,7 @@ class IssuePlugin(Plugin):
                 data=issue_information,
             )
 
-            return self.redirect(reverse('sentry-group', args=[group.team.slug, group.project_id, group.pk]))
+            return self.redirect(reverse('sentry-group', args=[group.organization.slug, group.project_id, group.pk]))
 
         context = {
             'form': form,

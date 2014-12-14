@@ -63,7 +63,7 @@ class TagValue(Model):
         else:
             url_name = 'sentry-explore-tag-value'
             return absolute_uri(reverse(url_name, args=[
-                self.project.team.slug, self.project.slug, self.key, self.id]))
+                self.project.organization.slug, self.project.slug, self.key, self.id]))
 
         return absolute_uri(reverse(url_name, args=[
-            self.project.team.slug, self.project.slug, self.id]))
+            self.project.organization.slug, self.project.slug, self.id]))

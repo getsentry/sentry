@@ -80,7 +80,7 @@ class GroupSerializer(Serializer):
 
         if obj.team:
             permalink = absolute_uri(reverse('sentry-group', args=[
-                obj.team.slug, obj.project.slug, obj.id]))
+                obj.organization.slug, obj.project.slug, obj.id]))
         else:
             permalink = None
 
