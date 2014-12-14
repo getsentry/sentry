@@ -28,9 +28,14 @@ dev-docs:
 	pip install -r docs/requirements.txt
 
 reset-db:
+	@echo "--> Dropping existing 'getsentry' database"
 	dropdb sentry || true
+	@echo "--> Creating 'getsentry' database"
 	createdb -E utf-8 sentry
+	@echo "--> Applying migrations"
 	sentry upgrade
+	@echo "--> Creating default user"
+	sentry createuser
 
 setup-git:
 	@echo "--> Installing git hooks"
