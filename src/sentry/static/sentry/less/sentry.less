@@ -2864,11 +2864,16 @@ pre {
   }
 
   input[type="text"] {
-    width: 400px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    width: 100%;
+    margin: 0;
   }
 
   .actions {
     text-align: right;
+    border-top: 2px solid darken(#f1f2f3, 0);
+    padding-top: 20px;
   }
 
   .steps {
