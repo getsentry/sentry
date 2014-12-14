@@ -19,6 +19,13 @@
 
   <fieldset>
     <div class="control-group">
+      <label>{% trans "Email" %}</label>
+      <div class="controls">
+        <a href="mailto:{{ member.get_email }}">{{ member.get_email }}</a>
+      </div>
+    </div>
+
+    <div class="control-group">
       <label>{% trans "Status" %}</label>
       <div class="controls">
         {% if member.is_pending %}
