@@ -8508,6 +8508,42 @@ img.avatar32 {
 .dashboard .empty-message p {
   display: none;
 }
+.welcome-message-modal {
+  border: 1px solid #ddd;
+  -webkit-border-radius: 8px;
+  -moz-border-radius: 8px;
+  border-radius: 8px;
+  margin-top: 150px;
+}
+.welcome-message {
+  padding: 20px;
+}
+.welcome-message h2 {
+  font-size: 36px;
+  letter-spacing: -2px;
+  margin: 0 0 18px;
+}
+.welcome-message p {
+  font-size: 18px;
+  line-height: 1.4;
+  color: #aaa;
+  font-weight: bold;
+  margin: 0 0 18px;
+  letter-spacing: -0.05em;
+}
+.welcome-message p.links {
+  font-size: 16px;
+}
+.welcome-message p.links a {
+  margin: 0 12px 0 0;
+}
+.welcome-message pre {
+  display: block;
+  margin: 0 0 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .empty-message {
   width: 490px;
   margin: 130px auto;

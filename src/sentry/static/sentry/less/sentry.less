@@ -2065,6 +2065,46 @@ img.avatar32 {
   }
 }
 
+// TODO(dcramer): this modal isnt responsive
+.welcome-message-modal {
+  border: 1px solid #ddd;
+  .border-radius(8px);
+  margin-top: 150px;
+}
+.welcome-message {
+  padding: 20px;
+
+  h2 {
+    font-size: 36px;
+    letter-spacing: -2px;
+    margin: 0 0 18px;
+  }
+
+  p {
+    font-size: 18px;
+    line-height: 1.4;
+    color: #aaa;
+    font-weight: bold;
+    margin: 0 0 18px;
+    letter-spacing: -0.05em;
+
+    &.links {
+      font-size: 16px;
+      a {
+        margin: 0 12px 0 0;
+      }
+    }
+  }
+
+  pre {
+    display: block;
+    margin: 0 0 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .empty-message {
   width: 490px;
   margin: 130px auto;
@@ -2806,7 +2846,6 @@ table.vars {
 pre {
   word-break: normal;
 }
-
 
 .create-flow {
   width: 575px;
