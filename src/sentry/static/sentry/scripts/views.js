@@ -28,7 +28,7 @@
 
         render: function(){
             var data = this.model.toJSON();
-            data.projectUrl = app.config.urlPrefix + '/' + app.config.teamId +
+            data.projectUrl = app.config.urlPrefix + '/' + app.config.organizationId +
                 '/' + data.project.slug + '/';
             data.loggerUrl = data.projectUrl + '?logger=' + data.logger;
 

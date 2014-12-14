@@ -159,7 +159,7 @@ class Group(Model):
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-group', args=[
-            self.team.slug, self.project.slug, self.id]))
+            self.organization.slug, self.project.slug, self.id]))
 
     @property
     def avg_time_spent(self):
@@ -255,6 +255,10 @@ class Group(Model):
         else:
             message = truncatechars(message.splitlines()[0], 100)
         return message
+
+    @property
+    def organization(self):
+        return self.project.organization
 
     @property
     def team(self):

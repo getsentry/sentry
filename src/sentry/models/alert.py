@@ -81,13 +81,17 @@ class Alert(Model):
         return self.project.team
 
     @property
+    def organization(self):
+        return self.project.organization
+
+    @property
     def is_resolved(self):
         return (self.status == STATUS_RESOLVED
                 or self.datetime < timezone.now() - timedelta(minutes=60))
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-alert-details', args=[
-            self.team.slug, self.project.slug, self.id]))
+            self.organization.slug, self.project.slug, self.id]))
 
 
 class AlertRelatedGroup(Model):

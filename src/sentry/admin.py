@@ -44,7 +44,7 @@ class ProjectAdmin(admin.ModelAdmin):
         if not instance.team:
             slug = instance.slug
         else:
-            slug = '%s/%s' % (instance.team.slug, instance.slug)
+            slug = '%s/%s' % (instance.organization.slug, instance.slug)
         return mark_safe('%s<br><small>%s</small>' % (
             escape(slug), escape(instance.name)))
 

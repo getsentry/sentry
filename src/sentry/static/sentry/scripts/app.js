@@ -340,7 +340,7 @@
                                 var tagValue = item[0],
                                     timesSeen = item[1],
                                     percent = parseInt(timesSeen / total * 100, 10),
-                                    url = app.config.urlPrefix + '/' + app.config.teamId + '/' + app.config.projectId + '/';
+                                    url = app.config.urlPrefix + '/' + app.config.organizationId + '/' + app.config.projectId + '/';
 
                                 $('<li>' +
                                     '<div class="progressbar">' +
