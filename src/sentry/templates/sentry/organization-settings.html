@@ -26,7 +26,9 @@
     </fieldset>
 
     <fieldset class="form-actions">
-      <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
+      {% if ACCESS.is_owner and ACCESS.is_global %}
+        <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
+      {% endif %}
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </fieldset>
   </form>
