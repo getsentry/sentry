@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 
@@ -12,11 +11,6 @@ from sentry.web.forms.add_project import AddProjectForm
 from sentry.web.forms.add_team import AddTeamForm
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.frontend.generic import missing_perm
-
-
-class InviteMemberForm(forms.Form):
-    def save(self, actor, team, ip_address):
-        pass
 
 
 class Step(object):
@@ -38,9 +32,8 @@ class CreateTeamView(OrganizationView):
     form_prefix = 'ctwizard'
 
     steps = [
-        Step(form=AddTeamForm, template='create-team-step-0.html'),
-        Step(form=InviteMemberForm, template='create-team-step-1.html'),
-        Step(form=AddProjectForm, template='create-team-step-2.html'),
+        Step(form=AddTeamForm, template='create-team-step-team.html'),
+        Step(form=AddProjectForm, template='create-team-step-project.html'),
     ]
 
     # A lot of this logic is inspired by Django's FormWizard, but unfortunately
@@ -159,7 +152,7 @@ class CreateTeamView(OrganizationView):
     def save(self, request, organization, all_forms):
         team = all_forms[0].save(request.user, organization, request.META['REMOTE_ADDR'])
 
-        project = all_forms[2].save(request.user, team, request.META['REMOTE_ADDR'])
+        project = all_forms[1].save(request.user, team, request.META['REMOTE_ADDR'])
 
         url = reverse('sentry-stream', args=[organization.slug, project.slug])
 
