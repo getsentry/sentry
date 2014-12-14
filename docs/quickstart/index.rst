@@ -232,7 +232,7 @@ Next up you'll need to create the first user, which will act as a superuser:
 .. code-block:: bash
 
     # create a new user
-    $ sentry --config=/etc/sentry.conf.py createsuperuser
+    $ sentry --config=/etc/sentry.conf.py createuser
 
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
@@ -356,8 +356,8 @@ power and flexibility that goes with it.
 
 Some of those which you'll likely find useful are:
 
-createsuperuser
-~~~~~~~~~~~~~~~
+createuser
+~~~~~~~~~~
 
 Quick and easy creation of superusers. These users have full access to the entirety of the Sentry server.
 
