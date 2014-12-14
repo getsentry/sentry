@@ -29,4 +29,13 @@ class OrganizationProjectsEndpoint(Endpoint):
             ))
         project_list.sort(key=lambda x: x.name)
 
-        return Response(serialize(project_list, request.user))
+        team_map = dict(
+            (t.id, c) for (t, c) in zip(team_list, serialize(team_list, request.user)),
+        )
+
+        context = []
+        for project, pdata in zip(project_list, serialize(project_list, request.user)):
+            pdata['team'] = team_map[project.team_id]
+            context.append(pdata)
+
+        return Response(context)
