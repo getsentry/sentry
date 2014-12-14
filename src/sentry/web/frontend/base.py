@@ -10,8 +10,27 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
-from sentry.models import Organization, Project, Team
+from sentry.models import (
+    Organization, OrganizationMember, OrganizationMemberType, Project, Team
+)
 from sentry.web.helpers import get_login_url, render_to_response
+
+
+class Access(object):
+    def __init__(self, is_global, type):
+        self.is_global = is_global
+        self.type = type
+
+    def has_access(self, type):
+        return self.type <= type
+
+    @property
+    def is_admin(self):
+        return self.has_access(OrganizationMemberType.ADMIN)
+
+    @property
+    def is_owner(self):
+        return self.has_access(OrganizationMemberType.OWNER)
 
 
 class OrganizationMixin(object):
@@ -176,6 +195,16 @@ class OrganizationView(BaseView):
         context['organization'] = organization
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
 
+        if request.user.is_superuser:
+            access = Access(is_global=True, type=OrganizationMemberType.OWNER)
+        else:
+            om = OrganizationMember.objects.get(
+                user=request.user, organization=organization
+            )
+            access = Access(is_global=om.has_global_access, type=om.type)
+
+        context['ACCESS'] = access
+
         return context
 
     def has_permission(self, request, organization, *args, **kwargs):
@@ -260,7 +289,6 @@ class ProjectView(BaseView):
         context['project'] = project
         context['team'] = team
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
-
         return context
 
     def has_permission(self, request, organization, team, project, *args, **kwargs):
