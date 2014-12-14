@@ -163,7 +163,36 @@
             canStream: {{ has_realtime|to_json|safe }},
             realtime: true
         });
+
     });
     </script>
+{% endblock %}
 
+{% block content_after %}
+  {% if request.GET.newinstall %}
+    {% get_project_dsn for request.user from project as project_dsn %}
+    <div class="modal welcome-message-modal" role="modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="welcome-message">
+            <h2>Welcome to your new project.</h2>
+            <p>You'll likely want to jump into configuring your project:</p>
+            <ul>
+              <li><a href="docs/">Installation instructions</a></li>
+              <li><a href="settings/">Project settings</a></li>
+            </ul>
+            <p>Already know what you're doing? Here's your DSN:</p>
+            <pre class="clippy">{{ project_dsn }}</pre>
+            <div class="actions">
+              <button type="button" class="btn btn-primary"
+                      data-dismiss="modal">Got it!</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+    $('.welcome-message-modal').modal({show: true, backdrop: true});
+    </script>
+  {% endif %}
 {% endblock %}
