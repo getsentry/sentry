@@ -14,7 +14,7 @@ class CreateTeamTest(TestCase):
         self.login_as(self.user)
         resp = self.client.get(path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/create-team-step-0.html')
+        self.assertTemplateUsed(resp, 'sentry/create-team-step-team.html')
         assert resp.context['organization'] == organization
         assert resp.context['step'] == 0
         assert resp.context['form']
@@ -39,54 +39,17 @@ class CreateTeamTest(TestCase):
 
         self.login_as(self.user)
 
-        self.session['ctwizard'] = {'step0': {'name': 'bar'}}
+        self.session['ctwizard'] = {
+            'step0': {'name': 'bar'},
+        }
         self.save_session()
 
         resp = self.client.post(path, {'step': '1'})
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/create-team-step-1.html')
+        self.assertTemplateUsed(resp, 'sentry/create-team-step-project.html')
         assert resp.context['organization'] == organization
         assert resp.context['step'] == 1
-        assert resp.context['form']
-        # assert type(resp.context['form']) == NewProjectForm
-
-    def test_step_1_valid_params(self):
-        organization = self.create_organization()
-
-        path = reverse('sentry-create-team', args=[organization.slug])
-
-        self.login_as(self.user)
-
-        self.session['ctwizard'] = {'step0': {'name': 'bar'}}
-        self.save_session()
-
-        resp = self.client.post(path, {
-            'op': 'continue',
-            'step': '1',
-        })
-        assert resp.status_code == 200
-        assert resp.context['step'] == 2, resp.context['form'].errors
-
-    def test_step_2_renders(self):
-        organization = self.create_organization()
-
-        path = reverse('sentry-create-team', args=[organization.slug])
-
-        self.login_as(self.user)
-
-        self.session['ctwizard'] = {
-            'step0': {'name': 'bar'},
-            'step1': {},
-        }
-        self.save_session()
-
-        resp = self.client.post(path, {'step': '2'})
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/create-team-step-2.html')
-        assert resp.context['organization'] == organization
-        assert resp.context['step'] == 2
         assert resp.context['form']
         assert type(resp.context['form']) == AddProjectForm
 
@@ -99,15 +62,14 @@ class CreateTeamTest(TestCase):
 
         self.session['ctwizard'] = {
             'step0': {'name': 'bar'},
-            'step1': {},
         }
         self.save_session()
 
         resp = self.client.post(path, {
             'op': 'continue',
-            'step': '2',
-            'ctwizard-2-name': 'bar',
-            'ctwizard-2-platform': 'python',
+            'step': '1',
+            'ctwizard-1-name': 'bar',
+            'ctwizard-1-platform': 'python',
         })
         assert resp.status_code == 302
 
