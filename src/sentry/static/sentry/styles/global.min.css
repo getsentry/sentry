@@ -9347,10 +9347,15 @@ pre {
   margin-bottom: 20px;
 }
 .create-flow input[type="text"] {
-  width: 400px;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  width: 100%;
+  margin: 0;
 }
 .create-flow .actions {
   text-align: right;
+  border-top: 2px solid #f1f2f3;
+  padding-top: 20px;
 }
 .create-flow .steps {
   *zoom: 1;
