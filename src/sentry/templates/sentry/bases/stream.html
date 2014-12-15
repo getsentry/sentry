@@ -1,7 +1,7 @@
 {% extends "sentry/layout.html" %}
 
 {% load i18n %}
-{% load sentry_helpers %}
+{% load sentry_permissions %}
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
@@ -20,12 +20,10 @@
         <li>
             <a href="{% url 'sentry-explore' project.organization.slug project.slug %}">{% trans "Explore" %}</a>
         </li>
-        {% if team and request.user|can_admin_team:team %}
-            <li>
-                <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}" title="{% trans "Project Settings" %}">
-                    {% trans "Settings" %}
-                </a>
-            </li>
-        {% endif %}
+        <li>
+            <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">
+                {% trans "Settings" %}
+            </a>
+        </li>
     </ul>
 {% endblock %}
