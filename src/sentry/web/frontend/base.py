@@ -87,6 +87,9 @@ class OrganizationMixin(object):
                 logging.info('User is not a member of any organizations')
                 pass
 
+        if active_organization and active_organization.slug != request.session.get('activeorg'):
+            request.session['activeorg'] = active_organization.slug
+
         return active_organization
 
     def get_active_team(self, request, organization, team_slug, access=None):
