@@ -11,7 +11,8 @@ from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
 from sentry.models import (
-    Organization, OrganizationMember, OrganizationMemberType, Project, Team
+    Organization, OrganizationMember, OrganizationMemberType,
+    OrganizationStatus, Project, Team
 )
 from sentry.web.helpers import get_login_url, render_to_response
 
@@ -53,6 +54,8 @@ class OrganizationMixin(object):
                     active_organization = Organization.objects.get_from_cache(
                         slug=organization_slug,
                     )
+                    if active_organization.status != OrganizationStatus.VISIBLE:
+                        raise Organization.DoesNotExist
                 except Organization.DoesNotExist:
                     logging.info('Active organization [%s] not found',
                                  organization_slug)
