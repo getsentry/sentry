@@ -94,12 +94,23 @@ class TeamAdmin(admin.ModelAdmin):
         if change:
             obj.owner = obj.organization.owner
         super(TeamAdmin, self).save_model(request, obj, form, change)
-        if change:
-            Project.objects.filter(
-                team=obj,
-            ).update(
-                organization=obj.organization,
-            )
+        if not change:
+            return
+
+        Project.objects.filter(
+            team=obj,
+        ).update(
+            organization=obj.organization,
+        )
+
+        # remove invalid team links
+        queryset = OrganizationMember.objects.filter(
+            teams=obj,
+        ).exclude(
+            organization=obj.organization,
+        )
+        for member in queryset:
+            member.teams.remove(obj)
 
 admin.site.register(Team, TeamAdmin)
 
