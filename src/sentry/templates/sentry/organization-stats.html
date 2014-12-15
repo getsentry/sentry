@@ -141,7 +141,7 @@
         orgTotal.rejected += pRejected;
         orgTotal.accepted += pReceived - pRejected;
       });
-      stats.rejected = $.map(sRejected, function(value, ts) { return [[ts, value]]; });
+      stats.rejected = $.map(sRejected, function(value, ts) { return [[ts, value || null]]; });
       stats.accepted = $.map(sReceived, function(value, ts) {
         // total number of events accepted (received - rejected)
         return [[ts, value - sRejected[ts]]];
