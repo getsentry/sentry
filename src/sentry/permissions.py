@@ -256,7 +256,7 @@ def can_admin_group(user, group, is_remove=False):
     if user.is_superuser:
         return True
 
-    if not is_project_admin(user, group.project):
+    if not group.project.has_access(user, OrganizationMemberType.MEMBER):
         return False
 
     # The "remove_event" permission was added after "admin_event".
