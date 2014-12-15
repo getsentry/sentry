@@ -143,6 +143,9 @@ class ProjectSettingsView(ProjectView):
         return context
 
     def has_permission(self, request, organization, team, project):
+        if project is None:
+            return False
+
         if request.user.is_superuser:
             return True
 
