@@ -9154,7 +9154,7 @@ table.vars table.vars th {
   color: inherit;
 }
 .team-list > li p {
-  margin: 0;
+  margin: 0 0 10px;
 }
 .team-list > li > ul {
   position: relative;
