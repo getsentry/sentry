@@ -313,9 +313,12 @@ class ProjectView(BaseView):
                 project_slug=project_slug,
                 access=self.required_access,
             )
-            active_team = active_project.team
         else:
             active_project = None
+
+        if active_project:
+            active_team = active_project.team
+        else:
             active_team = None
 
         kwargs['project'] = active_project
