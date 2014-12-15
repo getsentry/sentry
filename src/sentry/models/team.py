@@ -168,7 +168,7 @@ class Team(Model):
 
     def has_access(self, user, access=None):
         queryset = self.member_set.filter(user=user)
-        if access:
+        if access is not None:
             queryset = queryset.filter(type__lte=access)
 
         return queryset.exists()
