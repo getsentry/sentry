@@ -90,10 +90,11 @@ class TeamAdmin(admin.ModelAdmin):
     inlines = (TeamProjectInline,)
 
     def save_model(self, request, obj, form, change):
+        # TODO(dcramer): remove when ownership is irrelevant
+        if change:
+            obj.owner = obj.organization.owner
         super(TeamAdmin, self).save_model(request, obj, form, change)
         if change:
-            # TODO(dcramer): remove when ownership is irrelevant
-            obj.owner = obj.organization.owner
             Project.objects.filter(
                 team=obj,
             ).update(
