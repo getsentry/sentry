@@ -17,6 +17,7 @@ class OrganizationMembersView(OrganizationView):
         else:
             authorizing_access = OrganizationMember.objects.get(
                 user=request.user,
+                organization=organization,
             ).type
 
         queryset = OrganizationMemberTeams.objects.filter(
