@@ -7,7 +7,24 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
     OrganizationMemberType
 )
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, PermissionTestCase
+
+
+class OrganizationMemberSettingsPermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(OrganizationMemberSettingsPermissionTest, self).setUp()
+        member = self.create_user()
+        om = self.create_member(user=member, organization=self.organization)
+        self.path = reverse('sentry-organization-member-settings', args=[self.organization.slug, om.id])
+
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
+
+    def test_org_admin_can_load(self):
+        self.assert_org_admin_can_access(self.path)
+
+    def test_org_member_cannot_load(self):
+        self.assert_org_member_cannot_access(self.path)
 
 
 class OrganizationMemberSettingsTest(TestCase):

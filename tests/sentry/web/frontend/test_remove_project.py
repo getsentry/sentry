@@ -6,7 +6,29 @@ from django.core.urlresolvers import reverse
 
 from sentry.constants import STATUS_HIDDEN
 from sentry.models import Project
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, PermissionTestCase
+
+
+class RemoveProjectPermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(RemoveProjectPermissionTest, self).setUp()
+        self.project = self.create_project(team=self.team)
+        self.path = reverse('sentry-remove-project', args=[self.organization.slug, self.project.slug])
+
+    def test_teamless_owner_cannot_load(self):
+        self.assert_teamless_owner_cannot_access(self.path)
+
+    def test_team_admin_cannot_load(self):
+        self.assert_team_admin_cannot_access(self.path)
+
+    def test_team_owner_can_load(self):
+        self.assert_team_owner_can_access(self.path)
+
+    def test_org_admin_cannot_load(self):
+        self.assert_org_admin_cannot_access(self.path)
+
+    def test_org_owner_can_load(self):
+        self.assert_org_owner_can_access(self.path)
 
 
 class RemoveProjectTest(TestCase):

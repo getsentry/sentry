@@ -4,7 +4,25 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.models import Team
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, PermissionTestCase
+
+
+class TeamSettingsPermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(TeamSettingsPermissionTest, self).setUp()
+        self.path = reverse('sentry-manage-team', args=[self.organization.slug, self.team.slug])
+
+    def test_team_admin_can_load(self):
+        self.assert_team_admin_can_access(self.path)
+
+    def test_team_member_cannot_load(self):
+        self.assert_team_member_cannot_access(self.path)
+
+    def test_org_admin_can_load(self):
+        self.assert_org_admin_can_access(self.path)
+
+    def test_org_member_cannot_load(self):
+        self.assert_org_member_cannot_access(self.path)
 
 
 class TeamSettingsTest(TestCase):
