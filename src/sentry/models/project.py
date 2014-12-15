@@ -192,7 +192,7 @@ class Project(Model):
             user=user,
             organization=self.organization,
         )
-        if access:
+        if access is not None:
             queryset = queryset.filter(type__lte=access)
 
         return queryset.exists()

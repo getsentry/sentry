@@ -19,7 +19,7 @@ class RemoveTeamForm(forms.Form):
 
 
 class RemoveTeamView(TeamView):
-    required_access = OrganizationMemberType.ADMIN
+    required_access = OrganizationMemberType.OWNER
     sudo_required = True
 
     def get_form(self, request):
