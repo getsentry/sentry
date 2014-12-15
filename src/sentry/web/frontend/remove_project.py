@@ -62,7 +62,7 @@ class RemoveProjectView(ProjectView):
 
             messages.add_message(
                 request, messages.SUCCESS,
-                _('Deletion has been queued and will happen automatically.'))
+                _(u'The project %r was scheduled for deletion.') % (project.name.encode('utf-8'),))
 
             return HttpResponseRedirect(reverse('sentry-organization-home', args=[team.organization.id]))
 
