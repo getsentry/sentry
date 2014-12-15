@@ -38,7 +38,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = ('status', 'platform', 'public')
     search_fields = ('name', 'team__owner__username', 'team__owner__email', 'team__slug',
                      'team__name', 'slug')
-    raw_id_fields = ('team',)
+    raw_id_fields = ('team', 'organization')
 
     def full_slug(self, instance):
         if not instance.team:
@@ -75,11 +75,30 @@ class OrganizationAdmin(admin.ModelAdmin):
 admin.site.register(Organization, OrganizationAdmin)
 
 
+class TeamProjectInline(admin.TabularInline):
+    model = Project
+    extra = 1
+    fields = ('name', 'slug')
+    raw_id_fields = ('organization', 'team')
+
+
 class TeamAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'status')
     list_filter = ('status',)
     search_fields = ('name', 'organization__name', 'slug')
     raw_id_fields = ('owner', 'organization')
+    inlines = (TeamProjectInline,)
+
+    def save_model(self, request, obj, form, change):
+        super(TeamAdmin, self).save_model(request, obj, form, change)
+        if change:
+            # TODO(dcramer): remove when ownership is irrelevant
+            obj.owner = obj.organization.owner
+            Project.objects.filter(
+                team=obj,
+            ).update(
+                organization=obj.organization,
+            )
 
 admin.site.register(Team, TeamAdmin)
 
