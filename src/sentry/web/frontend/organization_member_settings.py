@@ -60,7 +60,10 @@ class OrganizationMemberSettingsView(OrganizationView):
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:
-            membership = OrganizationMember.objects.get(user=request.user)
+            membership = OrganizationMember.objects.get(
+                user=request.user,
+                organization=organization,
+            )
             authorizing_access = membership.type
 
         if member.user == request.user or authorizing_access > member.type:
