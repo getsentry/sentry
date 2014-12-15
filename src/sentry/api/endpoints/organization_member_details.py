@@ -38,6 +38,7 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
             authorizing_access = OrganizationMemberType.OWNER
         else:
             authorizing_access = OrganizationMember.objects.get(
+                organization=organization,
                 user=request.user,
             ).type
 
