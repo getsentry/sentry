@@ -80,14 +80,14 @@
 {% block content_after %}
   <script>
   $(function(){
-    var selectedTeams = $('.team-choices input[type=checkbox]:checked').slice(0, selector.length);
+    var selector = $('.team-choices input[type=checkbox]');
+    var selectedTeams = $('.team-choices input[type=checkbox]:checked').slice(0);
     $('#id_has_global_access').change(function(){
       var $this = $(this);
       var checked = $this.is(':checked');
-      var selector = $('.team-choices input[type=checkbox]');
 
       if (checked) {
-        selectedTeams = $('.team-choices input[type=checkbox]:checked').slice(0, selector.length);
+        selectedTeams = $('.team-choices input[type=checkbox]:checked').slice(0);
         selector.prop('checked', true);
       } else {
         selector.prop('checked', false);
