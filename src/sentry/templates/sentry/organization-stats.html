@@ -210,6 +210,7 @@
       var options = {
         xaxis: {
           mode: "time",
+          minTickSize: [1, "day"],
           tickFormatter: Sentry.charts.tickFormatter
         },
         yaxis: {
@@ -241,7 +242,7 @@
           backgroundColor: '#ffffff',
           borderColor: '#DEE3E9',
           borderWidth: 2,
-          tickColor: '#DEE3E9'
+          tickColor: '#f0f0f0'
         },
         hoverable: false,
         legend: {
