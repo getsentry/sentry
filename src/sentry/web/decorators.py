@@ -66,7 +66,7 @@ def has_access(access_or_func=None, organization=None, access=None):
 
             if organization_slug:
                 if not request.user.is_superuser:
-                    if team_slug:
+                    if has_team or has_project:
                         org_access = None
                     else:
                         org_access = access
@@ -153,6 +153,8 @@ def has_access(access_or_func=None, organization=None, access=None):
                                 return HttpResponse(status=400)
                             return HttpResponseRedirect(reverse('sentry'))
                     else:
+                        if request.is_ajax():
+                            return HttpResponse(status=400)
                         return HttpResponseRedirect(reverse('sentry'))
 
                 if not request.user.is_superuser and not project.has_access(request.user, access=access):
