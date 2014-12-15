@@ -38,7 +38,12 @@ class TeamManager(BaseManager):
         if not user.is_authenticated():
             return []
 
-        if settings.SENTRY_PUBLIC and access is None:
+        if user.is_superuser:
+            team_list = list(self.filter(organization=organization))
+            for team in team_list:
+                team.access_type = OrganizationMemberType.OWNER
+
+        elif settings.SENTRY_PUBLIC and access is None:
             team_list = list(self.filter(organization=organization))
             for team in team_list:
                 team.access_type = OrganizationMemberType.MEMBER
