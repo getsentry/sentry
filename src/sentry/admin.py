@@ -54,7 +54,7 @@ admin.site.register(Project, ProjectAdmin)
 class OrganizationTeamInline(admin.TabularInline):
     model = Team
     extra = 1
-    fields = ('name', 'slug', 'owner')
+    fields = ('name', 'slug', 'owner', 'status', 'date_added')
     raw_id_fields = ('organization', 'owner')
 
 
@@ -83,7 +83,7 @@ class TeamProjectInline(admin.TabularInline):
 
 
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'status')
+    list_display = ('name', 'slug', 'status', 'date_added')
     list_filter = ('status',)
     search_fields = ('name', 'organization__name', 'slug')
     raw_id_fields = ('owner', 'organization')
