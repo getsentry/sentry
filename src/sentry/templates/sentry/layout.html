@@ -70,7 +70,7 @@
                             {% else %}
                                 <a id="logo" href="{% url 'sentry' %}">Sentry</a>
                             {% endif %}
-                            {% if team or TEAM_LIST %}
+                            {% if team %}
                             <div id="team-banner">
                                 {% if TEAM_LIST %}
                                     <a class="dropdown-toggle" data-toggle="dropdown">
