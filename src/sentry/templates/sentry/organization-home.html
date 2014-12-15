@@ -21,7 +21,7 @@
             <a href="{% url 'sentry-manage-team' organization.slug team.slug %}"><span class="icon-cog"></span>Team Settings</a>
           </div><a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}">{{ team.name }}</a></h3>
           {% if not project_list %}
-            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.slug %}">create a project</a>?</p>
+            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.slug %}?team={{ team.slug }}">create a project</a>?</p>
           {% else %}
             <ul>
               {% for project in project_list %}
