@@ -42,7 +42,7 @@ class OrganizationManager(BaseManager):
             return results
 
         if settings.SENTRY_PUBLIC and access is None:
-            qs = self.all()
+            qs = self.filter(status=OrganizationStatus.VISIBLE)
             for org in qs:
                 org.member_type = OrganizationMemberType.MEMBER
                 results.append(org)
