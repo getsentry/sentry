@@ -147,7 +147,7 @@
         return [[ts, value - sRejected[ts]]];
       });
 
-      $(projectTotals).sort(function(a, b) { return a.received - b.received });
+      projectTotals.sort(function(a, b) { return a.received - b.received });
     }
 
     function renderTable() {
