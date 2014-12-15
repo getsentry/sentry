@@ -2067,23 +2067,45 @@ img.avatar32 {
 
 // TODO(dcramer): this modal isnt responsive
 .welcome-message-modal {
-  border: 1px solid #ddd;
-  .border-radius(8px);
-  margin-top: 150px;
+  border-radius: 3;
+  border: 0;
+  box-shadow: none;
+  top: 50%;
+  width: 780px;
+  margin-top: -117px;
+  margin-left: -390px;
+  box-shadow: 0 0 0 2px rgba(0,0,0, .1);
 }
+
+.modal-backdrop {
+  background: rgba(0,0,0, .2);
+}
+
 .welcome-message {
-  padding: 20px;
+  padding: 20px 30px;
+
+  .container {
+    padding: 20px 30px;
+    min-width: 1px;
+    width: 100%;
+    box-sizing: border-box;
+  }
 
   h2 {
-    font-size: 36px;
-    letter-spacing: -2px;
-    margin: 0 0 18px;
+    font-size: 20px;
+    letter-spacing: 0;
+    padding: 0 0 10px;
+    font-weight: 500;
+    padding: 15px 30px;
+    margin: -20px -30px 20px;
+    background: #fafafa;
+    border-bottom: 2px solid darken(#f1f2f3, 0);
+    border-radius: 7px 7px 0 0;
   }
 
   p {
-    font-size: 18px;
+    font-size: 14px;
     line-height: 1.4;
-    color: #aaa;
     font-weight: bold;
     margin: 0 0 18px;
     letter-spacing: -0.05em;
@@ -2102,6 +2124,11 @@ img.avatar32 {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .actions {
+    position: relative;
+    top: -4px;
   }
 }
 
