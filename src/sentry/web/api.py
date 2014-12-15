@@ -693,7 +693,7 @@ def get_group_trends(request, organization, team=None, project=None):
     elif team:
         project_list = Project.objects.get_for_user(team=team, user=request.user)
     else:
-        return HttpResponse(statuse=400)
+        return HttpResponse(status=400)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -733,7 +733,7 @@ def get_new_groups(request, organization, team=None, project=None):
     elif team:
         project_list = Project.objects.get_for_user(team=team, user=request.user)
     else:
-        return HttpResponse(statuse=400)
+        return HttpResponse(status=400)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -769,7 +769,7 @@ def get_resolved_groups(request, organization, team=None, project=None):
     elif team:
         project_list = Project.objects.get_for_user(team=team, user=request.user)
     else:
-        return HttpResponse(statuse=400)
+        return HttpResponse(status=400)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -804,7 +804,7 @@ def get_stats(request, organization, team=None, project=None):
     elif team:
         project_list = Project.objects.get_for_user(team=team, user=request.user)
     else:
-        return HttpResponse(statuse=400)
+        return HttpResponse(status=400)
 
     cutoff = timedelta(minutes=minutes)
 
