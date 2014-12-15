@@ -53,7 +53,7 @@ class CreateTeamTest(TestCase):
         assert resp.context['form']
         assert type(resp.context['form']) == AddProjectForm
 
-    def test_step_2_valid_params(self):
+    def test_step_1_valid_params(self):
         organization = self.create_organization()
 
         path = reverse('sentry-create-team', args=[organization.slug])
@@ -85,3 +85,29 @@ class CreateTeamTest(TestCase):
         redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
 
         assert resp['Location'] == 'http://testserver%s?newinstall=1' % (redirect_uri,)
+
+    def test_step_1_skip(self):
+        organization = self.create_organization()
+
+        path = reverse('sentry-create-team', args=[organization.slug])
+
+        self.login_as(self.user)
+
+        self.session['ctwizard'] = {
+            'step0': {'name': 'bar'},
+        }
+        self.save_session()
+
+        resp = self.client.post(path, {
+            'op': 'skip',
+            'step': '1',
+        })
+        assert resp.status_code == 302
+
+        team = Team.objects.get(organization=organization)
+
+        assert team.name == 'bar'
+
+        redirect_uri = reverse('sentry-organization-home', args=[organization.slug])
+
+        assert resp['Location'] == 'http://testserver%s' % (redirect_uri,)

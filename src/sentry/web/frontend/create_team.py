@@ -14,9 +14,10 @@ from sentry.web.frontend.generic import missing_perm
 
 
 class Step(object):
-    def __init__(self, form, template):
+    def __init__(self, form, template, can_skip=False):
         self.form = form
         self.template = template
+        self.can_skip = can_skip
 
     def __repr__(self):
         return '<%s: form=%s template=%s>' % (
@@ -33,7 +34,7 @@ class CreateTeamView(OrganizationView):
 
     steps = [
         Step(form=AddTeamForm, template='create-team-step-team.html'),
-        Step(form=AddProjectForm, template='create-team-step-project.html'),
+        Step(form=AddProjectForm, template='create-team-step-project.html', can_skip=True),
     ]
 
     # A lot of this logic is inspired by Django's FormWizard, but unfortunately
@@ -61,7 +62,12 @@ class CreateTeamView(OrganizationView):
             return self.render_validation_error(request, organization)
 
         op = request.POST.get('op')
-        form = self.get_step_form(current_step, request.POST or None)
+        if op != 'continue':
+            data = None
+        else:
+            data = request.POST or None
+
+        form = self.get_step_form(current_step, data)
         if op == 'continue' and form.is_valid():
             session_data['step%d' % current_step] = form.cleaned_data
             request.session[self.session_key] = session_data
@@ -137,7 +143,9 @@ class CreateTeamView(OrganizationView):
                     with_prefix=False,
                 )
 
-            if not form.is_valid():
+            if self.steps[index].can_skip and not form.data:
+                pass
+            elif not form.is_valid():
                 logging.warning('step %d (%s) did not validate; resetting create team wizard',
                               index, type(form).__name__)
                 return self.render_validation_error(request, organization)
@@ -152,8 +160,13 @@ class CreateTeamView(OrganizationView):
     def save(self, request, organization, all_forms):
         team = all_forms[0].save(request.user, organization, request.META['REMOTE_ADDR'])
 
-        project = all_forms[1].save(request.user, team, request.META['REMOTE_ADDR'])
+        if all_forms[1].is_valid():
+            project = all_forms[1].save(request.user, team, request.META['REMOTE_ADDR'])
 
-        url = reverse('sentry-stream', args=[organization.slug, project.slug])
+            url = reverse('sentry-stream', args=[organization.slug, project.slug]) + '?newinstall=1'
+        else:
+            messages.success(request, 'Your new team was created successfully.')
 
-        return self.redirect(url + '?newinstall=1')
+            url = reverse('sentry-organization-home', args=[organization.slug])
+
+        return self.redirect(url)
