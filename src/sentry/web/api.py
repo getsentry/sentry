@@ -684,16 +684,11 @@ def clear(request, organization, project):
 @never_cache
 @csrf_exempt
 @has_access
-def get_group_trends(request, organization, team=None, project=None):
+def get_group_trends(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    elif team:
-        project_list = Project.objects.get_for_user(team=team, user=request.user)
-    else:
-        return HttpResponse(status=400)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -724,16 +719,11 @@ def get_group_trends(request, organization, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_new_groups(request, organization, team=None, project=None):
+def get_new_groups(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    elif team:
-        project_list = Project.objects.get_for_user(team=team, user=request.user)
-    else:
-        return HttpResponse(status=400)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -760,16 +750,11 @@ def get_new_groups(request, organization, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_resolved_groups(request, organization, team=None, project=None):
+def get_resolved_groups(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    elif team:
-        project_list = Project.objects.get_for_user(team=team, user=request.user)
-    else:
-        return HttpResponse(status=400)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
