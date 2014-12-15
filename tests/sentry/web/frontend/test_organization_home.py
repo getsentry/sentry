@@ -2,7 +2,19 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, PermissionTestCase
+
+
+class OrganizationHomePermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(OrganizationHomePermissionTest, self).setUp()
+        self.path = reverse('sentry-organization-home', args=[self.organization.slug])
+
+    def test_teamless_member_can_load(self):
+        self.assert_teamless_member_can_access(self.path)
+
+    def test_org_member_can_load(self):
+        self.assert_org_member_can_access(self.path)
 
 
 class OrganizationHomeTest(TestCase):

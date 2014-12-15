@@ -3,7 +3,22 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.models import AuditLogEntry, AuditLogEntryEvent
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, PermissionTestCase
+
+
+class OrganizationAuditLogPermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(OrganizationAuditLogPermissionTest, self).setUp()
+        self.path = reverse('sentry-organization-audit-log', args=[self.organization.slug])
+
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
+
+    def test_org_member_cannot_load(self):
+        self.assert_org_member_cannot_access(self.path)
+
+    def test_org_admin_can_load(self):
+        self.assert_org_admin_can_access(self.path)
 
 
 class OrganizationAuditLogTest(TestCase):

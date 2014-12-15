@@ -8,7 +8,8 @@ sentry.testutils.cases
 
 from __future__ import absolute_import
 
-__all__ = ('TestCase', 'TransactionTestCase', 'APITestCase')
+__all__ = ('TestCase', 'TransactionTestCase', 'APITestCase', 'RuleTestCase',
+           'PermissionTestCase')
 
 import base64
 import os.path
@@ -29,7 +30,7 @@ from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.constants import MODULE_ROOT
-from sentry.models import GroupMeta, ProjectOption
+from sentry.models import GroupMeta, OrganizationMemberType, ProjectOption
 from sentry.rules import EventState
 from sentry.utils import json
 
@@ -253,3 +254,195 @@ class RuleTestCase(TestCase):
             event = self.event
         state = self.get_state(**kwargs)
         assert rule.passes(event, state) is False
+
+
+class PermissionTestCase(TestCase):
+    def setUp(self):
+        super(PermissionTestCase, self).setUp()
+        self.owner = self.create_user()
+        self.organization = self.create_organization(owner=self.owner)
+        self.team = self.create_team(organization=self.organization)
+
+    def assert_can_access(self, user, path, method='GET'):
+        self.login_as(user)
+        resp = getattr(self.client, method.lower())(path)
+        assert resp.status_code >= 200 and resp.status_code < 300
+
+    def assert_cannot_access(self, user, path, method='GET'):
+        self.login_as(user)
+        resp = getattr(self.client, method.lower())(path)
+        assert resp.status_code >= 300
+
+    def assert_team_member_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_org_member_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_teamless_member_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_team_member_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_org_member_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_teamless_member_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_team_admin_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_org_admin_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_teamless_admin_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_team_admin_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_org_admin_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_teamless_admin_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_team_owner_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_org_owner_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_teamless_owner_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_team_owner_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_org_owner_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_teamless_owner_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_cannot_access(user, path)
