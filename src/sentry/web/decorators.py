@@ -49,6 +49,8 @@ def has_access(access_or_func=None, organization=None, access=None):
             # All requests require authentication
             if not request.user.is_authenticated():
                 request.session['_next'] = request.get_full_path()
+                if request.is_ajax():
+                    return HttpResponse(status=401)
                 return HttpResponseRedirect(get_login_url())
 
             has_org = 'organization_slug' in kwargs
@@ -64,9 +66,13 @@ def has_access(access_or_func=None, organization=None, access=None):
 
             if organization_slug:
                 if not request.user.is_superuser:
+                    if team_slug:
+                        org_access = None
+                    else:
+                        org_access = access
                     org_list = Organization.objects.get_for_user(
                         user=request.user,
-                        access=access,
+                        access=org_access,
                     )
 
                     for o in org_list:
@@ -75,6 +81,8 @@ def has_access(access_or_func=None, organization=None, access=None):
                             break
                     else:
                         logging.debug('User %s is not listed in organization with slug %s', request.user.id, organization_slug)
+                        if request.is_ajax():
+                            return HttpResponse(status=400)
                         return HttpResponseRedirect(reverse('sentry'))
 
                 else:
@@ -84,6 +92,8 @@ def has_access(access_or_func=None, organization=None, access=None):
                         )
                     except Organization.DoesNotExist:
                         logging.debug('Organization with slug %s does not exist', organization_slug)
+                        if request.is_ajax():
+                            return HttpResponse(status=400)
                         return HttpResponseRedirect(reverse('sentry'))
 
             else:
@@ -103,6 +113,8 @@ def has_access(access_or_func=None, organization=None, access=None):
                             break
                     else:
                         logging.debug('User %s is not listed in team with slug %s', request.user.id, team_slug)
+                        if request.is_ajax():
+                            return HttpResponse(status=400)
                         return HttpResponseRedirect(reverse('sentry'))
 
                 else:
@@ -113,7 +125,8 @@ def has_access(access_or_func=None, organization=None, access=None):
                         )
                     except Team.DoesNotExist:
                         logging.debug('Team with slug %s does not exist', team_slug)
-
+                        if request.is_ajax():
+                            return HttpResponse(status=400)
                         return HttpResponseRedirect(reverse('sentry'))
 
             else:
@@ -136,11 +149,15 @@ def has_access(access_or_func=None, organization=None, access=None):
                         try:
                             project = Project.objects.get_from_cache(slug=project_id)
                         except Project.DoesNotExist:
+                            if request.is_ajax():
+                                return HttpResponse(status=400)
                             return HttpResponseRedirect(reverse('sentry'))
                     else:
                         return HttpResponseRedirect(reverse('sentry'))
 
                 if not request.user.is_superuser and not project.has_access(request.user, access=access):
+                    if request.is_ajax():
+                        return HttpResponse(status=400)
                     return HttpResponseRedirect(reverse('sentry'))
             else:
                 project = None
