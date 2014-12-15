@@ -8,6 +8,8 @@ sentry.db.models
 
 from __future__ import absolute_import
 
+import logging
+
 from django.db import models
 from django.db.models import signals
 
@@ -70,7 +72,14 @@ class BaseModel(models.Model):
     def _update_tracked_data(self):
         "Updates a local copy of attributes values"
         if self.id:
-            self.__data = dict((f.column, self.__get_field_value(f)) for f in self._meta.fields)
+            data = {}
+            for f in self._meta.fields:
+                try:
+                    data[f.column] = self.__get_field_value(f)
+                except AttributeError as e:
+                    # this case can come up from pickling
+                    logging.exception(unicode(e))
+            self.__data = data
         else:
             self.__data = UNSAVED
 
