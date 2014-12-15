@@ -108,7 +108,7 @@ class OrganizationMixin(object):
         except Team.DoesNotExist:
             return None
 
-        if not request.user.is_superuser and not team.has_access(request.user):
+        if not request.user.is_superuser and not team.has_access(request.user, access):
             return None
 
         return team
@@ -122,7 +122,7 @@ class OrganizationMixin(object):
         except Project.DoesNotExist:
             return None
 
-        if not request.user.is_superuser and not project.has_access(request.user):
+        if not request.user.is_superuser and not project.has_access(request.user, access):
             return None
 
         return project
