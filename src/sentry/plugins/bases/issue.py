@@ -44,7 +44,7 @@ class IssuePlugin(Plugin):
         output = [
             absolute_uri(reverse('sentry-group', kwargs={
                 'project_id': group.project.slug,
-                'team_slug': group.organization.slug,
+                'organization_slug': group.organization.slug,
                 'group_id': group.id,
             })),
         ]
