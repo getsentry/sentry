@@ -94,7 +94,7 @@ install_requires = [
     'raven>=5.0.0',
     'redis>=2.7.0,<2.9.0',
     'simplejson>=3.1.0,<3.4.0',
-    'six>=1.6.0,<1.7.0',
+    'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
     'South==0.8.2',
     'toronado>=0.0.4,<0.1.0',
