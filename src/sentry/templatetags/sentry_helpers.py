@@ -32,8 +32,8 @@ import six
 from six.moves import range
 
 from sentry import options
-from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Organization, Team
+from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE
+from sentry.models import Organization
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -466,18 +466,6 @@ def urlquote(value, safe=''):
 @register.filter
 def basename(value):
     return os.path.basename(value)
-
-
-@register.filter
-def can_admin_team(user, team):
-    if user.is_superuser:
-        return True
-    if team.owner == user:
-        return True
-    if team.slug in Team.objects.get_for_user(
-            organization=team.organization, user=user, access=MEMBER_OWNER):
-        return True
-    return False
 
 
 @register.filter

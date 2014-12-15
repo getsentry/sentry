@@ -166,6 +166,17 @@ def can_manage_team(user, team):
 
 
 @requires_login
+def can_manage_project(user, project):
+    if can_manage_org(user, project.organization):
+        return True
+
+    if is_project_admin(user, project):
+        return True
+
+    return False
+
+
+@requires_login
 def can_add_organization_member(user, organization):
     # must be an owner of the team
     if user.is_superuser:
