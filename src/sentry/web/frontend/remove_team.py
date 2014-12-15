@@ -34,20 +34,18 @@ class RemoveTeamView(TeamView):
         form = self.get_form(request)
 
         if form.is_valid():
-            team.update(status=TeamStatus.PENDING_DELETION)
+            if team.status != TeamStatus.PENDING_DELETION:
+                team.update(status=TeamStatus.PENDING_DELETION)
+                delete_team.delay(object_id=team.id, countdown=60 * 5)
 
-            # we delay the task for 5 minutes so we can implement an undo
-            kwargs = {'object_id': team.id}
-            delete_team.apply_async(kwargs=kwargs, countdown=60 * 5)
-
-            AuditLogEntry.objects.create(
-                organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                target_object=team.id,
-                event=AuditLogEntryEvent.TEAM_REMOVE,
-                data=team.get_audit_log_data(),
-            )
+                AuditLogEntry.objects.create(
+                    organization=organization,
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    target_object=team.id,
+                    event=AuditLogEntryEvent.TEAM_REMOVE,
+                    data=team.get_audit_log_data(),
+                )
 
             messages.add_message(
                 request, messages.SUCCESS,

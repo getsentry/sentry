@@ -29,11 +29,12 @@ class RemoveOrganizationView(OrganizationView):
     def handle(self, request, organization):
         form = self.get_form(request, organization)
         if form.is_valid():
-            organization.update(status=OrganizationStatus.PENDING_DELETION)
+            if organization.status != OrganizationStatus.PENDING_DELETION:
+                organization.update(status=OrganizationStatus.PENDING_DELETION)
 
-            delete_organization.apply_async(kwargs={
-                'object_id': organization.id,
-            }, countdown=60 * 5)
+                delete_organization.apply_async(kwargs={
+                    'object_id': organization.id,
+                }, countdown=60 * 5)
 
             messages.add_message(request, messages.SUCCESS,
                 MSG_REMOVE_SUCCESS % (organization.name,))
