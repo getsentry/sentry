@@ -81,28 +81,38 @@ class AcceptOrganizationInviteView(BaseView):
 
         form = self.get_form(request)
         if form.is_valid():
-            om.user = request.user
-            om.email = None
-            om.save()
+            if OrganizationMember.objects.filter(user=request.user).exists():
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    _('You are already a member of the %r organization.') % (
+                        organization.name.encode('utf-8'),
+                    )
+                )
 
-            AuditLogEntry.objects.create(
-                organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                target_object=om.id,
-                target_user=request.user,
-                event=AuditLogEntryEvent.MEMBER_ACCEPT,
-                data=om.get_audit_log_data(),
-            )
+                om.delete()
+            else:
+                om.user = request.user
+                om.email = None
+                om.save()
+
+                AuditLogEntry.objects.create(
+                    organization=organization,
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    target_object=om.id,
+                    target_user=request.user,
+                    event=AuditLogEntryEvent.MEMBER_ACCEPT,
+                    data=om.get_audit_log_data(),
+                )
+
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    _('You have been added to the %r organization.') % (
+                        organization.name.encode('utf-8'),
+                    )
+                )
 
             request.session.pop('can_register', None)
-
-            messages.add_message(
-                request, messages.SUCCESS,
-                _('You have been added to the %r organization.') % (
-                    organization.name.encode('utf-8'),
-                )
-            )
 
             return self.redirect(reverse('sentry-organization-home', args=[organization.slug]))
 
