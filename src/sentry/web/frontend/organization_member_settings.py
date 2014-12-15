@@ -18,6 +18,8 @@ class OrganizationMemberSettingsView(OrganizationView):
             data=request.POST or None,
             instance=member,
             initial={
+                'type': member.type,
+                'has_global_access': member.has_global_access,
                 'teams': member.teams.all(),
             }
         )
