@@ -502,7 +502,7 @@ class Stacktrace(Interface):
         return render_to_string('sentry/partial/interfaces/stacktrace.html', context)
 
     def to_string(self, event, is_public=False, **kwargs):
-        return self.get_stacktrace(event, system_frames=False, max_frames=5)
+        return self.get_stacktrace(event, system_frames=False, max_frames=10)
 
     def get_stacktrace(self, event, system_frames=True, newest_first=None,
                        max_frames=None, header=True):
