@@ -9450,6 +9450,8 @@ pre {
 .docs .docs-sidebar {
   display: block !important;
   padding: 30px 30px 15px;
+  border-right: 1px solid #e9ecf0;
+  margin-right: -1px;
 }
 .docs .docs-sidebar h4 {
   font-size: 14px;
@@ -9460,7 +9462,10 @@ pre {
   list-style-type: none;
 }
 .docs .docs-main {
-  padding: 30px 40px 10px 20px;
+  width: 76.7%;
+  padding: 30px 40px 10px;
+  border-left: 1px solid #e9ecf0;
+  margin-left: 0;
 }
 .docs .docs-main h1,
 .docs .docs-main h2,
@@ -9485,24 +9490,29 @@ pre {
 .docs .docs-main ol li {
   margin: 0 0 5px;
 }
+.docs .docs-main h2 {
+  font-weight: 500;
+}
 .docs .docs-main .api-resource {
-  border: 1px solid #e9ecf0;
-  padding: 15px 15px 0;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
+  border-top: 1px solid #e9ecf0;
+  padding: 15px 40px 0;
   margin-bottom: -1px;
+  margin-left: -40px;
+  margin-right: -40px;
 }
 .docs .docs-main .api-resource + .api-resource {
   border-radius: 0;
 }
 .docs .docs-main .api-resource:last-child {
   margin-bottom: 15px;
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
 }
 .docs .docs-main .api-resource h4 {
   background: rgba(250, 250, 250, 0.55);
   border-bottom: 1px solid #e9ecf0;
-  padding: 10px 15px;
-  margin: -15px -15px 15px;
+  padding: 10px 40px;
+  margin: -15px -40px 19px;
+}
+.docs .docs-main .api-resource h5 {
+  font-size: 16px;
+  color: #A7ADB6;
 }
