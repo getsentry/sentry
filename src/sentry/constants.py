@@ -50,14 +50,17 @@ STATUS_HIDDEN = 1
 STATUS_ACTIVE = 0
 STATUS_INACTIVE = 1
 
+# XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_MUTED = 2
-STATUS_LEVELS = (
-    (STATUS_UNRESOLVED, _('Unresolved')),
-    (STATUS_RESOLVED, _('Resolved')),
-    (STATUS_MUTED, _('Muted')),
-)
+
+STATUS_CHOICES = {
+    'resolved': STATUS_RESOLVED,
+    'unresolved': STATUS_UNRESOLVED,
+    'muted': STATUS_MUTED,
+}
+
 
 MEMBER_ADMIN = 0
 MEMBER_USER = 50

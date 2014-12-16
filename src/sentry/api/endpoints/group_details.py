@@ -5,19 +5,14 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection, Endpoint
-from sentry.api.permissions import assert_perm
 from sentry.api.fields import UserField
+from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
+from sentry.constants import STATUS_CHOICES
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus
 )
-
-STATUS_CHOICES = {
-    'resolved': GroupStatus.RESOLVED,
-    'unresolved': GroupStatus.UNRESOLVED,
-    'muted': GroupStatus.MUTED,
-}
 
 
 class GroupSerializer(serializers.Serializer):
