@@ -9441,6 +9441,12 @@ pre {
 .docs .crumbs li:last-child {
   color: #6d7786;
 }
+.docs .nav-tabs {
+  font-size: 14px !important;
+}
+.docs .nav-tabs li {
+  margin-bottom: -3px !important;
+}
 .docs .docs-sidebar {
   display: block !important;
   padding: 30px 30px 15px;
@@ -9454,7 +9460,7 @@ pre {
   list-style-type: none;
 }
 .docs .docs-main {
-  padding: 30px 40px 0 20px;
+  padding: 30px 40px 10px 20px;
 }
 .docs .docs-main h1,
 .docs .docs-main h2,
