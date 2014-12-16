@@ -49,6 +49,8 @@ a:hover {
 }
 
 p {
+  font-size: 14px;
+  line-height: 22px;
 }
 
 
@@ -1364,8 +1366,8 @@ pre {
 
 code {
   border: 0;
-  background-color: #f1f2f3;
-  color: @gray;
+  background-color: inherit;
+  color: lighten(@black, 40%);
 }
 
 .nav-tabs {
@@ -1784,9 +1786,16 @@ section.body .page-header:first-child {
 }
 
 .image {
-  border: 2px solid #f1f2f3;
-  padding: 20px;
-  border-radius: 5px;
+  border: 1px solid #ddd;
+  background: #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
+  display: inline-block;
+  .border-radius(3px);
+}
+.image img {
+  .border-radius(3px);
+  display: block;
 }
 
 .datepicker-box {
@@ -2920,195 +2929,4 @@ pre {
       }
     }
   }
-}
-
-// Docs
-
-.docs {
-  .container {
-    max-width: 1100px;
-  }
-  header {
-    background: none;
-    color: @gray-dark;
-    padding: 40px 0;
-    margin-bottom: 0;
-
-    #logo {
-      font-size: 32px;
-    }
-    .user-nav {
-      margin-top: 8px;
-      li > a {
-        font-size: 16px;
-      }
-    }
-
-    a {
-      color: @grayDark;
-    }
-
-    h1 {
-      font-size: 20px;
-    }
-  }
-
-  .content {
-    // border-top: 3px solid #f1f2f3;
-    padding-top: 15px;
-
-    .sidebar {
-      h4 {
-        font-size: 18px;
-        font-weight: 500;
-        margin: 0 0 30px;
-        letter-spacing: -0.5px;
-      }
-
-      ul {
-        .list-unstyled;
-        margin: 0 0 30px;
-
-        li {
-          font-size: 18px;
-          line-height: 1.2;
-          letter-spacing: -0.5px;
-          margin-bottom: 8px;
-
-          &.active a {
-            color: @grayDark;
-            position: relative;
-
-            &:before {
-              position: absolute;
-              display: block;
-              content: "";
-              top: -4px;
-              left: -8px;
-              right: 20px;
-              bottom: -3px;
-              background: lighten(#f1f2f3, 3);
-              z-index: -1;
-              border-radius: 4px;
-            }
-          }
-        }
-
-        a {
-          color: lighten(@grayDark, 37);
-          display: block;
-          &:hover {
-            color: lighten(@grayDark, 20);
-          }
-        }
-      }
-    }
-
-    .main {
-      font-size: 18px;
-      line-height: 1.8;
-      padding-top: 0;
-
-      p, ul, ol {
-        margin: 30px 0;
-        line-height: 1.7;
-      }
-
-      ul, ol {
-        li {
-          line-height: 1.2;
-          margin-bottom: 8px;
-        }
-      }
-
-      h2, h3, h4, h5 {
-        margin: 0 0 30px;
-        font-weight: 600;
-        letter-spacing: -0.25px;
-      }
-
-      h2 {
-        font-size: 38px;
-      }
-
-      h3 {
-        font-size: 32px;
-      }
-
-      h4 {
-        font-size: 26px;
-      }
-
-      pre, code {
-        background: lighten(#f1f2f3, 3);
-      }
-
-      .github {
-        display: block;
-        position: relative;
-        top: 8px;
-      }
-
-      .nav-tabs {
-        li {
-          margin-bottom: -3px;
-        }
-      }
-    }
-  }
-
-  .back-button {
-    top: -2px;
-  }
-
-  .crumbs {
-    .list-unstyled();
-    margin: 0 0 30px !important;
-    font-size: 18px;
-    line-height: 1.2 !important;
-    .clearfix();
-    color: lighten(@grayDark, 45);
-
-    li {
-      float: left;
-      margin-right: 20px;
-
-      &:last-child, &:last-child a {
-        color: lighten(@grayDark, 15);
-      }
-    }
-
-    a {
-      color: lighten(@grayDark, 37);
-    }
-
-  }
-}
-
-.client-platform-list {
-    list-style: none;
-    margin-left: 0;
-    margin-bottom: 20px;
-    .clearfix();
-
-    li {
-        float: left;
-        margin-right: 20px;
-    }
-
-    img {
-        width: 48px;
-        height: 48px;
-        margin: 0 auto 8px;
-        display: block;
-        border-radius: 3px;
-    }
-
-    a {
-        font-size: 12px;
-        text-align: center;
-        display: block;
-        font-weight: 500;
-        color: @gray;
-    }
 }
