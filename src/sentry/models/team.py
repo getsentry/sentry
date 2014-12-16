@@ -14,7 +14,6 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import RESERVED_TEAM_SLUGS
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
@@ -115,7 +114,7 @@ class Team(Model):
     A team represents a group of individuals which maintain ownership of projects.
     """
     organization = models.ForeignKey('sentry.Organization')
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField()
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     status = BoundedPositiveIntegerField(choices=(
@@ -133,6 +132,7 @@ class Team(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_team'
+        unique_together = (('organization', 'slug'),)
 
     __repr__ = sane_repr('slug', 'owner_id', 'name')
 
@@ -141,7 +141,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name, reserved=RESERVED_TEAM_SLUGS)
+            slugify_instance(self, self.name, organization=self.organization)
         super(Team, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
