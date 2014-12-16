@@ -14,13 +14,13 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_ADMIN
 from sentry.plugins import plugins
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response, plugin_config
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def manage_plugins(request, organization, project):
     result = plugins.first('has_perm', request.user, 'configure_project_plugin', project)
@@ -50,7 +50,7 @@ def manage_plugins(request, organization, project):
     return render_to_response('sentry/projects/plugins/list.html', context, request)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def configure_project_plugin(request, organization, project, slug):
     try:
@@ -92,7 +92,7 @@ def configure_project_plugin(request, organization, project, slug):
     return render_to_response('sentry/projects/plugins/configure.html', context, request)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def reset_project_plugin(request, organization, project, slug):
     try:
@@ -112,7 +112,7 @@ def reset_project_plugin(request, organization, project, slug):
     return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.organization.slug, project.slug, slug]))
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def enable_project_plugin(request, organization, project, slug):
     try:
@@ -134,7 +134,7 @@ def enable_project_plugin(request, organization, project, slug):
     return HttpResponseRedirect(redirect_to)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def disable_project_plugin(request, organization, project, slug):
     try:
