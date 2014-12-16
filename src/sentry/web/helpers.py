@@ -74,6 +74,7 @@ def get_default_context(request, existing_context=None, team=None):
         'URL_PREFIX': settings.SENTRY_URL_PREFIX,
         'PLUGINS': plugins,
         'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
+        'SENTRY_RAVEN_JS_URL': settings.SENTRY_RAVEN_JS_URL,
     }
 
     if request:
