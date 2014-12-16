@@ -44,6 +44,9 @@ CLEAN_MODULE_RE = re.compile(r"""^
 )/)+|
 (?:-[a-f0-9]{32,40}$)  # Ending in a commitish
 """, re.X | re.I)
+# the maximum number of remote resources (i.e. sourc eifles) that should be
+# fetched
+MAX_RESOURCE_FETCHES = 100
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -217,7 +220,7 @@ def is_data_uri(url):
     return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
 
-def expand_javascript_source(data, **kwargs):
+def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     """
     Attempt to fetch source code for javascript frames.
 
@@ -269,9 +272,15 @@ def expand_javascript_source(data, **kwargs):
         if f.colno is not None:
             sourcemap_capable.add(f.abs_path)
 
+    idx = 0
     while pending_file_list:
+        idx += 1
         filename = pending_file_list.pop()
         done_file_list.add(filename)
+
+        if idx > max_fetches:
+            logger.warn('Not fetching remote source %r due to max resource fetches', filename)
+            continue
 
         # TODO: respect cache-contro/max-age headers to some extent
         logger.debug('Fetching remote source %r', filename)
