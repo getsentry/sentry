@@ -2,6 +2,7 @@
 
 {% load i18n %}
 {% load sentry_helpers %}
+{% load sentry_markup %}
 
 {% block breadcrumbs %}
     {{ block.super }}
@@ -26,7 +27,7 @@
                   <div class="api-method">
                       <h5>{{ method.name.upper }}</h5>
                       {% if method.doc %}
-                          {{ method.doc|linebreaks }}
+                          {{ method.doc|markdown }}
                       {% endif %}
                   </div>
                 {% endfor %}
