@@ -2930,3 +2930,63 @@ pre {
     }
   }
 }
+
+.docs {
+  #content {
+    background: #fff url(../images/dashboard/sidebar-bg.png) top left repeat-y;
+    background-size: 211px 100%;
+  }
+
+  .crumbs {
+    .clearfix();
+    color: #A4ABB5;
+    list-style-type: none;
+    margin-left: 0;
+
+    a {
+      color: #A4ABB5;
+    }
+
+    li {
+      float: left;
+
+      &.divider {
+        margin: 0 12px;
+        opacity: .5;
+      }
+
+      &:last-child {
+        color: darken(#A4ABB5, 20);
+      }
+    }
+  }
+  .docs-sidebar {
+    display: block !important;
+    padding: 30px 30px 15px;
+
+    h4 {
+      font-size: 14px;
+      margin: 0 0 15px;
+    }
+
+    ul {
+      margin: 0 0 15px;
+      list-style-type: none;
+    }
+  }
+  .docs-main {
+    padding: 30px 40px 0 20px;
+
+    h1, h2, h3, h4, h5, h6, p, ul, ol, pre {
+      margin-bottom: 20px;
+    }
+
+    p, ul, ol {
+      font-size: 16px;
+      line-height: 1.5;
+      li {
+        margin: 0 0 5px;
+      }
+    }
+  }
+}
