@@ -17,7 +17,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_ADMIN
 from sentry.models import Rule
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -86,7 +86,7 @@ class RuleFormValidator(object):
         return not bool(self.errors)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 def list_rules(request, organization, project):
     rule_list = Rule.objects.filter(project=project)
 
@@ -102,7 +102,7 @@ def list_rules(request, organization, project):
     return render_to_response('sentry/projects/rules/list.html', context, request)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def create_or_edit_rule(request, organization, project, rule_id=None):
     if rule_id:
@@ -182,7 +182,7 @@ def create_or_edit_rule(request, organization, project, rule_id=None):
     return render_to_response('sentry/projects/rules/new.html', context, request)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def remove_rule(request, organization, project, rule_id):
     path = reverse('sentry-project-rules', args=[organization.slug, project.slug])

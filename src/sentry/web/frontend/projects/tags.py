@@ -12,14 +12,14 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_ADMIN
 from sentry.models import TagKey
 from sentry.web.decorators import has_access
 from sentry.web.forms.projects import ProjectTagsForm
 from sentry.web.helpers import render_to_response
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 def manage_project_tags(request, organization, project):
     tag_list = TagKey.objects.all_keys(project)
 
