@@ -15,18 +15,22 @@
     <h2>{{ section.name }}</h2>
     <div class="list-group">
         {% for resource in resource_list %}
-            <a href="#" class="list-group-item">
-                <h4>{{ resource.path }}</h4>
-                {% if resource.doc %}
-                    {{ resource.doc|linebreaks }}
-                {% endif %}
+            <section class="api-resource">
+                <div class="api-path">
+                  <h4>{{ resource.path }}</h4>
+                  {% if resource.doc %}
+                      {{ resource.doc|linebreaks }}
+                  {% endif %}
+                </div>
                 {% for method in resource.methods %}
-                    <h5>{{ method.name.upper }}</h5>
-                    {% if method.doc %}
-                        {{ method.doc|linebreaks }}
-                    {% endif %}
+                  <div class="api-method">
+                      <h5>{{ method.name.upper }}</h5>
+                      {% if method.doc %}
+                          {{ method.doc|linebreaks }}
+                      {% endif %}
+                  </div>
                 {% endfor %}
-            </a>
+            </section>
         {% endfor %}
     </div>
 {% endblock %}
