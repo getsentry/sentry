@@ -62,6 +62,12 @@ class GroupDetailsEndpoint(Endpoint):
         return [s[0] for s in seen_by]
 
     def get(self, request, group_id):
+        """
+        Return details on an individual group.
+
+            {method} {path}
+
+        """
         group = Group.objects.get(
             id=group_id,
         )
@@ -82,6 +88,22 @@ class GroupDetailsEndpoint(Endpoint):
         return Response(data)
 
     def put(self, request, group_id):
+        """
+        Update a specific group.
+
+            {method} {path}
+            {{
+              "status": "resolved"
+            }}
+
+        Attributes:
+
+        - status: resolved, unresolved, muted
+        - isBookmarked: 1, 0
+        - assignedTo: user
+
+        """
+
         group = Group.objects.get(
             id=group_id,
         )

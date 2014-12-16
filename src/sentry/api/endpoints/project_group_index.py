@@ -42,6 +42,10 @@ class ProjectGroupIndexEndpoint(Endpoint):
         """
         Return a list of aggregates bound to this project.
 
+            {method} {path}?id=1&id=2&id=3
+              status=resolved&
+              isBookmarked=1
+
         A default query of 'is:resolved' is applied. To return results with
         other statuses send an new query value (i.e. ?query= for all results).
         """
@@ -117,19 +121,21 @@ class ProjectGroupIndexEndpoint(Endpoint):
         """
         Bulk mutate various attributes on groups.
 
+            {method} {path}?id=1&id=2&id=3
+            {{
+              "status": "resolved",
+              "isBookmarked": 1
+            }}
+
         - For non-status updates, only queries by 'id' are accepted.
         - For status updates, the 'id' parameter may be omitted for a batch
         "update all" query.
 
-        PUT ?id=1&id=2&id=3
-          status=resolved&
-          isBookmarked=1
-
         Attributes:
 
-        - status=[resolved|unresolved|muted]
-        - isBookmarked=[1|0]
-        - merge=[1|0]
+        - status: resolved, unresolved, muted
+        - isBookmarked: 1, 0
+        - merge: 1, 0
 
         If any ids are out of scope this operation will succeed without any data
         mutation.
@@ -238,7 +244,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         Only queries by 'id' are accepted.
 
-        DELETE ?id=1&id=2&id=3
+            {method} {path}?id=1&id=2&id=3
 
         If any ids are out of scope this operation will succeed without any data
         mutation
