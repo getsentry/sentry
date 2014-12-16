@@ -102,7 +102,8 @@ class ApiHelpBase(BaseView):
                 self.__strip_doc(method.__doc__ or ''), path=path)
 
             methods.append({
-                'name': method_name,
+                'verb': method_name,
+                'path': full_path,
                 'title': title or '{} {}'.format(method_name, path),
                 'doc': self.__format_doc(docstring, {
                     'path': full_path,

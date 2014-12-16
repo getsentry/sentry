@@ -28,6 +28,14 @@ class EventDetailsEndpoint(Endpoint):
         return [i[1] for i in interface_list]
 
     def get(self, request, event_id):
+        """
+        Retrieve an event
+
+        Return details on an individual event.
+
+            {method} {path}
+
+        """
         event = Event.objects.get(
             id=event_id
         )
