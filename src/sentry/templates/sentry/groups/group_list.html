@@ -169,6 +169,16 @@
 {% endblock %}
 
 {% block content_after %}
+  <script type="text/template" id="empty_message">
+    <div class="empty-message">
+      <h2>No events to show.</h2>
+      <p>We'll notify you if that changes. In the meantime why not take a moment to become more familiar with Sentry.</p>
+      <p class="links">
+        <a href="docs/">Installation instructions</a> <a href="settings/">Project settings</a>
+      </p>
+    </div>
+  </script>
+
   {% if request.GET.newinstall %}
   {% get_project_dsn for request.user from project as project_dsn %}
   <div class="modal welcome-message-modal" role="modal" tabindex="-1" aria-hidden="true">
@@ -185,8 +195,8 @@
               <div class="span4">
                 <p>New here?</p>
                 <ul>
-                  <li><a href="docs/">Installation instructions</a></li>
-                  <li><a href="settings/">Project settings</a></li>
+                  <li><a href="{% url 'sentry-help %"}>Installation instructions</a></li>
+                  <li><a href="{% url 'sentry-manage-project' organization.slug project.slug %}">Project settings</a></li>
                 </ul>
               </div>
               <div class="span8">
