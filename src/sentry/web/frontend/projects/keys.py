@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_ADMIN
 from sentry.models import ProjectKey
 from sentry.permissions import (
     can_remove_project_key, can_add_project_key, can_edit_project_key
@@ -26,7 +26,7 @@ from sentry.web.forms.projectkeys import EditProjectKeyForm
 from sentry.web.helpers import render_to_response
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def manage_project_keys(request, organization, project):
     result = plugins.first('has_perm', request.user, 'edit_project', project)
@@ -54,7 +54,7 @@ def manage_project_keys(request, organization, project):
     return render_to_response('sentry/projects/keys.html', context, request)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def new_project_key(request, organization, project):
     if not can_add_project_key(request.user, project):
@@ -68,7 +68,7 @@ def new_project_key(request, organization, project):
     return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def edit_project_key(request, organization, project, key_id):
     if not can_edit_project_key(request.user, project):
@@ -103,7 +103,7 @@ def edit_project_key(request, organization, project, key_id):
 
 
 @require_http_methods(['POST'])
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
 def remove_project_key(request, organization, project, key_id):
     try:

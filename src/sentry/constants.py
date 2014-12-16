@@ -56,12 +56,13 @@ STATUS_CHOICES = {
 }
 
 
-MEMBER_ADMIN = 0
+MEMBER_OWNER = 0
+MEMBER_ADMIN = 25
 MEMBER_USER = 50
 MEMBER_SYSTEM = 100
-MEMBER_OWNER = MEMBER_ADMIN  # backwards compat
 
 MEMBER_TYPES = (
+    (MEMBER_OWNER, _('Owner')),
     (MEMBER_ADMIN, _('Admin')),
     (MEMBER_USER, _('User')),
     (MEMBER_SYSTEM, _('System Agent')),

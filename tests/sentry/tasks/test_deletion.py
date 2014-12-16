@@ -21,7 +21,7 @@ class DeleteTeamTest(TestCase):
 
             assert not Project.objects.filter(id=project1.id).exists()
 
-            delete_team_delay.assert_called_once_with(object_id=team.id)
+            delete_team_delay.assert_called_once_with(object_id=team.id, countdown=15)
 
             delete_team_delay.reset_mock()
 
@@ -29,7 +29,7 @@ class DeleteTeamTest(TestCase):
 
             assert not Project.objects.filter(id=project2.id).exists()
 
-            delete_team_delay.assert_called_once_with(object_id=team.id)
+            delete_team_delay.assert_called_once_with(object_id=team.id, countdown=15)
 
             delete_team_delay.reset_mock()
 
