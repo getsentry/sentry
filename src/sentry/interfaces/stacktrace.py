@@ -199,7 +199,7 @@ class Frame(Interface):
     def is_caused_by(self):
         # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
         # text as it contains an exception value which may may contain dynamic
-        # values
+        # values (see raven-java#125)
         return self.filename.startswith('Caused by: ')
 
     def get_hash(self):
