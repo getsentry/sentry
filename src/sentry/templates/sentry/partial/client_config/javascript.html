@@ -2,7 +2,7 @@
 
 <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Start by installing <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</p>
 
-<pre>&lt;script src="//{{ raven_js_url }}"&gt;&lt;/script&gt;</pre>
+<pre>&lt;script src="//{{ SENTRY_RAVEN_JS_URL }}"&gt;&lt;/script&gt;</pre>
 
 {% url 'sentry-manage-project' project.organization.slug project.slug as project_link %}
 
