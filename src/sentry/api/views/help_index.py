@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.contrib.admindocs.views import simplify_regex
 from django.utils.importlib import import_module
 from django.views.generic import View
