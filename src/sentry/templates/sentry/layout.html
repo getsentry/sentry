@@ -110,6 +110,7 @@
                             <ul class="nav pull-right">
                                 {% block account_nav %}
                                     {% if request.user.is_authenticated %}
+                                        <li><a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a></li>
                                         <li class="dropdown org-dropdown">
                                           <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                                             {% if organization %}
