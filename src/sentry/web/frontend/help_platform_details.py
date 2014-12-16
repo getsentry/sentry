@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 from django.http import Http404
-from django.views.generic import View
 
 from sentry.constants import PLATFORM_LIST, PLATFORM_TITLES
 from sentry.web.helpers import render_to_response, render_to_string
+from sentry.web.frontend.base import BaseView
 
 
-class HelpPlatformDetailsView(View):
+class HelpPlatformDetailsView(BaseView):
+    auth_required = False
 
     def get(self, request, platform):
         if platform not in PLATFORM_LIST:
