@@ -196,6 +196,12 @@ class Frame(Interface):
             return False
         return is_url(self.abs_path)
 
+    def is_caused_by(self):
+        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
+        # text as it contains an exception value which may may contain dynamic
+        # values
+        return self.filename.startswith('Caused by: ')
+
     def get_hash(self):
         """
         The hash of the frame varies depending on the data available.
@@ -209,7 +215,7 @@ class Frame(Interface):
         output = []
         if self.module:
             output.append(self.module)
-        elif self.filename and not self.is_url():
+        elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename))
 
         if self.context_line is None:
