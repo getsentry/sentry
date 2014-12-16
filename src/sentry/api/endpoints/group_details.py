@@ -63,6 +63,8 @@ class GroupDetailsEndpoint(Endpoint):
 
     def get(self, request, group_id):
         """
+        Retrieve an existing group
+
         Return details on an individual group.
 
             {method} {path}
@@ -89,7 +91,9 @@ class GroupDetailsEndpoint(Endpoint):
 
     def put(self, request, group_id):
         """
-        Update a specific group.
+        Update a group
+
+        Updates an individual group's attributes.
 
             {method} {path}
             {{
@@ -210,6 +214,13 @@ class GroupDetailsEndpoint(Endpoint):
         return Response(serialize(group, request.user))
 
     def delete(self, request, group_id):
+        """
+        Delete a group
+
+        Deletes an individual group.
+
+            {method} {path}
+        """
         from sentry.tasks.deletion import delete_group
 
         group = Group.objects.get(

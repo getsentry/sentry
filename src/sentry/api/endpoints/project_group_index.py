@@ -40,6 +40,8 @@ class ProjectGroupIndexEndpoint(Endpoint):
     # <tag>=<value>
     def get(self, request, project_id):
         """
+        List a project's groups
+
         Return a list of aggregates bound to this project.
 
             {method} {path}?id=1&id=2&id=3
@@ -119,6 +121,8 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
     def put(self, request, project_id):
         """
+        Bulk mutate a list of groups
+
         Bulk mutate various attributes on groups.
 
             {method} {path}?id=1&id=2&id=3

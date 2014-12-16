@@ -58,7 +58,7 @@ class ApiHelpBase(BaseView):
             except ValueError:
                 title, doc = doc, ''
         else:
-            title = path
+            title = ''
 
         return title.strip(), doc.strip()
 
@@ -97,23 +97,21 @@ class ApiHelpBase(BaseView):
             method = getattr(callback, method_name.lower(), None)
             if method is None:
                 continue
+
+            title, docstring = self.__split_doc(
+                self.__strip_doc(method.__doc__ or ''), path=path)
+
             methods.append({
                 'name': method_name,
-                'doc': self.__format_doc(self.__strip_doc(method.__doc__ or ''), {
+                'title': title or '{} {}'.format(method_name, path),
+                'doc': self.__format_doc(docstring, {
                     'path': full_path,
                     'method': method_name,
                 }),
             })
 
-        title, docstring = self.__split_doc(
-            self.__strip_doc(callback.__doc__ or ''), path=path)
-
         return {
             'path': full_path,
             'methods': methods,
-            'doc': self.__format_doc(docstring, {
-                'path': full_path,
-            }),
-            'title': title,
             'section': getattr(callback, 'doc_section', None),
         }
