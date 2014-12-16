@@ -4,14 +4,12 @@ from rest_framework.response import Response
 from six.moves import range
 
 from sentry.app import tsdb
-from sentry.api.base import BaseStatsEndpoint, DocSection
+from sentry.api.base import BaseStatsEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.models import Team, Project
 
 
 class TeamStatsEndpoint(BaseStatsEndpoint):
-    doc_section = DocSection.TEAMS
-
     def get(self, request, team_id):
         team = Team.objects.get(id=team_id)
 

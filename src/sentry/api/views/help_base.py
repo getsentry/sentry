@@ -48,13 +48,10 @@ class ApiHelpBase(BaseView):
 
         return section_list
 
-    def __strip_doc(self, doc):
-        return textwrap.dedent(doc).strip()
-
     def __split_doc(self, doc, path):
         if doc:
             try:
-                title, doc = doc.split('\n', 1)
+                title, doc = textwrap.dedent(doc).strip().split('\n', 1)
             except ValueError:
                 title, doc = doc, ''
         else:
@@ -98,8 +95,7 @@ class ApiHelpBase(BaseView):
             if method is None:
                 continue
 
-            title, docstring = self.__split_doc(
-                self.__strip_doc(method.__doc__ or ''), path=path)
+            title, docstring = self.__split_doc(method.__doc__ or '', path=path)
 
             methods.append({
                 'verb': method_name,
