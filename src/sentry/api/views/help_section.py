@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.contrib.admindocs.views import simplify_regex
 from django.http import Http404
 from django.utils.importlib import import_module
