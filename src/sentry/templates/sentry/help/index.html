@@ -31,8 +31,11 @@
               <p>If your specific question or concern isn't covered in the docs, we're here to help. Please don't hesitate to:</p>
 
               <ul>
-                <li><a href="#">Submit a support ticket</a></li>
-                <li><a href="#">Chat with us on #sentry</a> (say hi to davidcramer, mattrobenolt, or ckj)</li>
+                <li><a href="https://groups.google.com/group/getsentry">Post to our public user group</a></li>
+                <li><a href="irc://irc.freenode.net/sentry">Chat with us on #sentry (irc.freenode.net)</a></li>
+                {% block help_contact_links %}
+                    {% comment %}This block is used by getsentry.com{% endcomment %}
+                {% endblock %}
               </ul>
 
               <h3>Contributing</h3>
