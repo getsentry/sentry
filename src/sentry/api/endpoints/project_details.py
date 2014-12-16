@@ -22,6 +22,14 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class ProjectDetailsEndpoint(Endpoint):
     def get(self, request, project_id):
+        """
+        Retrieve a project.
+
+        Return details on an individual project.
+
+            {method} {path}
+
+        """
         project = Project.objects.get_from_cache(id=project_id)
 
         assert_perm(project, request.user, request.auth)

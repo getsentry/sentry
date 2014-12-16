@@ -35,6 +35,14 @@ class TeamAdminSerializer(TeamSerializer):
 
 class TeamDetailsEndpoint(Endpoint):
     def get(self, request, team_id):
+        """
+        Retrieve a team.
+
+        Return details on an individual team.
+
+            {method} {path}
+
+        """
         team = Team.objects.get(id=team_id)
 
         assert_perm(team, request.user, request.auth)
