@@ -63,9 +63,9 @@ class GroupDetailsEndpoint(Endpoint):
 
     def get(self, request, group_id):
         """
-        Retrieve an existing group
+        Retrieve an aggregate
 
-        Return details on an individual group.
+        Return details on an individual aggregate.
 
             {method} {path}
 
@@ -91,9 +91,9 @@ class GroupDetailsEndpoint(Endpoint):
 
     def put(self, request, group_id):
         """
-        Update a group
+        Update a aggregate
 
-        Updates an individual group's attributes.
+        Updates an individual aggregate's attributes.
 
             {method} {path}
             {{
@@ -215,9 +215,9 @@ class GroupDetailsEndpoint(Endpoint):
 
     def delete(self, request, group_id):
         """
-        Delete a group
+        Delete a aggregate
 
-        Deletes an individual group.
+        Deletes an individual aggregate.
 
             {method} {path}
         """

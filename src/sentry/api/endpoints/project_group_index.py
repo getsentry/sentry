@@ -40,16 +40,17 @@ class ProjectGroupIndexEndpoint(Endpoint):
     # <tag>=<value>
     def get(self, request, project_id):
         """
-        List a project's groups
+        List a project's aggregates
 
-        Return a list of aggregates bound to this project.
+        Return a list of aggregates bound to a project.
 
             {method} {path}?id=1&id=2&id=3
-              status=resolved&
-              isBookmarked=1
 
         A default query of 'is:resolved' is applied. To return results with
         other statuses send an new query value (i.e. ?query= for all results).
+
+        Any standard Sentry structured search query can be passed via the
+        ``query`` parameter.
         """
         project = Project.objects.get_from_cache(
             id=project_id,

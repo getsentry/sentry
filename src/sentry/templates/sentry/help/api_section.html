@@ -22,7 +22,9 @@
                   <h4>{{ method.title }}</h4>
                 </div>
                 {% if method.doc %}
-                    {{ method.doc|markdown }}
+                  {{ method.doc|markdown }}
+                {% else %}
+                  <pre>{{ method.verb }} {{ method.path }}</pre>
                 {% endif %}
             </section>
           {% endfor %}
