@@ -2,14 +2,15 @@ from __future__ import absolute_import
 
 from django.contrib.admindocs.views import simplify_regex
 from django.utils.importlib import import_module
-from django.views.generic import View
 
 from sentry.api.base import Endpoint
 from sentry.constants import HTTP_METHODS
 from sentry.web.helpers import render_to_response
+from sentry.web.frontend.base import BaseView
 
 
-class ApiHelpIndexView(View):
+class ApiHelpIndexView(BaseView):
+    auth_required = False
 
     def get(self, request):
         prefix = '/api/0/'

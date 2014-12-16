@@ -3,14 +3,15 @@ from __future__ import absolute_import
 from django.contrib.admindocs.views import simplify_regex
 from django.http import Http404
 from django.utils.importlib import import_module
-from django.views.generic import View
 
 from sentry.api.base import DocSection, Endpoint
 from sentry.constants import HTTP_METHODS
 from sentry.web.helpers import render_to_response
+from sentry.web.frontend.base import BaseView
 
 
-class ApiHelpSectionView(View):
+class ApiHelpSectionView(BaseView):
+    auth_required = False
 
     def get(self, request, section_id):
         try:

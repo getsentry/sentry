@@ -9460,7 +9460,7 @@ pre {
   list-style-type: none;
 }
 .docs .docs-main {
-  padding: 30px 40px 0 20px;
+  padding: 30px 40px 10px 20px;
 }
 .docs .docs-main h1,
 .docs .docs-main h2,
