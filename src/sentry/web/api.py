@@ -369,9 +369,10 @@ class StoreView(APIView):
             logger.warning('Discarded recent duplicate event from project %s/%s (id=%s)', project.organization.slug, project.slug, event_id)
             raise InvalidRequest('An event with the same ID already exists.')
 
-        # We filter data immediately before it ever gets into the queue
-        inst = SensitiveDataFilter()
-        inst.apply(data)
+        if project.get_option('sentry:scrub_data', True):
+            # We filter data immediately before it ever gets into the queue
+            inst = SensitiveDataFilter()
+            inst.apply(data)
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)

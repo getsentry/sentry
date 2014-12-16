@@ -74,6 +74,11 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Separate multiple entries with a newline.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
         required=False, min_value=0, max_value=168, step_value=1)
+    scrub_data = forms.BooleanField(
+        label=_('Data Scrubber'),
+        help_text=_('Apply server-side data scrubbing to prevent things like passwords and credit cards from being stored.'),
+        required=False
+    )
 
     class Meta:
         fields = ('name', 'platform', 'public', 'team', 'slug')
@@ -171,6 +176,7 @@ class ProjectSettingsView(ProjectView):
         return EditProjectForm(request, team_list, request.POST or None, instance=project, initial={
             'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
             'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+            'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
         })
 
     def handle(self, request, organization, team, project):
@@ -180,6 +186,7 @@ class ProjectSettingsView(ProjectView):
             project = form.save()
             project.update_option('sentry:origins', form.cleaned_data.get('origins') or [])
             project.update_option('sentry:resolve_age', form.cleaned_data.get('resolve_age'))
+            project.update_option('sentry:scrub_data', form.cleaned_data.get('scrub_data'))
 
             AuditLogEntry.objects.create(
                 organization=organization,
