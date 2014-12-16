@@ -9409,3 +9409,73 @@ pre {
 .create-flow .steps li:last-child {
   text-align: right;
 }
+.docs #content {
+  background: #ffffff url(../images/dashboard/sidebar-bg.png) top left repeat-y;
+  background-size: 211px 100%;
+}
+.docs .crumbs {
+  *zoom: 1;
+  color: #A4ABB5;
+  list-style-type: none;
+  margin-left: 0;
+}
+.docs .crumbs:before,
+.docs .crumbs:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.docs .crumbs:after {
+  clear: both;
+}
+.docs .crumbs a {
+  color: #A4ABB5;
+}
+.docs .crumbs li {
+  float: left;
+}
+.docs .crumbs li.divider {
+  margin: 0 12px;
+  opacity: .5;
+}
+.docs .crumbs li:last-child {
+  color: #6d7786;
+}
+.docs .docs-sidebar {
+  display: block !important;
+  padding: 30px 30px 15px;
+}
+.docs .docs-sidebar h4 {
+  font-size: 14px;
+  margin: 0 0 15px;
+}
+.docs .docs-sidebar ul {
+  margin: 0 0 15px;
+  list-style-type: none;
+}
+.docs .docs-main {
+  padding: 30px 40px 0 20px;
+}
+.docs .docs-main h1,
+.docs .docs-main h2,
+.docs .docs-main h3,
+.docs .docs-main h4,
+.docs .docs-main h5,
+.docs .docs-main h6,
+.docs .docs-main p,
+.docs .docs-main ul,
+.docs .docs-main ol,
+.docs .docs-main pre {
+  margin-bottom: 20px;
+}
+.docs .docs-main p,
+.docs .docs-main ul,
+.docs .docs-main ol {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.docs .docs-main p li,
+.docs .docs-main ul li,
+.docs .docs-main ol li {
+  margin: 0 0 5px;
+}

@@ -5,19 +5,19 @@
 {% load sentry_helpers %}
 
 {% block heading %}{% endblock %}
-{% block wrapperclass %}docs narrow{% endblock %}
+{% block wrapperclass %}docs windowed{% endblock %}
 
 {% block logo %}<a id="logo" href="{% url 'sentry' %}"><span class="icon-sentry-logo-full"></span></a>{% endblock %}
 
 {% block content %}
     {% block helpcontent %}
-        <div class="row">
-          <div class="col-sm-3 sidebar">
+        <div class="row-fluid">
+          <div class="span3 docs-sidebar">
             {% block sidebar %}
               {% render_doc_sidebar %}
             {% endblock %}
           </div>
-          <div class="col-sm-9 main">
+          <div class="span9 docs-main">
               <ul class="crumbs">
                 {% block breadcrumbs %}
                 <li><a href="{% url 'sentry-help' %}">Docs</a></li>
