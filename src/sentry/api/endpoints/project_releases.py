@@ -1,13 +1,23 @@
 from __future__ import absolute_import
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection, Endpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.models import Project, Release
 
 
 class ProjectReleasesEndpoint(Endpoint):
+    doc_section = DocSection.RELEASES
+
     def get(self, request, project_id):
+        """
+        List a project's releases
+
+        Retrieve a list of releases for a given project.
+
+            {method} {path}
+
+        """
         project = Project.objects.get(
             id=project_id,
         )
