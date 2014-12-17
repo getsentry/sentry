@@ -13,8 +13,10 @@
       <div class="pull-right">
         {% block actions %}
         {% if ACCESS.is_admin %}
-          <a href="{% url 'sentry-create-team' organization.slug %}"
-             class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+          {% if ACCESS.is_global %}
+            <a href="{% url 'sentry-create-team' organization.slug %}"
+               class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+          {% endif %}
           <a href="{% url 'sentry-create-project' organization.slug %}"
              class="btn btn-small btn-primary">{% trans "New Project" %}</a>
           {% if ACCESS.is_global %}
