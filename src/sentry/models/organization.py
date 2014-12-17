@@ -55,6 +55,7 @@ class OrganizationManager(BaseManager):
                 # if we're requesting specific access the member *must* have
                 # global access to teams
                 qs = qs.filter(
+                    organization__status=OrganizationStatus.VISIBLE,
                     type__lte=access,
                     has_global_access=True,
                 )
