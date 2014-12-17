@@ -37,13 +37,18 @@ class TeamManager(BaseManager):
         if not user.is_authenticated():
             return []
 
+        base_team_qs = self.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE
+        )
+
         if user.is_superuser:
-            team_list = list(self.filter(organization=organization))
+            team_list = list(base_team_qs)
             for team in team_list:
                 team.access_type = OrganizationMemberType.OWNER
 
         elif settings.SENTRY_PUBLIC and access is None:
-            team_list = list(self.filter(organization=organization))
+            team_list = list(base_team_qs)
             for team in team_list:
                 team.access_type = OrganizationMemberType.MEMBER
 
@@ -61,9 +66,11 @@ class TeamManager(BaseManager):
                 team_qs = self.none()
             else:
                 if om.has_global_access:
-                    team_qs = self.filter(organization=organization)
+                    team_qs = base_team_qs
                 else:
-                    team_qs = om.teams.all()
+                    team_qs = om.teams.filter(
+                        status=TeamStatus.VISIBLE
+                    )
 
                 for team in team_qs:
                     team.access_type = om.type
@@ -75,6 +82,7 @@ class TeamManager(BaseManager):
             ag_qs = AccessGroup.objects.filter(
                 members=user,
                 team__organization=organization,
+                team__status=TeamStatus.VISIBLE,
             ).select_related('team')
             if access is not None:
                 ag_qs = ag_qs.filter(type__lte=access)
