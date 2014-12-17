@@ -251,7 +251,7 @@
         model: app.models.Group,
 
         defaults: {
-            emptyMessage: '',
+            emptyMessage: '<p>There is no data to show.</p>',
             maxItems: 50,
             view: Backbone.View
         },

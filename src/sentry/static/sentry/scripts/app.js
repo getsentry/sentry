@@ -62,12 +62,13 @@
 
         makeDefaultView: function(id){
             return new app.GroupListView({
+                emptyMessage: '<p>There are now events to show.</p>',
                 className: 'group-list small',
                 id: id,
                 maxItems: 5,
                 stream: this.options.stream,
                 realtime: this.options.realtime,
-                model: app.models.Group
+                model: app.models.Group,
             });
         },
 
