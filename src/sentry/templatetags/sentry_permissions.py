@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from django import template
 
-from sentry.models import AccessGroup
 from sentry.permissions import (
     can_create_organizations, can_create_teams, can_create_projects,
     can_remove_team, can_remove_project, can_manage_project, can_manage_team,
@@ -28,8 +27,3 @@ register.filter('can_manage_project')(lambda a, b: can_manage_project(a, b))
 register.filter('can_manage_org')(lambda a, b: can_manage_org(a, b))
 register.filter('can_remove_team')(lambda a, b: can_remove_team(a, b))
 register.filter('can_remove_project')(lambda a, b: can_remove_project(a, b))
-
-
-@register.filter
-def has_access_groups(team):
-    return AccessGroup.objects.filter(team=team).exists()
