@@ -7,7 +7,7 @@
 
 	<pre># {% trans "Set your DSN value" %}
 RAVEN_CONFIG = {
-    'dsn': '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}',
+    'dsn': '{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}',
 }
 
 # {% trans "Add raven to the list of installed apps" %}

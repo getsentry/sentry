@@ -13,7 +13,7 @@
 <p>{% trans "Configure the client:" %}</p>
 
 <pre>&lt;script&gt;
-Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}', {
+Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}', {
     // we highly recommend restricting exceptions to a domain in order to filter out clutter
     whitelistUrls: ['example.com/scripts/']
 }).install();
