@@ -3,8 +3,26 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.models import Project, Team
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, PermissionTestCase
 from sentry.web.frontend.create_team import AddTeamForm, AddProjectForm
+
+
+class CreateTeamPermissionTest(PermissionTestCase):
+    def setUp(self):
+        super(CreateTeamPermissionTest, self).setUp()
+        self.path = reverse('sentry-create-team', args=[self.organization.slug])
+
+    def test_teamless_admin_cannot_load(self):
+        self.assert_teamless_admin_cannot_access(self.path)
+
+    def test_team_admin_cannot_load(self):
+        self.assert_team_admin_cannot_access(self.path)
+
+    def test_org_member_cannot_load(self):
+        self.assert_org_member_cannot_access(self.path)
+
+    def test_org_admin_can_load(self):
+        self.assert_org_admin_can_access(self.path)
 
 
 class CreateTeamTest(TestCase):
