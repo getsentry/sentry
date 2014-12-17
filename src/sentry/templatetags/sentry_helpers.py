@@ -494,10 +494,15 @@ def list_organizations(user):
 def needs_access_group_migration(user, organization):
     from sentry.models import AccessGroup, OrganizationMember, OrganizationMemberType
 
-    return OrganizationMember.objects.filter(
+    has_org_access_queryset = OrganizationMember.objects.filter(
         user=user,
         organization=organization,
-        type=OrganizationMemberType.ADMIN,
-    ).exists() and AccessGroup.objects.filter(
+        type__lte=OrganizationMemberType.ADMIN,
+    )
+
+    if not (user.is_superuser or has_org_access_queryset.exists()):
+        return False
+
+    return AccessGroup.objects.filter(
         team__organization=organization
     ).exists()
