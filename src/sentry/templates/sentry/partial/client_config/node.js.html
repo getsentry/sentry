@@ -12,7 +12,7 @@
 
 	<pre>var raven = require('raven');
 
-var client = new raven.Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}');</pre>
+var client = new raven.Client('{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}');</pre>
 
 	<p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
 

@@ -11,7 +11,7 @@ git submodule add git://github.com/getsentry/raven-objc</pre>
 
 <pre>- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Configure the Sentry client
-    [RavenClient clientWithDSN:@"{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}"];
+    [RavenClient clientWithDSN:@"{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}"];
 
     // Install the global error handler
     [[RavenClient sharedClient] setupExceptionHandler];
