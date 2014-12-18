@@ -22,6 +22,7 @@ from django.http import (
     HttpResponseForbidden, HttpResponseRedirect,
 )
 from django.utils import timezone
+from django.utils.http import urlquote
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
@@ -30,6 +31,7 @@ from functools import wraps
 from raven.contrib.django.models import client as Raven
 
 from sentry import app
+from sentry.api.base import LINK_HEADER
 from sentry.app import tsdb
 from sentry.constants import MEMBER_USER, EVENTS_PER_PAGE
 from sentry.coreapi import (
@@ -387,20 +389,53 @@ class StoreView(APIView):
 @csrf_exempt
 @has_access
 @never_cache
-@api
 def poll(request, organization, project):
     offset = 0
     limit = EVENTS_PER_PAGE
 
-    response = _get_group_list(
+    group_result = _get_group_list(
         request=request,
         project=project,
     )
 
-    event_list = response['event_list']
+    event_list = group_result['event_list']
     event_list = list(event_list[offset:limit])
 
-    return to_json(event_list, request)
+    data = to_json(event_list, request)
+
+    links = [
+        ('previous', str(group_result['prev_cursor'])),
+        ('next', str(group_result['next_cursor'])),
+    ]
+
+    querystring = u'&'.join(
+        u'{0}={1}'.format(urlquote(k), urlquote(v))
+        for k, v in request.GET.iteritems()
+        if k != 'cursor'
+    )
+    base_url = request.build_absolute_uri(request.path)
+    if querystring:
+        base_url = '{0}?{1}'.format(base_url, querystring)
+    else:
+        base_url = base_url + '?'
+
+    link_values = []
+    for name, cursor in links:
+        link_values.append(LINK_HEADER.format(
+            uri=base_url,
+            cursor=cursor,
+            name=name,
+        ))
+
+    headers = {}
+    if link_values:
+        headers['Link'] = ', '.join(link_values)
+
+    response = HttpResponse(data)
+    response['Content-Type'] = 'application/json'
+    if link_values:
+        response['Link'] = ', '.join(link_values)
+    return response
 
 
 @csrf_exempt

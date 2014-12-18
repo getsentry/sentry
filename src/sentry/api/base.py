@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from django.utils.http import urlquote
 from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
@@ -8,7 +9,6 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from urllib2 import quote
 
 from sentry.tsdb.base import ROLLUPS
 
@@ -58,7 +58,7 @@ class Endpoint(APIView):
         ]
 
         querystring = u'&'.join(
-            u'{0}={1}'.format(quote(k), quote(v))
+            u'{0}={1}'.format(urlquote(k), urlquote(v))
             for k, v in request.GET.iteritems()
             if k != 'cursor'
         )
