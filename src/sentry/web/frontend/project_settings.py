@@ -91,11 +91,8 @@ class EditProjectForm(forms.ModelForm):
 
         if not can_set_public_projects(request.user):
             del self.fields['public']
-        if len(team_list) == 1 and instance.team == team_list[0]:
-            del self.fields['team']
-        else:
-            self.fields['team'].choices = self.get_team_choices(team_list, instance.team)
-            self.fields['team'].widget.choices = self.fields['team'].choices
+        self.fields['team'].choices = self.get_team_choices(team_list, instance.team)
+        self.fields['team'].widget.choices = self.fields['team'].choices
 
     def get_team_label(self, team):
         return '%s (%s)' % (team.name, team.slug)
