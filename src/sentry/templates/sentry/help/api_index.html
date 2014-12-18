@@ -22,7 +22,9 @@
 
     <p>As an example, to get information about the project which your key is bound to, you might make a request like so:</p>
 
-    <pre>curl -u PUBLIC_KEY:SECRET_KEY /api/0/projects/</pre>
+    <pre>curl -u PUBLIC_KEY:SECRET_KEY /api/0/projects/{project_id}/</pre>
+
+    <p>Note: Currently requests are limited to project-scoped endpoints only.</p>
 
     <p>All API requests and responses are based on JSON, so you'll receive something similar to the following back:</p>
 
