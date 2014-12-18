@@ -2940,13 +2940,35 @@ pre {
   .select-project {
     font-size: 16px;
 
+    &.open {
+      .dropdown-toggle {
+        text-decoration: none;
+        position: relative;
+        z-index: 2;
+        color: @gray;
+
+        &:after {
+          display: block;
+          content: "";
+          position: absolute;
+          top: -4px;
+          left: -6px;
+          right: -6px;
+          bottom: -4px;
+          background: #f1f2f3;
+          z-index: -1;
+          border-radius: 5px;
+        }
+      }
+    }
+
     .project-label {
       color: #A4ABB5;
     }
 
     .dropdown-menu {
       left: auto;
-      right: 0;
+      right: -6px;
       width: 500px;
       overflow: hidden;
       padding: 0;
@@ -2993,6 +3015,7 @@ pre {
               background: transparent;
               position: relative;
               z-index: 2;
+              color: @gray;
             }
 
             &:after {
@@ -3003,7 +3026,7 @@ pre {
               left: -6px;
               bottom: -2px;
               right: 10px;
-              background: #2e9fff;
+              background: #f1f2f3;
               z-index: 1;
               border-radius: 3px;
             }
