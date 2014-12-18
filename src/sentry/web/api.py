@@ -22,13 +22,13 @@ from django.http import (
     HttpResponseForbidden, HttpResponseRedirect,
 )
 from django.utils import timezone
+from django.utils.http import urlquote
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 from functools import wraps
 from raven.contrib.django.models import client as Raven
-from urllib2 import quote
 
 from sentry import app
 from sentry.api.base import LINK_HEADER
@@ -409,7 +409,7 @@ def poll(request, organization, project):
     ]
 
     querystring = u'&'.join(
-        u'{0}={1}'.format(quote(k), quote(v))
+        u'{0}={1}'.format(urlquote(k), urlquote(v))
         for k, v in request.GET.iteritems()
         if k != 'cursor'
     )
