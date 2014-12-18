@@ -129,7 +129,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
             {method} {path}?id=1&id=2&id=3
             {{
               "status": "resolved",
-              "isBookmarked": 1
+              "isBookmarked": true
             }}
 
         - For non-status updates, only queries by 'id' are accepted.
@@ -139,8 +139,8 @@ class ProjectGroupIndexEndpoint(Endpoint):
         Attributes:
 
         - status: resolved, unresolved, muted
-        - isBookmarked: 1, 0
-        - merge: 1, 0
+        - isBookmarked: true, false
+        - merge: true, false
 
         If any ids are out of scope this operation will succeed without any data
         mutation.
