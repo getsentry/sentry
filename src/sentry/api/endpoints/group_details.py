@@ -91,7 +91,7 @@ class GroupDetailsEndpoint(Endpoint):
 
     def put(self, request, group_id):
         """
-        Update a aggregate
+        Update an aggregate
 
         Updates an individual aggregate's attributes.
 
@@ -215,7 +215,7 @@ class GroupDetailsEndpoint(Endpoint):
 
     def delete(self, request, group_id):
         """
-        Delete a aggregate
+        Delete an aggregate
 
         Deletes an individual aggregate.
 
