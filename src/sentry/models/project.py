@@ -51,12 +51,12 @@ class ProjectManager(BaseManager):
             base_qs = Project.objects.filter(
                 accessgroup__team=team,
                 accessgroup__members=user,
-                status=STATUS_VISIBLE,
+                status=ProjectStatus.VISIBLE,
             )
         else:
             base_qs = self.filter(
                 team=team,
-                status=STATUS_VISIBLE,
+                status=ProjectStatus.VISIBLE,
             )
 
         project_list = []
