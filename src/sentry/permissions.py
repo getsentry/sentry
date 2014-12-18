@@ -218,22 +218,6 @@ def can_remove_organization_member(user, member):
 
 
 @requires_login
-def can_remove_team(user, team):
-    if user.is_superuser:
-        return True
-
-    # must be an owner of the team
-    if not is_team_admin(user, team):
-        return False
-
-    result = plugins.first('has_perm', user, 'remove_team', team)
-    if result is False:
-        return False
-
-    return True
-
-
-@requires_login
 def can_remove_project(user, project):
     if project.is_internal_project():
         return False

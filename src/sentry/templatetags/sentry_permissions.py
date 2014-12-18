@@ -11,8 +11,7 @@ from django import template
 
 from sentry.permissions import (
     can_create_organizations, can_create_teams, can_create_projects,
-    can_remove_team, can_remove_project, can_manage_project, can_manage_team,
-    can_manage_org
+    can_remove_project, can_manage_project, can_manage_team, can_manage_org
 )
 
 register = template.Library()
@@ -25,5 +24,4 @@ register.filter('can_create_projects')(lambda a, b: can_create_projects(a, b))
 register.filter('can_manage_team')(lambda a, b: can_manage_team(a, b))
 register.filter('can_manage_project')(lambda a, b: can_manage_project(a, b))
 register.filter('can_manage_org')(lambda a, b: can_manage_org(a, b))
-register.filter('can_remove_team')(lambda a, b: can_remove_team(a, b))
 register.filter('can_remove_project')(lambda a, b: can_remove_project(a, b))

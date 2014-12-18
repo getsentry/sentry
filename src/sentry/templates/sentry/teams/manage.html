@@ -47,8 +47,6 @@
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
       {% if can_remove_team %}
           <a href="{% url 'sentry-remove-team' organization.slug team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
-      {% else %}
-          <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
       {% endif %}
     </fieldset>
   </form>
