@@ -84,7 +84,7 @@ class HelpPlatformBaseView(BaseView):
             'selected_project': selected_project,
             'org_results': self.group_project_list(project_list),
             'dsn': dsn_private,
-            'dns_public': dsn_public,
+            'dsn_public': dsn_public,
 
         }
         return context
