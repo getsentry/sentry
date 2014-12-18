@@ -107,7 +107,7 @@ class GroupUpdateTest(APITestCase):
             group4=group4,
         )
         response = self.client.put(url, data={
-            'isBookmarked': '1',
+            'isBookmarked': 'true',
         }, format='json')
         assert response.status_code == 200
 
