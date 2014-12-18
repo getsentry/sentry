@@ -6,6 +6,42 @@
 {% block title %}{% trans "Platforms" %} | {{ block.super }}{% endblock %}
 {% block client_overview_class %}active{% endblock %}
 
+{% block pre_breadcrumbs %}
+  {% if org_results %}
+  <div class="select-project dropdown pull-right">
+    <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
+    {% if selected_project %}
+      <span class="project-label">Project:</span> {{ selected_project.name }} <span class="caret"></span>
+    {% else %}
+      <span class="project-label">Project:</span> (Select) <span class="caret"></span>
+    {% endif %}
+    </a>
+    <div class="dropdown-menu">
+      <ul class="orgs">
+      {% for org, team_results in org_results %}
+        <li class="org">
+          <h5>{{ org.name }}</h5>
+          <ul class="teams unstyled">
+          {% for team, project_results in team_results %}
+            <li class="team">
+              <h6>{{ team.name }}</h6>
+              <ul class="projects unstyled">
+              {% for project in project_results %}
+                <li{% if project == selected_project %} class="active"{% endif %}>
+                  <a href="?pid={{ project.id }}">{{ project.name }}</a>
+                </li>
+              {% endfor %}
+              </ul>
+            </li>
+          {% endfor %}
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}
+
 {% block breadcrumbs %}
     {{ block.super }}
     <li class="divider">/</li>
@@ -21,6 +57,22 @@
     <h3>Sentry Clients</h3>
 
     <p>While Sentry is designed to work on any platform, we officially support a subset. If you're looking to integrate Sentry on an unsupported platform please take a look at our <a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">client API reference</a>.</p>
+
+{% if dsn %}
+    <h3>Your DSN</h3>
+
+    <p>{% trans "If you already know what you're doing, you can just drop the DSN your client's configuration:" %}</p>
+
+    <pre class="clippy">{{ dsn }}</pre>
+
+    {% if dsn_public %}
+        <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
+
+        <pre class="clippy">{{ dsn_public }}</pre>
+    {% endif %}
+
+    <p>Note: The above DSN is for the <strong>{{ selected_project.team.name }} {{ selected_project.name }}</strong> project.</p>
+{% endif %}
 
     <h4>Our clients</h4>
 

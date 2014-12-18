@@ -472,11 +472,13 @@
             }
         },
 
-        pollSuccess: function(groups){
+        pollSuccess: function(groups, _, jqXHR){
             if (!groups.length)
                 return window.setTimeout(this.poll, this.options.pollTime * 5);
 
-            this.cursor = groups[groups.length - 1].score;
+            var links = app.utils.parseLinkHeader(jqXHR.getResponseHeader('Link'));
+
+            this.options.pollUrl = links.previous;
 
             this.queue.add(groups, {merge: true});
 

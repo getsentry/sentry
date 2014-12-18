@@ -6,42 +6,6 @@
 {% block title %}{{ platform_title }} Client Configuration | {{ block.super }}{% endblock %}
 {% block client_overview_class %}{% endblock %}
 
-{% block pre_breadcrumbs %}
-  {% if org_results %}
-  <div class="select-project dropdown pull-right">
-    <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
-    {% if selected_project %}
-      <span class="project-label">Project:</span> {{ selected_project.name }} <span class="caret"></span>
-    {% else %}
-      <span class="project-label">Project:</span> (Select) <span class="caret"></span>
-    {% endif %}
-    </a>
-    <div class="dropdown-menu">
-      <ul class="orgs">
-      {% for org, team_results in org_results %}
-        <li class="org">
-          <h5>{{ org.name }}</h5>
-          <ul class="teams unstyled">
-          {% for team, project_results in team_results %}
-            <li class="team">
-              <h6>{{ team.name }}</h6>
-              <ul class="projects unstyled">
-              {% for project in project_results %}
-                <li{% if project == selected_project %} class="active"{% endif %}>
-                  <a href="?pid={{ project.id }}">{{ project.name }}</a>
-                </li>
-              {% endfor %}
-              </ul>
-            </li>
-          {% endfor %}
-        </li>
-      {% endfor %}
-      </ul>
-    </div>
-  </div>
-  {% endif %}
-{% endblock %}
-
 {% block breadcrumbs %}
   {{ block.super }}
   <li class="divider">/</li>

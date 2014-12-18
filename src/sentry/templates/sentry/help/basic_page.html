@@ -6,15 +6,18 @@
 
 {% block breadcrumbs %}
 {{ block.super }}
-<li class="divider">/</li>
-<li><a>Guides</a></li>
-<li class="divider">/</li>
-<li>{{ page.title }}</li>
-
+  <li class="divider">/</li>
+  <li><a>Guides</a></li>
+  <li class="divider">/</li>
+  <li>{{ page.title }}</li>
 {% endblock%}
 
-{% block main %}
-    <h3>{{ page.title }}</h3>
+{% block title %}
+  {{ page.title }}
+{% endblock %}}
 
-    {{ page.content|markdown }}
+{% block main %}
+  <h3>{{ page.title }}</h3>
+
+  {{ page.content|markdown }}
 {% endblock %}
