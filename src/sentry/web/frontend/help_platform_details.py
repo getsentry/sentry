@@ -16,7 +16,7 @@ class HelpPlatformDetailsView(BaseView):
     def get_project_list(self, user):
         return list(Project.objects.filter(
             Q(organization__member_set__has_global_access=True, organization__member_set__user=user)
-            | Q(team__organization__member_set__user=user)
+            | Q(team__organizationmember__user=user)
         ).select_related('team', 'organization').order_by('organization', 'team'))
 
     def group_project_list(self, project_list):
