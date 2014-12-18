@@ -105,7 +105,7 @@ def _get_group_list(request, project):
             logging.warn('Throwing away invalid cursor: %s', cursor)
     query_kwargs['limit'] = EVENTS_PER_PAGE
 
-    query = request.GET.get('query', 'is:unresolved')
+    query = request.GET.get('query', '')
     if query is not None:
         query_kwargs.update(parse_query(query, request.user))
 
