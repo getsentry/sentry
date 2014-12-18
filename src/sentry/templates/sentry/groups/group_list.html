@@ -174,7 +174,8 @@
       <h2>No events to show.</h2>
       <p>We'll notify you if that changes. In the meantime why not take a moment to become more familiar with Sentry.</p>
       <p class="links">
-        <a href="docs/">Installation instructions</a> <a href="settings/">Project settings</a>
+        <a href="{% url 'sentry-help-platform-list' %}?pid={{ project.id }}">Installation instructions</a>
+        <a href="{% url 'sentry-manage-project' organization.slug project.slug %}">Project settings</a>
       </p>
     </div>
   </script>
@@ -195,7 +196,7 @@
               <div class="span4">
                 <p>New here?</p>
                 <ul>
-                  <li><a href="{% url 'sentry-help' %}">Installation instructions</a></li>
+                  <li><a href="{% url 'sentry-help-platform-list' %}?pid={{ project.id }}">Installation instructions</a></li>
                   <li><a href="{% url 'sentry-manage-project' organization.slug project.slug %}">Project settings</a></li>
                 </ul>
               </div>
