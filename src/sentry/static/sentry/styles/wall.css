@@ -9621,6 +9621,86 @@ pre {
   font-size: 16px;
   color: #A7ADB6;
 }
+.client-platform-list {
+  list-style: none;
+  margin-left: 0;
+  margin-bottom: 30px;
+  *zoom: 1;
+}
+.client-platform-list:before,
+.client-platform-list:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.client-platform-list:after {
+  clear: both;
+}
+.client-platform-list li {
+  display: block;
+  float: left;
+  margin-right: 26px !important;
+  margin-bottom: 30px !important;
+}
+.client-platform-list li:nth-child(5n) {
+  margin-right: 0 !important;
+}
+.client-platform-list .big-platformicon {
+  font-size: 54px;
+}
+.client-platform-list span {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 20px;
+  display: block;
+  border-radius: 100px;
+  line-height: 100px;
+  color: #fff;
+}
+.client-platform-list span.platformicon-generic {
+  background: #929c9e;
+}
+.client-platform-list span.platformicon-python {
+  background: #2671aa;
+}
+.client-platform-list span.platformicon-php {
+  background: #6067a8;
+}
+.client-platform-list span.platformicon-ruby,
+.client-platform-list span.platformicon-rails {
+  background: #d71f26;
+}
+.client-platform-list span.platformicon-rails-3 {
+  background: #e4454b;
+}
+.client-platform-list span.platformicon-java {
+  background: #ca1d24;
+}
+.client-platform-list span.platformicon-js {
+  color: #1b191c;
+  background: #f7dc3c;
+}
+.client-platform-list span.platformicon-node-js {
+  background: #8ac655;
+  color: #2d292f;
+}
+.client-platform-list span.platformicon-go {
+  color: #222;
+  border: 2px solid #222;
+}
+.client-platform-list span.platformicon-django {
+  background: #025129;
+}
+.client-platform-list span.platformicon-ios {
+  background: #383a3a;
+}
+.client-platform-list a {
+  font-size: 16px;
+  text-align: center;
+  display: block;
+  font-weight: 500;
+  color: #a6a8b7;
+}
 /* =============================  Global  ============================== */
 body {
   color: #ffffff;
