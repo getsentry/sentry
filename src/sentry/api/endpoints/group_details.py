@@ -103,7 +103,7 @@ class GroupDetailsEndpoint(Endpoint):
         Attributes:
 
         - status: resolved, unresolved, muted
-        - isBookmarked: 1, 0
+        - isBookmarked: true, false
         - assignedTo: user
 
         """
