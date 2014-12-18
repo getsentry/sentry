@@ -26,6 +26,9 @@
                 {{ form.name|as_crispy_field }}
                 {{ form.slug|as_crispy_field }}
                 {{ form.platform|as_crispy_field }}
+                {% if form.team %}
+                    {{ form.team|as_cripys_field %}}
+                {% endif %}
             </fieldset>
             <fieldset id="events">
                 <div><legend>{% trans "Event Settings" %}</legend></div>
