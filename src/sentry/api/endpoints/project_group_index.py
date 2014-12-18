@@ -122,9 +122,9 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
     def put(self, request, project_id):
         """
-        Bulk mutate a list of groups
+        Bulk mutate a list of aggregates
 
-        Bulk mutate various attributes on groups.
+        Bulk mutate various attributes on aggregates.
 
             {method} {path}?id=1&id=2&id=3
             {{
