@@ -71,6 +71,9 @@ class HelpPlatformDetailsView(BaseView):
         if key:
             dsn_private = key.dsn_private
             dsn_public = key.dsn_public
+        else:
+            dsn_private = None
+            dsn_public = None
 
         context = {
             'selected_project': selected_project,
