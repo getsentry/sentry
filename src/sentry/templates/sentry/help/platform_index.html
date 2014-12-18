@@ -12,6 +12,11 @@
     <li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
 {% endblock%}
 
+{% block css %}
+  {{ block.super }}
+  <link href="{% url 'sentry-media' "sentry" "vendor/platformicons/platformicons/platformicons.css" %}" type="text/css" rel="stylesheet">
+{% endblock%}
+
 {% block main %}
     <h3>Sentry Clients</h3>
 
@@ -19,65 +24,65 @@
 
     <h4>Our clients</h4>
 
-    <ul class="client-platform-list list-unstyled">
+    <ul class="client-platform-list unstyled">
         <li>
             <a href="{% url 'sentry-help-platform' 'python' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/python48x48.png" %}">
+                <span class="platformicon-python big-platformicon"></span>
                 Python
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'php' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/php48x48.png" %}">
+                <span class="platformicon-php big-platformicon"></span>
                 PHP
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'ruby' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/ruby48x48.png" %}">
+                <span class="platformicon-ruby big-platformicon"></span>
                 Ruby
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'javascript' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/javascript48x48.png" %}">
+              <span class="platformicon-js big-platformicon"></span>
                 JavaScript
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'java' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/java48x48.png" %}">
+                <span class="platformicon-java big-platformicon"></span>
                 Java
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'node.js' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/node48x48.png" %}">
+                <span class="platformicon-node-js big-platformicon"></span>
                 Node.js
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'go' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/go48x48.png" %}">
+                <span class="platformicon-go big-platformicon"></span>
                 Go
             </a>
         </li>
 
         <li>
             <a href="{% url 'sentry-help-platform' 'rails3' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}">
+                <span class="platformicon-rails big-platformicon"></span>
                 Rails 3
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'rails4' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}">
+                <span class="platformicon-rails big-platformicon"></span>
                 Rails 4
             </a>
         </li>
         <li>
             <a href="{% url 'sentry-help-platform' 'django' %}">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/django48x48.png" %}">
+                <span class="platformicon-django big-platformicon"></span>
                 Django
             </a>
         </li>
@@ -85,22 +90,22 @@
 
     <h4>Community clients</h4>
 
-    <ul class="client-platform-list list-unstyled">
+    <ul class="client-platform-list unstyled">
         <li>
             <a href="https://github.com/getsentry/raven-objc">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/ios48x48.png" %}">
+              <span class="platformicon-ios big-platformicon"></span>
                 iOS
             </a>
         </li>
         <li>
             <a href="https://github.com/getsentry/raven-csharp">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/csharp48x48.png" %}">
+                <span class="platformicon-generic big-platformicon"></span>
                 C#
             </a>
         </li>
         <li>
             <a href="https://github.com/voron3x/raven-perl">
-                <img src="{% url 'sentry-media' "sentry" "images/platforms/perl48x48.png" %}">
+                <span class="platformicon-generic big-platformicon"></span>
                 Perl
             </a>
         </li>
