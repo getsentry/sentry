@@ -7,6 +7,7 @@
 {% block client_overview_class %}{% endblock %}
 
 {% block pre_breadcrumbs %}
+  {% if org_results %}
   <div class="select-project dropdown pull-right">
     <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
     {% if selected_project %}
@@ -38,6 +39,7 @@
       </ul>
     </div>
   </div>
+  {% endif %}
 {% endblock %}
 
 {% block breadcrumbs %}
