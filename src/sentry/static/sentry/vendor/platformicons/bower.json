@@ -1,0 +1,27 @@
+{
+  "name": "platformicons",
+  "description": "A platform and framework icon font",
+  "version": "1.0.2",
+  "license": "SIL OFL 1.1, MIT",
+  "authors": [
+    "Chris Jennings <chris@getsentry.com>"
+  ],
+  "main": [
+    "platformicons/platformicons.css",
+    "platformicons/platformicons.eot",
+    "platformicons/platformicons.svg",
+    "platformicons/platformicons.ttf",
+    "platformicons/platformicons.woff"
+  ],
+  "keywords": [
+    "Sentry",
+    "icons",
+    "font",
+    "web font",
+    "icon font"
+  ],
+  "ignore": [
+    "**/.*",
+    "bower_components"
+  ]
+}

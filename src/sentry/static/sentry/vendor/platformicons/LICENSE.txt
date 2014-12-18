@@ -1,0 +1,7 @@
+(c) 2014 Sentry
+
+Font License: SIL OFL 1.1 (http://scripts.sil.org/OFL)
+For all font files
+
+Code License: MIT (http://choosealicense.com/licenses/mit/)
+For all other files
