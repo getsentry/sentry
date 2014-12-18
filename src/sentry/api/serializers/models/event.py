@@ -33,14 +33,8 @@ class EventSerializer(Serializer):
         d = {
             'id': str(obj.id),
             'eventID': str(obj.event_id),
-            'project': {
-                'id': str(obj.project.id),
-                'name': obj.project.name,
-                'slug': obj.project.slug,
-            },
             'entries': attrs['entries'],
             'message': obj.message,
-            'checksum': obj.checksum,
             'platform': obj.platform,
             'dateCreated': obj.datetime,
             'timeSpent': obj.time_spent,
