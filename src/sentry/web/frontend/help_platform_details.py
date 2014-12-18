@@ -23,8 +23,8 @@ class HelpPlatformDetailsView(BaseView):
         results = []
         for org, org_project_list in groupby(project_list, key=lambda x: x.organization):
             org_results = []
-            for team, team_project_list in groupby(org_project_list, key=lambda x: x.team):
-                org_results.append((team, team_project_list))
+            for team, team_project_list in groupby(list(org_project_list), key=lambda x: x.team):
+                org_results.append((team, list(team_project_list)))
             results.append((org, org_results))
         return results
 
