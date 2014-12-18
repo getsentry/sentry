@@ -20,67 +20,8 @@
             {% endblock %}
           </div>
           <div class="span9 docs-main">
-            <div class="select-project dropdown pull-right">
-              <div class="dropdown-toggle" data-toggle="dropdown"><span class="project-label">Project:</span> Chef <span class="caret"></span></div>
-              <div class="dropdown-menu">
-                <ul class="orgs">
-                  <li class="org">
-                    <h5>Sentry</h5>
-                    <ul class="teams unstyled">
-                      <li class="team">
-                        <h6>Sentry</h6>
-                        <ul class="projects unstyled">
-                          <li><a href="#">Backend</a></li>
-                          <li class="active"><a href="#">Chef</a></li>
-                          <li><a href="#">Frontend</a></li>
-                          <li><a href="#">Runscope Check</a></li>
-                        </ul>
-                      </li>
-                      <li class="team">
-                        <h6>Sentry Test</h6>
-                        <ul class="projects unstyled">
-                          <li><a href="#">AS3</a></li>
-                          <li><a href="#">C#</a></li>
-                          <li><a href="#">iOS</a></li>
-                          <li><a href="#">Java</a></li>
-                          <li><a href="#">JavaScript</a></li>
-                          <li><a href="#">PHP</a></li>
-                          <li><a href="#">Python</a></li>
-                          <li><a href="#">Ruby</a></li>
-                        </ul>
-                      </li>
-                    </ul>
-                  </li>
-                  <li class="org">
-                    <h5>GitHub</h5>
-                    <ul class="teams unstyled">
-                      <li class="team">
-                        <h6>Chat</h6>
-                        <ul class="projects unstyled">
-                          <li><a href="#">Backend</a></li>
-                          <li><a href="#">Chef</a></li>
-                          <li><a href="#">Frontend</a></li>
-                          <li><a href="#">Runscope Check</a></li>
-                        </ul>
-                      </li>
-                      <li class="team">
-                        <h6>Atom</h6>
-                        <ul class="projects unstyled">
-                          <li><a href="#">AS3</a></li>
-                          <li><a href="#">C#</a></li>
-                          <li><a href="#">iOS</a></li>
-                          <li><a href="#">Java</a></li>
-                          <li><a href="#">JavaScript</a></li>
-                          <li><a href="#">PHP</a></li>
-                          <li><a href="#">Python</a></li>
-                          <li><a href="#">Ruby</a></li>
-                        </ul>
-                      </li>
-                    </ul>
-                  </li>
-                </ul>
-              </div>
-            </div>
+            {% block pre_breadcrumbs %}
+            {% endblock %}
             <ul class="crumbs">
               {% block breadcrumbs %}
               <li><a href="{% url 'sentry-help' %}">Docs</a></li>

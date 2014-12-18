@@ -8,4 +8,12 @@ class HelpPlatformIndexView(BaseView):
     auth_required = False
 
     def get(self, request):
+        try:
+            pid = int(request.GET.get('pid', 0))
+        except (TypeError, ValueError):
+            pid = None
+
+        if pid:
+            request.session['pid'] = pid
+
         return render_to_response('sentry/help/platform_index.html', {}, request)

@@ -7,10 +7,9 @@
 {% block client_overview_class %}active{% endblock %}
 
 {% block breadcrumbs %}
-{{ block.super }}
-<li class="divider">/</li>
-<li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
-
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
 {% endblock%}
 
 {% block main %}
