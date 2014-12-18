@@ -4,6 +4,10 @@
 {% load sentry_helpers %}
 {% load sentry_markup %}
 
+{% block title %}
+    {{ section.name }} | Web API
+{% endblock %}
+
 {% block breadcrumbs %}
     {{ block.super }}
     <li class="divider">/</li>
