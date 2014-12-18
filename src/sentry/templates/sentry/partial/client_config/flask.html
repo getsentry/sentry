@@ -13,7 +13,7 @@
 
     <pre>from raven.contrib.flask import Sentry
 
-app.config['SENTRY_DSN'] = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+app.config['SENTRY_DSN'] = '{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}'
 sentry = Sentry(app)</pre>
 
     <p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>

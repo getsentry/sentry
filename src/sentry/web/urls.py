@@ -7,8 +7,6 @@ sentry.web.urls
 """
 from __future__ import absolute_import
 
-import re
-
 try:
     from django.conf.urls import include, patterns, url
 except ImportError:
@@ -20,7 +18,13 @@ from django.conf import settings
 from sentry.web import api
 from sentry.web.frontend import (
     alerts, accounts, generic, groups, events,
-    admin, docs, users, explore, explore_code)
+    admin, users, explore, explore_code,
+)
+
+from sentry.web.frontend.help_index import HelpIndexView
+from sentry.web.frontend.help_page import HelpPageView
+from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
+from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
 
 import sentry.web.frontend.projects.general
 import sentry.web.frontend.projects.keys
@@ -117,6 +121,17 @@ urlpatterns += patterns('',
         name='sentry-account-settings-notifications'),
     url(r'^account/settings/social/', include('social_auth.urls')),
 
+    # Help
+    url(r'^docs/$', HelpIndexView.as_view(),
+        name='sentry-help'),
+    url(r'^docs/api/', include('sentry.api.help_urls')),
+    url(r'^docs/(?P<page_id>[\d]+)/(?P<page_slug>[^\/]+)/$', HelpPageView.as_view(),
+        name='sentry-help-page'),
+    url(r'^docs/platforms/$', HelpPlatformIndexView.as_view(),
+        name='sentry-help-platform-list'),
+    url(r'^docs/platforms/(?P<platform>[^\/]+)/$', HelpPlatformDetailsView.as_view(),
+        name='sentry-help-platform'),
+
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', OrganizationHomeView.as_view(),
         name='sentry-organization-home'),
@@ -157,13 +172,6 @@ urlpatterns += patterns('',
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
         ProjectSettingsView.as_view(),
         name='sentry-manage-project'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/$',
-        docs.client_help,
-        name='sentry-project-client-help'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/(?P<platform>%s)/$' % ('|'.join(re.escape(r) for r in docs.PLATFORM_LIST),),
-        docs.client_guide,
-        name='sentry-docs-client'),
-
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/$',
         sentry.web.frontend.projects.keys.manage_project_keys,
         name='sentry-manage-project-keys'),

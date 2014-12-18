@@ -3,14 +3,11 @@ from __future__ import absolute_import
 from django.conf.urls import patterns, url
 
 from .endpoints.auth_index import AuthIndexEndpoint
+from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
-from .endpoints.group_assign import GroupAssignEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
-from .endpoints.group_resolve import GroupResolveEndpoint
-from .endpoints.group_bookmark import GroupBookmarkEndpoint
 from .endpoints.group_markseen import GroupMarkSeenEndpoint
-from .endpoints.group_delete import GroupDeleteEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -24,8 +21,11 @@ from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
+from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_access_group_index import TeamAccessGroupIndexEndpoint
+from .endpoints.team_groups_new import TeamGroupsNewEndpoint
+from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_project_index import TeamProjectIndexEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
@@ -38,6 +38,11 @@ urlpatterns = patterns(
     url(r'^auth/$',
         AuthIndexEndpoint.as_view(),
         name='sentry-api-0-auth'),
+
+    # Broadcasts
+    url(r'^broadcasts/$',
+        BroadcastIndexEndpoint.as_view(),
+        name='sentry-api-0-broadcast-index'),
 
     # Users
     url(r'^users/(?P<user_id>[^\/]+)/$',
@@ -62,6 +67,12 @@ urlpatterns = patterns(
     url(r'^teams/(?P<team_id>\d+)/$',
         TeamDetailsEndpoint.as_view(),
         name='sentry-api-0-team-details'),
+    url(r'^teams/(?P<team_id>\d+)/groups/new/$',
+        TeamGroupsNewEndpoint.as_view(),
+        name='sentry-api-0-team-groups-new'),
+    url(r'^teams/(?P<team_id>\d+)/groups/trending/$',
+        TeamGroupsTrendingEndpoint.as_view(),
+        name='sentry-api-0-team-groups-trending'),
     url(r'^teams/(?P<team_id>\d+)/projects/$',
         TeamProjectIndexEndpoint.as_view(),
         name='sentry-api-0-team-project-index'),
@@ -86,25 +97,18 @@ urlpatterns = patterns(
         ProjectStatsEndpoint.as_view(),
         name='sentry-api-0-project-stats'),
 
+    # Releases
+    url(r'^releases/(?P<release_id>\d+)/$',
+        ReleaseDetailsEndpoint.as_view(),
+        name='sentry-api-0-release-details'),
+
     # Groups
     url(r'^groups/(?P<group_id>\d+)/$',
         GroupDetailsEndpoint.as_view(),
         name='sentry-api-0-group-details'),
-    url(r'^groups/(?P<group_id>\d+)/assign/$',
-        GroupAssignEndpoint.as_view(),
-        name='sentry-api-0-group-assign'),
-    url(r'^groups/(?P<group_id>\d+)/resolve/$',
-        GroupResolveEndpoint.as_view(),
-        name='sentry-api-0-group-resolve'),
-    url(r'^groups/(?P<group_id>\d+)/bookmark/$',
-        GroupBookmarkEndpoint.as_view(),
-        name='sentry-api-0-group-bookmark'),
     url(r'^groups/(?P<group_id>\d+)/markseen/$',
         GroupMarkSeenEndpoint.as_view(),
         name='sentry-api-0-group-markseen'),
-    url(r'^groups/(?P<group_id>\d+)/delete/$',
-        GroupDeleteEndpoint.as_view(),
-        name='sentry-api-0-group-delete'),
     url(r'^groups/(?P<group_id>\d+)/events/$',
         GroupEventsEndpoint.as_view(),
         name='sentry-api-0-group-events'),

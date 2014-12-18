@@ -31,9 +31,7 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.app import tsdb
-from sentry.constants import (
-    MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
-    EVENTS_PER_PAGE)
+from sentry.constants import MEMBER_USER, EVENTS_PER_PAGE
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
@@ -42,7 +40,9 @@ from sentry.coreapi import (
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupBookmark, GroupTagValue, Project, TagValue, Activity, User)
+    Group, GroupBookmark, GroupStatus, GroupTagValue, Project, TagValue,
+    Activity, User
+)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
@@ -421,11 +421,11 @@ def resolve(request, organization, project):
 
     happened = Group.objects.filter(
         pk=group.pk,
-    ).exclude(status=STATUS_RESOLVED).update(
-        status=STATUS_RESOLVED,
+    ).exclude(status=GroupStatus.RESOLVED).update(
+        status=GroupStatus.RESOLVED,
         resolved_at=now,
     )
-    group.status = STATUS_RESOLVED
+    group.status = GroupStatus.RESOLVED
     group.resolved_at = now
 
     if happened:
@@ -496,7 +496,7 @@ def resolve_group(request, organization, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at=timezone.now(),
     )
     if happened:
@@ -521,7 +521,7 @@ def mute_group(request, organization, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_MUTED,
+        status=GroupStatus.MUTED,
         resolved_at=timezone.now(),
     )
     if happened:
@@ -546,7 +546,7 @@ def unresolve_group(request, organization, project, group_id):
         return HttpResponseForbidden()
 
     happened = group.update(
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         active_at=timezone.now(),
     )
     if happened:
@@ -662,9 +662,9 @@ def bookmark(request, organization, project):
 def clear(request, organization, project):
     queryset = Group.objects.filter(
         project=project,
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
     )
-    rows_affected = queryset.update(status=STATUS_RESOLVED)
+    rows_affected = queryset.update(status=GroupStatus.RESOLVED)
     if rows_affected > 1000:
         logger.warning(
             'Large resolve on %s of %s rows', project.slug, rows_affected)
@@ -702,7 +702,7 @@ def get_group_trends(request, organization, team):
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(base_qs.filter(
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         last_seen__gte=cutoff_dt
     ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
@@ -733,7 +733,7 @@ def get_new_groups(request, organization, team):
 
     group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         active_at__gte=cutoff_dt,
     ).extra(select={'sort_value': 'score'}).order_by('-score', '-first_seen')[:limit])
 
@@ -764,7 +764,7 @@ def get_resolved_groups(request, organization, team):
 
     group_list = list(Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at__gte=cutoff_dt,
     ).order_by('-score')[:limit])
 
@@ -813,7 +813,7 @@ def get_stats(request, organization, team=None, project=None):
     # TODO(dcramer); move this into tsdb
     num_resolved = Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at__gte=start,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 

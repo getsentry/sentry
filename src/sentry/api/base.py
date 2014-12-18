@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.parsers import JSONParser
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from urllib2 import quote
@@ -14,15 +16,25 @@ from .authentication import KeyAuthentication
 from .paginator import Paginator
 
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
-
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
+LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
+
+
+class DocSection(Enum):
+    ACCOUNTS = 'Accounts'
+    EVENTS = 'Events'
+    RELEASES = 'Releases'
+    # ORGANIZATIONS = 'Organizations'
+    # PROJECTS = 'Projects'
+    # TEAMS = 'Teams'
+
 
 class Endpoint(APIView):
     authentication_classes = (KeyAuthentication, SessionAuthentication)
+    renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
 
     def paginate(self, request, on_results=lambda x: x, **kwargs):
@@ -32,19 +44,18 @@ class Endpoint(APIView):
         assert per_page <= 100
 
         paginator = Paginator(**kwargs)
-        cursor = paginator.get_cursor(
+        cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,
         )
 
         # map results based on callback
-        results = on_results(cursor.results)
+        results = on_results(cursor_result.results)
 
-        links = []
-        if cursor.has_prev:
-            links.append(('previous', cursor.prev))
-        if cursor.has_next:
-            links.append(('next', cursor.next))
+        links = [
+            ('previous', str(cursor_result.prev)),
+            ('next', str(cursor_result.next)),
+        ]
 
         querystring = u'&'.join(
             u'{0}={1}'.format(quote(k), quote(v))

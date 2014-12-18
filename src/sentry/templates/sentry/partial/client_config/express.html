@@ -12,7 +12,7 @@
 
 	<pre>var app = require('express').createServer();
 
-app.use(raven.middleware.express('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'));</pre>
+app.use(raven.middleware.express('{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}'));</pre>
 
 	<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
 

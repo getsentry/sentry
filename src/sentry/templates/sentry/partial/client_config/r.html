@@ -10,7 +10,7 @@ library(logging.handlers)</pre>
 <p>{% trans "Create a Sentry handler and add it to a logger:" %}</p>
 
 <pre>rl &lt;- getLogger() # for example the root logger
-rl$addHandler(sentryHandler, dsn='{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}')
+rl$addHandler(sentryHandler, dsn='{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}')
 </pre>
 
 <p>{% trans "Send events via the standard logging interface:" %}</p>

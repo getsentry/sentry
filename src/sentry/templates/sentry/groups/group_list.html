@@ -79,13 +79,13 @@
              <i aria-hidden="true" class="icon-arrow-down"></i></a>
         </div>
         <div class="btn-group pull-right">
-            {% if previous_page %}
-                <a class="btn prev" href="?{{ pageless_query_string|escape }}&amp;p={{ previous_page }}"><span>{% trans "Previous" %}</span></a>
+            {% if prev_cursor %}
+                <a class="btn prev" href="?{{ cursorless_query_string|escape }}&amp;cursor={{ prev_cursor }}"><span>{% trans "Previous" %}</span></a>
             {% else %}
                 <a class="btn prev disabled"><span>{% trans "Previous" %}</span></a>
             {% endif %}
-            {% if next_page %}
-                <a class="btn next" href="?{{ pageless_query_string|escape }}&amp;p={{ next_page }}"><span>{% trans "Next" %}</span></a>
+            {% if next_cursor %}
+                <a class="btn next" href="?{{ cursorless_query_string|escape }}&amp;cursor={{ next_cursor }}"><span>{% trans "Next" %}</span></a>
             {% else %}
                 <a class="btn next disabled"><span>{% trans "Next" %}</span></a>
             {% endif %}
@@ -143,13 +143,13 @@
 
     <div class="btn-toolbar" style="border-bottom: none">
         <div class="btn-group pull-right">
-            {% if previous_page %}
-                <a class="btn prev" href="?{{ pageless_query_string|escape }}&amp;p={{ previous_page }}"><span>{% trans "Previous" %}</span></a>
+            {% if prev_cursor %}
+                <a class="btn prev" href="?{{ cursorless_query_string|escape }}&amp;cursor={{ prev_cursor }}"><span>{% trans "Previous" %}</span></a>
             {% else %}
                 <a class="btn prev disabled"><span>{% trans "Previous" %}</span></a>
             {% endif %}
-            {% if next_page %}
-                <a class="btn next" href="?{{ pageless_query_string|escape }}&amp;p={{ next_page }}"><span>{% trans "Next" %}</span></a>
+            {% if next_cursor %}
+                <a class="btn next" href="?{{ cursorless_query_string|escape }}&amp;cursor={{ next_cursor }}"><span>{% trans "Next" %}</span></a>
             {% else %}
                 <a class="btn next disabled"><span>{% trans "Next" %}</span></a>
             {% endif %}
@@ -169,6 +169,17 @@
 {% endblock %}
 
 {% block content_after %}
+  <script type="text/template" id="empty_message">
+    <div class="empty-message">
+      <h2>No events to show.</h2>
+      <p>We'll notify you if that changes. In the meantime why not take a moment to become more familiar with Sentry.</p>
+      <p class="links">
+        <a href="{% url 'sentry-help-platform-list' %}?pid={{ project.id }}">Installation instructions</a>
+        <a href="{% url 'sentry-manage-project' organization.slug project.slug %}">Project settings</a>
+      </p>
+    </div>
+  </script>
+
   {% if request.GET.newinstall %}
   {% get_project_dsn for request.user from project as project_dsn %}
   <div class="modal welcome-message-modal" role="modal" tabindex="-1" aria-hidden="true">
@@ -185,8 +196,8 @@
               <div class="span4">
                 <p>New here?</p>
                 <ul>
-                  <li><a href="docs/">Installation instructions</a></li>
-                  <li><a href="settings/">Project settings</a></li>
+                  <li><a href="{% url 'sentry-help-platform-list' %}?pid={{ project.id }}">Installation instructions</a></li>
+                  <li><a href="{% url 'sentry-manage-project' organization.slug project.slug %}">Project settings</a></li>
                 </ul>
               </div>
               <div class="span8">

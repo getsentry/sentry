@@ -37,7 +37,8 @@ from __future__ import absolute_import, print_function
 
 from elasticsearch import Elasticsearch
 
-from sentry.search.base import SearchBackend, SearchResult
+from sentry.search.base import SearchBackend
+from sentry.utils.cursors import CursorResult
 
 
 class ElasticSearchBackend(SearchBackend):
@@ -82,8 +83,9 @@ class ElasticSearchBackend(SearchBackend):
         )
 
     def query(self, project, query=None, status=None, tags=None,
-              bookmarked_by=None, sort_by='date', date_filter='last_seen',
-              date_from=None, date_to=None, offset=0, limit=100):
+              bookmarked_by=None, assigned_to=None, sort_by='date',
+              date_filter='last_seen', date_from=None, date_to=None,
+              cursor=None, limit=100):
 
         query_body = {
             'filter': {
@@ -137,6 +139,10 @@ class ElasticSearchBackend(SearchBackend):
             # thing that isn't searchable?
             raise NotImplementedError
 
+        if assigned_to:
+            # TODO(dcramer):
+            raise NotImplementedError
+
         if sort_by == 'date':
             sort_clause = [{'last_seen': {'order': 'desc'}}]
         elif sort_by == 'new':
@@ -159,15 +165,24 @@ class ElasticSearchBackend(SearchBackend):
                 'query': {'filtered': query_body},
                 'sort': sort_clause,
                 'size': limit,
-                'from': offset,
+                # 'from': offset,
             },
         )
         if not results.get('hits'):
-            return SearchResult([])
+            return CursorResult(
+                results=[],
+                cursor=cursor,
+                limit=limit,
+            )
 
         instance_ids = [int(n['_id']) for n in results['hits']['hits']]
 
-        return SearchResult(instance_ids)
+        return CursorResult.from_ids(
+            id_list=instance_ids,
+            cursor=cursor,
+            limit=limit,
+            key='TODO',
+        )
 
     def upgrade(self):
         self.backend.indices.put_template(

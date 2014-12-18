@@ -9409,3 +9409,215 @@ pre {
 .create-flow .steps li:last-child {
   text-align: right;
 }
+.docs #content {
+  background: #ffffff url(../images/dashboard/sidebar-bg.png) top left repeat-y;
+  background-size: 211px 100%;
+}
+.docs .select-project {
+  font-size: 16px;
+}
+.docs .select-project.open .dropdown-toggle {
+  text-decoration: none;
+  position: relative;
+  z-index: 2;
+  color: #465262;
+}
+.docs .select-project.open .dropdown-toggle:after {
+  display: block;
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -6px;
+  right: -6px;
+  bottom: -4px;
+  background: #f1f2f3;
+  z-index: -1;
+  border-radius: 5px;
+}
+.docs .select-project .project-label {
+  color: #A4ABB5;
+}
+.docs .select-project .dropdown-menu {
+  left: auto;
+  right: -6px;
+  width: 500px;
+  overflow: hidden;
+  padding: 0;
+  max-height: 400px;
+  overflow: auto;
+}
+.docs .select-project .dropdown-menu h6 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.docs .select-project .dropdown-menu ul {
+  margin: 0;
+}
+.docs .select-project .dropdown-menu .org h5 {
+  border-top: 1px solid #f1f2f3;
+  background: #fafafa;
+  margin: 0;
+  padding: 5px 15px;
+}
+.docs .select-project .dropdown-menu .team {
+  padding: 10px 15px 0;
+  border-top: 1px solid #f1f2f3;
+}
+.docs .select-project .dropdown-menu .projects {
+  *zoom: 1;
+  box-sizing: border-box;
+}
+.docs .select-project .dropdown-menu .projects:before,
+.docs .select-project .dropdown-menu .projects:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.docs .select-project .dropdown-menu .projects:after {
+  clear: both;
+}
+.docs .select-project .dropdown-menu .projects li {
+  float: left;
+  margin: 0 0 8px;
+  box-sizing: border-box;
+  width: 33.33%;
+  padding-right: 14px;
+  position: relative;
+}
+.docs .select-project .dropdown-menu .projects li.active a {
+  background: transparent;
+  position: relative;
+  z-index: 2;
+  color: #465262;
+}
+.docs .select-project .dropdown-menu .projects li.active:after {
+  display: block;
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -6px;
+  bottom: -2px;
+  right: 10px;
+  background: #f1f2f3;
+  z-index: 1;
+  border-radius: 3px;
+}
+.docs .select-project .dropdown-menu .projects li a {
+  display: block;
+  font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.docs .crumbs {
+  *zoom: 1;
+  color: #A4ABB5;
+  list-style-type: none;
+  margin-left: 0;
+}
+.docs .crumbs:before,
+.docs .crumbs:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.docs .crumbs:after {
+  clear: both;
+}
+.docs .crumbs a {
+  color: #A4ABB5;
+}
+.docs .crumbs li {
+  float: left;
+}
+.docs .crumbs li.divider {
+  margin: 0 12px;
+  opacity: .5;
+}
+.docs .crumbs li:last-child {
+  color: #6d7786;
+}
+.docs .nav-tabs {
+  font-size: 14px !important;
+}
+.docs .nav-tabs li {
+  margin-bottom: -3px !important;
+}
+.docs .docs-sidebar {
+  display: block !important;
+  padding: 30px 30px 15px;
+  border-right: 1px solid #e9ecf0;
+  margin-right: -1px;
+}
+.docs .docs-sidebar h4 {
+  font-size: 14px;
+  margin: 0 0 15px;
+}
+.docs .docs-sidebar ul {
+  margin: 0 0 15px;
+  list-style-type: none;
+}
+.docs .docs-main {
+  width: 76.7%;
+  padding: 30px 40px 10px;
+  border-left: 1px solid #e9ecf0;
+  margin-left: 0;
+}
+.docs .docs-main h1,
+.docs .docs-main h2,
+.docs .docs-main h3,
+.docs .docs-main h4,
+.docs .docs-main h5,
+.docs .docs-main h6,
+.docs .docs-main p,
+.docs .docs-main ul,
+.docs .docs-main ol,
+.docs .docs-main pre {
+  margin-bottom: 20px;
+}
+.docs .docs-main p,
+.docs .docs-main ul,
+.docs .docs-main ol {
+  font-size: 16px;
+  line-height: 1.5;
+}
+.docs .docs-main p li,
+.docs .docs-main ul li,
+.docs .docs-main ol li {
+  margin: 0 0 5px;
+}
+.docs .docs-main h2 {
+  font-weight: 500;
+}
+.docs .docs-main .alert {
+  padding: 10px 40px;
+  border-radius: 0;
+  margin-left: -41px;
+  margin-right: -40px;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+.docs .docs-main .alert-info {
+  border: 1px solid #1C85DD;
+  border-right: 0;
+}
+.docs .docs-main .api-resource {
+  border-top: 1px solid #f2f4f6;
+  padding: 40px 40px 25px;
+  margin-bottom: -1px;
+  margin-left: -40px;
+  margin-right: -40px;
+}
+.docs .docs-main .api-resource + .api-resource {
+  border-radius: 0;
+}
+.docs .docs-main .api-resource h4 {
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  margin-bottom: 24px;
+  color: #282E35;
+}
+.docs .docs-main .api-resource h5 {
+  font-size: 16px;
+  color: #A7ADB6;
+}

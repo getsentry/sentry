@@ -22,9 +22,11 @@ any application.
 :license: BSD, see LICENSE for more details.
 """
 
+from distutils import log
+from setuptools.command.sdist import sdist
+from setuptools.command.develop import develop
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
-import sys
+from subprocess import check_output
 
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
@@ -36,11 +38,6 @@ for m in ('multiprocessing', 'billiard'):
         __import__(m)
     except ImportError:
         pass
-
-setup_requires = []
-
-if 'test' in sys.argv:
-    setup_requires.append('pytest')
 
 dev_requires = [
     'flake8>=2.0,<2.1',
@@ -87,6 +84,7 @@ install_requires = [
     'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
     'nydus>=0.10.7,<0.11.0',
+    'markdown>=2.4.1,<2.5.0',
     'progressbar>=2.2,<2.4',
     'Pygments>=1.6.0,<1.7.0',
     'python-dateutil>=1.5.0,<2.0.0',
@@ -115,17 +113,21 @@ mysql_requires = [
 ]
 
 
-class PyTest(TestCommand):
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = ['tests']
-        self.test_suite = True
+class CustomSdist(sdist):
+    def make_distribution(self):
+        log.info("running npm install")
+        check_output(['npm', 'install', '--quiet'])
+        log.info("running sentry compilestatic")
+        check_output(['sentry', 'compilestatic'])
+        return sdist.make_distribution(self)
 
-    def run_tests(self):
-        # import here, cause outside the eggs aren't loaded
-        import pytest
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
+
+class CustomDevelop(develop):
+    def install_for_development(self):
+        log.info("running npm install")
+        check_output(['npm', 'install', '--quiet'])
+        # TODO(dcramer): can we run compilestatic somehow here?
+        return develop.install_for_development(self)
 
 
 setup(
@@ -147,8 +149,10 @@ setup(
         'postgres_pypy': install_requires + postgres_pypy_requires,
         'mysql': install_requires + mysql_requires,
     },
-    tests_require=tests_require,
-    cmdclass={'test': PyTest},
+    cmdclass={
+        'sdist': CustomSdist,
+        'develop': CustomDevelop,
+    },
     license='BSD',
     include_package_data=True,
     entry_points={

@@ -8,9 +8,9 @@ from mock import patch
 
 from django.conf import settings
 
-from sentry.constants import MAX_CULPRIT_LENGTH, STATUS_RESOLVED
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager, get_hashes_for_event
-from sentry.models import Event, Group, EventMapping
+from sentry.models import Event, Group, GroupStatus, EventMapping
 from sentry.testutils import TestCase
 
 
@@ -115,7 +115,7 @@ class EventManagerTest(TestCase):
             event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
-        group.status = STATUS_RESOLVED
+        group.status = GroupStatus.RESOLVED
         group.save()
         assert group.is_resolved()
 
@@ -143,7 +143,7 @@ class EventManagerTest(TestCase):
             event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
-        group.status = STATUS_RESOLVED
+        group.status = GroupStatus.RESOLVED
         group.save()
         assert group.is_resolved()
 

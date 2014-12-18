@@ -20,9 +20,11 @@ from uuid import uuid4
 
 from sentry.app import buffer, tsdb
 from sentry.constants import (
-    STATUS_UNRESOLVED, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
+    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
-from sentry.models import Event, EventMapping, Group, GroupHash, Project
+from sentry.models import (
+    Event, EventMapping, Group, GroupHash, GroupStatus, Project
+)
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
 from sentry.utils.logging import suppress_exceptions
@@ -484,12 +486,12 @@ class EventManager(object):
                 # add 30 seconds to the regression window to account for
                 # races here
                 active_at__gte=date - timedelta(seconds=5),
-            ).update(active_at=date, status=STATUS_UNRESOLVED))
+            ).update(active_at=date, status=GroupStatus.UNRESOLVED))
 
             transaction.commit_unless_managed(using=group._state.db)
 
             group.active_at = date
-            group.status = STATUS_UNRESOLVED
+            group.status = GroupStatus.UNRESOLVED
 
         group.last_seen = extra['last_seen']
 
