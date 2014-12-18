@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import textwrap
 
 from django.contrib.admindocs.views import simplify_regex
-
 from django.utils.importlib import import_module
+from django.utils.text import slugify
 
 from sentry.api.base import Endpoint
 from sentry.constants import HTTP_METHODS
@@ -62,6 +62,9 @@ class ApiHelpBase(BaseView):
     def __format_doc(self, doc, params):
         return doc.format(**params)
 
+    def __title_to_anchor(self, title):
+        return slugify(title.decode('utf-8'))
+
     def __get_resource_callback(self, pattern, prefix):
         if not hasattr(pattern, 'callback'):
             return
@@ -97,10 +100,14 @@ class ApiHelpBase(BaseView):
 
             title, docstring = self.__split_doc(method.__doc__ or '', path=path)
 
+            if not title:
+                title = '{} {}'.format(method_name, path)
+
             methods.append({
                 'verb': method_name,
                 'path': full_path,
-                'title': title or '{} {}'.format(method_name, path),
+                'title': title,
+                'anchor': self.__title_to_anchor(title),
                 'doc': self.__format_doc(docstring, {
                     'path': full_path,
                     'method': method_name,

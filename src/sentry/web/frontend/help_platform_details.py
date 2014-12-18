@@ -16,15 +16,15 @@ class HelpPlatformDetailsView(BaseView):
     def get_project_list(self, user):
         return list(Project.objects.filter(
             Q(organization__member_set__has_global_access=True, organization__member_set__user=user)
-            | Q(team__organization__member_set__user=user)
+            | Q(team__organizationmember__user=user)
         ).select_related('team', 'organization').order_by('organization', 'team'))
 
     def group_project_list(self, project_list):
         results = []
         for org, org_project_list in groupby(project_list, key=lambda x: x.organization):
             org_results = []
-            for team, team_project_list in groupby(org_project_list, key=lambda x: x.team):
-                org_results.append((team, team_project_list))
+            for team, team_project_list in groupby(list(org_project_list), key=lambda x: x.team):
+                org_results.append((team, list(team_project_list)))
             results.append((org, org_results))
         return results
 
