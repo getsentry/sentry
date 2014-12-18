@@ -66,7 +66,7 @@ class OrganizationMemberInline(admin.TabularInline):
 
 
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'status')
+    list_display = ('name', 'slug', 'owner', 'status')
     list_filter = ('status',)
     search_fields = ('name', 'owner__username', 'owner__email')
     raw_id_fields = ('owner',)
