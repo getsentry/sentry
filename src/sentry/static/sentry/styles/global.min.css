@@ -9505,8 +9505,8 @@ pre {
   border-right: 0;
 }
 .docs .docs-main .api-resource {
-  border-top: 1px solid #e9ecf0;
-  padding: 15px 40px 0;
+  border-top: 1px solid #f2f4f6;
+  padding: 40px 40px 25px;
   margin-bottom: -1px;
   margin-left: -40px;
   margin-right: -40px;
@@ -9514,14 +9514,12 @@ pre {
 .docs .docs-main .api-resource + .api-resource {
   border-radius: 0;
 }
-.docs .docs-main .api-resource:last-child {
-  margin-bottom: 15px;
-}
 .docs .docs-main .api-resource h4 {
-  background: rgba(250, 250, 250, 0.55);
-  border-bottom: 1px solid #e9ecf0;
-  padding: 10px 40px;
-  margin: -15px -40px 19px;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  margin-bottom: 24px;
+  color: #282E35;
 }
 .docs .docs-main .api-resource h5 {
   font-size: 16px;
