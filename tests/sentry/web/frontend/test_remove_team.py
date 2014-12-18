@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import mock
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Team, TeamStatus
@@ -44,7 +42,6 @@ class RemoveTeamTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/teams/remove.html')
 
-    @mock.patch('sentry.web.frontend.remove_team.can_remove_team', mock.Mock(return_value=True))
     def test_valid_params(self):
         resp = self.client.post(self.path)
 
