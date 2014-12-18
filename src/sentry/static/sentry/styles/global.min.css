@@ -9413,6 +9413,83 @@ pre {
   background: #ffffff url(../images/dashboard/sidebar-bg.png) top left repeat-y;
   background-size: 211px 100%;
 }
+.docs .select-project {
+  font-size: 16px;
+}
+.docs .select-project .project-label {
+  color: #A4ABB5;
+}
+.docs .select-project .dropdown-menu {
+  left: auto;
+  right: 0;
+  width: 500px;
+  overflow: hidden;
+  padding: 0;
+  max-height: 400px;
+  overflow: auto;
+}
+.docs .select-project .dropdown-menu h6 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.docs .select-project .dropdown-menu ul {
+  margin: 0;
+}
+.docs .select-project .dropdown-menu .org h5 {
+  border-top: 1px solid #f1f2f3;
+  background: #fafafa;
+  margin: 0;
+  padding: 5px 15px;
+}
+.docs .select-project .dropdown-menu .team {
+  padding: 10px 15px 0;
+  border-top: 1px solid #f1f2f3;
+}
+.docs .select-project .dropdown-menu .projects {
+  *zoom: 1;
+  box-sizing: border-box;
+}
+.docs .select-project .dropdown-menu .projects:before,
+.docs .select-project .dropdown-menu .projects:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.docs .select-project .dropdown-menu .projects:after {
+  clear: both;
+}
+.docs .select-project .dropdown-menu .projects li {
+  float: left;
+  margin: 0 0 8px;
+  box-sizing: border-box;
+  width: 33.33%;
+  padding-right: 14px;
+  position: relative;
+}
+.docs .select-project .dropdown-menu .projects li.active a {
+  background: transparent;
+  position: relative;
+  z-index: 2;
+}
+.docs .select-project .dropdown-menu .projects li.active:after {
+  display: block;
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -6px;
+  bottom: -2px;
+  right: 10px;
+  background: #2e9fff;
+  z-index: 1;
+  border-radius: 3px;
+}
+.docs .select-project .dropdown-menu .projects li a {
+  display: block;
+  font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .docs .crumbs {
   *zoom: 1;
   color: #A4ABB5;
