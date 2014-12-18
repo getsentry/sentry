@@ -32,7 +32,7 @@ import six
 from six.moves import range
 
 from sentry import options
-from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE
+from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
@@ -370,11 +370,6 @@ def titlize(value):
 
 
 @register.filter
-def is_muted(value):
-    return value == STATUS_MUTED
-
-
-@register.filter
 def split(value, delim=''):
     return value.split(delim)
 
@@ -436,15 +431,6 @@ def render_values(value, threshold=5, collapse_to=3):
     else:
         context['value'] = value
 
-    return context
-
-
-@register.inclusion_tag('sentry/partial/_client_config.html')
-def client_help(user, project):
-    from sentry.web.frontend.docs import get_key_context
-
-    context = get_key_context(user, project)
-    context['project'] = project
     return context
 
 

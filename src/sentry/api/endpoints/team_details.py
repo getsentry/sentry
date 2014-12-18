@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -36,6 +35,14 @@ class TeamAdminSerializer(TeamSerializer):
 
 class TeamDetailsEndpoint(Endpoint):
     def get(self, request, team_id):
+        """
+        Retrieve a team.
+
+        Return details on an individual team.
+
+            {method} {path}
+
+        """
         team = Team.objects.get(id=team_id)
 
         assert_perm(team, request.user, request.auth)
@@ -77,23 +84,17 @@ class TeamDetailsEndpoint(Endpoint):
 
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
-        if team.project_set.filter(id=settings.SENTRY_PROJECT).exists():
-            return Response('{"error": "Cannot remove team containing default project."}',
-                            status=status.HTTP_403_FORBIDDEN)
+        if team.status == TeamStatus.VISIBLE:
+            team.update(status=TeamStatus.PENDING_DELETION)
+            delete_team.delay(object_id=team.id, countdown=60 * 5)
 
-        team.update(status=TeamStatus.PENDING_DELETION)
-
-        # we delay the task for 5 minutes so we can implement an undo
-        kwargs = {'object_id': team.id}
-        delete_team.apply_async(kwargs=kwargs, countdown=60 * 5)
-
-        AuditLogEntry.objects.create(
-            organization=team.organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
-            target_object=team.id,
-            event=AuditLogEntryEvent.TEAM_REMOVE,
-            data=team.get_audit_log_data(),
-        )
+            AuditLogEntry.objects.create(
+                organization=team.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_REMOVE,
+                data=team.get_audit_log_data(),
+            )
 
         return Response(status=204)

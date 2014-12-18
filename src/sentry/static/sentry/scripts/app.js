@@ -62,12 +62,13 @@
 
         makeDefaultView: function(id){
             return new app.GroupListView({
+                emptyMessage: '<p>There are now events to show.</p>',
                 className: 'group-list small',
                 id: id,
                 maxItems: 5,
                 stream: this.options.stream,
                 realtime: this.options.realtime,
-                model: app.models.Group
+                model: app.models.Group,
             });
         },
 
@@ -94,7 +95,8 @@
                 realtime: ($.cookie('pausestream') ? false : true),
                 canStream: this.options.canStream,
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.organizationId + '/' + app.config.projectId + '/poll/',
-                model: app.models.Group
+                model: app.models.Group,
+                emptyMessage: $('#empty_message').html()
             });
 
             this.control = $('a[data-action=pause]');

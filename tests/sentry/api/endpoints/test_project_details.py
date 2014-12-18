@@ -4,8 +4,7 @@ import mock
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import STATUS_HIDDEN
-from sentry.models import Project
+from sentry.models import Project, ProjectStatus
 from sentry.testutils import APITestCase
 
 
@@ -51,7 +50,7 @@ class ProjectDeleteTest(APITestCase):
         mock_delete_project.delay.assert_called_once_with(
             object_id=project.id)
 
-        assert Project.objects.get(id=project.id).status == STATUS_HIDDEN
+        assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
 
     @mock.patch('sentry.api.endpoints.project_details.delete_project')
     def test_internal_project(self, mock_delete_project):

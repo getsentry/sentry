@@ -6,7 +6,7 @@ from sentry.models import Event
 
 @register(Event)
 class EventSerializer(Serializer):
-    def serialize(self, obj, user):
+    def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
             'eventID': str(obj.event_id),

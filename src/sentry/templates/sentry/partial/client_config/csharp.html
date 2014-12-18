@@ -4,7 +4,7 @@
 
 <p>{% blocktrans %}Initialize the client:{% endblocktrans %}</p>
 
-<pre>ravenClient = new RavenClient("{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}");</pre>
+<pre>ravenClient = new RavenClient("{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}");</pre>
 
 <p>{% blocktrans %}To capture errors, you'll need to wrap your code in a simple try/catch block:{% endblocktrans %}</p>
 

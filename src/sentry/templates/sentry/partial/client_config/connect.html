@@ -14,7 +14,7 @@
   connect.bodyParser(),
   connect.cookieParser(),
   mainHandler,
-  raven.middleware.connect('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'),
+  raven.middleware.connect('{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}'),
 ).listen(3000);</pre>
 
 	<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>

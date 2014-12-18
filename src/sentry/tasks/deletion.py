@@ -81,10 +81,9 @@ def delete_team(object_id, **kwargs):
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def delete_project(object_id, **kwargs):
-    from sentry.constants import STATUS_HIDDEN
     from sentry.models import (
-        Project, ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue,
-        Activity, EventMapping, Event, Group
+        Project, ProjectKey, ProjectStatus, TagKey, TagValue, GroupTagKey,
+        GroupTagValue, Activity, EventMapping, Event, Group
     )
 
     try:
@@ -92,8 +91,8 @@ def delete_project(object_id, **kwargs):
     except Project.DoesNotExist:
         return
 
-    if p.status != STATUS_HIDDEN:
-        p.update(status=STATUS_HIDDEN)
+    if p.status != ProjectStatus.DELETION_IN_PROGRESS:
+        p.update(status=ProjectStatus.DELETION_IN_PROGRESS)
 
     logger = delete_project.get_logger()
 

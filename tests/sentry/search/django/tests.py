@@ -4,8 +4,7 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
-from sentry.models import GroupBookmark, GroupTagValue
+from sentry.models import GroupBookmark, GroupStatus, GroupTagValue
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase
 
@@ -25,7 +24,7 @@ class DjangoSearchBackendTest(TestCase):
             checksum='a' * 32,
             message='foo',
             times_seen=5,
-            status=STATUS_UNRESOLVED,
+            status=GroupStatus.UNRESOLVED,
             last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386),
         )
@@ -43,7 +42,7 @@ class DjangoSearchBackendTest(TestCase):
             checksum='b' * 32,
             message='bar',
             times_seen=10,
-            status=STATUS_RESOLVED,
+            status=GroupStatus.RESOLVED,
             last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
             first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386),
         )
@@ -109,11 +108,11 @@ class DjangoSearchBackendTest(TestCase):
         assert results[1] == self.group1
 
     def test_status(self):
-        results = self.backend.query(self.project1, status=STATUS_UNRESOLVED)
+        results = self.backend.query(self.project1, status=GroupStatus.UNRESOLVED)
         assert len(results) == 1
         assert results[0] == self.group1
 
-        results = self.backend.query(self.project1, status=STATUS_RESOLVED)
+        results = self.backend.query(self.project1, status=GroupStatus.RESOLVED)
         assert len(results) == 1
         assert results[0] == self.group2
 
@@ -134,14 +133,16 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project2)
         assert len(results) == 0
 
-    def test_limit_and_offset(self):
-        results = self.backend.query(self.project1, limit=1)
+    def test_pagination(self):
+        results = self.backend.query(self.project1, limit=1, sort_by='date')
         assert len(results) == 1
+        assert results[0] == self.group1
 
-        results = self.backend.query(self.project1, offset=1, limit=1)
+        results = self.backend.query(self.project1, cursor=results.next, limit=1, sort_by='date')
         assert len(results) == 1
+        assert results[0] == self.group2
 
-        results = self.backend.query(self.project1, offset=2, limit=1)
+        results = self.backend.query(self.project1, cursor=results.next, limit=1, sort_by='date')
         assert len(results) == 0
 
     def test_first_seen_date_filter(self):

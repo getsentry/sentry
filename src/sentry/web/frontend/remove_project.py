@@ -6,9 +6,8 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import STATUS_HIDDEN
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType
+    AuditLogEntry, AuditLogEntryEvent, ProjectStatus, OrganizationMemberType
 )
 from sentry.permissions import can_remove_project
 from sentry.tasks.deletion import delete_project
@@ -47,8 +46,8 @@ class RemoveProjectView(ProjectView):
         form = self.get_form(request)
 
         if form.is_valid():
-            if project.status != STATUS_HIDDEN:
-                project.update(status=STATUS_HIDDEN)
+            if project.status == ProjectStatus.VISIBLE:
+                project.update(status=ProjectStatus.PENDING_DELETION)
                 delete_project.delay(object_id=project.id)
 
                 AuditLogEntry.objects.create(
