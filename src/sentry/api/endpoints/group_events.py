@@ -28,10 +28,14 @@ class GroupEventsEndpoint(Endpoint):
             group=group
         )
 
+        def on_results(event_list):
+            Event.objects.bind_nodes(event_list, 'data')
+            return serialize(event_list, request.user)
+
         return self.paginate(
             request=request,
             queryset=events,
             # TODO(dcramer): we want to sort by datetime
             order_by='-id',
-            on_results=lambda x: serialize(x, request.user),
+            on_results=on_results,
         )
