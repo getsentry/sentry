@@ -13,6 +13,7 @@ from __future__ import absolute_import, division
 
 import datetime
 import re
+import logging
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
@@ -96,7 +97,12 @@ def _get_group_list(request, project):
 
     cursor = request.GET.get('cursor')
     if cursor:
-        query_kwargs['cursor'] = Cursor.from_string(cursor)
+        try:
+            query_kwargs['cursor'] = Cursor.from_string(cursor)
+        except ValueError:
+            # XXX(dcramer): ideally we'd error, but this is an internal API so
+            # we'd rather just throw it away
+            logging.warn('Throwing away invalid cursor: %s', cursor)
     query_kwargs['limit'] = EVENTS_PER_PAGE
 
     query = request.GET.get('query', 'is:unresolved')
