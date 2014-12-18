@@ -15,6 +15,7 @@ class EventSerializer(Serializer):
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
+            'data': dict(obj.data),
             'message': obj.message,
             'checksum': obj.checksum,
             'platform': obj.platform,
