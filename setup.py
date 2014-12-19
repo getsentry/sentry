@@ -25,8 +25,10 @@ any application.
 import os.path
 
 from distutils import log
-from setuptools.command.sdist import sdist
+from distutils.core import Command
 from setuptools.command.develop import develop
+from setuptools.command.install import install
+from setuptools.command.sdist import sdist
 from setuptools import setup, find_packages
 from subprocess import check_output
 
@@ -116,24 +118,37 @@ mysql_requires = [
 ]
 
 
-def build_static():
-    log.info("running [npm install --quiet]")
-    check_output(['npm', 'install', '--quiet'], cwd=ROOT)
-
-    log.info("running [gulp dist]")
-    check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'dist'], cwd=ROOT)
+class InstallWithBuildStatic(install):
+    def run(self):
+        self.run_command('build_static')
+        install.run(self)
 
 
-class CustomSdist(sdist):
+class DevelopWithBuildStatic(develop):
+    def install_for_development(self):
+        self.run_command('build_static')
+        return develop.install_for_development(self)
+
+
+class SdistWithBuildStatic(sdist):
     def make_distribution(self):
-        build_static()
+        self.run_command('build_static')
         return sdist.make_distribution(self)
 
 
-class CustomDevelop(develop):
-    def install_for_development(self):
-        build_static()
-        return develop.install_for_development(self)
+class BuildStatic(Command):
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        log.info("running [npm install --quiet]")
+        check_output(['npm', 'install', '--quiet'], cwd=ROOT)
+
+        log.info("running [gulp dist]")
+        check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'dist'], cwd=ROOT)
 
 
 setup(
@@ -156,8 +171,10 @@ setup(
         'mysql': install_requires + mysql_requires,
     },
     cmdclass={
-        'sdist': CustomSdist,
-        'develop': CustomDevelop,
+        'build_static': BuildStatic,
+        'develop': DevelopWithBuildStatic,
+        'install': InstallWithBuildStatic,
+        'sdist': SdistWithBuildStatic,
     },
     license='BSD',
     include_package_data=True,
