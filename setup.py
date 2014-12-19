@@ -27,7 +27,6 @@ import os.path
 from distutils import log
 from distutils.core import Command
 from setuptools.command.develop import develop
-from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 from setuptools import setup, find_packages
 from subprocess import check_output
@@ -118,12 +117,6 @@ mysql_requires = [
 ]
 
 
-class InstallWithBuildStatic(install):
-    def run(self):
-        self.run_command('build_static')
-        install.run(self)
-
-
 class DevelopWithBuildStatic(develop):
     def install_for_development(self):
         self.run_command('build_static')
@@ -173,7 +166,6 @@ setup(
     cmdclass={
         'build_static': BuildStatic,
         'develop': DevelopWithBuildStatic,
-        'install': InstallWithBuildStatic,
         'sdist': SdistWithBuildStatic,
     },
     license='BSD',
