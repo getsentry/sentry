@@ -1,3 +1,0 @@
-[submodule "src/sentry/static/sentry/bootstrap"]
-	path = src/sentry/static/sentry/bootstrap
-	url = git://github.com/twbs/bootstrap.git

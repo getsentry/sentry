@@ -2,10 +2,9 @@
 
 {% load i18n %}
 {% load sentry_helpers %}
-{% load static_compiler %}
 
 {% block css %}
-    {% staticbundle 'sentry/styles/wall.min.css' %}
+    <link href="{% url 'sentry-media' "sentry" "dist/wall.min.css" %}" rel="image/png"/>
 {% endblock %}
 
 {% block body %}

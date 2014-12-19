@@ -1,6 +1,5 @@
 {% load i18n %}
 {% load sentry_helpers %}
-{% load static_compiler %}
 {% load sentry_permissions %}
 {% get_sentry_version %}
 <!DOCTYPE html>
@@ -12,7 +11,7 @@
         <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-            {% staticbundle 'sentry/styles/global.min.css' %}
+            <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
         {% endblock %}
 
         <title>{% block title %}Sentry{% endblock %}</title>
@@ -21,10 +20,13 @@
         <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
         <![endif]-->
         {% block scripts %}
-            {% staticbundle 'sentry/scripts/lib.min.js' %}
-            {% staticbundle 'sentry/scripts/bootstrap.min.js' %}
-            {% staticbundle 'sentry/scripts/global.min.js' %}
-            {% staticbundle 'sentry/scripts/legacy.min.js' %}
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-jquery.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-backbone.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-bootstrap.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-misc.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/raven.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/app.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/app-legacy.min.js" %}"></script>
             <script type="text/javascript">
             {% if request.LANGUAGE_CODE %}
                 moment.lang('{{ request.LANGUAGE_CODE }}');
