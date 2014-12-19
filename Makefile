@@ -42,7 +42,7 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	rm -rf src/sentry/static/CACHE
+	gulp clean
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo ""

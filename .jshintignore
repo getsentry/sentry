@@ -1,5 +1,4 @@
 tests/
 src/sentry/static/sentry/scripts/lib/
-src/sentry/static/CACHE/
 src/sentry/static/sentry/dist/
 src/sentry/static/sentry/vendor/
