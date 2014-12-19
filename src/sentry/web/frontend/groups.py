@@ -49,7 +49,7 @@ def _get_group_list(request, project):
         'project': project,
     }
 
-    status = request.GET.get('status', 0)
+    status = request.GET.get('status', '0')
     if status:
         query_kwargs['status'] = int(status)
 
