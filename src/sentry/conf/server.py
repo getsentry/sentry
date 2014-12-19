@@ -170,7 +170,6 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
-    'static_compiler',
     'sudo',
 )
 
@@ -180,7 +179,6 @@ STATIC_URL = '/_static/'
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    "static_compiler.finders.StaticCompilerFinder",
 )
 
 LOCALE_PATHS = (
@@ -408,91 +406,6 @@ LOGGING = {
         },
     }
 }
-
-NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules'))
-
-SENTRY_STATIC_BUNDLES = {
-    "packages": {
-        "sentry/scripts/global.min.js": {
-            "src": [
-                "sentry/scripts/core.js",
-                "sentry/scripts/models.js",
-                "sentry/scripts/templates.js",
-                "sentry/scripts/utils.js",
-                "sentry/scripts/collections.js",
-                "sentry/scripts/charts.js",
-                "sentry/scripts/views.js",
-                "sentry/scripts/app.js",
-            ],
-        },
-        "sentry/scripts/legacy.min.js": {
-            "src": [
-                "sentry/scripts/sentry.core.js",
-                "sentry/scripts/sentry.charts.js",
-                "sentry/scripts/sentry.stream.js",
-            ],
-        },
-        "sentry/scripts/lib.min.js": {
-            "src": [
-                "sentry/scripts/lib/jquery.js",
-                "sentry/scripts/lib/jquery-migrate.js",
-                "sentry/scripts/lib/jquery.animate-colors.js",
-                "sentry/scripts/lib/jquery.clippy.min.js",
-                "sentry/scripts/lib/jquery.cookie.js",
-                "sentry/scripts/lib/jquery.flot.js",
-                "sentry/scripts/lib/jquery.flot.dashes.js",
-                "sentry/scripts/lib/jquery.flot.resize.js",
-                "sentry/scripts/lib/jquery.flot.stack.js",
-                "sentry/scripts/lib/jquery.flot.time.js",
-                "sentry/scripts/lib/jquery.flot.tooltip.js",
-                "sentry/scripts/lib/moment.js",
-                "sentry/scripts/lib/simple-slider.js",
-                "sentry/scripts/lib/json2.js",
-                "sentry/scripts/lib/underscore.js",
-                "sentry/scripts/lib/backbone.js",
-                "sentry/scripts/lib/select2/select2.js",
-            ],
-        },
-        "sentry/scripts/bootstrap.min.js": {
-            "src": [
-                "sentry/bootstrap/js/bootstrap-transition.js",
-                "sentry/bootstrap/js/bootstrap-alert.js",
-                "sentry/bootstrap/js/bootstrap-button.js",
-                "sentry/bootstrap/js/bootstrap-carousel.js",
-                "sentry/bootstrap/js/bootstrap-collapse.js",
-                "sentry/bootstrap/js/bootstrap-dropdown.js",
-                "sentry/bootstrap/js/bootstrap-modal.js",
-                "sentry/bootstrap/js/bootstrap-tooltip.js",
-                "sentry/bootstrap/js/bootstrap-popover.js",
-                "sentry/bootstrap/js/bootstrap-scrollspy.js",
-                "sentry/bootstrap/js/bootstrap-tab.js",
-                "sentry/bootstrap/js/bootstrap-typeahead.js",
-                "sentry/bootstrap/js/bootstrap-affix.js",
-                "sentry/scripts/lib/bootstrap-datepicker.js"
-            ],
-        },
-        "sentry/styles/global.min.css": {
-            "src": {
-                "sentry/less/sentry.less": "sentry/styles/sentry.css",
-            },
-        },
-        "sentry/styles/wall.min.css": {
-            "src": {
-                "sentry/less/wall.less": "sentry/styles/wall.css",
-            },
-        },
-    },
-    "postcompilers": {
-        "*.js": ["node_modules/.bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],
-    },
-    "preprocessors": {
-        "*.less": ["node_modules/.bin/lessc {input} {output}"],
-    },
-}
-
-# We only define static bundles if NPM has been setup
-if os.path.exists(NPM_ROOT):
-    STATIC_BUNDLES = SENTRY_STATIC_BUNDLES
 
 # django-rest-framework
 

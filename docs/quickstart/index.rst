@@ -77,6 +77,15 @@ the same command you used to grab virtualenv::
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
 
+Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
+like the following:
+
+.. code-block:: bash
+
+  $ sentry
+  usage: sentry [--config=/path/to/settings.py] [command] [options]
+
+
 Using MySQL or Postgres
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -97,25 +106,15 @@ These databases require additional packages, but Sentry provides a couple of met
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you're installing the Sentry source (e.g. from git), you'll need a couple of extra dependencies:
+If you're installing the Sentry source (e.g. from git), you'll also need to intstall **npm**.
 
-- node.js (npm)
-- git
-
-Once your system is prepared, simply run the ``make`` command to
-get all of the application dependencies:
+Once your system is prepared, symlink your source into the virtualenv:
 
 .. code-block:: bash
 
-  $ make develop
+  $ python setup.py develop
 
-Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
-like the following:
-
-.. code-block:: bash
-
-  $ sentry
-  usage: sentry [--config=/path/to/settings.py] [command] [options]
+.. Note:: This command will install npm dependencies as well as compile static assets.
 
 
 Initializing the Configuration
