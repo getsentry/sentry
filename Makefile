@@ -1,12 +1,7 @@
 VERSION = 2.0.0
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
-BOOTSTRAP_JS = ${STATIC_DIR}/scripts/lib/bootstrap.js
-BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
 UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
-
-JS_TESTS = tests/js/index.html
-JS_REPORTER = dot
 
 develop: clean update-submodules setup-git
 	@echo "--> Installing dependencies"
@@ -61,10 +56,6 @@ update-transifex:
 	tx push -s
 	tx pull -a
 
-compile-bootstrap-js:
-	@cat src/bootstrap/js/bootstrap-transition.js src/bootstrap/js/bootstrap-alert.js src/bootstrap/js/bootstrap-button.js src/bootstrap/js/bootstrap-carousel.js src/bootstrap/js/bootstrap-collapse.js src/bootstrap/js/bootstrap-dropdown.js src/bootstrap/js/bootstrap-modal.js src/bootstrap/js/bootstrap-tooltip.js src/bootstrap/js/bootstrap-popover.js src/bootstrap/js/bootstrap-scrollspy.js src/bootstrap/js/bootstrap-tab.js src/bootstrap/js/bootstrap-typeahead.js src/bootstrap/js/bootstrap-affix.js ${STATIC_DIR}/scripts/bootstrap-datepicker.js > ${BOOTSTRAP_JS}
-	${UGLIFY_JS} -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
-
 update-submodules:
 	@echo "--> Updating git submodules"
 	git submodule init
@@ -89,7 +80,7 @@ test-cli:
 
 test-js:
 	@echo "--> Running JavaScript tests"
-	${NPM_ROOT}/.bin/mocha-phantomjs -p ${NPM_ROOT}/phantomjs/bin/phantomjs -R ${JS_REPORTER} ${JS_TESTS}
+	npm test
 	@echo ""
 
 test-python:
@@ -106,7 +97,7 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting JavaScript files"
-	${NPM_ROOT}/.bin/jshint src/sentry/ || exit 1
+	npm run lint
 	@echo ""
 
 coverage: develop
@@ -119,4 +110,4 @@ run-uwsgi:
 publish:
 	python setup.py sdist bdist_wheel upload
 
-.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex compile-bootstrap-js update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
+.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
