@@ -1,21 +1,18 @@
 "use strict";
 
 var gulp = require("gulp"),
-    gp_cached = require('gulp-cached'),
-    gp_changed = require("gulp-changed"),
+    gp_cached = require("gulp-cached"),
     gp_clean = require("gulp-clean"),
     gp_concat = require("gulp-concat"),
     gp_less = require("gulp-less"),
     gp_rename = require("gulp-rename"),
-    gp_sourcemaps = require("gulp-sourcemaps"),
     gp_uglify = require("gulp-uglify"),
     gp_util = require("gulp-util");
 
 var path = require("path");
 
 var staticPrefix = "src/sentry/static/sentry",
-    distPath = staticPrefix + "/dist",
-    isWatching = false;
+    distPath = staticPrefix + "/dist";
 
 var jsDistros = {
   "app": [
@@ -94,39 +91,56 @@ function vendorFile(name) {
 }
 
 function buildJsCompileTask(name, fileList) {
-  // TODO(dcramer): sourcemaps do not have the correct path to the
-  // originaly files
-  return gulp.src(fileList)
-    .pipe(gp_cached('js_' + name))
-    .pipe(gp_sourcemaps.init())
-    .pipe(gp_concat(distroName + ".js"))
-    .pipe(gulp.dest(distPath))
-    .pipe(gp_uglify())
-    .pipe(gp_rename(distroName + ".min.js"))
-    .pipe(gp_sourcemaps.write("./", {
-      includeContent: false
-    }))
-    .pipe(gulp.dest(distPath))
-    .on("error", gp_util.log);
+  // TODO(dcramer): sourcemaps
+  return function(){
+    return gulp.src(fileList)
+      .pipe(gp_cached('js-' + name))
+      .pipe(gp_concat(name + ".js"))
+      .pipe(gulp.dest(distPath))
+      .pipe(gp_uglify())
+      .pipe(gp_rename(name + ".min.js"))
+      .pipe(gulp.dest(distPath))
+      .on("error", gp_util.log);
+  };
 }
 
 function buildJsWatchTask(name, fileList) {
-  return gulp.watch(fileList, ["dist:js:" + name]);
+  return function(){
+    return gulp.watch(fileList, ["dist:js:" + name]);
+  };
 };
 
 function buildCssCompileTask(name, fileList) {
-  return gulp.src(fileList)
-    .pipe(gp_cached('css_' + name))
-    .pipe(gp_sourcemaps.init())
+  return function(){
+    gulp.src(fileList)
+    .pipe(gp_cached('css-' + name))
     .pipe(gp_less({
         paths: [vendorFile("bootstrap/less")]
     }))
     .pipe(gp_concat(name))
-    .pipe(gp_sourcemaps.write("./", {
-      includeContent: false
-    }))
     .pipe(gulp.dest(distPath))
     .on("error", gp_util.log);
+  };
+}
+
+function buildJsDistroTasks() {
+  // create a gulp task for each JS distro
+  var jsDistroNames = [], compileTask, watchTask, fileList;
+  for (var distroName in jsDistros) {
+    fileList = jsDistros[distroName];
+
+    compileTask = buildJsCompileTask(distroName, fileList);
+    gulp.task("dist:js:" + distroName, compileTask);
+
+    watchTask = buildJsWatchTask(distroName, fileList);
+    gulp.task("watch:js:" + distroName, watchTask);
+
+    jsDistroNames.push(distroName);
+  }
+
+  gulp.task("dist:js", jsDistroNames.map(function(n) { return "dist:js:" + n; }));
+
+  gulp.task("watch:js", jsDistroNames.map(function(n) { return "watch:js:" + n; }));
 }
 
 gulp.task("clean", function () {
@@ -135,86 +149,16 @@ gulp.task("clean", function () {
     .on("error", gp_util.log);
 });
 
-gulp.task("dist:css", function () {
-  return buildCssCompileTask("sentry.css", [file("less/sentry.less")]);
-});
+gulp.task("dist:css", buildCssCompileTask("sentry.css", [file("less/sentry.less")]));
 
-// create a gulp task for each JS distro
-var jsDistroNames = [], compileTask, watchTask;
-for (var distroName in jsDistros) {
-  compileTask = buildJsCompileTask(distroName, jsDistros[distroName]);
-  gulp.task("dist:js:" + distroName, function(){
-    return compileTask;
-  });
-
-  watchTask = buildJsWatchTask(distroName, jsDistros[distroName]);
-  gulp.task("watch:js:" + distroName, function(){
-    isWatching = true;
-    return watchTask;
-  });
-
-  jsDistroNames.push(distroName);
-}
-
-gulp.task("dist:js", jsDistroNames.map(function(n) { return "dist:js:" + n; }));
+buildJsDistroTasks();
 
 gulp.task("dist", ["dist:js", "dist:css"]);
 
 gulp.task("watch:css", function(){
-  isWatching = true;
   return gulp.watch(file("less/sentry.less"), ["dist:css"]);
 });
-
-gulp.task("watch:js", jsDistroNames.map(function(n) { return "watch:js:" + n; }));
 
 gulp.task("watch", ["watch:js", "watch:css"]);
 
 gulp.task("default", ["dist"]);
-
-// // Lint JavaScript
-// gulp.task("jshint", function () {
-//   return gulp.src(staticPrefix + "/**/*.js")
-//     .pipe(reload({stream: true, once: true}))
-//     .pipe($.jshint())
-//     .pipe($.jshint.reporter("jshint-stylish"))
-//     .pipe($.if(!browserSync.active, $.jshint.reporter("fail")));
-// });
-
-// // Optimize Images
-// gulp.task("images", function () {
-//   return gulp.src(staticPrefix + "images/**/*")
-//     .pipe($.cache($.imagemin({
-//       progressive: true,
-//       interlaced: true
-//     })))
-//     .pipe(gulp.dest("dist/images"))
-//     .pipe($.size({title: "images"}));
-// });
-
-
-// // Build javascript distribution
-//   {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}
-
-//   var sourceMap = UglifyJS.SourceMap({
-//     file : null, // the compressed file name
-//     root : null, // the root URL to the original sources
-//     orig : null, // the input source map
-//   });
-
-//   gulp.src("lib/*.js")
-//     .pipe(uglify({
-//       output: {
-//         source_map: sourceMap
-//       }
-//     }))
-//     .pipe(gulp.dest("dist"))
-// });
-
-// https://github.com/gulpjs/gulp/issues/167
-gulp.on('stop', function() {
-  if (!isWatching) {
-    process.nextTick(function() {
-      process.exit(0);
-    });
-  }
-});
