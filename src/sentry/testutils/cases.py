@@ -446,3 +446,7 @@ class PermissionTestCase(TestCase):
         )
 
         self.assert_cannot_access(user, path)
+
+    def assert_non_member_cannot_access(self, path):
+        user = self.create_user()
+        self.assert_cannot_access(user, path)
