@@ -9,8 +9,6 @@ from sentry.web.frontend.base import OrganizationView
 
 
 class OrganizationMembersView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
-
     def handle(self, request, organization):
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
@@ -38,9 +36,16 @@ class OrganizationMembersView(OrganizationView):
         for om in queryset:
             member_list.append((om, team_map[om.id]))
 
+        # if the member is not the only owner we allow them to leave the org
+        member_can_leave = any(
+            1 for om, _ in member_list
+            if om.type == OrganizationMemberType.OWNER and om.user != request.user
+        )
+
         context = {
             'member_list': member_list,
             'authorizing_access': authorizing_access,
+            'member_can_leave': member_can_leave,
         }
 
         return self.respond('sentry/organization-members.html', context)

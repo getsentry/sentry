@@ -66,9 +66,11 @@
           </td>
           <td>
             {% if authorizing_access <= member.type %}
-              <a href="javascript:void(0)" class="remove-member" data-member-id="{{ member.id }}">
-                <span class="icon icon-remove"></span>
-              </a>
+              {% if member.user != request.user or member_can_leave %}
+                <a href="javascript:void(0)" class="remove-member" data-member-id="{{ member.id }}">
+                  <span class="icon icon-remove"></span>
+                </a>
+              {% endif %}
             {% endif %}
           </td>
         </tr>
