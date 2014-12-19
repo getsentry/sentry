@@ -73,6 +73,7 @@ def _get_group_list(request, project):
     for tag_key in TagKey.objects.all_keys(project):
         if request.GET.get(tag_key):
             tags[tag_key] = request.GET[tag_key]
+
     if tags:
         query_kwargs['tags'] = tags
 
@@ -107,7 +108,11 @@ def _get_group_list(request, project):
 
     query = request.GET.get('query', '')
     if query is not None:
-        query_kwargs.update(parse_query(query, request.user))
+        query_result = parse_query(query, request.user)
+        if query_result['query']:
+            query_kwargs['query'] = query_result['query']
+        if query_result['tags']:
+            query_kwargs['tags'].update(query_result['tags'])
 
     results = app.search.query(**query_kwargs)
 
