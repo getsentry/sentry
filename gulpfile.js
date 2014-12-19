@@ -157,7 +157,7 @@ for (var distroName in jsDistros) {
 
 gulp.task("dist:js", jsDistroNames.map(function(n) { return "dist:js:" + n; }));
 
-gulp.task("dist", ["clean", "dist:js", "dist:css"]);
+gulp.task("dist", ["dist:js", "dist:css"]);
 
 gulp.task("watch:css", function(){
   isWatching = true;
