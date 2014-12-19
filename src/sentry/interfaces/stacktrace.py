@@ -180,7 +180,10 @@ class Frame(Interface):
         }
 
         if data.get('lineno') is not None:
-            kwargs['lineno'] = int(data['lineno'])
+            lineno = int(data['lineno'])
+            if lineno < 0:
+                lineno = None
+            kwargs['lineno'] = lineno
         else:
             kwargs['lineno'] = None
 
