@@ -140,9 +140,6 @@ class BuildStatic(Command):
         log.info("running [npm install --quiet]")
         check_output(['npm', 'install', '--quiet'], cwd=ROOT)
 
-        log.info("running [gulp clean]")
-        check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'clean'], cwd=ROOT)
-
         log.info("running [gulp dist]")
         check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'dist'], cwd=ROOT)
 
