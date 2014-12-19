@@ -81,6 +81,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.MEMBER_ACCEPT:
             return 'accepted the membership invite'
         elif self.event == AuditLogEntryEvent.MEMBER_REMOVE:
+            if self.target_user == self.actor:
+                return 'left the organization'
             return 'removed member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
         elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
             return 'edited member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
