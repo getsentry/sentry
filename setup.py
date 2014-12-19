@@ -41,7 +41,7 @@ for m in ('multiprocessing', 'billiard'):
     except ImportError:
         pass
 
-ROOT = os.path.join(os.path.dirname(__file__))
+ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 
 dev_requires = [
     'flake8>=2.0,<2.1',
@@ -121,7 +121,7 @@ def build_static():
     check_output(['npm', 'install', '--quiet'], cwd=ROOT)
 
     log.info("running [gulp dist]")
-    check_output(['node_modules/.bin/gulp', 'dist'], cwd=ROOT)
+    check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'dist'], cwd=ROOT)
 
 
 class CustomSdist(sdist):
