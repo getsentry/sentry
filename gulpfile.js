@@ -14,8 +14,7 @@ var gulp = require("gulp"),
 var path = require("path");
 
 var staticPrefix = "src/sentry/static/sentry",
-    distPath = staticPrefix + "/dist",
-    isWatching = false;
+    distPath = staticPrefix + "/dist";
 
 var jsDistros = {
   "app": [
@@ -148,7 +147,6 @@ for (var distroName in jsDistros) {
 
   watchTask = buildJsWatchTask(distroName, jsDistros[distroName]);
   gulp.task("watch:js:" + distroName, function(){
-    isWatching = true;
     watchTask;
   });
 
@@ -208,12 +206,3 @@ gulp.task("default", ["dist"]);
 //     }))
 //     .pipe(gulp.dest("dist"))
 // });
-
-// https://github.com/gulpjs/gulp/issues/167
-gulp.on('stop', function() {
-  if (!isWatching) {
-    process.nextTick(function() {
-      process.exit(0);
-    });
-  }
-});
