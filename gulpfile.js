@@ -109,6 +109,10 @@ function buildJsCompileTask(name, fileList) {
     .on("error", gp_util.log);
 }
 
+function buildJsWatchTask(name, fileList) {
+  return gulp.watch(fileList, ["dist:js:" + name]);
+};
+
 function buildCssCompileTask(name, fileList) {
   return gulp.src(fileList)
     .pipe(gp_cached('css_' + name))
@@ -140,6 +144,12 @@ for (var distroName in jsDistros) {
   gulp.task("dist:js:" + distroName, function(){
     jsTask;
   });
+
+  jsTask = buildJsWatchTask(distroName, jsDistros[distroName]);
+  gulp.task("watch:js:" + distroName, function(){
+    jsTask;
+  });
+
   jsDistroNames.push(distroName);
 }
 
@@ -151,17 +161,7 @@ gulp.task("watch:css", function(){
   gulp.watch(file("less/sentry.less"), ["dist:css"]);
 });
 
-gulp.task("watch:js:vendor-misc", function(){
-  var files = [
-    vendorFile("moment/min/moment.min.js"),
-    vendorFile("simple-slider/js/simple-slider.min.js"),
-    file("scripts/lib/select2/select2.js")
-  ];
-
-  gulp.watch(files, ["dist:js:vendor-misc"]);
-});
-
-gulp.task("watch:js", ["watch:js:vendor-misc"]);
+gulp.task("watch:js", jsDistroNames.map(function(n) { return "watch:js:" + n; }));
 
 gulp.task("watch", ["watch:js", "watch:css"]);
 
