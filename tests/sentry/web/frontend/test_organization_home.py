@@ -16,6 +16,9 @@ class OrganizationHomePermissionTest(PermissionTestCase):
     def test_org_member_can_load(self):
         self.assert_org_member_can_access(self.path)
 
+    def test_non_member_cannot_load(self):
+        self.assert_non_member_cannot_access(self.path)
+
 
 class OrganizationHomeTest(TestCase):
     def test_renders_with_context(self):
