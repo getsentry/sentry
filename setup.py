@@ -22,6 +22,8 @@ any application.
 :license: BSD, see LICENSE for more details.
 """
 
+import os.path
+
 from distutils import log
 from setuptools.command.sdist import sdist
 from setuptools.command.develop import develop
@@ -38,6 +40,8 @@ for m in ('multiprocessing', 'billiard'):
         __import__(m)
     except ImportError:
         pass
+
+ROOT = os.path.join(os.path.dirname(__file__))
 
 dev_requires = [
     'flake8>=2.0,<2.1',
@@ -73,7 +77,6 @@ install_requires = [
     'django-picklefield>=0.3.0,<0.4.0',
     'django-recaptcha>=1.0.0,<1.1.0',
     'django-social-auth>=0.7.28,<0.8.0',
-    'django-static-compiler>=0.3.0,<0.4.0',
     'django-statsd-mozilla>=0.3.8.0,<0.3.9.0',
     'django-sudo>=1.1.0,<1.2.0',
     'django-templatetag-sugar>=0.1.0',
@@ -113,20 +116,23 @@ mysql_requires = [
 ]
 
 
+def build_static():
+    log.info("running [npm install --quiet]")
+    check_output(['npm', 'install', '--quiet'], cwd=ROOT)
+
+    log.info("running [gulp dist]")
+    check_output(['node_modules/.bin/gulp', 'dist'], cwd=ROOT)
+
+
 class CustomSdist(sdist):
     def make_distribution(self):
-        log.info("running npm install")
-        check_output(['npm', 'install', '--quiet'])
-        log.info("running sentry compilestatic")
-        check_output(['sentry', 'compilestatic'])
+        build_static()
         return sdist.make_distribution(self)
 
 
 class CustomDevelop(develop):
     def install_for_development(self):
-        log.info("running npm install")
-        check_output(['npm', 'install', '--quiet'])
-        # TODO(dcramer): can we run compilestatic somehow here?
+        build_static()
         return develop.install_for_development(self)
 
 
