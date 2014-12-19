@@ -14,7 +14,8 @@ var gulp = require("gulp"),
 var path = require("path");
 
 var staticPrefix = "src/sentry/static/sentry",
-    distPath = staticPrefix + "/dist";
+    distPath = staticPrefix + "/dist",
+    isWatching = false;
 
 var jsDistros = {
   "app": [
@@ -138,16 +139,17 @@ gulp.task("dist:css", function () {
 });
 
 // create a gulp task for each JS distro
-var jsDistroNames = [], jsTask;
+var jsDistroNames = [], compileTask, watchTask;
 for (var distroName in jsDistros) {
-  jsTask = buildJsCompileTask(distroName, jsDistros[distroName]);
+  compileTask = buildJsCompileTask(distroName, jsDistros[distroName]);
   gulp.task("dist:js:" + distroName, function(){
-    jsTask;
+    compileTask;
   });
 
-  jsTask = buildJsWatchTask(distroName, jsDistros[distroName]);
+  watchTask = buildJsWatchTask(distroName, jsDistros[distroName]);
   gulp.task("watch:js:" + distroName, function(){
-    jsTask;
+    isWatching = true;
+    watchTask;
   });
 
   jsDistroNames.push(distroName);
@@ -158,6 +160,7 @@ gulp.task("dist:js", jsDistroNames.map(function(n) { return "dist:js:" + n; }));
 gulp.task("dist", ["dist:js", "dist:css"]);
 
 gulp.task("watch:css", function(){
+  isWatching = true;
   gulp.watch(file("less/sentry.less"), ["dist:css"]);
 });
 
@@ -205,3 +208,12 @@ gulp.task("default", ["dist"]);
 //     }))
 //     .pipe(gulp.dest("dist"))
 // });
+
+// https://github.com/gulpjs/gulp/issues/167
+gulp.on('stop', function() {
+  if (!isWatching) {
+    process.nextTick(function() {
+      process.exit(0);
+    });
+  }
+});
