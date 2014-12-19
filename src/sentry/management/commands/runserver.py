@@ -26,7 +26,7 @@ class Command(RunserverCommand):
         devnull = open('/dev/null', 'w')
 
         self.stdout.write('>> Running [gulp dist]')
-        Popen(['gulp', 'dist'], cwd=cwd, stdout=devnull).wait()
+        Popen(['gulp', 'clean', 'dist'], cwd=cwd, stdout=devnull).wait()
 
         self.stdout.write('>> Running [gulp watch]')
         return Popen(['gulp', 'dist', 'watch'], cwd=cwd, stdout=devnull)
