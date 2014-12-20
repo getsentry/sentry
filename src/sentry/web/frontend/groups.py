@@ -11,8 +11,6 @@ TODO: Move all events.py views into here, and rename this file to events.
 """
 from __future__ import absolute_import, division
 
-import re
-
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
@@ -34,9 +32,6 @@ from sentry.utils import json
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
-
-uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
-event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
 
 
 def render_with_group_context(group, template, context, request=None,
