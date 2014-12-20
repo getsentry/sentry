@@ -76,28 +76,6 @@ class GroupListTest(TestCase):
         assert resp.context['team'] == self.team
         assert resp.context['organization'] == self.organization
 
-    def test_date_sort(self):
-        self.login_as(self.user)
-        resp = self.client.get(self.path + '?sort=date')
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-        assert list(resp.context['event_list']) == [self.group2, self.group1]
-
-    def test_new_sort(self):
-        self.login_as(self.user)
-        resp = self.client.get(self.path + '?sort=new')
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-        print self.group1.score, self.group2.score
-        assert list(resp.context['event_list']) == [self.group1, self.group2]
-
-    def test_freq_sort(self):
-        self.login_as(self.user)
-        resp = self.client.get(self.path + '?sort=freq')
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-        assert list(resp.context['event_list']) == [self.group2, self.group1]
-
 
 class GroupEventListTest(TestCase):
     @fixture

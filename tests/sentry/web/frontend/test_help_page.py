@@ -31,7 +31,7 @@ class HelpPageTest(TestCase):
 
         assert resp.status_code == 404
 
-        self.login()
+        self.login_as(self.user)
 
         resp = self.client.get(path)
 
