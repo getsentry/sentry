@@ -28,7 +28,7 @@ class TeamGroupsNewEndpoint(Endpoint):
         minutes = int(request.REQUEST.get('minutes', 15))
         limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-        project_list = Project.objects.get_for_user(request.user, team=team)
+        project_list = Project.objects.get_for_user(user=request.user, team=team)
 
         project_dict = dict((p.id, p) for p in project_list)
 

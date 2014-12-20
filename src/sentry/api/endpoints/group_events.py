@@ -10,6 +10,14 @@ class GroupEventsEndpoint(Endpoint):
     doc_section = DocSection.EVENTS
 
     def get(self, request, group_id):
+        """
+        List an aggregate's events
+
+        Return a list of events bound to an aggregate.
+
+            {method} {path}
+
+        """
         group = Group.objects.get(
             id=group_id,
         )

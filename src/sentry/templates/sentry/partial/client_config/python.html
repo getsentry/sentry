@@ -7,7 +7,7 @@
 
 	<pre>from raven import Client
 
-client = Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}')</pre>
+client = Client('{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}')</pre>
 
 	<p>{% trans "Now call out to the raven client to capture events:" %}</p>
 
@@ -28,6 +28,6 @@ application = Sentry(application, client=client)</pre>
 
 	<p>{% trans "If you wish to test your connection to the server, you can use the raven test command:" %}</p>
 
-	<pre>raven test {% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}</pre>
+	<pre>raven test {% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}</pre>
 
 {% endblock %}

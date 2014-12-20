@@ -1,11 +1,8 @@
 from __future__ import absolute_import, print_function
 
-from django.views.generic import View
-
-from sentry.web.helpers import render_to_response
+from sentry.web.frontend.help_platform_base import HelpPlatformBaseView
 
 
-class HelpPlatformIndexView(View):
-
-    def get(self, request):
-        return render_to_response('sentry/help/platform_index.html', {}, request)
+class HelpPlatformIndexView(HelpPlatformBaseView):
+    def get(self, request, project_list, selected_project):
+        return self.respond('sentry/help/platform_index.html')

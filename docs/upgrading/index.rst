@@ -18,29 +18,16 @@ Continue by running all required migrations, with the upgrade command::
 
 Finally, restart any Sentry services you had running.
 
-Upgrading from 1.x
-~~~~~~~~~~~~~~~~~~
+Upgrading to 7.x
+~~~~~~~~~~~~~~~~
 
-If you are upgrading Sentry from a 1.x version, you should take note that the database migrations
-are much more significant than they were in the past. We recommend performing them **before**
-upgrading the actual Sentry server.
+An extremely large amount of changes happened between the 6.x and 7.x series. Many of them are backwards incompatible so you should review the setup guide again.
 
-This includes several new tables (such as Project), and alters on almost all existing tables. It
-also means it needs to backfill the project_id column on all related tables.
+- Redis is now a requirement
+- The queue and buffer systems are no longer optional for production systems
+- Time series data (graphs) have been moved to a new system (there is no data migration)
+- The default sentry.conf.py has greatly changed
 
-You should also read over the installation guide again, as some things have likely changed.
+Due to the configuration generation being greatly improved, we recommend merging your existing settings with the new defaults. To do that just backup your `sentry.conf.py` and generate a new one using `sentry init`.
 
-Upgrading to >= 5.1
-~~~~~~~~~~~~~~~~~~~
-
-Version 5.1 of Sentry includes a large set of changes including a new client protocol (version 3). It is
-fully compatible with version 2.0 of the protocol, but no longer supports several deprecated features, including
-version 1.0.
-
-If you're upgrading from a very old version of Sentry, you may have a lapse in data during your upgrade process.
-
-Upgrading from <= 5.3
-~~~~~~~~~~~~~~~~~~~~~
-
-If you were previously using social auth backends, take note that the callback URLs have been moved. They are now
-all prefixed with '/account/settings/social'.
+See the Changelog for additional backwards incompatible APIs.

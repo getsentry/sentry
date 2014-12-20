@@ -12,7 +12,7 @@ class TeamStatsTest(APITestCase):
         project_1 = self.create_project(team=team, name='a')
         project_2 = self.create_project(team=team, name='b')
         team_2 = self.create_team(owner=self.user, name='bar')
-        project_3 = self.create_project(team=team_2, name='b')
+        project_3 = self.create_project(team=team_2, name='c')
 
         tsdb.incr(tsdb.models.project, project_1.id, count=3)
         tsdb.incr(tsdb.models.project, project_2.id, count=5)

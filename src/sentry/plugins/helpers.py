@@ -7,6 +7,7 @@ sentry.plugins.helpers
 """
 from __future__ import absolute_import
 
+from sentry import options
 from sentry.models import ProjectOption, UserOption
 
 __all__ = ('set_option', 'get_option', 'unset_option')
@@ -40,7 +41,7 @@ def get_option(key, project=None, user=None):
     elif project:
         result = ProjectOption.objects.get_value(project, key, None)
     else:
-        raise NotImplementedError
+        result = options.get(key)
 
     return result
 

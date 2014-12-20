@@ -15,7 +15,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_OWNER, DEFAULT_ALERT_PROJECT_THRESHOLD
+from sentry.constants import MEMBER_ADMIN, DEFAULT_ALERT_PROJECT_THRESHOLD
 from sentry.web.decorators import has_access
 from sentry.web.forms.projects import (
     AlertSettingsForm, NotificationSettingsForm
@@ -23,9 +23,9 @@ from sentry.web.forms.projects import (
 from sentry.web.helpers import render_to_response
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
-def notification_settings(request, team, project):
+def notification_settings(request, organization, project):
     general_form = NotificationSettingsForm(
         data=request.POST or None,
         prefix='general',
@@ -62,11 +62,12 @@ def notification_settings(request, team, project):
             request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
-        return HttpResponseRedirect(reverse('sentry-project-notifications', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-project-notifications', args=[project.organization.slug, project.slug]))
 
     context = csrf(request)
     context.update({
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'general_form': general_form,
         'alert_form': alert_form,

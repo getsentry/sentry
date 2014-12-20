@@ -2,9 +2,9 @@
 
 <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Start by installing <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</p>
 
-<pre>&lt;script src="//{{ raven_js_url }}"&gt;&lt;/script&gt;</pre>
+<pre>&lt;script src="//{{ SENTRY_RAVEN_JS_URL }}"&gt;&lt;/script&gt;</pre>
 
-{% url 'sentry-manage-project' project.team.slug project.slug as project_link %}
+{% url 'sentry-manage-project' project.organization.slug project.slug as project_link %}
 
 <p>{% blocktrans %}Add any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
 
@@ -13,7 +13,7 @@
 <p>{% trans "Configure the client:" %}</p>
 
 <pre>&lt;script&gt;
-Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}', {
+Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}', {
     // we highly recommend restricting exceptions to a domain in order to filter out clutter
     whitelistUrls: ['example.com/scripts/']
 }).install();
@@ -22,8 +22,8 @@ Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong>SENTRY_DSN</s
 <p>{% trans "Add additional user context if it's available:" %}</p>
 
 <pre>Raven.setUser({
-    email: '&lt;?php echo $_SESSION['email'] ?&gt;',
-    id: '&lt;?php echo $_SESSION['id'] ?&gt;'
+    email: 'user@example.com',
+    id: 'username'
 });</pre>
 
 <p>{% trans "Now call out to the raven client to capture events:" %}</p>

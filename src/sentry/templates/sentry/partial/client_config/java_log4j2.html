@@ -10,7 +10,7 @@
     &lt;appenders&gt;
         &lt;Raven name="Sentry"&gt;
             &lt;dsn&gt;
-                {% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}
+                {% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}
             &lt;/dsn&gt;
         &lt;/Raven&gt;
     &lt;/appenders&gt;

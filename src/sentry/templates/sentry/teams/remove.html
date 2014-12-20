@@ -1,32 +1,29 @@
-{% extends "sentry/teams/manage.html" %}
+{% extends "sentry/bases/team.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "Remove Team" %} | {{ block.super }}{% endblock %}
 
-{% block controller %}DeleteTeamCtrl{% endblock %}
-
-{% block main %}
-<div class="box">
-    <div class="box-header">
-        <h3>{% trans "Delete Team" %}</h3>
+{% block inner %}
+  <div class="page-header">
+    <div class="pull-right">
+      <a href="{% url 'sentry-organization-home' organization.slug %}">Back to Organization Home</a>
     </div>
-    <div class="box-content with-padding">
-        <form role="form" name="form">
-            <p>Deleting this team is permanent and once the process begins it cannot be stopped.</p>
-            <section ng-if="projectList">
-              <p>The following projects will also be deleted as part of this process:</p>
-              <ul>
-                <li ng-repeat="project in projectList"><% project.name %></li>
-              </ul>
-            </section>
-            <p><label><input ng-model="confirm" type="checkbox" value="1" required> I understand and want to delete this team.</label></p>
-            <div class="form-actions">
-              <button class="btn btn-danger"
-                      ng-click="saveForm()"
-                      ng-disabled="form.$invalid">Delete team</button>
-            </div>
-        </form>
-    </div>
-</div>
+    <h2>
+      {% trans "Remove Team" %}
+      <small>{{ team.name }}</small>
+    </h2>
+  </div>
+  <form action="" method="post">
+    <p>{% trans "Are you sure you wish to remove this team? This change is permanent and cannot be undone!" %}</p>
+    {% csrf_token %}
+    {{ form|as_crispy_errors }}
+    {% for field in form %}
+      {{ field|as_crispy_field }}
+    {% endfor %}
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button>
+      <a href="{% url 'sentry-manage-team' organization.slug team.slug %}" class="btn">{% trans "Cancel" %}</a>
+    </fieldset>
+  </form>
 {% endblock %}

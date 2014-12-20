@@ -13,7 +13,6 @@
   <li{% if platform == 'sidekiq' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'sidekiq' %}">Sidekiq</a></li>
 </ul>
 
-
 <p>{% blocktrans with 'https://github.com/getsentry/raven-ruby' as link %}Start by installing <a href="{{ link }}">raven-ruby</a>:{% endblocktrans %}</p>
 
 <pre>gem install sentry-raven</pre>

@@ -83,10 +83,26 @@ class PostProcessGroupTest(TestCase):
             Rule(
                 id=1,
                 data={
-                    'actions': [{'id': action_id}],
-                    'conditions': [{'id': condition_id}],
+                    'actions': [{
+                        'id': 'sentry.rules.actions.notify_event.NotifyEventAction',
+                    }],
+                    'conditions': [{
+                        'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                    }],
                 }
-            )
+            ),
+            Rule(
+                id=2,
+                data={
+                    'actions': [{
+                        'id': 'sentry.rules.actions.notify_event_service.NotifyEventAction',
+                        'service': 'mail',
+                    }],
+                    'conditions': [{
+                        'id': 'sentry.rules.conditions.every_event.EveryEventCondition',
+                    }],
+                }
+            ),
         ]
 
         post_process_group(
@@ -98,7 +114,9 @@ class PostProcessGroupTest(TestCase):
 
         mock_get_rules.assert_called_once_with(self.project)
 
-        assert not mock_execute_rule.apply_async.called
+        assert len(mock_execute_rule.apply_async.mock_calls) == 1
+
+        mock_execute_rule.apply_async.reset_mock()
 
         post_process_group(
             event=event,
@@ -107,7 +125,9 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
         )
 
-        assert len(mock_execute_rule.apply_async.mock_calls) == 1
+        assert len(mock_execute_rule.apply_async.mock_calls) == 2
+
+        mock_execute_rule.apply_async.reset_mock()
 
         post_process_group(
             event=event,
@@ -124,11 +144,12 @@ class ExecuteRuleTest(TestCase):
     def test_simple(self, mock_rules):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
+        action_data = {'id': 'a.rule.id', 'foo': 'bar'}
         rule = Rule.objects.create(
             project=event.project,
             data={
                 'actions': [
-                    {'id': 'a.rule.id'},
+                    action_data,
                 ],
             }
         )
@@ -148,7 +169,7 @@ class ExecuteRuleTest(TestCase):
 
         mock_rules.get.assert_called_once_with('a.rule.id')
         mock_rule_inst = mock_rules.get.return_value
-        mock_rule_inst.assert_called_once_with(self.project)
+        mock_rule_inst.assert_called_once_with(self.project, data=action_data)
         mock_rule_inst.return_value.after.assert_called_once_with(
             event=event,
             state=state,

@@ -1,0 +1,43 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "New Team" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="create-flow">
+      <ul class="steps">
+        <li{% if current_step == 0 %} class="active"{% endif %}>1. {% trans "Create a team" %}</li>
+        <li{% if current_step == 1 %} class="active"{% endif %}>2. {% trans "Add a project" %}</li>
+      </ul>
+
+      <form class="form-stacked" action="." method="post">
+        {% csrf_token %}
+
+        <input type="hidden" name="step" value="{{ current_step }}">
+
+        {{ form|as_crispy_errors }}
+
+        {% block inner %}
+        {% endblock %}
+
+        <div class="actions">
+          <div class="pull-left">
+            {% if current_step != first_step %}
+              <button name="op" value="back" onclick="this.form.submit()"
+                      class="btn back-step">{% trans "Back" %}</button>
+            {% endif %}
+          </div>
+          {% if current_step != first_step %}
+            <button name="op" value="skip" onclick="this.form.submit()"
+                    class="btn btn-default">{% trans "Skip this step" %}</button>
+          {% endif %}
+          <button name="op" value="continue" type="submit"
+                  class="btn btn-primary next-step">{% trans "Continue" %}</button>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}

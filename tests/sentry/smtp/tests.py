@@ -18,15 +18,19 @@ class SentrySMTPTest(TestCase):
         self.assertEqual(email_to_group_id(self.mailto), self.group.pk)
 
     def test_process_message(self):
-        self.assertEqual(self.server.process_message('', self.user.email, [self.mailto], fixture), STATUS[200])
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            self.assertEqual(self.server.process_message('', self.user.email, [self.mailto], fixture), STATUS[200])
         self.assertEqual(Activity.objects.filter(type=Activity.NOTE)[0].data, {'text': 'sup'})
 
     def test_process_message_no_recipients(self):
-        self.assertEqual(self.server.process_message('', self.user.email, [], fixture), STATUS[550])
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            self.assertEqual(self.server.process_message('', self.user.email, [], fixture), STATUS[550])
 
     def test_process_message_too_long(self):
-        self.assertEqual(self.server.process_message('', self.user.email, [self.mailto], fixture * 100), STATUS[552])
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            self.assertEqual(self.server.process_message('', self.user.email, [self.mailto], fixture * 100), STATUS[552])
         self.assertEqual(Activity.objects.count(), 0)
 
     def test_process_message_invalid_email(self):
-        self.assertEqual(self.server.process_message('', self.user.email, ['lol@localhost'], fixture), STATUS[550])
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            self.assertEqual(self.server.process_message('', self.user.email, ['lol@localhost'], fixture), STATUS[550])

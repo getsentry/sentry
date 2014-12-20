@@ -37,15 +37,18 @@ class NotifyEventServiceAction(EventAction):
         service = self.get_option('service')
 
         if not service:
+            self.logger.info('Rule has no service configured')
             return
 
         plugin = plugins.get(service)
         if not plugin.is_enabled(self.project):
+            self.logger.info('Rule is configured against disabled service')
             return
 
         group = event.group
 
         if not plugin.should_notify(group=group, event=event):
+            self.logger.info('Rule failed should_notify check')
             return
 
         plugin.notify_users(group=group, event=event)

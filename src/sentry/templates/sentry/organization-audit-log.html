@@ -1,0 +1,56 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Audit Log" %} | {{ block.super }}{% endblock %}
+
+{% block org_auditlog_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>Audit Log</h2>
+  </div>
+
+  {% paginate audit_log_queryset from request as entry_list per_page 50 %}
+
+  {% if entry_list.objects %}
+    <p>{% blocktrans %}Sentry keeps track of important events within your Organization.{% endblocktrans %}</p>
+
+    <br>
+
+    <table class="table table-striped">
+      <colgroup>
+        <col width="32px"/>
+        <col/>
+        <col width="150px"/>
+        <col width="100px"/>
+        <col width="200px"/>
+      </colgroup>
+      <tbody>
+        {% for entry in entry_list.objects %}
+          <tr>
+            <td>
+              <img class="avatar avatar32" src="{% gravatar_url entry.actor.email size 32 %}">
+            </td>
+            <td>
+              <strong>{{ entry.actor.get_display_name }}</strong><br>
+              {{ entry.get_note }}
+            </td>
+            <td>{{ entry.get_event_display }}</td>
+            <td>{{ entry.ip_address }}</td>
+            <td style="text-align:right">
+              <span class="pretty-date" title="{{ entry.datetime|date:"c" }}Z">{{ entry.datetime|timesince }}</span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {{ event_list.paging }}
+  {% else %}
+    <div class="well">
+      <p style="margin: 0;">It looks like nothing has really happened within your organization. Check back later!</p>
+    </div>
+  {% endif %}
+{% endblock %}

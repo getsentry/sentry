@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_ADMIN
 from sentry.models import ProjectKey
 from sentry.permissions import (
     can_remove_project_key, can_add_project_key, can_edit_project_key
@@ -26,9 +26,9 @@ from sentry.web.forms.projectkeys import EditProjectKeyForm
 from sentry.web.helpers import render_to_response
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
-def manage_project_keys(request, team, project):
+def manage_project_keys(request, organization, project):
     result = plugins.first('has_perm', request.user, 'edit_project', project)
     if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
@@ -43,7 +43,8 @@ def manage_project_keys(request, team, project):
 
     context = csrf(request)
     context.update({
-        'team': team,
+        'team': project.team,
+        'organization': organization,
         'page': 'keys',
         'project': project,
         'key_list': key_list,
@@ -53,25 +54,25 @@ def manage_project_keys(request, team, project):
     return render_to_response('sentry/projects/keys.html', context, request)
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
-def new_project_key(request, team, project):
+def new_project_key(request, organization, project):
     if not can_add_project_key(request.user, project):
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     ProjectKey.objects.create(
         project=project,
         user_added=request.user,
     )
 
-    return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+    return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
 
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
-def edit_project_key(request, team, project, key_id):
+def edit_project_key(request, organization, project, key_id):
     if not can_edit_project_key(request.user, project):
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     try:
         key = ProjectKey.objects.get(
@@ -79,7 +80,7 @@ def edit_project_key(request, team, project, key_id):
             project=project,
         )
     except ProjectKey.DoesNotExist():
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     form = EditProjectKeyForm(request.POST or None, instance=key)
     if form.is_valid():
@@ -87,10 +88,11 @@ def edit_project_key(request, team, project, key_id):
 
         messages.add_message(
             request, messages.SUCCESS, _('Changes to your API key were saved.'))
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     context = {
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'page': 'keys',
         'key': key,
@@ -101,20 +103,20 @@ def edit_project_key(request, team, project, key_id):
 
 
 @require_http_methods(['POST'])
-@has_access(MEMBER_OWNER)
+@has_access(MEMBER_ADMIN)
 @csrf_protect
-def remove_project_key(request, team, project, key_id):
+def remove_project_key(request, organization, project, key_id):
     try:
         key = ProjectKey.objects.get(id=key_id)
     except ProjectKey.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     if not can_remove_project_key(request.user, key):
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     key.delete()
     messages.add_message(
         request, messages.SUCCESS,
         _('The API key (%s) was revoked.') % (key.public_key,))
 
-    return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
+    return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))

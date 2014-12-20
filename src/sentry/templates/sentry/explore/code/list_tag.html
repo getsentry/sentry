@@ -9,9 +9,9 @@
 {% block inner %}
     <ul class="nav nav-tabs">
         <li{% if selection == 'filenames' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-explore-code' team.slug project.slug %}">Files</a></li>
+            <a href="{% url 'sentry-explore-code' organization.slug project.slug %}">Files</a></li>
         <li{% if selection == 'functions' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-explore-code-by-function' team.slug project.slug %}">Functions</a></li>
+            <a href="{% url 'sentry-explore-code-by-function' organization.slug project.slug %}">Functions</a></li>
     </ul>
 
     {% paginator tag_list from request as tag_list %}
@@ -48,11 +48,11 @@
                     <tr>
                         <td>
                             {% if selection == 'functions' %}
-                                {% url 'sentry-explore-code-details-by-function' team.slug project.slug tag.id as link %}
+                                {% url 'sentry-explore-code-details-by-function' organization.slug project.slug tag.id as link %}
                                 <a href="{{ link }}">{{ tag.data.function }}</a><br>
                                 <small>{{ tag.data.filename }}</small>
                             {% else %}
-                                {% url 'sentry-explore-code-details' team.slug project.slug tag.id as link %}
+                                {% url 'sentry-explore-code-details' organization.slug project.slug tag.id as link %}
                                 <a href="{{ link }}">{{ tag.data.filename }}</a><br>
                             {% endif %}
                         </td>

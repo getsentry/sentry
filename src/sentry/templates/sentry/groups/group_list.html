@@ -130,7 +130,7 @@
             {% for alert in recent_alerts %}
                 <li class="alert alert-error">
                     <a class="close" data-dismiss="alert">×</a>
-                    <a href="{% url 'sentry-alert-details' project.team.slug project.slug alert.id %}">{{ alert.message }}</a>
+                    <a href="{% url 'sentry-alert-details' project.organization.slug project.slug alert.id %}">{{ alert.message }}</a>
                     <small>&mdash; {{ alert.datetime|timesince }}</small>
                 </li>
             {% endfor %}
@@ -202,6 +202,7 @@
         <h3>No events to show.</h3>
       </div>
     </div>
+
     <script>
     window.groupList = {% convert_to_json event_list %};
     </script>

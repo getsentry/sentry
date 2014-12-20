@@ -23,11 +23,10 @@
                 <h3>{% trans "Project Details" %}</h3>
               </div>
               <div class="box-content with-padding">
-                {% for field in form %}
-                    {% if field.name != 'origins' and field.name != 'public' and field.name != 'resolve_age' %}
-                        {{ field|as_crispy_field }}
-                    {% endif %}
-                {% endfor %}
+                {{ form.name|as_crispy_field }}
+                {{ form.slug|as_crispy_field }}
+                {{ form.platform|as_crispy_field }}
+                {{ form.team|as_crispy_field }}
               </div>
             </div>
 
@@ -37,6 +36,7 @@
                 </div>
                 <div class="box-content with-padding">
                   {{ form.resolve_age|as_crispy_field }}
+                  {{ form.scrub_data|as_crispy_field }}
                   {% if form.public %}
                       {{ form.public|as_crispy_field }}
                   {% endif %}
@@ -64,7 +64,7 @@
               <div class="box-content with-padding">
                 {% if not project.is_internal_project %}
                     <p class="clearfix">
-                      <a href="{% url 'sentry-remove-project' project.team.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Remove Project" %}</a>
+                      <a href="{% url 'sentry-remove-project' project.organization.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Remove Project" %}</a>
                       Remove the <strong>{{ project.slug }}</strong> project from <strong>{{ project.team.slug }}</strong>. </br>
                       Careful, this action cannot be undone.
                     </p>
@@ -84,33 +84,33 @@
 {% block sidebar %}
     <ul class="nav nav-stacked">
         <li{% if page == 'details' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{% trans "Project Settings" %}</a>
+            <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "Project Settings" %}</a>
         </li>
         <li{% if page == 'notifications' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-project-notifications' project.team.slug project.slug %}">{% trans "Notifications" %}</a>
+            <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">{% trans "Notifications" %}</a>
         </li>
         <li{% if page == 'quotas' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-project-quotas' project.team.slug project.slug %}">{% trans "Rate Limits" %}</a>
+            <a href="{% url 'sentry-manage-project-quotas' project.organization.slug project.slug %}">{% trans "Rate Limits" %}</a>
         </li>
         <li{% if page == 'rules' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-project-rules' project.team.slug project.slug %}">{% trans "Rules" %}</a>
+            <a href="{% url 'sentry-project-rules' project.organization.slug project.slug %}">{% trans "Rules" %}</a>
         </li>
         <li{% if page == 'tags' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-project-tags' project.team.slug project.slug %}">{% trans "Tags" %}</a>
+            <a href="{% url 'sentry-manage-project-tags' project.organization.slug project.slug %}">{% trans "Tags" %}</a>
         </li>
         <li{% if page == 'keys' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-project-keys' project.team.slug project.slug %}">{% trans "API Keys" %}</a>
+            <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "API Keys" %}</a>
         </li>
     </ul>
     {% with project|get_plugins as plugins %}
         <h6>{% trans "Integrations" %}</h6>
         <ul class="nav nav-stacked">
             <li class="{% if page == 'plugins' %} active{% endif %}">
-                <a href="{% url 'sentry-manage-project-plugins' project.team.slug project.slug %}">{% trans "Manage Integrations" %} ({{ PLUGINS|length }})</a>
+                <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "Manage Integrations" %} ({{ PLUGINS|length }})</a>
             </li>
             {% for p in plugins %}
                 <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-                    <a href="{% url 'sentry-configure-project-plugin' project.team.slug project.slug p.slug %}">{{ p.get_title }}</a>
+                    <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
                 </li>
             {% endfor %}
         </ul>

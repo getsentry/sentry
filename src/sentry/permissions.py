@@ -10,9 +10,10 @@ from __future__ import absolute_import
 import six
 
 from django.conf import settings
+from django.db.models import Q
 from functools import wraps
 
-from sentry.constants import MEMBER_OWNER
+from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
 
@@ -30,8 +31,9 @@ class Permission(object):
 
 
 class Permissions(object):
-    ADD_PROJECT = Permission('add_project', 'create new projects')
+    ADD_ORGANIZATION = Permission('add_organization', 'create new organizations')
     ADD_TEAM = Permission('add_team', 'create new teams')
+    ADD_PROJECT = Permission('add_project', 'create new projects')
 
 
 def requires_login(func):
@@ -44,21 +46,38 @@ def requires_login(func):
     return wrapped
 
 
+def is_organization_admin(user, organization):
+    # an organization admin *must* have global access
+    return organization.member_set.filter(
+        user=user,
+        type__lte=OrganizationMemberType.ADMIN,
+        has_global_access=True,
+    ).exists()
+
+
+def is_team_admin(user, team):
+    return team.organization.member_set.filter(
+        Q(has_global_access=True) | Q(teams=team),
+        user=user,
+        type__lte=OrganizationMemberType.ADMIN,
+    ).exists()
+
+
+def is_project_admin(user, project):
+    return is_team_admin(user, project.team)
+
+
 @cached_for_request
 @requires_login
-def can_create_projects(user, team=None):
+def can_create_organizations(user):
     """
     Returns a boolean describing whether a user has the ability to
-    create new projects.
+    create new organizations.
     """
     if user.is_superuser:
         return True
 
-    # must be an owner of team
-    if team and not team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
-        return False
-
-    result = plugins.first('has_perm', user, 'add_project', team)
+    result = plugins.first('has_perm', user, 'add_organization')
     if result is False:
         return result
 
@@ -67,7 +86,27 @@ def can_create_projects(user, team=None):
 
 @cached_for_request
 @requires_login
-def can_create_teams(user):
+def can_create_teams(user, organization):
+    """
+    Returns a boolean describing whether a user has the ability to
+    create new teams.
+    """
+    if user.is_superuser:
+        return True
+
+    if not is_organization_admin(user, organization):
+        return False
+
+    result = plugins.first('has_perm', user, 'add_team', organization)
+    if result is False:
+        return result
+
+    return True
+
+
+@cached_for_request
+@requires_login
+def can_create_projects(user, team):
     """
     Returns a boolean describing whether a user has the ability to
     create new projects.
@@ -75,7 +114,10 @@ def can_create_teams(user):
     if user.is_superuser:
         return True
 
-    result = plugins.first('has_perm', user, 'add_team')
+    if not is_team_admin(user, team):
+        return False
+
+    result = plugins.first('has_perm', user, 'add_project', team)
     if result is False:
         return result
 
@@ -102,15 +144,48 @@ def can_set_public_projects(user):
 
 
 @requires_login
-def can_add_team_member(user, team):
+def can_manage_org(user, organization):
+    if user.is_superuser:
+        return True
+
+    if is_organization_admin(user, organization):
+        return True
+
+    return False
+
+
+@requires_login
+def can_manage_team(user, team):
+    if can_manage_org(user, team.organization):
+        return True
+
+    if is_team_admin(user, team):
+        return True
+
+    return False
+
+
+@requires_login
+def can_manage_project(user, project):
+    if can_manage_org(user, project.organization):
+        return True
+
+    if is_project_admin(user, project):
+        return True
+
+    return False
+
+
+@requires_login
+def can_add_organization_member(user, organization):
     # must be an owner of the team
     if user.is_superuser:
         return True
 
-    if not team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if not is_organization_admin(user, organization):
         return False
 
-    result = plugins.first('has_perm', user, 'add_team_member', team)
+    result = plugins.first('has_perm', user, 'add_organization_member', organization)
     if result is False:
         return False
 
@@ -118,13 +193,13 @@ def can_add_team_member(user, team):
 
 
 @requires_login
-def can_manage_team_member(user, member, perm):
+def can_manage_organization_member(user, member, perm):
     # permissions always take precedence
     if user.is_superuser:
         return True
 
     # must be an owner of the team
-    if not member.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if not is_organization_admin(user, member.organization):
         return False
 
     result = plugins.first('has_perm', user, perm, member)
@@ -134,28 +209,12 @@ def can_manage_team_member(user, member, perm):
     return True
 
 
-def can_edit_team_member(user, member):
-    return can_manage_team_member(user, member, 'edit_team_member')
+def can_edit_organization_member(user, member):
+    return can_manage_organization_member(user, member, 'edit_organization_member')
 
 
-def can_remove_team_member(user, member):
-    return can_manage_team_member(user, member, 'remove_team_member')
-
-
-@requires_login
-def can_remove_team(user, team):
-    if user.is_superuser:
-        return True
-
-    # must be an owner of the team
-    if team.owner != user:
-        return False
-
-    result = plugins.first('has_perm', user, 'remove_team', team)
-    if result is False:
-        return False
-
-    return True
+def can_remove_organization_member(user, member):
+    return can_manage_organization_member(user, member, 'remove_organization_member')
 
 
 @requires_login
@@ -166,8 +225,7 @@ def can_remove_project(user, project):
     if user.is_superuser:
         return True
 
-    # must be an owner of the team
-    if not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if not is_project_admin(user, project):
         return False
 
     result = plugins.first('has_perm', user, 'remove_project', project)
@@ -179,15 +237,10 @@ def can_remove_project(user, project):
 
 @requires_login
 def can_admin_group(user, group, is_remove=False):
-    from sentry.models import Team
-
     if user.is_superuser:
         return True
 
-    # We make the assumption that we have a valid membership here
-    try:
-        Team.objects.get_for_user(user)[group.project.team.slug]
-    except KeyError:
+    if not group.project.has_access(user, OrganizationMemberType.MEMBER):
         return False
 
     # The "remove_event" permission was added after "admin_event".
@@ -214,8 +267,7 @@ def can_add_project_key(user, project):
     if user.is_superuser:
         return True
 
-    # must be an owner of the team
-    if project.team and not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if not is_project_admin(user, project):
         return False
 
     result = plugins.first('has_perm', user, 'add_project_key', project)
@@ -230,8 +282,7 @@ def can_edit_project_key(user, project):
     if user.is_superuser:
         return True
 
-    # must be an owner of the team
-    if project.team and not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if not is_project_admin(user, project):
         return False
 
     result = plugins.first('has_perm', user, 'edit_project_key', project)
@@ -248,8 +299,7 @@ def can_remove_project_key(user, key):
 
     project = key.project
 
-    # must be an owner of the team
-    if project.team and not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if not is_project_admin(user, project):
         return False
 
     result = plugins.first('has_perm', user, 'remove_project_key', project, key)

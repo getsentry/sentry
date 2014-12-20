@@ -40,10 +40,17 @@ class ProjectGroupIndexEndpoint(Endpoint):
     # <tag>=<value>
     def get(self, request, project_id):
         """
-        Return a list of aggregates bound to this project.
+        List a project's aggregates
+
+        Return a list of aggregates bound to a project.
+
+            {method} {path}?id=1&id=2&id=3
 
         A default query of 'is:resolved' is applied. To return results with
         other statuses send an new query value (i.e. ?query= for all results).
+
+        Any standard Sentry structured search query can be passed via the
+        ``query`` parameter.
         """
         project = Project.objects.get_from_cache(
             id=project_id,
@@ -110,40 +117,33 @@ class ProjectGroupIndexEndpoint(Endpoint):
         if query is not None:
             query_kwargs.update(parse_query(query, request.user))
 
-        results = search.query(**query_kwargs)
+        results = list(search.query(**query_kwargs))
 
         GroupMeta.objects.populate_cache(results)
 
-        # TODO(dcramer): we need create a public API for 'sort_value'
-        context = serialize(list(results), request.user)
-        for group, data in zip(results, context):
-            data['sortWeight'] = group.sort_value
-
-        headers = {}
-        headers['Link'] = ', '.join([
-            self.build_cursor_link(request, 'previous', results.prev),
-            self.build_cursor_link(request, 'next', results.next),
-        ])
-
-        return Response(context, headers=headers)
+        return Response(serialize(results, request.user))
 
     def put(self, request, project_id):
         """
-        Bulk mutate various attributes on groups.
+        Bulk mutate a list of aggregates
+
+        Bulk mutate various attributes on aggregates.
+
+            {method} {path}?id=1&id=2&id=3
+            {{
+              "status": "resolved",
+              "isBookmarked": true
+            }}
 
         - For non-status updates, only queries by 'id' are accepted.
         - For status updates, the 'id' parameter may be omitted for a batch
         "update all" query.
 
-        PUT ?id=1&id=2&id=3
-          status=resolved&
-          isBookmarked=1
-
         Attributes:
 
-        - status=[resolved|unresolved|muted]
-        - isBookmarked=[1|0]
-        - merge=[1|0]
+        - status: resolved, unresolved, muted
+        - isBookmarked: true, false
+        - merge: true, false
 
         If any ids are out of scope this operation will succeed without any data
         mutation.
@@ -252,7 +252,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         Only queries by 'id' are accepted.
 
-        DELETE ?id=1&id=2&id=3
+            {method} {path}?id=1&id=2&id=3
 
         If any ids are out of scope this operation will succeed without any data
         mutation

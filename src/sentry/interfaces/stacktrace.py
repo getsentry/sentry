@@ -83,7 +83,7 @@ def is_newest_frame_first(event):
 
 
 def is_url(filename):
-    return filename.startswith(('http:', 'https:', 'file:'))
+    return '://' in filename
 
 
 def remove_function_outliers(function):
@@ -180,7 +180,10 @@ class Frame(Interface):
         }
 
         if data.get('lineno') is not None:
-            kwargs['lineno'] = int(data['lineno'])
+            lineno = int(data['lineno'])
+            if lineno < 0:
+                lineno = None
+            kwargs['lineno'] = lineno
         else:
             kwargs['lineno'] = None
 
@@ -196,6 +199,12 @@ class Frame(Interface):
             return False
         return is_url(self.abs_path)
 
+    def is_caused_by(self):
+        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
+        # text as it contains an exception value which may may contain dynamic
+        # values (see raven-java#125)
+        return self.filename.startswith('Caused by: ')
+
     def get_hash(self):
         """
         The hash of the frame varies depending on the data available.
@@ -209,7 +218,7 @@ class Frame(Interface):
         output = []
         if self.module:
             output.append(self.module)
-        elif self.filename and not self.is_url():
+        elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename))
 
         if self.context_line is None:
@@ -496,7 +505,7 @@ class Stacktrace(Interface):
         return render_to_string('sentry/partial/interfaces/stacktrace.html', context)
 
     def to_string(self, event, is_public=False, **kwargs):
-        return self.get_stacktrace(event, system_frames=False, max_frames=5)
+        return self.get_stacktrace(event, system_frames=False, max_frames=10)
 
     def get_stacktrace(self, event, system_frames=True, newest_first=None,
                        max_frames=None, header=True):

@@ -15,7 +15,7 @@ from gzip import GzipFile
 from exam import fixture
 from raven import Client
 
-from sentry.models import Group, Event, Project, User
+from sentry.models import Group, Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.compat import StringIO
@@ -75,8 +75,9 @@ class RavenIntegrationTest(TestCase):
     happen between Raven <--> Sentry over HTTP communication.
     """
     def setUp(self):
-        self.user = User.objects.create(username='coreapi')
-        self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
+        self.user = self.create_user('coreapi@example.com')
+        self.team = self.create_team(owner=self.user)
+        self.project = self.create_project(team=self.team)
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 
@@ -103,7 +104,9 @@ class RavenIntegrationTest(TestCase):
             dsn='http://%s:%s@localhost:8000/%s' % (
                 self.pk.public_key, self.pk.secret_key, self.pk.project_id)
         )
-        client.capture('Message', message='foo')
+
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            client.capture('Message', message='foo')
 
         send_remote.assert_called_once()
         self.assertEquals(Group.objects.count(), 1)
@@ -200,12 +203,13 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        resp = self.client.post(
-            self.path, message,
-            content_type='application/octet-stream',
-            HTTP_CONTENT_ENCODING='deflate',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                self.path, message,
+                content_type='application/octet-stream',
+                HTTP_CONTENT_ENCODING='deflate',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
 
         assert resp.status_code == 200, resp.content
 
@@ -230,12 +234,13 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        resp = self.client.post(
-            self.path, fp.getvalue(),
-            content_type='application/octet-stream',
-            HTTP_CONTENT_ENCODING='gzip',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                self.path, fp.getvalue(),
+                content_type='application/octet-stream',
+                HTTP_CONTENT_ENCODING='gzip',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
 
         assert resp.status_code == 200, resp.content
 

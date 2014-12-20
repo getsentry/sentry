@@ -63,7 +63,6 @@ def pytest_configure(config):
         'tests',
     )
     # Need a predictable key for tests that involve checking signatures
-    settings.SENTRY_KEY = 'abc123'
     settings.SENTRY_PUBLIC = False
 
     # This speeds up the tests considerably, pbkdf2 is by design, slow.
@@ -92,6 +91,8 @@ def pytest_configure(config):
 
     settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
     settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
+
+    settings.CELERY_ALWAYS_EAGER = False
 
     settings.CACHES = {
         'default': {

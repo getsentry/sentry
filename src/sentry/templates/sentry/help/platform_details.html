@@ -17,7 +17,11 @@
 {% endblock %}
 
 {% block main %}
-    <h3>{{ platform_title }}</h3>
+  <h3>{{ platform_title }}</h3>
 
-    {{ template }}
+  {{ template }}
+
+  <div class="well">
+    Looking for your DSN? You'll find it under <strong>Project Settings &rsaquo; API Keys</strong>.
+  </div>
 {% endblock %}

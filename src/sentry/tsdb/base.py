@@ -14,21 +14,32 @@ ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
 
+# rollups must be ordered from highest granularity to lowest
 ROLLUPS = (
-    # time in seconds, samples to keep
+    # (time in seconds, samples to keep)
     (10, 30),  # 5 minute at 10 seconds
-    (ONE_HOUR, ONE_DAY * 7),  # 1 days at 1 hour
-    # (ONE_DAY, 30),  # 30 days at 1 day
+    (ONE_HOUR, ONE_DAY * 7),  # 7 days at 1 hour
 )
 
 
 class TSDBModel(Enum):
+    # number of events seen specific to grouping
     project = 1
     project_tag_key = 2
     project_tag_value = 3
     group = 4
     group_tag_key = 5
     group_tag_value = 6
+
+    # the number of events sent to the server
+    project_total_received = 100
+    # the number of events rejected due to rate limiting
+    project_total_rejected = 101
+
+    # the number of events sent to the server
+    organization_total_received = 200
+    # the number of events rejected due to rate limiting
+    organization_total_rejected = 201
 
 
 class BaseTSDB(object):

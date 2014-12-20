@@ -33,8 +33,8 @@ from django.utils.translation import ugettext as _
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.constants import EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Team
+from sentry.constants import EVENTS_PER_PAGE
+from sentry.models import Organization
 from sentry.web.helpers import group_is_public
 from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -475,17 +475,6 @@ def basename(value):
 
 
 @register.filter
-def can_admin_team(user, team):
-    if user.is_superuser:
-        return True
-    if team.owner == user:
-        return True
-    if team.slug in Team.objects.get_for_user(user, access=MEMBER_OWNER):
-        return True
-    return False
-
-
-@register.filter
 def user_display_name(user):
     return user.first_name or user.username
 
@@ -500,3 +489,26 @@ def localized_datetime(context, dt, format='DATETIME_FORMAT'):
     dt = dt.astimezone(timezone)
 
     return date(dt, format)
+
+
+@register.filter
+def list_organizations(user):
+    return Organization.objects.get_for_user(user)
+
+
+@register.filter
+def needs_access_group_migration(user, organization):
+    from sentry.models import AccessGroup, OrganizationMember, OrganizationMemberType
+
+    has_org_access_queryset = OrganizationMember.objects.filter(
+        user=user,
+        organization=organization,
+        type__lte=OrganizationMemberType.ADMIN,
+    )
+
+    if not (user.is_superuser or has_org_access_queryset.exists()):
+        return False
+
+    return AccessGroup.objects.filter(
+        team__organization=organization
+    ).exists()

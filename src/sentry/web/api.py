@@ -13,6 +13,7 @@ import six
 from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db import connections
 from django.db.models import Sum, Q
@@ -39,7 +40,8 @@ from sentry.coreapi import (
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupStatus, GroupTagValue, Project, TagValue, Activity, User)
+    Group, GroupStatus, GroupTagValue, Project, TagValue, Activity, User
+)
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
@@ -314,7 +316,18 @@ class StoreView(APIView):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
         if rate_limit is not None and rate_limit.is_limited:
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_rejected, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_rejected, project.organization_id),
+            ])
             raise APIRateLimited(rate_limit.retry_after)
+        else:
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+            ])
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
@@ -346,14 +359,25 @@ class StoreView(APIView):
 
         event_id = data['event_id']
 
-        # We filter data immediately before it ever gets into the queue
-        inst = SensitiveDataFilter()
-        inst.apply(data)
+        # TODO(dcramer): ideally we'd only validate this if the event_id was
+        # supplied by the user
+        cache_key = 'ev:%s:%s' % (project.id, event_id,)
+
+        if cache.get(cache_key) is not None:
+            logger.warning('Discarded recent duplicate event from project %s/%s (id=%s)', project.organization.slug, project.slug, event_id)
+            raise InvalidRequest('An event with the same ID already exists.')
+
+        if project.get_option('sentry:scrub_data', True):
+            # We filter data immediately before it ever gets into the queue
+            inst = SensitiveDataFilter()
+            inst.apply(data)
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)
 
-        logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, event_id)
+        cache.set(cache_key, '', 60 * 5)
+
+        logger.debug('New event from project %s/%s (id=%s)', project.organization.slug, project.slug, event_id)
 
         return event_id
 
@@ -362,7 +386,7 @@ class StoreView(APIView):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def make_group_public(request, team, project, group_id):
+def make_group_public(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -385,7 +409,7 @@ def make_group_public(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def make_group_private(request, team, project, group_id):
+def make_group_private(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -408,7 +432,7 @@ def make_group_private(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def resolve_group(request, team, project, group_id):
+def resolve_group(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -433,7 +457,7 @@ def resolve_group(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def mute_group(request, team, project, group_id):
+def mute_group(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -458,7 +482,7 @@ def mute_group(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def unresolve_group(request, team, project, group_id):
+def unresolve_group(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -482,7 +506,7 @@ def unresolve_group(request, team, project, group_id):
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
-def remove_group(request, team, project, group_id):
+def remove_group(request, organization, project, group_id):
     from sentry.tasks.deletion import delete_group
 
     try:
@@ -498,7 +522,7 @@ def remove_group(request, team, project, group_id):
     else:
         messages.add_message(request, messages.SUCCESS,
             _('Deletion has been queued and should occur shortly.'))
-        response = HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
+        response = HttpResponseRedirect(reverse('sentry-stream', args=[organization.slug, project.slug]))
     return response
 
 
@@ -506,7 +530,7 @@ def remove_group(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def get_group_tags(request, team, project, group_id, tag_name):
+def get_group_tags(request, organization, project, group_id, tag_name):
     # XXX(dcramer): Consider this API deprecated as soon as it was implemented
     cutoff = timezone.now() - timedelta(days=7)
 
@@ -550,14 +574,11 @@ def get_group_tags(request, team, project, group_id, tag_name):
 @never_cache
 @csrf_exempt
 @has_access
-def get_group_trends(request, team=None, project=None):
+def get_group_trends(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -588,14 +609,11 @@ def get_group_trends(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_new_groups(request, team=None, project=None):
+def get_new_groups(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -622,14 +640,11 @@ def get_new_groups(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_resolved_groups(request, team=None, project=None):
+def get_resolved_groups(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -656,13 +671,15 @@ def get_resolved_groups(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_stats(request, team=None, project=None):
+def get_stats(request, organization, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
 
     if not team and project:
         project_list = [project]
+    elif team:
+        project_list = Project.objects.get_for_user(team=team, user=request.user)
     else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+        return HttpResponse(status=400)
 
     cutoff = timedelta(minutes=minutes)
 
@@ -703,7 +720,7 @@ def get_stats(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def search_tags(request, team, project):
+def search_tags(request, organization, project):
     limit = min(100, int(request.GET.get('limit', 10)))
     name = request.GET['name']
     query = request.GET['query']
@@ -726,14 +743,14 @@ def search_tags(request, team, project):
 @never_cache
 @csrf_exempt
 @has_access
-def search_users(request, team):
+def search_users(request, organization):
     limit = min(100, int(request.GET.get('limit', 10)))
     query = request.GET['query']
 
     results = list(User.objects.filter(
         Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
     ).filter(
-        Q(team_memberships=team) | Q(accessgroup__team=team),
+        sentry_orgmember_set__organization=organization,
     ).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
 
     response = HttpResponse(json.dumps({
@@ -748,13 +765,14 @@ def search_users(request, team):
 @never_cache
 @csrf_exempt
 @has_access
-def search_projects(request, team):
+def search_projects(request, organization):
     limit = min(100, int(request.GET.get('limit', 10)))
     query = request.GET['query']
 
     results = list(Project.objects.filter(
         Q(name__istartswith=query) | Q(slug__istartswith=query),
-    ).filter(team=team).distinct().order_by('name', 'slug').values('id', 'name', 'slug')[:limit])
+        organization=organization,
+    ).distinct().order_by('name', 'slug').values('id', 'name', 'slug')[:limit])
 
     response = HttpResponse(json.dumps({
         'results': results,

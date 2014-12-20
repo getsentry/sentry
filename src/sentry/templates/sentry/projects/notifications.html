@@ -18,7 +18,7 @@
           </div>
           <div class="box-content with-padding">
 
-            {% url 'sentry-project-rules' team.slug project.slug as link %}
+            {% url 'sentry-project-rules' project.organization.slug project.slug as link %}
             <p>{% blocktrans %}Sentry will notify you based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
           </div>
         </div>

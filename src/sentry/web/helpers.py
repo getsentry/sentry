@@ -8,30 +8,20 @@ sentry.web.helpers
 from __future__ import absolute_import, print_function
 
 import logging
-import warnings
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
-from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.api.serializers.base import serialize
 from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import Project, Team, Option, ProjectOption
+from sentry.models import Project, Team, ProjectOption
 
 logger = logging.getLogger('sentry.errors')
-
-
-def get_project_list(user=None, access=None, hidden=False, key='id', team=None):
-    warnings.warn('get_project_list is Deprecated. Use Project.objects.get_for_user instead.', DeprecationWarning)
-    return SortedDict(
-        (getattr(p, key), p)
-        for p in Project.objects.get_for_user(user, access)
-    )
 
 
 def group_is_public(group, user):
@@ -52,14 +42,9 @@ def group_is_public(group, user):
     if user.is_superuser:
         return False
     # project owners can view events
-    if group.project in get_project_list(user).values():
+    if group.project in Project.objects.get_for_user(team=group.project.team, user=user):
         return False
     return True
-
-
-def get_team_list(user, access=None):
-    warnings.warn('get_team_list is Deprecated. Use Team.objects.get_for_user instead.', DeprecationWarning)
-    return Team.objects.get_for_user(user, access)
 
 
 _LOGIN_URL = None
@@ -91,6 +76,7 @@ def get_default_context(request, existing_context=None, team=None):
         'URL_PREFIX': settings.SENTRY_URL_PREFIX,
         'PLUGINS': plugins,
         'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
+        'SENTRY_RAVEN_JS_URL': settings.SENTRY_RAVEN_JS_URL,
     }
 
     if existing_context:
@@ -104,26 +90,31 @@ def get_default_context(request, existing_context=None, team=None):
     else:
         project = None
 
+    if team:
+        organization = team.organization
+    elif project:
+        organization = project.organization
+    else:
+        organization = None
+
     if request:
         context.update({
             'request': request,
         })
 
-        if not existing_context or 'TEAM_LIST' not in existing_context:
+        if (not existing_context or 'TEAM_LIST' not in existing_context) and team:
             context['TEAM_LIST'] = Team.objects.get_for_user(
-                request.user, with_projects=True).values()
-
-        if not existing_context or 'PROJECT_LIST' not in existing_context:
-            # HACK:
-            for t, p_list in context['TEAM_LIST']:
-                if t == team:
-                    context['PROJECT_LIST'] = p_list
-                    break
+                organization=team.organization,
+                user=request.user,
+                with_projects=True,
+            )
 
         user = request.user
     else:
         user = AnonymousUser()
 
+    if organization:
+        context['selectedOrganization'] = serialize(organization, user)
     if team:
         context['selectedTeam'] = serialize(team, user)
     if project:
@@ -214,7 +205,7 @@ def plugin_config(plugin, project, request):
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
                 else:
-                    Option.objects.set_value(key, value)
+                    options.set(key, value)
 
             return ('redirect', None)
 

@@ -5,18 +5,14 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
-from exam import before, fixture
+from exam import fixture
 
-from sentry.models import Team, Project, TeamMember, AccessGroup, User
+from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
 from sentry.utils import json
 
 
 class StoreViewTest(TestCase):
-    @fixture
-    def project(self):
-        return Project.objects.create(name='foo', slug='foo')
-
     @fixture
     def path(self):
         return reverse('sentry-api-store', kwargs={'project_id': self.project.slug})
@@ -73,10 +69,6 @@ class StoreViewTest(TestCase):
 
 
 class CrossDomainXmlTest(TestCase):
-    @fixture
-    def project(self):
-        return Project.objects.create(name='foo', slug='foo', public=True)
-
     @fixture
     def path(self):
         return reverse('sentry-api-crossdomain-xml', kwargs={'project_id': self.project.slug})
@@ -136,34 +128,18 @@ class CrossDomainXmlIndexTest(TestCase):
 class SearchUsersTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-search-users', args=[self.team.slug])
+        return reverse('sentry-api-search-users', args=[self.organization.slug])
 
-    @before
-    def login_user(self):
-        self.login()
+    def setUp(self):
+        super(SearchUsersTest, self).setUp()
+        self.login_as(self.user)
 
-    def test_finds_users_from_team_members(self):
+    def test_finds_users_from_organization_members(self):
         otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
-        TeamMember.objects.create(team=self.team, user=otheruser)
-
-        resp = self.client.get(self.path, {'query': 'bob'})
-
-        assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        assert json.loads(resp.content) == {
-            'results': [{
-                'id': otheruser.id,
-                'first_name': otheruser.first_name,
-                'username': otheruser.username,
-                'email': otheruser.email,
-            }],
-            'query': 'bob',
-        }
-
-    def test_finds_users_from_access_group_members(self):
-        otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
-        group = AccessGroup.objects.create(team=self.team, name='Test')
-        group.members.add(otheruser)
+        OrganizationMember.objects.create(
+            organization=self.team.organization,
+            user=otheruser,
+        )
 
         resp = self.client.get(self.path, {'query': 'bob'})
 
@@ -195,14 +171,18 @@ class SearchUsersTest(TestCase):
 class SearchProjectsTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-search-projects', args=[self.team.slug])
+        return reverse('sentry-api-search-projects', args=[self.organization.slug])
 
-    @before
-    def login_user(self):
-        self.login()
+    def setUp(self):
+        super(SearchProjectsTest, self).setUp()
+        self.login_as(self.user)
 
-    def test_finds_projects_from_team(self):
-        project = Project.objects.create(team=self.team, name='Sample')
+    def test_finds_projects_from_org(self):
+        project = self.create_project(
+            organization=self.organization,
+            team=self.team,
+            name='Sample',
+        )
         resp = self.client.get(self.path, {'query': 'sample'})
 
         assert resp.status_code == 200
@@ -216,9 +196,10 @@ class SearchProjectsTest(TestCase):
             'query': 'sample',
         }
 
-    def test_does_not_include_projects_from_other_teams(self):
-        team = Team.objects.create(owner=self.user, name='Sample')
-        Project.objects.create(team=team, name='Sample')
+    def test_does_not_include_projects_from_other_organizations(self):
+        org = self.create_organization(owner=self.user, name='Sample')
+        team = self.create_team(organization=org, owner=self.user, name='Sample')
+        self.create_project(organization=org, team=team, name='Sample')
 
         resp = self.client.get(self.path, {'query': 'sample'})
 

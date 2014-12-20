@@ -70,6 +70,17 @@ class SensitiveDataFilterTest(TestCase):
             self.assertTrue(n in http)
             self._check_vars_sanitized(http[n], proc)
 
+    def test_extra(self):
+        data = {
+            'extra': VARS
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+
+        self.assertTrue('extra' in data)
+        self._check_vars_sanitized(data['extra'], proc)
+
     def test_querystring_as_string(self):
         data = {
             'request': {

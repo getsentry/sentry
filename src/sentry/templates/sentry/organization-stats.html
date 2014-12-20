@@ -1,0 +1,263 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Stats" %} | {{ block.super }}{% endblock %}
+
+{% block org_stats_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>Stats</h2>
+  </div>
+
+  <p>The chart below reflects events the system has received across your entire organization.</p>
+
+  <div id="chart" class="chart" data-api-url="">
+    <div class="sparkline">
+      <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+      <span class="loading">{% trans "Loading historical data..." %}</span>
+    </div>
+  </div>
+
+  <div class="page-header">
+    <h3>Events by Project</h3>
+  </div>
+
+  <table class="table table-striped project-list">
+    <thead>
+      <tr>
+        <th>Project</th>
+        <th>Accepted</th>
+        <th>Rejected</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+{% endblock %}
+
+{% block content_after %}
+<style>
+.project-list td,
+.project-list th {
+  text-align: center;
+  width: 100px;
+}
+.project-list td:first-child,
+.project-list th:first-child {
+  text-align: left;
+  width: auto;
+}
+</style>
+  <script type="text/javascript">
+  $(function(){
+    var $sparkline = $('#chart');
+    var rawData = {received: null, rejected: null};
+    var statsEndpoint = app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/stats/';
+    var stats = {received: [], rejected: []};
+    var projectTotals = [];
+    var orgTotal = {received: 0, rejected: 0, accepted: 0};
+    var pendingRequests = 3;
+    var projectMap = {};
+
+    $sparkline.height('250px');
+
+    $.ajax({
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/projects/',
+      type: 'get',
+      dataType: 'json',
+      success: function(data) {
+        $.each(data, function(_, project){
+          projectMap[project.id] = project;
+        });
+        requestFinished();
+      },
+      error: function(data) {
+        $sparkline.html('<div class="error">There was an error loading statistics.</div>');
+      }
+    });
+
+    $.each(rawData, function(statName, _) {
+      $.ajax({
+        url: statsEndpoint,
+        type: 'get',
+        dataType: 'json',
+        data: {
+          since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+          resolution: '1h',
+          stat: statName,
+          group: 'project'
+        },
+        success: function(data){
+          rawData[statName] = data;
+          requestFinished();
+        },
+        error: function(data) {
+          $sparkline.html('<div class="error">There was an error loading statistics.</div>');
+        }
+      });
+    });
+
+    function requestFinished() {
+      pendingRequests -= 1;
+      if (pendingRequests === 0) {
+        processData();
+        renderChart();
+        renderTable();
+      }
+    }
+
+    function processData() {
+      var sReceived = {};
+      var sRejected = {};
+      $.each(rawData.received, function(projectId, data){
+        var pReceived = 0;
+        var pRejected = 0;
+        $.each(data, function(idx, point){
+          var dReceived = point[1];
+          var dRejected = rawData.rejected[projectId][idx][1];
+          var ts = point[0] * 1000;
+          if (sReceived[ts] === undefined) {
+            sReceived[ts] = dReceived;
+            sRejected[ts] = dRejected;
+          } else {
+            sReceived[ts] += dReceived;
+            sRejected[ts] += dRejected;
+          }
+          pReceived += dReceived;
+          pRejected += dRejected;
+        });
+        projectTotals.push({
+          id: projectId,
+          received: pReceived,
+          rejected: pRejected,
+          accepted: pReceived - pRejected
+        });
+        orgTotal.received += pReceived;
+        orgTotal.rejected += pRejected;
+        orgTotal.accepted += pReceived - pRejected;
+      });
+      stats.rejected = $.map(sRejected, function(value, ts) { return [[ts, value || null]]; });
+      stats.accepted = $.map(sReceived, function(value, ts) {
+        // total number of events accepted (received - rejected)
+        return [[ts, value - sRejected[ts]]];
+      });
+
+      projectTotals.sort(function(a, b) { return b.received - a.received });
+    }
+
+    function renderTable() {
+      var $tbody = $('.project-list tbody')
+      $.each(projectTotals, function(_, item) {
+        var acceptedPercent = parseInt(item.accepted / orgTotal.accepted * 100);
+        var receivedPercent = parseInt(item.received / orgTotal.received * 100);
+        var rejectedPercent = parseInt(item.rejected / orgTotal.rejected * 100);
+        var project = projectMap[item.id];
+
+        var getPercent = function(item, total) {
+          if (total === 0) {
+            return '';
+          };
+          if (item === 0) {
+            return '0%';
+          }
+          return parseInt(item / total * 100) + '%';
+        }
+
+        var projectLabel = app.utils.escape(project.team.name) + ' / ' + app.utils.escape(project.name);
+
+        $('<tr>' +
+            '<td><a href="/{{ organization.slug }}/' + project.slug + '/">' + projectLabel + '</a></td>' +
+            '<td>' + app.utils.formatNumber(item.accepted) + '<br><small>' + getPercent(item.accepted, orgTotal.accepted) + '</small></td>' +
+            '<td>' + app.utils.formatNumber(item.rejected) + '<br><small>' + getPercent(item.rejected, orgTotal.rejected) + '</small></td>' +
+            '<td>' + app.utils.formatNumber(item.received) + '<br><small>' + getPercent(item.received, orgTotal.received) + '</small></td>' +
+          '</tr>').appendTo($tbody);
+      });
+    }
+
+    function renderChart() {
+      var points = [
+        {
+          data: stats.accepted,
+          label: 'Accepted',
+          color: 'rgba(86, 175, 232, 1)',
+          shadowSize: 0,
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        },
+        {
+          data: stats.rejected,
+          color: 'rgba(244, 63, 32, 1)',
+          shadowSize: 0,
+          label: 'Rejected',
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        }
+      ];
+
+      var options = {
+        xaxis: {
+          mode: "time",
+          minTickSize: [1, "day"],
+          tickFormatter: Sentry.charts.tickFormatter
+        },
+        yaxis: {
+          min: 0,
+          tickFormatter: function(value) {
+            if (value > 999999) {
+              return (value / 1000000) + 'mm';
+            }
+            if (value > 999) {
+              return (value / 1000) + 'k';
+            }
+            return value;
+          }
+        },
+        tooltip: true,
+        tooltipOpts: {
+          content: function(label, xval, yval, flotItem) {
+            xval = parseInt(xval, 10);
+            if(typeof yval.toLocaleString == "function") {
+                return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
+            }
+            return yval + ' events<br>' + moment(xval).format('llll');
+          },
+          defaultTheme: false
+        },
+        grid: {
+          show: true,
+          hoverable: true,
+          backgroundColor: '#ffffff',
+          borderColor: '#DEE3E9',
+          borderWidth: 2,
+          tickColor: '#f0f0f0'
+        },
+        hoverable: false,
+        legend: {
+            noColumns: 2,
+            position: 'nw'
+        },
+        lines: { show: false }
+      };
+
+      $.plot($sparkline, points, options);
+
+      $(window).resize(function(){
+        $.plot($sparkline, points, options);
+      });
+    }
+  });
+  </script>
+{% endblock %}

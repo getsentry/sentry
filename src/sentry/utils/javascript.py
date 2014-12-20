@@ -167,7 +167,7 @@ class GroupTransformer(Transformer):
             'level': obj.level,
             'levelName': escape(obj.get_level_display()),
             'logger': escape(obj.logger),
-            'permalink': absolute_uri(reverse('sentry-group', args=[obj.team.slug, obj.project.slug, obj.id])),
+            'permalink': absolute_uri(reverse('sentry-group', args=[obj.organization.slug, obj.project.slug, obj.id])),
             'firstSeen': self.localize_datetime(obj.first_seen, request=request),
             'lastSeen': self.localize_datetime(obj.last_seen, request=request),
             'timeSpent': obj.avg_time_spent,

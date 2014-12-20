@@ -57,6 +57,9 @@ class SensitiveDataFilter(object):
         if 'request' in data:
             self.filter_http(data['request'])
 
+        if 'extra' in data:
+            data['extra'] = varmap(self.sanitize, data['extra'])
+
     def sanitize(self, key, value):
         if value is None:
             return

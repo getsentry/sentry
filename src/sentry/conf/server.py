@@ -170,7 +170,6 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
-    'static_compiler',
     'sudo',
 )
 
@@ -180,7 +179,6 @@ STATIC_URL = '/_static/'
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    "static_compiler.finders.StaticCompilerFinder",
 )
 
 LOCALE_PATHS = (
@@ -409,123 +407,6 @@ LOGGING = {
     }
 }
 
-NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules'))
-
-SENTRY_STATIC_BUNDLES = {
-    "packages": {
-        "sentry/dist/global.min.css": {
-            "src": {
-                "sentry/less/sentry.less": "sentry/dist/sentry.css",
-            },
-        },
-        "sentry/dist/wall.min.css": {
-            "src": {
-                "sentry/less/wall.less": "sentry/dist/wall.css",
-            },
-        },
-
-        "sentry/dist/app.min.js": {
-            "src": [
-                "sentry/app.js",
-
-                "sentry/app/modules/charts.js",
-                "sentry/app/modules/collection.js",
-                "sentry/app/modules/flash.js",
-                "sentry/app/modules/forms.js",
-
-                "sentry/app/controllers/default.js",
-                "sentry/app/controllers/deleteTeam.js",
-                "sentry/app/controllers/editProjectRule.js",
-                "sentry/app/controllers/groupDetails.js",
-                "sentry/app/controllers/manageAccessGroupMembers.js",
-                "sentry/app/controllers/manageAccessGroupProjects.js",
-                "sentry/app/controllers/manageProject.js",
-                "sentry/app/controllers/manageProjectNotifications.js",
-                "sentry/app/controllers/manageTeamOwnership.js",
-                "sentry/app/controllers/manageTeamSettings.js",
-                "sentry/app/controllers/projectStream.js",
-                "sentry/app/controllers/teamDashboard.js",
-                "sentry/app/controllers/teamList.js",
-
-                "sentry/app/directives/assigneeSelector.js",
-                "sentry/app/directives/clippy.js",
-                "sentry/app/directives/count.js",
-                "sentry/app/directives/timeSince.js",
-                "sentry/app/directives/broadcast.js",
-
-                "sentry/app/models/group.js",
-            ],
-        },
-
-        # TODO(dcramer): this needs to go away ASAP
-        "sentry/dist/legacy-app.min.js": {
-            "src": [
-                "sentry/app/init.js",
-
-                "sentry/app/charts.js",
-                "sentry/app/utils.js",
-            ],
-        },
-
-        "sentry/dist/vendor-angular.min.js": {
-            "src": [
-                "sentry/vendor/angular/angular.min.js",
-                "sentry/vendor/angular-animate/angular-animate.min.js",
-                # "sentry/vendor/angular-route/angular-route.min.js",
-
-                "sentry/vendor/angular-bootstrap/ui-bootstrap-tpls.min.js",
-                "sentry/vendor/angular-classy/angular-classy.min.js",
-                # "sentry/vendor/angular-http-auth/src/http-auth-interceptor.js",
-
-                "sentry/vendor/angular-loading-bar/build/loading-bar.min.js",
-            ],
-        },
-
-        "sentry/dist/vendor-bootstrap.min.js": {
-            "src": [
-                "sentry/vendor/bootstrap/dist/js/bootstrap.min.js",
-                "sentry/vendor/bootstrap-datepicker/js/bootstrap-datepicker.js",
-            ],
-        },
-
-        "sentry/dist/vendor-jquery.min.js": {
-            "src": [
-                "sentry/vendor/jquery/dist/jquery.min.js",
-                "sentry/scripts/lib/jquery.cookie.js",
-                "sentry/vendor/jquery-flot/jquery.flot.js",
-                "sentry/scripts/lib/jquery.flot.dashes.js",
-                "sentry/vendor/jquery-flot/jquery.flot.resize.js",
-                "sentry/vendor/jquery-flot/jquery.flot.time.js",
-                "sentry/scripts/lib/jquery.flot.tooltip.js",
-                "sentry/vendor/typeahead.js/dist/typeahead.jquery.min.js",
-            ],
-        },
-
-        "sentry/dist/vendor-misc.min.js": {
-            "src": [
-                "sentry/vendor/moment/min/moment.min.js",
-                "sentry/vendor/selectize/dist/js/standalone/selectize.min.js",
-                "sentry/vendor/simple-slider/js/simple-slider.min.js",
-            ],
-        },
-
-        "sentry/dist/raven.min.js": {
-            "src": ["sentry/vendor/raven-js/dist/raven.min.js"],
-        },
-
-    },
-    "postcompilers": {
-        "*.js": ["node_modules/.bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],
-    },
-    "preprocessors": {
-        "*.less": ["node_modules/.bin/lessc {input} {output}"],
-    },
-}
-
-# We only define static bundles if NPM has been setup
-if os.path.exists(NPM_ROOT):
-    STATIC_BUNDLES = SENTRY_STATIC_BUNDLES
-
 # django-rest-framework
 
 REST_FRAMEWORK = {
@@ -558,8 +439,6 @@ SENTRY_CACHE_BACKEND = 'default'
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
 )
-
-SENTRY_KEY = None
 
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 SENTRY_URL_PREFIX = ''
@@ -686,6 +565,8 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.15/jquery,native/raven.min.js'
+
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT = None
@@ -708,7 +589,7 @@ SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 # keys
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
-SENTRY_MAX_MESSAGE_LENGTH = 1024 * 2
+SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
 SENTRY_MAX_STACKTRACE_FRAMES = 25
 SENTRY_MAX_EXCEPTIONS = 25
 

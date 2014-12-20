@@ -2,7 +2,7 @@
 {% load sentry_api %}
 {% load sentry_dsn %}
 {% load sentry_helpers %}
-{% load static_compiler %}
+{% load sentry_permissions %}
 
 {% get_sentry_version %}
 
@@ -16,7 +16,7 @@
         <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-            {% staticbundle 'sentry/dist/global.min.css' %}
+            <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
             <link href="{% url 'sentry-media' 'sentry' 'vendor/platformicons/platformicons/platformicons.css' %}" type="text/css" rel="stylesheet">
         {% endblock %}
 
@@ -45,17 +45,22 @@
             {% else %}
                 window.SentryConfig.selectedTeam = null;
             {% endif %}
+            {% if selectedOrganization %}
+                window.SentryConfig.selectedOrganization = {% convert_to_json selectedOrganization %}
+            {% else %}
+                window.SentryConfig.selectedOrganization = null;
+            {% endif %}
             </script>
 
-            {% staticbundle 'sentry/dist/vendor-angular.min.js' %}
-            {% staticbundle 'sentry/dist/vendor-jquery.min.js' %}
-            {% staticbundle 'sentry/dist/vendor-bootstrap.min.js' %}
-            {% staticbundle 'sentry/dist/vendor-misc.min.js' %}
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-angular.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-jquery.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-bootstrap.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-misc.min.js" %}"></script>
 
-            {% staticbundle 'sentry/dist/app.min.js' %}
-            {% staticbundle 'sentry/dist/legacy-app.min.js' %}
+            <script src="{% url 'sentry-media' "sentry" "dist/app.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/legacy-app.min.js" %}"></script>
 
-            {% staticbundle 'sentry/dist/raven.min.js' %}
+            <script src="{% url 'sentry-media' "sentry" "dist/raven.min.js" %}"></script>
 
             <script>
             Raven.config('{% public_dsn %}', {
@@ -217,11 +222,12 @@
                         {% block breadcrumb_inner %}
                           {% if team %}
                             <li>
-                              <a class="team-name" href="{% url 'sentry' team.slug %}">{{ team.name }}</a>
+                              <a class="team-name" href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">{{ team.name }}</a>
                             </li>
                             {% if project %}
                             <li>
-                              <a class="project-name" href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a> <a href="{% url 'sentry-manage-project' team.slug project.slug %}"><span class="icon-settings"></span></a>
+                              <a class="project-name" href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
+                              <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}"><span class="icon-settings"></span></a>
                             </li>
                             {% endif %}
                           {% else %}

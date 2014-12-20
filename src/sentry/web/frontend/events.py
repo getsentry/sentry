@@ -23,7 +23,7 @@ from sentry.web.forms import ReplayForm
 
 @has_group_access
 @csrf_protect
-def replay_event(request, team, project, group, event_id):
+def replay_event(request, organization, project, group, event_id):
     try:
         event = Event.objects.get(group=group, id=event_id)
     except Event.DoesNotExist:
@@ -67,7 +67,8 @@ def replay_event(request, team, project, group, event_id):
         result = None
 
     context = {
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'group': event.group,
         'event': event,

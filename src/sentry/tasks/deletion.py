@@ -11,12 +11,44 @@ from __future__ import absolute_import
 from sentry.tasks.base import instrumented_task, retry
 
 
+@instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry
+def delete_organization(object_id, **kwargs):
+    from sentry.models import (
+        Organization, OrganizationMember, OrganizationStatus, Team
+    )
+
+    try:
+        o = Organization.objects.get(id=object_id)
+    except Team.DoesNotExist:
+        return
+
+    if o.status != OrganizationStatus.DELETION_IN_PROGRESS:
+        o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
+
+    logger = delete_organization.get_logger()
+    for team in Team.objects.filter(organization=o).order_by('id')[:1]:
+        logger.info('Removing Team id=%s where organization=%s', team.id, o.id)
+        delete_team(team.id)
+        delete_organization.delay(object_id=object_id, countdown=15)
+        return
+
+    model_list = (OrganizationMember,)
+
+    has_more = delete_objects(model_list, relation={'organization': o}, logger=logger)
+    if has_more:
+        delete_organization.delay(object_id=object_id, countdown=15)
+        return
+    o.delete()
+
+
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def delete_team(object_id, **kwargs):
     from sentry.models import (
-        Team, TeamStatus, Project, AccessGroup, PendingTeamMember, TeamMember,
+        Team, TeamStatus, Project, AccessGroup,
     )
 
     try:
@@ -33,16 +65,14 @@ def delete_team(object_id, **kwargs):
     for project in Project.objects.filter(team=t).order_by('id')[:1]:
         logger.info('Removing Project id=%s where team=%s', project.id, t.id)
         delete_project(project.id)
-        delete_team.delay(object_id=object_id)
+        delete_team.delay(object_id=object_id, countdown=15)
         return
 
-    model_list = (
-        AccessGroup, PendingTeamMember, TeamMember,
-    )
+    model_list = (AccessGroup,)
 
     has_more = delete_objects(model_list, relation={'team': t}, logger=logger)
     if has_more:
-        delete_team.delay(object_id=object_id)
+        delete_team.delay(object_id=object_id, countdown=15)
         return
     t.delete()
 
@@ -73,7 +103,7 @@ def delete_project(object_id, **kwargs):
 
     has_more = delete_objects(model_list, relation={'project': p}, logger=logger)
     if has_more:
-        delete_project.delay(object_id=object_id)
+        delete_project.delay(object_id=object_id, countdown=15)
         return
     p.delete()
 
@@ -100,7 +130,7 @@ def delete_group(object_id, **kwargs):
 
     has_more = delete_objects(model_list, relation={'group': group}, logger=logger)
     if has_more:
-        delete_group.delay(object_id=object_id)
+        delete_group.delay(object_id=object_id, countdown=15)
         return
     group.delete()
 
