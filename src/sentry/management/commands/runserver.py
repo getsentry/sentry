@@ -23,16 +23,18 @@ class Command(RunserverCommand):
     def run_watcher(self):
         cwd = os.path.join(settings.PROJECT_ROOT, os.pardir)
 
+        gulp_bin = os.path.join('node_modules', '.bin', 'gulp')
+
         devnull = open('/dev/null', 'w')
 
         self.stdout.write('>> Running [gulp clean]')
-        Popen(['gulp', 'clean'], cwd=cwd, stdout=devnull).wait()
+        Popen([gulp_bin, 'clean'], cwd=cwd, stdout=devnull).wait()
 
         self.stdout.write('>> Running [gulp dist]')
-        Popen(['gulp', 'dist'], cwd=cwd, stdout=devnull).wait()
+        Popen([gulp_bin, 'dist'], cwd=cwd, stdout=devnull).wait()
 
         self.stdout.write('>> Running [gulp watch]')
-        return Popen(['gulp', 'dist', 'watch'], cwd=cwd, stdout=devnull)
+        return Popen([gulp_bin, 'dist', 'watch'], cwd=cwd, stdout=devnull)
 
     def inner_run(self, *args, **options):
         if options['use_watcher']:

@@ -43,7 +43,7 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	gulp clean
+	${NPM_ROOT}/.bin/gulp clean
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo ""
