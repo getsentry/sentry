@@ -20,10 +20,12 @@
         <li>
             <a href="{% url 'sentry-explore' project.organization.slug project.slug %}">{% trans "Explore" %}</a>
         </li>
+        {% if request.user|can_manage_project:project %}
         <li>
             <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">
                 {% trans "Settings" %}
             </a>
         </li>
+        {% endif %}
     </ul>
 {% endblock %}
