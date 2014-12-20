@@ -21,9 +21,9 @@ class Command(RunserverCommand):
     )
 
     def run_watcher(self):
-        cwd = os.path.join(settings.PROJECT_ROOT, os.pardir)
+        cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-        gulp_bin = os.path.join('node_modules', '.bin', 'gulp')
+        gulp_bin = os.path.join(cwd, 'node_modules', '.bin', 'gulp')
 
         devnull = open('/dev/null', 'w')
 
