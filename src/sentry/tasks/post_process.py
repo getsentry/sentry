@@ -103,16 +103,12 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             for c in condition_list
         )
 
-        passed = True
         if match == 'all':
-            if not all(condition_iter):
-                passed = False
+            passed = all(condition_iter)
         elif match == 'any':
-            if not any(condition_iter):
-                passed = False
+            passed = any(condition_iter)
         elif match == 'none':
-            if any(condition_iter):
-                passed = False
+            passed = not any(condition_iter)
         else:
             rules_logger.error('Unsupported action_match %r for rule %d',
                                match, rule.id)
@@ -161,7 +157,7 @@ def execute_rule(rule_id, event, state):
             rules_logger.error('Unregistered action %r', action['id'])
             continue
 
-        action_inst = action_cls(project)
+        action_inst = action_cls(project, data=action)
         safe_execute(action_inst.after, event=event, state=state)
 
 
@@ -188,16 +184,17 @@ def record_affected_user(event, **kwargs):
     if not user_ident:
         return
 
-    user_data = event.data.get('sentry.interfaces.User', {})
+    user_data = event.data.get('sentry.interfaces.User', event.data.get('user', {}))
+
+    tag_data = {}
+    for key in ('id', 'email', 'username', 'data'):
+        value = user_data.get(key)
+        if value:
+            tag_data[key] = value
+    tag_data['ip'] = event.ip_address
 
     Group.objects.add_tags(event.group, [
-        ('sentry:user', user_ident, {
-            'id': user_data.get('id'),
-            'email': user_data.get('email'),
-            'username': user_data.get('username'),
-            'data': user_data.get('data'),
-            'ip': event.ip_address,
-        })
+        ('sentry:user', user_ident, tag_data)
     ])
 
 

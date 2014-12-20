@@ -43,6 +43,7 @@ def render_with_group_context(group, template, context, request=None,
                               event=None, is_public=False):
     context.update({
         'team': group.project.team,
+        'organization': group.project.organization,
         'project': group.project,
         'group': group,
         'selectedGroup': serialize(group, request.user),
@@ -92,23 +93,25 @@ def redirect_to_group(request, project_id, group_id):
 
     return HttpResponseRedirect(reverse('sentry-group', kwargs={
         'project_id': group.project.slug,
-        'team_slug': group.team.slug,
+        'organization_slug': group.project.organization.slug,
         'group_id': group.id,
     }))
 
 
 @login_required
 @has_access
-def dashboard(request, team):
+def dashboard(request, organization, team):
     project_list = list(Project.objects.filter(team=team))
 
     if not project_list and can_create_projects(request.user, team=team):
-        return HttpResponseRedirect(reverse('sentry-new-project', args=[team.slug]))
+        url = reverse('sentry-create-project', args=[team.organization.slug])
+        return HttpResponseRedirect(url + '?team=' + team.slug)
 
     for project in project_list:
         project.team = team
 
     return render_to_response('sentry/dashboard.html', {
+        'organization': team.organization,
         'team': team,
         'project_list': project_list,
     }, request)
@@ -116,7 +119,7 @@ def dashboard(request, team):
 
 @login_required
 @has_access
-def wall_display(request, team):
+def wall_display(request, organization, team):
     project_list = list(Project.objects.filter(team=team))
 
     for project in project_list:
@@ -124,13 +127,14 @@ def wall_display(request, team):
 
     return render_to_response('sentry/wall.html', {
         'team': team,
+        'organization': team.organization,
         'project_list': project_list,
     }, request)
 
 
 @login_required
 @has_access
-def group_list(request, team, project):
+def group_list(request, organization, project):
     from sentry.api.endpoints.project_group_index import ProjectGroupIndexEndpoint
 
     m_request = HttpRequest()
@@ -145,6 +149,7 @@ def group_list(request, team, project):
 
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
+        'organization': organization,
         'project': project,
         'event_list': response.data,
         'query': m_request.GET['query'],
@@ -153,7 +158,7 @@ def group_list(request, team, project):
 
 
 @has_group_access(allow_public=True)
-def group(request, team, project, group, event_id=None):
+def group(request, organization, project, group, event_id=None):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
     if event_id:
@@ -176,8 +181,7 @@ def group(request, team, project, group, event_id=None):
     else:
         add_note_form = NewNoteForm()
 
-    if project in Project.objects.get_for_user(
-            request.user, team=team, superuser=False):
+    if project.has_access(request.user):
         # update that the user has seen this group
         create_or_update(
             GroupSeen,
@@ -247,7 +251,7 @@ def group(request, team, project, group, event_id=None):
 
 
 @has_group_access
-def group_tag_list(request, team, project, group):
+def group_tag_list(request, organization, project, group):
     def percent(total, this):
         return int(this / total * 100)
 
@@ -267,7 +271,7 @@ def group_tag_list(request, team, project, group):
 
 
 @has_group_access
-def group_tag_details(request, team, project, group, tag_name):
+def group_tag_details(request, organization, project, group, tag_name):
     sort = request.GET.get('sort')
     if sort == 'date':
         order_by = '-last_seen'
@@ -285,7 +289,7 @@ def group_tag_details(request, team, project, group, tag_name):
 
 
 @has_group_access
-def group_event_list(request, team, project, group):
+def group_event_list(request, organization, project, group):
     # TODO: we need the event data to bind after we limit
     event_list = group.event_set.all().order_by('-datetime')[:100]
 
@@ -301,7 +305,7 @@ def group_event_list(request, team, project, group):
 
 
 @has_access(MEMBER_USER)
-def group_event_details_json(request, team, project, group_id, event_id_or_latest):
+def group_event_details_json(request, organization, project, group_id, event_id_or_latest):
     group = get_object_or_404(Group, pk=group_id, project=project)
 
     if event_id_or_latest == 'latest':
@@ -318,7 +322,7 @@ def group_event_details_json(request, team, project, group_id, event_id_or_lates
 
 @login_required
 @has_access(MEMBER_USER)
-def group_plugin_action(request, team, project, group_id, slug):
+def group_plugin_action(request, organization, project, group_id, slug):
     group = get_object_or_404(Group, pk=group_id, project=project)
 
     try:
@@ -326,12 +330,14 @@ def group_plugin_action(request, team, project, group_id, slug):
     except KeyError:
         raise Http404('Plugin not found')
 
+    GroupMeta.objects.populate_cache([group])
+
     response = plugin.get_view_response(request, group)
     if response:
         return response
 
-    redirect = request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={
-        'team_slug': team.slug,
+    redirect = request.META.get('HTTP_REFERER') or reverse('sentry-stream', kwargs={
+        'organization_slug': organization.slug,
         'project_id': group.project.slug
     })
     return HttpResponseRedirect(redirect)

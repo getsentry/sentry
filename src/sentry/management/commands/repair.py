@@ -9,59 +9,54 @@ from __future__ import absolute_import, print_function
 
 from django.core.management.base import BaseCommand
 
-from optparse import make_option
-
 
 class Command(BaseCommand):
     help = 'Attempts to repair any invalid data within Sentry'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--owner', help='Username to transfer ownerless projects to.'),
-    )
-
     def handle(self, **options):
-        from django.template.defaultfilters import slugify
-        from sentry.models import Project, Team, ProjectKey, User
+        from django.db.models import Q
+        from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+        from sentry.models import Organization, Project, Team, ProjectKey
         from sentry.db.models import update
+        from sentry.db.models.utils import slugify_instance
+        from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-        if options.get('owner'):
-            owner = User.objects.get(username__iexact=options.get('owner'))
-        else:
-            owner = None
-
-        if owner:
-            print("Assigning ownerless projects to %s" % owner.username)
-            # Assign unowned projects
-            for project in Project.objects.filter(owner__isnull=True):
-                update(project, owner=owner)
-                print("* Changed owner of %s" % project)
+        print("Correcting data on organizations")
+        queryset = Organization.objects.filter(
+            slug__isnull=True,
+        )
+        for org in RangeQuerySetWrapperWithProgressBar(queryset):
+            slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
+            org.save()
 
         # Create teams for any projects that are missing them
-        print("Creating missing teams on projects")
-        for project in Project.objects.filter(team__isnull=True, owner__isnull=False):
-            team = Team(
-                name=project.name,
-                owner=project.owner,
-            )
-            base_slug = slugify(team.name)
-            slug = base_slug
-            n = 0
-            while True:
-                if Team.objects.filter(slug=slug).exists():
-                    n += 1
-                    slug = base_slug + '-' + str(n)
-                    continue
-                team.slug = slug
-                break
+        print("Correcting data on projects")
+        queryset = Project.objects.filter(
+            Q(team__isnull=True) | Q(organization__isnull=True),
+        ).select_related('owner')
+        for project in RangeQuerySetWrapperWithProgressBar(queryset):
+            if not project.team:
+                organization = Organization(
+                    name=project.name,
+                    owner=project.owner,
+                )
+                slugify_instance(organization, organization.name, RESERVED_ORGANIZATION_SLUGS)
+                organization.save()
 
-            team.save()
+                team = Team(
+                    name=project.name,
+                    owner=project.owner,
+                    oprganization=organization,
+                )
+                slugify_instance(team, team.name, RESERVED_ORGANIZATION_SLUGS)
+                team.save()
 
-            update(project, team=team)
-            print("* Created team %s for %s" % (team, project))
+            update(project, organization=team.organization, team=team)
 
         # Create missing project keys
         print("Creating missing project keys")
-        for team in Team.objects.all():
+        queryset = Team.objects.all()
+        for team in RangeQuerySetWrapperWithProgressBar(queryset):
             for member in team.member_set.select_related('user'):
                 for project in team.project_set.all():
                     try:
@@ -71,6 +66,3 @@ class Command(BaseCommand):
                         )[1]
                     except ProjectKey.MultipleObjectsReturned:
                         pass
-                    else:
-                        if created:
-                            print("* Created key for %s on %s" % (member.user.username, project))

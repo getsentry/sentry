@@ -50,7 +50,7 @@ class SingleException(Interface):
 
         kwargs = {
             'type': trim(data.get('type'), 128),
-            'value': trim(data.get('value'), 256),
+            'value': trim(data.get('value'), 1024),
             'module': trim(data.get('module'), 128),
             'stacktrace': stacktrace,
         }

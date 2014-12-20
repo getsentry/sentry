@@ -18,6 +18,10 @@ def parse_query(query, user):
             continue
 
         key, value = token.split(':', 1)
+        if not value:
+            results['query'].append(token)
+            continue
+
         if value[0] == '"':
             nvalue = value
             while nvalue[-1] != '"':

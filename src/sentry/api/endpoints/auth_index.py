@@ -22,7 +22,12 @@ class AuthIndexEndpoint(Endpoint):
 
     def post(self, request):
         """
-        Authenticate a user using the provided credentials (i.e. basic auth).
+        Authenticate a user
+
+        Authenticate a user using the provided credentials.
+
+            curl -X {method} -u PUBLIC_KEY:SECRET_KEY {path}
+
         """
         if not request.user.is_authenticated():
             return Response(status=400)
@@ -38,7 +43,12 @@ class AuthIndexEndpoint(Endpoint):
 
     def delete(self, request, *args, **kwargs):
         """
-        Logout the authenticated user.
+        Logout the authenticated user
+
+        Deauthenticate the currently active session.
+
+            {method} {path}
+
         """
         logout(request._request)
         return Response(status=204)

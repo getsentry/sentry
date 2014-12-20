@@ -284,14 +284,23 @@ def initialize_app(config):
     env.data['config'] = config.get('config_path')
     env.data['start_date'] = timezone.now()
 
-    install_plugins(config['settings'])
+    settings = config['settings']
+
+    install_plugins(settings)
 
     skip_migration_if_applied(
-        config['settings'], 'kombu.contrib.django', 'djkombu_queue')
+        settings, 'kombu.contrib.django', 'djkombu_queue')
     skip_migration_if_applied(
-        config['settings'], 'social_auth', 'social_auth_association')
+        settings, 'social_auth', 'social_auth_association')
 
     apply_legacy_settings(config)
+
+    # Commonly setups don't correctly configure themselves for production envs
+    # so lets try to provide a bit more guidance
+    if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
+        warnings.warn('Sentry is configured to run asynchronous tasks in-process. '
+                      'This is not recommended within production environments. '
+                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
 
     initialize_receivers()
 
@@ -302,7 +311,7 @@ def apply_legacy_settings(config):
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
     if hasattr(settings, 'SENTRY_USE_QUEUE'):
         warnings.warn('SENTRY_USE_QUEUE is deprecated. Please use CELERY_ALWAYS_EAGER instead. '
-                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
+                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
     if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com'):
@@ -325,7 +334,7 @@ def apply_legacy_settings(config):
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
     if not settings.SERVER_EMAIL and hasattr(settings, 'SENTRY_SERVER_EMAIL'):
-        warnings.warn('SENTRY_SERVER_URL is deprecated. Please use SERVER_URL instead.')
+        warnings.warn('SENTRY_SERVER_EMAIL is deprecated. Please use SERVER_EMAIL instead.', DeprecationWarning)
         settings.SERVER_EMAIL = settings.SENTRY_SERVER_EMAIL
 
 

@@ -235,7 +235,7 @@ class StacktraceTest(TestCase):
         event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[])
         result = interface.to_string(event)
-        get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=5)
+        get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=10)
         self.assertEquals(result, get_stacktrace.return_value)
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))

@@ -25,10 +25,11 @@
                     <tr>
                         <td>
                             <h4>{{ plugin.get_title }}</h4>
+
                             <small>{% if plugin.author %}
                                 By {% if plugin.author_url %}<a href="{{ plugin.author_url }}">{{ plugin.author }}</a>{% else %}{{ plugin.author }}{% endif %}
                             {% endif %}
-                            {% if plugin.has_project_conf %} &middot; <a href="{% url 'sentry-configure-project-plugin' project.team.slug project.slug plugin.slug %}">Configure plugin</a>{% endif %}
+                            {% if plugin.has_project_conf %} &middot; <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug plugin.slug %}">Configure plugin</a>{% endif %}
                             </small>
                         </td>
                         <td style="text-align:center;">

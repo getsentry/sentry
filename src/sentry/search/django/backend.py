@@ -9,6 +9,7 @@ sentry.search.django.backend
 from __future__ import absolute_import
 
 from django.db.models import Q
+
 from sentry.api.paginator import Paginator
 from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (

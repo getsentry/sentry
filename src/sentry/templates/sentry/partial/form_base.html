@@ -1,4 +1,9 @@
 {% load crispy_forms_tags %}
+{% load i18n %}
+
+{% if form.errors %}
+    <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+{% endif %}
 
 {{ form|as_crispy_errors }}
 

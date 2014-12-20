@@ -1,0 +1,35 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block org_settings_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>Settings</h2>
+  </div>
+
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
+
+    {% if form.errors %}
+      <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+    {% endif %}
+
+    {{ form|as_crispy_errors }}
+
+    <fieldset>
+      {% for field in form %}
+        {{ field|as_crispy_field }}
+      {% endfor %}
+    </fieldset>
+
+    <fieldset class="form-actions">
+      {% if ACCESS.is_owner and ACCESS.is_global %}
+        <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+    </fieldset>
+  </form>
+{% endblock %}

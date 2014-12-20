@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from django.utils.http import urlquote
 from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
@@ -8,7 +9,6 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from urllib2 import quote
 
 from sentry.tsdb.base import ROLLUPS
 from sentry.utils.cursors import Cursor
@@ -26,9 +26,11 @@ LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
 
 class DocSection(Enum):
     ACCOUNTS = 'Accounts'
-    TEAMS = 'Teams'
-    PROJECTS = 'Projects'
     EVENTS = 'Events'
+    RELEASES = 'Releases'
+    # ORGANIZATIONS = 'Organizations'
+    # PROJECTS = 'Projects'
+    # TEAMS = 'Teams'
 
 
 class Endpoint(APIView):
@@ -38,7 +40,7 @@ class Endpoint(APIView):
 
     def build_cursor_link(self, request, name, cursor):
         querystring = u'&'.join(
-            u'{0}={1}'.format(quote(k), quote(v))
+            u'{0}={1}'.format(urlquote(k), urlquote(v))
             for k, v in request.GET.iteritems()
             if k != 'cursor'
         )

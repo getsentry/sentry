@@ -5,13 +5,13 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection, Endpoint
-from sentry.api.permissions import assert_perm
 from sentry.api.fields import UserField
+from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus, Project
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus
 )
 
 
@@ -62,6 +62,14 @@ class GroupDetailsEndpoint(Endpoint):
         return [s[0] for s in seen_by]
 
     def get(self, request, group_id):
+        """
+        Retrieve an aggregate
+
+        Return details on an individual aggregate.
+
+            {method} {path}
+
+        """
         group = Group.objects.get(
             id=group_id,
         )
@@ -82,6 +90,24 @@ class GroupDetailsEndpoint(Endpoint):
         return Response(data)
 
     def put(self, request, group_id):
+        """
+        Update an aggregate
+
+        Updates an individual aggregate's attributes.
+
+            {method} {path}
+            {{
+              "status": "resolved"
+            }}
+
+        Attributes:
+
+        - status: resolved, unresolved, muted
+        - isBookmarked: true, false
+        - assignedTo: user
+
+        """
+
         group = Group.objects.get(
             id=group_id,
         )
@@ -94,7 +120,7 @@ class GroupDetailsEndpoint(Endpoint):
 
         result = serializer.object
 
-        if result.get('assignedTo') and group.project not in Project.objects.get_for_user(result['assignedTo']):
+        if result.get('assignedTo') and not group.project.has_access(result['assignedTo']):
             return Response(status=400)
 
         if result.get('status') == 'resolved':
@@ -188,6 +214,13 @@ class GroupDetailsEndpoint(Endpoint):
         return Response(serialize(group, request.user))
 
     def delete(self, request, group_id):
+        """
+        Delete an aggregate
+
+        Deletes an individual aggregate.
+
+            {method} {path}
+        """
         from sentry.tasks.deletion import delete_group
 
         group = Group.objects.get(

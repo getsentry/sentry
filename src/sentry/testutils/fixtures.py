@@ -13,7 +13,10 @@ from django.utils.text import slugify
 from exam import fixture
 from uuid import uuid4
 
-from sentry.models import Activity, Event, Group, Project, Team, User
+from sentry.models import (
+    Activity, Event, Group, Organization, OrganizationMember,
+    OrganizationMemberType, Project, Team, User
+)
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
 
@@ -29,14 +32,26 @@ class Fixtures(object):
 
     @fixture
     def user(self):
-        return self.create_user('admin@localhost', username='admin')
+        return self.create_user('admin@localhost', is_superuser=True)
+
+    @fixture
+    def organization(self):
+        # XXX(dcramer): ensure that your org slug doesnt match your team slug
+        # and the same for your project slug
+        return self.create_organization(
+            name='baz',
+            slug='baz',
+            owner=self.user,
+        )
 
     @fixture
     def team(self):
         return self.create_team(
+            organization=self.organization,
             name='foo',
             slug='foo',
-            owner=self.user)
+            owner=self.organization.owner,
+        )
 
     @fixture
     def project(self):
@@ -44,7 +59,6 @@ class Fixtures(object):
             name='Bar',
             slug='bar',
             team=self.team,
-            owner=self.user,
         )
 
     @fixture
@@ -63,33 +77,54 @@ class Fixtures(object):
             data={}
         )
 
-    def create_team(self, **kwargs):
-        kwargs.setdefault('name', 'foo')
-        if not kwargs.get('slug'):
-            kwargs['slug'] = slugify(six.text_type(kwargs['name']))
+    def create_organization(self, **kwargs):
+        kwargs.setdefault('name', uuid4().hex)
         if not kwargs.get('owner'):
             kwargs['owner'] = self.user
+
+        return Organization.objects.create(**kwargs)
+
+    def create_member(self, teams=None, **kwargs):
+        kwargs.setdefault('type', OrganizationMemberType.MEMBER)
+
+        om = OrganizationMember.objects.create(**kwargs)
+        if teams:
+            for team in teams:
+                om.teams.add(team)
+        return om
+
+    def create_team(self, **kwargs):
+        kwargs.setdefault('name', uuid4().hex)
+        if not kwargs.get('slug'):
+            kwargs['slug'] = slugify(six.text_type(kwargs['name']))
+        if not kwargs.get('organization'):
+            kwargs['organization'] = self.organization
+        if not kwargs.get('owner'):
+            kwargs['owner'] = kwargs['organization'].owner
 
         return Team.objects.create(**kwargs)
 
     def create_project(self, **kwargs):
-        kwargs.setdefault('name', 'Bar')
+        kwargs.setdefault('name', uuid4().hex)
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('team'):
             kwargs['team'] = self.team
-        if not kwargs.get('owner'):
-            kwargs['owner'] = kwargs['team'].owner
+        if not kwargs.get('organization'):
+            kwargs['organization'] = kwargs['team'].organization
 
         return Project.objects.create(**kwargs)
 
     def create_project_key(self, project, user):
         return project.key_set.get_or_create(user=user)[0]
 
-    def create_user(self, email, **kwargs):
+    def create_user(self, email=None, **kwargs):
+        if not email:
+            email = uuid4().hex + '@example.com'
+
         kwargs.setdefault('username', email)
         kwargs.setdefault('is_staff', True)
-        kwargs.setdefault('is_superuser', True)
+        kwargs.setdefault('is_superuser', False)
 
         user = User(email=email, **kwargs)
         user.set_password('admin')

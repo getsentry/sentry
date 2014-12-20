@@ -3,9 +3,13 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
+{% block title %}
+  {{ section.name }} | {{ block.super }}
+{% endblock %}
+
 {% block breadcrumb_inner %}
-    {{ block.super }}
-    <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
+  {{ block.super }}
+  <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
 {% endblock%}
 
 {% block crumbs %}
@@ -14,21 +18,21 @@
 {% endblock%}
 
 {% block main %}
-    <h2>{{ section.name }}</h2>
-    <div class="list-group">
-        {% for resource in resource_list %}
-            <a href="#" class="list-group-item">
-                <h4>{{ resource.path }}</h4>
-                {% if resource.doc %}
-                    {{ resource.doc|linebreaks }}
-                {% endif %}
-                {% for method in resource.methods %}
-                    <h5>{{ method.name.upper }}</h5>
-                    {% if method.doc %}
-                        {{ method.doc|linebreaks }}
-                    {% endif %}
-                {% endfor %}
-            </a>
-        {% endfor %}
-    </div>
+  <h2>{{ section.name }}</h2>
+  <div class="list-group">
+    {% for resource in resource_list %}
+      {% for method in resource.methods %}
+        <section class="api-resource" id="{{ method.anchor }}">
+          <div class="api-path">
+            <h4><a href="#{{ method.anchor }}">{{ method.title }}</a></h4>
+          </div>
+          {% if method.doc %}
+            {{ method.doc|markdown }}
+          {% else %}
+            <pre>{{ method.verb }} {{ method.path }}</pre>
+          {% endif %}
+        </section>
+      {% endfor %}
+    {% endfor %}
+  </div>
 {% endblock %}

@@ -17,7 +17,7 @@ class UserListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-users', args=[
-            self.team.slug, self.project.slug])
+            self.organization.slug, self.project.slug])
 
     def test_missing_permission(self):
         resp = self.client.get(self.path)
@@ -48,7 +48,7 @@ class UserDetailsTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-user-details', args=[
-            self.team.slug, self.project.slug, self.tag.id])
+            self.organization.slug, self.project.slug, self.tag.id])
 
     @fixture
     def tag(self):
@@ -64,7 +64,7 @@ class UserDetailsTest(TestCase):
 
     def test_invalid_tuser_id(self):
         resp = self.client.get(reverse('sentry-user-details', args=[
-            self.team.slug, self.project.slug, 0]))
+            self.organization.slug, self.project.slug, 0]))
         assert resp.status_code == 302
 
     def test_does_load(self):

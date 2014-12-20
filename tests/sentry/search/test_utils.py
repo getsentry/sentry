@@ -10,6 +10,10 @@ class ParseQueryTest(TestCase):
         result = parse_query('foo bar', self.user)
         assert result == {'tags': {}, 'query': 'foo bar'}
 
+    def test_useless_prefix(self):
+        result = parse_query('foo: bar', self.user)
+        assert result == {'tags': {}, 'query': 'foo: bar'}
+
     def test_mix_tag_and_query(self):
         result = parse_query('foo bar key:value', self.user)
         assert result == {'tags': {'key': 'value'}, 'query': 'foo bar'}

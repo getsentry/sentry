@@ -1,24 +1,24 @@
 from __future__ import absolute_import
 
 from django.http import Http404
-from django.views.generic import View
 
 from sentry.constants import PLATFORM_LIST, PLATFORM_TITLES
 from sentry.web.helpers import render_to_response, render_to_string
+from sentry.web.frontend.help_platform_base import HelpPlatformBaseView
 
 
-class HelpPlatformDetailsView(View):
-
-    def get(self, request, platform):
+class HelpPlatformDetailsView(HelpPlatformBaseView):
+    def get(self, request, platform, project_list, selected_project):
         if platform not in PLATFORM_LIST:
             raise Http404
 
         template = 'sentry/partial/client_config/%s.html' % (platform,)
 
-        context = {
+        context = self.get_context_data(request, project_list, selected_project)
+        context.update({
             'platform': platform,
             'platform_title': PLATFORM_TITLES.get(platform, platform.title()),
-        }
+        })
 
         context['template'] = render_to_string(template, context, request)
 

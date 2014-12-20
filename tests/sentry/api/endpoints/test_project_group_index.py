@@ -107,7 +107,7 @@ class GroupUpdateTest(APITestCase):
             group4=group4,
         )
         response = self.client.put(url, data={
-            'isBookmarked': '1',
+            'isBookmarked': 'true',
         }, format='json')
         assert response.status_code == 200
 
@@ -176,7 +176,10 @@ class GroupDeleteTest(APITestCase):
             group2=group2,
             group4=group4,
         )
-        response = self.client.delete(url, format='json')
+
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            response = self.client.delete(url, format='json')
+
         assert response.status_code == 204
 
         new_group1 = Group.objects.filter(id=group1.id)

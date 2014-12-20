@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
+import mock
+
 from django.core.urlresolvers import reverse
-from mock import patch
 
 from sentry.models import Project, ProjectStatus
 from sentry.testutils import APITestCase
@@ -33,8 +34,8 @@ class ProjectUpdateTest(APITestCase):
 
 
 class ProjectDeleteTest(APITestCase):
-    @patch('sentry.api.endpoints.project_details.delete_project')
-    def test_simple(self, delete_project):
+    @mock.patch('sentry.api.endpoints.project_details.delete_project')
+    def test_simple(self, mock_delete_project):
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -46,17 +47,13 @@ class ProjectDeleteTest(APITestCase):
 
         assert response.status_code == 204
 
-        project = Project.objects.get(id=project.id)
+        mock_delete_project.delay.assert_called_once_with(
+            object_id=project.id)
 
-        assert project.status == ProjectStatus.PENDING_DELETION
+        assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
 
-        assert response.status_code == 204
-        delete_project.delay.assert_called_once_with(
-            object_id=project.id,
-            countdown=60 * 5,
-        )
-
-    def test_internal_project(self):
+    @mock.patch('sentry.api.endpoints.project_details.delete_project')
+    def test_internal_project(self, mock_delete_project):
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -65,5 +62,7 @@ class ProjectDeleteTest(APITestCase):
 
         with self.settings(SENTRY_PROJECT=project.id):
             response = self.client.delete(url)
+
+        assert not mock_delete_project.delay.mock_calls
 
         assert response.status_code == 403

@@ -4,6 +4,7 @@
 {% load sentry_helpers %}
 {% load sentry_markup %}
 
+<<<<<<< HEAD
 {% block breadcrumb_inner %}
   {{ block.super }}
   <li>Guides</li>
@@ -20,4 +21,22 @@
     <h3>{{ page.title }}</h3>
 
     {{ page.content|markdown }}
+=======
+{% block breadcrumbs %}
+{{ block.super }}
+  <li class="divider">/</li>
+  <li><a>Guides</a></li>
+  <li class="divider">/</li>
+  <li>{{ page.title }}</li>
+{% endblock%}
+
+{% block title %}
+  {{ page.title }}
+{% endblock %}}
+
+{% block main %}
+  <h3>{{ page.title }}</h3>
+
+  {{ page.content|markdown }}
+>>>>>>> master
 {% endblock %}

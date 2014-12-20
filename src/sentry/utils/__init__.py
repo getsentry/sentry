@@ -28,6 +28,6 @@ def to_unicode(value):
 def is_float(var):
     try:
         float(var)
-    except ValueError:
+    except (TypeError, ValueError):
         return False
     return True

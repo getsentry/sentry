@@ -48,14 +48,14 @@ class EventManagerTest(TestCase):
         assert EventMapping.objects.filter(
             group=event.group, event_id=event_id).exists()
 
-    @patch('sentry.manager.GroupManager.add_tags')
+    @patch('sentry.models.group.GroupManager.add_tags')
     def test_tags_as_list(self, add_tags):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
         data = manager.normalize()
 
         assert data['tags'] == [('foo', 'bar')]
 
-    @patch('sentry.manager.GroupManager.add_tags')
+    @patch('sentry.models.group.GroupManager.add_tags')
     def test_tags_as_dict(self, add_tags):
         manager = EventManager(self.make_event(tags={'foo': 'bar'}))
         data = manager.normalize()
@@ -95,7 +95,8 @@ class EventManagerTest(TestCase):
             message='foo bar', event_id='b' * 32,
             checksum='a' * 32,
         ))
-        event2 = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event2 = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
 
@@ -110,8 +111,8 @@ class EventManagerTest(TestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        event = manager.save(1)
-        print(event)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
@@ -120,7 +121,7 @@ class EventManagerTest(TestCase):
 
         manager = EventManager(self.make_event(
             event_id='b' * 32, checksum='a' * 32,
-            timestamp=1403007315,
+            timestamp=1403007345,
         ))
         event2 = manager.save(1)
         assert event.group_id == event2.group_id
@@ -138,7 +139,8 @@ class EventManagerTest(TestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        event = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
         group.status = GroupStatus.RESOLVED
@@ -154,6 +156,28 @@ class EventManagerTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
+
+    @patch('sentry.models.Group.is_resolved')
+    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
+        mock_is_resolved.return_value = False
+        manager = EventManager(self.make_event(
+            event_id='a' * 32, checksum='a' * 32,
+            timestamp=1403007314,
+        ))
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
+
+        mock_is_resolved.return_value = True
+        manager = EventManager(self.make_event(
+            event_id='b' * 32, checksum='a' * 32,
+            timestamp=1403007414,
+        ))
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event2 = manager.save(1)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group.id)
+        assert group.active_at == event2.datetime != event.datetime
 
     def test_long_culprit(self):
         manager = EventManager(self.make_event(

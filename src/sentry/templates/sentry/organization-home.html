@@ -1,0 +1,30 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load i18n %}
+
+{% block org_teams_nav %}active{% endblock %}
+
+{% block inner %}
+  {% if not team_list %}
+    <p>You don't have any teams for this organization yet. Get started by <a href="{% url 'sentry-create-team' organization.slug %}">creating your first team</a>.</p>
+  {% else %}
+    <ul class="team-list">
+      {% for team, project_list in team_list %}
+        <li>
+          <h3><div class="pull-right actions">
+            <a href="{% url 'sentry-manage-team' organization.slug team.slug %}"><span class="icon-cog"></span>Team Settings</a>
+          </div><a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}">{{ team.name }}</a></h3>
+          {% if not project_list %}
+            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.slug %}?team={{ team.slug }}">create a project</a>?</p>
+          {% else %}
+            <ul>
+              {% for project in project_list %}
+                <li><a href="{% url 'sentry-stream' organization.slug project.slug %}">{{ project.name }}</a></li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

@@ -27,7 +27,7 @@
             <tbody>
                 {% for tag_value, times_seen, first_seen, last_seen in tag_list.objects %}
                     <tr>
-                        <td><a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_name }}={{ tag_value }}">{{ tag_value }}</a></td>
+                        <td><a href="{% url 'sentry-stream' group.organization.slug group.project.slug %}?{{ tag_name }}={{ tag_value }}">{{ tag_value }}</a></td>
                         <td style="text-align:center">{{ times_seen|small_count }}</td>
                         <td style="text-align:center">{% if first_seen %}{{ first_seen|timesince }}{% else %}<em>n/a</em>{% endif %}</td>
                         <td style="text-align:center">{% if last_seen %}{{ last_seen|timesince }}{% else %}<em>n/a</em>{% endif %}</td>

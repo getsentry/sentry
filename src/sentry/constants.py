@@ -55,12 +55,14 @@ STATUS_CHOICES = {
     'muted': STATUS_MUTED,
 }
 
-MEMBER_ADMIN = 0
+
+MEMBER_OWNER = 0
+MEMBER_ADMIN = 25
 MEMBER_USER = 50
 MEMBER_SYSTEM = 100
-MEMBER_OWNER = MEMBER_ADMIN  # backwards compat
 
 MEMBER_TYPES = (
+    (MEMBER_OWNER, _('Owner')),
     (MEMBER_ADMIN, _('Admin')),
     (MEMBER_USER, _('User')),
     # (MEMBER_SYSTEM, _('System Agent')),
@@ -76,6 +78,7 @@ PLATFORM_LIST = (
     'django',
     'express',
     'flask',
+    'go',
     'ios',
     'java',
     'java_log4j',
@@ -141,9 +144,12 @@ MAX_CULPRIT_LENGTH = 200
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
-RESERVED_TEAM_SLUGS = (
+RESERVED_ORGANIZATION_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
+    'organizations', 'teams', 'projects', 'help',
 )
+
+RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS
 
 LOG_LEVELS = {
     logging.DEBUG: 'debug',
@@ -175,6 +181,7 @@ TAG_LABELS = {
     'sentry:user': _('User'),
     'sentry:filename': _('File'),
     'sentry:function': _('Function'),
+    'sentry:release': _('Release'),
     'os': _('OS'),
     'url': _('URL'),
     'server_name': _('Server'),

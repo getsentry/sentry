@@ -1,16 +1,19 @@
 from __future__ import absolute_import
 
 from sentry.api.serializers import Serializer, register
-from sentry.constants import MEMBER_OWNER
-from sentry.models import Project, Team
-from sentry.utils.db import attach_foreignkey
+from sentry.models import OrganizationMemberType, Project, Team
 
 
 @register(Project)
 class ProjectSerializer(Serializer):
     def get_attrs(self, item_list, user):
+        organization = item_list[0].team.organization
+
         team_map = dict(
-            (t.id, t) for t in Team.objects.get_for_user(user).itervalues()
+            (t.id, t) for t in Team.objects.get_for_user(
+                organization=organization,
+                user=user,
+            )
         )
 
         result = {}
@@ -20,14 +23,11 @@ class ProjectSerializer(Serializer):
             except KeyError:
                 access_type = None
             else:
-                project.team = team
                 access_type = team.access_type
 
             result[project] = {
                 'access_type': access_type,
             }
-
-        attach_foreignkey(item_list, Project.team)
 
         return result
 
@@ -39,11 +39,8 @@ class ProjectSerializer(Serializer):
             'isPublic': obj.public,
             'dateCreated': obj.date_added,
             'permission': {
-                'edit': attrs['access_type'] == MEMBER_OWNER or user.is_superuser,
+                'owner': attrs['access_type'] <= OrganizationMemberType.OWNER,
+                'admin': attrs['access_type'] <= OrganizationMemberType.ADMIN,
             },
         }
-        if obj.team:
-            d['permission']['admin'] = obj.team.owner_id == user.id or user.is_superuser
-        else:
-            d['permission']['admin'] = user.is_superuser
         return d

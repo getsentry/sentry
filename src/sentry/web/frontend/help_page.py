@@ -1,13 +1,14 @@
 from __future__ import absolute_import, print_function
 
 from django.http import Http404
-from django.views.generic import View
 
 from sentry.models import HelpPage
 from sentry.web.helpers import render_to_response
+from sentry.web.frontend.base import BaseView
 
 
-class HelpPageView(View):
+class HelpPageView(BaseView):
+    auth_required = False
 
     def get(self, request, page_id, page_slug=None):
         try:

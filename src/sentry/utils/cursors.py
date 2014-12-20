@@ -11,12 +11,13 @@ from collections import Sequence
 
 
 class Cursor(object):
-    def __init__(self, value, offset=0, is_prev=False):
+    def __init__(self, value, offset=0, is_prev=False, has_results=None):
         # XXX: ceil is not entirely correct here, but it's a simple hack
         # that solves most problems
         self.value = long(value)
         self.offset = int(offset)
         self.is_prev = bool(is_prev)
+        self.has_results = has_results
 
     def __str__(self):
         return '%s:%s:%s' % (self.value, self.offset, int(self.is_prev))
@@ -25,18 +26,19 @@ class Cursor(object):
         return '<%s: value=%s offset=%s is_prev=%s>' % (
             type(self), self.value, self.offset, int(self.is_prev))
 
+    def __nonzero__(self):
+        return self.has_results
+
     @classmethod
     def from_string(cls, value):
         return cls(*value.split(':'))
 
 
 class CursorResult(Sequence):
-    def __init__(self, results, next, prev, has_next=None, has_prev=None):
+    def __init__(self, results, next, prev):
         self.results = results
         self.next = next
         self.prev = prev
-        self.has_next = has_next
-        self.has_prev = has_prev
 
     def __len__(self):
         return len(self.results)
@@ -149,13 +151,11 @@ def build_cursor(results, key, limit=100, cursor=None):
     # Truncate the list to our original result size now that we've determined the next page
     results = results[:limit]
 
-    next_cursor = Cursor(next_value or 0, next_offset, False)
-    prev_cursor = Cursor(prev_value or 0, prev_offset, True)
+    next_cursor = Cursor(next_value or 0, next_offset, False, has_next)
+    prev_cursor = Cursor(prev_value or 0, prev_offset, True, has_prev)
 
     return CursorResult(
         results=results,
         next=next_cursor,
         prev=prev_cursor,
-        has_next=has_next,
-        has_prev=has_prev,
     )
