@@ -3,7 +3,7 @@ NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 
-develop: clean update-submodules setup-git
+develop: update-submodules setup-git
 	@echo "--> Installing dependencies"
 	npm install
 	pip install "setuptools>=0.9.8"
