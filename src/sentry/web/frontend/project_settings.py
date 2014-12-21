@@ -186,7 +186,7 @@ class ProjectSettingsView(ProjectView):
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))
                 else:
-                    project.update_option('sentry:%s' % (opt,))
+                    project.update_option('sentry:%s' % (opt,), value)
 
             AuditLogEntry.objects.create(
                 organization=organization,
