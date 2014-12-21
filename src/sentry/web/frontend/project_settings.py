@@ -181,9 +181,12 @@ class ProjectSettingsView(ProjectView):
 
         if form.is_valid():
             project = form.save()
-            project.update_option('sentry:origins', form.cleaned_data.get('origins') or [])
-            project.update_option('sentry:resolve_age', form.cleaned_data.get('resolve_age'))
-            project.update_option('sentry:scrub_data', form.cleaned_data.get('scrub_data'))
+            for opt in ('origins', 'resolve_age', 'scrub_data'):
+                value = form.cleaned_data.get(opt)
+                if value is None:
+                    project.delete_option('sentry:%s' % (opt,))
+                else:
+                    project.update_option('sentry:%s' % (opt,))
 
             AuditLogEntry.objects.create(
                 organization=organization,
