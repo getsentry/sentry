@@ -1,0 +1,31 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "New Organization" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="page-header">
+      <h2>{% trans "Create a New Organization" %}</h2>
+    </div>
+
+    <p>{% blocktrans %}Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users.{% endblocktrans %}</p>
+
+    <br>
+
+    <form class="form-stacked" action="" method="post">
+      {% csrf_token %}
+      <fieldset>
+        {{ form|as_crispy_errors }}
+        {% for field in form %}
+            {{ field|as_crispy_field }}
+        {% endfor %}
+      </fieldset>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">{% trans "Create Organization" %}</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

@@ -54,7 +54,7 @@ class ProjectOptionManager(BaseManager):
 
     def unset_value(self, project, key):
         self.filter(project=project, key=key).delete()
-        self.reload_cache(project)
+        self.reload_cache(project.id)
 
     def set_value(self, project, key, value):
         self.create_or_update(

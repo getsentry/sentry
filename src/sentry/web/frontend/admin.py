@@ -113,7 +113,7 @@ def manage_users(request):
 
 
 @requires_admin
-@transaction.commit_on_success
+@transaction.atomic
 @csrf_protect
 def create_new_user(request):
     if not request.user.is_superuser:
@@ -134,7 +134,6 @@ def create_new_user(request):
 
         if form.cleaned_data['create_project']:
             project = Project.objects.create(
-                owner=user,
                 name='%s\'s New Project' % user.username.capitalize()
             )
             member = project.team.member_set.get(user=user)
@@ -286,7 +285,7 @@ def manage_teams(request):
 
 @requires_admin
 def status_env(request):
-    reserved = ('PASSWORD', 'SECRET')
+    reserved = ('PASSWORD', 'SECRET', 'KEY')
     config = []
     for k in sorted(dir(settings)):
         v_repr = repr(getattr(settings, k))

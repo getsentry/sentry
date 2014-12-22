@@ -4,7 +4,7 @@
 
 {% block inner %}
     <div class="page-header">
-        <a href="{% url 'sentry-new-project-rule' project.team.slug project.slug %}" class="btn pull-right btn-primary">{% trans "New Rule" %}</a>
+        <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}" class="btn pull-right btn-primary">{% trans "New Rule" %}</a>
         <h2>{% trans "Rules" %}</h2>
     </div>
     {% if rule_list %}
@@ -19,10 +19,10 @@
                 {% for rule in rule_list %}
                     <tr>
                         <td>
-                            <a href="{% url 'sentry-edit-project-rule' project.team.slug project.slug rule.id %}">{{ rule.label }}</a>
+                            <a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}">{{ rule.label }}</a>
                         </td>
                         <td>
-                            <a href="{% url 'sentry-remove-project-rule' project.team.slug project.slug rule.id %}"
+                            <a href="{% url 'sentry-remove-project-rule' project.organization.slug project.slug rule.id %}"
                                onclick="confirm('Are you sure you want to remove this rule?')">Delete</a>
                         </td>
                     </tr>

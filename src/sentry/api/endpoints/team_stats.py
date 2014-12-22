@@ -15,7 +15,10 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
 
         assert_perm(team, request.user, request.auth)
 
-        projects = Project.objects.get_for_user(request.user, team=team)
+        projects = Project.objects.get_for_user(
+            team=team,
+            user=request.user,
+        )
 
         if not projects:
             return Response([])

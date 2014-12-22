@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
@@ -9,8 +11,9 @@ class ProjectReleasesTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        project1 = self.create_project(owner=self.user, name='foo')
-        project2 = self.create_project(owner=self.user, name='bar')
+        team = self.create_team(owner=self.user)
+        project1 = self.create_project(team=team, name='foo')
+        project2 = self.create_project(team=team, name='bar')
 
         release1 = Release.objects.create(
             project=project1,

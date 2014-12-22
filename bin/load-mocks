@@ -8,7 +8,9 @@ from pytz import utc
 from random import randint
 
 from sentry.app import tsdb
-from sentry.models import Activity, User, Project, Team
+from sentry.models import (
+    AccessGroup, Activity, User, Organization, Project, Team
+)
 from sentry.utils.samples import create_sample_event
 
 def create_sample_time_series(event):
@@ -18,23 +20,55 @@ def create_sample_time_series(event):
 
     for _ in xrange(60):
         count = randint(1, 10)
-        tsdb.incr(tsdb.models.project, group.project.id, now, count)
-        tsdb.incr(tsdb.models.group, group.id, now, count)
+        tsdb.incr_multi((
+            (tsdb.models.project, group.project.id),
+            (tsdb.models.group, group.id),
+        ), now, count)
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_received, group.project.organization_id),
+            (tsdb.models.project_total_received, group.project.id),
+        ), now, int(count * 1.1))
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_rejected, group.project.organization_id),
+            (tsdb.models.project_total_rejected, group.project.id),
+        ), now, int(count * 0.1))
         now = now - timedelta(seconds=1)
 
     for _ in xrange(24 * 30):
         count = randint(100, 1000)
-        tsdb.incr(tsdb.models.project, group.project.id, now, count)
-        tsdb.incr(tsdb.models.group, group.id, now, count)
+        tsdb.incr_multi((
+            (tsdb.models.project, group.project.id),
+            (tsdb.models.group, group.id),
+        ), now, count)
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_received, group.project.organization_id),
+            (tsdb.models.project_total_received, group.project.id),
+        ), now, int(count * 1.1))
+        tsdb.incr_multi((
+            (tsdb.models.organization_total_rejected, group.project.organization_id),
+            (tsdb.models.project_total_rejected, group.project.id),
+        ), now, int(count * 0.1))
         now = now - timedelta(hours=1)
 
 
 user = User.objects.filter(is_superuser=True)[0]
 
+dummy_user, _ = User.objects.get_or_create(
+    username='dummy@example.com'
+)
+
+org, _ = Organization.objects.get_or_create(
+    name='Default',
+    defaults={
+        'owner': user,
+    },
+)
+
 team, _ = Team.objects.get_or_create(
     name='Earth', slug='earth',
     defaults={
-        'owner': user,
+        'organization': org,
+        'owner': org.owner,
     },
 )
 
@@ -42,8 +76,18 @@ project, _ = Project.objects.get_or_create(
     team=team,
     name='Backend',
     slug='backend',
-    owner=team.owner,
+    defaults={
+        'organization': org,
+    }
 )
+
+
+accessgroup, _ = AccessGroup.objects.get_or_create(
+    name='Example',
+    team=team,
+)
+accessgroup.projects.add(project)
+accessgroup.members.add(dummy_user)
 
 event1 = create_sample_event(project, 'python')
 create_sample_time_series(event1)

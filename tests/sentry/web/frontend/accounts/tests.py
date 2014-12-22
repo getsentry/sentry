@@ -6,7 +6,7 @@ import mock
 
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from exam import before, fixture
+from exam import fixture
 from social_auth.models import UserSocialAuth
 
 from sentry.models import UserOption, LostPasswordHash, User
@@ -215,11 +215,6 @@ class LoginRedirectTest(TestCase):
         assert resp.status_code == 302
         assert resp['Location'] == reverse('sentry')
 
-    def test_standard_view_works(self):
-        resp = login_redirect(self.make_request(reverse('sentry', args=[1])))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry', args=[1])
-
 
 class NotificationSettingsTest(TestCase):
     @fixture
@@ -307,8 +302,8 @@ class RecoverPasswordTest(TestCase):
 
 
 class RecoverPasswordConfirmTest(TestCase):
-    @before
-    def create_hash(self):
+    def setUp(self):
+        super(RecoverPasswordConfirmTest, self).setUp()
         self.password_hash = LostPasswordHash.objects.create(user=self.user)
 
     @fixture

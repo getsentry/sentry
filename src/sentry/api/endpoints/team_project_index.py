@@ -23,7 +23,7 @@ class TeamProjectIndexEndpoint(Endpoint):
 
         assert_perm(team, request.user, request.auth)
 
-        results = list(Project.objects.get_for_user(request.user, team=team))
+        results = list(Project.objects.get_for_user(team=team, user=request.user))
 
         return Response(serialize(results, request.user))
 
@@ -32,7 +32,7 @@ class TeamProjectIndexEndpoint(Endpoint):
 
         assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
-        if not can_create_projects(request.user, team=team_id):
+        if not can_create_projects(user=request.user, team=team):
             return Response(status=403)
 
         serializer = ProjectSerializer(data=request.DATA)
@@ -40,7 +40,7 @@ class TeamProjectIndexEndpoint(Endpoint):
         if serializer.is_valid():
             project = serializer.object
             project.team = team
-            project.owner = team.owner
+            project.organization = team.organization
             project.save()
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

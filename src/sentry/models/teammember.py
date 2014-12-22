@@ -30,8 +30,8 @@ class TeamMember(Model):
     and could be thought of as team owners (though their access level may not)
     be set to ownership.
     """
-    team = models.ForeignKey('sentry.Team', related_name="member_set")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
+    team = models.ForeignKey('sentry.Team', related_name=None)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name=None)
     type = BoundedIntegerField(choices=(
         (TeamMemberType.MEMBER, _('Member')),
         (TeamMemberType.ADMIN, _('Admin')),

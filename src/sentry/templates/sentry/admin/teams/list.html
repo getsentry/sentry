@@ -41,8 +41,8 @@
                     {% for team in team_list.paginator.objects %}
                         <tr>
                             <td>
-                                <a href="{% url 'sentry-manage-team' team.slug %}"><strong>{{ team.slug }}</strong></a>
-                                <a href="{% url 'sentry' team.slug %}">[dashboard]</a><br/>
+                                <a href="{% url 'sentry-manage-team' team.organization.slug team.slug %}"><strong>{{ team.slug }}</strong></a>
+                                <a href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">[dashboard]</a><br/>
                                 {% if team.owner %}
                                     <small>Owned by <a href="{% url 'sentry-admin-edit-user' team.owner.pk %}">
                                         {% if team.owner.email %}

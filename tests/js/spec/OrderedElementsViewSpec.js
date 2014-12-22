@@ -105,7 +105,7 @@ describe("OrderedElementsView", function() {
       });
 
       it("changes status text to empty", function() {
-        assert.equal(view.$empty.html(), view.emptyMessage);
+        assert.equal(view.$empty.html(), view.options.emptyMessage);
       });
     });
 
@@ -129,7 +129,7 @@ describe("OrderedElementsView", function() {
       });
 
       it("changes status text to empty", function() {
-        assert.equal(view.$empty.html(), view.emptyMessage);
+        assert.equal(view.$empty.html(), view.options.emptyMessage);
       });
     });
 

@@ -1,0 +1,23 @@
+{% extends "sentry/help/platform_index.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{{ platform_title }} Client Configuration | {{ block.super }}{% endblock %}
+{% block client_overview_class %}{% endblock %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  <li class="divider">/</li>
+  <li>{{ platform_title }}</li>
+{% endblock %}
+
+{% block main %}
+  <h3>{{ platform_title }}</h3>
+
+  {{ template }}
+
+  <div class="well">
+    Looking for your DSN? You'll find it under <strong>Project Settings &rsaquo; API Keys</strong>.
+  </div>
+{% endblock %}

@@ -17,10 +17,10 @@
     <h6>{% trans "Code Details" %}</h6>
     <dl>
         <dt>{% trans "Filename:" %}</dt>
-        <dd><a href="{% url 'sentry-explore-code-details' team.slug project.slug tag.id %}">{{ tag.data.filename }}</a></dd>
+        <dd><a href="{% url 'sentry-explore-code-details' organization.slug project.slug tag.id %}">{{ tag.data.filename }}</a></dd>
         {% if selection == 'functions' %}
             <dt>{% trans "Function:" %}</dt>
-            <dd><a href="{% url 'sentry-explore-code-details-by-function' team.slug project.slug tag.id %}">{{ tag.data.function }}</a></dd>
+            <dd><a href="{% url 'sentry-explore-code-details-by-function' organization.slug project.slug tag.id %}">{{ tag.data.function }}</a></dd>
         {% endif %}
         <dt>First Seen:</dt>
         <dd>{{ tag.first_seen|timesince }}</dd>

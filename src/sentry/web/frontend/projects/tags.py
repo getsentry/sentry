@@ -12,15 +12,15 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_ADMIN
 from sentry.models import TagKey
 from sentry.web.decorators import has_access
 from sentry.web.forms.projects import ProjectTagsForm
 from sentry.web.helpers import render_to_response
 
 
-@has_access(MEMBER_OWNER)
-def manage_project_tags(request, team, project):
+@has_access(MEMBER_ADMIN)
+def manage_project_tags(request, organization, project):
     tag_list = TagKey.objects.all_keys(project)
 
     if tag_list:
@@ -35,10 +35,11 @@ def manage_project_tags(request, team, project):
             request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
-        return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.organization.slug, project.slug]))
 
     context = {
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'tag_list': tag_list,
         'page': 'tags',
         'project': project,

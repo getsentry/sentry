@@ -4,7 +4,9 @@ from __future__ import absolute_import
 
 from django.conf import settings
 
-from sentry.models import Project, ProjectKey, Team, User
+from sentry.models import (
+    Organization, Project, ProjectKey, Team, User
+)
 from sentry.receivers.core import create_default_projects
 from sentry.testutils import TestCase
 
@@ -14,13 +16,13 @@ class CreateDefaultProjectsTest(TestCase):
         user, _ = User.objects.get_or_create(is_superuser=True, defaults={
             'username': 'test'
         })
+        Organization.objects.all().delete()
         Team.objects.filter(slug='sentry').delete()
         Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
 
         create_default_projects(created_models=[Project])
 
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
-        assert project.owner == user
         assert project.public is False
         assert project.name == 'Backend'
         assert project.slug == 'backend'
@@ -46,7 +48,6 @@ class CreateDefaultProjectsTest(TestCase):
         user = User.objects.get(username='sentry')
 
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
-        assert project.owner == user
         assert project.public is False
         assert project.name == 'Backend'
         assert project.slug == 'backend'

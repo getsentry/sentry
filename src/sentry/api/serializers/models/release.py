@@ -6,7 +6,7 @@ from sentry.models import Release
 
 @register(Release)
 class ReleaseSerializer(Serializer):
-    def serialize(self, obj, user):
+    def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
             'version': obj.version,

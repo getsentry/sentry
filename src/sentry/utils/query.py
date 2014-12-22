@@ -7,7 +7,9 @@ sentry.utils.query
 """
 from __future__ import absolute_import
 
-from django.db import transaction, IntegrityError
+import progressbar
+
+from django.db import IntegrityError, transaction
 from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
 from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
@@ -24,7 +26,6 @@ class RangeQuerySetWrapper(object):
 
     Very efficient, but ORDER BY statements will not work.
     """
-
     def __init__(self, queryset, step=1000, limit=None, min_id=None,
                  order_by='pk', callbacks=()):
         # Support for slicing
@@ -66,9 +67,12 @@ class RangeQuerySetWrapper(object):
 
         # we implement basic cursor pagination for columns that are not unique
         last_value = None
-        offset = 0
+        last_object = None
         has_results = True
-        while ((max_value and cur_value <= max_value) or has_results) and (not self.limit or num < self.limit):
+        while has_results:
+            if (max_value and cur_value >= max_value) or (limit and num >= limit):
+                break
+
             start = num
 
             if cur_value is None:
@@ -78,31 +82,62 @@ class RangeQuerySetWrapper(object):
             elif not self.desc:
                 results = queryset.filter(**{'%s__gte' % self.order_by: cur_value})
 
-            results = list(results[offset:offset + self.step])
+            results = list(results[0:self.step])
 
             for cb in self.callbacks:
                 cb(results)
 
             for result in results:
+                if result == last_object:
+                    continue
+
                 yield result
 
                 num += 1
                 cur_value = getattr(result, self.order_by)
-                if cur_value == last_value:
-                    offset += 1
-                else:
-                    # offset needs to be based at 1 so we don't return a row
-                    # that was already selected
-                    last_value = cur_value
-                    offset = 1
-
-                if (max_value and cur_value >= max_value) or (limit and num >= limit):
-                    break
+                last_value = cur_value
+                last_object = result
 
             if cur_value is None:
                 break
 
             has_results = num > start
+
+
+class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
+    def __iter__(self):
+        total_count = self.queryset.count()
+        if not total_count:
+            return iter([])
+        iterator = super(RangeQuerySetWrapperWithProgressBar, self).__iter__()
+        label = self.queryset.model._meta.verbose_name_plural.title()
+        return iter(WithProgressBar(iterator, total_count, label))
+
+
+class WithProgressBar(object):
+    def __init__(self, iterator, count=None, caption=None):
+        if count is None and hasattr(iterator, '__len__'):
+            count = len(iterator)
+        self.iterator = iterator
+        self.count = count
+        self.caption = unicode(caption or u'Progress')
+
+    def __iter__(self):
+        if self.count != 0:
+            widgets = [
+                '%s: ' % (self.caption,),
+                progressbar.Percentage(),
+                ' ',
+                progressbar.Bar(),
+                ' ',
+                progressbar.ETA(),
+            ]
+            pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
+            pbar.start()
+            for idx, item in enumerate(self.iterator):
+                yield item
+                pbar.update(idx)
+            pbar.finish()
 
 
 class EverythingCollector(Collector):
@@ -219,16 +254,12 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
             if send_signals:
                 pre_save.send(created=True, **signal_kwargs)
 
-            sid = transaction.savepoint(using=using)
-
             try:
-                model.objects.filter(pk=obj.pk).update(**update_kwargs)
+                with transaction.atomic():
+                    model.objects.using(using).filter(pk=obj.pk).update(**update_kwargs)
             except IntegrityError:
                 # duplicate key exists, destroy the relations
-                transaction.savepoint_rollback(sid, using=using)
-                model.objects.filter(pk=obj.pk).delete()
-            else:
-                transaction.savepoint_commit(sid, using=using)
+                model.objects.using(using).filter(pk=obj.pk).delete()
 
             if send_signals:
                 post_save.send(created=True, **signal_kwargs)

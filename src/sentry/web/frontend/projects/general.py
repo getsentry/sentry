@@ -12,8 +12,9 @@ from sentry.web.helpers import render_to_response
 
 
 @has_access
-def get_started(request, team, project):
+def get_started(request, organization, project):
     return render_to_response('sentry/get_started.html', {
         'project': project,
+        'organization': organization,
         'team': project.team,
     }, request)

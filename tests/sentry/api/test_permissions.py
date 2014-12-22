@@ -4,134 +4,81 @@ from __future__ import absolute_import
 
 from sentry.api.permissions import has_perm
 from sentry.constants import MEMBER_USER, MEMBER_ADMIN
+from sentry.models import OrganizationMemberType
 from sentry.testutils import TestCase
 
 
-class TeamPermissionTest(TestCase):
+class BasePermissionTest(TestCase):
+    def setUp(self):
+        super(BasePermissionTest, self).setUp()
+        self.nonmember = self.create_user(is_superuser=False, email='a@example.com')
+        self.admin = self.create_user(is_superuser=False, email='b@example.com')
+        self.member = self.create_user(is_superuser=False, email='c@example.com')
+        self.organization = self.create_organization(owner=self.admin)
+        self.team = self.create_team(organization=self.organization, name='a')
+
+        self.organization.member_set.get_or_create(
+            user=self.member, type=OrganizationMemberType.MEMBER)
+        self.organization.member_set.get_or_create(
+            user=self.admin, type=OrganizationMemberType.OWNER)
+
+
+class TeamPermissionTest(BasePermissionTest):
     def test_basic_user(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        assert not has_perm(team, user, None, MEMBER_USER)
-        assert not has_perm(team, user, None, MEMBER_ADMIN)
+        assert not has_perm(self.team, self.nonmember, None, MEMBER_USER)
+        assert not has_perm(self.team, self.nonmember, None, MEMBER_ADMIN)
 
-    def test_owner(self):
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        assert has_perm(team, owner, None, MEMBER_USER)
-        assert has_perm(team, owner, None, MEMBER_ADMIN)
+    def test_admin(self):
+        assert has_perm(self.team, self.admin, None, MEMBER_USER)
+        assert has_perm(self.team, self.admin, None, MEMBER_ADMIN)
 
-    def test_team_member(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        team.member_set.create(user=user, type=MEMBER_USER)
-        assert has_perm(team, user, None, MEMBER_USER)
-        assert not has_perm(team, user, None, MEMBER_ADMIN)
+    def test_member(self):
+        assert has_perm(self.team, self.member, None, MEMBER_USER)
+        assert not has_perm(self.team, self.member, None, MEMBER_ADMIN)
 
-    def test_team_admin(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        team.member_set.create(user=user, type=MEMBER_ADMIN)
-        assert has_perm(team, user, None, MEMBER_USER)
-        assert has_perm(team, user, None, MEMBER_ADMIN)
+
+class ProjectPermissionTest(BasePermissionTest):
+    def setUp(self):
+        super(ProjectPermissionTest, self).setUp()
+        self.project = self.create_project(team=self.team, name='a')
+        self.key = self.create_project_key(project=self.project, user=self.member)
+
+    def test_basic_user(self):
+        assert not has_perm(self.project, self.nonmember, None, MEMBER_USER)
+        assert not has_perm(self.project, self.nonmember, None, MEMBER_ADMIN)
+
+    def test_admin(self):
+        assert has_perm(self.project, self.admin, None, MEMBER_USER)
+        assert has_perm(self.project, self.admin, None, MEMBER_ADMIN)
+
+    def test_member(self):
+        assert has_perm(self.project, self.member, None, MEMBER_USER)
+        assert not has_perm(self.project, self.member, None, MEMBER_ADMIN)
 
     def test_project_key(self):
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        key = self.create_project_key(project=project, user=owner)
-        assert has_perm(team, owner, key, MEMBER_USER)
-        assert not has_perm(team, owner, key, MEMBER_ADMIN)
+        assert has_perm(self.project, self.member, self.key, MEMBER_USER)
+        assert not has_perm(self.project, self.member, self.key, MEMBER_ADMIN)
 
 
-class ProjectPermissionTest(TestCase):
+class GroupPermissionTest(BasePermissionTest):
+    def setUp(self):
+        super(GroupPermissionTest, self).setUp()
+        self.project = self.create_project(team=self.team, name='a')
+        self.key = self.create_project_key(project=self.project, user=self.member)
+        self.group = self.create_group(project=self.project)
+
     def test_basic_user(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        assert not has_perm(project, user, None, MEMBER_USER)
-        assert not has_perm(project, user, None, MEMBER_ADMIN)
+        assert not has_perm(self.group, self.nonmember, None, MEMBER_USER)
+        assert not has_perm(self.group, self.nonmember, None, MEMBER_ADMIN)
 
-    def test_owner(self):
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        assert has_perm(project, owner, None, MEMBER_USER)
-        assert has_perm(project, owner, None, MEMBER_ADMIN)
+    def test_admin(self):
+        assert has_perm(self.group, self.admin, None, MEMBER_USER)
+        assert has_perm(self.group, self.admin, None, MEMBER_ADMIN)
 
-    def test_team_member(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        team.member_set.create(user=user, type=MEMBER_USER)
-        assert has_perm(project, user, None, MEMBER_USER)
-        assert not has_perm(project, user, None, MEMBER_ADMIN)
-
-    def test_team_admin(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        team.member_set.create(user=user, type=MEMBER_ADMIN)
-        assert has_perm(project, user, None, MEMBER_USER)
-        assert has_perm(project, user, None, MEMBER_ADMIN)
+    def test_member(self):
+        assert has_perm(self.group, self.member, None, MEMBER_USER)
+        assert not has_perm(self.group, self.member, None, MEMBER_ADMIN)
 
     def test_project_key(self):
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        key = self.create_project_key(project=project, user=owner)
-        assert has_perm(project, owner, key, MEMBER_USER)
-        assert not has_perm(project, owner, key, MEMBER_ADMIN)
-
-
-class GroupPermissionTest(TestCase):
-    def test_basic_user(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        group = self.create_group(project=project)
-        assert not has_perm(group, user, None, MEMBER_USER)
-        assert not has_perm(group, user, None, MEMBER_ADMIN)
-
-    def test_owner(self):
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        group = self.create_group(project=project)
-        assert has_perm(group, owner, None, MEMBER_USER)
-        assert has_perm(group, owner, None, MEMBER_ADMIN)
-
-    def test_team_member(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        team.member_set.create(user=user, type=MEMBER_USER)
-        group = self.create_group(project=project)
-        assert has_perm(group, user, None, MEMBER_USER)
-        assert not has_perm(group, user, None, MEMBER_ADMIN)
-
-    def test_team_admin(self):
-        user = self.create_user(is_superuser=False, email='bar@example.com')
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        team.member_set.create(user=user, type=MEMBER_ADMIN)
-        group = self.create_group(project=project)
-        assert has_perm(group, user, None, MEMBER_USER)
-        assert has_perm(group, user, None, MEMBER_ADMIN)
-
-    def test_project_key(self):
-        owner = self.create_user(email='foo@example.com')
-        team = self.create_team(owner=owner)
-        project = self.create_project(team=team)
-        key = self.create_project_key(project=project, user=owner)
-        group = self.create_group(project=project)
-        assert has_perm(group, owner, key, MEMBER_USER)
-        assert not has_perm(group, owner, key, MEMBER_ADMIN)
+        assert has_perm(self.group, self.nonmember, self.key, MEMBER_USER)
+        assert not has_perm(self.group, self.nonmember, self.key, MEMBER_ADMIN)

@@ -2,14 +2,13 @@
 
 {% load i18n %}
 {% load sentry_helpers %}
-{% load static_compiler %}
 
 {% block css %}
-    {% staticbundle 'sentry/styles/wall.min.css' %}
+    <link href="{% url 'sentry-media' "sentry" "dist/wall.css" %}" rel="stylesheet"/>
 {% endblock %}
 
 {% block body %}
-    <div class="container-fluid" id="stats" data-uri="{% url 'sentry-api-stats' team.slug %}?minutes=1440">
+    <div class="container-fluid" id="stats" data-uri="{% url 'sentry-api-stats' team.organization.slug team.slug %}?minutes=1440">
         <div class="row-fluid">
             <div class="span4" data-stat="events">
                 <big><span>???</span></big>
@@ -32,7 +31,7 @@
         <div class="row-fluid">
             <div class="span6">
                 <ul class="nav nav-labels">
-                    <li class="active"><a href="#trending" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-trends' team.slug %}?minutes=1440&amp;limit=5">{% trans "Trending" %}</a></li>
+                    <li class="active"><a href="#trending" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-trends' team.organization.slug team.slug %}?minutes=1440&amp;limit=5">{% trans "Trending" %}</a></li>
                 </ul>
                 <div class="tab-content">
                     <div class="tab-pane active" id="trending"><p>Loading ...</p></div>
@@ -40,7 +39,7 @@
             </div>
             <div class="span6">
                 <ul class="nav nav-labels">
-                    <li class="active"><a href="#new" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-new' team.slug %}?minutes=1440&amp;limit=5">{% trans "New" %}</a></li>
+                    <li class="active"><a href="#new" data-toggle="ajtab" data-uri="{% url 'sentry-api-groups-new' team.organization.slug team.slug %}?minutes=1440&amp;limit=5">{% trans "New" %}</a></li>
                 </ul>
                 <div class="tab-content">
                     <div class="tab-pane active" id="new"><p>Loading ...</p></div>

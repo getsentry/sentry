@@ -62,6 +62,7 @@ if (Sentry === undefined) {
     };
 
     Sentry.charts = {};
+    Sentry.charts.tickFormatter = tickFormatter;
     Sentry.charts.render = function(el){
         var $sparkline = $(el);
 

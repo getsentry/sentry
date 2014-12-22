@@ -53,15 +53,25 @@ def resolve_expression_node(instance, node):
     return runner
 
 
-def slugify_instance(inst, label, reserved=(), **kwargs):
-    base_slug = slugify(label)
+def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
+    base_slug = slugify(label)[:max_length]
+
     if base_slug in reserved:
         base_slug = None
+    elif base_slug is not None:
+        base_slug = base_slug.strip()
+
     if not base_slug:
         base_slug = uuid4().hex[:12]
-    manager = type(inst).objects
+
+    base_qs = type(inst).objects.all()
+    if inst.id:
+        base_qs = base_qs.exclude(id=inst.id)
+    if args or kwargs:
+        base_qs = base_qs.filter(*args, **kwargs)
+
     inst.slug = base_slug
     n = 0
-    while manager.filter(slug__iexact=inst.slug, **kwargs).exists():
+    while base_qs.filter(slug__iexact=inst.slug).exists():
         n += 1
-        inst.slug = base_slug + '-' + str(n)
+        inst.slug = base_slug[:max_length - len(str(n)) - 1] + '-' + str(n)

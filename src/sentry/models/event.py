@@ -78,6 +78,10 @@ class Event(Model):
         return self.project.team
 
     @property
+    def organization(self):
+        return self.project.organization
+
+    @property
     def version(self):
         return self.data.get('version', '5')
 
@@ -110,7 +114,7 @@ class Event(Model):
         - Http.env.REMOTE_ADDR
 
         """
-        user_data = self.data.get('sentry.interfaces.User')
+        user_data = self.data.get('sentry.interfaces.User', self.data.get('user'))
         if user_data:
             ident = user_data.get('id')
             if ident:
@@ -147,11 +151,11 @@ class Event(Model):
 
         return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
 
-    def get_tags(self):
+    def get_tags(self, with_internal=True):
         try:
             return [
                 (t, v) for t, v in self.data.get('tags') or ()
-                if not t.startswith('sentry:')
+                if with_internal or not t.startswith('sentry:')
             ]
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)

@@ -10,13 +10,11 @@ from __future__ import absolute_import
 
 from django.db.models import Q
 
-from sentry.search.base import SearchBackend, SearchResult
+from sentry.api.paginator import Paginator
+from sentry.search.base import SearchBackend
 from sentry.search.django.constants import (
-    SORT_CLAUSES, SCORE_CLAUSES,
-    SQLITE_SORT_CLAUSES, SQLITE_SCORE_CLAUSES,
-    MYSQL_SORT_CLAUSES, MYSQL_SCORE_CLAUSES,
-    MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES, MSSQL_ENGINES,
-    ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES
+    SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
+    MSSQL_ENGINES, ORACLE_SORT_CLAUSES
 )
 from sentry.utils.db import get_db_engine
 
@@ -26,8 +24,9 @@ class DjangoSearchBackend(SearchBackend):
         pass
 
     def query(self, project, query=None, status=None, tags=None,
-              bookmarked_by=None, sort_by='date', date_filter='last_seen',
-              date_from=None, date_to=None, offset=0, limit=100):
+              bookmarked_by=None, assigned_to=None, sort_by='date',
+              date_filter='last_seen', date_from=None, date_to=None,
+              cursor=None, limit=100):
         from sentry.models import Group
 
         queryset = Group.objects.filter(project=project)
@@ -48,6 +47,12 @@ class DjangoSearchBackend(SearchBackend):
             queryset = queryset.filter(
                 bookmark_set__project=project,
                 bookmark_set__user=bookmarked_by,
+            )
+
+        if assigned_to:
+            queryset = queryset.filter(
+                assignee_set__project=project,
+                assignee_set__user=assigned_to,
             )
 
         if tags:
@@ -81,19 +86,14 @@ class DjangoSearchBackend(SearchBackend):
         engine = get_db_engine('default')
         if engine.startswith('sqlite'):
             score_clause = SQLITE_SORT_CLAUSES[sort_by]
-            filter_clause = SQLITE_SCORE_CLAUSES[sort_by]
         elif engine.startswith('mysql'):
             score_clause = MYSQL_SORT_CLAUSES[sort_by]
-            filter_clause = MYSQL_SCORE_CLAUSES[sort_by]
         elif engine.startswith('oracle'):
             score_clause = ORACLE_SORT_CLAUSES[sort_by]
-            filter_clause = ORACLE_SCORE_CLAUSES[sort_by]
         elif engine in MSSQL_ENGINES:
             score_clause = MSSQL_SORT_CLAUSES[sort_by]
-            filter_clause = MSSQL_SCORE_CLAUSES[sort_by]
         else:
             score_clause = SORT_CLAUSES[sort_by]
-            filter_clause = SCORE_CLAUSES[sort_by]
 
         if sort_by == 'tottime':
             queryset = queryset.filter(time_spent_count__gt=0)
@@ -103,10 +103,12 @@ class DjangoSearchBackend(SearchBackend):
         queryset = queryset.extra(
             select={'sort_value': score_clause},
         )
+
         # HACK: don't sort by the same column twice
         if sort_by == 'date':
-            queryset = queryset.order_by('-last_seen')
+            queryset = queryset.order_by('-sort_value')
         else:
             queryset = queryset.order_by('-sort_value', '-last_seen')
 
-        return SearchResult(instances=list(queryset[offset:offset + limit]))
+        paginator = Paginator(queryset, '-sort_value')
+        return paginator.get_result(limit, cursor)

@@ -20,8 +20,9 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from sudo.decorators import sudo_required
 
-from sentry.constants import MEMBER_USER
-from sentry.models import Project, UserOption, LostPasswordHash
+from sentry.models import (
+    LostPasswordHash, Organization, Project, Team, UserOption
+)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
@@ -70,7 +71,7 @@ def login(request):
 
 @csrf_protect
 @never_cache
-@transaction.commit_on_success
+@transaction.atomic
 def register(request):
     from django.conf import settings
 
@@ -202,7 +203,7 @@ def recover_confirm(request, user_id, hash):
 @never_cache
 @login_required
 @sudo_required
-@transaction.commit_on_success
+@transaction.atomic
 def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
         'email': request.user.email,
@@ -227,7 +228,7 @@ def settings(request):
 @never_cache
 @login_required
 @sudo_required
-@transaction.commit_on_success
+@transaction.atomic
 def appearance_settings(request):
     from django.conf import settings
 
@@ -256,11 +257,29 @@ def appearance_settings(request):
 @never_cache
 @login_required
 @sudo_required
-@transaction.commit_on_success
+@transaction.atomic
 def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)
 
-    project_list = Project.objects.get_for_user(request.user, access=MEMBER_USER)
+    # TODO(dcramer): this is an extremely bad pattern and we need a more optimal
+    # solution for rendering this (that ideally plays well with the org data)
+    project_list = []
+    organization_list = Organization.objects.get_for_user(
+        user=request.user,
+    )
+    for organization in organization_list:
+        team_list = Team.objects.get_for_user(
+            user=request.user,
+            organization=organization,
+        )
+        for team in team_list:
+            project_list.extend(
+                Project.objects.get_for_user(
+                    user=request.user,
+                    team=team,
+                )
+            )
+
     project_forms = [
         (project, ProjectEmailOptionsForm(
             project, request.user,

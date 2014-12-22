@@ -1,0 +1,23 @@
+{% extends "sentry/help/index.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_markup %}
+
+{% block breadcrumbs %}
+{{ block.super }}
+  <li class="divider">/</li>
+  <li><a>Guides</a></li>
+  <li class="divider">/</li>
+  <li>{{ page.title }}</li>
+{% endblock%}
+
+{% block title %}
+  {{ page.title }}
+{% endblock %}}
+
+{% block main %}
+  <h3>{{ page.title }}</h3>
+
+  {{ page.content|markdown }}
+{% endblock %}
