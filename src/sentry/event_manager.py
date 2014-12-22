@@ -8,6 +8,7 @@ sentry.event_manager
 from __future__ import absolute_import, print_function
 
 import logging
+import math
 import six
 
 from datetime import datetime, timedelta
@@ -120,6 +121,10 @@ class ScoreClause(object):
             sql = int(self)
 
         return (sql, [])
+
+    @classmethod
+    def calculate(self, times_seen, last_seen):
+        return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 
 class EventManager(object):
@@ -398,6 +403,7 @@ class EventManager(object):
         # it should be resolved by the hash merging function later but this
         # should be better tested/reviewed
         if existing_group_id is None:
+            kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
             group, group_is_new = Group.objects.get_or_create(
                 project=project,
                 # TODO(dcramer): remove checksum from Group/Event
@@ -439,9 +445,6 @@ class EventManager(object):
             is_regression = self._process_existing_aggregate(group, event, kwargs)
         else:
             is_regression = False
-
-            # TODO: this update should actually happen as part of create
-            group.update(score=ScoreClause(group))
 
             # We need to commit because the queue can run too fast and hit
             # an issue with the group not existing before the buffers run
