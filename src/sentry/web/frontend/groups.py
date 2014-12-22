@@ -107,7 +107,7 @@ def _get_group_list(request, project):
         except ValueError:
             # XXX(dcramer): ideally we'd error, but this is an internal API so
             # we'd rather just throw it away
-            logging.warn('Throwing away invalid cursor: %s', cursor)
+            logging.info('Throwing away invalid cursor: %s', cursor)
     query_kwargs['limit'] = EVENTS_PER_PAGE
 
     query = request.GET.get('query', '')
