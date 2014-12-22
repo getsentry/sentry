@@ -303,6 +303,7 @@ class EventManager(object):
             event=event,
             tags=tags,
             hashes=hashes,
+            _with_transaction=False,
             **group_kwargs
         )
         if result is None:
