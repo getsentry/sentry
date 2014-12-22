@@ -17,7 +17,7 @@
             <h3>{% trans "Events" %}</h3>
         </div>
 
-        {% url 'sentry-project-rules' team.slug project.slug as link %}
+        {% url 'sentry-project-rules' organization.slug project.slug as link %}
         <p>{% blocktrans %}Sentry will notify you based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
 
         <div class="page-header">

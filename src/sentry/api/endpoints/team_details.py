@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -8,8 +7,9 @@ from sentry.api.base import Endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN, RESERVED_TEAM_SLUGS
-from sentry.models import Team, TeamMember, TeamStatus
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Team, TeamStatus
+)
 from sentry.tasks.deletion import delete_team
 
 
@@ -20,9 +20,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
-        if value in RESERVED_TEAM_SLUGS:
-            raise serializers.ValidationError('You may not use "%s" as a slug.' % (value,))
-        elif Team.objects.filter(slug=value).exclude(id=self.object.id):
+        if Team.objects.filter(slug=value).exclude(id=self.object.id):
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
         return attrs
 
@@ -37,6 +35,14 @@ class TeamAdminSerializer(TeamSerializer):
 
 class TeamDetailsEndpoint(Endpoint):
     def get(self, request, team_id):
+        """
+        Retrieve a team.
+
+        Return details on an individual team.
+
+            {method} {path}
+
+        """
         team = Team.objects.get(id=team_id)
 
         assert_perm(team, request.user, request.auth)
@@ -47,7 +53,7 @@ class TeamDetailsEndpoint(Endpoint):
     def put(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         # TODO(dcramer): this permission logic is duplicated from the
         # transformer
@@ -58,13 +64,16 @@ class TeamDetailsEndpoint(Endpoint):
 
         if serializer.is_valid():
             team = serializer.save()
-            TeamMember.objects.create_or_update(
-                user=team.owner,
-                team=team,
-                defaults={
-                    'type': MEMBER_ADMIN,
-                }
+
+            AuditLogEntry.objects.create(
+                organization=team.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_EDIT,
+                data=team.get_audit_log_data(),
             )
+
             return Response(serialize(team, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -73,19 +82,19 @@ class TeamDetailsEndpoint(Endpoint):
     def delete(self, request, team_id):
         team = Team.objects.get(id=team_id)
 
-        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
+        assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
-        if team.project_set.filter(id=settings.SENTRY_PROJECT).exists():
-            return Response('{"error": "Cannot remove team containing default project."}',
-                            status=status.HTTP_403_FORBIDDEN)
+        if team.status == TeamStatus.VISIBLE:
+            team.update(status=TeamStatus.PENDING_DELETION)
+            delete_team.delay(object_id=team.id, countdown=60 * 5)
 
-        if not (request.user.is_superuser or team.owner_id == request.user.id):
-            return Response('{"error": "You do not have permission to remove this team."}', status=status.HTTP_403_FORBIDDEN)
-
-        team.update(status=TeamStatus.PENDING_DELETION)
-
-        # TODO(dcramer): set status to pending deletion
-        # we delay the task for 5 minutes so we can implement an undo
-        delete_team.delay(object_id=team.id, countdown=60 * 5)
+            AuditLogEntry.objects.create(
+                organization=team.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=team.id,
+                event=AuditLogEntryEvent.TEAM_REMOVE,
+                data=team.get_audit_log_data(),
+            )
 
         return Response(status=204)

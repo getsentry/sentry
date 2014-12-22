@@ -13,11 +13,15 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.db.models import (
     Model, GzippedDictField, BoundedPositiveIntegerField, sane_repr
 )
 from sentry.utils.http import absolute_uri
+
+
+class AlertStatus(object):
+    UNRESOLVED = 0
+    RESOLVED = 1
 
 
 class Alert(Model):
@@ -28,8 +32,8 @@ class Alert(Model):
     data = GzippedDictField(null=True)
     related_groups = models.ManyToManyField('sentry.Group', through='sentry.AlertRelatedGroup', related_name='related_alerts')
     status = BoundedPositiveIntegerField(default=0, choices=(
-        (STATUS_UNRESOLVED, _('Unresolved')),
-        (STATUS_RESOLVED, _('Resolved')),
+        (AlertStatus.UNRESOLVED, _('Unresolved')),
+        (AlertStatus.RESOLVED, _('Resolved')),
     ), db_index=True)
 
     class Meta:
@@ -45,7 +49,7 @@ class Alert(Model):
             project=project_id,
             group_id__isnull=True,
             datetime__gte=timezone.now() - timedelta(minutes=60),
-            status=STATUS_UNRESOLVED,
+            status=AlertStatus.UNRESOLVED,
         ).order_by('-datetime')
 
     @classmethod
@@ -81,13 +85,17 @@ class Alert(Model):
         return self.project.team
 
     @property
+    def organization(self):
+        return self.project.organization
+
+    @property
     def is_resolved(self):
-        return (self.status == STATUS_RESOLVED
+        return (self.status == AlertStatus.RESOLVED
                 or self.datetime < timezone.now() - timedelta(minutes=60))
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-alert-details', args=[
-            self.team.slug, self.project.slug, self.id]))
+            self.organization.slug, self.project.slug, self.id]))
 
 
 class AlertRelatedGroup(Model):

@@ -7,7 +7,7 @@ import json
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from exam import before, fixture
+from exam import fixture
 
 from sentry.models import GroupSeen, Group
 from sentry.testutils import TestCase
@@ -17,22 +17,20 @@ class GroupDetailsTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
         })
 
     def test_simple(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
         assert resp.context['group'] == self.group
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
+        assert resp.context['organization'] == self.organization
 
         # ensure we've marked the group as seen
         assert GroupSeen.objects.filter(
@@ -43,12 +41,12 @@ class GroupListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-stream', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
         })
 
-    @before
-    def create_a_couple_events(self):
+    def setUp(self):
+        super(GroupListTest, self).setUp()
         later = timezone.now()
         now = later - timedelta(hours=1)
         past = now - timedelta(hours=1)
@@ -69,25 +67,24 @@ class GroupListTest(TestCase):
         )
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-        assert 'project' in resp.context
-        assert 'team' in resp.context
         assert 'event_list' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
+        assert resp.context['organization'] == self.organization
 
     def test_date_sort(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path + '?sort=date')
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
         assert list(resp.context['event_list']) == [self.group2, self.group1]
 
     def test_new_sort(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path + '?sort=new')
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
@@ -95,7 +92,7 @@ class GroupListTest(TestCase):
         assert list(resp.context['event_list']) == [self.group1, self.group2]
 
     def test_freq_sort(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path + '?sort=freq')
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
@@ -106,7 +103,7 @@ class GroupEventListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-events', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
         })
@@ -117,17 +114,14 @@ class GroupEventListTest(TestCase):
         event2 = self.create_event(
             event_id='b' * 32, datetime=timezone.now())
 
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
-        assert 'event_list' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
         assert resp.context['group'] == self.group
+        assert resp.context['organization'] == self.organization
         event_list = resp.context['event_list']
         assert len(event_list) == 2
         assert event_list[0] == event2
@@ -138,62 +132,57 @@ class GroupTagListTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-tags', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
         })
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
         assert 'tag_list' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
         assert resp.context['group'] == self.group
+        assert resp.context['organization'] == self.organization
 
 
 class GroupEventDetailsTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-event', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
             'event_id': self.event.id,
         })
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        assert 'group' in resp.context
-        assert 'project' in resp.context
-        assert 'team' in resp.context
-        assert 'event' in resp.context
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
         assert resp.context['group'] == self.group
         assert resp.context['event'] == self.event
+        assert resp.context['organization'] == self.organization
 
 
 class GroupEventJsonTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-group-event-json', kwargs={
-            'team_slug': self.team.slug,
+            'organization_slug': self.organization.slug,
             'project_id': self.project.slug,
             'group_id': self.group.id,
             'event_id_or_latest': self.event.id,
         })
 
     def test_does_render(self):
-        self.login()
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'application/json'

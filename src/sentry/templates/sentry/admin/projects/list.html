@@ -46,19 +46,10 @@
                         <tr>
                             <td>
                                 {% if project.team %}
-                                    <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}"><strong>{{ project.team.slug }}/{{ project.slug }}</strong></a>
-                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}">[stream]</a><br/>
+                                    <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}"><strong>{{ project.organization.slug }}/{{ project.slug }}</strong></a>
+                                    <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">[stream]</a><br/>
                                 {% else %}
                                     <strong>{{ project.slug }}</strong>
-                                {% endif %}
-                                {% if project.owner %}
-                                    <small>Owned by <a href="{% url 'sentry-admin-edit-user' project.owner.pk %}">
-                                        {% if project.owner.email %}
-                                            {{ project.owner.email }}
-                                        {% else %}
-                                            {{ project.owner.username }}
-                                        {% endif %}
-                                    </a></smalL>
                                 {% endif %}
                             </td>
                             <td style="text-align:center; vertical-align:middle;">

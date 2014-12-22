@@ -13,14 +13,14 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import app
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_ADMIN
 from sentry.web.decorators import has_access
 from sentry.web.forms.projects import ProjectQuotasForm
 from sentry.web.helpers import render_to_response
 
 
-@has_access(MEMBER_OWNER)
-def manage_project_quotas(request, team, project):
+@has_access(MEMBER_ADMIN)
+def manage_project_quotas(request, organization, project):
     from sentry.quotas.base import Quota
 
     form = ProjectQuotasForm(project, request.POST or None)
@@ -32,15 +32,16 @@ def manage_project_quotas(request, team, project):
             request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
-        return HttpResponseRedirect(reverse('sentry-manage-project-quotas', args=[project.team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-quotas', args=[project.organization.slug, project.slug]))
 
     context = {
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'page': 'quotas',
         # TODO(dcramer): has_quotas is an awful hack
         'has_quotas': type(app.quotas) != Quota,
-        'system_quota': app.quotas.get_system_quota(),
-        'team_quota': app.quotas.get_team_quota(team),
+        'system_quota': int(app.quotas.get_system_quota()),
+        'team_quota': int(app.quotas.get_team_quota(project.team)),
         'project': project,
         'form': form,
     }

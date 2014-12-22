@@ -15,7 +15,7 @@
                 {{ field|as_crispy_field }}
             {% endfor %}
             <fieldset class="form-actions">
-                <button type="submit" class="btn btn-danger">{% trans "Remove Project" %}</button> <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}" class="btn">{% trans "Cancel" %}</a>
+                <button type="submit" class="btn btn-danger">{% trans "Remove Project" %}</button> <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}" class="btn">{% trans "Cancel" %}</a>
             </fieldset>
         </form>
         <style>

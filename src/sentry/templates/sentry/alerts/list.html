@@ -15,7 +15,7 @@
         <ul>
             {% for alert in alert_list %}
                 <li>
-                    <h4><a href="{% url 'sentry-alert-details' project.team.slug project.slug alert.id %}">{{ alert.datetime }}</a>
+                    <h4><a href="{% url 'sentry-alert-details' project.organization.slug project.slug alert.id %}">{{ alert.datetime }}</a>
                         <small>
                             &mdash; <span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span>
                         </small></h4>
@@ -23,6 +23,6 @@
                 </li>
             {% endfor %}
         </ul>
-        <p>You can change your alert settings by visiting your <a href="{% url 'sentry-project-notifications' project.team.slug project.slug %}">project's notification settings</a> page.</p>
+        <p>You can change your alert settings by visiting your <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">project's notification settings</a> page.</p>
     </section>
 {% endblock %}

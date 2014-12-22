@@ -7,7 +7,6 @@ import mock
 from datetime import datetime
 from uuid import UUID
 
-from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
 from sentry.coreapi import (
     extract_auth_vars, project_from_auth_vars, APIForbidden, ensure_has_ip,
@@ -18,8 +17,9 @@ from sentry.testutils import TestCase
 
 class BaseAPITest(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username='coreapi')
-        self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
+        self.user = self.create_user('coreapi@example.com')
+        self.team = self.create_team(name='Foo', owner=self.user)
+        self.project = self.create_project(team=self.team)
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 

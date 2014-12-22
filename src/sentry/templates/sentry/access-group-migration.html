@@ -1,0 +1,115 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Access Group Migration" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <div class="pull-right">
+      <a href="{% url 'sentry-organization-home' organization.slug %}">Back to Organization Home</a>
+    </div>
+    <h2>{% trans "Access Group Migration" %}</h2>
+  </div>
+
+  {% if member_list %}
+    <p>Below is a list of all members who are part of any access group within this organization. You'll need to select which team(s) they should gain access to. Alternatively you can choose to remove the user if they no longer need access.</p>
+
+    <p>Note: Unlike access groups, organization membership cannot be restricted per-project. If you need to refine access to that level you should create additional teams and transfer the projects where applicable.</p>
+
+    <form method="POST" action=".">
+      {% csrf_token %}
+
+      <table class="table table-striped access-group-migration">
+        <thead>
+          <tr>
+            <th></th>
+            <th style="width:200px"></th>
+            <th style="width:100px"></th>
+            <th style="width:100px;text-align:center">Remove?</th>
+          </tr>
+        </thead>
+        {% for member, project_list in member_list %}
+          <tr>
+            <td>
+              <h4>{{ member.get_display_name }}</h4>
+              <label class="checkbox">
+                <input type="checkbox" name="user[{{ member.id }}][global_access]" value="1" class="checkboxinput global-access">
+                <strong>All Teams</strong>
+              </label>
+              <fieldset class="team-choices">
+                {% for team in team_list %}
+                  <label class="checkbox">
+                    <input type="checkbox" name="user[{{ member.id }}][team]" value="{{ team.slug }}" class="checkboxinput">
+                    {{ team.slug }}
+                  </label>
+                {% endfor %}
+              </fieldset>
+            </td>
+            <td style="vertical-align:top">
+              <select name="user[{{ member.id }}][type]" style="width:150px">
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </td>
+            <td style="vertical-align:top">
+              <a class="tip" title="{% for project in project_list %}{{ project.team.slug }} / {{ project.slug }}<br>{% endfor %}"
+                 style="line-height:28px;">{{ project_list|length }} project(s)</a>
+            </td>
+            <td style="text-align:center;vertical-align:top">
+              <input type="checkbox" name="user[{{ member.id }}][remove]" value="1" class="checkboxinput">
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+
+      <fieldset class="form-actions">
+        <button type="submit" class="btn btn-primary" name="action_save">{% trans "Save Changes" %}</button>
+      </fieldset>
+    </form>
+  {% else %}
+    <p>Your work is done here! There are no access groups which need migrated.</p>
+  {% endif %}
+
+  <style>
+  table.access-group-migration td,
+  table.access-group-migration th {
+    padding: 8px;
+  }
+  .access-group-migration td > h4 {
+    margin-bottom: 10px;
+    display: block;
+  }
+  .access-group-migration fieldset {
+    margin-left: 20px;
+  }
+  .access-group-migration label {
+    font-weight: normal;
+  }
+  </style>
+
+  <script>
+  $(function(){
+    var selectedTeamsByParent = {};
+    $('input.global-access').change(function(){
+      var $this = $(this);
+      var $parent = $this.parent().parent();
+      var checked = $this.is(':checked');
+      var selector = $parent.find('.team-choices input[type=checkbox]');
+
+      if (checked) {
+        selectedTeamsByParent[$parent] = $parent.find('.team-choices input[type=checkbox]:checked').slice(0, selector.length);
+        selector.prop('checked', true);
+      } else {
+        selector.prop('checked', false);
+        $(selectedTeamsByParent[$parent]).prop('checked', true);
+        selectedTeamsByParent[$parent] = [];
+      }
+
+      $('.team-choices').prop('disabled', checked);
+
+    }).change();
+  });
+  </script>
+
+{% endblock %}

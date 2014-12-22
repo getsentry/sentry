@@ -155,22 +155,25 @@ class MailPluginTest(TestCase):
             self.team.name, self.project.name)
 
     def test_get_sendable_users(self):
-        from sentry.models import Project, UserOption, User
+        from sentry.models import UserOption, User
 
-        user = User.objects.create(username='foo', email='foo@example.com', is_active=True)
-        user2 = User.objects.create(username='baz', email='baz@example.com', is_active=True)
-        user3 = User.objects.create(username='baz2', email='bar@example.com', is_active=True)
+        user = self.create_user(email='foo@example.com', is_active=True)
+        user2 = self.create_user(email='baz@example.com', is_active=True)
+        user3 = self.create_user(email='baz2@example.com', is_active=True)
 
         # user with inactive account
-        User.objects.create(username='bar', email='bar@example.com', is_active=False)
+        self.create_user(email='bar@example.com', is_active=False)
         # user not in any groups
-        User.objects.create(username='bar2', email='bar@example.com', is_active=True)
+        self.create_user(email='bar2@example.com', is_active=True)
 
-        project = Project.objects.create(name='Test', slug='test', owner=user)
-        project.team.member_set.get_or_create(user=user)
-        project.team.member_set.get_or_create(user=user2)
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
 
-        ag = AccessGroup.objects.create(team=project.team)
+        project = self.create_project(name='Test', team=team)
+        organization.member_set.get_or_create(user=user)
+        organization.member_set.get_or_create(user=user2)
+
+        ag = AccessGroup.objects.create(team=team)
         ag.members.add(user3)
         ag.projects.add(project)
 
@@ -186,7 +189,7 @@ class MailPluginTest(TestCase):
 
         user4 = User.objects.create(username='baz4', email='bar@example.com',
                                     is_active=True)
-        project.team.member_set.get_or_create(user=user4)
+        organization.member_set.get_or_create(user=user4)
 
         assert user4.pk in self.plugin.get_sendable_users(project)
 

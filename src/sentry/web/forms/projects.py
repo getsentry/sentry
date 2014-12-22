@@ -12,13 +12,8 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import TAG_LABELS
-from sentry.models import Project, ProjectOption
-from sentry.permissions import can_set_public_projects
-from sentry.web.forms.fields import (
-    UserField, OriginsField, RangeField, get_team_choices)
-
-
-BLANK_CHOICE = [("", "")]
+from sentry.models import ProjectOption
+from sentry.web.forms.fields import RangeField
 
 
 class ProjectTagsForm(forms.Form):
@@ -57,77 +52,6 @@ class ProjectTagsForm(forms.Form):
         annotations = self.cleaned_data.get('annotations')
         ProjectOption.objects.set_value(
             self.project, 'annotations', annotations)
-
-
-class BaseProjectForm(forms.ModelForm):
-    name = forms.CharField(label=_('Project Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('Production')}))
-    platform = forms.ChoiceField(choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
-        widget=forms.Select(attrs={'data-placeholder': _('Select a platform')}))
-
-    class Meta:
-        fields = ('name', 'platform')
-        model = Project
-
-
-class NewProjectForm(BaseProjectForm):
-    pass
-
-
-class NewProjectAdminForm(NewProjectForm):
-    owner = UserField(required=False)
-
-    class Meta:
-        fields = ('name', 'platform')
-        model = Project
-
-
-class RemoveProjectForm(forms.Form):
-    def __init__(self, user, *args, **kwargs):
-        super(RemoveProjectForm, self).__init__(*args, **kwargs)
-        self.user = user
-
-
-class EditProjectForm(BaseProjectForm):
-    public = forms.BooleanField(required=False,
-        help_text=_('Imply public access to any event for this project.'))
-    team = forms.TypedChoiceField(choices=(), coerce=int, required=False)
-    origins = OriginsField(label=_('Allowed Domains'), required=False,
-        help_text=_('Separate multiple entries with a newline.'))
-    resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
-        required=False, min_value=0, max_value=168, step_value=1)
-    owner = UserField(required=False)
-
-    class Meta:
-        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
-        model = Project
-
-    def __init__(self, request, team_list, data, instance, *args, **kwargs):
-        super(EditProjectForm, self).__init__(data=data, instance=instance, *args, **kwargs)
-        self.team_list = dict((t.pk, t) for t in team_list.itervalues())
-
-        if not can_set_public_projects(request.user):
-            del self.fields['public']
-        if len(team_list) == 1 and instance.team == team_list.values()[0]:
-            del self.fields['team']
-        else:
-            self.fields['team'].choices = get_team_choices(self.team_list, instance.team)
-            self.fields['team'].widget.choices = self.fields['team'].choices
-
-    def clean_team(self):
-        value = self.cleaned_data.get('team')
-        if not value:
-            return
-
-        # TODO: why is this not already an int?
-        value = int(value)
-        if value == -1:
-            return
-
-        if self.instance.team and value == self.instance.team.id:
-            return self.instance.team
-
-        return self.team_list[value]
 
 
 class AlertSettingsForm(forms.Form):

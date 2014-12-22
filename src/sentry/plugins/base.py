@@ -227,7 +227,7 @@ class IPlugin(local):
 
         >>> plugin.get_url(group)
         """
-        return reverse('sentry-group-plugin-action', args=(group.team.slug, group.project.slug, group.pk, self.slug))
+        return reverse('sentry-group-plugin-action', args=(group.organization.slug, group.project.slug, group.pk, self.slug))
 
     def get_conf_key(self):
         """
@@ -479,7 +479,7 @@ class IPlugin(local):
 
     def is_regression(self, group, event, **kwargs):
         """
-        Called on new events when the group's status is STATUS_RESOLVED.
+        Called on new events when the group's status is resolved.
         Return True if this event is a regression, False if it is not,
         None to defer to other plugins.
 

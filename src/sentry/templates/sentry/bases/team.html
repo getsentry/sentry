@@ -1,26 +1,3 @@
-{% extends "sentry/layout.html" %}
-
-{% load i18n %}
+{% extends "sentry/bases/organization.html" %}
 
 {% block title %}{{ team.name }} | {{ block.super }}{% endblock %}
-
-{% block page_header %}
-    <div class="pull-right">
-        <a class="btn btn-primary" href="{% url 'sentry-new-project' team.slug %}">{% trans "Create a New Project" %}</a>
-    </div>
-
-    <ul class="nav nav-tabs">
-        <li{% if SUBSECTION == 'settings' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-team' team.slug %}">{% trans "Settings" %}</a>
-        </li>
-        <li{% if SUBSECTION == 'projects' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a>
-        </li>
-        <li{% if SUBSECTION == 'members' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-team-members' team.slug %}">{% trans "Members" %}</a>
-        </li>
-        <li{% if SUBSECTION == 'groups' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-manage-access-groups' team.slug %}">{% trans "Access Groups" %}</a>
-        </li>
-    </ul>
-{% endblock %}

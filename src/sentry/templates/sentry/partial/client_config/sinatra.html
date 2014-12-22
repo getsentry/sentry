@@ -9,7 +9,7 @@
 require 'raven'
 
 Raven.configure do |config|
-  config.dsn = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+  config.dsn = '{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}'
 end
 
 use Raven::Rack

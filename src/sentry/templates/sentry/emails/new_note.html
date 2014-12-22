@@ -10,8 +10,8 @@
 {% endblock %}
 
 {% block inner %}
-    {% url 'sentry-group' group.team.slug group.project.slug group.id as group_link %}
-    {% url 'sentry-stream' group.team.slug group.project.slug as project_link %}
+    {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+    {% url 'sentry-stream' group.organization.slug group.project.slug as project_link %}
     <div class="event level-{{ group.get_level_display }}">
         <div class="count">
             <span title="{{ group.times_seen }}">{{ group.times_seen|small_count }}</span>

@@ -77,6 +77,15 @@ the same command you used to grab virtualenv::
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
 
+Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
+like the following:
+
+.. code-block:: bash
+
+  $ sentry
+  usage: sentry [--config=/path/to/settings.py] [command] [options]
+
+
 Using MySQL or Postgres
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -97,25 +106,15 @@ These databases require additional packages, but Sentry provides a couple of met
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you're installing the Sentry source (e.g. from git), you'll need a couple of extra dependencies:
+If you're installing the Sentry source (e.g. from git), you'll also need to intstall **npm**.
 
-- node.js (npm)
-- git
-
-Once your system is prepared, simply run the ``make`` command to
-get all of the application dependencies:
+Once your system is prepared, symlink your source into the virtualenv:
 
 .. code-block:: bash
 
-  $ make develop
+  $ python setup.py develop
 
-Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
-like the following:
-
-.. code-block:: bash
-
-  $ sentry
-  usage: sentry [--config=/path/to/settings.py] [command] [options]
+.. Note:: This command will install npm dependencies as well as compile static assets.
 
 
 Initializing the Configuration
@@ -146,9 +145,6 @@ is not a fully supported database and should not be used in production**.
             'PASSWORD': '',
             'HOST': '',
             'PORT': '',
-            'OPTIONS': {
-                'autocommit': True,
-            }
         }
     }
 
@@ -227,18 +223,12 @@ Once done, you can create the initial schema using the ``upgrade`` command:
 
     $ sentry --config=/etc/sentry.conf.py upgrade
 
-**It's very important that you create the default superuser through the upgrade process. If you do not, there is
-a good chance you'll see issues in your initial install.**
-
-If you did not create the user on the first run, you can correct this by doing the following:
+Next up you'll need to create the first user, which will act as a superuser:
 
 .. code-block:: bash
 
     # create a new user
-    $ sentry --config=/etc/sentry.conf.py createsuperuser
-
-    # run the automated repair script
-    $ sentry --config=/etc/sentry.conf.py repair --owner=<username>
+    $ sentry --config=/etc/sentry.conf.py createuser
 
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
@@ -362,8 +352,8 @@ power and flexibility that goes with it.
 
 Some of those which you'll likely find useful are:
 
-createsuperuser
-~~~~~~~~~~~~~~~
+createuser
+~~~~~~~~~~
 
 Quick and easy creation of superusers. These users have full access to the entirety of the Sentry server.
 
