@@ -286,10 +286,13 @@ def group_list(request, organization, project):
 def group(request, organization_slug, project_id, group_id, event_id=None):
     # TODO(dcramer): remove in 7.1 release
     # Handle redirects from team_slug/project_slug to org_slug/project_slug
-    group = Group.objects.get(id=group_id)
+    try:
+        group = Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        raise Http404
 
     if group.project.slug != project_id:
-        return HttpResponseRedirect(reverse('sentry'))
+        raise Http404
 
     if group.organization.slug == organization_slug:
         return group_details(
@@ -313,7 +316,7 @@ def group(request, organization_slug, project_id, group_id, event_id=None):
             )
         return HttpResponsePermanentRedirect(url)
 
-    return HttpResponseRedirect(reverse('sentry'))
+    raise Http404
 
 
 @has_group_access(allow_public=True)
