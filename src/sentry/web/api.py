@@ -817,15 +817,10 @@ def get_resolved_groups(request, organization, team):
 @never_cache
 @csrf_exempt
 @has_access
-def get_stats(request, organization, team=None, project=None):
+def get_stats(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
 
-    if not team and project:
-        project_list = [project]
-    elif team:
-        project_list = Project.objects.get_for_user(team=team, user=request.user)
-    else:
-        return HttpResponse(status=400)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     cutoff = timedelta(minutes=minutes)
 
