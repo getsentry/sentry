@@ -11,13 +11,34 @@ import six
 
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
 from django.forms.util import flatatt
-from django.forms import Field, CharField, IntegerField, ValidationError
+from django.forms import (
+    Field, CharField, IntegerField, TypedChoiceField, ValidationError
+)
 from django.utils.encoding import force_unicode
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import User
+
+
+class CustomTypedChoiceField(TypedChoiceField):
+    # A patched version of TypedChoiceField which correctly validates a 0
+    # as a real input that may be invalid
+    # See https://github.com/django/django/pull/3774
+    def validate(self, value):
+        """
+        Validates that the input is in self.choices.
+        """
+        super(CustomTypedChoiceField, self).validate(value)
+        # this will validate itself twice due to the internal ChoiceField
+        # validation
+        if value is not None and not self.valid_value(value):
+            raise ValidationError(
+                self.error_messages['invalid_choice'],
+                code='invalid_choice',
+                params={'value': value},
+            )
 
 
 class RangeInput(TextInput):

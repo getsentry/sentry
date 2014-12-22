@@ -56,6 +56,9 @@ DATABASES = {
     }
 }
 
+ATOMIC_REQUESTS = False
+AUTOCOMMIT = True
+
 if 'DATABASE_URL' in os.environ:
     url = urlparse.urlparse(os.environ['DATABASE_URL'])
 

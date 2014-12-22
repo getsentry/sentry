@@ -52,6 +52,7 @@ class OrganizationMemberSettingsView(OrganizationView):
         try:
             member = OrganizationMember.objects.get(id=member_id)
         except OrganizationMember.DoesNotExist:
+            print("cannot find member id")
             return self.redirect(reverse('sentry'))
 
         if request.POST.get('op') == 'reinvite' and member.is_pending:

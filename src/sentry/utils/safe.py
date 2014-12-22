@@ -8,20 +8,21 @@ sentry.utils.safe
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 
 from django.conf import settings
 from django.db import transaction
 
 from sentry.utils.strings import truncatechars
 
-import six
-
 
 def safe_execute(func, *args, **kwargs):
+    # TODO: we should make smart savepoints (only executing the savepoint server
+    # side if we execute a query)
     try:
-        result = func(*args, **kwargs)
-    except Exception as e:
-        transaction.rollback_unless_managed()
+        with transaction.atomic():
+            result = func(*args, **kwargs)
+    except Exception, e:
         if hasattr(func, 'im_class'):
             cls = func.im_class
         else:
