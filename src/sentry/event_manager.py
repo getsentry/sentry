@@ -223,7 +223,6 @@ class EventManager(object):
         return data
 
     @suppress_exceptions
-    @transaction.atomic
     def save(self, project, raw=False):
         # TODO: culprit should default to "most recent" frame in stacktraces when
         # it's not provided.
