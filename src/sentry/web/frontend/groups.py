@@ -16,7 +16,9 @@ import re
 import logging
 
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import (
+    HttpResponse, HttpResponsePermanentRedirect, HttpResponseRedirect, Http404
+)
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -281,8 +283,41 @@ def group_list(request, organization, project):
     }, request)
 
 
+def group(request, organization_slug, project_id, group_id, event_id=None):
+    # TODO(dcramer): remove in 7.1 release
+    # Handle redirects from team_slug/project_slug to org_slug/project_slug
+    group = Group.objects.get(id=group_id)
+
+    if group.project.slug != project_id:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    if group.organization.slug == organization_slug:
+        return group_details(
+            request=request,
+            organization_slug=organization_slug,
+            project_id=project_id,
+            group_id=group_id,
+            event_id=event_id,
+        )
+
+    if group.team.slug == organization_slug:
+        if event_id:
+            url = reverse(
+                'sentry-group-event',
+                args=[group.organization.slug, project_id, group_id, event_id],
+            )
+        else:
+            url = reverse(
+                'sentry-group',
+                args=[group.organization.slug, project_id, group_id],
+            )
+        return HttpResponsePermanentRedirect(url)
+
+    return HttpResponseRedirect(reverse('sentry'))
+
+
 @has_group_access(allow_public=True)
-def group(request, organization, project, group, event_id=None):
+def group_details(request, organization, project, group, event_id=None):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
     if event_id:
