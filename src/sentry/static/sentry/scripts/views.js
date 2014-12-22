@@ -427,6 +427,8 @@
     app.GroupListView = app.OrderedElementsView.extend({
 
         defaults: {
+            emptyMessage: '<p>There is no data to show.</p>',
+            maxItems: 50,
             realtime: false,
             stream: false,
             pollUrl: null,

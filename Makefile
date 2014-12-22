@@ -1,7 +1,5 @@
-VERSION = 2.0.0
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
-UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 
 develop: update-submodules setup-git
 	@echo "--> Installing dependencies"
