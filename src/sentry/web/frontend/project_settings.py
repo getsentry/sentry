@@ -13,7 +13,7 @@ from sentry.models import (
 )
 from sentry.permissions import can_remove_project, can_set_public_projects
 from sentry.plugins import plugins
-from sentry.web.forms.fields import RangeField
+from sentry.web.forms.fields import CustomTypedChoiceField, RangeField
 from sentry.web.frontend.base import ProjectView
 
 
@@ -69,7 +69,7 @@ class EditProjectForm(forms.ModelForm):
         widget=forms.Select(attrs={'data-placeholder': _('Select a platform')}))
     public = forms.BooleanField(required=False,
         help_text=_('Imply public access to any event for this project.'))
-    team = forms.TypedChoiceField(choices=(), coerce=int, required=False)
+    team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),

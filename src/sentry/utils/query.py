@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 import progressbar
 
-from django.db import transaction, IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
 from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
@@ -254,16 +254,12 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
             if send_signals:
                 pre_save.send(created=True, **signal_kwargs)
 
-            sid = transaction.savepoint(using=using)
-
             try:
-                model.objects.filter(pk=obj.pk).update(**update_kwargs)
+                with transaction.atomic():
+                    model.objects.using(using).filter(pk=obj.pk).update(**update_kwargs)
             except IntegrityError:
                 # duplicate key exists, destroy the relations
-                transaction.savepoint_rollback(sid, using=using)
-                model.objects.filter(pk=obj.pk).delete()
-            else:
-                transaction.savepoint_commit(sid, using=using)
+                model.objects.using(using).filter(pk=obj.pk).delete()
 
             if send_signals:
                 post_save.send(created=True, **signal_kwargs)
