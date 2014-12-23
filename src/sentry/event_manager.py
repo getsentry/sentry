@@ -89,7 +89,7 @@ else:
 def plugin_is_regression(group, event):
     project = event.project
     for plugin in plugins.for_project(project):
-        result = safe_execute(plugin.is_regression, group, event)
+        result = safe_execute(plugin.is_regression, group, event, _with_transaction=False)
         if result is not None:
             return result
     return True
