@@ -202,7 +202,6 @@ def bulk_delete_objects(model, group_id=None, project_id=None, limit=10000,
             column=quote_name(column),
             limit=limit,
         )
-        print query
         params = [value]
     elif db.is_mysql():
         query = """
