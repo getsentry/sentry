@@ -169,7 +169,7 @@ class ExecuteRuleTest(TestCase):
 
         mock_rules.get.assert_called_once_with('a.rule.id')
         mock_rule_inst = mock_rules.get.return_value
-        mock_rule_inst.assert_called_once_with(self.project, data=action_data)
+        mock_rule_inst.assert_called_once_with(self.project, data=action_data, rule=rule)
         mock_rule_inst.return_value.after.assert_called_once_with(
             event=event,
             state=state,
