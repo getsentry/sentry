@@ -17,7 +17,7 @@ from exam import fixture
 from raven import Client
 
 from sentry.models import Group, Event
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.compat import StringIO
 from sentry.utils.settings import (
@@ -75,7 +75,7 @@ class AssertHandler(logging.Handler):
         raise AssertionError(entry.message)
 
 
-class RavenIntegrationTest(TestCase):
+class RavenIntegrationTest(TransactionTestCase):
     """
     This mocks the test server and specifically tests behavior that would
     happen between Raven <--> Sentry over HTTP communication.

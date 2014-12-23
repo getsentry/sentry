@@ -11,10 +11,10 @@ from django.conf import settings
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager, get_hashes_for_event
 from sentry.models import Event, Group, GroupStatus, EventMapping
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 
 
-class EventManagerTest(TestCase):
+class EventManagerTest(TransactionTestCase):
     def make_event(self, **kwargs):
         result = {
             'event_id': 'a' * 32,
