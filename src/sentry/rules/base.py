@@ -59,9 +59,10 @@ class RuleBase(object):
 
     __metaclass__ = RuleDescriptor
 
-    def __init__(self, project, data=None):
+    def __init__(self, project, data=None, rule=None):
         self.project = project
         self.data = data or {}
+        self.rule = rule
 
     def get_option(self, key):
         return self.data.get(key)

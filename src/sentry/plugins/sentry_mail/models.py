@@ -35,8 +35,7 @@ class MailPlugin(NotificationPlugin):
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
     def _send_mail(self, subject, template=None, html_template=None, body=None,
-                   project=None, group=None, headers=None, context=None,
-                   fail_silently=False):
+                   project=None, group=None, headers=None, context=None):
         send_to = self.get_send_to(project)
         if not send_to:
             return
@@ -53,14 +52,13 @@ class MailPlugin(NotificationPlugin):
             reference=group,
         )
         msg.add_users(send_to, project=project)
-        return msg.send(fail_silently=fail_silently)
+        return msg.send()
 
     def send_test_mail(self, project=None):
         self._send_mail(
             subject='Test Email',
             body='This email was requested as a test of Sentry\'s outgoing email',
             project=project,
-            fail_silently=False,
         )
 
     def get_notification_settings_url(self):
@@ -96,7 +94,6 @@ class MailPlugin(NotificationPlugin):
             template=template,
             html_template=html_template,
             project=project,
-            fail_silently=False,
             headers=headers,
             context=context,
         )
@@ -137,7 +134,9 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
-    def notify_users(self, group, event, fail_silently=False):
+    def notify(self, notification):
+        event = notification.event
+        group = event.group
         project = group.project
 
         interface_list = []
@@ -154,12 +153,21 @@ class MailPlugin(NotificationPlugin):
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
 
+        rule = notification.rule
+        if rule:
+            rule_link = reverse('sentry-edit-project-rule', args=[
+                group.organization.slug, project.slug, rule.id
+            ])
+        else:
+            rule_link = None
+
         context = {
             'group': group,
             'event': event,
             'tags': event.get_tags(),
             'link': link,
             'interfaces': interface_list,
+            'rule': rule,
         }
 
         headers = {
@@ -175,7 +183,6 @@ class MailPlugin(NotificationPlugin):
             html_template=html_template,
             project=project,
             group=group,
-            fail_silently=fail_silently,
             headers=headers,
             context=context,
         )

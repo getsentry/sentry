@@ -17,6 +17,12 @@ from sentry.plugins import Plugin
 from sentry.models import UserOption, AccessGroup
 
 
+class Notification(object):
+    def __init__(self, event, rule=None):
+        self.event = event
+        self.rule = rule
+
+
 class NotificationConfigurationForm(forms.Form):
     pass
 
@@ -37,17 +43,15 @@ class BaseNotificationUserOptionsForm(forms.Form):
         raise NotImplementedError
 
 
-class Message(object):
-    def __init__(self, short, long):
-        self.short = short
-        self.long = long
-
-
 class NotificationPlugin(Plugin):
     description = _('Notify project members when a new event is seen for the first time, or when an '
                     'already resolved event has changed back to unresolved.')
     # site_conf_form = NotificationConfigurationForm
     project_conf_form = NotificationConfigurationForm
+
+    def notify(self, notification):
+        event = notification.event
+        return self.notify_users(event.group, event)
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
