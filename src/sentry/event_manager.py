@@ -303,7 +303,6 @@ class EventManager(object):
             event=event,
             tags=tags,
             hashes=hashes,
-            _with_transaction=False,
             **group_kwargs
         )
         if result is None:
@@ -314,6 +313,9 @@ class EventManager(object):
         using = group._state.db
 
         event.group = group
+
+        # Rounded down to the nearest interval
+        safe_execute(Group.objects.add_tags, group, tags)
 
         # save the event unless its been sampled
         if not is_sample:
@@ -449,13 +451,6 @@ class EventManager(object):
         else:
             is_sample = True
 
-        # We need to commit because the queue can run too fast and hit
-        # an issue with the group not existing before the buffers run
-        transaction.commit(using=group._state.db)
-
-        # Rounded down to the nearest interval
-        safe_execute(Group.objects.add_tags, group, tags)
-
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
             (tsdb.models.project, project.id),
@@ -485,8 +480,6 @@ class EventManager(object):
                 # races here
                 active_at__gte=date - timedelta(seconds=5),
             ).update(active_at=date, status=GroupStatus.UNRESOLVED))
-
-            transaction.commit(using=group._state.db)
 
             group.active_at = date
             group.status = GroupStatus.UNRESOLVED
