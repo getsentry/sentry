@@ -175,8 +175,6 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
     fixtures and doesn't `flush` on setup.  This enables tests to be run in
     any order.
     """
-    urls = 'tests.urls'
-
     def __call__(self, result=None):
         """
         Wrapper around default __call__ method to perform common Django test
