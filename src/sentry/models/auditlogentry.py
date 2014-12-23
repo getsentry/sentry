@@ -41,7 +41,8 @@ class AuditLogEntry(Model):
     organization = models.ForeignKey('sentry.Organization')
     actor = models.ForeignKey('sentry.User', related_name='audit_actors')
     target_object = BoundedPositiveIntegerField(null=True)
-    target_user = models.ForeignKey('sentry.User', null=True, related_name='audit_targets')
+    target_user = models.ForeignKey('sentry.User', null=True, blank=True,
+                                    related_name='audit_targets')
     event = BoundedPositiveIntegerField(choices=(
         # We emulate github a bit with event naming
         (AuditLogEntryEvent.MEMBER_INVITE, 'member.invite'),
