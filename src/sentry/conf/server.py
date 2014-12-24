@@ -53,6 +53,7 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
+        'AUTOCOMMIT': True,
     }
 }
 
