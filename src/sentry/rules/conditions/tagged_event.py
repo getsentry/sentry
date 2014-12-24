@@ -48,8 +48,9 @@ class TaggedEventCondition(EventCondition):
             return False
 
         value = value.lower()
+        key = key.lower()
 
-        tags = (v.lower() for k, v in event.get_tags() if k == key)
+        tags = (v.lower() for k, v in event.get_tags() if k.lower() == key)
 
         if match == MatchType.EQUAL:
             for t_value in tags:
