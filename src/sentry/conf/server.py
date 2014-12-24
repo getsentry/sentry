@@ -202,7 +202,7 @@ else:
 
 AUTHENTICATION_BACKENDS = (
     # TODO: migrate to GoogleOAuth2Backend
-    'social_auth.backends.google.GoogleBackend',
+    'social_auth.backends.google.GoogleOAuth2Backend',
     'social_auth.backends.github.GithubBackend',
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
@@ -212,7 +212,7 @@ AUTHENTICATION_BACKENDS = (
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
-SESSION_COOKIE_NAME = "sentrysid2"
+SESSION_COOKIE_NAME = "sentrysid"
 
 GOOGLE_OAUTH2_CLIENT_ID = ''
 GOOGLE_OAUTH2_CLIENT_SECRET = ''
@@ -245,9 +245,18 @@ INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
-    'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
+    'google': ('GOOGLE_OPENID',),
+    'google-oauth2': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
+}
+
+AUTH_PROVIDER_LABELS = {
+    'github': 'GitHub',
+    'google': 'Google',
+    'google-oauth2': 'Google',
+    'trello': 'Trello',
+    'bitbucket': 'Bitbucket'
 }
 
 import random

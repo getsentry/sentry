@@ -179,6 +179,7 @@ SERVER_EMAIL = 'root@localhost'
 SECRET_KEY = %(default_key)r
 
 # http://code.google.com/apis/accounts/docs/OAuth2.html#Registering
+# your callback url will be {SENTRY_URL_PREFIX}/account/settings/social/complete/google-oauth2/
 GOOGLE_OAUTH2_CLIENT_ID = ''
 GOOGLE_OAUTH2_CLIENT_SECRET = ''
 

@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_auth %}
 
 {% block title %}{% trans "Register" %} | {{ block.super }}{% endblock %}
 
@@ -40,7 +41,11 @@
                     <br>
                     <ul class="auth-options">
                         {% for engine in AUTH_PROVIDERS %}
-                            <li><a href="{% url 'socialauth_begin' engine %}" class="auth-{{ engine }}">{% blocktrans with service=engine|title %}Sign in with {{ service }}{% endblocktrans %}</a></li>
+                            <li>
+                                <a href="{% url 'socialauth_begin' provider %}" class="auth-{{ provider }}">
+                                    {% blocktrans with service=provider|auth_provider_label %}Sign in with {{ service }}{% endblocktrans %}
+                                </a>
+                            </li>
                         {% endfor %}
                     </ul>
                 </div>
