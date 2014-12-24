@@ -1,10 +1,11 @@
-"""URLs module"""
-try: 
-    from django.conf.urls import patterns, url 
-except ImportError: 
+from __future__ import absolute_import
+
+try:
+    from django.conf.urls import patterns, url
+except ImportError:
     # for Django version less then 1.4
     from django.conf.urls.defaults import patterns, url
-    
+
 from social_auth.views import auth, complete, disconnect
 
 

@@ -10,6 +10,8 @@ By default username, email, token expiration time, first name and last name are
 stored in extra_data field, check OAuthBackend class for details on how to
 extend it.
 """
+from __future__ import absolute_import
+
 try:
     import json as simplejson
 except ImportError:
@@ -22,11 +24,9 @@ from social_auth.utils import dsa_urlopen
 
 # Bitbucket configuration
 BITBUCKET_SERVER = 'bitbucket.org/api/1.0'
-BITBUCKET_REQUEST_TOKEN_URL = 'https://%s/oauth/request_token' % \
-                                    BITBUCKET_SERVER
+BITBUCKET_REQUEST_TOKEN_URL = 'https://%s/oauth/request_token' % BITBUCKET_SERVER
 BITBUCKET_ACCESS_TOKEN_URL = 'https://%s/oauth/access_token' % BITBUCKET_SERVER
-BITBUCKET_AUTHORIZATION_URL = 'https://%s/oauth/authenticate' % \
-                                    BITBUCKET_SERVER
+BITBUCKET_AUTHORIZATION_URL = 'https://%s/oauth/authenticate' % BITBUCKET_SERVER
 BITBUCKET_EMAIL_DATA_URL = 'https://%s/emails/' % BITBUCKET_SERVER
 BITBUCKET_USER_DATA_URL = 'https://%s/users/' % BITBUCKET_SERVER
 
@@ -66,8 +66,10 @@ class BitbucketBackend(OAuthBackend):
         """
         token = super(BitbucketBackend, cls).tokens(instance)
         if token and 'access_token' in token:
-            token = dict(tok.split('=')
-                            for tok in token['access_token'].split('&'))
+            token = dict(
+                tok.split('=')
+                for tok in token['access_token'].split('&')
+            )
         return token
 
 

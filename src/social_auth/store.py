@@ -1,4 +1,6 @@
 """OpenId storage that saves to django models"""
+from __future__ import absolute_import
+
 import time
 
 from openid.store.interface import OpenIDStore
@@ -8,9 +10,7 @@ from social_auth.models import UserSocialAuth
 
 
 class DjangoOpenIDStore(OpenIDStore):
-    """Storage class"""
     def __init__(self):
-        """Init method"""
         super(DjangoOpenIDStore, self).__init__()
         self.max_nonce_age = 6 * 60 * 60  # Six hours
 

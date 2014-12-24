@@ -9,6 +9,8 @@ Also the modules *must* define a BACKENDS dictionary with the backend name
 (which is used for URLs matching) and Auth class, otherwise it won't be
 enabled.
 """
+from __future__ import absolute_import
+
 from urllib2 import Request, HTTPError
 from urllib import urlencode
 
@@ -63,7 +65,7 @@ PIPELINE = setting('SOCIAL_AUTH_PIPELINE', (
     'social_auth.backends.pipeline.social.social_auth_user',
     # Removed by default since it can be a dangerouse behavior that
     # could lead to accounts take over.
-    #'social_auth.backends.pipeline.associate.associate_by_email',
+    # 'social_auth.backends.pipeline.associate.associate_by_email',
     'social_auth.backends.pipeline.user.get_username',
     'social_auth.backends.pipeline.user.create_user',
     'social_auth.backends.pipeline.social.associate_user',

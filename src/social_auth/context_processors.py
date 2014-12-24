@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.contrib.auth import REDIRECT_FIELD_NAME
 
 from social_auth.models import UserSocialAuth

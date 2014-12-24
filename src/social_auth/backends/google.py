@@ -13,6 +13,8 @@ APIs console https://code.google.com/apis/console/ Identity option.
 
 OpenID also works straightforward, it doesn't need further configurations.
 """
+from __future__ import absolute_import
+
 from urllib import urlencode
 from urllib2 import Request
 
@@ -27,8 +29,9 @@ except ImportError:
         from django.utils import simplejson
 
 from social_auth.utils import setting, dsa_urlopen
-from social_auth.backends import OpenIdAuth, ConsumerBasedOAuth, BaseOAuth2, \
-                                 OAuthBackend, OpenIDBackend
+from social_auth.backends import (
+    OpenIdAuth, ConsumerBasedOAuth, BaseOAuth2, OAuthBackend, OpenIDBackend
+)
 from social_auth.exceptions import AuthFailed
 
 
@@ -187,9 +190,11 @@ class GoogleOAuth(BaseGoogleOAuth):
 
 
 # TODO: Remove this setting name check, keep for backward compatibility
-_OAUTH2_KEY_NAME = setting('GOOGLE_OAUTH2_CLIENT_ID') and \
-                   'GOOGLE_OAUTH2_CLIENT_ID' or \
-                   'GOOGLE_OAUTH2_CLIENT_KEY'
+_OAUTH2_KEY_NAME = (
+    setting('GOOGLE_OAUTH2_CLIENT_ID') and
+    'GOOGLE_OAUTH2_CLIENT_ID' or
+    'GOOGLE_OAUTH2_CLIENT_KEY'
+)
 
 
 class GoogleOAuth2(BaseOAuth2):
@@ -261,7 +266,7 @@ def validate_whitelists(backend, email):
     if not emails and not domains:
         return True
     if email in set(emails):
-        return True # you're good
+        return True  # you're good
     if email.split('@', 1)[1] in set(domains):
         return True
     raise AuthFailed(backend, 'User not allowed')

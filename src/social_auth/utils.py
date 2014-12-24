@@ -1,27 +1,24 @@
+from __future__ import absolute_import
+
 import random
 import urlparse
 import urllib
 import logging
-from urllib2 import urlopen
+
 from cgi import parse_qsl
-
 from collections import defaultdict
-
 from django.conf import settings
 from django.db.models import Model
 from django.contrib.contenttypes.models import ContentType
-from django.utils.functional import SimpleLazyObject
+from django.utils.functional import empty, SimpleLazyObject
 from django.utils.importlib import import_module
-
+from urllib2 import urlopen
 
 try:
     random = random.SystemRandom()
     using_sysrandom = True
 except NotImplementedError:
     using_sysrandom = False
-
-
-from django.utils.functional import empty
 
 
 LEAVE_CHARS = getattr(settings, 'SOCIAL_AUTH_LOG_SANITIZE_LEAVE_CHARS', 4)

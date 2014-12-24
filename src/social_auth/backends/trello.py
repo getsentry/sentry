@@ -4,7 +4,7 @@ TRELLO_CONSUMER_KEY & TRELLO_CONSUMER_SECRET
 at https://trello.com/1/appKey/generate
 and put into settings.py
 
-Also you can put something like 
+Also you can put something like
 TRELLO_AUTH_EXTRA_ARGUMENTS = {
     'name': '7WebPages Time Tracker',
     'expiration': 'never'
@@ -12,6 +12,7 @@ TRELLO_AUTH_EXTRA_ARGUMENTS = {
 
 into settings.py
 """
+from __future__ import absolute_import
 
 try:
     import json as simplejson
@@ -72,8 +73,10 @@ class TrelloBackend(OAuthBackend):
         """
         token = super(TrelloBackend, cls).tokens(instance)
         if token and 'access_token' in token:
-            token = dict(tok.split('=')
-                            for tok in token['access_token'].split('&'))
+            token = dict(
+                tok.split('=')
+                for tok in token['access_token'].split('&')
+            )
         return token
 
 

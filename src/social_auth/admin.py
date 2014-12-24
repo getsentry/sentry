@@ -1,5 +1,7 @@
-"""Admin settings"""
+from __future__ import absolute_import
+
 from django.contrib import admin
+
 from social_auth.models import UserSocialAuth, Nonce, Association
 
 _User = UserSocialAuth.user_model()
