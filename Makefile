@@ -21,9 +21,9 @@ dev-docs:
 	pip install -r docs/requirements.txt
 
 reset-db:
-	@echo "--> Dropping existing 'getsentry' database"
+	@echo "--> Dropping existing 'sentry' database"
 	dropdb sentry || true
-	@echo "--> Creating 'getsentry' database"
+	@echo "--> Creating 'sentry' database"
 	createdb -E utf-8 sentry
 	@echo "--> Applying migrations"
 	sentry upgrade
