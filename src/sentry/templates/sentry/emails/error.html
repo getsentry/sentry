@@ -40,6 +40,6 @@
     {% endfor %}
 
     {% if rule %}
-        <p class="via">Sent due to rule <a href="{% absolute_uri rule_link %}">{{ rule.label }}</a></p>
+        <p class="via">You are receiving this email due to rule: <a href="{% absolute_uri rule_link %}">{{ rule.label }}</a></p>
     {% endif %}
 {% endblock %}
