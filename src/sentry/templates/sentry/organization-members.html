@@ -1,0 +1,107 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Members" %} | {{ block.super }}{% endblock %}
+
+{% block org_members_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>Members</h2>
+  </div>
+
+  <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
+
+  <br>
+
+  <table class="table table-striped member-list">
+    <colgroup>
+      <col width="20px"/>
+      <col/>
+      <col width="250px"/>
+      <col width="100px"/>
+      <col width="100px"/>
+      <col width="20px"/>
+    </colgroup>
+    <thead>
+      <tr>
+        <th>&nbsp;</th>
+        <th>Member</th>
+        <th>&nbsp;</th>
+        <th>Type</th>
+        <th>Teams</th>
+        <th>&nbsp;</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for member, team_list in member_list %}
+        <tr>
+          <td>
+            <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
+          </td>
+          <td>
+            <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+              {{ member.get_display_name }}
+            </a>
+            {% if member.is_pending %}
+              <small>&mdash; Invited</small>
+            {% endif %}
+          </td>
+          <td>{{ member.get_email }}</td>
+          <td>{{ member.get_type_display }}</td>
+          <td>
+            {% if member.has_global_access %}
+              <span class="tip" title="Access to all teams">&infin;</span>
+            {% elif team_list|length > 1 %}
+              <span class="tip"
+                    title="{% for team in team_list %}{{ team.name }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+                {{ team_list|length }} teams
+              </span>
+            {% else %}
+              {{ team_list.0.name }}
+            {% endif %}
+          </td>
+          <td>
+            {% if authorizing_access <= member.type %}
+              {% if member.user != request.user or member_can_leave %}
+                <a href="javascript:void(0)" class="remove-member" data-member-id="{{ member.id }}">
+                  <span class="icon icon-remove"></span>
+                </a>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
+
+{% block content_after %}
+  <style>
+  .member-list form {
+    display: inline-block;
+  }
+  </style>
+  <script>
+  $('.remove-member').click(function(){
+    if (!confirm('Are you sure you wish to remove this member?')) {
+      return;
+    }
+
+    var $this = $(this);
+    $.ajax({
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
+      method: 'DELETE',
+      success: function() {
+        $this.parents('tr').remove();
+      },
+      error: function() {
+        alert('There was an error while trying to remove the team member.');
+      }
+    });
+  });
+  </script>
+{% endblock %}

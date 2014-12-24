@@ -7,20 +7,24 @@ This document describes a set of best practices which may help you squeeze more 
 Redis
 -----
 
+**Ensure you're using at least Redis 2.4**
+
 All Redis usage in Sentry is temporal, which means the append-log/fsync models in Redis do not need to apply.
 
 With that in mind, we recommend the following changes to (some) default configurations:
 
 - Disable saving by removing all ``save XXXX`` lines.
 - Set ``maxclients 0`` to remove connection limitations.
+- Set ``maxmemory-policy allkeys-lru`` to aggressively prune all keys.
+- Set ``maxmemory 1gb`` to a reasonable allowance.
 
 
 Web Server
 ----------
 
-Switching off of the default Sentry worker model and to uWSGI + emporer mode can yield very good results.
+Switching off of the default Sentry worker model and to uWSGI + emperor mode can yield very good results.
 
-If you're using supervisord, you can easily implement emporer mode and uWSGI yourself by doing something along the lines of:
+If you're using supervisord, you can easily implement emperor mode and uWSGI yourself by doing something along the lines of:
 
 ::
 
@@ -71,6 +75,20 @@ Once you're running multiple processes, you'll of course need to also configure 
 
 	  server_name     sentry.example.com;
 
+          # keepalive + raven.js is a disaster
+          keepalive_timeout 0;
+          
+          # use very aggressive timeouts
+          proxy_read_timeout 5s;
+          proxy_send_timeout 5s;
+          send_timeout 5s;
+          resolver_timeout 5s;
+          client_body_timeout 5s;
+          
+          # buffer larger messages
+          client_max_body_size 150k;
+          client_body_buffer_size 150k;
+  
 	  location / {
 	    uwsgi_pass    internal;
 
@@ -83,7 +101,7 @@ Once you're running multiple processes, you'll of course need to also configure 
 	  }
 	}
 
-See uWSGI's official documentation for emporer mode details.
+See uWSGI's official documentation for emperor mode details.
 
 
 Celery

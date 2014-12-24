@@ -2,7 +2,7 @@
 sentry.filters.base
 ~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
@@ -11,6 +11,8 @@ __all__ = ('Widget', 'TextWidget', 'ChoiceWidget')
 
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
+
+import six
 
 
 class Widget(object):
@@ -59,7 +61,7 @@ class ChoiceWidget(TextWidget):
                 column=column,
             ))
         for key, val in choices:
-            key = unicode(key)
+            key = six.text_type(key)
             output.append(u'<option%(active)s value="%(key)s">%(value)s</option>' % dict(
                 active=value == key and ' selected="selected"' or '',
                 column=column,

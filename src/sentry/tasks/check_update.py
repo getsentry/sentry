@@ -2,48 +2,43 @@
 sentry.tasks.check_version
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+
+from __future__ import absolute_import, print_function
+
 import json
 import logging
 
-from django.utils.simplejson import JSONDecodeError
+from simplejson import JSONDecodeError
 
-from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
-
-from celery.task import periodic_task
-from celery.task.schedules import crontab
+from sentry.http import safe_urlopen, safe_urlread
+from sentry.tasks.base import instrumented_task
 
 PYPI_URL = 'https://pypi.python.org/pypi/sentry/json'
-SENTRY_CHECKUPDATE_TIME = {
-    'hour': 0,
-    'minute': 0
-}
 
 logger = logging.getLogger(__name__)
 
 
-@periodic_task(
-    name='sentry.tasks.check_update',
-    run_every=crontab(**SENTRY_CHECKUPDATE_TIME), queue='update')
+@instrumented_task(name='sentry.tasks.check_update', queue='update')
 def check_update():
     """
     Daily retrieving latest available Sentry version from PyPI
     """
-    from sentry.models import set_sentry_version
+    from sentry.receivers import set_sentry_version
 
-    result = fetch_url_content(PYPI_URL)
-
-    if result == BAD_SOURCE:
+    try:
+        request = safe_urlopen(PYPI_URL)
+        result = safe_urlread(request)
+    except Exception:
+        logger.warning('Failed update info of latest version Sentry', exc_info=True)
         return
 
     try:
-        (_, _, body) = result
-
-        version = json.loads(body)['info']['version']
+        version = json.loads(result)['info']['version']
         set_sentry_version(version)
     except JSONDecodeError:
         logger.warning('Failed parsing data json from PYPI')
     except Exception:
-        logger.warning('Failed update info of latest version Sentry')
+        logger.warning('Failed update info of latest version Sentry', exc_info=True)

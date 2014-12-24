@@ -6,10 +6,12 @@ import mock
 
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from sentry.models import UserOption, LostPasswordHash, User
-from sentry.testutils import TestCase, fixture, before
-from sentry.web.frontend.accounts import login_redirect
+from exam import fixture
 from social_auth.models import UserSocialAuth
+
+from sentry.models import UserOption, LostPasswordHash, User
+from sentry.testutils import TestCase
+from sentry.web.frontend.accounts import login_redirect
 
 
 class LoginTest(TestCase):
@@ -32,8 +34,9 @@ class LoginTest(TestCase):
             'password': 'bizbar',
         })
         assert resp.status_code == 200
-        assert resp.context['form'].errors['__all__'] == \
-            [u'Please enter a correct username and password. Note that both fields may be case-sensitive.']
+        assert resp.context['form'].errors['__all__'] == [
+            u'Please enter a correct username and password. Note that both fields may be case-sensitive.'
+        ]
 
     def test_valid_credentials(self):
         # load it once for test cookie
@@ -52,18 +55,18 @@ class RegisterTest(TestCase):
         return reverse('sentry-register')
 
     def test_redirects_if_registration_disabled(self):
-        with self.Settings(SENTRY_ALLOW_REGISTRATION=False):
+        with self.settings(SENTRY_ALLOW_REGISTRATION=False):
             resp = self.client.get(self.path)
             assert resp.status_code == 302
 
     def test_renders_correct_template(self):
-        with self.Settings(SENTRY_ALLOW_REGISTRATION=True):
+        with self.settings(SENTRY_ALLOW_REGISTRATION=True):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             self.assertTemplateUsed('sentry/register.html')
 
     def test_with_required_params(self):
-        with self.Settings(SENTRY_ALLOW_REGISTRATION=True):
+        with self.settings(SENTRY_ALLOW_REGISTRATION=True):
             resp = self.client.post(self.path, {
                 'username': 'test-a-really-long-email-address@example.com',
                 'password': 'foobar',
@@ -112,9 +115,9 @@ class SettingsTest(TestCase):
 
     def params(self, without=()):
         params = {
+            'username': 'foobar',
             'email': 'foo@example.com',
             'first_name': 'Foo bar',
-            'old_password': 'admin',
         }
         return dict((k, v) for k, v in params.iteritems() if k not in without)
 
@@ -146,15 +149,6 @@ class SettingsTest(TestCase):
         self.assertTemplateUsed('sentry/account/settings.html')
         assert 'form' in resp.context
         assert 'first_name' in resp.context['form'].errors
-
-    def test_requires_old_password(self):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, self.params(without=['old_password']))
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/settings.html')
-        assert 'form' in resp.context
-        assert 'old_password' in resp.context['form'].errors
 
     def test_minimum_valid_params(self):
         self.login_as(self.user)
@@ -220,11 +214,6 @@ class LoginRedirectTest(TestCase):
         resp = login_redirect(self.make_request())
         assert resp.status_code == 302
         assert resp['Location'] == reverse('sentry')
-
-    def test_standard_view_works(self):
-        resp = login_redirect(self.make_request(reverse('sentry', args=[1])))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry', args=[1])
 
 
 class NotificationSettingsTest(TestCase):
@@ -294,7 +283,7 @@ class RecoverPasswordTest(TestCase):
 
     def test_invalid_username(self):
         resp = self.client.post(self.path, {
-            'user': 'nonexistant'
+            'user': 'nonexistent'
         })
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/account/recover/index.html')
@@ -313,8 +302,8 @@ class RecoverPasswordTest(TestCase):
 
 
 class RecoverPasswordConfirmTest(TestCase):
-    @before
-    def create_hash(self):
+    def setUp(self):
+        super(RecoverPasswordConfirmTest, self).setUp()
         self.password_hash = LostPasswordHash.objects.create(user=self.user)
 
     @fixture

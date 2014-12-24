@@ -2,17 +2,18 @@
 sentry.templatetags.sentry_helpers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 # XXX: Import django-paging's template tags so we don't have to worry about
 #      INSTALLED_APPS
+from __future__ import absolute_import
 
-import datetime
 import os.path
 import pytz
 
 from collections import namedtuple
+from datetime import timedelta
 from paging.helpers import paginate as paginate_func
 from pkg_resources import parse_version as Version
 from urllib import quote
@@ -27,8 +28,12 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
-from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE, MEMBER_OWNER
-from sentry.models import Team, Group, Option
+import six
+from six.moves import range
+
+from sentry import options
+from sentry.constants import EVENTS_PER_PAGE
+from sentry.models import Organization
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -62,13 +67,13 @@ def pprint(value, break_after=10):
 
     value = to_unicode(value)
     return mark_safe(u'<span></span>'.join(
-        [escape(value[i:(i + break_after)]) for i in xrange(0, len(value), break_after)]
+        [escape(value[i:(i + break_after)]) for i in range(0, len(value), break_after)]
     ))
 
 
 @register.filter
 def is_url(value):
-    if not isinstance(value, basestring):
+    if not isinstance(value, six.string_types):
         return False
     if not value.startswith(('http://', 'https://')):
         return False
@@ -100,6 +105,8 @@ def as_sorted(value):
 
 @register.filter
 def small_count(v):
+    if not v:
+        return 0
     z = [
         (1000000000, _('b')),
         (1000000, _('m')),
@@ -135,7 +142,7 @@ def get_sentry_version(context):
     import sentry
     current = sentry.get_version()
 
-    latest = Option.objects.get_value('sentry:latest_version', current)
+    latest = options.get('sentry:latest_version') or current
     update_available = Version(latest) > Version(current)
 
     context['sentry_version'] = SentryVersion(
@@ -151,7 +158,7 @@ def timesince(value, now=None):
         now = timezone.now()
     if not value:
         return _('never')
-    if value < (now - datetime.timedelta(days=5)):
+    if value < (now - timedelta(days=5)):
         return value.date()
     value = (' '.join(timesince(value, now).split(' ')[0:2])).strip(',')
     if value == _('0 minutes'):
@@ -329,14 +336,8 @@ def with_metadata(group_list, request):
     else:
         bookmarks = set()
 
-    if group_list:
-        historical_data = Group.objects.get_chart_data_for_group(
-            instances=group_list,
-            max_days=1,
-            key='group',
-        )
-    else:
-        historical_data = {}
+    # TODO(dcramer): this is obsolete and needs to pull from the tsdb backend
+    historical_data = {}
 
     for g in group_list:
         yield g, {
@@ -347,22 +348,25 @@ def with_metadata(group_list, request):
 
 @register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
 def render_tag_widget(group, tag):
+    cutoff = timezone.now() - timedelta(days=7)
+
     return {
         'title': tag.replace('_', ' ').title(),
         'tag_name': tag,
-        'unique_tags': list(group.get_unique_tags(tag)[:10]),
         'group': group,
     }
+
+
+@register.simple_tag
+def percent(value, total):
+    if not (value and total):
+        return 0
+    return int(int(value) / float(total) * 100)
 
 
 @register.filter
 def titlize(value):
     return value.replace('_', ' ').title()
-
-
-@register.filter
-def is_muted(value):
-    return value == STATUS_MUTED
 
 
 @register.filter
@@ -394,7 +398,7 @@ def github_button(user, repo):
 def render_values(value, threshold=5, collapse_to=3):
     if isinstance(value, (list, tuple)):
         value = dict(enumerate(value))
-        is_list, is_dict = True, True
+        is_list, is_dict = bool(value), True
     else:
         is_list, is_dict = False, isinstance(value, dict)
 
@@ -430,15 +434,6 @@ def render_values(value, threshold=5, collapse_to=3):
     return context
 
 
-@register.inclusion_tag('sentry/partial/_client_config.html')
-def client_help(user, project):
-    from sentry.web.frontend.docs import get_key_context
-
-    context = get_key_context(user, project)
-    context['project'] = project
-    return context
-
-
 @tag(register, [Constant('from'), Variable('project'),
                 Constant('as'), Name('asvar')])
 def recent_alerts(context, project, asvar):
@@ -450,17 +445,6 @@ def recent_alerts(context, project, asvar):
 
 
 @register.filter
-def reorder_teams(team_list, team):
-    pending = []
-    for t, p_list in team_list:
-        if t == team:
-            pending.insert(0, (t, p_list))
-        else:
-            pending.append((t, p_list))
-    return pending
-
-
-@register.filter
 def urlquote(value, safe=''):
     return quote(value.encode('utf8'), safe)
 
@@ -468,17 +452,6 @@ def urlquote(value, safe=''):
 @register.filter
 def basename(value):
     return os.path.basename(value)
-
-
-@register.filter
-def can_admin_team(user, team):
-    if user.is_superuser:
-        return True
-    if team.owner == user:
-        return True
-    if team.slug in Team.objects.get_for_user(user, access=MEMBER_OWNER):
-        return True
-    return False
 
 
 @register.filter
@@ -496,3 +469,26 @@ def localized_datetime(context, dt, format='DATETIME_FORMAT'):
     dt = dt.astimezone(timezone)
 
     return date(dt, format)
+
+
+@register.filter
+def list_organizations(user):
+    return Organization.objects.get_for_user(user)
+
+
+@register.filter
+def needs_access_group_migration(user, organization):
+    from sentry.models import AccessGroup, OrganizationMember, OrganizationMemberType
+
+    has_org_access_queryset = OrganizationMember.objects.filter(
+        user=user,
+        organization=organization,
+        type__lte=OrganizationMemberType.ADMIN,
+    )
+
+    if not (user.is_superuser or has_org_access_queryset.exists()):
+        return False
+
+    return AccessGroup.objects.filter(
+        team__organization=organization
+    ).exists()

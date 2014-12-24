@@ -1,27 +1,31 @@
 {% extends "sentry/layout.html" %}
 
 {% load i18n %}
+{% load sentry_permissions %}
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
 {% block page_header %}
-<div class="pull-right">
-    <form action="{% url 'sentry-search' project.team.slug project.slug %}" id="search">
-        <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "Search query or event ID" %}{% else %}{% trans "Event ID" %}{% endif %}" />
-    </form>
-</div>
+    <div class="pull-right">
+        <form action="{% url 'sentry-stream' project.organization.slug project.slug %}" id="search">
+            <input type="text" name="query" value="{% if query %}{{ query }}{% endif %}" placeholder="{% trans "Search query or event ID" %}" />
+        </form>
+    </div>
 
     {{ block.super }}
     <ul class="nav nav-tabs">
         <li class="active">
-            <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
+            <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
-        {% if can_admin_team %}
-            <li>
-                <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}" title="{% trans "Project Settings" %}">
-                    {% trans "Settings" %}
-                </a>
-            </li>
+        <li>
+            <a href="{% url 'sentry-explore' project.organization.slug project.slug %}">{% trans "Explore" %}</a>
+        </li>
+        {% if request.user|can_manage_project:project %}
+        <li>
+            <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">
+                {% trans "Settings" %}
+            </a>
+        </li>
         {% endif %}
     </ul>
 {% endblock %}

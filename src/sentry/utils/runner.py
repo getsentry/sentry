@@ -6,12 +6,16 @@ sentry.utils.runner
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
+
 from logan.runner import run_app, configure_app
 
 import base64
 import os
 import pkg_resources
 import warnings
+
+USE_GEVENT = os.environ.get('USE_GEVENT')
 
 KEY_LENGTH = 40
 
@@ -39,11 +43,6 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
-
-        # If you're using Postgres, we recommend turning on autocommit
-        # 'OPTIONS': {
-        #     'autocommit': True,
-        # }
     }
 }
 
@@ -52,10 +51,28 @@ DATABASES = {
 # configuring the CACHES and Redis settings
 
 ###########
-## CACHE ##
+## Redis ##
 ###########
 
-# You'll need to install the required dependencies for Memcached:
+# Generic Redis configuration used as defaults for various things including:
+# Buffers, Quotas, TSDB
+
+SENTRY_REDIS_OPTIONS = {
+    'hosts': {
+        0: {
+            'host': '127.0.0.1',
+            'port': 6379,
+        }
+    }
+}
+
+###########
+## Cache ##
+###########
+
+# If you wish to use memcached, install the dependencies and adjust the config
+# as shown:
+#
 #   pip install python-memcached
 #
 # CACHES = {
@@ -64,6 +81,10 @@ DATABASES = {
 #         'LOCATION': ['127.0.0.1:11211'],
 #     }
 # }
+#
+# SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
+
+SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 
 ###########
 ## Queue ##
@@ -73,9 +94,14 @@ DATABASES = {
 # information on configuring your queue broker and workers. Sentry relies
 # on a Python framework called Celery to manage queues.
 
-# You can enable queueing of jobs by turning off the always eager setting:
-# CELERY_ALWAYS_EAGER = False
-# BROKER_URL = 'redis://localhost:6379'
+CELERY_ALWAYS_EAGER = False
+BROKER_URL = 'redis://localhost:6379'
+
+#################
+## Rate Limits ##
+#################
+
+SENTRY_RATELIMITER = 'sentry.ratelimits.redis.RedisRateLimiter'
 
 ####################
 ## Update Buffers ##
@@ -86,18 +112,25 @@ DATABASES = {
 # numbers of the same events being sent to the API in a short amount of time.
 # (read: if you send any kind of real data to Sentry, you should enable buffers)
 
-# You'll need to install the required dependencies for Redis buffers:
-#   pip install redis hiredis nydus
-#
-# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
-# SENTRY_REDIS_OPTIONS = {
-#     'hosts': {
-#         0: {
-#             'host': '127.0.0.1',
-#             'port': 6379,
-#         }
-#     }
-# }
+SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
+
+############
+## Quotas ##
+############
+
+# Quotas allow you to rate limit individual projects or the Sentry install as
+# a whole.
+
+SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
+
+##########
+## TSDB ##
+##########
+
+# The TSDB is used for building charts as well as making things like per-rate
+# alerts possible.
+
+SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
 ################
 ## Web Server ##
@@ -200,7 +233,7 @@ def install_plugins(settings):
             import sys
             import traceback
 
-            print >> sys.stderr, "Failed to load app %r:\n%s" % (ep.name, traceback.format_exc())
+            sys.stderr.write("Failed to load app %r:\n%s\n" % (ep.name, traceback.format_exc()))
         else:
             installed_apps.append(ep.module_name)
     settings.INSTALLED_APPS = tuple(installed_apps)
@@ -212,26 +245,59 @@ def install_plugins(settings):
             import sys
             import traceback
 
-            print >> sys.stderr, "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc())
+            sys.stderr.write("Failed to load plugin %r:\n%s\n" % (ep.name, traceback.format_exc()))
         else:
             register(plugin)
+
+
+def initialize_receivers():
+    # force signal registration
+    import sentry.receivers  # NOQA
+
+
+def initialize_gevent():
+    from gevent import monkey
+    monkey.patch_all()
+
+    try:
+        import psycopg2  # NOQA
+    except ImportError:
+        pass
+    else:
+        from sentry.utils.gevent import make_psycopg_green
+        make_psycopg_green()
 
 
 def initialize_app(config):
     from django.utils import timezone
     from sentry.app import env
 
+    if USE_GEVENT:
+        from django.db import connections
+        connections['default'].allow_thread_sharing = True
+
     env.data['config'] = config.get('config_path')
     env.data['start_date'] = timezone.now()
 
-    install_plugins(config['settings'])
+    settings = config['settings']
+
+    install_plugins(settings)
 
     skip_migration_if_applied(
-        config['settings'], 'kombu.contrib.django', 'djkombu_queue')
+        settings, 'kombu.contrib.django', 'djkombu_queue')
     skip_migration_if_applied(
-        config['settings'], 'social_auth', 'social_auth_association')
+        settings, 'social_auth', 'social_auth_association')
 
     apply_legacy_settings(config)
+
+    # Commonly setups don't correctly configure themselves for production envs
+    # so lets try to provide a bit more guidance
+    if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
+        warnings.warn('Sentry is configured to run asynchronous tasks in-process. '
+                      'This is not recommended within production environments. '
+                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
+
+    initialize_receivers()
 
 
 def apply_legacy_settings(config):
@@ -240,18 +306,30 @@ def apply_legacy_settings(config):
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
     if hasattr(settings, 'SENTRY_USE_QUEUE'):
         warnings.warn('SENTRY_USE_QUEUE is deprecated. Please use CELERY_ALWAYS_EAGER instead. '
-                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
+                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
+    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com'):
+        # Maybe also point to a piece of documentation for more information?
+        # This directly coincides with users getting the awkward
+        # `ALLOWED_HOSTS` exception.
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! SENTRY_URL_PREFIX is not configured !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
+        # Set `ALLOWED_HOSTS` to the catch-all so it works
+        settings.ALLOWED_HOSTS = ['*']
+
     # Set ALLOWED_HOSTS if it's not already available
-    if not settings.ALLOWED_HOSTS and settings.SENTRY_URL_PREFIX:
+    if not settings.ALLOWED_HOSTS:
         from urlparse import urlparse
         urlbits = urlparse(settings.SENTRY_URL_PREFIX)
         if urlbits.hostname:
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
     if not settings.SERVER_EMAIL and hasattr(settings, 'SENTRY_SERVER_EMAIL'):
-        warnings.warn('SENTRY_SERVER_URL is deprecated. Please use SERVER_URL instead.')
+        warnings.warn('SENTRY_SERVER_EMAIL is deprecated. Please use SERVER_EMAIL instead.', DeprecationWarning)
         settings.SERVER_EMAIL = settings.SENTRY_SERVER_EMAIL
 
 
@@ -277,9 +355,10 @@ def skip_migration_if_applied(settings, app_name, table_name,
         skip_if_table_exists(migration.forwards), migration)
 
 
-def configure():
+def configure(config_path=None):
     configure_app(
         project='sentry',
+        config_path=config_path,
         default_config_path='~/.sentry/sentry.conf.py',
         default_settings='sentry.conf.server',
         settings_initializer=generate_settings,
@@ -289,6 +368,10 @@ def configure():
 
 
 def main():
+    if USE_GEVENT:
+        print("Configuring Sentry with gevent bindings")
+        initialize_gevent()
+
     run_app(
         project='sentry',
         default_config_path='~/.sentry/sentry.conf.py',

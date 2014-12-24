@@ -2,11 +2,11 @@
 sentry.db.models.fields.node
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import collections
 import logging
@@ -14,6 +14,8 @@ import warnings
 
 from django.db import models
 from django.db.models.signals import post_delete
+
+import six
 
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
@@ -94,10 +96,10 @@ class NodeField(GzippedDictField):
         app.nodestore.delete(value.id)
 
     def to_python(self, value):
-        if isinstance(value, basestring) and value:
+        if isinstance(value, six.string_types) and value:
             try:
                 value = pickle.loads(decompress(value))
-            except Exception, e:
+            except Exception as e:
                 logger.exception(e)
                 value = {}
         elif not value:

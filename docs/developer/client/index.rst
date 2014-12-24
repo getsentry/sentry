@@ -1,7 +1,7 @@
 Writing a Client
 ================
 
-.. note:: This document describes protocol version 4.
+.. note:: This document describes protocol version 5.
 
 A client at its core is simply a set of utilities for capturing various
 logging parameters. Given these parameters, it then builds a JSON payload
@@ -141,7 +141,7 @@ transports are available on top of HTTP:
 
 * ``gevent+http``
 * ``threaded+http``
-* ``zmq+http``
+* ``zmq+tcp``
 
 Building the JSON Packet
 ------------------------
@@ -311,11 +311,9 @@ highly encouraged:
     ::
 
         {
-            "modules": [
-                {
-                    "my.module.name": "1.0"
-                }
-            ]
+            "modules": {
+                "my.module.name": "1.0"
+            }
         }
 
 .. data:: extra
@@ -340,9 +338,9 @@ See :doc:`../interfaces/index` for information on Sentry's builtin interfaces an
 Authentication
 --------------
 
-An authentication header is expected to be sent along with the message body, which acts as as an ownership identifier::
+An authentication header is expected to be sent along with the message body, which acts as an ownership identifier::
 
-    X-Sentry-Auth: Sentry sentry_version=4,
+    X-Sentry-Auth: Sentry sentry_version=5,
     sentry_client=<client version, arbitrary>,
     sentry_timestamp=<current timestamp>,
     sentry_key=<public api key>,
@@ -353,7 +351,7 @@ An authentication header is expected to be sent along with the message body, whi
 
 .. data:: sentry_version
 
-    The protocol version. This should be sent as the value '4'.
+    The protocol version. This should be sent as the value '5'.
 
 .. data:: sentry_client
 
@@ -399,12 +397,11 @@ The request body should then somewhat resemble the following::
 
     POST /api/project-id/store/
     User-Agent: raven-python/1.0
-    X-Sentry-Auth: Sentry sentry_version=4, sentry_timestamp=1329096377,
+    X-Sentry-Auth: Sentry sentry_version=5, sentry_timestamp=1329096377,
         sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0,
         sentry_secret=b7d80b520139450f903720eb7991bf3d
 
     {
-        "project": "project-id",
         "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
         "culprit": "my.module.function_name",
         "timestamp": "2011-05-02T17:41:36",
@@ -544,10 +541,35 @@ The client should send the following upstream for ``tags``::
         ],
     }
 
-If your platform supports it, block level context should also be available::
+You should also provide relevant contextual interfaces. These should last for the lifecycle of a request, and the general interface is "bind some kind of context", and then at the end of a request lifecycle, clear any present context.
 
-    with client.context({'tags': {'foo': 'bar'}}):
-        # ...
+This interface consists of \*_context methods, as well as a "clear context" method. The following is an example API which is implemented in most clients:
+
+::
+
+    # Bind sentry.interfaces.User
+    client.user_context({
+        'email': 'foo@example.com',
+    })
+
+    # Merge in additional tag context
+    client.tags_context({
+        'key': 'value',
+    })
+
+    # Merge in additional extra context
+    client.extra_context({
+        'key': 'value',
+    })
+
+    # Clear context
+    client.context.clear()
+
+Some additional examples of context helpers which might be relevant:
+
+- http_context(data) -- bind sentry.interfaces.Http
+- wsgi_context(env) -- bind http_context based on a wsgi environment
+
 
 Variable Size
 -------------
@@ -563,6 +585,7 @@ as things like extra data, or tags.
 - Tag values are limited to 200 characters.
 - Culprits are limited to 200 characters.
 - Most contextual variables are limited to 512 characters.
-- Extra contextual data is limited to 2048 characters.
-- Messages are limited to 1024 * 10 characters.
+- Extra contextual data is limited to 4096 characters.
+- Messages are limited to ~10kb.
 - Http data (the body) is limited to 2048 characters.
+- Stacktrace's are limited to 50 frames. If more are sent, data will be removed from the middle of the stack.

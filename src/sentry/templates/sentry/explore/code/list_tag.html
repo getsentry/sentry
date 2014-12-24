@@ -9,9 +9,9 @@
 {% block inner %}
     <ul class="nav nav-tabs">
         <li{% if selection == 'filenames' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-explore-code' team.slug project.slug %}">Files</a></li>
+            <a href="{% url 'sentry-explore-code' organization.slug project.slug %}">Files</a></li>
         <li{% if selection == 'functions' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-explore-code-by-function' team.slug project.slug %}">Functions</a></li>
+            <a href="{% url 'sentry-explore-code-by-function' organization.slug project.slug %}">Functions</a></li>
     </ul>
 
     {% paginator tag_list from request as tag_list %}
@@ -27,8 +27,8 @@
             </ul>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 
@@ -48,11 +48,11 @@
                     <tr>
                         <td>
                             {% if selection == 'functions' %}
-                                {% url 'sentry-explore-code-details-by-function' team.slug project.slug tag.id as link %}
+                                {% url 'sentry-explore-code-details-by-function' organization.slug project.slug tag.id as link %}
                                 <a href="{{ link }}">{{ tag.data.function }}</a><br>
                                 <small>{{ tag.data.filename }}</small>
                             {% else %}
-                                {% url 'sentry-explore-code-details' team.slug project.slug tag.id as link %}
+                                {% url 'sentry-explore-code-details' organization.slug project.slug tag.id as link %}
                                 <a href="{{ link }}">{{ tag.data.filename }}</a><br>
                             {% endif %}
                         </td>
@@ -65,8 +65,8 @@
 
         <div class="btn-toolbar">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </div>
     {% endif %}

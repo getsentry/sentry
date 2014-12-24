@@ -2,151 +2,113 @@
 sentry.search.django.backend
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
 from __future__ import absolute_import
 
-import re
-import itertools
+from django.db.models import Q
 
-from collections import defaultdict
-
-from django.utils.encoding import force_unicode
-
+from sentry.api.paginator import Paginator
 from sentry.search.base import SearchBackend
-
-# Words which should not be indexed
-STOP_WORDS = set(['the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that'])
-
-# Do not index any words shorter than this
-MIN_WORD_LENGTH = 3
-
-# Consider these characters to be punctuation (they will be replaced with spaces prior to word extraction)
-PUNCTUATION_CHARS = re.compile('[%s]' % re.escape(".,;:!?@$%^&*()-<>[]{}\\|/`~'\""))
+from sentry.search.django.constants import (
+    SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
+    MSSQL_ENGINES, ORACLE_SORT_CLAUSES
+)
+from sentry.utils.db import get_db_engine
 
 
 class DjangoSearchBackend(SearchBackend):
-    def _tokenize(self, text):
-        """
-        Given a string, returns a list of tokens.
-        """
-        if not text:
-            return []
+    def index(self, event):
+        pass
 
-        text = PUNCTUATION_CHARS.sub(' ', text)
+    def query(self, project, query=None, status=None, tags=None,
+              bookmarked_by=None, assigned_to=None, sort_by='date',
+              date_filter='last_seen', date_from=None, date_to=None,
+              cursor=None, limit=100):
+        from sentry.models import Group
 
-        words = [
-            t[:128].lower() for t in text.split()
-            if len(t) >= MIN_WORD_LENGTH and t.lower() not in STOP_WORDS
-        ]
+        queryset = Group.objects.filter(project=project)
+        if query:
+            # TODO(dcramer): if we want to continue to support search on SQL
+            # we should at least optimize this in Postgres so that it does
+            # the query filter **after** the index filters, and restricts the
+            # result set
+            queryset = queryset.filter(
+                Q(message__icontains=query) |
+                Q(culprit__icontains=query)
+            )
 
-        return words
+        if status is not None:
+            queryset = queryset.filter(status=status)
 
-    def index(self, group, event):
-        from sentry import app
-        from sentry.search.django.models import SearchDocument, SearchToken
+        if bookmarked_by:
+            queryset = queryset.filter(
+                bookmark_set__project=project,
+                bookmark_set__user=bookmarked_by,
+            )
 
-        document, created = SearchDocument.objects.get_or_create(
-            project=event.project,
-            group=group,
-            defaults={
-                'status': group.status,
-                'total_events': 1,
-                'date_added': group.first_seen,
-                'date_changed': group.last_seen,
-            }
-        )
-        if not created:
-            app.buffer.incr(SearchDocument, {
-                'total_events': 1,
-            }, {
-                'id': document.id,
-            }, {
-                'date_changed': group.last_seen,
-                'status': group.status,
-            })
+        if assigned_to:
+            queryset = queryset.filter(
+                assignee_set__project=project,
+                assignee_set__user=assigned_to,
+            )
 
-            document.total_events += 1
-            document.date_changed = group.last_seen
-            document.status = group.status
+        if tags:
+            for k, v in tags.iteritems():
+                queryset = queryset.filter(**dict(
+                    grouptag__key=k,
+                    grouptag__value=v,
+                ))
 
-        context = defaultdict(list)
-        for interface in event.interfaces.itervalues():
-            for k, v in interface.get_search_context(event).iteritems():
-                context[k].extend(v)
+        if date_filter == 'first_seen':
+            if date_from and date_to:
+                queryset = queryset.filter(
+                    first_seen__gte=date_from,
+                    first_seen__lte=date_to,
+                )
+            elif date_from:
+                queryset = queryset.filter(first_seen__gte=date_from)
+            elif date_to:
+                queryset = queryset.filter(first_seen__lte=date_to)
+        elif date_filter == 'last_seen':
+            if date_from and date_to:
+                queryset = queryset.filter(
+                    first_seen__gte=date_from,
+                    last_seen__lte=date_to,
+                )
+            elif date_from:
+                queryset = queryset.filter(last_seen__gte=date_from)
+            elif date_to:
+                queryset = queryset.filter(last_seen__lte=date_to)
 
-        context['text'].extend([
-            event.message,
-            event.logger,
-            event.server_name,
-            event.culprit,
-        ])
-
-        token_counts = defaultdict(lambda: defaultdict(int))
-        for field, values in context.iteritems():
-            field = field.lower()
-            if field == 'text':
-                # we only tokenize the base text field
-                values = itertools.chain(*[self._tokenize(force_unicode(v)) for v in values])
-            else:
-                values = [v.lower() for v in values]
-            for value in values:
-                if not value:
-                    continue
-                token_counts[field][value] += 1
-
-        for field, tokens in token_counts.iteritems():
-            for token, count in tokens.iteritems():
-                app.buffer.incr(SearchToken, {
-                    'times_seen': count,
-                }, {
-                    'document': document,
-                    'token': token,
-                    'field': field,
-                })
-
-        return document
-
-    def query(self, project, query, sort_by='score', offset=0, limit=100):
-        from sentry.search.django.models import SearchDocument
-
-        tokens = self._tokenize(query)
-
-        if sort_by == 'score':
-            order_by = 'SUM(st.times_seen) / sd.total_events DESC'
-        elif sort_by == 'new':
-            order_by = 'sd.date_added DESC'
-        elif sort_by == 'date':
-            order_by = 'sd.date_changed DESC'
+        engine = get_db_engine('default')
+        if engine.startswith('sqlite'):
+            score_clause = SQLITE_SORT_CLAUSES[sort_by]
+        elif engine.startswith('mysql'):
+            score_clause = MYSQL_SORT_CLAUSES[sort_by]
+        elif engine.startswith('oracle'):
+            score_clause = ORACLE_SORT_CLAUSES[sort_by]
+        elif engine in MSSQL_ENGINES:
+            score_clause = MSSQL_SORT_CLAUSES[sort_by]
         else:
-            raise ValueError('sort_by: %r' % sort_by)
+            score_clause = SORT_CLAUSES[sort_by]
 
-        if tokens:
-            token_sql = ' st.token IN (%s) AND ' % \
-                ', '.join('%s' for i in range(len(tokens)))
-        else:
-            token_sql = ' '
+        if sort_by == 'tottime':
+            queryset = queryset.filter(time_spent_count__gt=0)
+        elif sort_by == 'avgtime':
+            queryset = queryset.filter(time_spent_count__gt=0)
 
-        sql = """
-            SELECT sd.*,
-                   SUM(st.times_seen) / sd.total_events as score
-            FROM sentry_searchdocument as sd
-            INNER JOIN sentry_searchtoken as st
-                ON st.document_id = sd.id
-            WHERE %s
-                sd.project_id = %s
-            GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added, sd.project_id, sd.status
-            ORDER BY %s
-            LIMIT %d OFFSET %d
-        """ % (
-            token_sql,
-            project.id,
-            order_by,
-            limit,
-            offset,
+        queryset = queryset.extra(
+            select={'sort_value': score_clause},
         )
-        params = tokens
 
-        return list(SearchDocument.objects.raw(sql, params))
+        # HACK: don't sort by the same column twice
+        if sort_by == 'date':
+            queryset = queryset.order_by('-sort_value')
+        else:
+            queryset = queryset.order_by('-sort_value', '-last_seen')
+
+        paginator = Paginator(queryset, '-sort_value')
+        return paginator.get_result(limit, cursor)

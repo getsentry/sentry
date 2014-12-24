@@ -87,19 +87,19 @@
         },
 
         getSearchUsersUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/users/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/users/search/';
         },
 
         getSearchProjectsUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/projects/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/projects/search/';
         },
 
         getSearchTagsUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/tags/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/' + app.config.projectId + '/tags/search/';
         },
 
-        makeSearchableInput: function(el, url, callback) {
-            $(el).select2({
+        makeSearchableInput: function(el, url, callback, options) {
+            $(el).select2($.extend({
                 allowClear: true,
                 width: 'element',
                 initSelection: function (el, callback) {
@@ -120,7 +120,7 @@
                         return {results: callback(data)};
                     }
                 }
-            });
+            }, options || {}));
         },
 
         escape: function(str) {
@@ -144,7 +144,7 @@
                     });
                 }, this));
 
-                if ($(results).filter(function(){
+                if (data.query && $(results).filter(function(){
                     return this.id.localeCompare(data.query) === 0;
                 }).length === 0) {
                     results.push({
@@ -154,71 +154,27 @@
                 }
 
                 return results;
-            }, this));
-        },
-
-        makeSearchableProjectsInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchProjectsUrl(), function(data){
-                var results = [];
-                $(data.results).each(function(_, val){
-                    results.push({
-                        id: val.slug,
-                        text: val.name + '<br>' + val.slug
-                    });
-                });
-                return results;
+            }, this), {
+                escapeMarkup: function(s) { return s; }
             });
         },
 
-        makeSearchableTagsInput: function(el, options) {
-            var $el = $(el);
-            $el.select2({
-                multiple: true,
-                tokenSeperators: [","],
-                minimumInputLength: 3,
-                allowClear: true,
-                width: 'element',
-                initSelection: function (el, callback) {
-                    var $el = $(el);
-                    var values = $el.val().split(',');
-                    var results = [];
-                    $.each(values, function(_, val) {
-                        results.push({id: val, text: val});
-                    });
-                    callback(results);
-                },
-                ajax: {
-                    url: this.getSearchTagsUrl(),
-                    dataType: 'json',
-                    data: function (term, page) {
-                        return {
-                            query: term,
-                            quietMillis: 300,
-                            name: $el.data('tag'),
-                            limit: 10
-                        };
-                    },
-                    results: function(data, page) {
-                        var results = [];
+        parseLinkHeader: function(header) {
+          if (header === null) {
+            return {};
+          }
 
-                        $(data.results).each(function(_, val){
-                            results.push({
-                                id: val,
-                                text: val
-                            });
-                        });
+          var header_vals = header.split(','),
+              links = {};
 
-                        if ($(results).filter(function(){
-                            return this.id.localeCompare(data.query) === 0;
-                        }).length === 0) {
-                            results.push({id:data.query, text:data.query});
-                        }
+          $.each(header_vals, function(_, val){
+              var match = /<([^>]+)>; rel="([^"]+)"/g.exec(val);
 
-                        return {results: results};
-                    }
-                }
-            });
-        }
+              links[match[2]] = match[1];
+          });
+
+          return links;
+        },
 
     };
 
@@ -228,7 +184,8 @@
             var $this = $(this),
                 options = {
                     width: 'element',
-                    allowClear: false
+                    allowClear: false,
+                    minimumResultsForSearch: 10
                 };
 
             if ($this.attr('data-allowClear')) {
@@ -254,5 +211,4 @@
         }, 5000);
     });
 
-    $.fn.select2.defaults.escapeMarkup = function(s) { return s; };
 }(app, jQuery, _, moment));

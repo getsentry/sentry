@@ -2,7 +2,7 @@
 sentry.search.solr.backend
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -34,19 +34,9 @@ class SolrBackend(SearchBackend):
         group = event.group
 
         context = {
-            'text': [
-                event.message,
-                event.culprit
-            ],
+            'text': [event.message],
             'filters': defaultdict(list),
         }
-        for interface in event.interfaces.itervalues():
-            for k, v in interface.get_search_context(event).iteritems():
-                if k == 'text':
-                    context[k].extend(v)
-                elif k == 'filters':
-                    for f_k, f_v in v.iteritems():
-                        context[k][f_k].extend(f_v)
 
         tags = []
         for k, v in context['filters'].iteritems():

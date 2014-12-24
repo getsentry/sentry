@@ -2,9 +2,11 @@
 sentry.templatetags.sentry_plugins
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django import template
 
 from sentry.plugins import plugins
@@ -57,7 +59,7 @@ def get_widgets(group, request):
 
 
 @register.filter
-def get_tags(group, request):
+def get_tags(group, request=None):
     project = group.project
 
     tag_list = []

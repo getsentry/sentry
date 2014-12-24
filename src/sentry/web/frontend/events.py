@@ -2,9 +2,13 @@
 sentry.web.frontend.events
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
+import urlparse
+
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -19,7 +23,7 @@ from sentry.web.forms import ReplayForm
 
 @has_group_access
 @csrf_protect
-def replay_event(request, team, project, group, event_id):
+def replay_event(request, organization, project, group, event_id):
     try:
         event = Event.objects.get(group=group, id=event_id)
     except Event.DoesNotExist:
@@ -32,6 +36,7 @@ def replay_event(request, team, project, group, event_id):
         # TODO: show a proper error
         return HttpResponseRedirect(reverse('sentry'))
 
+    # TODO(mattrobenolt): Add Cookie as a header
     http = interfaces['sentry.interfaces.Http']
     if http.headers:
         headers = '\n'.join('%s: %s' % (k, v) for k, v in http.headers.iteritems() if k[0].upper() == k[0])
@@ -43,13 +48,8 @@ def replay_event(request, team, project, group, event_id):
     else:
         data = http.data
 
-    if http.query_string:
-        full_url = http.url + '?' + http.query_string
-    else:
-        full_url = http.url
-
     initial = {
-        'url': full_url,
+        'url': urlparse.urldefrag(http.full_url)[0],
         'method': http.method,
         'headers': headers,
         'data': data,
@@ -67,7 +67,8 @@ def replay_event(request, team, project, group, event_id):
         result = None
 
     context = {
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'group': event.group,
         'event': event,

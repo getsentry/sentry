@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function
+
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render_to_response
 
@@ -28,6 +30,6 @@ def logging_request_exc(request):
     logger = logging.getLogger('sentry.test')
     try:
         raise Exception(request.GET.get('message', 'view exception'))
-    except Exception, e:
+    except Exception as e:
         logger.error(e, exc_info=True, extra={'request': request})
     return HttpResponse('')

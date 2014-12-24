@@ -1,0 +1,37 @@
+{% extends "sentry/help/index.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_markup %}
+
+{% block title %}
+    {{ section.name }} | Web API
+{% endblock %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url 'sentry-api-0-help' %}">Web API</a></li>
+    <li class="divider">/</li>
+    <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
+{% endblock%}
+
+{% block main %}
+    <h2>{{ section.name }}</h2>
+    <div class="list-group">
+        {% for resource in resource_list %}
+          {% for method in resource.methods %}
+            <section class="api-resource" id="{{ method.anchor }}">
+                <div class="api-path">
+                  <h4><a href="#{{ method.anchor }}">{{ method.title }}</a></h4>
+                </div>
+                {% if method.doc %}
+                  {{ method.doc|markdown }}
+                {% else %}
+                  <pre>{{ method.verb }} {{ method.path }}</pre>
+                {% endif %}
+            </section>
+          {% endfor %}
+        {% endfor %}
+    </div>
+{% endblock %}

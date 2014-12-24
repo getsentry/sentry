@@ -25,7 +25,7 @@
 
   .select2-choice {
     .border-radius(3px);
-    .box-shadow(0 2px 0 rgba(205, 216, 227, .32));
+    .box-shadow(0 1px 1px rgba(205, 216, 227, .32));
     .background-clip(padding-box);
     -moz-background-clip: padding;
     background-color: #fff;
@@ -53,8 +53,8 @@
     abbr {
       display: block;
       position: absolute;
-      right: 27px;
-      top: 12px;
+      right: 10px;
+      top: 10px;
       width: 12px;
       height: 12px;
       font-size: 1px;
@@ -99,12 +99,14 @@
   background: #fff;
   color: #000;
   border-top: 0;
+  margin-top: -1px;
   position: absolute;
   top: 100%;
   z-index: 9999;
   width:100%;
   padding-top: 0;
-  .box-shadow(0 0 0 2px #a7aeb7);
+  border: 1px solid #C3C8CE;
+  .box-shadow(0 1px 2px rgba(0,0,0, .05));
   .border-radius(0 0 3px 3px);
 
   &:after {
@@ -121,7 +123,7 @@
 
 .select2-drop.select2-drop-above {
   .border-radius(4px 4px 0px 0px);
-  .box-shadow(0 0 0 2px #a7aeb7);
+  .box-shadow(0 1px 2px rgba(0,0,0, .05));
   border-bottom: 0;
 
   &:after {
@@ -130,7 +132,17 @@
   }
 }
 
+.select2-drop-auto-width {
+    border-top: 1px solid #aaa;
+    width: auto;
+}
+
+.select2-drop-auto-width .select2-search {
+    padding-top: 4px;
+}
+
 .select2-search {
+  position: relative;
   display: inline-block;
   white-space: nowrap;
   z-index: 10000;
@@ -204,6 +216,17 @@
 }
 .select2-dropdown-open .select2-choice div b {
   background-position: -18px 1px;
+}
+
+.select2-hidden-accessible {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
 }
 
 /* results */
@@ -401,13 +424,18 @@ disabled look for already selected choices in the results dropdown
 .select2-search-choice-close {
   display: block;
   position: absolute;
-  right: -35px;
+  right: 3px;
   top: 4px;
   width: 12px;
   height: 13px;
   font-size: 1px;
   background: url('../scripts/lib/select2/select2.png') right top no-repeat;
   outline: none;
+}
+
+html[dir="rtl"] .select2-search-choice-close {
+    right: auto;
+    left: 3px;
 }
 
 .select2-container-multi .select2-search-choice-close {
@@ -448,6 +476,19 @@ disabled look for already selected choices in the results dropdown
 .select2-result-unselectable .select2-match { text-decoration: none; }
 
 .select2-offscreen { position: absolute; left: -10000px; }
+
+.select2-display-none {
+    display: none;
+}
+
+.select2-measure-scrollbar {
+    position: absolute;
+    top: -10000px;
+    left: -10000px;
+    width: 100px;
+    height: 100px;
+    overflow: scroll;
+}
 
 /* Retina-ize icons */
 

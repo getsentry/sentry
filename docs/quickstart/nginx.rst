@@ -27,6 +27,20 @@ limits:
         proxy_set_header   X-Forwarded-Proto    $scheme;
         proxy_redirect     off;
 
+        # keepalive + raven.js is a disaster
+        keepalive_timeout 0;
+
+        # use very aggressive timeouts
+        proxy_read_timeout 5s;
+        proxy_send_timeout 5s;
+        send_timeout 5s;
+        resolver_timeout 5s;
+        client_body_timeout 5s;
+
+        # buffer larger messages
+        client_max_body_size 150k;
+        client_body_buffer_size 150k;
+
         location / {
           proxy_pass        http://localhost:9000;
         }
@@ -54,7 +68,7 @@ as well the ``sentry.wsgi`` module:
 ::
 
     [uwsgi]
-    env = SENTRY_CONF=/etc/sentry.conf
+    env = SENTRY_CONF=/etc/sentry.conf.py
     module = sentry.wsgi
 
     ; spawn the master and 4 processes

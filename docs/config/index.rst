@@ -44,30 +44,6 @@ Authentication
 
         SENTRY_PUBLIC = True
 
-.. data:: SENTRY_ALLOW_PROJECT_CREATION
-    :noindex:
-
-    Should Sentry allow users without the 'sentry.add_project' permission to
-    create new projects?
-
-    Defaults to ``False`` (require permission).
-
-    ::
-
-        SENTRY_ALLOW_PROJECT_CREATION = True
-
-.. data:: SENTRY_ALLOW_TEAM_CREATION
-    :noindex:
-
-    Should Sentry allow users without the 'sentry.add_team' permission to
-    create new teams?
-
-    Defaults to ``True`` (require permission).
-
-    ::
-
-        SENTRY_ALLOW_TEAM_CREATION = False
-
 .. data:: SENTRY_ALLOW_PUBLIC_PROJECTS
     :noindex:
 
@@ -145,36 +121,10 @@ The following settings are available for the built-in webserver:
             'worker_class': 'gevent',
         }
 
-
-.. _config-udp-server:
-
-UDP Server
-~~~~~~~~~~
-
-The following settings are available for the built-in UDP API server:
-
-.. data:: SENTRY_UDP_HOST
-    :noindex:
-
-    The hostname which the udp server should bind to.
-
-    Defaults to ``localhost``.
-
-    ::
-
-        SENTRY_UDP_HOST = '0.0.0.0'  # bind to all addresses
-
-.. data:: SENTRY_UDP_PORT
-    :noindex:
-
-    The port which the udp server should listen on.
-
-    Defaults to ``9001``.
-
-    ::
-
-        SENTRY_UDP_PORT = 9001
-
+    Note: The logging options of gunicorn is overridden by the default logging
+    configuration of Sentry. In order to reuse loggers from gunicorn, put
+    ``LOGGING['disable_existing_loggers'] = False`` into your configuration
+    file.
 
 .. _config-smtp-server:
 

@@ -1,19 +1,6 @@
-from sentry.models import User, Project
-from sentry.web.forms.projects import RemoveProjectForm, ProjectQuotasForm
+from sentry.models import Project
+from sentry.web.forms.projects import ProjectQuotasForm
 from sentry.testutils import TestCase
-
-
-class RemoveProjectFormTest(TestCase):
-    def test_removes_password_on_empty_password_types(self):
-        user = User(password='!')
-        form = RemoveProjectForm(user=user)
-        self.assertNotIn('password', form.fields)
-
-    def test_requires_password_on_valid_accounts(self):
-        user = User()
-        user.set_password('foo')
-        form = RemoveProjectForm(user=user)
-        self.assertIn('password', form.fields)
 
 
 class ProjectQuotasFormTest(TestCase):

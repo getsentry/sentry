@@ -5,11 +5,13 @@ sentry.management.commands.start
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
+
+import sys
+
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
-
 from optparse import make_option
-import sys
 
 
 class Command(BaseCommand):
@@ -29,10 +31,16 @@ class Command(BaseCommand):
             dest='workers',
             type=int,
             default=None),
+        make_option('--noinput',
+            action='store_true',
+            dest='noinput',
+            default=False,
+            help='Tells Django to NOT prompt the user for input of any kind.',
+        ),
     )
 
     def handle(self, service_name='http', address=None, upgrade=True, **options):
-        from sentry.services import http, udp, smtp
+        from sentry.services import http, smtp
 
         if address:
             if ':' in address:
@@ -46,7 +54,6 @@ class Command(BaseCommand):
 
         services = {
             'http': http.SentryHTTPServer,
-            'udp': udp.SentryUDPServer,
             'smtp': smtp.SentrySMTPServer,
         }
 
@@ -55,8 +62,8 @@ class Command(BaseCommand):
 
         if upgrade:
             # Ensure we perform an upgrade before starting any service
-            print "Performing upgrade before service startup..."
-            call_command('upgrade', verbosity=0)
+            print("Performing upgrade before service startup...")
+            call_command('upgrade', verbosity=0, noinput=options.get('noinput'))
 
         try:
             service_class = services[service_name]
@@ -75,5 +82,5 @@ class Command(BaseCommand):
         # a parse error is thrown
         sys.argv = sys.argv[:1]
 
-        print "Running service: %r" % service_name
+        print("Running service: %r" % service_name)
         service.run()

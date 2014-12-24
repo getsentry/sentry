@@ -7,21 +7,12 @@
     <div class="count"><span title="{{ group.times_seen }}">{{ group.times_seen|small_count }}</span></div>
     <div class="details">
         <h3>
-            <a href="{% url 'sentry-group' group.team.slug group.project.slug group.pk %}">
-                {% if group.view %}
-                    {{ group.view }}
-                {% else %}
-                    {{ group.message_top }}
-                {% endif %}
+            <a href="{% url 'sentry-group' group.organization.slug group.project.slug group.pk %}">
+                {{ group.title }}
             </a>
         </h3>
         <p class="message" title="{{ group.message }}">
-            <a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?logger={{ group.logger }}" class="tag tag-logger">{{ group.logger }}</a>
-            {% with group.get_version as version %}
-                {% if version %}
-                    <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
-                {% endif %}
-            {% endwith %}
+            <a href="{% url 'sentry-stream' group.organization.slug group.project.slug %}?logger={{ group.logger }}" class="tag tag-logger">{{ group.logger }}</a>
             {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
             {{ group.error }}
         </p>
