@@ -475,9 +475,11 @@ class EventManager(object):
         if group.is_resolved() and plugin_is_regression(group, event):
             is_regression = bool(Group.objects.filter(
                 id=group.id,
+                # ensure we cant update things if the status has been set to
+                # muted
+                status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
             ).exclude(
-                # add 30 seconds to the regression window to account for
-                # races here
+                # add to the regression window to account for races here
                 active_at__gte=date - timedelta(seconds=5),
             ).update(active_at=date, status=GroupStatus.UNRESOLVED))
 
