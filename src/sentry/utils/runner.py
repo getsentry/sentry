@@ -178,15 +178,6 @@ SERVER_EMAIL = 'root@localhost'
 # Changing this value will result in all current sessions being invalidated
 SECRET_KEY = %(default_key)r
 
-# http://twitter.com/apps/new
-# It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
-TWITTER_CONSUMER_KEY = ''
-TWITTER_CONSUMER_SECRET = ''
-
-# http://developers.facebook.com/setup/
-FACEBOOK_APP_ID = ''
-FACEBOOK_API_SECRET = ''
-
 # http://code.google.com/apis/accounts/docs/OAuth2.html#Registering
 GOOGLE_OAUTH2_CLIENT_ID = ''
 GOOGLE_OAUTH2_CLIENT_SECRET = ''

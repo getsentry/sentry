@@ -377,31 +377,6 @@ want to disable account creation, simply set the following value::
 
   SOCIAL_AUTH_CREATE_USERS = False
 
-Twitter
-~~~~~~~
-
-Register an application at http://twitter.com/apps/new. Take the values given on the page, and configure
-the following:
-
-.. code-block:: python
-
-  TWITTER_CONSUMER_KEY = ''
-  TWITTER_CONSUMER_SECRET = ''
-
-.. note:: It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
-
-Facebook
-~~~~~~~~
-
-Register an application at http://developers.facebook.com/setup/. You'll also need to make sure you select the "Website
-with Facebook Login" and fill in the Site URL field (just use the website's URL you're install Sentry on). Take the
-values given on the page, and configure the following:
-
-.. code-block:: python
-
-  FACEBOOK_APP_ID = ''
-  FACEBOOK_API_SECRET = ''
-
 Google
 ~~~~~~
 

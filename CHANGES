@@ -19,6 +19,8 @@ Backwards Incompatible Changes
 - Removed Project.owner.
 - Removed Team.owner.
 - `is_new` in post_process will *only* be set if the event is brand new
+- django-social-auth is now vendored
+- Facebook and Twitter authentication mechanisms no longer exist by default
 
 Organizations
 =============
