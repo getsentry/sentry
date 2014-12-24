@@ -214,7 +214,8 @@ AUTHENTICATION_BACKENDS = (
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
-SESSION_COOKIE_NAME = "sentrysid2"
+SESSION_COOKIE_NAME = "sentrysid"
+SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
 
 TWITTER_CONSUMER_KEY = ''
 TWITTER_CONSUMER_SECRET = ''
