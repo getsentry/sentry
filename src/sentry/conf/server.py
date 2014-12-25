@@ -201,7 +201,7 @@ else:
     LOGIN_URL = reverse_lazy('sentry-login')
 
 AUTHENTICATION_BACKENDS = (
-    # TODO: migrate to GoogleOAuth2Backend
+    'social_auth.backends.google.GoogleBackend',
     'social_auth.backends.google.GoogleOAuth2Backend',
     'social_auth.backends.github.GithubBackend',
     'social_auth.backends.bitbucket.BitbucketBackend',
@@ -254,7 +254,7 @@ AUTH_PROVIDERS = {
 
 AUTH_PROVIDER_LABELS = {
     'github': 'GitHub',
-    'google': 'Google',
+    'google': 'Google (OpenID)',
     'google-oauth2': 'Google',
     'trello': 'Trello',
     'bitbucket': 'Bitbucket'
