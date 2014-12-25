@@ -66,7 +66,6 @@ class ProjectKey(Model):
         super(ProjectKey, self).save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
-        # TODO: change the DSN to use project slug once clients are compatible
         if not public:
             key = '%s:%s' % (self.public_key, self.secret_key)
             url = settings.SENTRY_ENDPOINT
