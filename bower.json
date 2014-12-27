@@ -22,7 +22,8 @@
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
     "platformicons": "1.0.2",
     "typeahead.js": "~0.10.5",
-    "raven-js": "~1.1.16"
+    "raven-js": "~1.1.16",
+    "react": "~0.12.2"
   },
   "resolutions": {
     "angular": "1.2.9",
