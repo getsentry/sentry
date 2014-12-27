@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
+import os
 import os.path
+import sys
 
 from django.conf import settings
 from django.core.management.commands.runserver import Command as RunserverCommand
@@ -20,29 +22,35 @@ class Command(RunserverCommand):
             help='Tells Sentry to NOT automatically recompile static distributions.'),
     )
 
+    cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
+
+    gulp_bin = os.path.join(cwd, 'node_modules', '.bin', 'gulp')
+
     def run_watcher(self):
-        cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
-
-        gulp_bin = os.path.join(cwd, 'node_modules', '.bin', 'gulp')
-
         devnull = open('/dev/null', 'w')
 
-        self.stdout.write('>> Running [gulp clean]')
-        Popen([gulp_bin, 'clean'], cwd=cwd, stdout=devnull).wait()
-
-        self.stdout.write('>> Running [gulp dist]')
-        Popen([gulp_bin, 'dist'], cwd=cwd, stdout=devnull).wait()
-
         self.stdout.write('>> Running [gulp watch]')
-        return Popen([gulp_bin, 'dist', 'watch'], cwd=cwd, stdout=devnull)
+        return Popen([self.gulp_bin, 'dist', 'watch'], cwd=self.cwd, stdout=devnull)
 
-    def inner_run(self, *args, **options):
+    def run_server(self):
+        args = sys.argv
+        self.stdout.write('>> Launching webserver..')
+        return Popen(args + ['--nowatcher'], env=os.environ, cwd=self.cwd)
+
+    def run(self, *args, **options):
         if options['use_watcher']:
-            watcher = self.run_watcher()
+            self.stdout.write('>> Running [gulp clean]')
+            Popen([self.gulp_bin, 'clean'], cwd=self.cwd).wait()
 
-        try:
-            self.stdout.write('>> Launching webserver..')
-            super(Command, self).inner_run(*args, **options)
-        finally:
-            if watcher:
-                watcher.terminate()
+            self.stdout.write('>> Running [gulp dist]')
+            Popen([self.gulp_bin, 'dist'], cwd=self.cwd).wait()
+
+            watcher = self.run_watcher()
+            server = self.run_server()
+            try:
+                server.wait()
+            finally:
+                if watcher:
+                    watcher.terminate()
+        else:
+            super(Command, self).run(*args, **options)
