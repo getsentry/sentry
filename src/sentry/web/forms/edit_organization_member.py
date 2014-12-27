@@ -7,6 +7,7 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
     OrganizationMemberType, Team
 )
+from sentry.web.forms.fields import CustomTypedChoiceField
 
 MEMBERSHIP_CHOICES = (
     (OrganizationMemberType.MEMBER, _('Member')),
@@ -16,7 +17,7 @@ MEMBERSHIP_CHOICES = (
 
 
 class EditOrganizationMemberForm(forms.ModelForm):
-    type = forms.TypedChoiceField(label=_('Membership Type'), choices=(), coerce=int)
+    type = CustomTypedChoiceField(label=_('Membership Type'), choices=(), coerce=int)
     has_global_access = forms.BooleanField(
         label=_('This member should have access to all teams within the organization.'),
         required=False,
@@ -38,7 +39,6 @@ class EditOrganizationMemberForm(forms.ModelForm):
             m for m in MEMBERSHIP_CHOICES
             if m[0] >= authorizing_access
         ]
-
         self.fields['teams'].queryset = Team.objects.filter(
             organization=self.instance.organization,
         )

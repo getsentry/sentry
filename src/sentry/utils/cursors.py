@@ -31,7 +31,14 @@ class Cursor(object):
 
     @classmethod
     def from_string(cls, value):
-        return cls(*value.split(':'))
+        bits = value.split(':')
+        if len(bits) != 3:
+            raise ValueError
+        try:
+            bits = float(bits[0]), int(bits[1]), int(bits[2])
+        except (TypeError, ValueError):
+            raise ValueError
+        return cls(*bits)
 
 
 class CursorResult(Sequence):

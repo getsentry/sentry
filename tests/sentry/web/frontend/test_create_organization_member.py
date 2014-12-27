@@ -66,13 +66,9 @@ class CreateOrganizationMemberTest(TestCase):
 
         assert resp.status_code == 302
 
-        member = OrganizationMember.objects.get(
-            organization=organization,
-            user=member,
-        )
+        member = OrganizationMember.objects.get(id=member.id)
 
         assert member.type == OrganizationMemberType.MEMBER
-        assert member.user == user
         assert member.email is None
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])

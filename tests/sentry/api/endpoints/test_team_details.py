@@ -66,12 +66,14 @@ class TeamDeleteTest(APITestCase):
         )
 
     def test_as_member(self):
-        team = self.create_team(owner=self.user)
+        org = self.create_organization(owner=self.user)
+        team = self.create_team(organization=org)
         project = self.create_project(team=team)  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
         team.organization.member_set.create_or_update(
+            organization=org,
             user=user,
             defaults={
                 'type': OrganizationMemberType.MEMBER,

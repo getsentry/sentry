@@ -1,7 +1,5 @@
-VERSION = 2.0.0
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
-UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 
 develop: update-submodules setup-git
 	@echo "--> Installing dependencies"
@@ -24,9 +22,9 @@ dev-docs:
 	pip install -r docs/requirements.txt
 
 reset-db:
-	@echo "--> Dropping existing 'getsentry' database"
+	@echo "--> Dropping existing 'sentry' database"
 	dropdb sentry || true
-	@echo "--> Creating 'getsentry' database"
+	@echo "--> Creating 'sentry' database"
 	createdb -E utf-8 sentry
 	@echo "--> Applying migrations"
 	sentry upgrade

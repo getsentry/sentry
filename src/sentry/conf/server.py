@@ -53,8 +53,12 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
+        'AUTOCOMMIT': True,
     }
 }
+
+ATOMIC_REQUESTS = False
+AUTOCOMMIT = True
 
 if 'DATABASE_URL' in os.environ:
     url = urlparse.urlparse(os.environ['DATABASE_URL'])
@@ -211,6 +215,7 @@ SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
+SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
 
 TWITTER_CONSUMER_KEY = ''
 TWITTER_CONSUMER_SECRET = ''
