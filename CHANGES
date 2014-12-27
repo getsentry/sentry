@@ -34,6 +34,11 @@ Web API
 
 The first offering a public API has landed. You'll find it with the new embedded docs (at /docs/).
 
+Protocol Version 6
+==================
+
+Version 6 of the protocol has been introduced. The only change is the addition of the `release` attribute.
+
 
 Version 6.4.0
 -------------
