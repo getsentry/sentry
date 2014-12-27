@@ -1,6 +1,8 @@
 Version 7.0.0
 -------------
 
+Between version 6.4.x and 7.0 a significant number of changes have landed (approximately a years worth of commits). There are a large number of overall architecture changes, as well as various API compatibility changes.
+
 Backwards Incompatible Changes
 ==============================
 
@@ -31,6 +33,7 @@ Web API
 =======
 
 The first offering a public API has landed. You'll find it with the new embedded docs (at /docs/).
+
 
 Version 6.4.0
 -------------
