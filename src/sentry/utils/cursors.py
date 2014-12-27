@@ -35,7 +35,7 @@ class Cursor(object):
         if len(bits) != 3:
             raise ValueError
         try:
-            bits = map(int, bits)
+            bits = float(bits[0]), int(bits[1]), int(bits[2])
         except (TypeError, ValueError):
             raise ValueError
         return cls(*bits)

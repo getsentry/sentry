@@ -11,11 +11,11 @@ from __future__ import absolute_import
 
 SORT_CLAUSES = {
     'priority': 'sentry_groupedmessage.score',
-    'date': 'EXTRACT(EPOCH FROM sentry_groupedmessage.last_seen)',
-    'new': 'EXTRACT(EPOCH FROM sentry_groupedmessage.first_seen)',
+    'date': 'EXTRACT(EPOCH FROM sentry_groupedmessage.last_seen)::int',
+    'new': 'EXTRACT(EPOCH FROM sentry_groupedmessage.first_seen)::int',
     'freq': 'sentry_groupedmessage.times_seen',
     'tottime': 'sentry_groupedmessage.time_spent_total',
-    'avgtime': '(sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count)',
+    'avgtime': '(sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count)::int',
 }
 
 SQLITE_SORT_CLAUSES = SORT_CLAUSES.copy()
