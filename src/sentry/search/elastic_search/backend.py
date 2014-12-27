@@ -196,18 +196,20 @@ class ElasticSearchBackend(SearchBackend):
                             'required': True,
                             'path': 'project_id',
                         },
-                        'message': {
-                            'type': 'string',
-                        },
-                        'project_id': {
-                            'type': 'long',
-                            'index': 'not_analyzed',
-                        },
-                        'first_seen': {
-                            'type': 'date',
-                        },
-                        'last_seen': {
-                            'type': 'date',
+                        'properties': {
+                            'message': {
+                                'type': 'string',
+                            },
+                            'project_id': {
+                                'type': 'long',
+                                'index': 'not_analyzed',
+                            },
+                            'first_seen': {
+                                'type': 'date',
+                            },
+                            'last_seen': {
+                                'type': 'date',
+                            },
                         },
                     },
                     'event': {
