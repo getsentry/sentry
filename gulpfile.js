@@ -163,15 +163,27 @@ gulp.task("clean", function () {
     .on("error", gp_util.log);
 });
 
-gulp.task("dist:css", buildCssCompileTask("sentry.css", [file("less/sentry.less")]));
+
+gulp.task("dist:css:sentry", buildCssCompileTask("sentry.css", [file("less/sentry.less")]))
+
+gulp.task("dist:css:wall", buildCssCompileTask("wall.css", [file("less/wall.less")]))
+
+gulp.task("dist:css", ["dist:css:sentry", "dist:css:wall"]);
 
 buildJsDistroTasks();
 
 gulp.task("dist", ["dist:js", "dist:css"]);
 
-gulp.task("watch:css", function(){
-  return gulp.watch(file("less/sentry.less"), ["dist:css"]);
+gulp.task("watch:css:sentry", function(){
+  return gulp.watch(file("less/sentry.less"), ["dist:css:sentry"]);
 });
+
+gulp.task("watch:css:wall", function(){
+  return gulp.watch(file("less/wall.less"), ["dist:css:wall"]);
+});
+
+gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
+
 
 gulp.task("watch", ["watch:js", "watch:css"]);
 

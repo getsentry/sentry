@@ -4,6 +4,7 @@ from __future__ import absolute_import, print_function
 
 import datetime
 import json
+import logging
 import mock
 import zlib
 
@@ -16,7 +17,7 @@ from exam import fixture
 from raven import Client
 
 from sentry.models import Group, Event
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.compat import StringIO
 from sentry.utils.settings import (
@@ -69,7 +70,12 @@ DEPENDENCY_TEST_DATA = {
 }
 
 
-class RavenIntegrationTest(TestCase):
+class AssertHandler(logging.Handler):
+    def emit(self, entry):
+        raise AssertionError(entry.message)
+
+
+class RavenIntegrationTest(TransactionTestCase):
     """
     This mocks the test server and specifically tests behavior that would
     happen between Raven <--> Sentry over HTTP communication.
@@ -81,13 +87,19 @@ class RavenIntegrationTest(TestCase):
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 
-    def sendRemote(self, url, data, headers={}):
-        # TODO: make this install a temporary handler which raises an assertion error
-        import logging
+        self.configure_sentry_errors()
+
+    def configure_sentry_errors(self):
+        assert_handler = AssertHandler()
         sentry_errors = logging.getLogger('sentry.errors')
-        sentry_errors.addHandler(logging.StreamHandler())
+        sentry_errors.addHandler(assert_handler)
         sentry_errors.setLevel(logging.DEBUG)
 
+        def remove_handler():
+            sentry_errors.handlers.pop(sentry_errors.handlers.index(assert_handler))
+        self.addCleanup(remove_handler)
+
+    def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
         resp = self.client.post(

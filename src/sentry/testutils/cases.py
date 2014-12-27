@@ -18,12 +18,9 @@ import urllib
 from django.conf import settings
 from django.contrib.auth import login
 from django.core.cache import cache
-from django.core.management import call_command
 from django.core.urlresolvers import reverse
-from django.db import connections, DEFAULT_DB_ALIAS
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
-from django.test.client import Client
 from django.utils.importlib import import_module
 from exam import before, Exam
 from nydus.db import create_cluster
@@ -170,54 +167,7 @@ class TestCase(BaseTestCase, TestCase):
 
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
-    """
-    Subclass of ``django.test.TransactionTestCase`` that quickly tears down
-    fixtures and doesn't `flush` on setup.  This enables tests to be run in
-    any order.
-    """
-    urls = 'tests.urls'
-
-    def __call__(self, result=None):
-        """
-        Wrapper around default __call__ method to perform common Django test
-        set up. This means that user-defined Test Cases aren't required to
-        include a call to super().setUp().
-        """
-        self.client = getattr(self, 'client_class', Client)()
-        try:
-            self._pre_setup()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except Exception:
-            import sys
-            result.addError(self, sys.exc_info())
-            return
-        try:
-            super(TransactionTestCase, self).__call__(result)
-        finally:
-            try:
-                self._post_teardown()
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except Exception:
-                import sys
-                result.addError(self, sys.exc_info())
-
-    def _get_databases(self):
-        if getattr(self, 'multi_db', False):
-            return connections
-        return [DEFAULT_DB_ALIAS]
-
-    def _fixture_setup(self):
-        for db in self._get_databases():
-            if hasattr(self, 'fixtures') and self.fixtures:
-                # We have to use this slightly awkward syntax due to the fact
-                # that we're using *args and **kwargs together.
-                call_command('loaddata', *self.fixtures, **{'verbosity': 0, 'database': db})
-
-    def _fixture_teardown(self):
-        for db in self._get_databases():
-            call_command('flush', verbosity=0, interactive=False, database=db)
+    pass
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):

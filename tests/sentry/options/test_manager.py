@@ -30,14 +30,14 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get('foo') == ''
 
     def test_db_unavailable(self):
-        with patch.object(Option.objects, 'get_query_set', side_effect=Exception()):
+        with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
             # we can't update options if the db is unavailable
             with self.assertRaises(Exception):
                 self.manager.set('foo', 'bar')
 
         self.manager.set('foo', 'bar')
 
-        with patch.object(Option.objects, 'get_query_set', side_effect=Exception()):
+        with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
             assert self.manager.get('foo') == 'bar'
 
             with patch.object(self.manager.cache, 'get', side_effect=Exception()):
@@ -50,7 +50,7 @@ class OptionsManagerTest(TestCase):
         self.manager.set('foo', 'bar')
 
         with self.settings(SENTRY_OPTIONS={'foo': 'baz'}):
-            with patch.object(Option.objects, 'get_query_set', side_effect=Exception()):
+            with patch.object(Option.objects, 'get_queryset', side_effect=Exception()):
                 with patch.object(self.manager.cache, 'get', side_effect=Exception()):
                     assert self.manager.get('foo') == 'baz'
 

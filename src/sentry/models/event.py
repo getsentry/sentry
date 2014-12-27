@@ -162,6 +162,8 @@ class Event(Model):
             # vs ((tag, foo), (tag, bar))
             return []
 
+    tags = property(get_tags)
+
     def as_dict(self):
         # We use a SortedDict to keep elements ordered for a potential JSON serializer
         data = SortedDict()

@@ -294,7 +294,7 @@ urlpatterns += patterns('',
     url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/tags/(?P<tag_name>[^/]+)/$', api.get_group_tags,
         name='sentry-api-group-tags'),
 
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?:(?P<project_id>[\w_-]+)/)?stats/$', api.get_stats,
+    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/stats/$', api.get_stats,
         name='sentry-api-stats'),
     url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/tags/search/$', api.search_tags,
         name='sentry-api-search-tags'),

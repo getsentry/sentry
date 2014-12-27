@@ -6,7 +6,6 @@ from django.db import IntegrityError, models, transaction
 
 class Migration(DataMigration):
 
-    @transaction.autocommit
     def forwards(self, orm):
         from sentry.constants import RESERVED_ORGANIZATION_SLUGS
         from sentry.db.models.utils import slugify_instance
@@ -21,18 +20,15 @@ class Migration(DataMigration):
         for project in RangeQuerySetWrapperWithProgressBar(queryset):
             project.organization = project.team.organization
 
-            sid = transaction.savepoint()
             try:
-                project.save()
+                with transaction.atomic():
+                    project.save()
             except IntegrityError:
-                transaction.savepoint_rollback(sid)
                 # we also need to update the slug here based on the new constraints
                 slugify_instance(project, project.name, (
                     models.Q(organization=project.organization) | models.Q(team=project.team),
                 ))
                 project.save()
-            else:
-                transaction.savepoint_commit(sid)
 
     def backwards(self, orm):
         pass

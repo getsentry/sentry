@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from django import forms
 
 from sentry.plugins import plugins
+from sentry.plugins.bases.notify import Notification
 from sentry.rules.actions.base import EventAction
 
 
@@ -51,7 +52,8 @@ class NotifyEventServiceAction(EventAction):
             self.logger.info('Rule failed should_notify check')
             return
 
-        plugin.notify_users(group=group, event=event)
+        notification = Notification(event=event, rule=self.rule)
+        plugin.notify(notification)
 
     def get_plugins(self):
         from sentry.plugins.bases.notify import NotificationPlugin

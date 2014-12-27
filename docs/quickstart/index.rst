@@ -145,9 +145,6 @@ is not a fully supported database and should not be used in production**.
             'PASSWORD': '',
             'HOST': '',
             'PORT': '',
-            'OPTIONS': {
-                'autocommit': True,
-            }
         }
     }
 

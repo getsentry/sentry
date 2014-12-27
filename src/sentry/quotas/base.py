@@ -34,7 +34,7 @@ class Quota(object):
     def translate_quota(self, quota, parent_quota):
         if quota.endswith('%'):
             pct = int(quota[:-1])
-            quota = parent_quota * pct / 100
+            quota = int(parent_quota) * pct / 100
         return int(quota or 0)
 
     def get_project_quota(self, project):
