@@ -7,7 +7,8 @@ var gulp = require("gulp"),
     gp_less = require("gulp-less"),
     gp_rename = require("gulp-rename"),
     gp_uglify = require("gulp-uglify"),
-    gp_util = require("gulp-util");
+    gp_util = require("gulp-util"),
+    gp_webpack = require("gulp-webpack");
 
 var path = require("path");
 
@@ -16,32 +17,36 @@ var staticPrefix = "src/sentry/static/sentry",
 
 var jsDistros = {
   "app": [
-      file("app/modules/charts.js"),
-      file("app/modules/collection.js"),
-      file("app/modules/flash.js"),
-      file("app/modules/forms.js"),
+    file("app/modules/charts.js"),
+    file("app/modules/collection.js"),
+    file("app/modules/flash.js"),
+    file("app/modules/forms.js"),
 
-      file("app/controllers/default.js"),
-      file("app/controllers/deleteTeam.js"),
-      file("app/controllers/editProjectRule.js"),
-      file("app/controllers/groupDetails.js"),
-      file("app/controllers/manageAccessGroupMembers.js"),
-      file("app/controllers/manageAccessGroupProjects.js"),
-      file("app/controllers/manageProject.js"),
-      file("app/controllers/manageProjectNotifications.js"),
-      file("app/controllers/manageTeamOwnership.js"),
-      file("app/controllers/manageTeamSettings.js"),
-      file("app/controllers/projectStream.js"),
-      file("app/controllers/teamDashboard.js"),
-      file("app/controllers/teamList.js"),
+    file("app/controllers/default.js"),
+    file("app/controllers/deleteTeam.js"),
+    file("app/controllers/editProjectRule.js"),
+    file("app/controllers/groupDetails.js"),
+    file("app/controllers/manageAccessGroupMembers.js"),
+    file("app/controllers/manageAccessGroupProjects.js"),
+    file("app/controllers/manageProject.js"),
+    file("app/controllers/manageProjectNotifications.js"),
+    file("app/controllers/manageTeamOwnership.js"),
+    file("app/controllers/manageTeamSettings.js"),
+    file("app/controllers/projectStream.js"),
+    file("app/controllers/teamDashboard.js"),
+    file("app/controllers/teamList.js"),
 
-      file("app/directives/assigneeSelector.js"),
-      file("app/directives/clippy.js"),
-      file("app/directives/count.js"),
-      file("app/directives/timeSince.js"),
-      file("app/directives/broadcast.js"),
+    file("app/directives/assigneeSelector.js"),
+    file("app/directives/clippy.js"),
+    file("app/directives/count.js"),
+    file("app/directives/timeSince.js"),
+    file("app/directives/broadcast.js"),
 
-      file("app/models/group.js")
+    file("app/models/group.js")
+  ],
+
+  "react": [
+    vendorFile("react/react-with-addons.min.js")
   ],
 
   "legacy-app": [
@@ -67,11 +72,11 @@ var jsDistros = {
   ],
 
   "vendor-angular": [
-      vendorFile("angular/angular.min.js"),
-      vendorFile("angular-animate/angular-animate.min.js"),
-      vendorFile("angular-bootstrap/ui-bootstrap-tpls.min.js"),
-      vendorFile("angular-classy/angular-classy.min.js"),
-      vendorFile("angular-loading-bar/build/loading-bar.min.js")
+    vendorFile("angular/angular.min.js"),
+    vendorFile("angular-animate/angular-animate.min.js"),
+    vendorFile("angular-bootstrap/ui-bootstrap-tpls.min.js"),
+    vendorFile("angular-classy/angular-classy.min.js"),
+    vendorFile("angular-loading-bar/build/loading-bar.min.js")
   ],
 
   "vendor-backbone": [
@@ -107,12 +112,44 @@ function vendorFile(name) {
 function buildJsCompileTask(name, fileList) {
   // TODO(dcramer): sourcemaps
   return function(){
+    var ext = name.split('.').slice(-1);
     return gulp.src(fileList)
       .pipe(gp_cached('js-' + name))
-      .pipe(gp_concat(name + ".js"))
+      .pipe(gp_concat(name + "." + ext))
       .pipe(gulp.dest(distPath))
       .pipe(gp_uglify())
       .pipe(gp_rename(name + ".min.js"))
+      .pipe(gulp.dest(distPath))
+      .on("error", gp_util.log);
+  };
+}
+
+function buildWebpackCompileTask(name, entryPoint) {
+  // TODO(dcramer): sourcemaps
+  return function(){
+    return gulp.src(entryPoint)
+      .pipe(gp_cached('js-' + name))
+      .pipe(gp_webpack({
+        entry: entryPoint,
+        module: {
+          loaders: [
+            {
+              test: /\.jsx$/,
+              loader: 'jsx-loader?insertPragma=React.DOM&harmony'
+            }
+          ]
+        },
+        externals: {
+          'react': 'React'
+        },
+        resolve: {
+          modulesDirectories: [distPath],
+          extensions: ['', '.jsx', '.js', '.json']
+        },
+        output: {
+          filename: name + '.js'
+        }
+      }))
       .pipe(gulp.dest(distPath))
       .on("error", gp_util.log);
   };
@@ -151,6 +188,11 @@ function buildJsDistroTasks() {
 
     jsDistroNames.push(distroName);
   }
+  // webpack app must be last
+  gulp.task("dist:js:app-react", buildWebpackCompileTask("app-react", file("app-react/main.jsx")));
+  gulp.task("watch:js:app-react", buildJsWatchTask("app-react", [file("app-react/main.jsx")]));
+
+  jsDistroNames.push("app-react")
 
   gulp.task("dist:js", jsDistroNames.map(function(n) { return "dist:js:" + n; }));
 
