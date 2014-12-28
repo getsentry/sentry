@@ -8,7 +8,6 @@ services:
   - redis-server
   - cassandra
 python:
-  - "2.6"
   - "2.7"
 env:
   matrix:
