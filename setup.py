@@ -21,6 +21,7 @@ any application.
 :copyright: (c) 2011-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import os.path
 
