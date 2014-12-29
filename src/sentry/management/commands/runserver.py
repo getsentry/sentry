@@ -49,6 +49,8 @@ class Command(RunserverCommand):
             server = self.run_server()
             try:
                 server.wait()
+            except Exception:
+                server.terminate()
             finally:
                 if watcher:
                     watcher.terminate()
