@@ -19,6 +19,7 @@
     "gulp-util": "^3.0.1",
     "gulp-watch": "^3.0.0",
     "gulp-webpack": "^1.1.2",
+    "jquery": "^2.1.3",
     "jshint": "~2.5.0",
     "jsx-loader": "^0.12.2",
     "karma": "^0.12.19",
@@ -28,8 +29,11 @@
     "karma-sinon": "^1.0.3",
     "less": "1.7.0",
     "mocha": "1.9.x",
+    "react": "^0.12.2",
+    "react-router": "^0.11.6",
     "sinon": "^1.10.3",
-    "uglify-js": "2.2.4"
+    "uglify-js": "2.2.4",
+    "webpack": "^1.4.15"
   },
   "private": true,
   "APIMethod": "stub",

@@ -1,0 +1,125 @@
+{% load i18n %}
+{% load sentry_api %}
+{% load sentry_dsn %}
+{% load sentry_helpers %}
+{% load sentry_permissions %}
+
+{% get_sentry_version %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <meta name="robots" content="NONE,NOARCHIVE">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+
+        {% block css %}
+            <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+            <link href="{% url 'sentry-media' 'sentry' 'vendor/platformicons/platformicons/platformicons.css' %}" type="text/css" rel="stylesheet">
+        {% endblock %}
+
+        <title>{% block title %}Sentry{% endblock %}</title>
+
+        <!--[if lt IE 9]>
+        <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
+        <![endif]-->
+        {% block scripts %}
+            <script>
+            // Legacy app object
+            window.app = {};
+
+            window.SentryConfig = {};
+            window.SentryConfig.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
+            window.SentryConfig.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
+            window.SentryConfig.urlPrefix = {{ URL_PREFIX|to_json|safe }};
+            window.SentryConfig.lang = {{ request.LANGUAGE_CODE|to_json|safe }};
+            {% if selectedProject %}
+                window.SentryConfig.selectedProject = {% convert_to_json selectedProject %}
+            {% else %}
+                window.SentryConfig.selectedProject = null;
+            {% endif %}
+            {% if selectedTeam %}
+                window.SentryConfig.selectedTeam = {% convert_to_json selectedTeam %}
+            {% else %}
+                window.SentryConfig.selectedTeam = null;
+            {% endif %}
+            {% if selectedOrganization %}
+                window.SentryConfig.selectedOrganization = {% convert_to_json selectedOrganization %}
+            {% else %}
+                window.SentryConfig.selectedOrganization = null;
+            {% endif %}
+            </script>
+<!--
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-jquery.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-bootstrap.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-misc.min.js" %}"></script>
+ -->
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/app-react.js" %}"></script>
+
+            <script src="{% url 'sentry-media' "sentry" "dist/raven.min.js" %}"></script>
+
+            <script>
+            Raven.config('{% public_dsn %}', {
+                tags: {
+                    sentry_version: '{{ sentry_version.current }}'
+                },
+                whitelistUrls: {% convert_to_json ALLOWED_HOSTS %},
+                ignoreErrors: [
+                  // Random plugins/extensions
+                  'top.GLOBALS',
+                  // See: http://blog.errorception.com/2012/03/tale-of-unfindable-js-error. html
+                  'originalCreateNotification',
+                  'canvas.contentDocument',
+                  'MyApp_RemoveAllHighlights',
+                  'http://tt.epicplay.com',
+                  'Can\'t find variable: ZiteReader',
+                  'jigsaw is not defined',
+                  'ComboSearch is not defined',
+                  'http://loading.retry.widdit.com/',
+                  'atomicFindClose',
+                  // Facebook borked
+                  'fb_xd_fragment',
+                  // ISP "optimizing" proxy - `Cache-Control: no-transform` seems to reduce this. (thanks @acdha)
+                  // See http://stackoverflow.com/questions/4113268/how-to-stop-javascript-injection-from-vodafone-proxy
+                  'bmi_SafeAddOnload',
+                  'EBCallBackMessageReceived',
+                  // See http://toolbar.conduit.com/Developer/HtmlAndGadget/Methods/JSInjection.aspx
+                  'conduitPage'
+                ],
+                ignoreUrls: [
+                  // Facebook flakiness
+                  /graph\.facebook\.com/i,
+                  // Facebook blocked
+                  /connect\.facebook\.net\/en_US\/all\.js/i,
+                  // Woopra flakiness
+                  /eatdifferent\.com\.woopra-ns\.com/i,
+                  /static\.woopra\.com\/js\/woopra\.js/i,
+                  // Chrome extensions
+                  /extensions\//i,
+                  /^chrome:\/\//i,
+                  // Other plugins
+                  /127\.0\.0\.1:4001\/isrunning/i,  // Cacaoweb
+                  /webappstoolbarba\.texthelp\.com\//i,
+                  /metrics\.itunes\.apple\.com\.edgesuite\.net\//i
+                ]
+            }).install();
+
+            {% if request.user.is_authenticated %}
+            Raven.setUser({
+                email: '{{ request.user.email }}',
+                id: '{{ request.user.id }}',
+                ip_address: '{{ request.META.REMOTE_ADDR }}'
+            });
+            {% endif %}
+            </script>
+        {% endblock %}
+
+        {% block meta %}
+        {% endblock %}
+    </head>
+
+    <body></body>
+</html>

@@ -23,7 +23,8 @@
     "platformicons": "1.0.2",
     "typeahead.js": "~0.10.5",
     "raven-js": "~1.1.16",
-    "react": "~0.12.2"
+    "react": "~0.12.2",
+    "react-router": "~0.11.6"
   },
   "resolutions": {
     "angular": "1.2.9",

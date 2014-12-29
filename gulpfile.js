@@ -45,10 +45,6 @@ var jsDistros = {
     file("app/models/group.js")
   ],
 
-  "react": [
-    vendorFile("react/react-with-addons.min.js")
-  ],
-
   "legacy-app": [
     file("app/init.js"),
     file("app/charts.js"),
@@ -124,37 +120,6 @@ function buildJsCompileTask(name, fileList) {
   };
 }
 
-function buildWebpackCompileTask(name, entryPoint) {
-  // TODO(dcramer): sourcemaps
-  return function(){
-    return gulp.src(entryPoint)
-      .pipe(gp_cached('js-' + name))
-      .pipe(gp_webpack({
-        entry: entryPoint,
-        module: {
-          loaders: [
-            {
-              test: /\.jsx$/,
-              loader: 'jsx-loader?insertPragma=React.DOM&harmony'
-            }
-          ]
-        },
-        externals: {
-          'react': 'React'
-        },
-        resolve: {
-          modulesDirectories: [distPath],
-          extensions: ['', '.jsx', '.js', '.json']
-        },
-        output: {
-          filename: name + '.js'
-        }
-      }))
-      .pipe(gulp.dest(distPath))
-      .on("error", gp_util.log);
-  };
-}
-
 function buildJsWatchTask(name, fileList) {
   return function(){
     return gulp.watch(fileList, ["dist:js:" + name]);
@@ -188,11 +153,6 @@ function buildJsDistroTasks() {
 
     jsDistroNames.push(distroName);
   }
-  // webpack app must be last
-  gulp.task("dist:js:app-react", buildWebpackCompileTask("app-react", file("app-react/main.jsx")));
-  gulp.task("watch:js:app-react", buildJsWatchTask("app-react", [file("app-react/main.jsx")]));
-
-  jsDistroNames.push("app-react")
 
   gulp.task("dist:js", jsDistroNames.map(function(n) { return "dist:js:" + n; }));
 
@@ -214,7 +174,11 @@ gulp.task("dist:css", ["dist:css:sentry", "dist:css:wall"]);
 
 buildJsDistroTasks();
 
-gulp.task("dist", ["dist:js", "dist:css"]);
+gulp.task("dist:webpack", function(){
+  return gp_webpack(require('./webpack.config.js'));
+});
+
+gulp.task("dist", ["dist:js", "dist:css", "dist:webpack"]);
 
 gulp.task("watch:css:sentry", function(){
   return gulp.watch(file("less/sentry.less"), ["dist:css:sentry"]);
@@ -226,7 +190,12 @@ gulp.task("watch:css:wall", function(){
 
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
 
+gulp.task("watch:webpack", function(){
+  var config = require('./webpack.config.js');
+  config.watch = true;
+  return gp_webpack(config);
+});
 
-gulp.task("watch", ["watch:js", "watch:css"]);
+gulp.task("watch", ["watch:js", "watch:css", "watch:webpack"]);
 
 gulp.task("default", ["dist"]);
