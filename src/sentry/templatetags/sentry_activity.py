@@ -7,6 +7,8 @@ sentry.templatetags.sentry_activity
 """
 from __future__ import absolute_import
 
+import logging
+
 from django import template
 from django.utils.html import escape, urlize, linebreaks
 from django.utils.safestring import mark_safe
@@ -37,7 +39,11 @@ def render_activity(item):
         # not implemented
         return
 
-    action_str = ACTIVITY_ACTION_STRINGS[item.type]
+    try:
+        action_str = ACTIVITY_ACTION_STRINGS[item.type]
+    except KeyError:
+        logging.warning('Unknown activity type present: %s', item.type)
+        return
 
     if item.type == Activity.CREATE_ISSUE:
         action_str = action_str.format(**item.data)
