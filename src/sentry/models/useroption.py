@@ -90,6 +90,8 @@ class UserOptionManager(BaseManager):
         self.__metadata = {}
 
 
+# TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to
+# be manually replaced in the database. We should restructure this model.
 class UserOption(Model):
     """
     User options apply only to a user, and optionally a project.
