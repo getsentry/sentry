@@ -52,12 +52,17 @@
             {% endif %}
             </script>
 
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-angular.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-jquery.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-bootstrap.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-misc.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/app.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/legacy-app.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/app-react.js" %}"></script>
+
+            <script>
+            (function(){
+              for (var n in window.exports) {
+                window[n] = window.exports[n];
+              }
+              window.$ = window.jQuery;
+            }());
+            </script>
 
             {% include "sentry/includes/ravenjs.html" %}
         {% endblock %}
@@ -210,12 +215,12 @@
                     {% endblock %}
 
                     {% block content %}
-                    <div class="row">
+                    <div class="row" id="blk_content">
                         <div class="col-sm-3 sidebar">
                             {% block sidebar %}
                             {% endblock %}
                         </div>
-                        <div class="col-sm-9">
+                        <div class="col-sm-9" id="blk_main">
                             {% block main %}
                             {% endblock %}
                         </div>

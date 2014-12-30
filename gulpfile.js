@@ -16,81 +16,67 @@ var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
 var jsDistros = {
-  "app": [
-    file("app/modules/charts.js"),
-    file("app/modules/collection.js"),
-    file("app/modules/flash.js"),
-    file("app/modules/forms.js"),
+  // "app": [
+  //   file("app/modules/charts.js"),
+  //   file("app/modules/collection.js"),
+  //   file("app/modules/flash.js"),
+  //   file("app/modules/forms.js"),
 
-    file("app/controllers/default.js"),
-    file("app/controllers/deleteTeam.js"),
-    file("app/controllers/editProjectRule.js"),
-    file("app/controllers/groupDetails.js"),
-    file("app/controllers/manageAccessGroupMembers.js"),
-    file("app/controllers/manageAccessGroupProjects.js"),
-    file("app/controllers/manageProject.js"),
-    file("app/controllers/manageProjectNotifications.js"),
-    file("app/controllers/manageTeamOwnership.js"),
-    file("app/controllers/manageTeamSettings.js"),
-    file("app/controllers/projectStream.js"),
-    file("app/controllers/teamDashboard.js"),
-    file("app/controllers/teamList.js"),
+  //   file("app/controllers/default.js"),
+  //   file("app/controllers/deleteTeam.js"),
+  //   file("app/controllers/editProjectRule.js"),
+  //   file("app/controllers/groupDetails.js"),
+  //   file("app/controllers/manageAccessGroupMembers.js"),
+  //   file("app/controllers/manageAccessGroupProjects.js"),
+  //   file("app/controllers/manageProject.js"),
+  //   file("app/controllers/manageProjectNotifications.js"),
+  //   file("app/controllers/manageTeamOwnership.js"),
+  //   file("app/controllers/manageTeamSettings.js"),
+  //   file("app/controllers/projectStream.js"),
+  //   file("app/controllers/teamDashboard.js"),
+  //   file("app/controllers/teamList.js"),
 
-    file("app/directives/assigneeSelector.js"),
-    file("app/directives/clippy.js"),
-    file("app/directives/count.js"),
-    file("app/directives/timeSince.js"),
-    file("app/directives/broadcast.js"),
+  //   file("app/directives/assigneeSelector.js"),
+  //   file("app/directives/clippy.js"),
+  //   file("app/directives/count.js"),
+  //   file("app/directives/timeSince.js"),
+  //   file("app/directives/broadcast.js"),
 
-    file("app/models/group.js")
-  ],
+  //   file("app/models/group.js")
+  // ],
 
-  "legacy-app": [
-    file("app/init.js"),
-    file("app/charts.js"),
-    file("app/utils.js")
-  ],
+  // "legacy-app": [
+  //   file("app/init.js"),
+  //   file("app/charts.js"),
+  //   file("app/utils.js")
+  // ],
 
-  "vendor-jquery": [
-    vendorFile("jquery/dist/jquery.min.js"),
-    file("scripts/lib/jquery.migrate.js"),
+  // "vendor-jquery": [
+  //   vendorFile("jquery/dist/jquery.min.js"),
+  //   file("scripts/lib/jquery.migrate.js"),
 
-    vendorFile("jquery-flot/jquery.flot.js"),
-    vendorFile("jquery-flot/jquery.flot.resize.js"),
-    vendorFile("jquery-flot/jquery.flot.stack.js"),
-    vendorFile("jquery-flot/jquery.flot.time.js"),
-    file("scripts/lib/jquery.flot.dashes.js"),
-    file("scripts/lib/jquery.flot.tooltip.js"),
+  //   vendorFile("jquery-flot/jquery.flot.js"),
+  //   vendorFile("jquery-flot/jquery.flot.resize.js"),
+  //   vendorFile("jquery-flot/jquery.flot.stack.js"),
+  //   vendorFile("jquery-flot/jquery.flot.time.js"),
+  //   file("scripts/lib/jquery.flot.dashes.js"),
+  //   file("scripts/lib/jquery.flot.tooltip.js"),
 
-    file("scripts/lib/jquery.cookie.js"),
+  //   file("scripts/lib/jquery.cookie.js"),
 
-    vendorFile("typeahead.js/dist/typeahead.jquery.min.js")
-  ],
+  //   vendorFile("typeahead.js/dist/typeahead.jquery.min.js")
+  // ],
 
-  "vendor-angular": [
-    vendorFile("angular/angular.min.js"),
-    vendorFile("angular-animate/angular-animate.min.js"),
-    vendorFile("angular-bootstrap/ui-bootstrap-tpls.min.js"),
-    vendorFile("angular-classy/angular-classy.min.js"),
-    vendorFile("angular-loading-bar/build/loading-bar.min.js")
-  ],
+  // "vendor-bootstrap": [
+  //   vendorFile("bootstrap/dist/js/bootstrap.min.js"),
+  //   vendorFile("bootstrap-datepicker/js/bootstrap-datepicker.js")
+  // ],
 
-  "vendor-backbone": [
-    file("scripts/lib/json2.js"),
-    file("scripts/lib/underscore.js"),
-    file("scripts/lib/backbone.js")
-  ],
-
-  "vendor-bootstrap": [
-    vendorFile("bootstrap/dist/js/bootstrap.min.js"),
-    vendorFile("bootstrap-datepicker/js/bootstrap-datepicker.js")
-  ],
-
-  "vendor-misc": [
-    vendorFile("moment/min/moment.min.js"),
-    vendorFile("simple-slider/js/simple-slider.min.js"),
-    vendorFile("selectize/dist/js/standalone/selectize.min.js")
-  ],
+  // "vendor-misc": [
+  //   vendorFile("moment/min/moment.min.js"),
+  //   vendorFile("simple-slider/js/simple-slider.min.js"),
+  //   vendorFile("selectize/dist/js/standalone/selectize.min.js")
+  // ],
 
   "raven": [
     vendorFile("raven-js/dist/raven.min.js")

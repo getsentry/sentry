@@ -14,14 +14,14 @@ function vendorFile(name) {
 
 module.exports = {
   entry: {
-    "app-react": file('app-react/main.jsx'),
+    "app-react": file("app-react/main.jsx"),
     "vendor": ["react", "react-router", "jquery"]
   },
   module: {
     loaders: [
       {
         test: /\.jsx$/,
-        loader: 'jsx-loader?insertPragma=React.DOM&harmony'
+        loader: "jsx-loader?insertPragma=React.DOM&harmony"
       }
     ]
   },
@@ -30,9 +30,11 @@ module.exports = {
   ],
   resolve: {
     modulesDirectories: [distPath, "node_modules"],
-    extensions: ['', '.jsx', '.js', '.json']
+    extensions: ["", ".jsx", ".js", ".json"]
   },
   output: {
-    filename: distPath + '/[name].js'
+    filename: distPath + "/[name].js",
+    libraryTarget: "var",
+    library: "exports"
   }
 }
