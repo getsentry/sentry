@@ -14,7 +14,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    Model, GzippedDictField, BoundedPositiveIntegerField, sane_repr
+    FlexibleForeignKey, Model, GzippedDictField, BoundedPositiveIntegerField,
+    sane_repr
 )
 from sentry.utils.http import absolute_uri
 
@@ -25,8 +26,8 @@ class AlertStatus(object):
 
 
 class Alert(Model):
-    project = models.ForeignKey('sentry.Project')
-    group = models.ForeignKey('sentry.Group', null=True)
+    project = FlexibleForeignKey('sentry.Project')
+    group = FlexibleForeignKey('sentry.Group', null=True)
     datetime = models.DateTimeField(default=timezone.now)
     message = models.TextField()
     data = GzippedDictField(null=True)
@@ -99,8 +100,8 @@ class Alert(Model):
 
 
 class AlertRelatedGroup(Model):
-    group = models.ForeignKey('sentry.Group')
-    alert = models.ForeignKey(Alert)
+    group = FlexibleForeignKey('sentry.Group')
+    alert = FlexibleForeignKey(Alert)
     data = GzippedDictField(null=True)
 
     class Meta:

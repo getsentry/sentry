@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class Release(Model):
@@ -18,7 +18,7 @@ class Release(Model):
     A release is generally created when a new version is pushed into a
     production state.
     """
-    project = models.ForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
 

@@ -18,16 +18,16 @@ from django.utils import timezone
 import six
 
 from sentry.db.models import (
-    Model, BaseManager, sane_repr
+    Model, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 
 class ProjectKey(Model):
-    project = models.ForeignKey('sentry.Project', related_name='key_set')
+    project = FlexibleForeignKey('sentry.Project', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     roles = BitField(flags=(
         # access to post events to the store endpoint
         ('store', 'Event API access'),
@@ -37,7 +37,7 @@ class ProjectKey(Model):
     ), default=['store'])
 
     # For audits
-    user_added = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
+    user_added = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager(cache_fields=(

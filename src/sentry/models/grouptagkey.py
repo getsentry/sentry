@@ -11,7 +11,8 @@ from django.db import models
 
 from sentry.constants import MAX_TAG_KEY_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, sane_repr
+    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey,
+    sane_repr
 )
 
 
@@ -21,8 +22,8 @@ class GroupTagKey(Model):
 
     An example key might be "url" or "server_name".
     """
-    project = models.ForeignKey('sentry.Project', null=True)
-    group = models.ForeignKey('sentry.Group')
+    project = FlexibleForeignKey('sentry.Project', null=True)
+    group = FlexibleForeignKey('sentry.Group')
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
 

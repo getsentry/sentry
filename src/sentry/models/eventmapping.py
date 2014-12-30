@@ -10,12 +10,12 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class EventMapping(Model):
-    project = models.ForeignKey('sentry.Project')
-    group = models.ForeignKey('sentry.Group')
+    project = FlexibleForeignKey('sentry.Project')
+    group = FlexibleForeignKey('sentry.Group')
     event_id = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
 

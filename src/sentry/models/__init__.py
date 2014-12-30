@@ -13,4 +13,3 @@ from south.modelsinspector import add_introspection_rules
 import_submodules(globals(), __name__, __path__)
 
 add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.pickle\.UnicodePickledObjectField"])

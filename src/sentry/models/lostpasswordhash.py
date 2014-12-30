@@ -14,12 +14,12 @@ from django.db import models
 from django.utils import timezone
 from urlparse import urlparse
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
 
 
 class LostPasswordHash(Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, unique=True)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
     hash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
 
