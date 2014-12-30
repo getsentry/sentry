@@ -11,7 +11,9 @@ from django.core.urlresolvers import reverse
 from django.db import models
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
-from sentry.db.models import Model, BoundedPositiveIntegerField, sane_repr
+from sentry.db.models import (
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
+)
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
@@ -42,7 +44,7 @@ class TagKey(Model):
         'sentry:function': 'sentry-explore-code-by-function',
     }
 
-    project = models.ForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project')
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
     label = models.CharField(max_length=64, null=True)

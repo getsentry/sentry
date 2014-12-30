@@ -12,7 +12,8 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BaseManager, sane_repr
+    Model, BoundedPositiveIntegerField, BaseManager, FlexibleForeignKey,
+    sane_repr
 )
 
 
@@ -21,8 +22,8 @@ class GroupTagValue(Model):
     Stores the total number of messages seen by a group matching
     the given filter.
     """
-    project = models.ForeignKey('sentry.Project', null=True, related_name='grouptag')
-    group = models.ForeignKey('sentry.Group', related_name='grouptag')
+    project = FlexibleForeignKey('sentry.Project', null=True, related_name='grouptag')
+    group = FlexibleForeignKey('sentry.Group', related_name='grouptag')
     times_seen = BoundedPositiveIntegerField(default=0)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)

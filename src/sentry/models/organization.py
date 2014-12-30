@@ -14,7 +14,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    sane_repr
 )
 from sentry.db.models.utils import slugify_instance
 
@@ -74,7 +75,7 @@ class Organization(Model):
     """
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    owner = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     status = BoundedPositiveIntegerField(choices=(
         (OrganizationStatus.VISIBLE, _('Visible')),
         (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),

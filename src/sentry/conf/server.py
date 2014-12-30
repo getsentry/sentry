@@ -189,6 +189,8 @@ LOCALE_PATHS = (
     os.path.join(PROJECT_ROOT, 'locale'),
 )
 
+CSRF_FAILURE_VIEW = 'sentry.web.frontend.csrf_failure.view'
+
 # Auth configuration
 
 try:
@@ -630,6 +632,10 @@ SENTRY_MANAGED_USER_FIELDS = ('email',)
 
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
+
+# You should not change this setting after your database has been created
+# unless you have altered all schemas first
+SENTRY_USE_BIG_INTS = False
 
 # Configure celery
 import djcelery

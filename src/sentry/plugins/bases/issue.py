@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from django import forms
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from social_auth.models import UserSocialAuth
@@ -42,11 +41,7 @@ class IssuePlugin(Plugin):
 
     def _get_group_description(self, request, group, event):
         output = [
-            absolute_uri(reverse('sentry-group', kwargs={
-                'project_id': group.project.slug,
-                'organization_slug': group.organization.slug,
-                'group_id': group.id,
-            })),
+            absolute_uri(group.get_absolute_url()),
         ]
         body = self._get_group_body(request, group, event)
         if body:
@@ -190,7 +185,7 @@ class IssuePlugin(Plugin):
                 data=issue_information,
             )
 
-            return self.redirect(reverse('sentry-group', args=[group.organization.slug, group.project_id, group.pk]))
+            return self.redirect(group.get_absolute_url())
 
         context = {
             'form': form,

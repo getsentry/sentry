@@ -12,13 +12,13 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, sane_repr
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
 )
 
 
 class SearchDocument(Model):
-    project = models.ForeignKey('sentry.Project')
-    group = models.ForeignKey('sentry.Group')
+    project = FlexibleForeignKey('sentry.Project')
+    group = FlexibleForeignKey('sentry.Group')
     total_events = BoundedPositiveIntegerField(default=1)
     status = BoundedPositiveIntegerField(default=0)
     date_added = models.DateTimeField(default=timezone.now)
@@ -33,7 +33,7 @@ class SearchDocument(Model):
 
 
 class SearchToken(Model):
-    document = models.ForeignKey(SearchDocument, related_name="token_set")
+    document = FlexibleForeignKey(SearchDocument, related_name="token_set")
     field = models.CharField(max_length=64, default='text')
     token = models.CharField(max_length=128)
     times_seen = BoundedPositiveIntegerField(default=1)

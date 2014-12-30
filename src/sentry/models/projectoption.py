@@ -11,7 +11,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
@@ -108,7 +108,7 @@ class ProjectOption(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
-    project = models.ForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project')
     key = models.CharField(max_length=64)
     value = UnicodePickledObjectField()
 
