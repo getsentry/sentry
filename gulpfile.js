@@ -176,12 +176,13 @@ gulp.task("watch:css:wall", function(){
 
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
 
-gulp.task("watch:webpack", function(){
-  var config = require('./webpack.config.js');
-  config.watch = true;
-  return gp_webpack(config);
-});
+// TODO(dcramer): this is causing issues, use webpack --watch for now
+// gulp.task("watch:webpack", function(){
+//   var config = require('./webpack.config.js');
+//   config.watch = true;
+//   return gp_webpack(config);
+// });
 
-gulp.task("watch", ["watch:js", "watch:css", "watch:webpack"]);
+gulp.task("watch", ["watch:js", "watch:css"]);
 
 gulp.task("default", ["dist"]);
