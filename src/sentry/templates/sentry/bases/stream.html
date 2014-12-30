@@ -25,48 +25,4 @@
             <broadcast></broadcast>
         </li>
     </ul>
-
-    <div class="filter-nav" ng-controller="ProjectStreamControlsCtrl">
-        <div class="row">
-            <div class="col-sm-4 primary-filters">
-              <div class="btn-group btn-group-justified">
-                <a href="?" class="btn btn-default btn-all-events">All Events</a>
-                <a href="?bookmarks=1" class="btn btn-default btn-middle btn-bookmarks">Bookmarks</a>
-                <a href="?assigned=1" class="btn btn-default btn-assigned">Assigned</a>
-              </div>
-            </div>
-            <div class="col-sm-8">
-              <div class="search">
-                  <form class="form-horizontal" action="." method="GET">
-                      <div>
-                          <input type="text" class="search-input form-control"
-                                 placeholder="Search for events, users, tags, and everything else."
-                                 name="query"
-                                 value="{% if query %}{{query}}{% endif %}">
-                          <span class="icon-search"></span>
-                      </div>
-                      <div class="search-dropdown" style="display:none">
-                        <ul class="search-helper search-autocomplete-list">
-                          <li class="search-autocomplete-item">
-                            <span class="icon icon-tag"></span>
-                            <h4>Tag - <span class="search-description">key/value pair associated to an event</span></h4>
-                            <p class="search-example">browser:"Chrome 34"</p>
-                          </li>
-                          <li class="search-autocomplete-item">
-                            <span class="icon icon-toggle"></span>
-                            <h4>Status - <span class="search-description">State of an event</span></h4>
-                            <p class="search-example">is:resolved, unresolved, muted</p>
-                          </li>
-                          <li class="search-autocomplete-item">
-                            <span class="icon icon-user"></span>
-                            <h4>Assigned - <span class="search-description">team member assigned to an event</span></h4>
-                            <p class="search-example">assigned:[me|user@example.com]</p>
-                          </li>
-                        </ul>
-                      </div>
-                  </form>
-              </div>
-            </div>
-        </div>
-    </div>
 {% endblock %}
