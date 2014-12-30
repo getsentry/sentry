@@ -13,7 +13,9 @@
     <div id="blk_stream"></div>
     <script>
     $(function(){
-      React.renderComponent(Stream(), document.getElementById('blk_stream'));
+      React.render(React.createFactory(Stream)({
+      	data: {% serialize event_list %}
+      }), document.getElementById('blk_stream'));
     });
     </script>
 {% endblock %}
