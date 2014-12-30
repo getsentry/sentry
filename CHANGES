@@ -6,8 +6,6 @@ Between version 6.4.x and 7.0 a significant number of changes have landed (appro
 Backwards Incompatible Changes
 ==============================
 
-All integer fields have been replaced with bigint's. This migration is *not* automated (due to it causing locking) and you will need to update your schema accordingly.
-
 - Django has been upgraded to 1.6
 - The buffer API has been rewritten and the Redis buffer has had its performance greatly improved.
 - The UDP server has been removed. Threaded/async models are the preferred replacement.
@@ -40,6 +38,12 @@ Protocol Version 6
 ==================
 
 Version 6 of the protocol has been introduced. The only change is the addition of the `release` attribute.
+
+
+BIGINT
+======
+
+All integer fields have been replaced with bigint's. This migration is *not* automated (due to it causing locking) and if you need it locally you will need to sort out the migration on your own, as well as set `SENTRY_USE_BIG_INTS = True` in your configuration.
 
 
 Version 6.4.0
