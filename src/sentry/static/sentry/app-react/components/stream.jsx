@@ -64,7 +64,7 @@ var FilterSelectLink = React.createClass({
     className += ' btn btn-default';
 
     if (this.props.isActive) {
-      className += ' btn-active';
+      className += ' active';
     }
 
     var queryString = '?' + this.props.query;
