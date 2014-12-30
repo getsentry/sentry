@@ -122,7 +122,8 @@ var Actions = React.createClass({
       <div className="stream-actions">
         <div className="stream-actions-left stream-actions-cell">
           <div className="checkbox">
-            <input type="checkbox" className="chk-select-all"/>
+            <input type="checkbox" className="chk-select-all"
+                   onClick={this.handleSelectAll.bind(this) />
           </div>
           <div className="btn-group">
             <a href="javascript:void(0)" className="btn btn-default btn-sm action action-resolve">
