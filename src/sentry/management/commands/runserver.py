@@ -50,8 +50,9 @@ class Command(RunserverCommand):
             try:
                 server.wait()
             finally:
-                server.terminate()
-                if watcher:
-                    watcher.terminate()
+                if server.poll() is None:
+                    server.kill()
+                if watcher.poll() is None:
+                    watcher.kill()
         else:
             super(Command, self).run(*args, **options)
