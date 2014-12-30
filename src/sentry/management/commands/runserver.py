@@ -30,7 +30,7 @@ class Command(RunserverCommand):
         devnull = open('/dev/null', 'w')
 
         self.stdout.write('>> Running [gulp watch]')
-        return Popen([self.gulp_bin, 'dist', 'watch'], cwd=self.cwd, stdout=devnull)
+        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd, stdout=devnull)
 
     def run_server(self):
         args = sys.argv
