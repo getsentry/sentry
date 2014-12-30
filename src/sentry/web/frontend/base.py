@@ -169,12 +169,13 @@ class BaseView(View, OrganizationMixin):
         context = csrf(request)
         return context
 
-    def respond(self, template, context=None):
+    def respond(self, template, context=None, status=200):
         default_context = self.default_context
         if context:
             default_context.update(context)
 
-        return render_to_response(template, default_context, self.request)
+        return render_to_response(template, default_context, self.request,
+                                  status=status)
 
     def redirect(self, url):
         return HttpResponseRedirect(url)

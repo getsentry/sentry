@@ -189,6 +189,8 @@ LOCALE_PATHS = (
     os.path.join(PROJECT_ROOT, 'locale'),
 )
 
+CSRF_FAILURE_VIEW = 'sentry.web.frontend.csrf_failure.view'
+
 # Auth configuration
 
 try:
