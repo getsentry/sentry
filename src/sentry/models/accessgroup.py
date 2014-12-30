@@ -13,7 +13,8 @@ from django.utils import timezone
 
 from sentry.constants import MEMBER_TYPES, MEMBER_USER
 from sentry.db.models import (
-    Model, BoundedIntegerField, GzippedDictField, BaseManager, sane_repr
+    Model, BoundedIntegerField, FlexibleForeignKey, GzippedDictField,
+    BaseManager, sane_repr
 )
 
 
@@ -26,7 +27,7 @@ class AccessGroup(Model):
     membership is automatically maintained. If this is the case the
     ``managed`` attribute will be ``True``.
     """
-    team = models.ForeignKey('sentry.Team')
+    team = FlexibleForeignKey('sentry.Team')
     name = models.CharField(max_length=64)
     type = BoundedIntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     managed = models.BooleanField(default=False)

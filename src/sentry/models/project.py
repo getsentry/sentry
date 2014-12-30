@@ -18,7 +18,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import PLATFORM_TITLES, PLATFORM_LIST
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    sane_repr
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
@@ -86,8 +87,8 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    organization = models.ForeignKey('sentry.Organization')
-    team = models.ForeignKey('sentry.Team')
+    organization = FlexibleForeignKey('sentry.Organization')
+    team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(default=0, choices=(

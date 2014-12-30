@@ -16,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
-    BaseManager, sane_repr
+    BaseManager, FlexibleForeignKey, sane_repr
 )
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
@@ -28,9 +28,9 @@ class Event(Model):
     """
     An individual event.
     """
-    group = models.ForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
+    group = FlexibleForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
-    project = models.ForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     message = models.TextField()
     checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)

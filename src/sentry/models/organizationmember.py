@@ -16,7 +16,9 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 
-from sentry.db.models import Model, BoundedPositiveIntegerField, sane_repr
+from sentry.db.models import (
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
+)
 from sentry.utils.http import absolute_uri
 
 
@@ -36,9 +38,9 @@ class OrganizationMember(Model):
     and could be thought of as team owners (though their access level may not)
     be set to ownership.
     """
-    organization = models.ForeignKey('sentry.Organization', related_name="member_set")
+    organization = FlexibleForeignKey('sentry.Organization', related_name="member_set")
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                              related_name="sentry_orgmember_set")
     email = models.EmailField(null=True, blank=True)
 
