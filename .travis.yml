@@ -1,3 +1,4 @@
+sudo: false
 language: python
 services:
   - elasticsearch
@@ -27,7 +28,8 @@ env:
 
 before_install:
   # Use closer nameservers
-  - printf "nameserver 199.91.168.70\nnameserver 199.91.168.71\n" | sudo tee /etc/resolv.conf
+  # XXX: not supported on containers
+  # - printf "nameserver 199.91.168.70\nnameserver 199.91.168.71\n" | sudo tee /etc/resolv.conf
 
   # These need to be here and not in the env hash because they need to be
   # evaluated after the virtualenv has been setup
