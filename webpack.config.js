@@ -15,7 +15,7 @@ function vendorFile(name) {
 module.exports = {
   entry: {
     "app-react": file("app-react/main.jsx"),
-    "vendor": ["react", "react-router", "jquery"]
+    "vendor": ["react", "react-router", "jquery", "moment"]
   },
   module: {
     loaders: [

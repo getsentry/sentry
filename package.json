@@ -30,6 +30,7 @@
     "karma-sinon": "^1.0.3",
     "less": "1.7.0",
     "mocha": "1.9.x",
+    "moment": "^2.8.4",
     "react": "^0.12.2",
     "react-router": "^0.11.6",
     "sinon": "^1.10.3",
