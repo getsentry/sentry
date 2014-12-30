@@ -224,7 +224,7 @@ var Aggregate = React.createClass({
           <div className="checkbox">
               <input type="checkbox" className="chk-select" value="{data.id}" />
           </div>
-          <h3><a href="">
+          <h3><a href={data.permalink}>
             <span className="icon icon-bookmark"></span>
             {data.title}
           </a></h3>
