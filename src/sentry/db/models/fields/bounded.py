@@ -96,8 +96,12 @@ if settings.SENTRY_USE_BIG_INTS:
             return super(BoundedBigAutoField, self).get_prep_value(value)
 
 else:
-    BoundedBigIntegerField = BoundedIntegerField
-    BoundedBigAutoField = BoundedAutoField
+    # we want full on classes for these
+    class BoundedBigIntegerField(BoundedIntegerField):
+        pass
+
+    class BoundedBigAutoField(BoundedAutoField):
+        pass
 
 
 add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedAutoField"])
