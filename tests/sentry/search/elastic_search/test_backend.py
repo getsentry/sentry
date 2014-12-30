@@ -133,6 +133,7 @@ class ElasticSearchTest(TestCase):
         assert len(results) == 1
         assert results[0] == self.group2
 
+    @pytest.mark.xfail
     def test_tags(self):
         results = self.backend.query(self.project1, tags={'env': 'staging'})
         assert len(results) == 1
