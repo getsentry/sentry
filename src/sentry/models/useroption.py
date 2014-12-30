@@ -12,7 +12,7 @@ from django.core.signals import request_finished
 from django.conf import settings
 from django.db import models
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 
@@ -90,6 +90,8 @@ class UserOptionManager(BaseManager):
         self.__metadata = {}
 
 
+# TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to
+# be manually replaced in the database. We should restructure this model.
 class UserOption(Model):
     """
     User options apply only to a user, and optionally a project.
@@ -97,8 +99,8 @@ class UserOption(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    project = models.ForeignKey('sentry.Project', null=True)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=64)
     value = UnicodePickledObjectField()
 

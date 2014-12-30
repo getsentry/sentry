@@ -15,7 +15,8 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    sane_repr
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
@@ -121,10 +122,10 @@ class Team(Model):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
-    organization = models.ForeignKey('sentry.Organization')
+    organization = FlexibleForeignKey('sentry.Organization')
     slug = models.SlugField()
     name = models.CharField(max_length=64)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
+    owner = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     status = BoundedPositiveIntegerField(choices=(
         (TeamStatus.VISIBLE, _('Active')),
         (TeamStatus.PENDING_DELETION, _('Pending Deletion')),

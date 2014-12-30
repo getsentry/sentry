@@ -40,6 +40,12 @@ Protocol Version 6
 Version 6 of the protocol has been introduced. The only change is the addition of the `release` attribute.
 
 
+BIGINT
+======
+
+All integer fields have been replaced with bigint's. This migration is *not* automated (due to it causing locking) and if you need it locally you will need to sort out the migration on your own, as well as set `SENTRY_USE_BIG_INTS = True` in your configuration.
+
+
 Version 6.4.0
 -------------
 

@@ -11,7 +11,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 
 
@@ -77,7 +77,7 @@ class GroupMeta(Model):
     Generally useful for things like storing metadata
     provided by plugins.
     """
-    group = models.ForeignKey('sentry.Group')
+    group = FlexibleForeignKey('sentry.Group')
     key = models.CharField(max_length=64)
     value = models.TextField()
 

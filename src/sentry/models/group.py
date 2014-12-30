@@ -23,8 +23,8 @@ from sentry.constants import (
     LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
 )
 from sentry.db.models import (
-    BaseManager, BoundedIntegerField, BoundedPositiveIntegerField, Model,
-    GzippedDictField, sane_repr
+    BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
+    FlexibleForeignKey, Model, GzippedDictField, sane_repr
 )
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
@@ -107,7 +107,7 @@ class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
     """
-    project = models.ForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     logger = models.CharField(
         max_length=64, blank=True, default='root', db_index=True)
     level = BoundedPositiveIntegerField(

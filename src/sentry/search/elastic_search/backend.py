@@ -181,7 +181,8 @@ class ElasticSearchBackend(SearchBackend):
             id_list=instance_ids,
             cursor=cursor,
             limit=limit,
-            key='TODO',
+            # TODO(dcramer): implement cursors
+            key='id',
         )
 
     def upgrade(self):
@@ -196,18 +197,20 @@ class ElasticSearchBackend(SearchBackend):
                             'required': True,
                             'path': 'project_id',
                         },
-                        'message': {
-                            'type': 'string',
-                        },
-                        'project_id': {
-                            'type': 'long',
-                            'index': 'not_analyzed',
-                        },
-                        'first_seen': {
-                            'type': 'date',
-                        },
-                        'last_seen': {
-                            'type': 'date',
+                        'properties': {
+                            'message': {
+                                'type': 'string',
+                            },
+                            'project_id': {
+                                'type': 'long',
+                                'index': 'not_analyzed',
+                            },
+                            'first_seen': {
+                                'type': 'date',
+                            },
+                            'last_seen': {
+                                'type': 'date',
+                            },
                         },
                     },
                     'event': {

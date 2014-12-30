@@ -9,13 +9,13 @@ from __future__ import absolute_import
 
 from django.db import models
 
-from sentry.db.models import Model
+from sentry.db.models import FlexibleForeignKey, Model
 
 
 class GroupHash(Model):
-    project = models.ForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     hash = models.CharField(max_length=32, db_index=True)
-    group = models.ForeignKey('sentry.Group', null=True)
+    group = FlexibleForeignKey('sentry.Group', null=True)
 
     class Meta:
         app_label = 'sentry'
