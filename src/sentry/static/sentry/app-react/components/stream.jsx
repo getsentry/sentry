@@ -193,13 +193,14 @@ var ActionLink = React.createClass({
     actionLabel = actionLabel.replace('{count}', numEvents);
 
     return (
-      <Modal title="Please confirm" animation={false}>
+      <Modal title="Please confirm" animation={false} onRequestHide={this.handleToggle}>
         <div className="modal-body">
           <p><strong>Are you sure that you want to {actionLabel}?</strong></p>
           <p>This action cannot be undone.</p>
         </div>
         <div className="modal-footer">
-          <button type="button" className="btn btn-default">Cancel</button>
+          <button type="button" className="btn btn-default"
+                  onClick={this.handleToggle}>Cancel</button>
           {this.props.canActionAll &&
             <button type="button" className="btn btn-danger"
                     onClick={this.handleActionAll}>{confirmLabel} all recorded events</button>
