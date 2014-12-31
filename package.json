@@ -43,7 +43,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "postinstall": "bower install",
-    "pretest": "npm install && npm run build_static",
+    "pretest": "npm install && gulp dist",
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run"
   }
 }
