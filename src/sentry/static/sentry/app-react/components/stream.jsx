@@ -226,12 +226,20 @@ var Aggregate = React.createClass({
     var data = this.props.data,
         userCount = 0;
 
-    if (data.tags['sentry:user'] !== undefined) {
-      userCount = data.tags['sentry:user'].count;
+    if (data.tags["sentry:user"] !== undefined) {
+      userCount = data.tags["sentry:user"].count;
+    }
+
+    var className = "group";
+    if (this.props.isBookmarked) {
+      className += ' isBookmarked';
+    }
+    if (this.props.hasSeen) {
+      className += ' hasSeen';
     }
 
     return (
-      <li className="group">
+      <li className={className}>
         <div className="event-details event-cell">
           <div className="checkbox">
             <input type="checkbox" className="chk-select" value={data.id}
