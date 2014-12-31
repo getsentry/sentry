@@ -12,7 +12,7 @@
     "selectize": "~0.10.1",
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
     "platformicons": "1.0.2",
-    "typeahead.js": "~0.10.5",
+    "typeahead.js": "~0.10.5"
   },
   "resolutions": {
     "bootstrap": "~2.3.2"
