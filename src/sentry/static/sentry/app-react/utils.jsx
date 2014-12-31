@@ -12,11 +12,12 @@ var getQueryParams = function() {
   ).split('&');
   for (var i = 0, chunk; (chunk = hashes[i]); i++) {
     hash = chunk.split('=');
-    if (!hash[0] && !hash[1])
+    if (!hash[0] && !hash[1]) {
       return;
+    }
 
     vars[decodeURIComponent(hash[0])] = (hash[1] ? decodeURIComponent(hash[1]).replace(/\+/, ' ') : '');
-  };
+  }
 
   return vars;
 };

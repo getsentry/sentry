@@ -1,7 +1,9 @@
 {
-    "strict": true,
+    "strict": false,
     "browser": true,
     "predef": [
-        "angular"
+        "angular",
+        "module",
+        "require"
     ]
 }
