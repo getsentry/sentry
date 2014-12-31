@@ -123,13 +123,13 @@ var Actions = React.createClass({
         <div className="stream-actions-left stream-actions-cell">
           <div className="checkbox">
             <input type="checkbox" className="chk-select-all"
-                   onClick={this.handleSelectAll.bind(this) />
+                   onClick={this.handleSelectAll.bind(this)} />
           </div>
           <div className="btn-group">
-            <a href="javascript:void(0)" className="btn btn-default btn-sm action action-resolve">
+            <a href="#" className="btn btn-default btn-sm action action-resolve">
               <i aria-hidden="true" className="icon-checkmark"></i>
             </a>
-            <a href="javascript:void(0)" className="btn btn-default btn-sm action action-bookmark">
+            <a href="#" className="btn btn-default btn-sm action action-bookmark">
               <span className="icon icon-bookmark"></span>
             </a>
             <a className="btn btn-default btn-sm hidden-xs action action-more dropdown-toggle" data-toggle="dropdown">
@@ -137,15 +137,15 @@ var Actions = React.createClass({
             </a>
 
             <ul className="dropdown-menu more-menu">
-              <li><a href="javascript:void(0)" className="action action-merge">Merge Events</a></li>
-              <li><a href="javascript:void(0)" className="action action-remove-bookmark">Remove from Bookmarks</a></li>
+              <li><a href="#" className="action action-merge">Merge Events</a></li>
+              <li><a href="#" className="action action-remove-bookmark">Remove from Bookmarks</a></li>
               <li className="divider"></li>
-              <li><a href="javascript:void(0)" className="action action-delete">Delete Events</a></li>
+              <li><a href="#" className="action action-delete">Delete Events</a></li>
             </ul>
           </div>
 
           <div className="btn-group">
-            <a href="javascript:void(0)" className="btn btn-default btn-sm hidden-xs realtime-control">
+            <a href="#" className="btn btn-default btn-sm hidden-xs realtime-control">
               <span className="icon icon-pause"></span>
             </a>
           </div>
