@@ -14,7 +14,7 @@
     <script>
     $(function(){
       React.render(React.createFactory(Stream)({
-      	data: {% serialize event_list %}
+      	aggList: {% serialize event_list %}
       }), document.getElementById('blk_stream'));
     });
     </script>

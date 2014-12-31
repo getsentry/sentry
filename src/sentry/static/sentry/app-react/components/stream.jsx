@@ -1,5 +1,6 @@
 /*** @jsx React.DOM */
 var React = require("react");
+var $ = require("jquery");
 
 var utils = require("../utils");
 
@@ -117,13 +118,17 @@ var FilterSelect = React.createClass({
 });
 
 var Actions = React.createClass({
+  handleSelectAll: function(event){
+    return this.props.onSelectAll(event);
+  },
   render: function() {
     return (
       <div className="stream-actions">
         <div className="stream-actions-left stream-actions-cell">
           <div className="checkbox">
             <input type="checkbox" className="chk-select-all"
-                   onClick={this.handleSelectAll.bind(this)} />
+                   onChange={this.handleSelectAll}
+                   checked={this.props.selectAllActive} />
           </div>
           <div className="btn-group">
             <a href="#" className="btn btn-default btn-sm action action-resolve">
@@ -223,7 +228,9 @@ var Aggregate = React.createClass({
       <li className="group">
         <div className="event-details event-cell">
           <div className="checkbox">
-              <input type="checkbox" className="chk-select" value="{data.id}" />
+            <input type="checkbox" className="chk-select" value={data.id}
+                   checked={this.props.isSelected}
+                   onChange={this.props.onSelect} />
           </div>
           <h3><a href={data.permalink}>
             <span className="icon icon-bookmark"></span>
@@ -255,38 +262,90 @@ var Aggregate = React.createClass({
   }
 });
 
-var AggregateList = React.createClass({
-  render: function() {
-    var nodes = this.props.data.map(function(aggregate) {
-      return (
-        <Aggregate data={aggregate} />
-      );
-    });
-
-    return (
-      <ul className="group-list">
-        {nodes}
-      </ul>
-    );
-  }
-});
-
 var Stream = React.createClass({
   getInitialState: function() {
-    return {data: this.props.data || []};
+    return {
+      aggList: [],
+      selectAllActive: false,
+      multiSelected: false,
+      anySelected: false
+    };
+  },
+  componentWillMount: function() {
+    this.state.aggList = this.props.aggList || [];
+  },
+  handleSelect: function(aggId, event) {
+    var checked = $(event.target).is(':checked');
+    var aggList = this.state.aggList;
+    var aggNode = null;
+
+    var numSelected = 0,
+        numTotal = 0;
+
+    for (var i = 0, node; (node = this.state.aggList[i]); i++) {
+      if (aggId === node.id) {
+        aggNode = node;
+        aggNode.isSelected = checked;
+      }
+
+      if (node.isSelected) {
+        numSelected += 1;
+      }
+      numTotal += 1;
+    }
+
+    if (aggNode === null) {
+      throw new Error('Unable to find aggregate node for ID ' + aggId);
+    }
+
+    // TODO: handle no aggNode set?
+
+    this.setState({
+      aggList: aggList,
+      selectAllActive: (numSelected === numTotal),
+      anySelected: numSelected !== 0,
+      multiSelected: numSelected > 1
+    });
+  },
+  handleSelectAll: function(e){
+    var checked = $(event.target).is(':checked');
+    var aggList = this.state.aggList;
+    var numSelected = checked ? aggList.length : 0;
+
+    for (var i = 0, node; (node = aggList[i]); i++) {
+      node.isSelected = checked;
+    }
+
+    this.setState({
+      aggList: aggList,
+      selectAllActive: checked,
+      anySelected: numSelected !== 0,
+      multiSelected: numSelected > 1
+    });
   },
   render: function() {
+    var aggNodes = this.state.aggList.map(function(aggregate) {
+      return (
+        <Aggregate data={aggregate} key={aggregate.id}
+                   isSelected={aggregate.isSelected}
+                   onSelect={this.handleSelect.bind(this, aggregate.id)} />
+      );
+    }.bind(this));
+
     return (
       <div>
         <FilterSelect />
         <div className="group-header-container" data-spy="affix" data-offset-top="134">
           <div className="container">
             <div className="group-header">
-              <Actions/>
+              <Actions onSelectAll={this.handleSelectAll}
+                       selectAllActive={this.state.selectAllActive} />
             </div>
           </div>
         </div>
-        <AggregateList data={this.state.data} />
+        <ul className="group-list">
+          {aggNodes}
+        </ul>
       </div>
     );
   }
