@@ -16,10 +16,6 @@
     "raven-js": "~1.1.16"
   },
   "resolutions": {
-    "bootstrap": "~2.3.2",
-    "jquery-flot": "~0.8.3",
-    "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
-    "platformicons": "1.0.2",
-    "raven-js": "~1.1.16"
+    "bootstrap": "~2.3.2"
   }
 }
