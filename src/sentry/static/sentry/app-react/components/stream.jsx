@@ -132,6 +132,14 @@ var ActionLink = React.createClass({
     neverConfirm: React.PropTypes.bool,
   },
 
+  getDefaultProps: function() {
+    return {
+      confirmLabel: 'Edit',
+      onlyIfBulk: false,
+      neverConfirm: false
+    };
+  },
+
   getInitialState: function() {
     return {
       isModalOpen: false
@@ -196,7 +204,7 @@ var ActionLink = React.createClass({
       return '<span/>';
     }
 
-    var confirmLabel = this.props.confirmLabel || 'Edit';
+    var confirmLabel = this.props.confirmLabel;
     var actionLabel = this.props.actionLabel || this.defaultActionLabel(confirmLabel);
     var numEvents = selectedAggList.length;
 
@@ -384,6 +392,12 @@ var Actions = React.createClass({
 });
 
 var Aggregate = React.createClass({
+  propTypes: {
+    data: React.PropTypes.shape({
+      id: React.PropTypes.string
+    }),
+    isSelected: React.PropTypes.bool
+  },
   render: function() {
     var data = this.props.data,
         userCount = 0;
@@ -439,6 +453,9 @@ var Aggregate = React.createClass({
 });
 
 var Stream = React.createClass({
+  propTypes: {
+    aggList: React.PropTypes.array.isRequired
+  },
   getInitialState: function() {
     return {
       aggList: [],
