@@ -298,8 +298,6 @@ var Stream = React.createClass({
       throw new Error('Unable to find aggregate node for ID ' + aggId);
     }
 
-    // TODO: handle no aggNode set?
-
     this.setState({
       aggList: aggList,
       selectAllActive: (numSelected === numTotal),
