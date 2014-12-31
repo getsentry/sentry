@@ -306,7 +306,6 @@ var Actions = React.createClass({
                 Remove from Bookmarks
               </ActionLink></li>
               <li className="divider"></li>
-              <li>
               <li><ActionLink
                  className="action-delete"
                  disabled={!this.props.anySelected}
@@ -317,8 +316,6 @@ var Actions = React.createClass({
                  aggList={this.props.aggList}>
                 Delete Events
               </ActionLink></li>
-              <a href="#" className="action-delete"
-                     disabled={!this.props.anySelected}>Delete Events</a></li>
             </ul>
           </div>
 
