@@ -35,6 +35,7 @@
     "moment": "^2.8.4",
     "raven-js": "^1.1.11",
     "react": "^0.12.2",
+    "react-bootstrap": "^0.13.0",
     "react-router": "^0.11.6",
     "sinon": "^1.10.3",
     "uglify-js": "2.2.4",

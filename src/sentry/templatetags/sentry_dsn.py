@@ -20,7 +20,7 @@ def _get_project_key(project_id):
         return None
 
 
-@register.simple_tag()
+@register.simple_tag
 def public_dsn():
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
     cache_key = 'dsn:%s' % (project_id,)
