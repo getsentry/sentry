@@ -1,15 +1,9 @@
 {% extends "sentry/bases/stream.html" %}
 
-{% load i18n %}
 {% load sentry_api %}
-{% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block controller %}ProjectStreamCtrl{% endblock %}
-
 {% block content %}
-    {% querystring from request without sort as sort_querystring %}
-    {% querystring from request without since as since_querystring %}
     <div id="blk_stream"></div>
     <script>
     $(function(){
