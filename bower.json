@@ -6,32 +6,18 @@
   },
   "private": true,
   "dependencies": {
-    "angular": "1.2.9",
-    "angular-animate": "1.2.9",
-    "angular-bootstrap": "~0.10.0",
-    "angular-classy": "~0.4.2",
-    "angular-loading-bar": "~0.0.5",
-    "angular-linkify": "~0.3.0",
-    "angular-mocks": "1.2.9",
     "bootstrap": "~3.1.1",
     "bootstrap-datepicker": "~1.3.0",
-    "jquery": "~2.1.0",
     "jquery-flot": "~0.8.3",
-    "moment": "~2.8.4",
     "selectize": "~0.10.1",
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
     "platformicons": "1.0.2",
     "typeahead.js": "~0.10.5",
-    "raven-js": "~1.1.16",
-    "react": "~0.12.2",
-    "react-router": "~0.11.6"
+    "raven-js": "~1.1.16"
   },
   "resolutions": {
-    "angular": "1.2.9",
     "bootstrap": "~2.3.2",
-    "jquery": "~2.1.0",
     "jquery-flot": "~0.8.3",
-    "moment": "~2.8.4",
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
     "platformicons": "1.0.2",
     "raven-js": "~1.1.16"
