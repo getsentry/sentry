@@ -5,6 +5,8 @@ var $ = require("jquery");
 var utils = require("../utils");
 
 var Count = require("./count");
+var Modal = require("react-bootstrap/Modal");
+var OverlayMixin = require("react-bootstrap/OverlayMixin");
 var TimeSince = require("./timeSince");
 
 var SearchDropdown = React.createClass({
@@ -117,9 +119,105 @@ var FilterSelect = React.createClass({
   }
 });
 
+var ActionLink = React.createClass({
+  mixins: [OverlayMixin],
+
+  getInitialState: function() {
+    return {
+      isModalOpen: false
+    };
+  },
+
+  handleToggle: function() {
+    this.setState({
+      isModalOpen: !this.state.isModalOpen
+    });
+  },
+
+  handleActionAll: function(event) {
+    console.log('actioning all');
+  },
+
+  handleActionSelected: function(event) {
+    console.log('actioning selected');
+  },
+
+  defaultActionLabel: function(confirmLabel) {
+    return confirmLabel.toLowerCase() + ' these {count} events';
+  },
+
+  render: function () {
+    return (
+      <a {...this.props} onClick={this.handleToggle}>
+        {this.props.children}
+      </a>
+    );
+  },
+
+  renderOverlay: function() {
+    if (!this.state.isModalOpen) {
+      return <span/>;
+    }
+
+    var selectedAggList = [];
+    for (var i = 0, node; (node = this.props.aggList[i]); i++) {
+      if (node.isSelected === true) {
+        selectedAggList.push(node);
+      }
+    }
+
+    if (selectedAggList.length === 0) {
+      throw new Error('ActionModal rendered without any selected aggregates');
+    }
+
+    var shouldConfirm = true;
+    // if skipConfirm is set we never actually show the modal
+    if (this.props.skipConfirm === true) {
+      shouldConfirm = false;
+    // if onlyIfBulk is set and we've selected a single item, we skip
+    // showing the modal
+    } else if (this.props.onlyIfBulk === true && !this.props.selectAllActive) {
+      shouldConfirm = false;
+    }
+
+    // // TODO
+    // if (!shouldConfirm) {
+    //   this.props.onAction(selectedAggList);
+    //   return '<span/>';
+    // }
+
+    var confirmLabel = this.props.confirmLabel || 'Edit';
+    var actionLabel = this.props.actionLabel || this.defaultActionLabel(confirmLabel);
+    var numEvents = selectedAggList.length;
+
+    actionLabel = actionLabel.replace('{count}', numEvents);
+
+    return (
+      <Modal title="Please confirm" animation={false}>
+        <div className="modal-body">
+          <p><strong>Are you sure that you want to {actionLabel}?</strong></p>
+          <p>This action cannot be undone.</p>
+        </div>
+        <div className="modal-footer">
+          <button type="button" className="btn btn-default">Cancel</button>
+          {this.props.canActionAll &&
+            <button type="button" className="btn btn-danger"
+                    onClick={this.handleActionAll}>{confirmLabel} all recorded events</button>
+          }
+          <button type="button" className="btn btn-primary"
+                  onClick={this.handleActionSelected}>{confirmLabel} {numEvents} selected events</button>
+        </div>
+      </Modal>
+    );
+  }
+});
+
 var Actions = React.createClass({
   handleSelectAll: function(event){
     return this.props.onSelectAll(event);
+  },
+  handleResolve: function(aggList, event){
+    return this.props.onAction(aggList, {status: 'resolved'}, event);
   },
   render: function() {
     return (
@@ -131,10 +229,16 @@ var Actions = React.createClass({
                    checked={this.props.selectAllActive} />
           </div>
           <div className="btn-group">
-            <a href="#" className="btn btn-default btn-sm action-resolve"
-               disabled={!this.props.anySelected}>
+            <ActionLink
+               className="btn btn-default btn-sm action-resolve"
+               disabled={!this.props.anySelected}
+               onAction={this.handleResolve}
+               confirmLabel="Resolve"
+               canActionAll={true}
+               onlyIfBulk={true}
+               aggList={this.props.aggList}>
               <i aria-hidden="true" className="icon-checkmark"></i>
-            </a>
+            </ActionLink>
             <a href="#" className="btn btn-default btn-sm action-bookmark"
                disabled={!this.props.anySelected}>
               <span className="icon icon-bookmark"></span>
@@ -319,7 +423,7 @@ var Stream = React.createClass({
       multiSelected: numSelected > 1
     });
   },
-  handleSelectAll: function(e){
+  handleSelectAll: function(event){
     var checked = $(event.target).is(':checked');
     var aggList = this.state.aggList;
     var numSelected = checked ? aggList.length : 0;
@@ -335,12 +439,14 @@ var Stream = React.createClass({
       multiSelected: numSelected > 1
     });
   },
+  handleAction: function(event){
+  },
   render: function() {
-    var aggNodes = this.state.aggList.map(function(aggregate) {
+    var aggNodes = this.state.aggList.map(function(node) {
       return (
-        <Aggregate data={aggregate} key={aggregate.id}
-                   isSelected={aggregate.isSelected}
-                   onSelect={this.handleSelect.bind(this, aggregate.id)} />
+        <Aggregate data={node} key={node.id}
+                   isSelected={node.isSelected}
+                   onSelect={this.handleSelect.bind(this, node.id)} />
       );
     }.bind(this));
 
@@ -351,6 +457,8 @@ var Stream = React.createClass({
           <div className="container">
             <div className="group-header">
               <Actions onSelectAll={this.handleSelectAll}
+                       onAction={this.handleAction}
+                       aggList={this.state.aggList}
                        selectAllActive={this.state.selectAllActive}
                        anySelected={this.state.anySelected}
                        multiSelected={this.state.multiSelected} />
