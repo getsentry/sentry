@@ -244,16 +244,13 @@ var Actions = React.createClass({
     onDelete: React.PropTypes.func.isRequired,
     onMerge: React.PropTypes.func.isRequired
   },
-  handleSelectAll: function(event){
-    return this.props.onSelectAll(event);
-  },
   render: function() {
     return (
       <div className="stream-actions">
         <div className="stream-actions-left stream-actions-cell">
           <div className="checkbox">
             <input type="checkbox" className="chk-select-all"
-                   onChange={this.handleSelectAll}
+                   onChange={this.props.onSelectAll}
                    checked={this.props.selectAllActive} />
           </div>
           <div className="btn-group">
