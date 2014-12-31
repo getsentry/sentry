@@ -4,6 +4,14 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction
 
+def atomic_save(model):
+    try:
+        with transaction.atomic():
+            model.save()
+    except transaction.TransactionManagementError:
+        # sqlite isn't happy
+        model.save()
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -21,8 +29,7 @@ class Migration(DataMigration):
             project.organization = project.team.organization
 
             try:
-                with transaction.atomic():
-                    project.save()
+                atomic_save(project)
             except IntegrityError:
                 # we also need to update the slug here based on the new constraints
                 slugify_instance(project, project.name, (
