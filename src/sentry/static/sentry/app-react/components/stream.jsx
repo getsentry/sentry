@@ -260,7 +260,7 @@ var Actions = React.createClass({
             <ActionLink
                className="btn btn-default btn-sm action-resolve"
                disabled={!this.props.anySelected}
-               onAction={this.props.handleResolve}
+               onAction={this.props.onResolve}
                confirmLabel="Resolve"
                canActionAll={true}
                onlyIfBulk={true}
@@ -271,7 +271,7 @@ var Actions = React.createClass({
             <ActionLink
                className="btn btn-default btn-sm action-bookmark"
                disabled={!this.props.anySelected}
-               onAction={this.props.handleBookmark}
+               onAction={this.props.onBookmark}
                neverConfirm={true}
                confirmLabel="Bookmark"
                canActionAll={false}
@@ -289,7 +289,7 @@ var Actions = React.createClass({
               <li><ActionLink
                  className="action-merge"
                  disabled={!this.props.multiSelected}
-                 onAction={this.props.handleMerge}
+                 onAction={this.props.onMerge}
                  confirmLabel="Merge"
                  canActionAll={false}
                  selectAllActive={this.props.selectAllActive}
@@ -299,7 +299,7 @@ var Actions = React.createClass({
               <li><ActionLink
                  className="action-remove-bookmark"
                  disabled={!this.props.anySelected}
-                 onAction={this.props.handleRemoveBookmark}
+                 onAction={this.props.onRemoveBookmark}
                  neverConfirm={true}
                  actionLabel="remove these {count} events from your bookmarks"
                  onlyIfBulk={true}
@@ -313,7 +313,7 @@ var Actions = React.createClass({
               <li><ActionLink
                  className="action-delete"
                  disabled={!this.props.anySelected}
-                 onAction={this.props.handleRemoveBookmark}
+                 onAction={this.props.onRemoveBookmark}
                  confirmLabel="Delete"
                  canActionAll={false}
                  selectAllActive={this.props.selectAllActive}
