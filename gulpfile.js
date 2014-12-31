@@ -9,12 +9,15 @@ var gulp = require("gulp"),
     gp_uglify = require("gulp-uglify"),
     gp_util = require("gulp-util"),
     gp_watch = require("gulp-watch"),
-    gp_webpack = require("gulp-webpack");
-
-var path = require("path");
+    path = require("path"),
+    webpack = require("webpack");
 
 var staticPrefix = "src/sentry/static/sentry",
-    distPath = staticPrefix + "/dist";
+    distPath = staticPrefix + "/dist",
+    webpackStatsOptions = {
+      chunkModules: false,
+      colors: true
+    };
 
 var jsDistros = {
   // "app": [
@@ -189,8 +192,12 @@ gulp.task("dist:css", ["dist:css:sentry", "dist:css:wall"]);
 
 buildJsDistroTasks();
 
-gulp.task("dist:webpack", function(){
-  return gp_webpack(require('./webpack.config.js'));
+gulp.task("dist:webpack", function(callback){
+  webpack(require('./webpack.config.js'), function(err, stats) {
+      if(err) throw new gutil.PluginError("webpack", err);
+      gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
+      callback();
+  });
 });
 
 gulp.task("dist", ["dist:js", "dist:css", "dist:webpack"]);
@@ -210,12 +217,16 @@ gulp.task("watch:css:wall", function(){
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
 
 // TODO(dcramer): this is causing issues, use webpack --watch for now
-// gulp.task("watch:webpack", function(){
-//   var config = require('./webpack.config.js');
-//   config.watch = true;
-//   return gp_webpack(config);
-// });
+gulp.task("watch:webpack", function(callback){
+  var config = require('./webpack.config.js');
+  config.watch = true;
+  webpack(config, function(err, stats) {
+      if(err) throw new gutil.PluginError("webpack", err);
+      gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
+  });
+  callback();
+});
 
-gulp.task("watch", ["watch:js", "watch:css"]);
+gulp.task("watch", ["watch:js", "watch:css", "watch:webpack"]);
 
 gulp.task("default", ["dist"]);
