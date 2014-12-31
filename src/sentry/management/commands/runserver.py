@@ -30,7 +30,7 @@ class Command(RunserverCommand):
         devnull = open('/dev/null', 'w')
 
         self.stdout.write('>> Running [gulp watch]')
-        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd, stdout=devnull)
+        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd)
 
     def run_server(self):
         args = sys.argv
@@ -39,9 +39,6 @@ class Command(RunserverCommand):
 
     def run(self, *args, **options):
         if options['use_watcher']:
-            self.stdout.write('>> Running [gulp clean]')
-            Popen([self.gulp_bin, 'clean'], cwd=self.cwd).wait()
-
             self.stdout.write('>> Running [gulp dist]')
             Popen([self.gulp_bin, 'dist'], cwd=self.cwd).wait()
 

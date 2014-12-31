@@ -8,6 +8,7 @@ var gulp = require("gulp"),
     gp_rename = require("gulp-rename"),
     gp_uglify = require("gulp-uglify"),
     gp_util = require("gulp-util"),
+    gp_watch = require("gulp-watch"),
     gp_webpack = require("gulp-webpack");
 
 var path = require("path");
@@ -83,6 +84,31 @@ var jsDistros = {
   ]
 }
 
+// Workaround for https://github.com/gulpjs/gulp/issues/71
+var origSrc = gulp.src;
+gulp.src = function () {
+    return fixPipe(origSrc.apply(this, arguments));
+};
+function fixPipe(stream) {
+    var origPipe = stream.pipe;
+    stream.pipe = function (dest) {
+        arguments[0] = dest.on('error', function (error) {
+            var nextStreams = dest._nextStreams;
+            if (nextStreams) {
+                nextStreams.forEach(function (nextStream) {
+                    nextStream.emit('error', error.toString());
+                });
+            } else if (dest.listeners('error').length === 1) {
+                throw error;
+            }
+        });
+        var nextStream = fixPipe(origPipe.apply(this, arguments));
+        (this._nextStreams || (this._nextStreams = [])).push(nextStream);
+        return nextStream;
+    };
+    return stream;
+}
+
 function file(name) {
   return path.join(__dirname, staticPrefix, name);
 }
@@ -108,7 +134,7 @@ function buildJsCompileTask(name, fileList) {
 
 function buildJsWatchTask(name, fileList) {
   return function(){
-    return gulp.watch(fileList, ["dist:js:" + name]);
+    return ;
   };
 };
 
@@ -134,8 +160,11 @@ function buildJsDistroTasks() {
     compileTask = buildJsCompileTask(distroName, fileList);
     gulp.task("dist:js:" + distroName, compileTask);
 
-    watchTask = buildJsWatchTask(distroName, fileList);
-    gulp.task("watch:js:" + distroName, watchTask);
+    gulp.task("watch:js:" + distroName, function(){
+      return gp_watch(fileList, function(){
+        gulp.start("dist:js:" + distroName);
+      });
+    });
 
     jsDistroNames.push(distroName);
   }
@@ -167,11 +196,15 @@ gulp.task("dist:webpack", function(){
 gulp.task("dist", ["dist:js", "dist:css", "dist:webpack"]);
 
 gulp.task("watch:css:sentry", function(){
-  return gulp.watch(file("less/sentry.less"), ["dist:css:sentry"]);
+  return gp_watch(file("less/sentry.less"), function(){
+    gulp.start("dist:css:sentry");
+  });
 });
 
 gulp.task("watch:css:wall", function(){
-  return gulp.watch(file("less/wall.less"), ["dist:css:wall"]);
+  return gp_watch(file("less/wall.less"), function(){
+    gulp.start("dist:css:wall");
+  });
 });
 
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
