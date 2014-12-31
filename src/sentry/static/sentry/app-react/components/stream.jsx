@@ -131,21 +131,27 @@ var Actions = React.createClass({
                    checked={this.props.selectAllActive} />
           </div>
           <div className="btn-group">
-            <a href="#" className="btn btn-default btn-sm action action-resolve">
+            <a href="#" className="btn btn-default btn-sm action-resolve"
+               disabled={!this.props.anySelected}>
               <i aria-hidden="true" className="icon-checkmark"></i>
             </a>
-            <a href="#" className="btn btn-default btn-sm action action-bookmark">
+            <a href="#" className="btn btn-default btn-sm action-bookmark"
+               disabled={!this.props.anySelected}>
               <span className="icon icon-bookmark"></span>
             </a>
-            <a className="btn btn-default btn-sm hidden-xs action action-more dropdown-toggle" data-toggle="dropdown">
+            <a className="btn btn-default btn-sm hidden-xs action-more dropdown-toggle"
+               disabled={!this.props.anySelected} data-toggle="dropdown">
               <span className="icon-ellipsis"></span>
             </a>
 
             <ul className="dropdown-menu more-menu">
-              <li><a href="#" className="action action-merge">Merge Events</a></li>
-              <li><a href="#" className="action action-remove-bookmark">Remove from Bookmarks</a></li>
+              <li><a href="#" className="action-merge"
+                     disabled={!this.props.multiSelected}>Merge Events</a></li>
+              <li><a href="#" className="action-remove-bookmark"
+                     disabled={!this.props.anySelected}>Remove from Bookmarks</a></li>
               <li className="divider"></li>
-              <li><a href="#" className="action action-delete">Delete Events</a></li>
+              <li><a href="#" className="action-delete"
+                     disabled={!this.props.anySelected}>Delete Events</a></li>
             </ul>
           </div>
 
@@ -337,7 +343,9 @@ var Stream = React.createClass({
           <div className="container">
             <div className="group-header">
               <Actions onSelectAll={this.handleSelectAll}
-                       selectAllActive={this.state.selectAllActive} />
+                       selectAllActive={this.state.selectAllActive}
+                       anySelected={this.state.anySelected}
+                       multiSelected={this.state.multiSelected} />
             </div>
           </div>
         </div>
