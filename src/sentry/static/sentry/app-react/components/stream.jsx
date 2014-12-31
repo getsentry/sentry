@@ -122,6 +122,16 @@ var FilterSelect = React.createClass({
 var ActionLink = React.createClass({
   mixins: [OverlayMixin],
 
+  propTypes: {
+    aggList: React.PropTypes.array.isRequired,
+    selectAllActive: React.PropTypes.bool.isRequired,
+    canActionAll: React.PropTypes.bool.isRequired,
+    confirmLabel: React.PropTypes.string,
+    actionLabel: React.PropTypes.string,
+    onlyIfBulk: React.PropTypes.bool,
+    neverConfirm: React.PropTypes.bool,
+  },
+
   getInitialState: function() {
     return {
       isModalOpen: false
@@ -172,7 +182,7 @@ var ActionLink = React.createClass({
 
     var shouldConfirm = true;
     // if skipConfirm is set we never actually show the modal
-    if (this.props.skipConfirm === true) {
+    if (this.props.neverConfirm === true) {
       shouldConfirm = false;
     // if onlyIfBulk is set and we've selected a single item, we skip
     // showing the modal
@@ -180,11 +190,11 @@ var ActionLink = React.createClass({
       shouldConfirm = false;
     }
 
-    // // TODO
-    // if (!shouldConfirm) {
-    //   this.props.onAction(selectedAggList);
-    //   return '<span/>';
-    // }
+    if (!shouldConfirm) {
+      this.handleActionSelected();
+      this.state.isModalOpen = false;
+      return '<span/>';
+    }
 
     var confirmLabel = this.props.confirmLabel || 'Edit';
     var actionLabel = this.props.actionLabel || this.defaultActionLabel(confirmLabel);
@@ -214,11 +224,20 @@ var ActionLink = React.createClass({
 });
 
 var Actions = React.createClass({
+  propTypes: {
+    aggList: React.PropTypes.array.isRequired,
+    anySelected: React.PropTypes.bool.isRequired,
+    selectAllActive: React.PropTypes.bool.isRequired,
+    multiSelected: React.PropTypes.bool.isRequired,
+    onSelectAll: React.PropTypes.func.isRequired,
+    onResolve: React.PropTypes.func.isRequired,
+    onBookmark: React.PropTypes.func.isRequired,
+    onRemoveBookmark: React.PropTypes.func.isRequired,
+    onDelete: React.PropTypes.func.isRequired,
+    onMerge: React.PropTypes.func.isRequired
+  },
   handleSelectAll: function(event){
     return this.props.onSelectAll(event);
-  },
-  handleResolve: function(aggList, event){
-    return this.props.onAction(aggList, {status: 'resolved'}, event);
   },
   render: function() {
     return (
@@ -233,29 +252,67 @@ var Actions = React.createClass({
             <ActionLink
                className="btn btn-default btn-sm action-resolve"
                disabled={!this.props.anySelected}
-               onAction={this.handleResolve}
+               onAction={this.props.handleResolve}
                confirmLabel="Resolve"
                canActionAll={true}
                onlyIfBulk={true}
+               selectAllActive={this.props.selectAllActive}
                aggList={this.props.aggList}>
               <i aria-hidden="true" className="icon-checkmark"></i>
             </ActionLink>
-            <a href="#" className="btn btn-default btn-sm action-bookmark"
-               disabled={!this.props.anySelected}>
-              <span className="icon icon-bookmark"></span>
-            </a>
+            <ActionLink
+               className="btn btn-default btn-sm action-bookmark"
+               disabled={!this.props.anySelected}
+               onAction={this.props.handleBookmark}
+               neverConfirm={true}
+               confirmLabel="Bookmark"
+               canActionAll={false}
+               onlyIfBulk={true}
+               selectAllActive={this.props.selectAllActive}
+               aggList={this.props.aggList}>
+              <i aria-hidden="true" className="icon-bookmark"></i>
+            </ActionLink>
             <a className="btn btn-default btn-sm hidden-xs action-more dropdown-toggle"
                disabled={!this.props.anySelected} data-toggle="dropdown">
               <span className="icon-ellipsis"></span>
             </a>
 
             <ul className="dropdown-menu more-menu">
-              <li><a href="#" className="action-merge"
-                     disabled={!this.props.multiSelected}>Merge Events</a></li>
-              <li><a href="#" className="action-remove-bookmark"
-                     disabled={!this.props.anySelected}>Remove from Bookmarks</a></li>
+              <li><ActionLink
+                 className="action-merge"
+                 disabled={!this.props.multiSelected}
+                 onAction={this.props.handleMerge}
+                 confirmLabel="Merge"
+                 canActionAll={false}
+                 selectAllActive={this.props.selectAllActive}
+                 aggList={this.props.aggList}>
+                Merge Events
+              </ActionLink></li>
+              <li><ActionLink
+                 className="action-remove-bookmark"
+                 disabled={!this.props.anySelected}
+                 onAction={this.props.handleRemoveBookmark}
+                 neverConfirm={true}
+                 actionLabel="remove these {count} events from your bookmarks"
+                 onlyIfBulk={true}
+                 canActionAll={false}
+                 selectAllActive={this.props.selectAllActive}
+                 aggList={this.props.aggList}>
+                Remove from Bookmarks
+              </ActionLink></li>
               <li className="divider"></li>
-              <li><a href="#" className="action-delete"
+              <li>
+              <li><ActionLink
+                 className="action-delete"
+                 disabled={!this.props.anySelected}
+                 onAction={this.props.handleRemoveBookmark}
+                 confirmLabel="Delete"
+                 canActionAll={false}
+                 selectAllActive={this.props.selectAllActive}
+                 aggList={this.props.aggList}>
+                Delete Events
+              </ActionLink></li>
+              <a href="#" className="action-delete"
                      disabled={!this.props.anySelected}>Delete Events</a></li>
             </ul>
           </div>
@@ -442,6 +499,21 @@ var Stream = React.createClass({
   },
   handleAction: function(event){
   },
+  handleResolve: function(aggList, event){
+    // return this.props.onAction(aggList, {status: 'resolved'}, event);
+  },
+  handleBookmark: function(aggList, event){
+    // return this.props.onAction(aggList, {isBookmarked: 1}, event);
+  },
+  handleRemoveBookmark: function(aggList, event){
+    // return this.props.onAction(aggList, {isBookmarked: 1}, event);
+  },
+  handleDelete: function(aggList, event){
+    // return this.props.onAction(aggList, {isBookmarked: 1}, event);
+  },
+  handleMerge: function(aggList, event) {
+
+  },
   render: function() {
     var aggNodes = this.state.aggList.map(function(node) {
       return (
@@ -458,7 +530,11 @@ var Stream = React.createClass({
           <div className="container">
             <div className="group-header">
               <Actions onSelectAll={this.handleSelectAll}
-                       onAction={this.handleAction}
+                       onResolve={this.handleResolve}
+                       onBookmark={this.handleBookmark}
+                       onDelete={this.handleDelete}
+                       onMerge={this.handleMerge}
+                       onRemoveBookmark={this.handleRemoveBookmark}
                        aggList={this.state.aggList}
                        selectAllActive={this.state.selectAllActive}
                        anySelected={this.state.anySelected}
