@@ -1,6 +1,7 @@
 "use strict";
 
-var gulp = require("gulp"),
+var browserSync = require("browser-sync"),
+    gulp = require("gulp"),
     gp_cached = require("gulp-cached"),
     gp_clean = require("gulp-clean"),
     gp_concat = require("gulp-concat"),
@@ -61,6 +62,7 @@ function buildCssCompileTask(name, fileList) {
     }))
     .pipe(gp_concat(name))
     .pipe(gulp.dest(distPath))
+    .pipe(browserSync.reload({stream: true}))
     .on("error", gp_util.log);
   };
 }
@@ -107,12 +109,18 @@ gulp.task("watch:webpack", function(callback){
   var config = require('./webpack.config.js');
   config.watch = true;
   webpack(config, function(err, stats) {
-      if(err) throw new gutil.PluginError("webpack", err);
-      gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
+    if(err) throw new gutil.PluginError("webpack", err);
+    gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
   });
   callback();
 });
 
-gulp.task("watch", ["watch:css", "watch:webpack"]);
+gulp.task("watch", ["watch:css", "watch:webpack", "livereload"]);
+
+gulp.task("livereload", function() {
+  browserSync({
+    proxy: 'localhost:8000'
+  });
+});
 
 gulp.task("default", ["dist"]);
