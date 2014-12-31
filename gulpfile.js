@@ -119,7 +119,9 @@ gulp.task("watch", ["watch:css", "watch:webpack", "livereload"]);
 
 gulp.task("livereload", function() {
   browserSync({
-    proxy: 'localhost:8000'
+    proxy: 'localhost:8000',
+    // dont open a browser, that shit is annoying
+    open: false
   });
 });
 
