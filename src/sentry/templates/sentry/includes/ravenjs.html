@@ -1,8 +1,6 @@
 {% load sentry_api %}
 {% load sentry_dsn %}
 
-<script src="{% url 'sentry-media' "sentry" "dist/raven.min.js" %}"></script>
-
 <script>
 Raven.config('{% public_dsn %}', {
     tags: {

@@ -4,6 +4,7 @@
 // way we can call into scoped objects
 module.exports = {
   jQuery: require("jquery"),
+  Raven: require("raven-js"),
   React: require("react"),
 
   Stream: require("./components/stream")
