@@ -6,32 +6,32 @@
 
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %}with-left-sidebar{% endblock %}
+{% block bodyclass %}organization{% endblock %}
 
 {% block page_header_block %}
-    <section id="page-header" class="toolbar">
+    <div class="container">
       <div class="pull-right">
         {% block actions %}
         {% if ACCESS.is_admin %}
           {% if ACCESS.is_global %}
             <a href="{% url 'sentry-create-team' organization.slug %}"
-               class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+               class="btn btn-sm btn-primary">{% trans "New Team" %}</a>
           {% endif %}
           <a href="{% url 'sentry-create-project' organization.slug %}"
-             class="btn btn-small btn-primary">{% trans "New Project" %}</a>
+             class="btn btn-sm btn-primary">{% trans "New Project" %}</a>
           {% if ACCESS.is_global %}
             <a href="{% url 'sentry-create-organization-member' organization.slug %}"
-               class="btn btn-small btn-primary">{% trans "New Member" %}</a>
+               class="btn btn-sm btn-primary">{% trans "New Member" %}</a>
           {% endif %}
         {% endif %}
         {% endblock %}
       </div>
       <h3>{{ organization.name }} <small>Dashboard</small></h3>
-    </section>
+    </div>
 {% endblock %}
 
 {% block sidebar %}
-  <ul class="nav nav-list">
+  <ul class="nav nav-stacked">
     <!-- <li class="nav-header"><h6>{{ organization.name }}</h6></li> -->
     <li class="{% block org_teams_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-home' organization.slug %}">
