@@ -11,7 +11,8 @@ var MenuItem = React.createClass({
     title:     React.PropTypes.string,
     onSelect:  React.PropTypes.func,
     eventKey:  React.PropTypes.any,
-    isActive:  React.PropTypes.bool
+    isActive:  React.PropTypes.bool,
+    noAnchor:  React.PropTypes.bool
   },
 
   getDefaultProps: function () {
@@ -43,7 +44,9 @@ var MenuItem = React.createClass({
     };
 
     var children = null;
-    if (this.props.header) {
+    if (this.props.noAnchor) {
+      children = this.props.children;
+    } else if (this.props.header) {
       children = this.props.children;
     } else if (!this.props.divider) {
       children = this.renderAnchor();

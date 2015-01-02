@@ -299,46 +299,53 @@ var Actions = React.createClass({
                aggList={this.props.aggList}>
               <i aria-hidden="true" className="icon-bookmark"></i>
             </ActionLink>
-            <a className="btn btn-default btn-sm hidden-xs action-more dropdown-toggle"
-               disabled={!this.props.anySelected} data-toggle="dropdown">
-              <span className="icon-ellipsis"></span>
-            </a>
 
-            <ul className="dropdown-menu more-menu">
-              <li><ActionLink
-                 className="action-merge"
-                 disabled={!this.props.multiSelected}
-                 onAction={this.props.onMerge}
-                 confirmLabel="Merge"
-                 canActionAll={false}
-                 selectAllActive={this.props.selectAllActive}
-                 aggList={this.props.aggList}>
-                Merge Events
-              </ActionLink></li>
-              <li><ActionLink
-                 className="action-remove-bookmark"
-                 disabled={!this.props.anySelected}
-                 onAction={this.props.onRemoveBookmark}
-                 neverConfirm={true}
-                 actionLabel="remove these {count} events from your bookmarks"
-                 onlyIfBulk={true}
-                 canActionAll={false}
-                 selectAllActive={this.props.selectAllActive}
-                 aggList={this.props.aggList}>
-                Remove from Bookmarks
-              </ActionLink></li>
-              <li className="divider"></li>
-              <li><ActionLink
-                 className="action-delete"
-                 disabled={!this.props.anySelected}
-                 onAction={this.props.onRemoveBookmark}
-                 confirmLabel="Delete"
-                 canActionAll={false}
-                 selectAllActive={this.props.selectAllActive}
-                 aggList={this.props.aggList}>
-                Delete Events
-              </ActionLink></li>
-            </ul>
+            <DropdownLink
+              key="actions"
+              caret={false}
+              disabled={!this.props.anySelected}
+              className="btn-sm btn-default dropdown-toggle hidden-xs action-more"
+              title={<span className="icon-ellipsis"></span>}>
+              <MenuItem noAnchor={true}>
+                <ActionLink
+                   className="action-merge"
+                   disabled={!this.props.multiSelected}
+                   onAction={this.props.onMerge}
+                   confirmLabel="Merge"
+                   canActionAll={false}
+                   selectAllActive={this.props.selectAllActive}
+                   aggList={this.props.aggList}>
+                  Merge Events
+                </ActionLink>
+              </MenuItem>
+              <MenuItem noAnchor={true}>
+                <ActionLink
+                   className="action-remove-bookmark"
+                   disabled={!this.props.anySelected}
+                   onAction={this.props.onRemoveBookmark}
+                   neverConfirm={true}
+                   actionLabel="remove these {count} events from your bookmarks"
+                   onlyIfBulk={true}
+                   canActionAll={false}
+                   selectAllActive={this.props.selectAllActive}
+                   aggList={this.props.aggList}>
+                  Remove from Bookmarks
+                </ActionLink>
+              </MenuItem>
+              <MenuItem divider={true} />
+              <MenuItem noAnchor={true}>
+                <ActionLink
+                   className="action-delete"
+                   disabled={!this.props.anySelected}
+                   onAction={this.props.onRemoveBookmark}
+                   confirmLabel="Delete"
+                   canActionAll={false}
+                   selectAllActive={this.props.selectAllActive}
+                   aggList={this.props.aggList}>
+                  Delete Events
+                </ActionLink>
+              </MenuItem>
+            </DropdownLink>
           </div>
 
           <div className="btn-group">
