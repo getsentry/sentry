@@ -48,6 +48,13 @@ var SearchDropdown = React.createClass({
 });
 
 var SearchBar = React.createClass({
+  propTypes: {
+    query: React.PropTypes.string.isRequired,
+    onQueryChange: React.PropTypes.func.isRequired
+  },
+  onQueryChange: function(event){
+    return this.props.onQueryChange(event.target.value, event);
+  },
   render: function() {
     return (
       <div className="search">
@@ -55,7 +62,9 @@ var SearchBar = React.createClass({
           <div>
             <input type="text" className="search-input form-control"
                    placeholder="Search for events, users, tags, and everything else."
-                   name="query" />
+                   name="query"
+                   value={this.props.query}
+                   onChange={this.onQueryChange} />
             <span className="icon-search"></span>
           </div>
           <SearchDropdown />
@@ -84,6 +93,10 @@ var FilterSelectLink = React.createClass({
 });
 
 var FilterSelect = React.createClass({
+  propTypes: {
+    query: React.PropTypes.string.isRequired,
+    onQueryChange: React.PropTypes.func.isRequired
+  },
   render: function() {
     var params = utils.getQueryParams();
     var activeButton;
@@ -115,7 +128,7 @@ var FilterSelect = React.createClass({
             </div>
           </div>
           <div className="col-sm-8">
-            <SearchBar />
+            <SearchBar query={this.props.query} onQueryChange={this.props.onQueryChange} />
           </div>
         </div>
       </div>
@@ -513,6 +526,7 @@ var Stream = React.createClass({
     project: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
     }).isRequired,
+    initialQuery: React.PropTypes.string
   },
   getInitialState: function() {
     return {
@@ -520,7 +534,8 @@ var Stream = React.createClass({
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
-      statsPeriod: '24h'
+      statsPeriod: '24h',
+      query: this.props.initialQuery
     };
   },
   componentWillMount: function() {
@@ -657,6 +672,11 @@ var Stream = React.createClass({
       statsPeriod: period
     });
   },
+  handleQueryChange: function(value, event) {
+    this.setState({
+      query: value
+    });
+  },
   render: function() {
     var aggNodes = this.state.aggList.map(function(node) {
       return (
@@ -669,7 +689,7 @@ var Stream = React.createClass({
 
     return (
       <div>
-        <FilterSelect />
+        <FilterSelect query={this.state.query} onQueryChange={this.handleQueryChange} />
         <div className="group-header-container" data-spy="affix" data-offset-top="134">
           <div className="container">
             <div className="group-header">
