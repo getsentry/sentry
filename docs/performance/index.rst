@@ -14,7 +14,6 @@ All Redis usage in Sentry is temporal, which means the append-log/fsync models i
 With that in mind, we recommend the following changes to (some) default configurations:
 
 - Disable saving by removing all ``save XXXX`` lines.
-- Set ``maxclients 0`` to remove connection limitations.
 - Set ``maxmemory-policy allkeys-lru`` to aggressively prune all keys.
 - Set ``maxmemory 1gb`` to a reasonable allowance.
 
