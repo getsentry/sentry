@@ -30,14 +30,14 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
-    def for_project(self, project):
-        for plugin in self.all():
+    def for_project(self, project, version=None):
+        for plugin in self.all(version=version):
             if not safe_execute(plugin.is_enabled, project):
                 continue
             yield plugin
 
-    def for_site(self):
-        for plugin in self.all():
+    def for_site(self, version=None):
+        for plugin in self.all(version=version):
             if not plugin.has_site_conf():
                 continue
             yield plugin
