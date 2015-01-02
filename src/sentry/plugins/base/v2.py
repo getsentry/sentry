@@ -208,12 +208,25 @@ class IPlugin2(local):
         """
         return self.resource_links
 
-    def get_rules(self):
+    def get_rules(self, **kwargs):
         """
         Return a list of Rule classes to add to the registry.
 
-        >>> def get_rules(self):
+        >>> def get_rules(self, **kwargs):
         >>>     return [MyCustomRule]
+        """
+        return []
+
+    def get_actions(self, request, group):
+        """
+        Return a list of available actions to append to aggregates.
+
+        An action is a tuple containing two elements:
+
+            ('Action Label', '/uri/to/action/')
+
+        >>> def get_actions(self, request, group, **kwargs):
+        >>>     return [('Google', 'http://google.com')]
         """
         return []
 
