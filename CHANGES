@@ -8,7 +8,7 @@ Backwards Incompatible Changes
 
 - Django has been upgraded to 1.6
 - The buffer API has been rewritten and the Redis buffer has had its performance greatly improved.
-- The UDP server has been removed. Threaded/async models are the preferred replacement.
+- The UDP server has been removed. Threaded/async models or a buffer proxy are the preferred replacement.
 - The ``is_rate_limited`` plugin hook has been removed in favor of singular quota managers.
 - The trends feature has been removed until it can be reimplemented in a more scalable way.
 - Filters have been removed. Integrations should use the tagging infrastructure instead.
