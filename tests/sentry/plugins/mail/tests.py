@@ -11,7 +11,7 @@ from mock import Mock
 
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import AccessGroup, Alert, Event, Group, Rule
-from sentry.plugins.bases.notify import Notification
+from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
 

@@ -8,7 +8,7 @@ sentry.plugins.base.structs
 
 from __future__ import absolute_import, print_function
 
-__all__ = ('Annotation',)
+__all__ = ('Annotation', 'Notification')
 
 
 class Annotation(object):
@@ -18,3 +18,11 @@ class Annotation(object):
         self.label = label
         self.url = url
         self.description = description
+
+
+class Notification(object):
+    __slots__ = ['event', 'rule']
+
+    def __init__(self, event, rule=None):
+        self.event = event
+        self.rule = rule
