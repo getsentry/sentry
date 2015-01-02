@@ -4,7 +4,10 @@ var $ = require("jquery");
 
 var utils = require("../utils");
 
+var joinClasses = require('react-bootstrap/utils/joinClasses');
 var Count = require("./count");
+var DropdownLink = require("./dropdownLink");
+var MenuItem = require("./menuItem");
 var Modal = require("react-bootstrap/Modal");
 var OverlayMixin = require("react-bootstrap/OverlayMixin");
 var TimeSince = require("./timeSince");
@@ -245,6 +248,25 @@ var Actions = React.createClass({
     onMerge: React.PropTypes.func.isRequired
   },
   render: function() {
+    var params = utils.getQueryParams();
+    var sortBy = params.sort || 'date';
+    var sortLabel;
+
+    switch (sortBy) {
+      case 'new':
+        sortLabel = 'First Seen';
+        break;
+      case 'priority':
+        sortLabel = 'Priority';
+        break;
+      case 'freq':
+        sortLabel = 'Frequency';
+        break;
+      default:
+        sortLabel = 'Last Seen';
+        sortBy = 'date';
+    }
+
     return (
       <div className="stream-actions">
         <div className="stream-actions-left stream-actions-cell">
@@ -324,18 +346,15 @@ var Actions = React.createClass({
               <span className="icon icon-pause"></span>
             </a>
           </div>
-          <div className="btn-group">
-            <a href="#" className="btn dropdown-toggle btn-sm" data-toggle="dropdown">
-              <span className="hidden-sm hidden-xs">Sort by:</span> sortLabel
-              <span aria-hidden="true" className="icon-arrow-down"></span>
-            </a>
-            <ul className="dropdown-menu">
-              <li className="active"><a href="?sort=priority">Priority</a></li>
-              <li><a href="?sort=date">Last Seen</a></li>
-              <li><a href="?sort=new">First Seen</a></li>
-              <li><a href="?sort=freq">Frequency</a></li>
-            </ul>
-          </div>
+          <DropdownLink
+            key="sort"
+            className="btn-sm dropdown-toggle"
+            title={<span><span className="hidden-sm hidden-xs">Sort by:</span> {sortLabel}</span>}>
+            <MenuItem href="?sort=priority" isActive={sortBy === 'priority'}>Priority</MenuItem>
+            <MenuItem href="?sort=date" isActive={sortBy === 'date'}>Last Seen</MenuItem>
+            <MenuItem href="?sort=new" isActive={sortBy === 'new'}>First Seen</MenuItem>
+            <MenuItem href="?sort=freq" isActive={sortBy === 'freq'}>Occurances</MenuItem>
+          </DropdownLink>
           <div className="btn-group">
             <a href="#" className="btn dropdown-toggle btn-sm" onclick="" data-toggle="dropdown">
               All time
