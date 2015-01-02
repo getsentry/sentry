@@ -149,7 +149,7 @@ var Stream = React.createClass({
     var url = options.url || '/api/0/projects/' + this.props.project.id + '/groups/';
 
     var selectedAggList;
-    if (aggList === ActionLink.SELECTED) {
+    if (aggList === StreamActions.SELECTED) {
       selectedAggList = [];
       for (var i = 0, node; (node = this.props.aggList[i]); i++) {
         if (node.isSelected === true) {
@@ -171,7 +171,7 @@ var Stream = React.createClass({
       data: JSON.stringify(data)
     });
 
-    if (aggList === ActionLink.ALL) {
+    if (aggList === StreamActions.ALL) {
       aggList = this.props.aggList;
     }
     selectedAggList.forEach(function(node){
