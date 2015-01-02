@@ -22,7 +22,7 @@ class PluginManager(InstanceManager):
     def __len__(self):
         return sum(1 for i in self.all())
 
-    def all(self, version=None):
+    def all(self, version=1):
         for plugin in sorted(super(PluginManager, self).all(), key=lambda x: x.get_title()):
             if not plugin.is_enabled():
                 continue
@@ -30,13 +30,13 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
-    def for_project(self, project, version=None):
+    def for_project(self, project, version=1):
         for plugin in self.all(version=version):
             if not safe_execute(plugin.is_enabled, project):
                 continue
             yield plugin
 
-    def for_site(self, version=None):
+    def for_site(self, version=1):
         for plugin in self.all(version=version):
             if not plugin.has_site_conf():
                 continue

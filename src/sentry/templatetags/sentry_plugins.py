@@ -109,7 +109,7 @@ def handle_before_events(request, event_list):
 @register.filter
 def get_plugins(project):
     results = []
-    for plugin in plugins.for_project(project):
+    for plugin in plugins.for_project(project, version=None):
         if plugin.has_project_conf():
             results.append(plugin)
     return results
@@ -119,6 +119,6 @@ def get_plugins(project):
 def get_plugins_with_status(project):
     return [
         (plugin, safe_execute(plugin.is_enabled, project))
-        for plugin in plugins.all()
+        for plugin in plugins.all(version=None)
         if plugin.can_enable_for_projects()
     ]
