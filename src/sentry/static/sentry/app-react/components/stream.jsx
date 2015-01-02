@@ -374,7 +374,7 @@ var Actions = React.createClass({
                 <ActionLink
                    className="action-delete"
                    disabled={!this.props.anySelected}
-                   onAction={this.props.onRemoveBookmark}
+                   onAction={this.props.onDelete}
                    confirmLabel="Delete"
                    canActionAll={false}
                    selectAllActive={this.props.selectAllActive}
