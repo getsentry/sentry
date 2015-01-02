@@ -5,6 +5,7 @@ var $ = require("jquery");
 var utils = require("../utils");
 
 var joinClasses = require('react-bootstrap/utils/joinClasses');
+var BarChart = require("./barChart");
 var Count = require("./count");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
@@ -415,13 +416,17 @@ var Actions = React.createClass({
 var Aggregate = React.createClass({
   propTypes: {
     data: React.PropTypes.shape({
-      id: React.PropTypes.string
-    }),
+      id: React.PropTypes.string.isRequired
+    }).isRequired,
     isSelected: React.PropTypes.bool
   },
   render: function() {
     var data = this.props.data,
         userCount = 0;
+
+    var chartData = data.stats['24h'].map(function(point){
+      return {x: point[0], y: point[1]};
+    });
 
     if (data.tags["sentry:user"] !== undefined) {
       userCount = data.tags["sentry:user"].count;
@@ -460,7 +465,7 @@ var Aggregate = React.createClass({
 
         </div>
         <div className="hidden-sm hidden-xs event-graph align-right event-cell">
-
+          <BarChart points={chartData} className="sparkline" />
         </div>
         <div className="hidden-xs event-occurrences align-center event-cell">
           <Count value={data.count} />
