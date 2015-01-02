@@ -12,6 +12,7 @@ import logging
 import hashlib
 import re
 import base64
+import math
 
 from django.conf import settings
 from collections import namedtuple
@@ -21,6 +22,7 @@ from urlparse import urlparse, urljoin, urlsplit
 from urllib2 import HTTPError
 
 from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.interfaces.stacktrace import (Frame, Stacktrace)
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
@@ -244,6 +246,14 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     except KeyError:
         stacktraces = []
 
+    has_changes = False
+    if (not stacktraces and 'extra' in data and
+        isinstance(data['extra'], dict) and 'stack' in data['extra']):
+        stacktraces = format_raw_stacktrace(data['extra']['stack'])
+        if stacktraces:
+            data['extra'].pop('stack', None)
+            has_changes = True
+    
     if not stacktraces:
         logger.debug('No stacktrace for event %r', data['event_id'])
         return
@@ -336,7 +346,6 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
 
     last_state = None
     state = None
-    has_changes = False
     for frame in frames:
         try:
             source, sourcemap_url, sourcemap_key = source_code[frame.abs_path]
@@ -402,6 +411,83 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     if culprit_frame.module and culprit_frame.function:
         data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
 
+chrome_ie_stacktrace_expr = re.compile(r'\s+at ')
+firefox_safari_stacktrace_expr = re.compile(r'\S+\:\d+')
+def format_raw_stacktrace(value):
+    if re.search(chrome_ie_stacktrace_expr, value):
+        return [format_chrome_ie_stacktrace(value)]
+    if re.search(firefox_safari_stacktrace_expr, value):
+        return [format_firefox_safari_stacktrace(value)]
+    return []
+
+whitespace_expr = re.compile(r'^\s+')
+location_parts_expr = re.compile(r'[\(\)\s]')
+def format_chrome_ie_stacktrace(value):
+    kwargs = {
+        'frames': [],
+        'frames_omitted': []
+    }
+    
+    for frame in value.split('\n'):
+        if not chrome_ie_stacktrace_expr.search(frame):
+            continue
+        tokens = re.split(r'\s+', re.sub(whitespace_expr, '', frame))[1:]
+        location = extract_location(re.sub(location_parts_expr, '', tokens.pop()))
+        functionName = tokens[0] if len(tokens) > 0 and tokens[0] != 'Anonymous' else None
+        if functionName == 'new':
+            functionName = (tokens[1] if len(tokens) > 2 and 
+                            tokens[1] != 'Anonymous' else None)
+
+        kwargs['frames'].append(
+            Frame.to_python({
+                'filename': location[0],
+                'lineno': location[1],
+                'colno': location[2],
+                'function': functionName,
+                'in_app': True,
+            })
+        )
+
+    return Stacktrace(**kwargs)
+
+def format_firefox_safari_stacktrace(value):
+    kwargs = {
+        'frames': [],
+        'frames_omitted': []
+    }
+
+    for frame in value.split('\n'):
+        if not firefox_safari_stacktrace_expr.search(frame):
+            continue
+        tokens = frame.split('@')
+        location = extract_location(tokens.pop())
+        functionName = None
+        if len(tokens) > 0:
+            functionName = tokens[0]
+            tokens = tokens[1:]
+
+        kwargs['frames'].append(
+            Frame.to_python({
+                'filename': location[0],
+                'lineno': location[1],
+                'colno': location[2],
+                'function': functionName,
+                'in_app': True,
+            })
+        )
+
+    return Stacktrace(**kwargs)
+
+def extract_location(value):
+    locationParts = value.split(':')
+    lastNumber = locationParts.pop()
+    possibleNumber = float(locationParts[-1]) if len(locationParts) > 0 else float('NaN')
+    
+    if not math.isnan(possibleNumber) and not math.isinf(possibleNumber):
+        lineNumber = locationParts.pop()
+        return (':'.join(locationParts), lineNumber, lastNumber)
+    
+    return (':'.join(locationParts), lastNumber, None)
 
 def generate_module(src):
     """
