@@ -278,6 +278,19 @@ class IPlugin2(local):
         """
         return []
 
+    def get_event_preprocessors(self, **kwargs):
+        """
+        Return a list of preprocessors to apply to the given event.
+
+        A preprocessor is a function that takes the normalized data blob as an
+        input and returns modified data as output. If no changes to the data are
+        made it is safe to return ``None``.
+
+        >>> def get_event_preprocessors(self, **kwargs):
+        >>>     return [lambda x: x]
+        """
+        return []
+
 
 class Plugin2(IPlugin2):
     """
