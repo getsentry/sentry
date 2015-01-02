@@ -22,6 +22,7 @@ Backwards Incompatible Changes
 - Removed Team.owner.
 - `is_new` in post_process will *only* be set if the event is brand new.
 - Project-based URLs are changed to be organization scoped instead of team scoped.
+- Static assets are no longer bundled as part of the repository and are instead compiled during the sdist/installation phases (as needed). See installation notes for further information.
 
 Organizations
 =============
