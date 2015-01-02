@@ -9,6 +9,8 @@ from __future__ import absolute_import, print_function
 
 __all__ = ('Plugin2',)
 
+import logging
+
 from django.http import HttpResponseRedirect
 from threading import local
 
@@ -24,6 +26,8 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(' ', '-').lower()
+        if not hasattr(new_cls, 'logger'):
+            new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug,))
         return new_cls
 
 
@@ -247,6 +251,17 @@ class IPlugin2(local):
         >>>     if not task_id:
         >>>         return []
         >>>     return [{'label': '#%s' % (task_id,)}]
+        """
+        return []
+
+    def get_notifiers(self, **kwargs):
+        """
+        Return a list of notifiers to append to the registry.
+
+        Notifiers must extend :class:`sentry.plugins.Notifier`.
+
+        >>> def get_notifiers(self, **kwargs):
+        >>>     return [MyNotifier]
         """
         return []
 

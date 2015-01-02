@@ -17,12 +17,6 @@ from sentry.plugins import Plugin
 from sentry.models import UserOption, AccessGroup
 
 
-class Notification(object):
-    def __init__(self, event, rule=None):
-        self.event = event
-        self.rule = rule
-
-
 class NotificationConfigurationForm(forms.Form):
     pass
 
