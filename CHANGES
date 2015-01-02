@@ -12,15 +12,15 @@ Backwards Incompatible Changes
 - The ``is_rate_limited`` plugin hook has been removed in favor of singular quota managers.
 - The trends feature has been removed until it can be reimplemented in a more scalable way.
 - Filters have been removed. Integrations should use the tagging infrastructure instead.
-- NodeStore.generate_id() now returns a base64-encoded UUID.
+- ``NodeStore.generate_id()`` now returns a base64-encoded UUID.
 - The API for interfaces has been rewritten.
-- GroupMeta.objects.get_value no longer errors when a value is missing.
-- sentry.plugins.sentry_sites has been removed.
+- ``GroupMeta.objects.get_value`` no longer errors when a value is missing.
+- ``sentry.plugins.sentry_sites`` has been removed.
 - The Search API has been rewritten and now powers the entire stream.
 - Removed Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
 - Removed Project.owner.
 - Removed Team.owner.
-- `is_new` in post_process will *only* be set if the event is brand new.
+- ``is_new`` in ``Plugin.post_process`` will **only** be set if the event is brand new.
 - Project-based URLs are changed to be organization scoped instead of team scoped.
 - Static assets are no longer bundled as part of the repository and are instead compiled during the sdist/installation phases (as needed). See installation notes for further information.
 
