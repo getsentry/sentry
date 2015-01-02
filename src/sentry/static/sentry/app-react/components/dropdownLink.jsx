@@ -24,27 +24,34 @@ var DropdownButton = React.createClass({
     onClick:   React.PropTypes.func,
     onSelect:  React.PropTypes.func,
     navItem:   React.PropTypes.bool,
-    caret:     React.PropTypes.bool
+    caret:     React.PropTypes.bool,
+    disabled:  React.PropTypes.bool,
   },
 
   getDefaultProps: function() {
     return {
-      caret: true
+      caret: true,
+      disabled: false
     };
   },
 
   render: function () {
     var className = 'dropdown-toggle btn';
+    if (this.props.disabled) {
+      className += ' disabled';
+    }
+
     var renderMethod = this.props.navItem ?
       'renderNavItem' : 'renderButtonGroup';
+
     var caret = this.props.caret ?
       caret = <span aria-hidden="true" className="icon-arrow-down" /> : '';
 
     return this[renderMethod]([
       <a
-        {...this.props}
         ref="dropdownButton"
         className={joinClasses(this.props.className, className)}
+        disabled={this.props.disabled}
         onClick={this.handleDropdownClick}
         key={0}
         navDropdown={this.props.navItem}
