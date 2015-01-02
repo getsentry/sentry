@@ -493,7 +493,10 @@ def format_firefox_safari_stacktrace(value):
 def extract_location(value):
     locationParts = value.split(':')
     lastNumber = locationParts.pop()
-    possibleNumber = float(locationParts[-1]) if len(locationParts) > 0 else float('NaN')
+    try:
+        possibleNumber = float(locationParts[-1])
+    except:
+        possibleNumber = float('NaN')
 
     if not math.isnan(possibleNumber) and not math.isinf(possibleNumber):
         lineNumber = locationParts.pop()
