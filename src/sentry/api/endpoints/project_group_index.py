@@ -245,7 +245,9 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
     def delete(self, request, project_id):
         """
-        Permanently remove the given groups.
+        Bulk remove a list of aggregates
+
+        Permanently remove the given aggregates.
 
         Only queries by 'id' are accepted.
 
