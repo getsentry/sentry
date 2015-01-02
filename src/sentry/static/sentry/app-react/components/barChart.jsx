@@ -1,6 +1,9 @@
 /*** @jsx React.DOM */
 var React = require('react');
 
+var OverlayTrigger = require('react-bootstrap/OverlayTrigger');
+var Tooltip = require('react-bootstrap/Tooltip');
+
 var BarChart = React.createClass({
   propTypes: {
     points: React.PropTypes.arrayOf(React.PropTypes.shape({
@@ -47,11 +50,13 @@ var BarChart = React.createClass({
       }
 
       children.push((
-        <a style={{width: pointWidth}}
-           key={point.x}
-           title={title}>
-          <span style={{height: pct}}>{point.y}</span>
-        </a>
+        <OverlayTrigger overlay={<Tooltip>{title}</Tooltip>}
+                        placement={this.props.placement}
+                        key={point.x}>
+          <a style={{width: pointWidth}}>
+            <span style={{height: pct}}>{point.y}</span>
+          </a>
+        </OverlayTrigger>
       ));
         // $('<a style="width:' + pointWidth + ';" rel="tooltip" title="' + title + '"><span style="height:' + pct + '">' + point.y + '</span></a>').tooltip({
         //   placement: options.placement || 'bottom',
