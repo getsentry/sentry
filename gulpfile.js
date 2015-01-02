@@ -6,6 +6,7 @@ var browserSync = require("browser-sync"),
     gp_clean = require("gulp-clean"),
     gp_concat = require("gulp-concat"),
     gp_less = require("gulp-less"),
+    gp_livereload = require("gulp-livereload"),
     gp_rename = require("gulp-rename"),
     gp_uglify = require("gulp-uglify"),
     gp_util = require("gulp-util"),
@@ -104,17 +105,27 @@ gulp.task("watch:css:wall", function(){
 
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
 
+gulp.task("watch:templates", function(){
+  return gp_watch(path.join(__dirname, 'src/sentry/templates/**'), function(){
+    gp_livereload.changed('.');
+  });
+});
+
 // TODO(dcramer): this is causing issues, use webpack --watch for now
 gulp.task("watch:webpack", function(callback){
   var config = require('./webpack.config.js');
   webpack(config).watch(200, function(err, stats) {
     if(err) throw new gutil.PluginError("webpack", err);
     gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
+    gp_livereload.changed('.');
   });
   callback();
 });
 
-gulp.task("watch", ["watch:css", "watch:webpack", "livereload"]);
+gulp.task("watch", function(){
+  gp_livereload.listen();
+  return gulp.start(["livereload", "watch:css", "watch:webpack", "watch:templates"]);
+});
 
 gulp.task("livereload", function() {
   browserSync({
