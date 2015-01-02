@@ -5,20 +5,32 @@ import os.path
 import sys
 
 from django.conf import settings
+from django.core.management.color import color_style
 from django.core.management.commands.runserver import Command as RunserverCommand
 from optparse import make_option
 from subprocess import Popen
+from urllib2 import urlopen
 
 
 class Command(RunserverCommand):
     """
-    ALmost identical to the built-in runserver except that we don't hijack
-    static files.
+    A version of Django's runserver which bundles Sentry's development
+    tooling (such as static assets and live reload).
+
+    Live reload inspired by django-livereload.
     """
     help = "Starts a lightweight Web server for development"
 
     option_list = RunserverCommand.option_list + (
-        make_option('--nowatcher', action='store_false', dest='use_watcher', default=settings.DEBUG,
+        make_option(
+            '--nolivereload', action='store_false', dest='use_livereload',
+            default=settings.DEBUG, help='Tells Sentry to NOT use LiveReload.'),
+        make_option(
+            '--livereload-port', action='store', dest='livereload_port',
+            default='35729', help='Port where LiveReload listen.'),
+        make_option(
+            '--nowatcher', action='store_false', dest='use_watcher',
+            default=settings.DEBUG,
             help='Tells Sentry to NOT automatically recompile static distributions.'),
     )
 
@@ -26,24 +38,52 @@ class Command(RunserverCommand):
 
     gulp_bin = os.path.join(cwd, 'node_modules', '.bin', 'gulp')
 
-    def run_watcher(self):
-        devnull = open('/dev/null', 'w')
+    def livereload_request(self, verbosity, **options):
+        """
+        Performs the LiveReload request.
+        """
+        host = 'localhost:%s' % options['livereload_port']
+        try:
+            urlopen('http://%s/changed?files=.' % host)
+            if self.verbosity:
+                sys.stdout.write(self.style.HTTP_INFO('>> Sending LiveReload request\n'))
+        except IOError as e:
+            sys.stdout.write(self.style.ERROR('>> LiveReload failed: %s\n' % (e,)))
+            pass
 
-        self.stdout.write('>> Running [gulp watch]')
-        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd)
+    def run_watcher(self, verbosity, **options):
+        if self.verbosity:
+            self.stdout.write(self.style.HTTP_INFO('>> Running [gulp watch]'))
+            stdout = None
+        else:
+            stdout = open('/dev/null', 'w')
+        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd, stdout=stdout)
 
-    def run_server(self):
-        args = sys.argv
-        self.stdout.write('>> Launching webserver..')
-        return Popen(args + ['--nowatcher'], env=os.environ, cwd=self.cwd)
+    def run_server(self, verbosity, **options):
+        if self.verbosity:
+            self.stdout.write(self.style.HTTP_INFO('>> Launching webserver..'))
+        return Popen(sys.argv + ['--nowatcher'], env=os.environ, cwd=self.cwd)
+
+    def get_handler(self, *args, **options):
+        handler = super(Command, self).get_handler(*args, **options)
+        if options['use_livereload']:
+            self.livereload_request(**options)
+        return handler
 
     def run(self, *args, **options):
-        if options['use_watcher']:
-            self.stdout.write('>> Running [gulp dist]')
-            Popen([self.gulp_bin, 'dist'], cwd=self.cwd).wait()
+        self.style = color_style()
+        self.verbosity = int(options['verbosity'])
 
-            watcher = self.run_watcher()
-            server = self.run_server()
+        if options['use_watcher']:
+            if self.verbosity:
+                self.stdout.write(self.style.HTTP_INFO('>> Running [gulp dist]'))
+                stdout = None
+            else:
+                stdout = open('/dev/null', 'w')
+            Popen([self.gulp_bin, 'dist'], cwd=self.cwd, stdout=stdout).wait()
+
+            watcher = self.run_watcher(**options)
+            server = self.run_server(**options)
             try:
                 server.wait()
             finally:
