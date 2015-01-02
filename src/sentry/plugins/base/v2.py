@@ -41,7 +41,8 @@ class IPlugin2(local):
     >>>     def get_title(self):
     >>>         return 'My Plugin'
 
-    All children should allow ``**kwargs`` on all inherited methods.
+    As a general rule all inherited methods should allow ``**kwargs`` to ensure
+    ease of future compatibility.
     """
     # Generic plugin information
     title = None
@@ -217,9 +218,11 @@ class IPlugin2(local):
         """
         return []
 
-    def get_actions(self, request, group):
+    def get_actions(self, request, group, **kwargs):
         """
-        Return a list of available actions to append to aggregates.
+        Return a list of available actions to append this aggregate.
+
+        Examples of built-in actions are "Mute Event" and "Remove Data".
 
         An action is a tuple containing two elements:
 
@@ -227,6 +230,23 @@ class IPlugin2(local):
 
         >>> def get_actions(self, request, group, **kwargs):
         >>>     return [('Google', 'http://google.com')]
+        """
+        return []
+
+    def get_annotations(self, request, group, **kwargs):
+        """
+        Return a list of annotations to append to this aggregate.
+
+        An example of an annotation might be "Needs Fix" or "Task #123".
+
+        The properties of each tag must match the constructor for
+        :class:`sentry.plugins.Annotation`
+
+        >>> def get_annotations(self, request, group, **kwargs):
+        >>>     task_id = GroupMeta.objects.get_value(group, 'myplugin:tid')
+        >>>     if not task_id:
+        >>>         return []
+        >>>     return [{'label': '#%s' % (task_id,)}]
         """
         return []
 

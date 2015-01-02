@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 from django import template
 
-from sentry.plugins import plugins
+from sentry.plugins import Annotation, plugins
 from sentry.utils.safe import safe_execute
 
 register = template.Library()
@@ -63,20 +63,26 @@ def get_widgets(group, request):
 
 
 @register.filter
-def get_tags(group, request=None):
+def get_annotations(group, request=None):
     project = group.project
 
-    tag_list = []
-    for plugin in plugins.for_project(project):
-        results = safe_execute(plugin.tags, request, group, tag_list)
+    annotation_list = []
+    for plugin in plugins.for_project(project, version=1):
+        results = safe_execute(plugin.tags, request, group, annotation_list)
 
         if not results:
             continue
 
-        tag_list = results
+        annotation_list = results
 
-    for tag in tag_list:
-        yield tag
+    annotation_list = [Annotation(*tag) for tag in annotation_list]
+    for plugin in plugins.for_project(project, version=2):
+        for value in (safe_execute(plugin.get_annotations, request, group) or ()):
+            annotation = safe_execute(Annotation, **value)
+            if annotation:
+                annotation_list.append(annotation)
+
+    return annotation_list
 
 
 @register.simple_tag
