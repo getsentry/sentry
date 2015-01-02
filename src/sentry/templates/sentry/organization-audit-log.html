@@ -19,27 +19,26 @@
 
     <br>
 
-    <table class="table table-striped">
-      <colgroup>
-        <col width="32px"/>
-        <col/>
-        <col width="150px"/>
-        <col width="100px"/>
-        <col width="200px"/>
-      </colgroup>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Action</th>
+          <th>IP</th>
+          <th>Time</th>
+        </tr>
+      </thead>
       <tbody>
         {% for entry in entry_list.objects %}
           <tr>
-            <td>
-              <img class="avatar avatar32" src="{% gravatar_url entry.actor.email size 32 %}">
-            </td>
-            <td>
-              <strong>{{ entry.actor.get_display_name }}</strong><br>
+            <td class="table-user-info">
+              <img class="avatar" src="{% gravatar_url entry.actor.email size 72 %}">
+              <h5>{{ entry.actor.get_display_name }}</h5>
               {{ entry.get_note }}
             </td>
             <td>{{ entry.get_event_display }}</td>
             <td>{{ entry.ip_address }}</td>
-            <td style="text-align:right">
+            <td>
               <span class="pretty-date" title="{{ entry.datetime|date:"c" }}Z">{{ entry.datetime|timesince }}</span>
             </td>
           </tr>

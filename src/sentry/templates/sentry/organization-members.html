@@ -17,40 +17,30 @@
 
   <br>
 
-  <table class="table table-striped member-list">
-    <colgroup>
-      <col width="20px"/>
-      <col/>
-      <col width="250px"/>
-      <col width="100px"/>
-      <col width="100px"/>
-      <col width="20px"/>
-    </colgroup>
+  <table class="table member-list">
     <thead>
       <tr>
-        <th>&nbsp;</th>
         <th>Member</th>
-        <th>&nbsp;</th>
         <th>Type</th>
         <th>Teams</th>
-        <th>&nbsp;</th>
+        <th class="squash">&nbsp;</th>
       </tr>
     </thead>
     <tbody>
       {% for member, team_list in member_list %}
         <tr>
-          <td>
-            <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
-          </td>
-          <td>
-            <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
-              {{ member.get_display_name }}
-            </a>
-            {% if member.is_pending %}
+          <td class="table-user-info">
+            <img class="avatar" src="{% gravatar_url member.get_email size 72 %}">
+            <h5>
+              <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+                {{ member.get_display_name }}
+              </a>
+              {% if member.is_pending %}
               <small>&mdash; Invited</small>
-            {% endif %}
+              {% endif %}
+            </h5>
+            {{ member.get_email }}
           </td>
-          <td>{{ member.get_email }}</td>
           <td>{{ member.get_type_display }}</td>
           <td>
             {% if member.has_global_access %}
@@ -64,12 +54,10 @@
               {{ team_list.0.name }}
             {% endif %}
           </td>
-          <td>
+          <td class="align-right squash">
             {% if authorizing_access <= member.type %}
               {% if member.user != request.user or member_can_leave %}
-                <a href="javascript:void(0)" class="remove-member" data-member-id="{{ member.id }}">
-                  <span class="icon icon-remove"></span>
-                </a>
+              <a href="javascript:void(0)" class="btn btn-default btn-sm remove-member" data-member-id="{{ member.id }}"><span class="icon icon-trash"></span> &nbsp;Remove</a>
               {% endif %}
             {% endif %}
           </td>
