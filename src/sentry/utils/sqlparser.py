@@ -5,6 +5,8 @@ sentry.utils.sqlparser
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from sqlparse import engine
 from sqlparse import filters
 from sqlparse import tokens as T

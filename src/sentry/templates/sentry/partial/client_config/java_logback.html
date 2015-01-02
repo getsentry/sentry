@@ -8,7 +8,7 @@
     <pre>&lt;configuration&gt;
     &lt;appender name="Sentry" class="net.kencochrane.raven.logback.SentryAppender"&gt;
         &lt;dsn&gt;
-            {% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}
+            {% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}
         &lt;/dsn&gt;
     &lt;/appender&gt;
 

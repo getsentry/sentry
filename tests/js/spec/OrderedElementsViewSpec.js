@@ -15,7 +15,7 @@ function make_group(data) {
     logger: 'root',
     versions: [],
     tags: [],
-    version: 0
+    version: data.version || 0
   };
 }
 
@@ -105,7 +105,7 @@ describe("OrderedElementsView", function() {
       });
 
       it("changes status text to empty", function() {
-        assert.equal(view.$empty.html(), view.emptyMessage);
+        assert.equal(view.$empty.html(), view.options.emptyMessage);
       });
     });
 
@@ -129,7 +129,7 @@ describe("OrderedElementsView", function() {
       });
 
       it("changes status text to empty", function() {
-        assert.equal(view.$empty.html(), view.emptyMessage);
+        assert.equal(view.$empty.html(), view.options.emptyMessage);
       });
     });
 
@@ -234,11 +234,11 @@ describe("OrderedElementsView", function() {
     });
 
     it("resorts members when they change", function(){
-      view.addMember(make_group({id: 1, score: 1}));
-      view.addMember(make_group({id: 2, score: 10}));
-      view.addMember(make_group({id: 3, score: 100}));
+      view.addMember(make_group({id: 1, score: 1, version: 1}));
+      view.addMember(make_group({id: 2, score: 10, version: 1}));
+      view.addMember(make_group({id: 3, score: 100, version: 1}));
       // change the score so it should be at the top
-      view.addMember(make_group({id: 1, score: 1000}));
+      view.addMember(make_group({id: 1, score: 1000, version: 2}));
 
       assert.strictEqual(view.collection.models[0].get('id'), 1);
       assert.strictEqual(view.collection.models[1].get('id'), 3);

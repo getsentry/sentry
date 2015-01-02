@@ -1,0 +1,42 @@
+{% extends "sentry/help/index.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}
+    Web API
+{% endblock %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url 'sentry-api-0-help' %}">Web API</a></li>
+{% endblock%}
+
+{% block main %}
+    <h2>Web API</h2>
+
+    <p>You are viewing documention for version 0 of the Sentry web API. <strong>While we don't expect public endpoints to add backwards-incompatible changes, keep in mind that the API is still under development.</strong></p>
+
+    <p>API requests are made using project-level API keys. They're passed using HTTP Basic auth where the username is your public key, and the password is your secret key. The API key must also be configured with "Web API access" as a role.</p>
+
+    <p>As an example, to get information about the project which your key is bound to, you might make a request like so:</p>
+
+    <pre>curl -u PUBLIC_KEY:SECRET_KEY /api/0/projects/{project_id}/</pre>
+
+    <p>Note: Currently requests are limited to project-scoped endpoints only.</p>
+
+    <p>All API requests and responses are based on JSON, so you'll receive something similar to the following back:</p>
+
+    <pre>[{
+    slug: "earth",
+    name: "Earth",
+    permission: {
+        edit: true,
+        admin: true
+    },
+    isPublic: false,
+    dateCreated: "2014-06-11T05:29:56.987Z",
+    id: "4"
+}]</pre>
+{% endblock %}

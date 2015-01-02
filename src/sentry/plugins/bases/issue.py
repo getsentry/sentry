@@ -2,18 +2,19 @@
 sentry.plugins.bases.issue
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from sentry.models import GroupMeta
-from sentry.plugins import Plugin
+from __future__ import absolute_import
+
 from django import forms
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from social_auth.models import UserSocialAuth
-from sentry.models import Activity
+
+from sentry.models import GroupMeta, Activity
+from sentry.plugins import Plugin
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 
@@ -32,10 +33,6 @@ class IssuePlugin(Plugin):
     needs_auth_template = 'sentry/plugins/bases/issue/needs_auth.html'
     auth_provider = None
 
-    def __init__(self, *args, **kwargs):
-        super(IssuePlugin, self).__init__(*args, **kwargs)
-        self._cache = {}
-
     def _get_group_body(self, request, group, event, **kwargs):
         interface = event.interfaces.get('sentry.interfaces.Stacktrace')
         if interface:
@@ -44,11 +41,7 @@ class IssuePlugin(Plugin):
 
     def _get_group_description(self, request, group, event):
         output = [
-            absolute_uri(reverse('sentry-group', kwargs={
-                'project_id': group.project.slug,
-                'team_slug': group.team.slug,
-                'group_id': group.id,
-            })),
+            absolute_uri(group.get_absolute_url()),
         ]
         body = self._get_group_body(request, group, event)
         if body:
@@ -173,7 +166,7 @@ class IssuePlugin(Plugin):
                     form_data=form.cleaned_data,
                     request=request,
                 )
-            except forms.ValidationError, e:
+            except forms.ValidationError as e:
                 form.errors['__all__'] = [u'Error creating issue: %s' % e]
 
         if form.is_valid():
@@ -192,7 +185,7 @@ class IssuePlugin(Plugin):
                 data=issue_information,
             )
 
-            return self.redirect(reverse('sentry-group', args=[group.team.slug, group.project_id, group.pk]))
+            return self.redirect(group.get_absolute_url())
 
         context = {
             'form': form,
@@ -209,16 +202,12 @@ class IssuePlugin(Plugin):
             action_list.append((self.get_new_issue_title(), self.get_url(group)))
         return action_list
 
-    def before_events(self, request, event_list, **kwargs):
-        if event_list and self.is_configured(request=request, project=event_list[0].project):
-            prefix = self.get_conf_key()
-            self._cache = GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
-
     def tags(self, request, group, tag_list, **kwargs):
         if not self.is_configured(request=request, project=group.project):
             return tag_list
 
-        issue_id = self._cache.get(group.pk)
+        prefix = self.get_conf_key()
+        issue_id = GroupMeta.objects.get_value(group, '%s:tid' % prefix)
         if not issue_id:
             return tag_list
 

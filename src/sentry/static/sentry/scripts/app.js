@@ -62,12 +62,13 @@
 
         makeDefaultView: function(id){
             return new app.GroupListView({
+                emptyMessage: '<p>There are now events to show.</p>',
                 className: 'group-list small',
                 id: id,
                 maxItems: 5,
                 stream: this.options.stream,
                 realtime: this.options.realtime,
-                model: app.models.Group
+                model: app.models.Group,
             });
         },
 
@@ -93,8 +94,9 @@
                 maxItems: 50,
                 realtime: ($.cookie('pausestream') ? false : true),
                 canStream: this.options.canStream,
-                pollUrl: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/poll/',
-                model: app.models.Group
+                pollUrl: app.config.urlPrefix + '/api/' + app.config.organizationId + '/' + app.config.projectId + '/poll/',
+                model: app.models.Group,
+                emptyMessage: $('#empty_message').html()
             });
 
             this.control = $('a[data-action=pause]');
@@ -190,59 +192,6 @@
 
     });
 
-    app.SelectTeamPage = BasePage.extend({
-
-        initialize: function(){
-            BasePage.prototype.initialize.apply(this, arguments);
-
-            this.refreshSparklines();
-            $(window).on('resize', this.refreshSparklines);
-        },
-
-        refreshSparklines: function(){
-            $('.chart').each(function(n, el){
-                var $el = $(el);
-                $.ajax({
-                    url: $el.attr('data-api-url'),
-                    type: 'get',
-                    dataType: 'json',
-                    data: {
-                        days: 1
-                    },
-                    success: _.bind(function(data){
-                        $.plot($el, [{
-                                data: data,
-                                color: '#ebeff3',
-                                shadowSize: 0,
-                                lines: {
-                                    lineWidth: 2,
-                                    show: true,
-                                    fill: true,
-                                    color: '#f6f8fa'
-                            }
-                            }], {
-                                yaxis: {
-                                    min: 0
-                                },
-                                grid: {
-                                    show: false
-                                },
-                                hoverable: false,
-                                legend: {
-                                    noColumns: 5
-                                },
-                                lines: {
-                                    show: false
-                                }
-                            }
-                        );
-                    }, this)
-                });
-            });
-        }
-
-    });
-
     app.GroupDetailsPage = BasePage.extend({
 
         initialize: function(data){
@@ -258,35 +207,97 @@
             $('#chart').height('150px');
             Sentry.charts.render('#chart');
 
-            $('#public-status .action').click(function(){
-                var $this = $(this);
-                $.ajax({
-                    url: $this.attr('data-api-url'),
-                    type: 'post',
-                    success: function(group){
-                        var selector = (group.isPublic ? 'true' : 'false');
-                        var nselector = (group.isPublic ? 'false' : 'true');
-                        $('#public-status span[data-public="' + selector + '"]').show();
-                        $('#public-status span[data-public="' + nselector + '"]').hide();
-                    },
-                    error: function(){
-                        window.alert('There was an error changing the public status');
-                    }
-                });
+            $('.share-link').popover({
+                html: true,
+                placement: 'left',
+                container: document.body,
+                title: 'Share Event',
+                content: function(){
+                    var $this = $(this);
+                    var $content = $('<form class="share-form"></form>');
+                    var $urlel = $('<code class="clippy">' + $this.data('share-url') + '</code>');
+                    $urlel.clippy({
+                        clippy_path: app.config.clippyPath,
+                        keep_text: true
+                    });
+                    $content.append($urlel);
+                    $content.append($('<label class="checkbox"><input type="checkbox"> Allow anonymous users to view this event.</label>'));
+
+                    $content.find('input[type=checkbox]').change(function(){
+                        var url = $this.data($(this).is(':checked') ? 'public-url' : 'private-url');
+                        $.ajax({
+                            url: url,
+                            type: 'post',
+                            success: function(group){
+                                $this.data('public', group.isPublic ? 'true' : 'false');
+                            },
+                            error: function(){
+                                window.alert('There was an error changing the public status');
+                            }
+                        });
+                    }).attr('checked', $this.data('public') == 'true');
+
+                    return $content;
+                }
             });
 
             $('.add-note-btn').click(function(e){
-                var $el = $(this);
+                var $el = $(this),
+                    $form = $('.add-note-form', $el.parent());
 
                 e.preventDefault();
 
                 if ($el.hasClass('selected')) {
                     $el.removeClass('selected');
-                    $('.add-note-form', $el.parent()).addClass('hide');
+                    $form.addClass('hide');
                 } else {
                     $el.addClass('selected');
-                    $('.add-note-form', $el.parent()).removeClass('hide');
+                    $form.removeClass('hide');
+                    $form.find('textarea:first').focus();
                 }
+            });
+
+            $('.add-note-form').submit(function(el){
+                var $this = $(this);
+                $this.find('button[type=submit]').attr('disabled', true).addClass('disabled');
+                $this.find('textarea').addClass('disabled');
+            });
+
+            $('.tag-widget').each(function(){
+                var $widget = $(this);
+                $.ajax({
+                    url: $widget.data('url'),
+                    error: function() {
+                        $widget.find('.loading').remove();
+                        $widget.append($('<li class="error">Unable to load tag information</li>'));
+                    },
+                    success: function(data) {
+                        var total = data.total,
+                            eTagName = encodeURIComponent(data.name);
+
+                        $widget.find('.loading').remove();
+                        if (total === 0) {
+                            $widget.append($('<li>No data available.</li>'));
+                        } else {
+                            $.each(data.values, function(_, item){
+                                var tagValue = item[0],
+                                    timesSeen = item[1],
+                                    percent = parseInt(timesSeen / total * 100, 10),
+                                    url = app.config.urlPrefix + '/' + app.config.organizationId + '/' + app.config.projectId + '/';
+
+                                $('<li>' +
+                                    '<div class="progressbar">' +
+                                        '<div style="width:' + percent + '%">' + timesSeen + '</div>' +
+                                        '<a href="' + url + '?' + eTagName + '=' + encodeURIComponent(tagValue) + '">' +
+                                            tagValue +
+                                            '<span>' + percent + '%</span>' +
+                                        '</a>' +
+                                    '</div>' +
+                                '</li>').appendTo($widget);
+                            });
+                        }
+                    }
+                });
             });
 
             var $event_nav = $('#event_nav');
@@ -381,7 +392,7 @@
             this.sparkline.height(this.sparkline.parent().height());
             this.stats = $('#stats');
 
-            _.bindAll(this, 'refreshStats');
+            _.bindAll(this, 'refreshStats', 'refreshSparkline');
 
             this.refreshSparkline();
             this.refreshStats();
@@ -404,10 +415,15 @@
                 type: 'get',
                 dataType: 'json',
                 data: {
-                    days: 1,
-                    gid: this.sparkline.attr('data-group') || undefined
+                    since: new Date().getTime() / 1000 - 3600 * 24,
+                    resolution: '1h'
                 },
                 success: _.bind(function(data){
+                    for (var i = 0; i < data.length; i++) {
+                        // set timestamp to be in millis
+                        data[i][0] = data[i][0] * 1000;
+                    }
+                    this.sparkline.empty();
                     $.plot(this.sparkline, [{
                             data: data,
                             color: '#52566c',
@@ -434,6 +450,8 @@
                             }
                         }
                     );
+
+                    window.setTimeout(this.refreshSparkline, 10000);
                 }, this)
             });
         },
@@ -490,22 +508,11 @@
 
     });
 
-    app.AddTeamMemberPage = BasePage.extend({
-    });
-
     app.AccessGroupMembersPage = BasePage.extend({
         initialize: function(){
             BasePage.prototype.initialize.apply(this, arguments);
 
             app.utils.makeSearchableUsersInput('form input[name=user]');
-        }
-    });
-
-    app.AccessGroupProjectsPage = BasePage.extend({
-        initialize: function(){
-            BasePage.prototype.initialize.apply(this, arguments);
-
-            app.utils.makeSearchableProjectsInput('form input[name=project]');
         }
     });
 
@@ -595,11 +602,6 @@
                     snap: true
                 });
             }, this));
-
-            $("#tag_list input").each(function(_, el){
-                $(el).addClass('span6');
-                app.utils.makeSearchableTagsInput(el);
-            });
         },
 
         formatThreshold: function formatThreshold(value) {
@@ -629,6 +631,209 @@
                     $('#select_team').show();
                 });
             }
+        }
+
+    });
+
+
+    app.NewProjectRulePage = BasePage.extend({
+
+        initialize: function(data){
+            var select2_options = {
+                width: 'element',
+                allowClear: false,
+                minimumResultsForSearch: 10
+            };
+
+            BasePage.prototype.initialize.apply(this, arguments);
+
+            _.bindAll(this, 'addAction', 'addCondition', 'parseFormData');
+
+            this.actions_by_id = {};
+            this.conditions_by_id = {};
+            this.el = $(data.el);
+            this.action_sel = this.el.find('select[id="action-select"]');
+            this.action_table = this.el.find('table.action-list');
+            this.action_table_body = this.action_table.find('tbody');
+            this.condition_sel = this.el.find('select[id="condition-select"]');
+            this.condition_table = this.el.find('table.condition-list');
+            this.condition_table_body = this.condition_table.find('tbody');
+
+            this.action_sel.empty();
+            this.action_sel.append($('<option></option>'));
+            $.each(data.actions, _.bind(function(_, action) {
+                var opt = $('<option></option>');
+                opt.attr({
+                    value: action.id
+                });
+                opt.text(action.label);
+                opt.appendTo(this.action_sel);
+
+                this.actions_by_id[action.id] = action;
+            }, this));
+
+            this.condition_sel.empty();
+            this.condition_sel.append($('<option></option>'));
+            $.each(data.conditions, _.bind(function(_, condition) {
+                var opt = $('<option></option>');
+                opt.attr({
+                    value: condition.id
+                });
+                opt.text(condition.label);
+                opt.appendTo(this.condition_sel);
+
+                this.conditions_by_id[condition.id] = condition;
+            }, this));
+
+            this.action_sel.select2(select2_options);
+            this.condition_sel.select2(select2_options);
+
+            this.action_sel.change(_.bind(function(){
+                this.addAction(this.action_sel.val());
+            }, this));
+            this.condition_sel.change(_.bind(function(){
+                this.addCondition(this.condition_sel.val());
+            }, this));
+
+            this.parseFormData(data.form_data, data.form_errors);
+        },
+
+        parseFormData: function(form_data, form_errors) {
+            // start by parsing into condition/action bits
+            var data = {
+                    action: {},
+                    action_match: form_data.action_match || 'all',
+                    condition: {},
+                    label: form_data.label || ''
+                };
+
+            form_errors = form_errors || {};
+
+            $.each(form_data, function(key, value){
+                var matches = key.match(/^(condition|action)\[(\d+)\]\[(.+)\]$/);
+                var type, num;
+                if (!matches) {
+                    return;
+                }
+                type = matches[1];
+                num = matches[2];
+                if (data[type][num] === undefined) {
+                    data[type][num] = {};
+                }
+                data[type][num][matches[3]] = value;
+            });
+
+            this.el.find('input[name=label]').val(data.label);
+            this.el.find('select[name="action_match"]').val(data.action_match);
+
+            $.each(_.sortBy(data.condition), _.bind(function(num, item){
+                this.addCondition(item.id, item, form_errors['condition[' + num + ']'] || false);
+            }, this));
+            $.each(_.sortBy(data.action), _.bind(function(num, item){
+                this.addAction(item.id, item, form_errors['action[' + num + ']'] || false);
+            }, this));
+        },
+
+        addCondition: function(id, options, has_errors) {
+            var node = this.conditions_by_id[id],
+                row = $('<tr></tr>'),
+                remove_btn = $('<button class="btn btn-small">Remove</button>'),
+                num = this.condition_table_body.find('tr').length,
+                html = $('<div>' + node.html + '</div>'),
+                prefix = 'condition[' + num + ']',
+                id_field = $('<input type="hidden" name="' + prefix + '[id]" value="' + node.id + '">');
+
+            has_errors = has_errors || false;
+            options = options || {};
+
+            if (has_errors) {
+                row.addClass('error');
+            }
+
+            html.find('select').each(function(){
+                var $this = $(this),
+                    options = {
+                        width: 'element',
+                        allowClear: false,
+                        minimumResultsForSearch: 10
+                    };
+
+                if ($this.attr('data-allowClear')) {
+                    options.allowClear = $this.attr('data-allowClear');
+                }
+
+                $this.select2(options);
+            });
+
+            // we need to update the id of all form elements
+            html.find('input, select, textarea').each(function(_, el){
+                var $el = $(el),
+                    name = $el.attr('name');
+                $el.attr('name', prefix + '[' + name + ']');
+                $el.val(options[name] || '');
+            });
+            row.append($('<td></td>').append(html).append(id_field));
+            row.append($('<td></td>').append(remove_btn));
+            row.appendTo(this.condition_table_body);
+
+            remove_btn.click(function(){
+                row.remove();
+                return false;
+            });
+
+            this.condition_sel.data("select2").clear();
+            this.condition_table.show();
+        },
+
+        addAction: function(id, options, has_errors) {
+            var node = this.actions_by_id[id],
+                row = $('<tr></tr>'),
+                remove_btn = $('<button class="btn btn-small">Remove</button>'),
+                num = this.action_table_body.find('tr').length,
+                html = $('<div>' + node.html + '</div>'),
+                prefix = 'action[' + num + ']',
+                id_field = $('<input type="hidden" name="' + prefix + '[id]" value="' + node.id + '">');
+
+            has_errors = has_errors || false;
+            options = options || {};
+
+            if (has_errors) {
+                row.addClass('error');
+            }
+
+            html.find('select').each(function(){
+                var $this = $(this),
+                    options = {
+                        width: 'element',
+                        allowClear: false,
+                        minimumResultsForSearch: 10
+                    };
+
+                if ($this.attr('data-allowClear')) {
+                    options.allowClear = $this.attr('data-allowClear');
+                }
+
+                $this.select2(options);
+            });
+
+            // we need to update the id of all form elements
+            html.find('input, select, textarea').each(function(_, el){
+                var $el = $(el),
+                    name = $el.attr('name');
+                $el.attr('name', prefix + '[' + name + ']');
+                $el.val(options[name] || '');
+            });
+            row.append($('<td></td>').append(html).append(id_field));
+            row.append($('<td></td>').append(remove_btn));
+            row.appendTo(this.action_table_body);
+
+            remove_btn.click(function(){
+                row.remove();
+                return false;
+            });
+
+            this.action_sel.data("select2").clear();
+            this.action_table.show();
         }
 
     });

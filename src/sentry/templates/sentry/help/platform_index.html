@@ -1,0 +1,167 @@
+{% extends "sentry/help/index.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Platforms" %} | {{ block.super }}{% endblock %}
+{% block client_overview_class %}active{% endblock %}
+
+{% block pre_breadcrumbs %}
+  {% if org_results %}
+  <div class="select-project dropdown pull-right">
+    <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
+    {% if selected_project %}
+      <span class="project-label">Project:</span> {{ selected_project.name }} <span class="caret"></span>
+    {% else %}
+      <span class="project-label">Project:</span> (Select) <span class="caret"></span>
+    {% endif %}
+    </a>
+    <div class="dropdown-menu">
+      <ul class="orgs">
+      {% for org, team_results in org_results %}
+        <li class="org">
+          <h5>{{ org.name }}</h5>
+          <ul class="teams unstyled">
+          {% for team, project_results in team_results %}
+            <li class="team">
+              <h6>{{ team.name }}</h6>
+              <ul class="projects unstyled">
+              {% for project in project_results %}
+                <li{% if project == selected_project %} class="active"{% endif %}>
+                  <a href="?pid={{ project.id }}">{{ project.name }}</a>
+                </li>
+              {% endfor %}
+              </ul>
+            </li>
+          {% endfor %}
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
+{% endblock%}
+
+{% block css %}
+  {{ block.super }}
+  <link href="{% url 'sentry-media' "sentry" "vendor/platformicons/platformicons/platformicons.css" %}" type="text/css" rel="stylesheet">
+{% endblock%}
+
+{% block main %}
+    <h3>Client Configuration</h3>
+
+    <p>While Sentry is designed to work on any platform, we officially support a subset. If you're looking to integrate Sentry on an unsupported platform please take a look at our <a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">client API reference</a>.</p>
+
+{% if dsn %}
+    <h2>Your DSN</h2>
+
+    <p>{% trans "If you already know what you're doing, here's your DSN:" %}</p>
+
+    <pre class="clippy">{{ dsn }}</pre>
+
+    {% if dsn_public %}
+        <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
+
+        <pre class="clippy">{{ dsn_public }}</pre>
+    {% endif %}
+
+    <p>Note: The above DSN is for the <strong>{{ selected_project.team.name }} {{ selected_project.name }}</strong> project.</p>
+{% endif %}
+
+    <h4>Our clients</h4>
+
+    <ul class="client-platform-list unstyled">
+        <li>
+            <a href="{% url 'sentry-help-platform' 'python' %}">
+                <span class="platformicon-python big-platformicon"></span>
+                Python
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'php' %}">
+                <span class="platformicon-php big-platformicon"></span>
+                PHP
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'ruby' %}">
+                <span class="platformicon-ruby big-platformicon"></span>
+                Ruby
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'javascript' %}">
+              <span class="platformicon-js big-platformicon"></span>
+                JavaScript
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'java' %}">
+                <span class="platformicon-java big-platformicon"></span>
+                Java
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'node.js' %}">
+                <span class="platformicon-node-js big-platformicon"></span>
+                Node.js
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'go' %}">
+                <span class="platformicon-go big-platformicon"></span>
+                Go
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'sentry-help-platform' 'rails3' %}">
+                <span class="platformicon-rails big-platformicon"></span>
+                Rails 3
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'rails4' %}">
+                <span class="platformicon-rails big-platformicon"></span>
+                Rails 4
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sentry-help-platform' 'django' %}">
+                <span class="platformicon-django big-platformicon"></span>
+                Django
+            </a>
+        </li>
+    </ul>
+
+    <h4>Community clients</h4>
+
+    <ul class="client-platform-list unstyled">
+        <li>
+            <a href="https://github.com/getsentry/raven-objc">
+              <span class="platformicon-ios big-platformicon"></span>
+                iOS
+            </a>
+        </li>
+        <li>
+            <a href="https://github.com/getsentry/raven-csharp">
+                <span class="platformicon-generic big-platformicon"></span>
+                C#
+            </a>
+        </li>
+        <li>
+            <a href="https://github.com/voron3x/raven-perl">
+                <span class="platformicon-generic big-platformicon"></span>
+                Perl
+            </a>
+        </li>
+
+    </ul>
+
+{% endblock %}

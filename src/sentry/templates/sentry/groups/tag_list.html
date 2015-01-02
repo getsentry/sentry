@@ -15,7 +15,7 @@
             {% endif %}
             <div class="span6">
                 <div class="page-header">
-                    <span class="pull-right"><a href="{% url 'sentry-group-tag-details' group.team.slug group.project.slug group.id tag_key.key|urlquote %}">More Details</a></span>
+                    <span class="pull-right"><a href="{% url 'sentry-group-tag-details' group.organization.slug group.project.slug group.id tag_key.key|urlquote %}">More Details</a></span>
 
                     <h4>{{ tag_key.get_label }} <small>({{ values_seen|small_count }})</small></h4>
                 </div>
@@ -25,7 +25,7 @@
                         <li>
                             <div class="progressbar">
                                 <div style="width:{{ percent }}%;">{{ times_seen }}</div>
-                                <a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_key.key|urlquote }}={{ tag_value|urlquote }}">
+                                <a href="{% url 'sentry-stream' group.organization.slug group.project.slug %}?{{ tag_key.key|urlquote }}={{ tag_value|urlquote }}">
                                     {{ tag_value }}
                                     <span>{{ times_seen|small_count }} ({{ percent }}%)</span>
                                 </a>

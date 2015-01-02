@@ -2,9 +2,13 @@
 sentry.templatetags.sentry_activity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
+import logging
+
 from django import template
 from django.utils.html import escape, urlize, linebreaks
 from django.utils.safestring import mark_safe
@@ -35,7 +39,11 @@ def render_activity(item):
         # not implemented
         return
 
-    action_str = ACTIVITY_ACTION_STRINGS[item.type]
+    try:
+        action_str = ACTIVITY_ACTION_STRINGS[item.type]
+    except KeyError:
+        logging.warning('Unknown activity type present: %s', item.type)
+        return
 
     if item.type == Activity.CREATE_ISSUE:
         action_str = action_str.format(**item.data)

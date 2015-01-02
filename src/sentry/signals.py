@@ -1,5 +1,7 @@
-from functools import wraps
+from __future__ import absolute_import
+
 from django.dispatch import Signal
+from functools import wraps
 
 
 class BetterSignal(Signal):
@@ -22,3 +24,4 @@ class BetterSignal(Signal):
 
 regression_signal = BetterSignal(providing_args=["instance"])
 buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
+event_received = BetterSignal(providing_args=["ip"])

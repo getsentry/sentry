@@ -27,7 +27,7 @@ How do I
      configure()
 
      # Do something crazy
-     from sentry.models import Team, Project, User
+     from sentry.models import Team, Project, ProjectKey, User
 
      user = User()
      user.username = 'admin'
@@ -43,7 +43,6 @@ How do I
 
      project = Project()
      project.team = team
-     project.owner = user
      project.name = 'Default'
      project.save()
 

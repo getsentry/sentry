@@ -16,7 +16,7 @@ application = tornado.web.Application([
     (r"/", MainHandler),
 ])
 application.sentry_client = AsyncSentryClient(
-    '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+    '{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}'
 )</pre>
 
     <p>{% blocktrans %}Once the sentry client is attached to the application, request handlers can automatically capture uncaught exceptions by inheriting the SentryMixin class.{% endblocktrans %}</p>

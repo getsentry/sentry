@@ -1,10 +1,10 @@
 import json
 
-import mock
+from mock import patch
 
-from sentry.plugins.helpers import get_option, set_option
+from sentry import options
 from sentry.testutils import TestCase
-from sentry.models import set_sentry_version, Option
+from sentry.receivers import set_sentry_version
 from sentry.tasks.check_update import check_update, PYPI_URL
 
 
@@ -16,44 +16,51 @@ class CheckUpdateTest(TestCase):
 
     KEY = 'sentry:latest_version'
 
-    def test_run_check_update_task(self):
-        with mock.patch('sentry.tasks.check_update.fetch_url_content') as fetch:
-            fetch.return_value = (
-                None, None, json.dumps({'info': {'version': self.NEW}})
-            )
-            check_update()  # latest_version > current_version
-            fetch.assert_called_once_with(PYPI_URL)
+    @patch('sentry.tasks.check_update.safe_urlopen')
+    @patch('sentry.tasks.check_update.safe_urlread')
+    def test_run_check_update_task(self, safe_urlread, safe_urlopen):
+        safe_urlread.return_value = json.dumps({'info': {'version': self.NEW}})
 
-        self.assertEqual(get_option(key=self.KEY), self.NEW)
+        check_update()  # latest_version > current_version
 
-    def test_run_check_update_task_with_bad_response(self):
-        with mock.patch('sentry.tasks.check_update.fetch_url_content') as fetch:
-            fetch.return_value = (None, None, '')
-            check_update()  # latest_version == current_version
-            fetch.assert_called_once_with(PYPI_URL)
+        safe_urlopen.assert_called_once_with(PYPI_URL)
+        safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        self.assertEqual(get_option(key=self.KEY), None)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)
+
+    @patch('sentry.tasks.check_update.safe_urlopen')
+    @patch('sentry.tasks.check_update.safe_urlread')
+    def test_run_check_update_task_with_bad_response(self, safe_urlread,
+                                                     safe_urlopen):
+        safe_urlread.return_value = ''
+
+        check_update()  # latest_version == current_version
+
+        safe_urlopen.assert_called_once_with(PYPI_URL)
+        safe_urlread.assert_called_once_with(safe_urlopen.return_value)
+
+        self.assertEqual(options.get(key=self.KEY), '')
 
     def test_set_sentry_version_empty_latest(self):
         set_sentry_version(latest=self.NEW)
-        self.assertEqual(get_option(key=self.KEY), self.NEW)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)
 
-    def test_set_sentry_version_new(self):
-        set_option(self.KEY, self.OLD)
+    @patch('sentry.get_version')
+    def test_set_sentry_version_new(self, get_version):
+        options.set(self.KEY, self.OLD)
 
-        with mock.patch('sentry.get_version') as get_version:
-            get_version.return_value = self.CURRENT
+        get_version.return_value = self.CURRENT
 
-            set_sentry_version(latest=self.NEW)
+        set_sentry_version(latest=self.NEW)
 
-        self.assertEqual(Option.objects.get_value(key=self.KEY), self.NEW)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)
 
-    def test_set_sentry_version_old(self):
-        set_option(self.KEY, self.NEW)
+    @patch('sentry.get_version')
+    def test_set_sentry_version_old(self, get_version):
+        options.set(self.KEY, self.NEW)
 
-        with mock.patch('sentry.get_version') as get_version:
-            get_version.return_value = self.CURRENT
+        get_version.return_value = self.CURRENT
 
-            set_sentry_version(latest=self.OLD)
+        set_sentry_version(latest=self.OLD)
 
-        self.assertEqual(Option.objects.get_value(key=self.KEY), self.NEW)
+        self.assertEqual(options.get(key=self.KEY), self.NEW)

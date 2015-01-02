@@ -2,41 +2,55 @@
 sentry.web.views
 ~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import datetime
-import logging
-from functools import wraps
+from __future__ import absolute_import, print_function
 
+import logging
+import six
+
+from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.db import connections
 from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
+from django.http import (
+    HttpResponse, HttpResponseBadRequest,
+    HttpResponseForbidden, HttpResponseRedirect,
+)
 from django.utils import timezone
+from django.utils.http import urlquote
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
+from functools import wraps
+from raven.contrib.django.models import client as Raven
 
 from sentry import app
-from sentry.constants import (
-    MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
-    EVENTS_PER_PAGE)
+from sentry.api.base import LINK_HEADER
+from sentry.app import tsdb
+from sentry.constants import MEMBER_USER, EVENTS_PER_PAGE
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
-    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip)
-from sentry.exceptions import InvalidData
+    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
+    decompress_deflate, decompress_gzip)
+from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
+from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
-    User)
+    Group, GroupBookmark, GroupStatus, GroupTagValue, Project, TagValue,
+    Activity, User
+)
+from sentry.signals import event_received
 from sentry.plugins import plugins
+from sentry.quotas.base import RateLimit
 from sentry.utils import json
-from sentry.utils.cache import cache
-from sentry.utils.db import has_trending
+from sentry.utils.data_scrubber import SensitiveDataFilter
+from sentry.utils.db import get_db_engine
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -44,12 +58,14 @@ from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
 
-error_logger = logging.getLogger('sentry.errors.api.http')
-logger = logging.getLogger('sentry.api.http')
+error_logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry.api')
 
 # Transparent 1x1 gif
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
 PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
+
+PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6'))
 
 
 def api(func):
@@ -103,7 +119,10 @@ class APIView(BaseView):
         server_version = auth_vars.get('sentry_version', '1.0')
         client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
 
-        if server_version not in ('2.0', '3', '4'):
+        Raven.tags_context({'client': client})
+        Raven.tags_context({'protocol': server_version})
+
+        if server_version not in PROTOCOL_VERSIONS:
             raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
 
         if not client:
@@ -112,11 +131,14 @@ class APIView(BaseView):
         return auth_vars
 
     @csrf_exempt
+    @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
         try:
             origin = self.get_request_origin(request)
 
             response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+        except InvalidRequest as e:
+            response = HttpResponseBadRequest(str(e), content_type='text/plain')
         except Exception:
             response = HttpResponse(status=500)
 
@@ -160,15 +182,19 @@ class APIView(BaseView):
 
         try:
             project = self._get_project_from_id(project_id)
-        except APIError, e:
-            return HttpResponse(str(e), content_type='text/plain', status=400)
+        except APIError as e:
+            raise InvalidRequest(str(e))
+
+        if project:
+            Raven.tags_context({'project': project.id})
 
         origin = self.get_request_origin(request)
         if origin is not None:
+            # This check is specific for clients who need CORS support
             if not project:
-                return HttpResponse('Your client must be upgraded for CORS support.')
-            elif not is_valid_origin(origin, project):
-                return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
+                raise InvalidRequest('Your client must be upgraded for CORS support.')
+            if not is_valid_origin(origin, project):
+                raise InvalidOrigin(origin)
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
@@ -176,13 +202,13 @@ class APIView(BaseView):
         else:
             try:
                 auth_vars = self._parse_header(request, project)
-            except APIError, e:
-                return HttpResponse(str(e), content_type='text/plain', status=400)
+            except APIError as e:
+                raise InvalidRequest(str(e))
 
             try:
                 project_, user = project_from_auth_vars(auth_vars)
-            except APIError, error:
-                return HttpResponse(unicode(error.msg), status=error.http_status)
+            except APIError as error:
+                return HttpResponse(six.text_type(error.msg), status=error.http_status)
             else:
                 if user:
                     request.user = user
@@ -190,23 +216,36 @@ class APIView(BaseView):
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
                 if not project_:
-                    return HttpResponse('Unable to identify project', content_type='text/plain', status=400)
+                    raise InvalidRequest('Unable to identify project')
                 project = project_
             elif project_ != project:
-                return HttpResponse('Project ID mismatch', content_type='text/plain', status=400)
+                raise InvalidRequest('Project ID mismatch')
+            else:
+                Raven.tags_context({'project': project.id})
 
             auth = Auth(auth_vars, is_public=bool(origin))
 
             if auth.version >= 3:
-                # Version 3 enforces secret key for server side requests
-                if origin is None and not auth.secret_key:
-                    return HttpResponse('Missing required attribute in authentication header: sentry_secret', status=400)
+                if request.method == 'GET':
+                    # GET only requires an Origin/Referer check
+                    # If an Origin isn't passed, it's possible that the project allows no origin,
+                    # so we need to explicitly check for that here. If Origin is not None,
+                    # it can be safely assumed that it was checked previously and it's ok.
+                    if origin is None and not is_valid_origin(origin, project):
+                        # Special case an error message for a None origin when None wasn't allowed
+                        raise InvalidRequest('Missing required Origin or Referer header')
+                else:
+                    # Version 3 enforces secret key for server side requests
+                    if not auth.secret_key:
+                        raise InvalidRequest('Missing required attribute in authentication header: sentry_secret')
 
             try:
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
-            except APIError, error:
-                response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
+            except APIError as error:
+                response = HttpResponse(six.text_type(error.msg), content_type='text/plain', status=error.http_status)
+                if isinstance(error, APIRateLimited) and error.retry_after is not None:
+                    response['Retry-After'] = str(error.retry_after)
 
         if origin:
             response['Access-Control-Allow-Origin'] = origin
@@ -253,9 +292,8 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    @never_cache
     def post(self, request, project, auth, **kwargs):
-        data = request.raw_post_data
+        data = request.body
         response_or_event_id = self.process(request, project, auth, data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
@@ -263,36 +301,61 @@ class StoreView(APIView):
             'id': response_or_event_id,
         }), content_type='application/json')
 
-    @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        self.process(request, project, auth, data, **kwargs)
-        # We should return a simple 1x1 gif for browser so they don't throw a warning
-        return HttpResponse(PIXEL, 'image/gif')
+        response_or_event_id = self.process(request, project, auth, data, **kwargs)
+
+        # Return a simple 1x1 gif for browser so they don't throw a warning
+        response = HttpResponse(PIXEL, 'image/gif')
+        if not isinstance(response_or_event_id, HttpResponse):
+            response['X-Sentry-ID'] = response_or_event_id
+        return response
 
     def process(self, request, project, auth, data, **kwargs):
-        if safe_execute(app.quotas.is_rate_limited, project=project):
-            raise APIRateLimited
-        for plugin in plugins.all():
-            if safe_execute(plugin.is_rate_limited, project=project):
-                raise APIRateLimited
+        event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
+
+        # TODO: improve this API (e.g. make RateLimit act on __ne__)
+        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project)
+        if isinstance(rate_limit, bool):
+            rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
+
+        if rate_limit is not None and rate_limit.is_limited:
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.project_total_rejected, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+                (app.tsdb.models.organization_total_rejected, project.organization_id),
+            ])
+            raise APIRateLimited(rate_limit.retry_after)
+        else:
+            app.tsdb.incr_multi([
+                (app.tsdb.models.project_total_received, project.id),
+                (app.tsdb.models.organization_total_received, project.organization_id),
+            ])
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
 
-        if not data.startswith('{'):
+        content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
+
+        if content_encoding == 'gzip':
+            data = decompress_gzip(data)
+        elif content_encoding == 'deflate':
+            data = decompress_deflate(data)
+        elif not data.startswith('{'):
             data = decode_and_decompress_data(data)
         data = safely_load_json_string(data)
 
         try:
             # mutates data
             validate_data(project, data, auth.client)
-        except InvalidData, e:
-            raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
+        except InvalidData as e:
+            raise APIError(u'Invalid data: %s (%s)' % (six.text_type(e), type(e)))
 
         # mutates data
-        Group.objects.normalize_event_data(data)
+        manager = EventManager(data, version=auth.version)
+        data = manager.normalize()
 
         # insert IP address if not available
         if auth.is_public:
@@ -300,10 +363,25 @@ class StoreView(APIView):
 
         event_id = data['event_id']
 
+        # TODO(dcramer): ideally we'd only validate this if the event_id was
+        # supplied by the user
+        cache_key = 'ev:%s:%s' % (project.id, event_id,)
+
+        if cache.get(cache_key) is not None:
+            logger.warning('Discarded recent duplicate event from project %s/%s (id=%s)', project.organization.slug, project.slug, event_id)
+            raise InvalidRequest('An event with the same ID already exists.')
+
+        if project.get_option('sentry:scrub_data', True):
+            # We filter data immediately before it ever gets into the queue
+            inst = SensitiveDataFilter()
+            inst.apply(data)
+
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)
 
-        logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, event_id)
+        cache.set(cache_key, '', 60 * 5)
+
+        logger.debug('New event from project %s/%s (id=%s)', project.organization.slug, project.slug, event_id)
 
         return event_id
 
@@ -311,27 +389,60 @@ class StoreView(APIView):
 @csrf_exempt
 @has_access
 @never_cache
-@api
-def poll(request, team, project):
+def poll(request, organization, project):
     offset = 0
     limit = EVENTS_PER_PAGE
 
-    response = _get_group_list(
+    group_result = _get_group_list(
         request=request,
         project=project,
     )
 
-    event_list = response['event_list']
+    event_list = group_result['event_list']
     event_list = list(event_list[offset:limit])
 
-    return to_json(event_list, request)
+    data = to_json(event_list, request)
+
+    links = [
+        ('previous', str(group_result['prev_cursor'])),
+        ('next', str(group_result['next_cursor'])),
+    ]
+
+    querystring = u'&'.join(
+        u'{0}={1}'.format(urlquote(k), urlquote(v))
+        for k, v in request.GET.iteritems()
+        if k != 'cursor'
+    )
+    base_url = request.build_absolute_uri(request.path)
+    if querystring:
+        base_url = '{0}?{1}'.format(base_url, querystring)
+    else:
+        base_url = base_url + '?'
+
+    link_values = []
+    for name, cursor in links:
+        link_values.append(LINK_HEADER.format(
+            uri=base_url,
+            cursor=cursor,
+            name=name,
+        ))
+
+    headers = {}
+    if link_values:
+        headers['Link'] = ', '.join(link_values)
+
+    response = HttpResponse(data)
+    response['Content-Type'] = 'application/json'
+    if link_values:
+        response['Link'] = ', '.join(link_values)
+    return response
 
 
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def resolve(request, team, project):
+def resolve(request, organization, project):
     gid = request.REQUEST.get('gid')
     if not gid:
         return HttpResponseForbidden()
@@ -345,11 +456,11 @@ def resolve(request, team, project):
 
     happened = Group.objects.filter(
         pk=group.pk,
-    ).exclude(status=STATUS_RESOLVED).update(
-        status=STATUS_RESOLVED,
+    ).exclude(status=GroupStatus.RESOLVED).update(
+        status=GroupStatus.RESOLVED,
         resolved_at=now,
     )
-    group.status = STATUS_RESOLVED
+    group.status = GroupStatus.RESOLVED
     group.resolved_at = now
 
     if happened:
@@ -367,7 +478,7 @@ def resolve(request, team, project):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def make_group_public(request, team, project, group_id):
+def make_group_public(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -390,7 +501,7 @@ def make_group_public(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def make_group_private(request, team, project, group_id):
+def make_group_private(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -413,13 +524,16 @@ def make_group_private(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def resolve_group(request, team, project, group_id):
+def resolve_group(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_RESOLVED)
+    happened = group.update(
+        status=GroupStatus.RESOLVED,
+        resolved_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -435,13 +549,16 @@ def resolve_group(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def mute_group(request, team, project, group_id):
+def mute_group(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_MUTED)
+    happened = group.update(
+        status=GroupStatus.MUTED,
+        resolved_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -457,13 +574,16 @@ def mute_group(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def unresolve_group(request, team, project, group_id):
+def unresolve_group(request, organization, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    happened = group.update(status=STATUS_UNRESOLVED)
+    happened = group.update(
+        status=GroupStatus.UNRESOLVED,
+        active_at=timezone.now(),
+    )
     if happened:
         Activity.objects.create(
             project=project,
@@ -478,7 +598,7 @@ def unresolve_group(request, team, project, group_id):
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
-def remove_group(request, team, project, group_id):
+def remove_group(request, organization, project, group_id):
     from sentry.tasks.deletion import delete_group
 
     try:
@@ -494,15 +614,60 @@ def remove_group(request, team, project, group_id):
     else:
         messages.add_message(request, messages.SUCCESS,
             _('Deletion has been queued and should occur shortly.'))
-        response = HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
+        response = HttpResponseRedirect(reverse('sentry-stream', args=[organization.slug, project.slug]))
     return response
+
+
+@csrf_exempt
+@has_access(MEMBER_USER)
+@never_cache
+@api
+def get_group_tags(request, organization, project, group_id, tag_name):
+    # XXX(dcramer): Consider this API deprecated as soon as it was implemented
+    cutoff = timezone.now() - timedelta(days=7)
+
+    engine = get_db_engine('default')
+    if 'postgres' in engine:
+        # This doesnt guarantee percentage is accurate, but it does ensure
+        # that the query has a maximum cost
+        cursor = connections['default'].cursor()
+        cursor.execute("""
+            SELECT SUM(t)
+            FROM (
+                SELECT times_seen as t
+                FROM sentry_messagefiltervalue
+                WHERE group_id = %s
+                AND key = %s
+                AND last_seen > NOW() - INTERVAL '7 days'
+                LIMIT 10000
+            ) as a
+        """, [group_id, tag_name])
+        total = cursor.fetchone()[0] or 0
+    else:
+        total = GroupTagValue.objects.filter(
+            group=group_id,
+            key=tag_name,
+            last_seen__gte=cutoff,
+        ).aggregate(t=Sum('times_seen'))['t'] or 0
+
+    unique_tags = GroupTagValue.objects.filter(
+        group=group_id,
+        key=tag_name,
+        last_seen__gte=cutoff,
+    ).values_list('value', 'times_seen').order_by('-times_seen')[:10]
+
+    return json.dumps({
+        'name': tag_name,
+        'values': list(unique_tags),
+        'total': total,
+    })
 
 
 @csrf_exempt
 @has_access
 @never_cache
 @api
-def bookmark(request, team, project):
+def bookmark(request, organization, project):
     gid = request.REQUEST.get('gid')
     if not gid:
         return HttpResponseForbidden()
@@ -529,17 +694,17 @@ def bookmark(request, team, project):
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
-def clear(request, team, project):
-    response = _get_group_list(
-        request=request,
+def clear(request, organization, project):
+    queryset = Group.objects.filter(
         project=project,
+        status=GroupStatus.UNRESOLVED,
     )
+    rows_affected = queryset.update(status=GroupStatus.RESOLVED)
+    if rows_affected > 1000:
+        logger.warning(
+            'Large resolve on %s of %s rows', project.slug, rows_affected)
 
-    # TODO: should we record some kind of global event in Activity?
-    event_list = response['event_list']
-    happened = event_list.update(status=STATUS_RESOLVED)
-
-    if happened:
+    if rows_affected:
         Activity.objects.create(
             project=project,
             type=Activity.SET_RESOLVED,
@@ -552,54 +717,14 @@ def clear(request, team, project):
     return response
 
 
-@vary_on_cookie
-@csrf_exempt
-@has_access
-def chart(request, team=None, project=None):
-    gid = request.REQUEST.get('gid')
-    days = int(request.REQUEST.get('days', '90'))
-    if gid:
-        try:
-            group = Group.objects.get(pk=gid)
-        except Group.DoesNotExist:
-            return HttpResponseForbidden()
-
-        data = Group.objects.get_chart_data(group, max_days=days)
-    elif project:
-        data = Project.objects.get_chart_data(project, max_days=days)
-    elif team:
-        cache_key = 'api.chart:team=%s,days=%s' % (team.id, days)
-
-        data = cache.get(cache_key)
-        if data is None:
-            project_list = list(Project.objects.filter(team=team))
-            data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
-            cache.set(cache_key, data, 300)
-    else:
-        cache_key = 'api.chart:user=%s,days=%s' % (request.user.id, days)
-
-        data = cache.get(cache_key)
-        if data is None:
-            project_list = Project.objects.get_for_user(request.user)
-            data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
-            cache.set(cache_key, data, 300)
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
-
-
 @never_cache
 @csrf_exempt
 @has_access
-def get_group_trends(request, team=None, project=None):
+def get_group_trends(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
@@ -608,18 +733,13 @@ def get_group_trends(request, team=None, project=None):
         status=0,
     )
 
-    if has_trending():
-        group_list = list(Group.objects.get_accelerated(project_dict, base_qs, minutes=(
-            minutes
-        ))[:limit])
-    else:
-        cutoff = datetime.timedelta(minutes=minutes)
-        cutoff_dt = timezone.now() - cutoff
+    cutoff = timedelta(minutes=minutes)
+    cutoff_dt = timezone.now() - cutoff
 
-        group_list = list(base_qs.filter(
-            status=STATUS_UNRESOLVED,
-            last_seen__gte=cutoff_dt
-        ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
+    group_list = list(base_qs.filter(
+        status=GroupStatus.UNRESOLVED,
+        last_seen__gte=cutoff_dt
+    ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
@@ -635,23 +755,20 @@ def get_group_trends(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_new_groups(request, team=None, project=None):
+def get_new_groups(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
-        status=STATUS_UNRESOLVED,
+        status=GroupStatus.UNRESOLVED,
         active_at__gte=cutoff_dt,
     ).extra(select={'sort_value': 'score'}).order_by('-score', '-first_seen')[:limit])
 
@@ -669,23 +786,20 @@ def get_new_groups(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_resolved_groups(request, team=None, project=None):
+def get_resolved_groups(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if not team and project:
-        project_list = [project]
-    else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
     project_dict = dict((p.id, p) for p in project_list)
 
-    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff = timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = list(Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
+        status=GroupStatus.RESOLVED,
         resolved_at__gte=cutoff_dt,
     ).order_by('-score')[:limit])
 
@@ -703,27 +817,34 @@ def get_resolved_groups(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_stats(request, team=None, project=None):
+def get_stats(request, organization, team):
     minutes = int(request.REQUEST.get('minutes', 15))
 
-    if not team and project:
-        project_list = [project]
-    else:
-        project_list = Project.objects.get_for_user(request.user, team=team)
+    project_list = Project.objects.get_for_user(team=team, user=request.user)
 
-    cutoff = datetime.timedelta(minutes=minutes)
-    cutoff_dt = timezone.now() - cutoff
+    cutoff = timedelta(minutes=minutes)
 
-    num_events = ProjectCountByMinute.objects.filter(
-        project__in=project_list,
-        date__gte=cutoff_dt,
-    ).aggregate(t=Sum('times_seen'))['t'] or 0
+    end = timezone.now()
+    start = end - cutoff
+
+    # TODO(dcramer): this is used in an unreleased feature. reimplement it using
+    # new API and tsdb
+    results = tsdb.get_range(
+        model=tsdb.models.project,
+        keys=[p.id for p in project_list],
+        start=start,
+        end=end,
+    )
+    num_events = 0
+    for project, points in results.iteritems():
+        num_events += sum(p[1] for p in points)
 
     # XXX: This is too slow if large amounts of groups are resolved
+    # TODO(dcramer); move this into tsdb
     num_resolved = Group.objects.filter(
         project__in=project_list,
-        status=STATUS_RESOLVED,
-        resolved_at__gte=cutoff_dt,
+        status=GroupStatus.RESOLVED,
+        resolved_at__gte=start,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 
     data = {
@@ -740,7 +861,7 @@ def get_stats(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def search_tags(request, team, project):
+def search_tags(request, organization, project):
     limit = min(100, int(request.GET.get('limit', 10)))
     name = request.GET['name']
     query = request.GET['query']
@@ -763,14 +884,14 @@ def search_tags(request, team, project):
 @never_cache
 @csrf_exempt
 @has_access
-def search_users(request, team):
+def search_users(request, organization):
     limit = min(100, int(request.GET.get('limit', 10)))
     query = request.GET['query']
 
     results = list(User.objects.filter(
         Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
     ).filter(
-        Q(team_memberships=team) | Q(accessgroup__team=team),
+        sentry_orgmember_set__organization=organization,
     ).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
 
     response = HttpResponse(json.dumps({
@@ -785,13 +906,14 @@ def search_users(request, team):
 @never_cache
 @csrf_exempt
 @has_access
-def search_projects(request, team):
+def search_projects(request, organization):
     limit = min(100, int(request.GET.get('limit', 10)))
     query = request.GET['query']
 
     results = list(Project.objects.filter(
         Q(name__istartswith=query) | Q(slug__istartswith=query),
-    ).filter(team=team).distinct().order_by('name', 'slug').values('id', 'name', 'slug')[:limit])
+        organization=organization,
+    ).distinct().order_by('name', 'slug').values('id', 'name', 'slug')[:limit])
 
     response = HttpResponse(json.dumps({
         'results': results,

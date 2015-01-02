@@ -35,11 +35,9 @@ Builtin Commands
 
     Starts a Sentry service. By default this value is 'http'.
 
-    Other services are 'udp', for the UDP server.
-
     ::
 
-        sentry start udp
+        sentry start
 
 .. data:: upgrade
 

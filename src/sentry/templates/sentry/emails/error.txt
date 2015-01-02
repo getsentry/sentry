@@ -9,7 +9,6 @@ Details
 
 {{ link }}
 
-Logger: {{ event.logger }}
 First Seen: {{ group.first_seen|date }}
 
 {% if interfaces %}{% for label, text in interfaces %}

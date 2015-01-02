@@ -7,11 +7,11 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        
+
         # Adding model 'MessageCountByMinute'
         db.create_table('sentry_messagecountbyminute', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.GroupedMessage'])),
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.GroupedMessage'])),
             ('date', self.gf('django.db.models.fields.DateTimeField')()),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
         ))
@@ -22,8 +22,8 @@ class Migration(SchemaMigration):
 
         # Adding model 'MessageFilterValue'
         db.create_table('sentry_messagefiltervalue', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.GroupedMessage'])),
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('group', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.GroupedMessage'])),
             ('times_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
@@ -35,7 +35,7 @@ class Migration(SchemaMigration):
 
 
     def backwards(self, orm):
-        
+
         # Removing unique constraint on 'MessageFilterValue', fields ['key', 'value', 'group']
         db.delete_unique('sentry_messagefiltervalue', ['key', 'value', 'group_id'])
 
@@ -52,7 +52,7 @@ class Migration(SchemaMigration):
     models = {
         'sentry.filtervalue': {
             'Meta': {'unique_together': "(('key', 'value'),)", 'object_name': 'FilterValue'},
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
         },
@@ -62,7 +62,7 @@ class Migration(SchemaMigration):
             'class_name': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '128', 'null': 'True', 'blank': 'True'}),
             'data': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'first_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'last_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
             'level': ('django.db.models.fields.PositiveIntegerField', [], {'default': '40', 'db_index': 'True', 'blank': 'True'}),
             'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
@@ -79,8 +79,8 @@ class Migration(SchemaMigration):
             'class_name': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '128', 'null': 'True', 'blank': 'True'}),
             'data': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'message_set'", 'null': 'True', 'to': "orm['sentry.GroupedMessage']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'group': ('sentry.db.models.fields.FlexibleForeignKey', [], {'blank': 'True', 'related_name': "'message_set'", 'null': 'True', 'to': "orm['sentry.GroupedMessage']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'level': ('django.db.models.fields.PositiveIntegerField', [], {'default': '40', 'db_index': 'True', 'blank': 'True'}),
             'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
@@ -94,14 +94,14 @@ class Migration(SchemaMigration):
         'sentry.messagecountbyminute': {
             'Meta': {'unique_together': "(('group', 'date'),)", 'object_name': 'MessageCountByMinute'},
             'date': ('django.db.models.fields.DateTimeField', [], {}),
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.GroupedMessage']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'group': ('sentry.db.models.fields.FlexibleForeignKey', [], {'to': "orm['sentry.GroupedMessage']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         },
         'sentry.messagefiltervalue': {
             'Meta': {'unique_together': "(('key', 'value', 'group'),)", 'object_name': 'MessageFilterValue'},
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.GroupedMessage']"}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'group': ('sentry.db.models.fields.FlexibleForeignKey', [], {'to': "orm['sentry.GroupedMessage']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
@@ -109,7 +109,7 @@ class Migration(SchemaMigration):
         'sentry.messageindex': {
             'Meta': {'unique_together': "(('column', 'value', 'object_id'),)", 'object_name': 'MessageIndex'},
             'column': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'object_id': ('django.db.models.fields.PositiveIntegerField', [], {}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '128'})
         }

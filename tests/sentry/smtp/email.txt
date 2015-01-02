@@ -1,0 +1,187 @@
+Received: by mail-oa0-f41.google.com with SMTP id g12so4828939oah.0
+        for <MToyOjE+dm7z_hYgCWwsSvl10T_37LKg7U8@localhost>; Fri, 15 Nov 2013 16:30:57 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=ydekproductions.com; s=google;
+        h=date:from:to:message-id:in-reply-to:references:subject:mime-version
+         :content-type;
+        bh=qhYwoiBivmkSmdOPk9ah6956TijbVC5V6fTKFTrCdOw=;
+        b=D9EUdfjlI558eq8zjSvu5+Br31ISaVQPXl/UQ8oLgRn2GHvPzwjt3GErixDtUJjp3m
+         KCGJkXZkCJ4nAqhHQF9FigaHfbXNGVG2ut+ZrHCFTlE/UoTWy9ti8LpgHUlRl4DwGl/J
+         TNyjJtb2LjEfQKzAsjGG0djk9RWLUx2nmIb0g=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20130820;
+        h=x-gm-message-state:date:from:to:message-id:in-reply-to:references
+         :subject:mime-version:content-type;
+        bh=qhYwoiBivmkSmdOPk9ah6956TijbVC5V6fTKFTrCdOw=;
+        b=F9C+DZ/izZizGaD6D2iEjxgFpZPBbCi/iRquJVwzbIRsV1H6JPjW0rlrGNgQAg4Vof
+         H/YdYvhJNv674UCx1k+PMH2LsjHqQM1BudeGRfiD7qyi5hR+miy5U1rNFK4RymMATn2k
+         6w8Qw/n+4PfJLgVuNt2hHHfQTfwvevUgRzHu+3n/7f9W5v2swD0wumQyEMfYDRcW+zpP
+         SW4ntcs1hRdWCtNqavk79Ihy5SRTywzm3b0yje5KINVEuEt3IHhtnXZjAwHQa25Ooqre
+         jxSmw+o2LFU0bXTkfcgqIYfDoCDY9e+NE1ALlMumzmS7ercjX8BtlWUody9iE10R5IF3
+         QCOw==
+X-Gm-Message-State: ALoCoQlCqIRM9jNqyf0cupGYZ3Dn44p0nIIXOmSe92yFYV80NgOsXFMRKucCO+XAbDqZY37tEH+m
+X-Received: by 10.60.44.141 with SMTP id e13mr3616811oem.84.1384561857799;
+        Fri, 15 Nov 2013 16:30:57 -0800 (PST)
+Return-Path: <matt@ydekproductions.com>
+Received: from [192.168.144.132] ([38.104.194.126])
+        by mx.google.com with ESMTPSA id qe2sm2776990obc.1.2013.11.15.16.30.56
+        for <MToyOjE+dm7z_hYgCWwsSvl10T_37LKg7U8@localhost>
+        (version=TLSv1 cipher=RC4-SHA bits=128/128);
+        Fri, 15 Nov 2013 16:30:56 -0800 (PST)
+Date: Fri, 15 Nov 2013 16:30:55 -0800
+From: Matt Robenolt <matt@ydekproductions.com>
+To: MToyOjE+dm7z_hYgCWwsSvl10T_37LKg7U8@localhost
+Message-ID: <38169D8BB05D49D0B7F21E0C60F14FD0@ydekproductions.com>
+In-Reply-To: <20131115052218.31819.48616@worker-4>
+References: <20131115052218.31819.48616@worker-4>
+Subject: Re: [Runscope Check] ERROR: runscope check
+X-Mailer: sparrow 1.6.4 (build 1176)
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="5286bcbf_4f97e3e4_140"
+X-Peer: 209.85.219.41
+
+--5286bcbf_4f97e3e4_140
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+sup
+
+--
+Matt Robenolt
+@mattrobenolt
+
+
+On Thursday, November 14, 2013 at 9:22 PM, Sentry wrote:
+
+> Sentry New Event
+>
+> runscope check
+>
+> https://app.getsentry.com/sentry/runscope-check/group/10146301/
+>
+>
+>
+>
+>
+>
+> Logger:
+> root
+> Level:
+> error
+>
+> Server:
+> None
+> First Seen:
+> Nov. 15, 2013
+>
+>
+>
+>
+> Notification Settings (https://app.getsentry.com/account/settings/notifications/)
+>
+>
+>
+>
+>
+>
+>
+>
+>
+
+
+
+--5286bcbf_4f97e3e4_140
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: inline
+
+
+                <div>sup
+                </div>
+                =20
+                <p style=3D=22color: =23A0A0A8;=22>On Thursday, November =
+14, 2013 at 9:22 PM, Sentry wrote:</p>
+                <blockquote type=3D=22cite=22 style=3D=22border-left-styl=
+e:solid;border-width:1px;margin-left:0px;padding-left:10px;=22>
+                    <span><div><div>
+
+
+
+
+
+<table style=3D=22font-size: 12px; width: 100%; font-family: &quot;helvet=
+ica neue&quot;, helvetica, sans-serif; border: 0; padding: 0; margin: 0; =
+margin-bottom: 15px=22>
+<tbody><tr style=3D=22font-size: 12px=22>
+<td style=3D=22font-size: 12px; padding: 0; margin: 0; text-align: center=
+=22>
+<div style=3D=22font-size: 12px; margin: 0 auto; text-align: left; border=
+: 5px solid =23404f60=22>
+<div style=3D=22font-size: 14px; background-color: rgb(64, 79, 96); color=
+: rgb(255, 255, 255); padding: 10px; height: 28px; background-position: i=
+nitial initial; background-repeat: initial initial;=22>
+<h1 style=3D=22font-size: 22px; float: left; margin: 0; padding: 0=22>Sen=
+try <small style=3D=22font-size: 14px; margin-left: 10px; color: =23ccc; =
+font-weight: normal=22>
+        =20
+            New Event
+        =20
+    </small></h1>
+</div>
+<div style=3D=22font-size: 12px; background-color: rgb(255, 255, 255); pa=
+dding: 10px; background-position: initial initial; background-repeat: ini=
+tial initial;=22>
+<pre style=3D=22font-size: 11px; word-break: break-all; word-wrap: break-=
+word; white-space: -o-pre-wrap; font-family: Menlo, Monaco, &quot;Courier=
+ New&quot;, monospace; margin-bottom: 15px=22>runscope check</pre>
+<p style=3D=22font-size: 12px; margin-bottom: 15px=22><a href=3D=22https:=
+//app.getsentry.com/sentry/runscope-check/group/10146301/=22 style=3D=22f=
+ont-size: 12px=22>https://app.getsentry.com/sentry/runscope-check/group/1=
+0146301/</a></p>
+<table style=3D=22font-size: 12px; width: 100%; margin-bottom: 15px=22>
+<colgroup style=3D=22font-size: 12px=22>
+<col style=3D=22font-size: 12px; width:25%;=22>
+<col style=3D=22font-size: 12px; width:25%;=22>
+<col style=3D=22font-size: 12px; width:25%;=22>
+<col style=3D=22font-size: 12px; width:25%;=22>
+</colgroup>
+<tbody><tr style=3D=22font-size: 12px=22>
+<th style=3D=22font-size: 12px; text-align: left=22>Logger:</th>
+<td style=3D=22font-size: 12px; padding: 0; margin: 0; text-align: left=22=
+>root</td>
+<th style=3D=22font-size: 12px; text-align: left=22>Level:</th>
+<td style=3D=22font-size: 12px; padding: 0; margin: 0; text-align: left=22=
+>error</td>
+</tr>
+<tr style=3D=22font-size: 12px=22>
+<th style=3D=22font-size: 12px; text-align: left=22>Server:</th>
+<td style=3D=22font-size: 12px; padding: 0; margin: 0; text-align: left=22=
+>None</td>
+<th style=3D=22font-size: 12px; text-align: left=22>=46irst Seen:</th>
+<td style=3D=22font-size: 12px; padding: 0; margin: 0; text-align: left=22=
+>Nov. 15, 2013</td>
+</tr>
+</tbody></table>
+<p style=3D=22font-size: 12px; margin-bottom: 15px=22><a href=3D=22https:=
+//app.getsentry.com/account/settings/notifications/=22 style=3D=22font-si=
+ze: 12px=22>Notification Settings</a></p>
+</div>
+</div>
+</td>
+</tr>
+</tbody></table>
+
+
+</div></div></span>
+                =20
+                =20
+                =20
+                =20
+                </blockquote>
+                =20
+                <div>
+                    <br>
+                </div>
+
+--5286bcbf_4f97e3e4_140--

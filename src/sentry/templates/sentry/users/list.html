@@ -20,8 +20,8 @@
             </ul>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 
@@ -39,7 +39,7 @@
             <tbody>
                 {% for tag in tag_list.paginator.objects %}
                     <tr>
-                        <td><a href="{% url 'sentry-user-details' team.slug project.slug tag.id %}">{% if tag.data.email %}{{ tag.data.email }}{% else %}{{ tag.value }}{% endif %}</a></td>
+                        <td><a href="{% url 'sentry-user-details' organization.slug project.slug tag.id %}">{{ tag.get_label }}</a></td>
                         <td style="text-align:center">{{ tag.last_seen|timesince }}</td>
                         <td style="text-align:center">{{ tag.times_seen|small_count }}</td>
                     </tr>
@@ -49,8 +49,8 @@
 
         <div class="btn-toolbar">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </div>
     {% endif %}

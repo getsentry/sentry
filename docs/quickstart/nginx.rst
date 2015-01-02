@@ -21,11 +21,25 @@ limits:
       server {
         listen   80;
 
-        proxy_set_header   Host                 $host;
+        proxy_set_header   Host                 $http_host;
         proxy_set_header   X-Real-IP            $remote_addr;
         proxy_set_header   X-Forwarded-For      $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto    $http_x_forwarded_proto;
-        proxy_redirect    off;
+        proxy_set_header   X-Forwarded-Proto    $scheme;
+        proxy_redirect     off;
+
+        # keepalive + raven.js is a disaster
+        keepalive_timeout 0;
+
+        # use very aggressive timeouts
+        proxy_read_timeout 5s;
+        proxy_send_timeout 5s;
+        send_timeout 5s;
+        resolver_timeout 5s;
+        client_body_timeout 5s;
+
+        # buffer larger messages
+        client_max_body_size 150k;
+        client_body_buffer_size 150k;
 
         location / {
           proxy_pass        http://localhost:9000;
@@ -46,21 +60,7 @@ Proxying uWSGI
 ~~~~~~~~~~~~~~
 
 You may optionally want to setup `uWSGI <http://projects.unbit.it/uwsgi/>`_ to
-run Sentry (rather than relying on the built-in gunicorn webserver). This can
-be done with the included nginx support:
-
-::
-
-   location / {
-      include uwsgi_params;
-      uwsgi_pass 127.0.0.1:9000;
-
-      uwsgi_connect_timeout 180;
-      uwsgi_send_timeout 300;
-      uwsgi_read_timeout 600;
-
-      uwsgi_param UWSGI_SCHEME $scheme;
-    }
+run Sentry (rather than relying on the built-in gunicorn webserver).
 
 Within your uWSGI configuration, you'll need to export your configuration path
 as well the ``sentry.wsgi`` module:
@@ -68,10 +68,52 @@ as well the ``sentry.wsgi`` module:
 ::
 
     [uwsgi]
-    env = SENTRY_CONF=/etc/sentry.conf
+    env = SENTRY_CONF=/etc/sentry.conf.py
     module = sentry.wsgi
 
     ; spawn the master and 4 processes
     http-socket = :9000
     master = true
     processes = 4
+
+    ; allow longer headers for raven.js if applicable
+    ; default: 4096
+    buffer-size = 32768
+
+
+Proxying Incoming Email
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Nginx is recommended for handling incoming emails in front of the Sentry smtp server.
+
+Below is a sample configuration for Nginx:
+
+::
+
+    http {
+      # Bind an http server to localhost only just for the smtp auth
+      server {
+        listen 127.0.0.1:80;
+
+        # Return back the address and port for the listening
+        # Sentry smtp server. Default is 127.0.0.1:1025.
+        location = /smtp {
+          add_header Auth-Server 127.0.0.1;
+          add_header Auth-Port   1025;
+          return 200;
+        }
+      }
+    }
+
+    mail {
+      auth_http localhost/smtp;
+
+      server {
+        listen 25;
+
+        protocol   smtp;
+        proxy      on;
+        smtp_auth  none;
+        xclient    off;
+      }
+    }

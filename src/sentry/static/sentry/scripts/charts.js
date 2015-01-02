@@ -20,14 +20,14 @@
                 type: 'get',
                 dataType: 'json',
                 data: {
-                    days: $el.attr('data-days') || 7,
-                    gid: $el.attr('data-group') || undefined
+                    since: new Date().getTime() / 1000 - 3600 * 24,
+                    resolution: '1h'
                 },
                 success: function(resp) {
                     var data = [], maxval = 10;
                     $spark.empty();
                     $.each(resp, function(_, val){
-                        var date = new Date(val[0]);
+                        var date = new Date(val[0] * 1000);
                         data.push({
                             y: val[1],
                             label: moment(date).fromNow()

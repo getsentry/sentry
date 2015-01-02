@@ -6,13 +6,12 @@
 </div>
 
 <ul class="nav nav-tabs">
-	<li{% if platform == 'ruby' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'ruby' %}">Ruby</a></li>
-	<li{% if platform == 'rails3' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'rails3' %}">Rails 3</a></li>
-  <li{% if platform == 'rails4' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'rails4' %}">Rails 4</a></li>
-  <li{% if platform == 'sinatra' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'sinatra' %}">Sinatra</a></li>
-  <li{% if platform == 'sidekiq' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'sidekiq' %}">Sidekiq</a></li>
+	<li{% if platform == 'ruby' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'ruby' %}">Ruby</a></li>
+	<li{% if platform == 'rails3' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'rails3' %}">Rails 3</a></li>
+  <li{% if platform == 'rails4' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'rails4' %}">Rails 4</a></li>
+  <li{% if platform == 'sinatra' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'sinatra' %}">Sinatra</a></li>
+  <li{% if platform == 'sidekiq' %} class="active"{% endif %}><a href="{% url 'sentry-help-platform' 'sidekiq' %}">Sidekiq</a></li>
 </ul>
-
 
 <p>{% blocktrans with 'https://github.com/getsentry/raven-ruby' as link %}Start by installing <a href="{{ link }}">raven-ruby</a>:{% endblocktrans %}</p>
 

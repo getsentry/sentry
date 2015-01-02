@@ -25,7 +25,7 @@
                     <tr>
                         <td>
                             {% if plugin.has_project_conf %}
-                                <a href="{% url 'sentry-configure-project-plugin' project.team.slug project.slug plugin.slug %}">{{ plugin.get_title }}</a>
+                                <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug plugin.slug %}">{{ plugin.get_title }}</a>
                             {% else %}
                                 {{ plugin.get_title }}
                             {% endif %}

@@ -2,28 +2,36 @@
 sentry.utils.safe
 ~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 import logging
+import six
 
+from django.conf import settings
 from django.db import transaction
 
-from sentry.constants import MAX_VARIABLE_SIZE, MAX_DICTIONARY_ITEMS
 from sentry.utils.strings import truncatechars
 
 
 def safe_execute(func, *args, **kwargs):
+    # TODO: we should make smart savepoints (only executing the savepoint server
+    # side if we execute a query)
+    _with_transaction = kwargs.pop('_with_transaction', True)
     try:
-        result = func(*args, **kwargs)
+        if _with_transaction:
+            with transaction.atomic():
+                result = func(*args, **kwargs)
+        else:
+            result = func(*args, **kwargs)
     except Exception, e:
-        transaction.rollback_unless_managed()
         if hasattr(func, 'im_class'):
             cls = func.im_class
         else:
             cls = func.__class__
-        logger = logging.getLogger('sentry.errors.plugins')
+        logger = logging.getLogger('sentry.errors')
         logger.error('Error processing %r on %r: %s', func.__name__, cls.__name__, e, extra={
             'func_module': cls.__module__,
             'func_args': args,
@@ -33,7 +41,8 @@ def safe_execute(func, *args, **kwargs):
         return result
 
 
-def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kwargs):
+def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
+         _depth=0, _size=0, **kwargs):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
 
@@ -54,7 +63,7 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
         for k, v in value.iteritems():
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
-            _size += len(unicode(trim_v)) + 1
+            _size += len(six.text_type(trim_v)) + 1
             if _size >= max_size:
                 break
 
@@ -64,11 +73,11 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
         for v in value:
             trim_v = trim(v, _size=_size, **options)
             result.append(trim_v)
-            _size += len(unicode(trim_v))
+            _size += len(six.text_type(trim_v))
             if _size >= max_size:
                 break
 
-    elif isinstance(value, basestring):
+    elif isinstance(value, six.string_types):
         result = truncatechars(value, max_size - _size)
 
     else:
@@ -77,9 +86,10 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
     return result
 
 
-def trim_dict(value, max_items=MAX_DICTIONARY_ITEMS, **kwargs):
+def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     max_items -= 1
     for idx, key in enumerate(value.keys()):
         value[key] = trim(value[key], **kwargs)
         if idx > max_items:
             del value[key]
+    return value

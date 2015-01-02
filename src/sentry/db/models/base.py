@@ -2,16 +2,18 @@
 sentry.db.models
 ~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
 from __future__ import absolute_import
 
+import logging
+
 from django.db import models
 from django.db.models import signals
 
-from .fields.bounded import BoundedAutoField
+from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
 from .query import update
 
@@ -70,7 +72,14 @@ class BaseModel(models.Model):
     def _update_tracked_data(self):
         "Updates a local copy of attributes values"
         if self.id:
-            self.__data = dict((f.column, self.__get_field_value(f)) for f in self._meta.fields)
+            data = {}
+            for f in self._meta.fields:
+                try:
+                    data[f.column] = self.__get_field_value(f)
+                except AttributeError as e:
+                    # this case can come up from pickling
+                    logging.exception(unicode(e))
+            self.__data = data
         else:
             self.__data = UNSAVED
 
@@ -95,7 +104,7 @@ def __model_post_save(instance, **kwargs):
 
 
 class Model(BaseModel):
-    id = BoundedAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
 
     class Meta:
         abstract = True

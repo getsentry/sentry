@@ -19,15 +19,15 @@
             <thead>
                 <tr>
                     <th>{{ tag_label }}</th>
-                    <td style="text-align:center">{% trans "Times Seen" %}</th>
-                    <td style="text-align:center">{% trans "First Seen" %}</th>
-                    <td style="text-align:center">{% trans "Last Seen" %}</th>
+                    <td style="text-align:center"><a href="?sort=freq">{% trans "Times Seen" %}</a></th>
+                    <td style="text-align:center"><a href="?sort=new">{% trans "First Seen" %}</a></th>
+                    <td style="text-align:center"><a href="?sort=date">{% trans "Last Seen" %}</a></th>
                 </tr>
             </thead>
             <tbody>
                 {% for tag_value, times_seen, first_seen, last_seen in tag_list.objects %}
                     <tr>
-                        <td><a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag }}={{ tag_value }}">{{ tag_value }}</a></td>
+                        <td><a href="{% url 'sentry-stream' group.organization.slug group.project.slug %}?{{ tag_name }}={{ tag_value }}">{{ tag_value }}</a></td>
                         <td style="text-align:center">{{ times_seen|small_count }}</td>
                         <td style="text-align:center">{% if first_seen %}{{ first_seen|timesince }}{% else %}<em>n/a</em>{% endif %}</td>
                         <td style="text-align:center">{% if last_seen %}{{ last_seen|timesince }}{% else %}<em>n/a</em>{% endif %}</td>

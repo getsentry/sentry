@@ -15,8 +15,8 @@
         <form class="btn-toolbar" method="GET" action="">
             <input type="text" name="pquery" value="{% if project_query %}{{ project_query }}{% endif %}" placeholder="search by project name">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not project_list.paginator.has_next %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% else %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not project_list.paginator.has_next %} disabled{% else %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </form>
 
@@ -46,19 +46,10 @@
                         <tr>
                             <td>
                                 {% if project.team %}
-                                    <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}"><strong>{{ project.team.slug }}/{{ project.slug }}</strong></a>
-                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}">[stream]</a><br/>
+                                    <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}"><strong>{{ project.organization.slug }}/{{ project.slug }}</strong></a>
+                                    <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">[stream]</a><br/>
                                 {% else %}
                                     <strong>{{ project.slug }}</strong>
-                                {% endif %}
-                                {% if project.owner %}
-                                    <small>Owned by <a href="{% url 'sentry-admin-edit-user' project.owner.pk %}">
-                                        {% if project.owner.email %}
-                                            {{ project.owner.email }}
-                                        {% else %}
-                                            {{ project.owner.username }}
-                                        {% endif %}
-                                    </a></smalL>
                                 {% endif %}
                             </td>
                             <td style="text-align:center; vertical-align:middle;">
@@ -78,8 +69,8 @@
 
         <div class="btn-toolbar">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not project_list.paginator.has_next %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% else %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not project_list.paginator.has_next %} disabled{% else %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </div>
     </section>

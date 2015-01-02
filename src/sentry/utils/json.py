@@ -2,7 +2,7 @@
 sentry.utils.json
 ~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -32,6 +32,8 @@ def better_decoder(data):
 
 
 def dumps(value, **kwargs):
+    if 'separators' not in kwargs:
+        kwargs['separators'] = (',', ':')
     return json.dumps(value, cls=BetterJSONEncoder, **kwargs)
 
 

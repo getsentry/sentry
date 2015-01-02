@@ -8,12 +8,10 @@
             <colgroup>
                 <col style="width:100px;">
             </colgroup>
-            {% if exception_type %}
             <tr>
-                <th>{% trans "Types:" %}</th>
+                <th>{% trans "Type:" %}</th>
                 <td class="code"><pre>{{ exception_type|escape }}</pre></td>
             </tr>
-            {% endif %}
             {% if exception_value %}
             <tr>
                 <th>{% trans "Value:" %}</th>
