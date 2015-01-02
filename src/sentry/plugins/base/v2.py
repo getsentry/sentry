@@ -208,6 +208,15 @@ class IPlugin2(local):
         """
         return self.resource_links
 
+    def get_rules(self):
+        """
+        Return a list of Rule classes to add to the registry.
+
+        >>> def get_rules(self):
+        >>>     return [MyCustomRule]
+        """
+        return []
+
 
 class Plugin2(IPlugin2):
     """
