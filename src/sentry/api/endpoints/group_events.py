@@ -11,9 +11,9 @@ class GroupEventsEndpoint(Endpoint):
 
     def get(self, request, group_id):
         """
-        List an aggregate's events
+        List an aggregate's available samples
 
-        Return a list of events bound to an aggregate.
+        Return a list of sampled events bound to an aggregate.
 
             {method} {path}
 
