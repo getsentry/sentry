@@ -457,4 +457,5 @@ class Plugin(IPlugin):
     control when or how the plugin gets instantiated, nor is it guaranteed that
     it will happen, or happen more than once.
     """
+    __version__ = 1
     __metaclass__ = PluginMount
