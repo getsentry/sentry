@@ -459,11 +459,14 @@ var Aggregate = React.createClass({
     }
 
     var className = "group";
-    if (this.props.isBookmarked) {
-      className += ' isBookmarked';
+    if (data.isBookmarked) {
+      className += " isBookmarked";
     }
-    if (this.props.hasSeen) {
-      className += ' hasSeen';
+    if (data.hasSeen) {
+      className += " hasSeen";
+    }
+    if (data.status === "resolved") {
+      className += " isResolved";
     }
 
     return (
