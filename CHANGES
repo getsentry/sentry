@@ -1,3 +1,18 @@
+Version 7.1.0
+-------------
+
+Plugin v2
+~~~~~~~~~
+
+The beginnings of version 2 of the plugin interface have landed. This will expand over time but currently includes the following hooks:
+
+- get_actions
+- get_annotations
+- get_notifiers
+- get_rules
+- get_tags
+
+
 Version 7.0.0
 -------------
 
