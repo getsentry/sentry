@@ -22,9 +22,11 @@ class PluginManager(InstanceManager):
     def __len__(self):
         return sum(1 for i in self.all())
 
-    def all(self):
+    def all(self, version=None):
         for plugin in sorted(super(PluginManager, self).all(), key=lambda x: x.get_title()):
             if not plugin.is_enabled():
+                continue
+            if version is not None and plugin.__version__ != version:
                 continue
             yield plugin
 

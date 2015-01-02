@@ -36,11 +36,10 @@ class IPlugin2(local):
     it will happen, or happen more than once.
 
     >>> from sentry.plugins import Plugin2
-    >>> class MyPlugin(Plugin2):
-    >>>     title = 'My Plugin'
     >>>
-    >>>     def widget(self, request, group, **kwargs):
-    >>>         return self.render('myplugin/widget.html')
+    >>> class MyPlugin(Plugin2):
+    >>>     def get_title(self):
+    >>>         return 'My Plugin'
 
     All children should allow ``**kwargs`` on all inherited methods.
     """
@@ -216,4 +215,5 @@ class Plugin2(IPlugin2):
     control when or how the plugin gets instantiated, nor is it guaranteed that
     it will happen, or happen more than once.
     """
+    __version__ = 2
     __metaclass__ = PluginMount
