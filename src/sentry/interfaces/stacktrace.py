@@ -134,12 +134,6 @@ def validate_bool(value, required=True):
 
 
 class Frame(Interface):
-    __slots__ = [
-        'abs_path', 'filename', 'module', 'function', 'in_app',
-        'context_line', 'pre_context', 'post_context', 'vars', 'data',
-        'lineno', 'colno',
-    ]
-
     @classmethod
     def to_python(cls, data):
         abs_path = data.get('abs_path')
