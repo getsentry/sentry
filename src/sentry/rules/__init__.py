@@ -14,12 +14,18 @@ from .registry import RuleRegistry  # NOQA
 
 def init_registry():
     from sentry.constants import SENTRY_RULES
+    from sentry.plugins import plugins
     from sentry.utils.imports import import_string
+    from sentry.utils.safe import safe_execute
 
     registry = RuleRegistry()
     for rule in SENTRY_RULES:
         cls = import_string(rule)
         registry.add(cls)
+    for plugin in plugins.all(version=2):
+        for cls in (safe_execute(plugin.get_rules) or ()):
+            register.add(cls)
+
     return registry
 
 
