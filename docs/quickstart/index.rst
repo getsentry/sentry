@@ -106,7 +106,7 @@ These databases require additional packages, but Sentry provides a couple of met
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you're installing the Sentry source (e.g. from git), you'll also need to intstall **npm**.
+If you're installing the Sentry source (e.g. from git), you'll also need to install **npm**.
 
 Once your system is prepared, symlink your source into the virtualenv:
 
