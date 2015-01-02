@@ -304,7 +304,7 @@ var Actions = React.createClass({
               key="actions"
               caret={false}
               disabled={!this.props.anySelected}
-              className="btn-sm btn-default dropdown-toggle hidden-xs action-more"
+              className="btn-sm btn-default hidden-xs action-more"
               title={<span className="icon-ellipsis"></span>}>
               <MenuItem noAnchor={true}>
                 <ActionLink
@@ -355,13 +355,14 @@ var Actions = React.createClass({
           </div>
           <DropdownLink
             key="sort"
-            className="btn-sm dropdown-toggle"
+            className="btn-sm"
             title={<span><span className="hidden-sm hidden-xs">Sort by:</span> {sortLabel}</span>}>
             <MenuItem href="?sort=priority" isActive={sortBy === 'priority'}>Priority</MenuItem>
             <MenuItem href="?sort=date" isActive={sortBy === 'date'}>Last Seen</MenuItem>
             <MenuItem href="?sort=new" isActive={sortBy === 'new'}>First Seen</MenuItem>
             <MenuItem href="?sort=freq" isActive={sortBy === 'freq'}>Occurances</MenuItem>
           </DropdownLink>
+
           <div className="btn-group">
             <a href="#" className="btn dropdown-toggle btn-sm" onclick="" data-toggle="dropdown">
               All time
