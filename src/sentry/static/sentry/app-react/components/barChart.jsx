@@ -38,9 +38,12 @@ var BarChart = React.createClass({
     var children = [];
     points.forEach(function(point){
       var pct = this.floatFormat(point.y / maxval * 99, 2) + '%';
-      var title = point.y + ' events';
+
+      var title;
       if (point.label) {
-        title = title + '<br>(' + point.label + ')';
+        title = <span>{point.y} events<br />({point.label})</span>;
+      } else {
+        title = <span>{point.y} events</span>;
       }
 
       children.push((

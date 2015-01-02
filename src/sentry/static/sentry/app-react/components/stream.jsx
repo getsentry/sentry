@@ -133,6 +133,7 @@ var ActionLink = React.createClass({
     aggList: React.PropTypes.array.isRequired,
     canActionAll: React.PropTypes.bool.isRequired,
     confirmLabel: React.PropTypes.string,
+    disabled: React.PropTypes.bool,
     neverConfirm: React.PropTypes.bool,
     onAction: React.PropTypes.func.isRequired,
     onlyIfBulk: React.PropTypes.bool,
@@ -143,7 +144,8 @@ var ActionLink = React.createClass({
     return {
       confirmLabel: 'Edit',
       onlyIfBulk: false,
-      neverConfirm: false
+      neverConfirm: false,
+      disabled: false
     };
   },
 
@@ -154,6 +156,9 @@ var ActionLink = React.createClass({
   },
 
   handleToggle: function() {
+    if (this.props.disabled) {
+      return;
+    }
     this.setState({
       isModalOpen: !this.state.isModalOpen
     });
@@ -161,10 +166,16 @@ var ActionLink = React.createClass({
 
   handleActionAll: function(event) {
     this.props.onAction(ActionLink.ALL, event);
+    this.setState({
+      isModalOpen: false
+    });
   },
 
   handleActionSelected: function(event) {
-    this.props.onAction(this.props.aggList, event);
+    this.props.onAction(ActionLink.SELECTED, event);
+    this.setState({
+      isModalOpen: false
+    });
   },
 
   defaultActionLabel: function(confirmLabel) {
@@ -172,8 +183,12 @@ var ActionLink = React.createClass({
   },
 
   render: function () {
+    var className = this.props.className;
+    if (this.props.disabled) {
+      className += ' disabled';
+    }
     return (
-      <a {...this.props} onClick={this.handleToggle}>
+      <a className={className} disabled={this.props.disabled} onClick={this.handleToggle}>
         {this.props.children}
       </a>
     );
@@ -208,7 +223,7 @@ var ActionLink = React.createClass({
     if (!shouldConfirm) {
       this.handleActionSelected();
       this.state.isModalOpen = false;
-      return '<span/>';
+      return <span />;
     }
 
     var confirmLabel = this.props.confirmLabel;
@@ -557,34 +572,44 @@ var Stream = React.createClass({
   },
   actionAggregates: function(aggList, options) {
     var url = options.url || '/api/0/projects/' + this.props.project.id + '/groups/';
-    if (aggList !== ActionLink.ALL) {
-      url += '?id=' + aggList.map(function(node){ return node.id; }).join('&id=');
+
+    var selectedAggList;
+    if (aggList === ActionLink.SELECTED) {
+      selectedAggList = [];
+      for (var i = 0, node; (node = this.props.aggList[i]); i++) {
+        if (node.isSelected === true) {
+          selectedAggList.push(node);
+        }
+      }
+      url += '?id=' + selectedAggList.map(function(node){ return node.id; }).join('&id=');
+    } else {
+      selectedAggList = this.props.aggList;
     }
+
+    var data = options.data || {};
 
     // TODO(dcramer): handle errors
     $.ajax({
       url: url,
       method: options.method || 'PUT',
-      data: options.data || {}
+      contentType: 'application/json',
+      data: JSON.stringify(data)
     });
 
     if (aggList === ActionLink.ALL) {
       aggList = this.props.aggList;
     }
-    aggList.forEach(function(node){
+    selectedAggList.forEach(function(node){
       node.version = new Date().getTime() + 10;
+      node.isSelected = false;
       for (var key in data) {
         node[key] = data[key];
       }
     });
 
     if (typeof options.success !== "undefined") {
-      options.success(groupList);
+      options.success(selectedAggList);
     }
-
-    this.props.aggList.forEach(function(node){
-      node.isSelected = false;
-    });
 
     this.setState({
       aggList: this.props.aggList,
