@@ -13,8 +13,6 @@ var OverlayMixin = require("react-bootstrap/OverlayMixin");
 var ActionLink = React.createClass({
   mixins: [OverlayMixin],
 
-  ALL: -1,
-
   propTypes: {
     actionLabel: React.PropTypes.string,
     aggList: React.PropTypes.array.isRequired,
@@ -52,14 +50,14 @@ var ActionLink = React.createClass({
   },
 
   handleActionAll: function(event) {
-    this.props.onAction(ActionLink.ALL, event);
+    this.props.onAction(StreamActions.ALL, event);
     this.setState({
       isModalOpen: false
     });
   },
 
   handleActionSelected: function(event) {
-    this.props.onAction(ActionLink.SELECTED, event);
+    this.props.onAction(StreamActions.SELECTED, event);
     this.setState({
       isModalOpen: false
     });
@@ -141,6 +139,10 @@ var ActionLink = React.createClass({
 });
 
 var StreamActions = React.createClass({
+  ALL: 'all',
+
+  SELECTED: 'selected',
+
   propTypes: {
     aggList: React.PropTypes.array.isRequired,
     anySelected: React.PropTypes.bool.isRequired,
