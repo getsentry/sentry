@@ -239,14 +239,19 @@ var Actions = React.createClass({
   propTypes: {
     aggList: React.PropTypes.array.isRequired,
     anySelected: React.PropTypes.bool.isRequired,
-    selectAllActive: React.PropTypes.bool.isRequired,
     multiSelected: React.PropTypes.bool.isRequired,
-    onSelectAll: React.PropTypes.func.isRequired,
-    onResolve: React.PropTypes.func.isRequired,
     onBookmark: React.PropTypes.func.isRequired,
-    onRemoveBookmark: React.PropTypes.func.isRequired,
     onDelete: React.PropTypes.func.isRequired,
-    onMerge: React.PropTypes.func.isRequired
+    onMerge: React.PropTypes.func.isRequired,
+    onRemoveBookmark: React.PropTypes.func.isRequired,
+    onResolve: React.PropTypes.func.isRequired,
+    onSelectAll: React.PropTypes.func.isRequired,
+    onSelectStatsPeriod: React.PropTypes.func.isRequired,
+    selectAllActive: React.PropTypes.bool.isRequired,
+    statsPeriod: React.PropTypes.string.isRequired
+  },
+  selectStatsPeriod: function(period) {
+    return this.props.onSelectStatsPeriod(period);
   },
   render: function() {
     var params = utils.getQueryParams();
@@ -402,8 +407,10 @@ var Actions = React.createClass({
         </div>
         <div className="hidden-sm hidden-xs stream-actions-graph stream-actions-cell">
           <ul className="toggle-graph">
-            <li><a>24h</a></li>
-            <li><a>30d</a></li>
+            <li><a onClick={this.selectStatsPeriod.bind(this, '24h')}
+                   className={this.props.selectStatsPeriod === '24h' ? 'active' : ''}>24h</a></li>
+            <li><a onClick={this.selectStatsPeriod.bind(this, '30d')}
+                   className={this.props.selectStatsPeriod === '30d' ? 'active' : ''}>30d</a></li>
           </ul>
         </div>
         <div className="stream-actions-occurrences stream-actions-cell align-center hidden-xs"> events</div>
@@ -418,13 +425,14 @@ var Aggregate = React.createClass({
     data: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
     }).isRequired,
+    statsPeriod: React.PropTypes.string.isRequired,
     isSelected: React.PropTypes.bool
   },
   render: function() {
     var data = this.props.data,
         userCount = 0;
 
-    var chartData = data.stats['24h'].map(function(point){
+    var chartData = data.stats[this.props.statsPeriod].map(function(point){
       return {x: point[0], y: point[1]};
     });
 
@@ -487,7 +495,8 @@ var Stream = React.createClass({
       aggList: [],
       selectAllActive: false,
       multiSelected: false,
-      anySelected: false
+      anySelected: false,
+      statsPeriod: '24h'
     };
   },
   componentWillMount: function() {
@@ -557,11 +566,17 @@ var Stream = React.createClass({
   handleMerge: function(aggList, event) {
 
   },
+  handleSelectStatsPeriod: function(period) {
+    this.setState({
+      statsPeriod: period
+    });
+  },
   render: function() {
     var aggNodes = this.state.aggList.map(function(node) {
       return (
         <Aggregate data={node} key={node.id}
                    isSelected={node.isSelected}
+                   statsPeriod={this.state.statsPeriod}
                    onSelect={this.handleSelect.bind(this, node.id)} />
       );
     }.bind(this));
@@ -578,6 +593,8 @@ var Stream = React.createClass({
                        onDelete={this.handleDelete}
                        onMerge={this.handleMerge}
                        onRemoveBookmark={this.handleRemoveBookmark}
+                       onSelectStatsPeriod={this.handleSelectStatsPeriod}
+                       statsPeriod={this.state.statsPeriod}
                        aggList={this.state.aggList}
                        selectAllActive={this.state.selectAllActive}
                        anySelected={this.state.anySelected}
