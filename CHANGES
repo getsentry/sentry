@@ -1,7 +1,7 @@
 Version 7.0.0
 -------------
 
-Between version 6.4.x and 7.0 a significant number of changes have landed (approximately a years worth of commits). There are a large number of overall architecture changes, as well as various API compatibility changes.
+Between version 6.4.x and 7.0 a significant number of changes have landed (approximately a years worth of commits). There are a large number of overall architecture changes, as well as various API compatibility changes. This document does not attempt to cover them all.
 
 Backwards Incompatible Changes
 ==============================
@@ -15,12 +15,13 @@ Backwards Incompatible Changes
 - NodeStore.generate_id() now returns a base64-encoded UUID.
 - The API for interfaces has been rewritten.
 - GroupMeta.objects.get_value no longer errors when a value is missing.
-- sentry.plugins.sentry_sites has been removed
+- sentry.plugins.sentry_sites has been removed.
 - The Search API has been rewritten and now powers the entire stream.
 - Removed Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
 - Removed Project.owner.
 - Removed Team.owner.
-- `is_new` in post_process will *only* be set if the event is brand new
+- `is_new` in post_process will *only* be set if the event is brand new.
+- Project-based URLs are changed to be organization scoped instead of team scoped.
 
 Organizations
 =============
@@ -28,6 +29,8 @@ Organizations
 Organizations are the new top-level item of your Sentry install. All membership and team management has been moved into the new organization hub.
 
 Generally for self-hosted installations you'll only have a single organization.
+
+Migrations will happen automatically for this, and while these were able to applied cleanly and automatically on getsentry.com, we suggest considering snapshotting your database before running them. Additionally consider doing this at a period of the day where users generally wont be tweaking options to team membership.
 
 Web API
 =======
@@ -39,11 +42,15 @@ Protocol Version 6
 
 Version 6 of the protocol has been introduced. The only change is the addition of the `release` attribute.
 
-
 BIGINT
 ======
 
 All integer fields have been replaced with bigint's. This migration is *not* automated (due to it causing locking) and if you need it locally you will need to sort out the migration on your own, as well as set `SENTRY_USE_BIG_INTS = True` in your configuration.
+
+Help Pages
+==========
+
+The beginnings of bundled documentation now exists. The defaults are generated from disk (see sentry/data/help_pages/).
 
 
 Version 6.4.0
