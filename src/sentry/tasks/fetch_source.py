@@ -248,12 +248,12 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
 
     has_changes = False
     if (not stacktraces and 'extra' in data and
-        isinstance(data['extra'], dict) and 'stack' in data['extra']):
+            isinstance(data['extra'], dict) and 'stack' in data['extra']):
         stacktraces = format_raw_stacktrace(data['extra']['stack'])
         if stacktraces:
             data['extra'].pop('stack', None)
             has_changes = True
-    
+
     if not stacktraces:
         logger.debug('No stacktrace for event %r', data['event_id'])
         return
@@ -411,23 +411,33 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     if culprit_frame.module and culprit_frame.function:
         data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
 
+
 chrome_ie_stacktrace_expr = re.compile(r'\s+at ')
 firefox_safari_stacktrace_expr = re.compile(r'\S+\:\d+')
+
+
 def format_raw_stacktrace(value):
-    if re.search(chrome_ie_stacktrace_expr, value):
-        return [format_chrome_ie_stacktrace(value)]
-    if re.search(firefox_safari_stacktrace_expr, value):
-        return [format_firefox_safari_stacktrace(value)]
+    try:
+        if re.search(chrome_ie_stacktrace_expr, value):
+            return [format_chrome_ie_stacktrace(value)]
+        if re.search(firefox_safari_stacktrace_expr, value):
+            return [format_firefox_safari_stacktrace(value)]
+    except:
+        return []
+
     return []
+
 
 whitespace_expr = re.compile(r'^\s+')
 location_parts_expr = re.compile(r'[\(\)\s]')
+
+
 def format_chrome_ie_stacktrace(value):
     kwargs = {
         'frames': [],
         'frames_omitted': []
     }
-    
+
     for frame in value.split('\n'):
         if not chrome_ie_stacktrace_expr.search(frame):
             continue
@@ -435,7 +445,7 @@ def format_chrome_ie_stacktrace(value):
         location = extract_location(re.sub(location_parts_expr, '', tokens.pop()))
         functionName = tokens[0] if len(tokens) > 0 and tokens[0] != 'Anonymous' else None
         if functionName == 'new':
-            functionName = (tokens[1] if len(tokens) > 2 and 
+            functionName = (tokens[1] if len(tokens) > 2 and
                             tokens[1] != 'Anonymous' else None)
 
         kwargs['frames'].append(
@@ -449,6 +459,7 @@ def format_chrome_ie_stacktrace(value):
         )
 
     return Stacktrace(**kwargs)
+
 
 def format_firefox_safari_stacktrace(value):
     kwargs = {
@@ -478,16 +489,18 @@ def format_firefox_safari_stacktrace(value):
 
     return Stacktrace(**kwargs)
 
+
 def extract_location(value):
     locationParts = value.split(':')
     lastNumber = locationParts.pop()
     possibleNumber = float(locationParts[-1]) if len(locationParts) > 0 else float('NaN')
-    
+
     if not math.isnan(possibleNumber) and not math.isinf(possibleNumber):
         lineNumber = locationParts.pop()
         return (':'.join(locationParts), lineNumber, lastNumber)
-    
+
     return (':'.join(locationParts), lastNumber, None)
+
 
 def generate_module(src):
     """
