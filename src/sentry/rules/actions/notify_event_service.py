@@ -12,7 +12,7 @@ from django import forms
 
 from sentry.plugins import Notification, plugins
 from sentry.rules.actions.base import EventAction
-from sentry.utils import safe_execute
+from sentry.utils.safe import safe_execute
 
 
 class NotifyEventServiceForm(forms.Form):

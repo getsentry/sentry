@@ -265,6 +265,19 @@ class IPlugin2(local):
         """
         return []
 
+    def get_tags(self, event, **kwargs):
+        """
+        Return a list of additional tags to add to this instance.
+
+        A tag is a tuple containing two elements:
+
+            ('tag-key', 'tag-value')
+
+        >>> def get_tags(self, event, **kwargs):
+        >>>     return [('tag-key', 'tag-value')]
+        """
+        return []
+
 
 class Plugin2(IPlugin2):
     """
