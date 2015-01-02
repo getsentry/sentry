@@ -85,7 +85,8 @@ Dig into the rest of the plugin documentation, and take a look at existing plugi
 .. toctree::
    :maxdepth: 2
 
-   interface
+   v1interface
+   v2interface
    permissions
 
 More and better docs coming soon..
