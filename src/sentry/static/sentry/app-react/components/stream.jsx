@@ -126,14 +126,17 @@ var FilterSelect = React.createClass({
 var ActionLink = React.createClass({
   mixins: [OverlayMixin],
 
+  ALL: -1,
+
   propTypes: {
+    actionLabel: React.PropTypes.string,
     aggList: React.PropTypes.array.isRequired,
-    selectAllActive: React.PropTypes.bool.isRequired,
     canActionAll: React.PropTypes.bool.isRequired,
     confirmLabel: React.PropTypes.string,
-    actionLabel: React.PropTypes.string,
-    onlyIfBulk: React.PropTypes.bool,
     neverConfirm: React.PropTypes.bool,
+    onAction: React.PropTypes.func.isRequired,
+    onlyIfBulk: React.PropTypes.bool,
+    selectAllActive: React.PropTypes.bool.isRequired
   },
 
   getDefaultProps: function() {
@@ -157,11 +160,11 @@ var ActionLink = React.createClass({
   },
 
   handleActionAll: function(event) {
-    console.log('actioning all');
+    this.props.onAction(ActionLink.ALL, event);
   },
 
   handleActionSelected: function(event) {
-    console.log('actioning selected');
+    this.props.onAction(this.props.aggList, event);
   },
 
   defaultActionLabel: function(confirmLabel) {
@@ -488,7 +491,10 @@ var Aggregate = React.createClass({
 
 var Stream = React.createClass({
   propTypes: {
-    aggList: React.PropTypes.array.isRequired
+    aggList: React.PropTypes.array.isRequired,
+    project: React.PropTypes.shape({
+      id: React.PropTypes.string.isRequired
+    }).isRequired,
   },
   getInitialState: function() {
     return {
@@ -549,22 +555,74 @@ var Stream = React.createClass({
       multiSelected: numSelected > 1
     });
   },
-  handleAction: function(event){
+  actionAggregates: function(aggList, options) {
+    var url = options.url || '/api/0/projects/' + this.props.project.id + '/groups/';
+    if (aggList !== ActionLink.ALL) {
+      url += '?id=' + aggList.map(function(node){ return node.id; }).join('&id=');
+    }
+
+    // TODO(dcramer): handle errors
+    $.ajax({
+      url: url,
+      method: options.method || 'PUT',
+      data: options.data || {}
+    });
+
+    if (aggList === ActionLink.ALL) {
+      aggList = this.props.aggList;
+    }
+    aggList.forEach(function(node){
+      node.version = new Date().getTime() + 10;
+      for (var key in data) {
+        node[key] = data[key];
+      }
+    });
+
+    if (typeof options.success !== "undefined") {
+      options.success(groupList);
+    }
+
+    this.props.aggList.forEach(function(node){
+      node.isSelected = false;
+    });
+
+    this.setState({
+      aggList: this.props.aggList,
+      selectAllActive: false,
+      anySelected: false,
+      multiSelected: false
+    });
   },
   handleResolve: function(aggList, event){
-    // return this.props.onAction(aggList, {status: 'resolved'}, event);
+    return this.actionAggregates(aggList, {
+      data: {status: 'resolved'}
+    });
   },
   handleBookmark: function(aggList, event){
-    // return this.props.onAction(aggList, {isBookmarked: 1}, event);
+    return this.actionAggregates(aggList, {
+      data: {isBookmarked: '1'}
+    });
   },
   handleRemoveBookmark: function(aggList, event){
-    // return this.props.onAction(aggList, {isBookmarked: 1}, event);
+    return this.actionAggregates(aggList, {
+      data: {isBookmarked: '0'}
+    });
   },
   handleDelete: function(aggList, event){
-    // return this.props.onAction(aggList, {isBookmarked: 1}, event);
+    return this.actionAggregates(aggList, {
+      method: 'DELETE',
+      success: function() {
+        flash('success', 'The selected events have been scheduled for deletion.');
+      }
+    });
   },
   handleMerge: function(aggList, event) {
-
+    return this.actionAggregates(aggList, {
+      data: {merge: '1'},
+      success: function() {
+        flash('success', 'The selected events have been scheduled to merge.');
+      }
+    });
   },
   handleSelectStatsPeriod: function(period) {
     this.setState({

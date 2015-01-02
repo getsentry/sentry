@@ -8,7 +8,8 @@
     <script>
     $(function(){
       React.render(React.createFactory(Stream)({
-      	aggList: {% serialize event_list %}
+      	aggList: {% serialize event_list %},
+        project: {% serialize project %}
       }), document.getElementById('blk_stream'));
     });
     </script>
