@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from django.template import Context, Template
 from mock import Mock
 
-from sentry.plugins import plugins, Plugin2
-from sentry.testutils import TestCase
+from sentry.plugins import Plugin2
+from sentry.testutils import PluginTestCase
 
 
 class SamplePlugin(Plugin2):
@@ -19,15 +19,6 @@ class SamplePlugin(Plugin2):
 
     def is_enabled(self, project=None):
         return True
-
-
-class PluginTestCase(TestCase):
-    plugin = None
-
-    def setUp(self):
-        super(PluginTestCase, self).setUp()
-        plugins.register(self.plugin)
-        self.addCleanup(plugins.unregister, self.plugin)
 
 
 class GetActionsTest(PluginTestCase):

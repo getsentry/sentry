@@ -8,6 +8,7 @@ The beginnings of version 2 of the plugin interface have landed. This will expan
 
 - get_actions
 - get_annotations
+- get_event_preprocessors
 - get_notifiers
 - get_rules
 - get_tags
