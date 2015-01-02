@@ -1,0 +1,57 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_docs %}
+{% load sentry_helpers %}
+
+{% block heading %}{% endblock %}
+{% block wrapperclass %}docs windowed{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+
+{% block logo %}<a id="logo" href="{% url 'sentry' %}"><span class="icon-sentry-logo-full"></span></a>{% endblock %}
+
+{% block content %}
+    {% block helpcontent %}
+        <div class="row-fluid">
+          <div class="span3 docs-sidebar">
+            {% block sidebar %}
+              {% render_doc_sidebar %}
+            {% endblock %}
+          </div>
+          <div class="span9 docs-main">
+            {% block pre_breadcrumbs %}
+            {% endblock %}
+            <ul class="crumbs">
+              {% block breadcrumbs %}
+              <li><a href="{% url 'sentry-help' %}">Docs</a></li>
+              {% endblock %}
+            </ul>
+            <div class="alert alert-info">
+              Please excuse our dust. This documentation is actively being overhauled.
+            </div>
+            {% block main %}
+              <h3>Sentry Documentation</h3>
+              <p>Welcome to the Sentry Docs. Reading through the guides and reference here will give you a complete understanding of how Sentry works and how to get the most out of it. We recommend that you read through the Guides first, then on to the client installation instructions for your specific platform.</p>
+
+              <h3>Contacting a human</h3>
+              <p>If your specific question or concern isn't covered in the docs, we're here to help. Please don't hesitate to:</p>
+
+              <ul>
+                <li><a href="https://groups.google.com/group/getsentry">Post to our public user group</a></li>
+                <li><a href="irc://irc.freenode.net/sentry">Chat with us on #sentry (irc.freenode.net)</a></li>
+                {% block help_contact_links %}
+                    {% comment %}This block is used by getsentry.com{% endcomment %}
+                {% endblock %}
+              </ul>
+
+              <h3>Contributing</h3>
+
+              <p>Just like Sentry itself, our docs are <a href="https://github.com/getsentry/sentry">open source</a>. If you've found an error or think something could be explained more clearly, you're always welcomed (and encouraged) to submit a pull request.</p>
+
+            {% endblock main %}
+          </div>
+        </div>
+    {% endblock %}
+
+{% endblock %}

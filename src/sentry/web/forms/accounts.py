@@ -2,20 +2,55 @@
 sentry.web.forms.accounts
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import pytz
 
+from captcha.fields import ReCaptchaField
 from datetime import datetime
-
 from django import forms
-from django.contrib.auth import authenticate
+from django.conf import settings
+from django.contrib.auth import authenticate, get_user_model
+from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
+from six.moves import range
 
-from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
+from sentry.constants import LANGUAGES
 from sentry.models import UserOption, User
+from sentry.utils.auth import find_users
+from sentry.web.forms.fields import ReadOnlyTextField
+
+
+# at runtime we decide whether we should support recaptcha
+# TODO(dcramer): there **must** be a better way to do this
+if settings.RECAPTCHA_PUBLIC_KEY:
+    class CaptchaForm(forms.Form):
+        def __init__(self, *args, **kwargs):
+            captcha = kwargs.pop('captcha', True)
+            super(CaptchaForm, self).__init__(*args, **kwargs)
+            if captcha:
+                self.fields['captcha'] = ReCaptchaField()
+
+    class CaptchaModelForm(forms.ModelForm):
+        def __init__(self, *args, **kwargs):
+            captcha = kwargs.pop('captcha', True)
+            super(CaptchaModelForm, self).__init__(*args, **kwargs)
+            if captcha:
+                self.fields['captcha'] = ReCaptchaField()
+
+else:
+    class CaptchaForm(forms.Form):
+        def __init__(self, *args, **kwargs):
+            kwargs.pop('captcha', None)
+            super(CaptchaForm, self).__init__(*args, **kwargs)
+
+    class CaptchaModelForm(forms.ModelForm):
+        def __init__(self, *args, **kwargs):
+            kwargs.pop('captcha', None)
+            super(CaptchaModelForm, self).__init__(*args, **kwargs)
 
 
 def _get_timezone_choices():
@@ -26,45 +61,118 @@ def _get_timezone_choices():
         results.append((int(offset), tz, '(GMT%s) %s' % (offset, tz)))
     results.sort()
 
-    for i in xrange(len(results)):
+    for i in range(len(results)):
         results[i] = results[i][1:]
     return results
 
 TIMEZONE_CHOICES = _get_timezone_choices()
 
 
-class RegistrationForm(forms.ModelForm):
-    email = forms.EmailField()
-    password = forms.CharField(widget=forms.PasswordInput)
+class AuthenticationForm(CaptchaForm):
+    username = forms.CharField(
+        label=_('Username or email'), max_length=128)
+    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput)
+
+    error_messages = {
+        'invalid_login': _("Please enter a correct %(username)s and password. "
+                           "Note that both fields may be case-sensitive."),
+        'no_cookies': _("Your Web browser doesn't appear to have cookies "
+                        "enabled. Cookies are required for logging in."),
+        'inactive': _("This account is inactive."),
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        """
+        If request is passed in, the form will validate that cookies are
+        enabled. Note that the request (a HttpRequest object) must have set a
+        cookie with the key TEST_COOKIE_NAME and value TEST_COOKIE_VALUE before
+        running this validation.
+        """
+        self.request = request
+        self.user_cache = None
+        super(AuthenticationForm, self).__init__(*args, **kwargs)
+
+        # Set the label for the "username" field.
+        UserModel = get_user_model()
+        self.username_field = UserModel._meta.get_field(UserModel.USERNAME_FIELD)
+        if not self.fields['username'].label:
+            self.fields['username'].label = capfirst(self.username_field.verbose_name)
+
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        if username and password:
+            self.user_cache = authenticate(username=username,
+                                           password=password)
+            if self.user_cache is None:
+                raise forms.ValidationError(
+                    self.error_messages['invalid_login'] % {
+                        'username': self.username_field.verbose_name
+                    })
+            elif not self.user_cache.is_active:
+                raise forms.ValidationError(self.error_messages['inactive'])
+        self.check_for_test_cookie()
+        return self.cleaned_data
+
+    def check_for_test_cookie(self):
+        if self.request and not self.request.session.test_cookie_worked():
+            raise forms.ValidationError(self.error_messages['no_cookies'])
+
+    def get_user_id(self):
+        if self.user_cache:
+            return self.user_cache.id
+        return None
+
+    def get_user(self):
+        return self.user_cache
+
+
+class RegistrationForm(CaptchaModelForm):
+    username = forms.EmailField(
+        label=_('Email'), max_length=128,
+        widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}))
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'}))
 
     class Meta:
-        fields = ('username', 'email')
+        fields = ('username',)
         model = User
-
-    def clean_email(self):
-        value = self.cleaned_data.get('email')
-        if not value:
-            return
-        # We don't really care about why people think they need multiple User accounts with the same
-        # email address -- dealwithit.jpg
-        if User.objects.filter(email__iexact=value).exists():
-            raise forms.ValidationError(_('An account is already registered with that email address.'))
-        return value
 
     def clean_username(self):
         value = self.cleaned_data.get('username')
         if not value:
             return
         if User.objects.filter(username__iexact=value).exists():
-            raise forms.ValidationError(_('An account is already registered with that username.'))
-        return value
+            raise forms.ValidationError(_('An account is already registered with that email address.'))
+        return value.lower()
 
     def save(self, commit=True):
         user = super(RegistrationForm, self).save(commit=False)
+        user.email = user.username
         user.set_password(self.cleaned_data['password'])
         if commit:
             user.save()
         return user
+
+
+class RecoverPasswordForm(CaptchaForm):
+    user = forms.CharField(label=_('Username or email'))
+
+    def clean_user(self):
+        value = self.cleaned_data.get('user')
+        if value:
+            users = find_users(value, with_valid_password=False)
+            if not users:
+                raise forms.ValidationError(_("We were unable to find a matching user."))
+            if len(users) > 1:
+                raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
+            return users[0]
+        return None
+
+
+class ChangePasswordRecoverForm(forms.Form):
+    password = forms.CharField(widget=forms.PasswordInput())
 
 
 class NotificationSettingsForm(forms.Form):
@@ -77,7 +185,7 @@ class NotificationSettingsForm(forms.Form):
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
     subscribe_notes = forms.ChoiceField(
         choices=(
-            ('1', _('Get notified about new notes on events I\'ve seen')),
+            ('1', _('Get notified about new notes')),
             ('0', _('Do not subscribe to note notifications')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
@@ -129,33 +237,68 @@ class NotificationSettingsForm(forms.Form):
 
 
 class AccountSettingsForm(forms.Form):
-    old_password = forms.CharField(label=_('Current password'), widget=forms.PasswordInput)
+    username = forms.CharField(label=_('Username'), max_length=128)
     email = forms.EmailField(label=_('Email'))
-    first_name = forms.CharField(required=True, label=_('Name'))
+    first_name = forms.CharField(required=True, label=_('Name'), max_length=30)
     new_password = forms.CharField(label=_('New password'), widget=forms.PasswordInput, required=False)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
-        # HACK: don't require current password if they don't have one
-        if self.user.password in EMPTY_PASSWORD_VALUES:
-            del self.fields['old_password']
+        if self.user.is_managed:
+            # username and password always managed, email and
+            # first_name optionally managed
+            for field in ('email', 'first_name', 'username'):
+                if field == 'username' or field in settings.SENTRY_MANAGED_USER_FIELDS:
+                    self.fields[field] = ReadOnlyTextField(label=self.fields[field].label)
+            # don't show password field at all
+            del self.fields['new_password']
 
-    def clean_old_password(self):
-        """
-        Validates that the old_password field is correct.
-        """
-        old_password = self.cleaned_data["old_password"]
-        if not isinstance(authenticate(username=self.user.username, password=old_password), User):
-            raise forms.ValidationError(_("Your old password was entered incorrectly. Please enter it again."))
-        return old_password
+        # don't show username field if its the same as their email address
+        if self.user.email == self.user.username:
+            del self.fields['username']
+
+    def is_readonly(self):
+        if self.user.is_managed:
+            return set(('email', 'first_name')) == set(settings.SENTRY_MANAGED_USER_FIELDS)
+        return False
+
+    def _clean_managed_field(self, field):
+        if self.user.is_managed and (field == 'username' or
+                field in settings.SENTRY_MANAGED_USER_FIELDS):
+            return getattr(self.user, field)
+        return self.cleaned_data[field]
+
+    def clean_email(self):
+        return self._clean_managed_field('email')
+
+    def clean_first_name(self):
+        return self._clean_managed_field('first_name')
+
+    def clean_username(self):
+        value = self._clean_managed_field('username')
+        if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
+            raise forms.ValidationError(_("That username is already in use."))
+        return value
 
     def save(self, commit=True):
         if self.cleaned_data.get('new_password'):
             self.user.set_password(self.cleaned_data['new_password'])
         self.user.first_name = self.cleaned_data['first_name']
+
+        if self.cleaned_data['email'] != self.user.email:
+            new_username = self.user.email == self.user.username
+        else:
+            new_username = False
+
         self.user.email = self.cleaned_data['email']
+
+        if self.cleaned_data.get('username'):
+            self.user.username = self.cleaned_data['username']
+        elif new_username and not User.objects.filter(username__iexact=self.user.email).exists():
+            self.user.username = self.user.email
+
         if commit:
             self.user.save()
 
@@ -208,23 +351,6 @@ class AppearanceSettingsForm(forms.Form):
         )
 
         return self.user
-
-
-class RecoverPasswordForm(forms.Form):
-    user = forms.CharField(label=_('Username'))
-
-    def clean_user(self):
-        value = self.cleaned_data.get('user')
-        if value:
-            try:
-                return User.objects.get(username__iexact=value)
-            except User.DoesNotExist:
-                raise forms.ValidationError(_("We were unable to find a matching user."))
-        return None
-
-
-class ChangePasswordRecoverForm(forms.Form):
-    password = forms.CharField(widget=forms.PasswordInput())
 
 
 class ProjectEmailOptionsForm(forms.Form):

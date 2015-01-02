@@ -2,48 +2,93 @@
 sentry.tasks.fetch_source
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 import itertools
 import logging
 import hashlib
 import re
-import urllib2
-import zlib
 import base64
+
+from django.conf import settings
 from collections import namedtuple
-from urlparse import urljoin
+from os.path import splitext
+from simplejson import JSONDecodeError
+from urlparse import urlparse, urljoin, urlsplit
+from urllib2 import HTTPError
 
-from django.utils.simplejson import JSONDecodeError
-
-from sentry.constants import SOURCE_FETCH_TIMEOUT
+from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
+from sentry.utils.strings import truncatechars
 
 
 BAD_SOURCE = -1
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
-CHARSET_RE = re.compile(r'charset=(\S+)')
-DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
+UNKNOWN_MODULE = '<unknown module>'
+CLEAN_MODULE_RE = re.compile(r"""^
+(?:/|  # Leading slashes
+(?:
+    (?:java)?scripts?|js|build|static|[_\.].*?|  # common folder prefixes
+    v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
+    [a-f0-9]{7,8}|     # short sha
+    [a-f0-9]{32}|      # md5
+    [a-f0-9]{40}       # sha1
+)/)+|
+(?:-[a-f0-9]{32,40}$)  # Ending in a commitish
+""", re.X | re.I)
+# the maximum number of remote resources (i.e. sourc eifles) that should be
+# fetched
+MAX_RESOURCE_FETCHES = 100
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
 logger = logging.getLogger(__name__)
 
 
-def trim_line(line):
+def trim_line(line, column=0):
+    """
+    Trims a line down to a goal of 140 characters, with a little
+    wiggle room to be sensible and tries to trim around the given
+    `column`. So it tries to extract 60 characters before and after
+    the provided `column` and yield a better context.
+    """
     line = line.strip('\n')
-    if len(line) > 150:
-        line = line[:140] + ' [... truncated]'
+    ll = len(line)
+    if ll <= 150:
+        return line
+    if column > ll:
+        column = ll
+    start = max(column - 60, 0)
+    # Round down if it brings us close to the edge
+    if start < 5:
+        start = 0
+    end = min(start + 140, ll)
+    # Round up to the end if it's close
+    if end > ll - 5:
+        end = ll
+    # If we are bumped all the way to the end,
+    # make sure we still get a full 140 characters in the line
+    if end == ll:
+        start = max(end - 140, 0)
+    line = line[start:end]
+    if end < ll:
+        # we've snipped from the end
+        line += ' {snip}'
+    if start > 0:
+        # we've snipped from the beginning
+        line = '{snip} ' + line
     return line
 
 
-def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
+def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
     if lineno > 0:
@@ -58,7 +103,7 @@ def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
         pre_context = []
 
     try:
-        context_line = trim_line(source[lineno])
+        context_line = trim_line(source[lineno], colno)
     except IndexError:
         context_line = ''
 
@@ -102,46 +147,6 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_url_content(url):
-    """
-    Pull down a URL, returning a tuple (url, headers, body).
-    """
-    import sentry
-
-    try:
-        opener = urllib2.build_opener()
-        opener.addheaders = [
-            ('Accept-Encoding', 'gzip'),
-            ('User-Agent', 'Sentry/%s' % sentry.VERSION),
-        ]
-        req = opener.open(url, timeout=SOURCE_FETCH_TIMEOUT)
-        headers = dict(req.headers)
-        body = req.read()
-        if headers.get('content-encoding') == 'gzip':
-            # Content doesn't *have* to respect the Accept-Encoding header
-            # and may send gzipped data regardless.
-            # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
-            body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
-
-        try:
-            content_type = headers['content-type']
-        except KeyError:
-            # If there is no content_type header at all, quickly assume default utf-8 encoding
-            encoding = DEFAULT_ENCODING
-        else:
-            try:
-                encoding = CHARSET_RE.search(content_type).group(1)
-            except AttributeError:
-                encoding = DEFAULT_ENCODING
-
-        body = body.decode(encoding).rstrip('\n')
-    except Exception:
-        logging.info('Failed fetching %r', url, exc_info=True)
-        return BAD_SOURCE
-
-    return (url, headers, body)
-
-
 def fetch_url(url):
     """
     Pull down a URL, returning a UrlResult object.
@@ -149,18 +154,43 @@ def fetch_url(url):
     Attempts to fetch from the cache.
     """
 
-    cache_key = 'fetch_url:v2:%s' % (
+    cache_key = 'source:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is None:
-        result = fetch_url_content(url)
+        # lock down domains that are problematic
+        domain = urlparse(url).netloc
+        domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
+        domain_result = cache.get(domain_key)
+        if domain_result:
+            return BAD_SOURCE
 
-        cache.set(cache_key, result, 30)
+        try:
+            request = safe_urlopen(url, allow_redirects=True,
+                                   timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
+        except HTTPError:
+            result = BAD_SOURCE
+        except Exception:
+            # it's likely we've failed due to a timeout, dns, etc so let's
+            # ensure we can't cascade the failure by pinning this for 5 minutes
+            cache.set(domain_key, 1, 300)
+            logger.warning('Disabling sources to %s for %ss', domain, 300,
+                           exc_info=True)
+            return BAD_SOURCE
+        else:
+            try:
+                body = safe_urlread(request)
+            except Exception:
+                result = BAD_SOURCE
+            else:
+                result = (dict(request.headers), body)
+
+        cache.set(cache_key, result, 60)
 
     if result == BAD_SOURCE:
         return result
 
-    return UrlResult(*result)
+    return UrlResult(url, *result)
 
 
 def fetch_sourcemap(url):
@@ -190,7 +220,7 @@ def is_data_uri(url):
     return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
 
-def expand_javascript_source(data, **kwargs):
+def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     """
     Attempt to fetch source code for javascript frames.
 
@@ -203,11 +233,11 @@ def expand_javascript_source(data, **kwargs):
 
     Mutates the input ``data`` with expanded context if available.
     """
-    from sentry.interfaces import Stacktrace
+    from sentry.interfaces.stacktrace import Stacktrace
 
     try:
         stacktraces = [
-            Stacktrace(**e['stacktrace'])
+            Stacktrace.to_python(e['stacktrace'])
             for e in data['sentry.interfaces.Exception']['values']
             if e.get('stacktrace')
         ]
@@ -235,16 +265,22 @@ def expand_javascript_source(data, **kwargs):
     done_file_list = set()
     sourcemap_capable = set()
     source_code = {}
-    sourmap_idxs = {}
+    sourcemap_idxs = {}
 
     for f in frames:
         pending_file_list.add(f.abs_path)
         if f.colno is not None:
             sourcemap_capable.add(f.abs_path)
 
+    idx = 0
     while pending_file_list:
+        idx += 1
         filename = pending_file_list.pop()
         done_file_list.add(filename)
+
+        if idx > max_fetches:
+            logger.warn('Not fetching remote source %r due to max resource fetches', filename)
+            continue
 
         # TODO: respect cache-contro/max-age headers to some extent
         logger.debug('Fetching remote source %r', filename)
@@ -257,22 +293,27 @@ def expand_javascript_source(data, **kwargs):
         # If we didn't have a colno, a sourcemap wont do us any good
         if filename not in sourcemap_capable:
             logger.debug('Not capable of sourcemap: %r', filename)
-            source_code[filename] = (result.body.splitlines(), None)
+            source_code[filename] = (result.body.splitlines(), None, None)
             continue
 
         sourcemap = discover_sourcemap(result)
 
         # TODO: we're currently running splitlines twice
         if not sourcemap:
-            source_code[filename] = (result.body.splitlines(), None)
+            source_code[filename] = (result.body.splitlines(), None, None)
+            for f in frames:
+                if not f.module and f.abs_path == filename:
+                    f.module = generate_module(filename)
             continue
         else:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
 
-        sourcemap_key = hashlib.md5(sourcemap).hexdigest()
-        source_code[filename] = (result.body.splitlines(), sourcemap_key)
+        sourcemap_url = result.url[:1000]
+        sourcemap_key = hashlib.md5(sourcemap_url).hexdigest()
 
-        if sourcemap in sourmap_idxs:
+        source_code[filename] = (result.body.splitlines(), sourcemap_url, sourcemap_key)
+
+        if sourcemap in sourcemap_idxs:
             continue
 
         # pull down sourcemap
@@ -281,40 +322,40 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
-        if is_data_uri(sourcemap):
-            sourmap_idxs[sourcemap_key] = (index, result.url)
-        else:
-            sourmap_idxs[sourcemap_key] = (index, sourcemap)
+        sourcemap_idxs[sourcemap_key] = (index, sourcemap_url)
 
         # queue up additional source files for download
         for source in index.sources:
-            next_filename = urljoin(result.url, source)
+            next_filename = urljoin(sourcemap_url, source)
             if next_filename not in done_file_list:
                 if index.content:
-                    source_code[next_filename] = (index.content[source], None)
+                    source_code[next_filename] = (index.content[source], None, None)
                     done_file_list.add(next_filename)
                 else:
                     pending_file_list.add(next_filename)
 
+    last_state = None
+    state = None
     has_changes = False
     for frame in frames:
         try:
-            source, sourcemap = source_code[frame.abs_path]
+            source, sourcemap_url, sourcemap_key = source_code[frame.abs_path]
         except KeyError:
             # we must've failed pulling down the source
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if sourcemap in sourmap_idxs and frame.colno is not None:
-            index, relative_to = sourmap_idxs[sourcemap]
+        if sourcemap_key in sourcemap_idxs and frame.colno is not None:
+            index, relative_to = sourcemap_idxs[sourcemap_key]
+            last_state = state
             state = find_source(index, frame.lineno, frame.colno)
             abs_path = urljoin(relative_to, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
-                source, _ = source_code[abs_path]
+                source, _, _ = source_code[abs_path]
             except KeyError:
                 frame.data = {
-                    'sourcemap': sourcemap,
+                    'sourcemap': sourcemap_url,
                 }
                 logger.debug('Failed mapping path %r', abs_path)
             else:
@@ -325,23 +366,57 @@ def expand_javascript_source(data, **kwargs):
                     'orig_function': frame.function,
                     'orig_abs_path': frame.abs_path,
                     'orig_filename': frame.filename,
-                    'sourcemap': sourcemap,
+                    'sourcemap': sourcemap_url,
                 }
 
                 # SourceMap's return zero-indexed lineno's
                 frame.lineno = state.src_line + 1
                 frame.colno = state.src_col
-                frame.function = state.name
+                # The offending function is always the previous function in the stack
+                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                if last_state:
+                    frame.function = last_state.name or frame.function
+                else:
+                    frame.function = state.name or frame.function
                 frame.abs_path = abs_path
                 frame.filename = state.src
+                frame.module = generate_module(state.src)
+        elif sourcemap_key in sourcemap_idxs:
+            frame.data = {
+                'sourcemap': sourcemap_url,
+            }
 
         has_changes = True
 
         # TODO: theoretically a minified source could point to another mapped, minified source
         frame.pre_context, frame.context_line, frame.post_context = get_source_context(
-            source=source, lineno=frame.lineno)
+            source=source, lineno=frame.lineno, colno=frame.colno or 0)
 
     if has_changes:
         logger.debug('Updating stacktraces with expanded source context')
         for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
-            exception['stacktrace'] = stacktrace.serialize()
+            exception['stacktrace'] = stacktrace.to_json()
+
+    # Attempt to fix the culrpit now that we have potentially useful information
+    culprit_frame = stacktraces[0].frames[-1]
+    if culprit_frame.module and culprit_frame.function:
+        data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
+
+
+def generate_module(src):
+    """
+    Converts a url into a made-up module name by doing the following:
+     * Extract just the path name
+     * Trimming off the initial /
+     * Trimming off the file extension
+     * Removes off useless folder prefixes
+
+    e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
+    """
+    if not src:
+        return UNKNOWN_MODULE
+    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0]) or UNKNOWN_MODULE
+
+
+def generate_culprit(frame):
+    return '%s in %s' % (frame.module, frame.function)

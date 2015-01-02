@@ -1,0 +1,35 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <div class="page-header">
+        <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}" class="btn pull-right btn-primary">{% trans "New Rule" %}</a>
+        <h2>{% trans "Rules" %}</h2>
+    </div>
+    {% if rule_list %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th style="width:100px;">
+                </tr>
+            </thead>
+            <tbody>
+                {% for rule in rule_list %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}">{{ rule.label }}</a>
+                        </td>
+                        <td>
+                            <a href="{% url 'sentry-remove-project-rule' project.organization.slug project.slug rule.id %}"
+                               onclick="confirm('Are you sure you want to remove this rule?')">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>You have not yet created any rules. Rules allow you to tweak the behavior of Sentry in various situations, such as sending notifications.</p>
+    {% endif %}
+{% endblock %}

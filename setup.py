@@ -18,13 +18,19 @@ That said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
 
-:copyright: (c) 2011-2012 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2011-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
+import os.path
+
+from distutils import log
+from distutils.core import Command
+from setuptools.command.develop import develop
+from setuptools.command.sdist import sdist
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
-import sys
+from subprocess import check_output
 
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
@@ -37,55 +43,66 @@ for m in ('multiprocessing', 'billiard'):
     except ImportError:
         pass
 
-setup_requires = []
-
-if 'test' in sys.argv:
-    setup_requires.append('pytest')
+ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 
 dev_requires = [
     'flake8>=2.0,<2.1',
 ]
 
 tests_require = [
+    'casscache',
+    'cqlsh',
+    'elasticsearch',
     'exam>=0.5.1',
     'eventlet',
+    'httpretty',
     'pytest',
     'pytest-cov>=1.4',
     'pytest-django',
     'pytest-timeout',
     'python-coveralls',
-    'nydus',
     'mock>=0.8.0',
-    'redis',
+    'riak',
     'unittest2',
 ]
 
 
 install_requires = [
-    'cssutils>0.9.9,<0.9.11',
     'BeautifulSoup>=3.2.1,<3.3.0',
-    'django-celery>=3.0.11,<3.1.0',
     'celery>=3.0.15,<3.1.0',
+    'cssutils>=0.9.9,<0.10.0',
+    'Django>=1.6.0,<1.7',
+    'django-bitfield>=1.7.0,<1.8.0',
+    'django-celery>=3.0.11,<3.1.0',
     'django-crispy-forms>=1.2.3,<1.3.0',
-    'Django>=1.5.4,<1.6',
     'django-paging>=0.2.5,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
-    'django-static-compiler>=0.3.0,<0.4.0',
-    'django-templatetag-sugar>=0.1.0,<0.2.0',
+    'django-recaptcha>=1.0.0,<1.1.0',
+    'django-social-auth>=0.7.28,<0.8.0',
+    'django-statsd-mozilla>=0.3.8.0,<0.3.9.0',
+    'django-sudo>=1.1.0,<1.2.0',
+    'django-templatetag-sugar>=0.1.0',
+    'djangorestframework>=2.3.8,<2.4.0',
+    'email-reply-parser>=0.2.0,<0.3.0',
+    'enum34>=0.9.18,<0.10.0',
     'gunicorn>=0.17.2,<0.18.0',
+    'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
-    'nydus>=0.10.0,<0.11.0',
+    'nydus>=0.10.7,<0.11.0',
+    'markdown>=2.4.1,<2.5.0',
+    'progressbar>=2.2,<2.4',
     'Pygments>=1.6.0,<1.7.0',
-    'pynliner>=0.4.0,<0.6.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
-    'raven>=3.3.8',
-    'redis>=2.7.0,<2.9.0',
+    'raven>=5.0.0',
+    'redis>=2.7.0,<2.11.0',
     'simplejson>=3.1.0,<3.4.0',
-    'South>=0.8.0,<0.9.0',
-    'httpagentparser>=1.2.1,<1.3.0',
-    'django-social-auth>=0.7.28,<0.8.0',
+    'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
+    'South==1.0.1',
+    'toronado>=0.0.4,<0.1.0',
+    'ua-parser>=0.3.5',
+    'urllib3>=1.7.1,<1.8.0',
 ]
 
 postgres_requires = [
@@ -101,22 +118,36 @@ mysql_requires = [
 ]
 
 
-class PyTest(TestCommand):
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = ['tests']
-        self.test_suite = True
+class DevelopWithBuildStatic(develop):
+    def install_for_development(self):
+        self.run_command('build_static')
+        return develop.install_for_development(self)
 
-    def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
-        import pytest
-        errno = pytest.main(self.test_args)
-        sys.exit(errno)
+
+class SdistWithBuildStatic(sdist):
+    def make_distribution(self):
+        self.run_command('build_static')
+        return sdist.make_distribution(self)
+
+
+class BuildStatic(Command):
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        log.info("running [npm install --quiet]")
+        check_output(['npm', 'install', '--quiet'], cwd=ROOT)
+
+        log.info("running [gulp dist]")
+        check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'dist'], cwd=ROOT)
 
 
 setup(
     name='sentry',
-    version='6.3.2',
+    version='7.1.0.dev0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',
@@ -133,8 +164,11 @@ setup(
         'postgres_pypy': install_requires + postgres_pypy_requires,
         'mysql': install_requires + mysql_requires,
     },
-    tests_require=tests_require,
-    cmdclass={'test': PyTest},
+    cmdclass={
+        'build_static': BuildStatic,
+        'develop': DevelopWithBuildStatic,
+        'sdist': SdistWithBuildStatic,
+    },
     license='BSD',
     include_package_data=True,
     entry_points={

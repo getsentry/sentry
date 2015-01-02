@@ -2,15 +2,17 @@
 sentry.db.models.fields.gzippeddict
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
 
 from django.db import models
+
+import six
 
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
@@ -28,10 +30,10 @@ class GzippedDictField(models.TextField):
     __metaclass__ = models.SubfieldBase
 
     def to_python(self, value):
-        if isinstance(value, basestring) and value:
+        if isinstance(value, six.string_types) and value:
             try:
                 value = pickle.loads(decompress(value))
-            except Exception, e:
+            except Exception as e:
                 logger.exception(e)
                 return {}
         elif not value:
@@ -42,6 +44,9 @@ class GzippedDictField(models.TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
+        # enforce unicode strings to guarantee consistency
+        if isinstance(value, str):
+            value = six.text_type(value)
         return compress(pickle.dumps(value))
 
     def value_to_string(self, obj):

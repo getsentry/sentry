@@ -7,5 +7,5 @@
 
     <pre>level=ERROR
 handlers=net.kencochrane.raven.jul.SentryHandler
-net.kencochrane.raven.jul.SentryHandler.dsn={% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}</pre>
+net.kencochrane.raven.jul.SentryHandler.dsn={% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}</pre>
 {% endblock %}

@@ -9,7 +9,7 @@
 {% block inner %}
     <div class="page-header">
         {% if can_add_key %}
-            <a href="{% url 'sentry-new-project-key' project.team.slug project.slug %}" class="btn pull-right btn-primary">{% trans "Generate New Key" %}</a>
+            <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary">{% trans "Generate New Key" %}</a>
         {% endif %}
         <h2>
             {% trans "Manage API Keys" %}
@@ -18,7 +18,6 @@
     <table class="table table-bordered table-striped">
         <colgroup>
             <col/>
-            <col width="100px"/>
             <col width="100px"/>
         </colgroup>
         <thead>
@@ -31,7 +30,11 @@
             {% for key in key_list %}
                 <tr>
                     <td>
-                        <strong>{{ key.public_key }}</strong> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}<br>
+                        {% if key.label %}
+                            <a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a>
+                        {% else %}
+                            <a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}
+                        {% endif %}<br>
                         <code class="clippy">{{ key.dsn_private }}</code><br>
                         {% if key.user_added %}
                             <small>Added by {{ key.user_added.email }} ({{ key.date_added|timesince }})</small>
@@ -39,7 +42,7 @@
                     </td>
                     <td style="text-align:center; vertical-align:middle;">
                         {% if key.can_remove %}
-                            <form method="POST" action="{% url 'sentry-remove-project-key' project.team.slug project.slug key.id %}" style="display:inline">
+                            <form method="POST" action="{% url 'sentry-remove-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
                                 {% csrf_token %}
                                 <input type="submit" class="btn btn-danger btn-small" value="{% trans "Revoke" %}">
                             </form>

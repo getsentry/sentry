@@ -5,9 +5,11 @@ sentry.constants
 These settings act as the default (base) settings for the Sentry-provided
 web-server
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
+
 import logging
 import os.path
 
@@ -34,47 +36,7 @@ SORT_OPTIONS = SortedDict((
     ('freq', _('Frequency')),
     ('tottime', _('Total Time Spent')),
     ('avgtime', _('Average Time Spent')),
-    ('accel_15', _('Trending: %(minutes)d minutes' % {'minutes': 15})),
-    ('accel_60', _('Trending: %(minutes)d minutes' % {'minutes': 60})),
 ))
-
-SORT_CLAUSES = {
-    'priority': 'sentry_groupedmessage.score',
-    'date': 'EXTRACT(EPOCH FROM sentry_groupedmessage.last_seen)',
-    'new': 'EXTRACT(EPOCH FROM sentry_groupedmessage.first_seen)',
-    'freq': 'sentry_groupedmessage.times_seen',
-    'tottime': 'sentry_groupedmessage.time_spent_total',
-    'avgtime': '(sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count)',
-}
-SCORE_CLAUSES = SORT_CLAUSES.copy()
-
-SQLITE_SORT_CLAUSES = SORT_CLAUSES.copy()
-SQLITE_SORT_CLAUSES.update({
-    'date': "(julianday(sentry_groupedmessage.last_seen) - 2440587.5) * 86400.0",
-    'new': "(julianday(sentry_groupedmessage.first_seen) - 2440587.5) * 86400.0",
-})
-SQLITE_SCORE_CLAUSES = SQLITE_SORT_CLAUSES.copy()
-
-MYSQL_SORT_CLAUSES = SORT_CLAUSES.copy()
-MYSQL_SORT_CLAUSES.update({
-    'date': 'UNIX_TIMESTAMP(sentry_groupedmessage.last_seen)',
-    'new': 'UNIX_TIMESTAMP(sentry_groupedmessage.first_seen)',
-})
-MYSQL_SCORE_CLAUSES = MYSQL_SORT_CLAUSES.copy()
-
-ORACLE_SORT_CLAUSES = SCORE_CLAUSES.copy()
-ORACLE_SORT_CLAUSES.update({
-    'date': "(cast(sentry_groupedmessage.last_seen as date)-TO_DATE('01/01/1970 00:00:00', 'MM-DD-YYYY HH24:MI:SS')) * 24 * 60 * 60",
-    'new': "(cast(sentry_groupedmessage.first_seen as date)-TO_DATE('01/01/1970 00:00:00', 'MM-DD-YYYY HH24:MI:SS')) * 24 * 60 * 60",
-})
-ORACLE_SCORE_CLAUSES = ORACLE_SORT_CLAUSES.copy()
-
-MSSQL_SORT_CLAUSES = SCORE_CLAUSES.copy()
-MSSQL_SORT_CLAUSES.update({
-    'date': "DATEDIFF(s, '1970-01-01T00:00:00', sentry_groupedmessage.last_seen)",
-    'new': "DATEDIFF(s, '1970-01-01T00:00:00', sentry_groupedmessage.first_seen)",
-})
-MSSQL_SCORE_CLAUSES = MSSQL_SORT_CLAUSES.copy()
 
 SEARCH_SORT_OPTIONS = SortedDict((
     ('score', _('Score')),
@@ -82,23 +44,26 @@ SEARCH_SORT_OPTIONS = SortedDict((
     ('new', _('First Seen')),
 ))
 
-STATUS_VISIBLE = 0
-STATUS_HIDDEN = 1
-
+# XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_MUTED = 2
-STATUS_LEVELS = (
-    (STATUS_UNRESOLVED, _('Unresolved')),
-    (STATUS_RESOLVED, _('Resolved')),
-    (STATUS_MUTED, _('Muted')),
-)
+
+STATUS_CHOICES = {
+    'resolved': STATUS_RESOLVED,
+    'unresolved': STATUS_UNRESOLVED,
+    'muted': STATUS_MUTED,
+}
+
 
 MEMBER_OWNER = 0
+MEMBER_ADMIN = 25
 MEMBER_USER = 50
 MEMBER_SYSTEM = 100
+
 MEMBER_TYPES = (
-    (MEMBER_OWNER, _('Admin')),
+    (MEMBER_OWNER, _('Owner')),
+    (MEMBER_ADMIN, _('Admin')),
     (MEMBER_USER, _('User')),
     (MEMBER_SYSTEM, _('System Agent')),
 )
@@ -113,6 +78,7 @@ PLATFORM_LIST = (
     'django',
     'express',
     'flask',
+    'go',
     'ios',
     'java',
     'java_log4j',
@@ -122,6 +88,7 @@ PLATFORM_LIST = (
     'javascript',
     'node.js',
     'php',
+    'pyramid',
     'python',
     'r',
     'ruby',
@@ -139,6 +106,7 @@ PLATFORM_ROOTS = {
     'sidekiq': 'ruby',
     'django': 'python',
     'flask': 'python',
+    'pyramid': 'python',
     'tornado': 'python',
     'express': 'node.js',
     'connect': 'node.js',
@@ -157,6 +125,7 @@ PLATFORM_TITLES = {
     'connect': 'Connect (Node.js)',
     'django': 'Django (Python)',
     'flask': 'Flask (Python)',
+    'pyramid': 'Pyramid (Python)',
     'csharp': 'C#',
     'java_log4j': 'Log4j (Java)',
     'java_log4j2': 'Log4j 2.x (Java)',
@@ -169,29 +138,18 @@ PLATFORM_TITLES = {
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-# Prevent variables (e.g. context locals, http data, etc) from exceeding this
-# size in characters
-MAX_VARIABLE_SIZE = 512
-
-# Prevent varabiesl within extra context from exceeding this size in
-# characters
-MAX_EXTRA_VARIABLE_SIZE = 2048
-
-# For various attributes we dont limit the entire attribute on size, but the
-# individual item. In those cases we also want to limit the maximum number of
-# keys
-MAX_DICTIONARY_ITEMS = 50
-
 MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
-MAX_MESSAGE_LENGTH = 2048
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
-RESERVED_TEAM_SLUGS = (
+RESERVED_ORGANIZATION_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
+    'organizations', 'teams', 'projects', 'help',
 )
+
+RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS
 
 LOG_LEVELS = {
     logging.DEBUG: 'debug',
@@ -204,11 +162,8 @@ DEFAULT_LOG_LEVEL = 'error'
 DEFAULT_LOGGER_NAME = 'root'
 
 # Default alerting threshold values
-DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 100)  # 500%, 100 events
-DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 100)  # 1000%, 100 events
-
-# The maximum number of events which can be requested as JSON
-MAX_JSON_RESULTS = 1000
+DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
+DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
 
 # Default paginator value
 EVENTS_PER_PAGE = 15
@@ -216,12 +171,32 @@ EVENTS_PER_PAGE = 15
 # Default sort option for the group stream
 DEFAULT_SORT_OPTION = 'date'
 
-# Default sort option for the search results
-SEARCH_DEFAULT_SORT_OPTION = 'date'
-
 # Setup languages for only available locales
 LANGUAGE_MAP = dict(settings.LANGUAGES)
 LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
 
-# Timeout (in seconds) for fetching remote source files (e.g. JS)
-SOURCE_FETCH_TIMEOUT = 5
+# TODO(dcramer): We eventually want to make this user-editable
+TAG_LABELS = {
+    'exc_type': _('Exception Type'),
+    'sentry:user': _('User'),
+    'sentry:filename': _('File'),
+    'sentry:function': _('Function'),
+    'sentry:release': _('Release'),
+    'os': _('OS'),
+    'url': _('URL'),
+    'server_name': _('Server'),
+}
+
+# TODO(dcramer): once this is more flushed out we want this to be extendable
+SENTRY_RULES = (
+    'sentry.rules.actions.notify_event.NotifyEventAction',
+    'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+    'sentry.rules.conditions.every_event.EveryEventCondition',
+    'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+    'sentry.rules.conditions.regression_event.RegressionEventCondition',
+    'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+    'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+)
+
+# methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
+HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')

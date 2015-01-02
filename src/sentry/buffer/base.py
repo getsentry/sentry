@@ -2,11 +2,13 @@
 sentry.buffer.base
 ~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 from django.db.models import F
+
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 
@@ -24,9 +26,6 @@ class Buffer(object):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
-    def __init__(self, delay=5, **options):
-        self.delay = delay
-
     def incr(self, model, columns, filters, extra=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
@@ -36,7 +35,10 @@ class Buffer(object):
             'columns': columns,
             'filters': filters,
             'extra': extra,
-        }, countdown=self.delay)
+        })
+
+    def process_pending(self):
+        return []
 
     def process(self, model, columns, filters, extra=None):
         update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())

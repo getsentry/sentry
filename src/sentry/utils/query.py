@@ -2,46 +2,21 @@
 sentry.utils.query
 ~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
-from django.db import transaction, IntegrityError
+import progressbar
+
+from django.db import IntegrityError, transaction
 from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
-from django.db.models.query import QuerySet
 from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
-
-
-class QuerySetDoubleIteration(Exception):
-    "A QuerySet was iterated over twice, you probably want to list() it."
-    pass
 
 
 class InvalidQuerySetError(ValueError):
     pass
-
-
-class SkinnyQuerySet(QuerySet):
-    def __len__(self):
-        if getattr(self, 'has_run_before', False):
-            raise TypeError("SkinnyQuerySet doesn't support __len__ after __iter__, if you *only* need a count you should use .count(), if you need to reuse the results you should coerce to a list and then len() that.")
-        return super(SkinnyQuerySet, self).__len__()
-
-    def __iter__(self):
-        if self._result_cache is not None:
-            # __len__ must have been run
-            return iter(self._result_cache)
-
-        has_run_before = getattr(self, 'has_run_before', False)
-        if has_run_before:
-            raise QuerySetDoubleIteration("This SkinnyQuerySet has already been iterated over once, you should assign it to a list if you want to reuse the data.")
-        self.has_run_before = True
-
-        return self.iterator()
-
-    def list(self):
-        return list(self)
 
 
 class RangeQuerySetWrapper(object):
@@ -51,9 +26,8 @@ class RangeQuerySetWrapper(object):
 
     Very efficient, but ORDER BY statements will not work.
     """
-
     def __init__(self, queryset, step=1000, limit=None, min_id=None,
-                 order_by='pk'):
+                 order_by='pk', callbacks=()):
         # Support for slicing
         if queryset.query.low_mark == 0 and not \
                 (queryset.query.order_by or queryset.query.extra_order_by):
@@ -73,6 +47,7 @@ class RangeQuerySetWrapper(object):
         self.queryset = queryset
         self.min_value = min_id
         self.order_by = order_by
+        self.callbacks = callbacks
 
     def __iter__(self):
         max_value = None
@@ -92,9 +67,12 @@ class RangeQuerySetWrapper(object):
 
         # we implement basic cursor pagination for columns that are not unique
         last_value = None
-        offset = 0
+        last_object = None
         has_results = True
-        while ((max_value and cur_value <= max_value) or has_results) and (not self.limit or num < self.limit):
+        while has_results:
+            if (max_value and cur_value >= max_value) or (limit and num >= limit):
+                break
+
             start = num
 
             if cur_value is None:
@@ -104,23 +82,21 @@ class RangeQuerySetWrapper(object):
             elif not self.desc:
                 results = queryset.filter(**{'%s__gte' % self.order_by: cur_value})
 
-            results = results[offset:offset + self.step].iterator()
+            results = list(results[0:self.step])
+
+            for cb in self.callbacks:
+                cb(results)
 
             for result in results:
+                if result == last_object:
+                    continue
+
                 yield result
 
                 num += 1
                 cur_value = getattr(result, self.order_by)
-                if cur_value == last_value:
-                    offset += 1
-                else:
-                    # offset needs to be based at 1 so we don't return a row
-                    # that was already selected
-                    last_value = cur_value
-                    offset = 1
-
-                if (max_value and cur_value >= max_value) or (limit and num >= limit):
-                    break
+                last_value = cur_value
+                last_object = result
 
             if cur_value is None:
                 break
@@ -128,10 +104,46 @@ class RangeQuerySetWrapper(object):
             has_results = num > start
 
 
+class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
+    def __iter__(self):
+        total_count = self.queryset.count()
+        if not total_count:
+            return iter([])
+        iterator = super(RangeQuerySetWrapperWithProgressBar, self).__iter__()
+        label = self.queryset.model._meta.verbose_name_plural.title()
+        return iter(WithProgressBar(iterator, total_count, label))
+
+
+class WithProgressBar(object):
+    def __init__(self, iterator, count=None, caption=None):
+        if count is None and hasattr(iterator, '__len__'):
+            count = len(iterator)
+        self.iterator = iterator
+        self.count = count
+        self.caption = unicode(caption or u'Progress')
+
+    def __iter__(self):
+        if self.count != 0:
+            widgets = [
+                '%s: ' % (self.caption,),
+                progressbar.Percentage(),
+                ' ',
+                progressbar.Bar(),
+                ' ',
+                progressbar.ETA(),
+            ]
+            pbar = progressbar.ProgressBar(widgets=widgets, maxval=self.count)
+            pbar.start()
+            for idx, item in enumerate(self.iterator):
+                yield item
+                pbar.update(idx)
+            pbar.finish()
+
+
 class EverythingCollector(Collector):
     """
     More or less identical to the default Django collector except we always
-    return relations (even when they shouldnt matter).
+    return relations (even when they shouldn't matter).
     """
     def collect(self, objs, source=None, nullable=False, collect_related=True,
                 source_attr=None, reverse_dependency=False):
@@ -202,7 +214,6 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
             and f.rel.to == s_model
             if f.rel.to
         )
-        print model, objects, fields
         if not fields:
             # the collector pulls in the self reference, so if it's our model
             # we actually assume it's probably not related to itself, and its
@@ -243,30 +254,12 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
             if send_signals:
                 pre_save.send(created=True, **signal_kwargs)
 
-            sid = transaction.savepoint(using=using)
-
             try:
-                model.objects.filter(pk=obj.pk).update(**update_kwargs)
+                with transaction.atomic():
+                    model.objects.using(using).filter(pk=obj.pk).update(**update_kwargs)
             except IntegrityError:
                 # duplicate key exists, destroy the relations
-                transaction.savepoint_rollback(sid, using=using)
-                model.objects.filter(pk=obj.pk).delete()
-            else:
-                transaction.savepoint_commit(sid, using=using)
+                model.objects.using(using).filter(pk=obj.pk).delete()
 
             if send_signals:
                 post_save.send(created=True, **signal_kwargs)
-
-
-class Savepoint(object):
-    def __init__(self, using='default'):
-        self.using = using
-
-    def __enter__(self):
-        self.sid = transaction.savepoint(using=self.using)
-
-    def __exit__(self, *exc_info):
-        if exc_info:
-            transaction.savepoint_rollback(self.sid, using=self.using)
-        else:
-            transaction.savepoint_commit(self.sid, using=self.using)

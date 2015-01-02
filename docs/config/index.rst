@@ -44,30 +44,6 @@ Authentication
 
         SENTRY_PUBLIC = True
 
-.. data:: SENTRY_ALLOW_PROJECT_CREATION
-    :noindex:
-
-    Should Sentry allow users without the 'sentry.add_project' permission to
-    create new projects?
-
-    Defaults to ``False`` (require permission).
-
-    ::
-
-        SENTRY_ALLOW_PROJECT_CREATION = True
-
-.. data:: SENTRY_ALLOW_TEAM_CREATION
-    :noindex:
-
-    Should Sentry allow users without the 'sentry.add_team' permission to
-    create new teams?
-
-    Defaults to ``True`` (require permission).
-
-    ::
-
-        SENTRY_ALLOW_TEAM_CREATION = False
-
 .. data:: SENTRY_ALLOW_PUBLIC_PROJECTS
     :noindex:
 
@@ -145,35 +121,50 @@ The following settings are available for the built-in webserver:
             'worker_class': 'gevent',
         }
 
+    Note: The logging options of gunicorn is overridden by the default logging
+    configuration of Sentry. In order to reuse loggers from gunicorn, put
+    ``LOGGING['disable_existing_loggers'] = False`` into your configuration
+    file.
 
-.. _config-udp-server:
+.. _config-smtp-server:
 
-UDP Server
-~~~~~~~~~~
+SMTP Server
+~~~~~~~~~~~
 
-The following settings are available for the built-in UDP API server:
+The following settings are available for the built-in SMTP mail server:
 
-.. data:: SENTRY_UDP_HOST
+.. data:: SENTRY_SMTP_HOST
     :noindex:
 
-    The hostname which the udp server should bind to.
+    The hostname which the smtp server should bind to.
 
     Defaults to ``localhost``.
 
     ::
 
-        SENTRY_UDP_HOST = '0.0.0.0'  # bind to all addresses
+        SENTRY_SMTP_HOST = '0.0.0.0'  # bind to all addresses
 
-.. data:: SENTRY_UDP_PORT
+.. data:: SENTRY_SMTP_PORT
     :noindex:
 
-    The port which the udp server should listen on.
+    The port which the smtp server should listen on.
 
-    Defaults to ``9001``.
+    Defaults to ``1025``.
 
     ::
 
-        SENTRY_UDP_PORT = 9001
+        SENTRY_SMTP_PORT = 1025
+
+.. data:: SENTRY_SMTP_HOSTNAME
+    :noindex:
+
+    The hostname which matches the server's MX record.
+
+    Defaults to ``localhost``.
+
+    ::
+
+        SENTRY_SMTP_HOSTNAME = 'reply.getsentry.com'
 
 
 Data Sampling

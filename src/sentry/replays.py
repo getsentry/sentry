@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
+import socket
+
 from httplib import HTTPConnection, HTTPSConnection
 from urllib import urlencode
 from urlparse import urlparse
-import socket
 
 
 class Replayer(object):
@@ -34,7 +37,7 @@ class Replayer(object):
             conn.request(self.method, full_url, data, self.headers or {})
 
             response = conn.getresponse()
-        except socket.error, e:
+        except socket.error as e:
             return {
                 'status': 'error',
                 'reason': str(e),

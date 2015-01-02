@@ -34,7 +34,7 @@ Running ``make dev-docs`` will install the basic requirements to get Sphinx runn
 Building Documentation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Inside the ``docs`` directory, you can run ``make`` to build the documentation.  
+Inside the ``docs`` directory, you can run ``make`` to build the documentation.
 See ``make help`` for available options and the `Sphinx Documentation <http://sphinx-doc.org/contents.html>`_ for more information.
 
 
@@ -103,6 +103,31 @@ Sentry follows the guidelines laid out in `pep8 <http://www.python.org/dev/peps/
 of flexibility on things like line length. We always give way for the `Zen of Python <http://www.python.org/dev/peps/pep-0020/>`_. We also use strict mode for JavaScript, enforced by jshint.
 
 You can run all linters with ``make lint``, or respectively ``lint-python`` or ``lint-js``.
+
+Spacing
+~~~~~~~
+
+Python:
+  4 Spaces
+
+JavaScript:
+  2 Spaces
+
+CSS:
+  2 Spaces
+
+HTML:
+  2 Spaces
+
+
+Django Templates
+~~~~~~~~~~~~~~~~
+
+Newer style code prefers a flat hierarchy of templates to ensure simplicity.
+
+For example, the "create team" template lives at sentry/create-team.html, whereas legacy templates have a url-like hierarchy.
+
+**All new templates that are not partials or base layouts must follow this hierarchy.**
 
 
 Running the Test Suite

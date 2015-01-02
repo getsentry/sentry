@@ -10,16 +10,28 @@
         <h2>{% trans "Manage Tags" %}</h2>
     </div>
     {% if form %}
-        <p>{% trans "Configure tags which you want to enable filters for." %}</p>
-        <p><small>{% trans "Note: You can only configure tags which have already been seen." %}</small></p>
+        <p>{% blocktrans %}Each event in Sentry may be annotated with various tags (key and value pairs). For more information on how send additional tags, see your client's documentation.{% endblocktrans %}</p>
         <form action="" method="post">
             {% csrf_token %}
             {{ form|as_crispy_errors }}
-            <fieldset>
-                {% for field in form %}
-                    {{ field|as_crispy_field }}
-                {% endfor %}
-            </fieldset>
+
+            <div class="row">
+                <div class="span6">
+                    <fieldset>
+                        <legend>{% trans "Stream Filters" %}</legend>
+                        <p><small>{% blocktrans %}Filters allow you to do limited searching on the stream view based on a tag's value. They are selectable via the sidebar on the stream.{% endblocktrans %}</small></p>
+                        {{ form.filters|as_crispy_field }}
+                    </fieldset>
+                </div>
+                <div class="span6">
+                    <fieldset>
+                        <legend>{% trans "Stream Annotations" %}</legend>
+                        <p><small>{% blocktrans %}Annotations display the total number of unique values that have been seen for an event. They are rendered on the stream with each individual event.{% endblocktrans %}</small></p>
+                        {{ form.annotations|as_crispy_field }}
+                    </fieldset>
+                </div>
+            </div>
+
             <fieldset class="form-actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
             </fieldset>
