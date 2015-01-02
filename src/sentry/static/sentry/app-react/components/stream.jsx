@@ -643,12 +643,12 @@ var Stream = React.createClass({
   },
   handleBookmark: function(aggList, event){
     return this.actionAggregates(aggList, {
-      data: {isBookmarked: '1'}
+      data: {isBookmarked: true}
     });
   },
   handleRemoveBookmark: function(aggList, event){
     return this.actionAggregates(aggList, {
-      data: {isBookmarked: '0'}
+      data: {isBookmarked: false}
     });
   },
   handleDelete: function(aggList, event){
@@ -661,7 +661,7 @@ var Stream = React.createClass({
   },
   handleMerge: function(aggList, event) {
     return this.actionAggregates(aggList, {
-      data: {merge: '1'},
+      data: {merge: 1},
       success: function() {
         flash('success', 'The selected events have been scheduled to merge.');
       }

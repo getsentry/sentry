@@ -101,6 +101,12 @@ var DropdownButton = React.createClass({
     );
   },
 
+  componentWillReceiveProps: function(nextProps) {
+    if (nextProps.disabled === true && this.state.open) {
+      this.state.open = false;
+    }
+  },
+
   renderMenuItem: function (child, index) {
     // Only handle the option selection if an onSelect prop has been set on the
     // component or it's child, this allows a user not to pass an onSelect
