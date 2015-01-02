@@ -29,7 +29,7 @@ def manage_plugins(request, organization, project):
 
     if request.POST:
         enabled = set(request.POST.getlist('plugin'))
-        for plugin in plugins.all():
+        for plugin in plugins.all(version=None):
             if plugin.can_enable_for_projects():
                 plugin.set_option('enabled', plugin.slug in enabled, project)
 
