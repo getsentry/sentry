@@ -6,7 +6,8 @@ from mock import patch
 
 from sentry.tasks.fetch_source import (
     UrlResult, expand_javascript_source, discover_sourcemap,
-    fetch_sourcemap, fetch_url, generate_module, BAD_SOURCE, trim_line)
+    fetch_sourcemap, fetch_url, generate_module, BAD_SOURCE, trim_line,
+    format_raw_stacktrace)
 from sentry.utils.sourcemaps import (SourceMap, SourceMapIndex)
 from sentry.testutils import TestCase
 
@@ -108,6 +109,76 @@ class DiscoverSourcemapTest(TestCase):
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
 
+class ParseRawJsStacktraceTest(TestCase):
+    def test_ie_chrome_raw_stack(self):
+        raw_stack = '''Error: Synthetic error
+    at foo (http://example.com/foo.js:1:4)
+    at bar (http://example.com/foo.js:2)
+    at foobar (http://example.com/foo.js:3:8)'''
+
+        stacktraces = format_raw_stacktrace(raw_stack)
+
+        frame_list = stacktraces[0].frames
+        assert len(frame_list) == 3
+
+        frame = frame_list[0]
+        assert frame.filename == '/foo.js'
+        assert frame.lineno == 1
+        assert frame.colno == 4
+        assert frame.function == 'foo'
+
+        frame = frame_list[1]
+        assert frame.filename == '/foo.js'
+        assert frame.lineno == 2
+        assert frame.colno is None
+        assert frame.function == 'bar'
+
+        frame = frame_list[2]
+        assert frame.filename == '/foo.js'
+        assert frame.lineno == 3
+        assert frame.colno == 8
+        assert frame.function == 'foobar'
+
+    def test_firefox_safari_raw_stack(self):
+        raw_stack = '''foo@http://example.com/foo.js:1:4
+bar@http://example.com/foo.js:2
+foobar@http://example.com/foo.js:3:8'''
+
+        stacktraces = format_raw_stacktrace(raw_stack)
+
+        frame_list = stacktraces[0].frames
+        assert len(frame_list) == 3
+
+        frame = frame_list[0]
+        assert frame.filename == '/foo.js'
+        assert frame.lineno == 1
+        assert frame.colno == 4
+        assert frame.function == 'foo'
+
+        frame = frame_list[1]
+        assert frame.filename == '/foo.js'
+        assert frame.lineno == 2
+        assert frame.colno is None
+        assert frame.function == 'bar'
+
+        frame = frame_list[2]
+        assert frame.filename == '/foo.js'
+        assert frame.lineno == 3
+        assert frame.colno == 8
+        assert frame.function == 'foobar'
+
+    def test_invalid_raw_stack(self):
+        raw_stack = '''Not
+    A
+    Recognized
+    at Stack
+    Format'''
+
+        stacktraces = format_raw_stacktrace(raw_stack)
+
+        assert len(stacktraces) == 0
+
+
 class ExpandJavascriptSourceTest(TestCase):
     @patch('sentry.models.Event.update')
     @patch('sentry.tasks.fetch_source.fetch_url')
@@ -187,6 +258,31 @@ class ExpandJavascriptSourceTest(TestCase):
         assert not frame.get('pre_context')
         assert frame['context_line'] == 'console.log("hello, World!")'
         assert not frame.get('post_context')
+
+    @patch('sentry.models.Event.update')
+    @patch('sentry.tasks.fetch_source.fetch_url')
+    @patch('sentry.tasks.fetch_source.discover_sourcemap')
+    def test_ie_chrome_raw_stack(self, discover_sourcemap, fetch_url, update):
+        data = {
+            'sentry.interfaces.Exception': {
+                'values': []
+            },
+            'extra': {
+                'stack': '''Error: Synthetic error
+    at foo (http://example.com/foo.js:1:4)
+    at bar (http://example.com/foo.js:2:6)
+    at foobar (http://example.com/foo.js:3:8)'''
+            }
+        }
+        discover_sourcemap.return_value = None
+        fetch_sourcemap.return_value = None
+        fetch_url.return_value.body = '\n'.join('hello world')
+
+        expand_javascript_source(data)
+
+        fetch_url.assert_called_once_with('http://example.com/foo.js')
+
+        assert 'stack' not in data['extra']
 
 
 class GenerateModuleTest(TestCase):
