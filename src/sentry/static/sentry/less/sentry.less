@@ -1572,7 +1572,7 @@ a.icon-share {
     position: relative;
 
     .icon-bookmark {
-      display: inline-block;
+      display: none;
       font-size: 95%;
       position: relative;
       top: 2px;
@@ -1581,6 +1581,11 @@ a.icon-share {
       padding-right: 3px;
       overflow: hidden;
       .transition(all .2s ease-in-out);
+    }
+    &.isBookmarked {
+      .icon-bookmark {
+        display: inline-block;
+      }
     }
 
     .event-details:after {
@@ -1596,13 +1601,13 @@ a.icon-share {
       .transition(all .2s ease-in-out);
     }
 
-    &.seen {
+    &.hasSeen {
       .event-details:after {
         background: transparent;
       }
     }
 
-    &.resolved {
+    &.isResolved {
       h3 {
         text-decoration: line-through;
         color: #949ea4;
