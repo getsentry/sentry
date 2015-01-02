@@ -1,49 +1,62 @@
 Version 7.0.0
 -------------
 
-Between version 6.4.x and 7.0 a significant number of changes have landed (approximately a years worth of commits). There are a large number of overall architecture changes, as well as various API compatibility changes.
+Between version 6.4.x and 7.0 a significant number of changes have landed (approximately a years worth of commits). There are a large number of overall architecture changes, as well as various API compatibility changes. This document does not attempt to cover them all.
 
 Backwards Incompatible Changes
-==============================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Django has been upgraded to 1.6
 - The buffer API has been rewritten and the Redis buffer has had its performance greatly improved.
-- The UDP server has been removed. Threaded/async models are the preferred replacement.
+- The UDP server has been removed. Threaded/async models or a buffer proxy are the preferred replacement.
 - The ``is_rate_limited`` plugin hook has been removed in favor of singular quota managers.
 - The trends feature has been removed until it can be reimplemented in a more scalable way.
 - Filters have been removed. Integrations should use the tagging infrastructure instead.
-- NodeStore.generate_id() now returns a base64-encoded UUID.
+- ``NodeStore.generate_id()`` now returns a base64-encoded UUID.
 - The API for interfaces has been rewritten.
-- GroupMeta.objects.get_value no longer errors when a value is missing.
-- sentry.plugins.sentry_sites has been removed
+- ``GroupMeta.objects.get_value`` no longer errors when a value is missing.
+- ``sentry.plugins.sentry_sites`` has been removed.
 - The Search API has been rewritten and now powers the entire stream.
 - Removed Event.{logger,site,logger,level,culprit} references/columns. Legacy attributes for transitional behavior are available.
 - Removed Project.owner.
 - Removed Team.owner.
-- `is_new` in post_process will *only* be set if the event is brand new
+- ``is_new`` in ``Plugin.post_process`` will **only** be set if the event is brand new.
+- Project-based URLs are changed to be organization scoped instead of team scoped.
+- Static assets are no longer bundled as part of the repository and are instead compiled during the sdist/installation phases (as needed). See installation notes for further information.
 
 Organizations
-=============
+~~~~~~~~~~~~~
 
 Organizations are the new top-level item of your Sentry install. All membership and team management has been moved into the new organization hub.
 
 Generally for self-hosted installations you'll only have a single organization.
 
+Migrations will happen automatically for this, and while these were able to applied cleanly and automatically on getsentry.com, we suggest considering snapshotting your database before running them. Additionally consider doing this at a period of the day where users generally wont be tweaking options to team membership.
+
+Rules
+~~~~~
+
+A new system for basic controls around notifications (called Rules) has been added. These are per-project hooks for doing dynamic customization of "what happens when a new event is seen?".
+
 Web API
-=======
+~~~~~~~
 
 The first offering a public API has landed. You'll find it with the new embedded docs (at /docs/).
 
 Protocol Version 6
-==================
+~~~~~~~~~~~~~~~~~~
 
 Version 6 of the protocol has been introduced. The only change is the addition of the `release` attribute.
 
-
 BIGINT
-======
+~~~~~~
 
 All integer fields have been replaced with bigint's. This migration is *not* automated (due to it causing locking) and if you need it locally you will need to sort out the migration on your own, as well as set `SENTRY_USE_BIG_INTS = True` in your configuration.
+
+Help Pages
+~~~~~~~~~~
+
+The beginnings of bundled documentation now exists. The defaults are generated from disk (see sentry/data/help_pages/).
 
 
 Version 6.4.0
@@ -52,27 +65,27 @@ Version 6.4.0
 Some major backend changes are introduced in Sentry 6.4.0.
 
 django.contrib.auth
-===================
+~~~~~~~~~~~~~~~~~~~
 
 The builtin Django authentication module is no more. The Group and Permission models are no
 longer used, and the User model has been replaced with sentry.User.
 
 Search
-======
+~~~~~~
 
 Search has been abstracted from the simple search manager, and now lives within
 ``sentry.search``. Currently only the Django backend is supported, but some sample
 code for Solr Cloud integration is also available.
 
 Event Storage
-=============
+~~~~~~~~~~~~~
 
 A new application called ``nodestore`` now manages the event blob data. By default it
 uses a Django-based backend (storing each node as a row in a table), however a Riak
 backend is included and fully supported.
 
 Additional Changes
-==================
+~~~~~~~~~~~~~~~~~~
 
 - Some initial support for time zones (user setting).
 - You can now choose which tag annotations are applied to the event stream via Project Settings -> Tags.
@@ -84,7 +97,7 @@ Additional Changes
 - Stacktrace frames now get truncated down to a maximum length of 50.
 
 Protocol Version 5
-==================
+~~~~~~~~~~~~~~~~~~
 
 - sentry_version should be sent as '5'.
 - The stacktrace interface now accepts a 'frames_omitted' tuple.
@@ -135,7 +148,7 @@ that plugin authors read through the notes carefully, and run some simply
 sanity checks. It also introduces version 4 of the protocol.
 
 Incompatible Changes
-====================
+~~~~~~~~~~~~~~~~~~~~
 
 - Django has been upgraded to 1.5.
 - django.contrib.auth.models.User has been replaced with sentry.models.User.
@@ -163,7 +176,7 @@ Incompatible Changes
 - sentry.utils.router has been removed.
 
 Protocol Version 4
-==================
+~~~~~~~~~~~~~~~~~~
 
 - sentry_version should be sent as '4'.
 - Aliases are now recommended instead of full interface names.
@@ -175,7 +188,7 @@ Protocol Version 4
   ordering details.
 
 Alerts
-======
+~~~~~~
 
 A basic alert system has been added.
 
@@ -183,7 +196,7 @@ A basic alert system has been added.
 - Signaled via Plugin.on_alert.
 
 Filters
-=======
+~~~~~~~
 
 The outdated filter system has been mostly removed. You should rely on
 tagged data for filter generation.
@@ -192,7 +205,7 @@ If you were previously defining ``SENTRY_FILTERS`` you should remove it
 from your settings as it will be entirely obsolete in a future version.
 
 Other Changes
-=============
+~~~~~~~~~~~~~
 
 - Activity feeds will now attempt to filter out some duplicates.
 - Tags now show on the event details page.
@@ -349,7 +362,7 @@ If you're a contributor, take note that there is now a JavaScript test suite. Yo
 test suites with the ``make test`` command.
 
 Protocol Version 3
-==================
+~~~~~~~~~~~~~~~~~~
 
 Sentry 5.1 removes support for version 1.0 of the protocol, and maintains a compatibility layer
 for version 2.0.
@@ -368,7 +381,7 @@ Additionally, the following changes apply to the new protocol:
 - The ``tags`` attribute is now recommended.
 
 Other Changes
-=============
+~~~~~~~~~~~~~
 
 - Aggregation 'Views' have been removed.
 - All streaming components are now powered by Backbone.js.

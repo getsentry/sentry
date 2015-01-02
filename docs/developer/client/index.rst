@@ -1,7 +1,7 @@
 Writing a Client
 ================
 
-.. note:: This document describes protocol version 6.
+.. note:: This document describes protocol version 6 which was introduced in Sentry 7.
 
 A client at its core is simply a set of utilities for capturing various
 logging parameters. Given these parameters, it then builds a JSON payload
@@ -259,8 +259,6 @@ highly encouraged:
             "platform": "python"
         }
 
-    .. versionadded:: 5.1.0
-
 
 .. data:: culprit
 
@@ -394,8 +392,6 @@ An authentication header is expected to be sent along with the message body, whi
 
 crossdomain.xml
 ~~~~~~~~~~~~~~~
-
-.. versionadded:: 5.1.0
 
 Cross domain requests from flash are supported within the API by specifying sub-policy, which is located at
 `/api/<project id>/crossdomain.xml`.

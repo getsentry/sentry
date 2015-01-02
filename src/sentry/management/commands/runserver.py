@@ -18,7 +18,7 @@ class Command(RunserverCommand):
     help = "Starts a lightweight Web server for development"
 
     option_list = RunserverCommand.option_list + (
-        make_option('--nowatcher', action='store_false', dest='use_watcher', default=True,
+        make_option('--nowatcher', action='store_false', dest='use_watcher', default=settings.DEBUG,
             help='Tells Sentry to NOT automatically recompile static distributions.'),
     )
 

@@ -10,9 +10,10 @@ class Migration(DataMigration):
         from sentry.receivers.rules import create_default_rules
 
         Project = orm['sentry.Project']
+        Rule = orm['sentry.Rule']
 
         for project in Project.objects.all():
-            create_default_rules(instance=project, created=True)
+            create_default_rules(instance=project, created=True, RuleModel=Rule)
 
     def backwards(self, orm):
         pass
