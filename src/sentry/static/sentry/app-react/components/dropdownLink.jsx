@@ -23,14 +23,22 @@ var DropdownButton = React.createClass({
     href:      React.PropTypes.string,
     onClick:   React.PropTypes.func,
     onSelect:  React.PropTypes.func,
-    navItem:   React.PropTypes.bool
+    navItem:   React.PropTypes.bool,
+    caret:     React.PropTypes.bool
+  },
+
+  getDefaultProps: function() {
+    return {
+      caret: true
+    };
   },
 
   render: function () {
     var className = 'dropdown-toggle btn';
-
     var renderMethod = this.props.navItem ?
       'renderNavItem' : 'renderButtonGroup';
+    var caret = this.props.caret ?
+      caret = <span aria-hidden="true" className="icon-arrow-down" /> : '';
 
     return this[renderMethod]([
       <a
@@ -45,7 +53,7 @@ var DropdownButton = React.createClass({
         pullRight={null}
         dropup={null}>
         {this.props.title}{' '}
-        <span aria-hidden="true" className="icon-arrow-down" />
+        {caret}
       </a>,
       <DropdownMenu
         ref="menu"
