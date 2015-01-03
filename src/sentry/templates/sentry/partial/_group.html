@@ -13,6 +13,9 @@
         </h3>
         <p class="message" title="{{ group.message }}">
             <a href="{% url 'sentry-stream' group.organization.slug group.project.slug %}?logger={{ group.logger }}" class="tag tag-logger">{{ group.logger }}</a>
+            {% for annotation in group|get_legacy_annotations:request %}
+                <span class="tag">{{ annotation }}</span>
+            {% endfor %}
             {% for annotation in group|get_annotations:request %}
                 {% if annotation.url %}
                     <a href="{{ annotation.url }}" class="tag">{{ annotation.label }}</a>
