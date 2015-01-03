@@ -168,6 +168,7 @@ class MailPlugin(NotificationPlugin):
             'link': link,
             'interfaces': interface_list,
             'rule': rule,
+            'rule_link': rule_link,
         }
 
         headers = {
