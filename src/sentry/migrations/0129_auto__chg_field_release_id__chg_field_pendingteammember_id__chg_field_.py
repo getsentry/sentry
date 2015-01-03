@@ -240,7 +240,7 @@ class Migration(SchemaMigration):
         },
         'sentry.rule': {
             'Meta': {'object_name': 'Rule'},
-            'data': ('django.db.models.fields.TextField', [], {}),
+            'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'label': ('django.db.models.fields.CharField', [], {'max_length': '64'}),

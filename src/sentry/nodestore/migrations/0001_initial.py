@@ -25,7 +25,7 @@ class Migration(SchemaMigration):
     models = {
         'nodestore.node': {
             'Meta': {'object_name': 'Node'},
-            'data': ('django.db.models.fields.TextField', [], {}),
+            'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
             'id': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '40', 'primary_key': 'True'}),
             'timestamp': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'})
         }

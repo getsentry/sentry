@@ -65,7 +65,7 @@ class Migration(SchemaMigration):
         'sentry.auditlogentry': {
             'Meta': {'object_name': 'AuditLogEntry'},
             'actor': ('sentry.db.models.fields.FlexibleForeignKey', [], {'related_name': "'audit_actors'", 'to': "orm['sentry.User']"}),
-            'data': ('django.db.models.fields.TextField', [], {}),
+            'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
             'datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'event': ('django.db.models.fields.PositiveIntegerField', [], {}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
@@ -274,7 +274,7 @@ class Migration(SchemaMigration):
         },
         'sentry.rule': {
             'Meta': {'object_name': 'Rule'},
-            'data': ('django.db.models.fields.TextField', [], {}),
+            'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'label': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
