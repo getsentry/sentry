@@ -164,6 +164,12 @@ class Event(Model):
 
     tags = property(get_tags)
 
+    def get_tag(self, key):
+        for t, v in (self.data.get('tags') or ()):
+            if t == key:
+                return v
+        return None
+
     def as_dict(self):
         # We use a SortedDict to keep elements ordered for a potential JSON serializer
         data = SortedDict()
@@ -201,20 +207,20 @@ class Event(Model):
     def logger(self):
         warnings.warn('Event.logger is deprecated. Use Event.tags instead.',
                       DeprecationWarning)
-        return self.tags.get('logger')
+        return self.get_tag('logger')
 
     @property
     def site(self):
         warnings.warn('Event.site is deprecated. Use Event.tags instead.',
                       DeprecationWarning)
-        return self.tags.get('site')
+        return self.get_tag('site')
 
     @property
     def server_name(self):
         warnings.warn('Event.server_name is deprecated. Use Event.tags instead.')
-        return self.tags.get('server_name')
+        return self.get_tag('server_name')
 
     @property
     def culprit(self):
-        warnings.warn('Event.culprit is deprecated. Use Event.tags instead.')
-        return self.tags.get('culprit')
+        warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
+        return self.group.culprit
