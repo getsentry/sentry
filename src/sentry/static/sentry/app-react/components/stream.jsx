@@ -6,6 +6,7 @@ var BarChart = require("./barChart");
 var Count = require("./count");
 var StreamActions = require('./streamActions');
 var StreamFilters = require('./streamFilters');
+var StreamPagination = require('./streamPagination');
 var TimeSince = require("./timeSince");
 
 var Aggregate = React.createClass({
@@ -83,7 +84,8 @@ var Stream = React.createClass({
     project: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
     }).isRequired,
-    initialQuery: React.PropTypes.string
+    initialQuery: React.PropTypes.string,
+    pageLinks: React.PropTypes.string
   },
   getInitialState: function() {
     return {
@@ -92,7 +94,8 @@ var Stream = React.createClass({
       multiSelected: false,
       anySelected: false,
       statsPeriod: '24h',
-      query: this.props.initialQuery
+      query: this.props.initialQuery,
+      pageLinks: this.props.pageLinks
     };
   },
   componentWillMount: function() {
@@ -269,6 +272,9 @@ var Stream = React.createClass({
         <ul className="group-list">
           {aggNodes}
         </ul>
+        <StreamPagination
+          aggList={this.state.aggList}
+          pageLinks={this.state.pageLinks} />
       </div>
     );
   }

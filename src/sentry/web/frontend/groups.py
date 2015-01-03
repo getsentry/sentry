@@ -150,6 +150,7 @@ def group_list(request, organization, project):
         'organization': organization,
         'project': project,
         'event_list': response.data,
+        'page_links': response['Link'],
         'query': m_request.GET['query'],
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)

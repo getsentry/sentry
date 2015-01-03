@@ -21,5 +21,8 @@ def serialize(context, obj):
 
 
 @register.simple_tag
-def convert_to_json(obj):
-    return mark_safe(json.dumps(obj).replace('<', '&lt;').replace('>', '&gt;'))
+def convert_to_json(obj, escape=False):
+    data = json.dumps(obj)
+    if escape:
+        data = data.replace('<', '&lt;').replace('>', '&gt;')
+    return mark_safe(data)
