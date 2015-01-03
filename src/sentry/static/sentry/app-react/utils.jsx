@@ -22,6 +22,24 @@ var getQueryParams = function() {
   return vars;
 };
 
+var parseLinkHeader = function(header) {
+  if (header === null) {
+    return {};
+  }
+
+  var header_vals = header.split(','),
+      links = {};
+
+  header_vals.forEach(function(val){
+    var match = /<([^>]+)>; rel="([^"]+)"/g.exec(val);
+
+    links[match[2]] = match[1];
+  });
+
+  return links;
+};
+
 module.exports = {
-  getQueryParams: getQueryParams
+  getQueryParams: getQueryParams,
+  parseLinkHeader: parseLinkHeader
 };

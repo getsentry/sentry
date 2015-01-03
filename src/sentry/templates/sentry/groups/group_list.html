@@ -10,7 +10,8 @@
       React.render(React.createFactory(Stream)({
         aggList: {% serialize event_list %},
         project: {% serialize project %},
-        initialQuery: {% serialize query %}
+        initialQuery: {% convert_to_json query %},
+        pageLinks: {% convert_to_json page_links %}
       }), document.getElementById('blk_stream'));
     });
     </script>
