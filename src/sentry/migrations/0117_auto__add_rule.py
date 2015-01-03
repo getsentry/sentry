@@ -13,7 +13,7 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('project', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])),
             ('label', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('data', self.gf('django.db.models.fields.TextField')()),
+            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['Rule'])

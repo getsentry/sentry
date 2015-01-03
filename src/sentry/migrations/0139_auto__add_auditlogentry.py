@@ -16,7 +16,7 @@ class Migration(SchemaMigration):
             ('target_object', self.gf('django.db.models.fields.PositiveIntegerField')(null=True)),
             ('target_user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='audit_targets', null=True, to=orm['sentry.User'])),
             ('event', self.gf('django.db.models.fields.PositiveIntegerField')()),
-            ('data', self.gf('django.db.models.fields.TextField')()),
+            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['AuditLogEntry'])
