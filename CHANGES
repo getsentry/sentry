@@ -39,6 +39,7 @@ Backwards Incompatible Changes
 - ``is_new`` in ``Plugin.post_process`` will **only** be set if the event is brand new.
 - Project-based URLs are changed to be organization scoped instead of team scoped.
 - Static assets are no longer bundled as part of the repository and are instead compiled during the sdist/installation phases (as needed). See installation notes for further information.
+- Graphs have been transitiong to ``sentry.tsdb`` (historical data is not preserved)
 
 Organizations
 ~~~~~~~~~~~~~
@@ -48,6 +49,11 @@ Organizations are the new top-level item of your Sentry install. All membership 
 Generally for self-hosted installations you'll only have a single organization.
 
 Migrations will happen automatically for this, and while these were able to applied cleanly and automatically on getsentry.com, we suggest considering snapshotting your database before running them. Additionally consider doing this at a period of the day where users generally wont be tweaking options to team membership.
+
+TSDB
+~~~~
+
+A new time-series backend is now used (removing the legacy SQL-based graphing solutions). The only currently supported/bundled backend requires Redis. More information can be found in ``sentry.tsdb``.
 
 Rules
 ~~~~~
