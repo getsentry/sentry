@@ -10,9 +10,9 @@ from __future__ import absolute_import
 
 from django import forms
 
-from sentry.plugins import plugins
-from sentry.plugins.bases.notify import Notification
+from sentry.plugins import Notification, plugins
 from sentry.rules.actions.base import EventAction
+from sentry.utils.safe import safe_execute
 
 
 class NotifyEventServiceForm(forms.Form):
@@ -59,10 +59,15 @@ class NotifyEventServiceAction(EventAction):
         from sentry.plugins.bases.notify import NotificationPlugin
 
         results = []
-        for plugin in plugins.for_project(self.project):
+        for plugin in plugins.for_project(self.project, version=1):
             if not isinstance(plugin, NotificationPlugin):
                 continue
             results.append(plugin)
+
+        for plugin in plugins.for_project(self.project, version=2):
+            for notifier in (safe_execute(plugin.get_notifiers) or ()):
+                results.append(notifier)
+
         return results
 
     def get_form_instance(self):

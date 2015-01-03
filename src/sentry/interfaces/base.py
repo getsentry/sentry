@@ -27,8 +27,11 @@ class Interface(object):
     render differently than the default ``extra`` metadata in an event.
     """
 
+    _data = None
     score = 0
     display_score = None
+
+    __slots__ = ['_data']
 
     def __init__(self, **data):
         self._data = data or {}
@@ -37,6 +40,12 @@ class Interface(object):
         if type(self) != type(other):
             return False
         return self._data == other._data
+
+    def __getstate__(self):
+        return dict(
+            (slot, self.__dict__.get(slot))
+            for slot in self.__slots__
+        )
 
     def __setstate__(self, state):
         self.__dict__.update(state)

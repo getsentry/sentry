@@ -293,7 +293,7 @@ class EventManager(object):
             # TODO(dcramer): we should ensure we create Release objects
             tags.append(('sentry:release', release))
 
-        for plugin in plugins.for_project(project):
+        for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event)
             if added_tags:
                 tags.extend(added_tags)
