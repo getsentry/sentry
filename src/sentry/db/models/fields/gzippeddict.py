@@ -9,10 +9,10 @@ sentry.db.models.fields.gzippeddict
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 
 from django.db import models
-
-import six
+from south.modelsinspector import add_introspection_rules
 
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
@@ -53,9 +53,5 @@ class GzippedDictField(models.TextField):
         value = self._get_val_from_obj(obj)
         return self.get_prep_value(value)
 
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.TextField"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
+
+add_introspection_rules([], ["^sentry\.db\.models\.fields\.gzippeddict\.GzippedDictField"])
