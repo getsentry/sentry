@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from django.conf import settings
 
 from sentry.tasks.base import instrumented_task
+from sentry.utils.safe import safe_execute
 
 
 @instrumented_task(
@@ -18,23 +19,43 @@ from sentry.tasks.base import instrumented_task
     queue='events')
 def preprocess_event(cache_key=None, data=None, **kwargs):
     from sentry.app import cache
+    from sentry.plugins import plugins
     from sentry.tasks.fetch_source import expand_javascript_source
 
     if cache_key:
         data = cache.get(cache_key)
 
-    if data is None:
-        return
-
     logger = preprocess_event.get_logger()
 
-    if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
+    if data is None:
+        logger.error('Data not available in preprocess_event (cache_key=%s)', cache_key)
+        return
+
+    project = data['project']
+
+    # TODO(dcramer): ideally we would know if data changed by default
+    has_changed = False
+
+    # TODO(dcramer): move js sourcemap processing into JS plugin
+    if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data.get('platform') == 'javascript':
         try:
             expand_javascript_source(data)
         except Exception as e:
             logger.exception(u'Error fetching javascript source: %r [%s]', data['event_id'], e)
         else:
-            cache.set(cache_key, data, 3600)
+            has_changed = True
+
+    for plugin in plugins.all(version=2):
+        for processor in (safe_execute(plugin.get_event_preprocessors) or ()):
+            result = safe_execute(processor, data)
+            if result:
+                data = result
+                has_changed = True
+
+    assert data['project'] == project, 'Project cannot be mutated by preprocessor'
+
+    if has_changed and cache_key:
+        cache.set(cache_key, data, 3600)
 
     if cache_key:
         data = None

@@ -9,7 +9,7 @@ sentry.testutils.cases
 from __future__ import absolute_import
 
 __all__ = ('TestCase', 'TransactionTestCase', 'APITestCase', 'RuleTestCase',
-           'PermissionTestCase')
+           'PermissionTestCase', 'PluginTestCase')
 
 import base64
 import os.path
@@ -28,6 +28,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.constants import MODULE_ROOT
 from sentry.models import GroupMeta, OrganizationMemberType, ProjectOption
+from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
 
@@ -400,3 +401,12 @@ class PermissionTestCase(TestCase):
     def assert_non_member_cannot_access(self, path):
         user = self.create_user()
         self.assert_cannot_access(user, path)
+
+
+class PluginTestCase(TestCase):
+    plugin = None
+
+    def setUp(self):
+        super(PluginTestCase, self).setUp()
+        plugins.register(self.plugin)
+        self.addCleanup(plugins.unregister, self.plugin)
