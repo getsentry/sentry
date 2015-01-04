@@ -86,7 +86,7 @@ def delete_team(object_id, **kwargs):
 def delete_project(object_id, **kwargs):
     from sentry.models import (
         Project, ProjectKey, ProjectStatus, TagKey, TagValue, GroupTagKey,
-        GroupTagValue, Activity, EventMapping, Event, Group
+        GroupTagValue, Activity, EventMapping, Group
     )
 
     try:
@@ -99,23 +99,28 @@ def delete_project(object_id, **kwargs):
 
     logger = delete_project.get_logger()
 
-    bulk_model_list = (
-        TagKey, TagValue, GroupTagKey, GroupTagValue, EventMapping
+    # XXX: remove keys first to prevent additional data from flowing in
+    model_list = (
+        ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue, EventMapping,
+        Activity
     )
-    for model in bulk_model_list:
+    for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, logger=logger)
         if has_more:
             delete_project.delay(object_id=object_id, countdown=15)
             return
 
-    model_list = (
-        Activity, EventMapping, Event, Group, ProjectKey
-    )
-
-    has_more = delete_objects(model_list, relation={'project': p}, logger=logger)
+    has_more = delete_events(relation={'project_id': p.id}, logger=logger)
     if has_more:
         delete_project.delay(object_id=object_id, countdown=15)
         return
+
+    model_list = (Group,)
+    for model in model_list:
+        has_more = bulk_delete_objects(model, project_id=p.id, logger=logger)
+        if has_more:
+            delete_project.delay(object_id=object_id, countdown=15)
+            return
     p.delete()
 
 
@@ -125,7 +130,7 @@ def delete_project(object_id, **kwargs):
 def delete_group(object_id, **kwargs):
     from sentry.models import (
         Group, GroupHash, GroupRuleStatus, GroupTagKey, GroupTagValue,
-        EventMapping, Event
+        EventMapping
     )
 
     try:
@@ -144,15 +149,31 @@ def delete_group(object_id, **kwargs):
             delete_group.delay(object_id=object_id, countdown=15)
             return
 
-    model_list = (
-        Event,
-    )
-
-    has_more = delete_objects(model_list, relation={'group': group}, logger=logger)
+    has_more = delete_events(relation={'group_id': object_id}, logger=logger)
     if has_more:
         delete_group.delay(object_id=object_id, countdown=15)
         return
     group.delete()
+
+
+def delete_events(relation, limit=1000, logger=None):
+    from sentry.app import nodestore
+    from sentry.models import Event
+
+    has_more = False
+    if logger is not None:
+        logger.info('Removing %r objects where %r', Event, relation)
+
+    result_set = list(Event.objects.filter(**relation)[:limit])
+    has_more = bool(result_set)
+    if has_more:
+        # delete objects from nodestore first
+        node_ids = set(r.data.id for r in result_set)
+        nodestore.delete_multi(node_ids)
+
+        # bulk delete by id
+        Event.objects.filter(id__in=[r.id for r in result_set]).delete()
+    return has_more
 
 
 def delete_objects(models, relation, limit=1000, logger=None):

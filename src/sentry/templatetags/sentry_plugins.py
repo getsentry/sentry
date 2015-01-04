@@ -63,7 +63,7 @@ def get_widgets(group, request):
 
 
 @register.filter
-def get_annotations(group, request=None):
+def get_legacy_annotations(group, request=None):
     project = group.project
 
     annotation_list = []
@@ -75,7 +75,14 @@ def get_annotations(group, request=None):
 
         annotation_list = results
 
-    annotation_list = [Annotation(*tag) for tag in annotation_list]
+    return annotation_list
+
+
+@register.filter
+def get_annotations(group, request=None):
+    project = group.project
+
+    annotation_list = []
     for plugin in plugins.for_project(project, version=2):
         for value in (safe_execute(plugin.get_annotations, request, group) or ()):
             annotation = safe_execute(Annotation, **value)

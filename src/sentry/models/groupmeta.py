@@ -11,8 +11,12 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
+from sentry.exceptions import CacheNotPopulated
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
+
+
+ERR_CACHE_MISISNG = 'Cache not populated for instance id=%s'
 
 
 class GroupMetaManager(BaseManager):
@@ -31,25 +35,39 @@ class GroupMetaManager(BaseManager):
         self.__dict__.update(state)
         self.__cache = {}
 
+    def contribute_to_class(self, model, name):
+        model.CacheNotPopulated = CacheNotPopulated
+        return super(GroupMetaManager, self).contribute_to_class(model, name)
+
     def clear_local_cache(self, **kwargs):
         self.__cache = {}
 
     def populate_cache(self, instance_list):
+        for group in instance_list:
+            self.__cache.setdefault(group.id, {})
+
         results = self.filter(
             group__in=instance_list,
         ).values_list('group', 'key', 'value')
         for group_id, key, value in results:
-            self.__cache.setdefault(group_id, {})
             self.__cache[group_id][key] = value
 
-    def get_value_bulk(self, instance_list, key):
-        return dict(
-            (i, self.__cache.get(i.id, {}).get(key))
-            for i in instance_list
-        )
+    def get_value_bulk(self, instance_list, key, default=None):
+        results = {}
+        for instance in instance_list:
+            try:
+                inst_cache = self.__cache[instance.id]
+            except KeyError:
+                raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id,))
+            results[instance] = inst_cache.get(key, default)
+        return results
 
     def get_value(self, instance, key, default=None):
-        return self.__cache.get(instance.id, {}).get(key, default)
+        try:
+            inst_cache = self.__cache[instance.id]
+        except KeyError:
+            raise self.model.CacheNotPopulated(ERR_CACHE_MISISNG % (instance.id,))
+        return inst_cache.get(key, default)
 
     def unset_value(self, instance, key):
         self.filter(group=instance, key=key).delete()
