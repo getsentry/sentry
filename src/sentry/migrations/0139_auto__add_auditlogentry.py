@@ -16,7 +16,7 @@ class Migration(SchemaMigration):
             ('target_object', self.gf('django.db.models.fields.PositiveIntegerField')(null=True)),
             ('target_user', self.gf('sentry.db.models.fields.FlexibleForeignKey')(related_name='audit_targets', null=True, to=orm['sentry.User'])),
             ('event', self.gf('django.db.models.fields.PositiveIntegerField')()),
-            ('data', self.gf('django.db.models.fields.TextField')()),
+            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal('sentry', ['AuditLogEntry'])
@@ -73,7 +73,7 @@ class Migration(SchemaMigration):
         'sentry.auditlogentry': {
             'Meta': {'object_name': 'AuditLogEntry'},
             'actor': ('sentry.db.models.fields.FlexibleForeignKey', [], {'related_name': "'audit_actors'", 'to': "orm['sentry.User']"}),
-            'data': ('django.db.models.fields.TextField', [], {}),
+            'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
             'datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'event': ('django.db.models.fields.PositiveIntegerField', [], {}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
@@ -281,7 +281,7 @@ class Migration(SchemaMigration):
         },
         'sentry.rule': {
             'Meta': {'object_name': 'Rule'},
-            'data': ('django.db.models.fields.TextField', [], {}),
+            'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'label': ('django.db.models.fields.CharField', [], {'max_length': '64'}),

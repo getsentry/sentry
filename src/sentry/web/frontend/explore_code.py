@@ -21,7 +21,7 @@ SORT_OPTIONS = {
 
 @has_access
 @login_required
-def list_tag(request, team, project, selection):
+def list_tag(request, organization, project, selection):
     assert selection in ('filenames', 'functions')
 
     tag_name = selection[:-1]
@@ -40,7 +40,8 @@ def list_tag(request, team, project, selection):
         tag_list = tag_list.order_by('-times_seen')
 
     return render_to_response('sentry/explore/code/list_tag.html', {
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'tag_list': tag_list,
         'selection': selection,
@@ -51,7 +52,7 @@ def list_tag(request, team, project, selection):
 
 @has_access
 @login_required
-def tag_details(request, team, project, selection, tag_id):
+def tag_details(request, organization, project, selection, tag_id):
     assert selection in ('filenames', 'functions')
 
     tag_name = selection[:-1]
@@ -69,7 +70,8 @@ def tag_details(request, team, project, selection, tag_id):
     )
 
     return render_to_response('sentry/explore/code/tag_details.html', {
-        'team': team,
+        'organization': organization,
+        'team': project.team,
         'project': project,
         'tag': tag,
         'selection': selection,

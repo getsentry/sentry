@@ -28,6 +28,18 @@ class NodeStorage(local):
         """
         raise NotImplementedError
 
+    def delete_multi(self, id_list):
+        """
+        Delete multiple nodes.
+
+        Note: This is not guaranteed to be atomic and may result in a partial
+        delete.
+
+        >>> delete_multi(['key1', 'key2'])
+        """
+        for id in id_list:
+            self.delete(id)
+
     def get(self, id):
         """
         >>> data = nodestore.get('key1')
