@@ -85,3 +85,14 @@ class DjangoNodeStorageTest(TestCase):
 
         self.ns.delete(node.id)
         assert not Node.objects.filter(id=node.id).exists()
+
+    def test_delete_multi(self):
+        node = Node.objects.create(
+            id='d2502ebbd7df41ceba8d3275595cac33',
+            data={
+                'foo': 'bar',
+            }
+        )
+
+        self.ns.delete_multi([node.id])
+        assert not Node.objects.filter(id=node.id).exists()
