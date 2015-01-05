@@ -163,15 +163,18 @@ ul,ol {
 
 /* =============================  Layout  ============================== */
 
+@sidebar-width: 210px;
+@org-selector-width: 56px;
+
 .app-sidebar {
   background: #3d4b5b;
   color: #fff;
-  width: 250px;
+  width: @sidebar-width;
   position: fixed;
   top: 0;
-  left: -250px;
+  left: -@sidebar-width;
   bottom: 0;
-  padding: 20px 22px 44px;
+  padding: 18px 20px 44px;
   color: #fff;
   overflow: auto;
   .transition(.1s left ease-in-out);
@@ -182,8 +185,8 @@ ul,ol {
     .transition(.1s left ease-in-out);
     position: fixed;
     bottom: 0;
-    left: -250px;
-    width: 250px;
+    left: -@sidebar-width;
+    width: @sidebar-width;
     padding: 10px 10px 8px;
 
 
@@ -323,14 +326,43 @@ ul,ol {
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+}
 
-  .organizations .truncate li strong a {
-    margin-right: 20px;
+.org-selector {
+  background: darken(#3d4b5b, 8);
+  position: fixed;
+  top: 0;
+  left: -(@org-selector-width + @sidebar-width);
+  bottom: 0;
+  width: @org-selector-width;
+  .transition(.1s left ease-in-out);
+  padding: 17px 10px;
+
+  > ul {
+    .list-unstyled();
+    li {
+      margin-bottom: 10px;
+      opacity: .3;
+      .transition(.1s opacity);
+
+      &:hover {
+        opacity: .5;
+      }
+
+      &.active {
+        opacity: 1;
+      }
+    }
+
+    img {
+      max-width: 100%;
+      border-radius: 5px;
+    }
   }
 }
 
 body.show-sidebar {
-  padding-left: 250px;
+  padding-left: @sidebar-width;
 
   .app .container {
     width: auto !important;
@@ -341,7 +373,7 @@ body.show-sidebar {
   }
 
   .group-header-container.affix {
-    left: 250px;
+    left: @sidebar-width;
   }
 
   .group-header-container > .container {
@@ -374,6 +406,21 @@ body.show-sidebar {
       border: none;
       box-shadow: 0 -1px 0 rgba(0,0,0, .12);
       z-index: 1000;
+    }
+  }
+  &.has-orgs {
+    padding-left: @sidebar-width + @org-selector-width;
+
+    .app-sidebar {
+      left: @org-selector-width;
+    }
+
+    .org-selector {
+      left: 0;
+    }
+
+    .group-header-container.affix {
+      left: @sidebar-width + @org-selector-width;
     }
   }
 }

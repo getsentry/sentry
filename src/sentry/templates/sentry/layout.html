@@ -71,8 +71,15 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %}" ng-app="sentry">
+    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %} has-orgs" ng-app="sentry">
       {% if request.user.is_authenticated %}
+      <div class="org-selector">
+        <ul>
+          <li class="active"><a href="#"><img src="https://pbs.twimg.com/profile_images/495064692029526016/lzoDXqf-_400x400.png"></a></li>
+          <li><a href="#"><img src="https://pbs.twimg.com/profile_images/378800000320815801/cbe630c29a62e283cef31afc5c4471da_400x400.png"></a></li>
+          <li><a href="#"><img src="https://pbs.twimg.com/profile_images/426158315781881856/sBsvBbjY_400x400.png"></a></li>
+        </ul>
+      </div>
       <div class="app-sidebar">
         <div class="user-info">
           <img src="{% gravatar_url user.email size 72 %}">
@@ -93,15 +100,6 @@
               {% endif %}
           </ul>
           {% endblock%}
-        </div>
-        <div class="organizations divider-top">
-          <h6>Organizations</h6>
-          <ul class="list-unstyled truncate">
-            <li class="active"><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">Hanna Barbera</a></strong></li>
-            <li><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">GitHub</a></strong></li>
-            <li><a class="pull-right" href="#"><span class="icon-settings"></span></a><strong><a href="#">Sentry</a></strong></li>
-
-          </ul>
         </div>
         <div class="teams divider-top">
           {% if TEAM_LIST %}
