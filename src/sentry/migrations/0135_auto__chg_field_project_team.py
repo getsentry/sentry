@@ -2,12 +2,52 @@
 import datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models
+from django.db import connection, models, transaction
 
 
 class Migration(SchemaMigration):
 
+    def fix_missing_teams(self, orm):
+        # This replicates the default behavior when creating the initial
+        # internal projects
+        User = orm['sentry.User']
+        Organization = orm['sentry.Organization']
+        Team = orm['sentry.Team']
+        Project = orm['sentry.Project']
+
+        try:
+            user = User.objects.filter(is_superuser=True)[0]
+        except IndexError:
+            user, _ = User.objects.get_or_create(
+                username='sentry',
+                defaults={
+                    'email': 'sentry@localhost',
+                }
+            )
+
+        org, _ = Organization.objects.get_or_create(
+            name='Sentry',
+            defaults={
+                'owner': user,
+            }
+        )
+
+        team, _ = Team.objects.get_or_create(
+            name='Sentry',
+            defaults={
+                'owner': org.owner,
+                'organization': org,
+            }
+        )
+
+        Project.objects.filter(team__isnull=True).update(team=team)
+
     def forwards(self, orm):
+        # ideally we would have done this data migration before this change, but
+        # it was an oversight
+        if not db.dry_run:
+            self.fix_missing_teams(orm)
+
         # Changing field 'Project.team'
         db.alter_column('sentry_project', 'team_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team']))
 
