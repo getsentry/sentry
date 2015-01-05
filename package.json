@@ -38,6 +38,7 @@
     "react": "^0.12.2",
     "react-bootstrap": "^0.13.0",
     "react-router": "^0.11.6",
+    "reflux": "^0.2.2",
     "sinon": "^1.10.3",
     "uglify-js": "2.2.4",
     "webpack": "^1.4.15"
