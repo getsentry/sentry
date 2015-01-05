@@ -43,6 +43,7 @@ Backwards Incompatible Changes
 - Static assets are no longer bundled as part of the repository and are instead compiled during the sdist/installation phases (as needed). See installation notes for further information.
 - Graphs have been transitiong to ``sentry.tsdb`` (historical data is not preserved)
 - Workers must now also run ``celerybeat``. This can be done either via passing -B to worker, or by running another process: ``sentry celerybeat``.
+- Access Groups are now deprecated and will be removed in a version version.
 
 Organizations
 ~~~~~~~~~~~~~
