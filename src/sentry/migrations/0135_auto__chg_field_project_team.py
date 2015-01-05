@@ -43,10 +43,18 @@ class Migration(SchemaMigration):
         Project.objects.filter(team__isnull=True).update(team=team)
 
     def forwards(self, orm):
+        # this is shitty, but we dont care
+        if connection.vendor == 'sqlite':
+            transaction.set_autocommit(True)
+
         # ideally we would have done this data migration before this change, but
         # it was an oversight
         if not db.dry_run:
-            self.fix_missing_teams(orm)
+            try:
+                self.fix_missing_teams(orm)
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                raise
 
         # Changing field 'Project.team'
         db.alter_column('sentry_project', 'team_id', self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Team']))
