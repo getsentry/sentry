@@ -1,0 +1,18 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block org_auth_settings_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>Authentication</h2>
+  </div>
+
+  <ul>
+    {% for provider_key, provider in provider_list %}
+      <li>{{ provider_key }}</li>
+    {% endfor %}
+  </ul>
+{% endblock %}
