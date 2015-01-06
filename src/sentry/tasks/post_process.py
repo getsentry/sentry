@@ -69,7 +69,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
                 'is_regresion': is_regression,
                 'is_sample': is_sample,
             },
-            expires=120,
+            expires=300,
         )
 
     for rule in get_rules(project):
