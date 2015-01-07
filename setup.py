@@ -102,7 +102,7 @@ install_requires = [
     'ndg-httpsclient>=0.3.2',
     'pyOpenSSL>=0.14',
     'pyasn1>=0.1.7',
-    'requests>=2.4.3',
+    'requests>=2.4.3,<2.5.0',
 ]
 
 postgres_requires = [
