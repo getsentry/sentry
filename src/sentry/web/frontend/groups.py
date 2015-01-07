@@ -343,7 +343,7 @@ def group_details(request, organization, project, group, event_id=None):
     else:
         add_note_form = NewNoteForm()
 
-    if project.has_access(request.user):
+    if request.user.is_authenticated() and project.has_access(request.user):
         # update that the user has seen this group
         create_or_update(
             GroupSeen,
