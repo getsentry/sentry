@@ -27,6 +27,7 @@ def sync_options(cutoff=ONE_HOUR):
     though it will correct itself in the next update window.
     """
     cutoff_dt = timezone.now() - timedelta(seconds=cutoff)
+    # TODO(dcramer): this doesnt handle deleted options (which shouldn't be allowed)
     for option in Option.objects.filter(last_updated__gte=cutoff_dt).iterator():
         default_manager.update_cached_value(
             key=option.key,
