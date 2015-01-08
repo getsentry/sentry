@@ -52,7 +52,7 @@ class GroupMetaManager(BaseManager):
         return super(GroupMetaManager, self).contribute_to_class(model, name)
 
     def clear_local_cache(self, **kwargs):
-        self.__local_cache = threading.local()
+        self.__cache = {}
 
     def populate_cache(self, instance_list):
         for group in instance_list:
