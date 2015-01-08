@@ -18,7 +18,7 @@ from sentry.constants import TAG_LABELS
 from sentry.models import (
     Group, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus, ProjectOption
 )
-from sentry.templatetags.sentry_plugins import get_annotations
+from sentry.templatetags.sentry_plugins import get_legacy_annotations
 from sentry.utils import json
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -193,5 +193,5 @@ class GroupTransformer(Transformer):
 
         # TODO(dcramer): these aren't tags, and annotations aren't annotations
         if request:
-            d['tags'] = list(get_annotations(obj, request))
+            d['tags'] = get_legacy_annotations(obj, request)
         return d
