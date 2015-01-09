@@ -74,17 +74,19 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         )
 
     org, _ = Organization.objects.get_or_create(
-        name='Sentry',
+        slug='sentry',
         defaults={
             'owner': user,
+            'name': 'Sentry',
         }
     )
 
     team, _ = Team.objects.get_or_create(
-        name='Sentry',
+        organization=org,
+        slug='sentry',
         defaults={
             'owner': org.owner,
-            'organization': org,
+            'name': 'Sentry',
         }
     )
 
