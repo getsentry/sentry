@@ -10,6 +10,7 @@
 MANIFEST
 test.conf
 pip-log.txt
+celerybeat-schedule
 /htmlcov
 /cover
 /build
