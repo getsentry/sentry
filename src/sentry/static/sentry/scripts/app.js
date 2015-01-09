@@ -280,8 +280,9 @@
                             $widget.append($('<li>No data available.</li>'));
                         } else {
                             $.each(data.values, function(_, item){
-                                var tagValue = item[0],
-                                    timesSeen = item[1],
+                                var tagValue = item.value,
+                                    timesSeen = item.count,
+                                    tagLabel = item.label || item.value,
                                     percent = parseInt(timesSeen / total * 100, 10),
                                     url = app.config.urlPrefix + '/' + app.config.organizationId + '/' + app.config.projectId + '/';
 
@@ -289,7 +290,7 @@
                                     '<div class="progressbar">' +
                                         '<div style="width:' + percent + '%">' + timesSeen + '</div>' +
                                         '<a href="' + url + '?' + eTagName + '=' + encodeURIComponent(tagValue) + '">' +
-                                            tagValue +
+                                            tagLabel +
                                             '<span>' + percent + '%</span>' +
                                         '</a>' +
                                     '</div>' +
