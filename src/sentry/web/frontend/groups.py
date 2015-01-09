@@ -417,6 +417,8 @@ def group_tag_list(request, organization, project, group):
     def percent(total, this):
         return int(this / total * 100)
 
+    GroupMeta.objects.populate_cache([group])
+
     queryset = TagKey.objects.filter(
         project=project,
         key__in=[t['key'] for t in group.get_tags()],
@@ -439,6 +441,8 @@ def group_tag_list(request, organization, project, group):
 
 @has_group_access
 def group_tag_details(request, organization, project, group, tag_name):
+    GroupMeta.objects.populate_cache([group])
+
     sort = request.GET.get('sort')
     if sort == 'date':
         order_by = '-last_seen'
@@ -462,7 +466,9 @@ def group_event_list(request, organization, project, group):
 
     for event in event_list:
         event.project = project
+        event.group = group
 
+    GroupMeta.objects.populate_cache([group])
     Event.objects.bind_nodes(event_list, 'data')
 
     return render_with_group_context(group, 'sentry/groups/event_list.html', {
@@ -483,6 +489,7 @@ def group_event_details_json(request, organization, project, group_id, event_id_
         event = get_object_or_404(group.event_set, pk=event_id_or_latest)
 
     Event.objects.bind_nodes([event], 'data')
+    GroupMeta.objects.populate_cache([group])
 
     return HttpResponse(json.dumps(event.as_dict()), mimetype='application/json')
 
