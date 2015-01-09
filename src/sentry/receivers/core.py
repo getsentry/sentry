@@ -123,7 +123,10 @@ def set_sentry_version(latest=None, **kwargs):
 
     for ver in (current, version):
         if Version(ver) >= Version(latest):
-            return
+            latest = ver
+
+    if latest == version:
+        return
 
     options.set('sentry:latest_version', (latest or current))
 
