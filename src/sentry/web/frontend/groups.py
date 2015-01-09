@@ -417,9 +417,14 @@ def group_tag_list(request, organization, project, group):
     def percent(total, this):
         return int(this / total * 100)
 
+    queryset = TagKey.objects.filter(
+        project=project,
+        key__in=[t['key'] for t in group.get_tags()],
+    )
+
     # O(N) db access
     tag_list = []
-    for tag_key in TagKey.objects.filter(project=project, key__in=group.get_tags()):
+    for tag_key in queryset:
         tag_list.append((tag_key, [
             (value, times_seen, percent(group.times_seen, times_seen))
             for (value, times_seen, first_seen, last_seen)

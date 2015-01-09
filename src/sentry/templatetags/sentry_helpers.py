@@ -351,8 +351,8 @@ def render_tag_widget(group, tag):
     cutoff = timezone.now() - timedelta(days=7)
 
     return {
-        'title': tag.replace('_', ' ').title(),
-        'tag_name': tag,
+        'title': tag['label'],
+        'tag_name': tag['key'],
         'group': group,
     }
 
