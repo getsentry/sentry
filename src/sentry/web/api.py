@@ -656,9 +656,34 @@ def get_group_tags(request, organization, project, group_id, tag_name):
         last_seen__gte=cutoff,
     ).values_list('value', 'times_seen').order_by('-times_seen')[:10]
 
+    # fetch TagValue instances so we can get proper labels
+    tag_values = dict(
+        (t.value, t)
+        for t in TagValue.objects.filter(
+            key=tag_name,
+            project_id=project.id,
+            value__in=[u[0] for u in unique_tags],
+        )
+    )
+
+    values = []
+    for tag, times_seen in unique_tags:
+        try:
+            tag_value = tag_values[tag]
+        except KeyError:
+            label = tag
+        else:
+            label = tag_value.get_label()
+
+        values.append({
+            'value': tag,
+            'count': times_seen,
+            'label': label,
+        })
+
     return json.dumps({
         'name': tag_name,
-        'values': list(unique_tags),
+        'values': values,
         'total': total,
     })
 
