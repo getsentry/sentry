@@ -483,6 +483,7 @@ def needs_access_group_migration(user, organization):
     has_org_access_queryset = OrganizationMember.objects.filter(
         user=user,
         organization=organization,
+        has_global_access=True,
         type__lte=OrganizationMemberType.ADMIN,
     )
 
