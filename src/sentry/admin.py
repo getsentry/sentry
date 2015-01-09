@@ -254,7 +254,7 @@ admin.site.register(User, UserAdmin)
 class AuditLogEntryAdmin(admin.ModelAdmin):
     list_display = ('event', 'organization', 'actor', 'datetime')
     list_filter = ('event', 'datetime')
-    search_fields = ('actor__email', 'organization__name', 'organization__slug', 'get_note')
+    search_fields = ('actor__email', 'organization__name', 'organization__slug')
     raw_id_fields = ('organization', 'actor', 'target_user')
 
 admin.site.register(AuditLogEntry, AuditLogEntryAdmin)
