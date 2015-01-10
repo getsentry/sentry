@@ -62,7 +62,7 @@
 
         makeDefaultView: function(id){
             return new app.GroupListView({
-                emptyMessage: '<p>There are now events to show.</p>',
+                emptyMessage: '<p>There are no events to show.</p>',
                 className: 'group-list small',
                 id: id,
                 maxItems: 5,
