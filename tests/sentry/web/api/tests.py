@@ -71,7 +71,7 @@ class StoreViewTest(TestCase):
 class CrossDomainXmlTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-crossdomain-xml', kwargs={'project_id': self.project.slug})
+        return reverse('sentry-api-crossdomain-xml', kwargs={'project_id': self.project.id})
 
     @mock.patch('sentry.web.api.get_origins')
     def test_output_with_global(self, get_origins):
