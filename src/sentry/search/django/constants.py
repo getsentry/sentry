@@ -28,6 +28,7 @@ MYSQL_SORT_CLAUSES = SORT_CLAUSES.copy()
 MYSQL_SORT_CLAUSES.update({
     'date': 'UNIX_TIMESTAMP(sentry_groupedmessage.last_seen)',
     'new': 'UNIX_TIMESTAMP(sentry_groupedmessage.first_seen)',
+    'avgtime': 'CAST((sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count) as INTEGER)',
 })
 
 ORACLE_SORT_CLAUSES = SORT_CLAUSES.copy()
