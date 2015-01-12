@@ -1,7 +1,7 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# 
+#
 # Translators:
 # Andrew Kurinnyi <prigun@gmail.com>, 2012
 # Eugene MechanisM <contact@mechanism.name>, 2012
@@ -2684,7 +2684,7 @@ msgstr "Изменения в команде сохранены."
 #: web/frontend/teams.py:139
 #, python-format
 msgid "The team %r was permanently deleted."
-msgstr "Команда % была полностью удалена."
+msgstr "Команда %r была полностью удалена."
 
 #: web/frontend/teams.py:217
 msgid "The team member was added."
