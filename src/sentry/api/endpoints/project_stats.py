@@ -28,7 +28,7 @@ class ProjectStatsEndpoint(BaseStatsEndpoint):
 
         - since: a timestamp to set the start of the query
         - until: a timestamp to set the end of the query
-        - resolution: an explicit resolution to search for
+        - resolution: an explicit resolution to search for (i.e. 10s)
 
         **Note:** resolution should not be used unless you're familiar with Sentry
         internals as it's restricted to pre-defined values.
