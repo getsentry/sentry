@@ -28,7 +28,7 @@ class DocSection(Enum):
     EVENTS = 'Events'
     RELEASES = 'Releases'
     # ORGANIZATIONS = 'Organizations'
-    # PROJECTS = 'Projects'
+    PROJECTS = 'Projects'
     # TEAMS = 'Teams'
 
 
