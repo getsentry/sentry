@@ -117,7 +117,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
 def set_sentry_version(latest=None, **kwargs):
     import sentry
-    current = sentry.get_version()
+    current = sentry.VERSION
 
     version = options.get('sentry:latest_version')
 
