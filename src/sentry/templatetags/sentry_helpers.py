@@ -140,7 +140,7 @@ def is_none(value):
 @register.simple_tag(takes_context=True)
 def get_sentry_version(context):
     import sentry
-    current = sentry.get_version()
+    current = sentry.VERSION
 
     latest = options.get('sentry:latest_version') or current
     update_available = Version(latest) > Version(current)
