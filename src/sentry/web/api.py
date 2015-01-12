@@ -958,12 +958,11 @@ def crossdomain_xml_index(request):
 
 @cache_control(max_age=60)
 def crossdomain_xml(request, project_id):
-    if project_id.isdigit():
-        lookup = {'id': project_id}
-    else:
-        lookup = {'slug': project_id}
+    if not project_id.isdigit():
+        return HttpResponse(status=404)
+
     try:
-        project = Project.objects.get_from_cache(**lookup)
+        project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         return HttpResponse(status=404)
 
