@@ -5,7 +5,7 @@ Configuring Sentry with Nginx
 Nginx provides a very powerful platform for running in front of Sentry as it
 gives us features like rate limiting.
 
-Below is a sample configuration for Nginx:
+Below is a sample configuration for Nginx, which includes the RealIP module:
 
 ::
 
