@@ -18,12 +18,17 @@ limits:
       # limit_req_status requires nginx 1.3.15 or newer
       limit_req_status 429;
 
+      # set REMOTE_ADDR from any internal proxies
+      # see http://nginx.org/en/docs/http/ngx_http_realip_module.html
+      set_real_ip_from 127.0.0.1;
+      set_real_ip_from 10.0.0.0/8;
+      real_ip_header X-Forwarded-For;
+      real_ip_recursive on;
+
       server {
         listen   80;
 
         proxy_set_header   Host                 $http_host;
-        proxy_set_header   X-Real-IP            $remote_addr;
-        proxy_set_header   X-Forwarded-For      $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto    $scheme;
         proxy_redirect     off;
 
