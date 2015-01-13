@@ -28,45 +28,10 @@ from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm, AuthenticationForm)
+    ProjectEmailOptionsForm)
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
-
-
-@csrf_protect
-@never_cache
-def login(request):
-    from django.conf import settings
-
-    if request.user.is_authenticated():
-        return login_redirect(request)
-
-    form = AuthenticationForm(request, request.POST or None,
-                              captcha=bool(request.session.get('needs_captcha')))
-    if form.is_valid():
-        login_user(request, form.get_user())
-
-        request.session.pop('needs_captcha', None)
-
-        return login_redirect(request)
-
-    elif request.POST and not request.session.get('needs_captcha'):
-        request.session['needs_captcha'] = 1
-        form = AuthenticationForm(request, request.POST or None, captcha=True)
-        form.errors.pop('captcha', None)
-
-    request.session.set_test_cookie()
-
-    context = csrf(request)
-    context.update({
-        'form': form,
-        'next': request.session.get('_next'),
-        'CAN_REGISTER': settings.SENTRY_ALLOW_REGISTRATION or request.session.get('can_register'),
-        'AUTH_PROVIDERS': get_auth_providers(),
-        'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
-    })
-    return render_to_response('sentry/login.html', context, request)
 
 
 @csrf_protect
