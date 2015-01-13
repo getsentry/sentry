@@ -77,8 +77,9 @@ Below is a sample production ready configuration for Nginx with Sentry:
 Proxying uWSGI
 ~~~~~~~~~~~~~~
 
-You may optionally want to setup `uWSGI <http://projects.unbit.it/uwsgi/>`_ to
-run Sentry (rather than relying on the built-in gunicorn webserver).
+While Sentry provides a default webserver, you'll likely want to move to something
+a bit more powerful. We suggest using `uWSGI <http://projects.unbit.it/uwsgi/>`_ to
+run Sentry.
 
 Within your uWSGI configuration, you'll need to export your configuration path
 as well the ``sentry.wsgi`` module:
@@ -89,14 +90,23 @@ as well the ``sentry.wsgi`` module:
     env = SENTRY_CONF=/etc/sentry.conf.py
     module = sentry.wsgi
 
-    ; spawn the master and 4 processes
-    http-socket = :9000
+    ; spawn the master and 4 processes with 8 threads each
+    http = 127.0.0.1:9000
     master = true
     processes = 4
+    threads = 8
 
     ; allow longer headers for raven.js if applicable
     ; default: 4096
     buffer-size = 32768
+
+    ; various other explicit defaults
+    post-buffering = 65536
+    thunder-lock = true
+    disable-logging = true
+    enable-threads = true
+    single-interpreter = true
+    lazy-apps = true
 
 
 Proxying Incoming Email
