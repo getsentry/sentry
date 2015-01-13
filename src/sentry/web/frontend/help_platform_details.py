@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.http import Http404
 
 from sentry.constants import PLATFORM_LIST, PLATFORM_TITLES
-from sentry.web.helpers import render_to_response, render_to_string
+from sentry.web.helpers import render_to_string
 from sentry.web.frontend.help_platform_base import HelpPlatformBaseView
 
 
@@ -22,4 +22,4 @@ class HelpPlatformDetailsView(HelpPlatformBaseView):
 
         context['template'] = render_to_string(template, context, request)
 
-        return render_to_response('sentry/help/platform_details.html', context, request)
+        return self.respond('sentry/help/platform_details.html', context)
