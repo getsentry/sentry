@@ -1,3 +1,8 @@
+Version 7.1.1
+-------------
+
+- Suggest realip module over X-Forwarded-For
+
 Version 7.1.0
 -------------
 
