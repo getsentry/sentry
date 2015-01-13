@@ -363,9 +363,6 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
-# Disable South in tests as it is sending incorrect create signals
-SOUTH_TESTS_MIGRATE = True
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
