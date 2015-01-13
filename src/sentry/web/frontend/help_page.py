@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 from django.http import Http404
 
 from sentry.models import HelpPage
-from sentry.web.helpers import render_to_response
 from sentry.web.frontend.base import BaseView
 
 
@@ -23,4 +22,4 @@ class HelpPageView(BaseView):
             'page': page,
         }
 
-        return render_to_response('sentry/help/basic_page.html', context, request)
+        return self.respond('sentry/help/basic_page.html', context)
