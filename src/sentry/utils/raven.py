@@ -18,7 +18,6 @@ class SentryInternalClient(DjangoClient):
         try:
             manager = EventManager(kwargs)
             manager.normalize()
-            print ('here')
             return manager.save(project)
         except Exception as e:
             if self.raise_send_errors:
