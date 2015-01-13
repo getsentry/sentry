@@ -5,7 +5,9 @@ Configuring Sentry with Nginx
 Nginx provides a very powerful platform for running in front of Sentry as it
 gives us features like rate limiting.
 
-Below is a sample configuration for Nginx, which includes the RealIP module:
+If you're on Ubuntu, you can simply install the ``nginx-full`` package which will include the required RealIP module. Otherwise you'll need to compile Nginx from source with ``--with-http_realip_module``.
+
+Below is a sample production ready configuration for Nginx with Sentry:
 
 ::
 
@@ -31,6 +33,8 @@ Below is a sample configuration for Nginx, which includes the RealIP module:
 
       server {
         listen   80;
+        server_name sentry.example.com;
+
         location / {
           if ($request_method = GET) {
             rewrite  ^ https://$host$request_uri? permanent;
@@ -41,6 +45,7 @@ Below is a sample configuration for Nginx, which includes the RealIP module:
 
       server {
         listen   443 ssl;
+        server_name sentry.example.com;
 
         proxy_set_header   Host                 $http_host;
         proxy_set_header   X-Forwarded-Proto    $scheme;
