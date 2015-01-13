@@ -8,12 +8,9 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * python-setuptools, python-dev, libxslt1-dev, libxml2-dev
 * A real database (PostgreSQL is preferred, MySQL also works)
 * Redis
+* Nginx (with RealIP, i.e. nginx-full)
 
-The recommended configuration of Sentry involves setting up a separate web server to handle your error
-logging. This means that any number of Sentry clients simply pass on this information to your primary Sentry
-server.
-
-This guide will step you through setting up a virtualenv, installing the required packages,
+This guide will step you through setting up a Python-based virtualenv, installing the required packages,
 and configuring the basic web service.
 
 Hardware
