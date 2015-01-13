@@ -30,7 +30,7 @@ from sentry.web.forms.accounts import (
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
     ProjectEmailOptionsForm, AuthenticationForm)
 from sentry.web.helpers import render_to_response
-from sentry.utils.auth import get_auth_providers
+from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
 
 
@@ -109,12 +109,7 @@ def register(request):
 
 @login_required
 def login_redirect(request):
-    default = reverse('sentry')
-    login_url = request.session.pop('_next', None) or default
-    if '//' in login_url:
-        login_url = default
-    elif login_url.startswith(reverse('sentry-login')):
-        login_url = default
+    login_url = get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 

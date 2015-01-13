@@ -5,13 +5,11 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
-from django.http import HttpRequest
 from exam import fixture
 from social_auth.models import UserSocialAuth
 
 from sentry.models import UserOption, LostPasswordHash, User
 from sentry.testutils import TestCase
-from sentry.web.frontend.accounts import login_redirect
 
 
 class LoginTest(TestCase):
@@ -189,31 +187,6 @@ class LogoutTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 302
         assert self.client.session.keys() == []
-
-
-class LoginRedirectTest(TestCase):
-    def make_request(self, next=None):
-        request = HttpRequest()
-        request.session = {}
-        request.user = self.user
-        if next:
-            request.session['_next'] = next
-        return request
-
-    def test_schema_uses_default(self):
-        resp = login_redirect(self.make_request('http://example.com'))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry')
-
-    def test_login_uses_default(self):
-        resp = login_redirect(self.make_request(reverse('sentry-login')))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry')
-
-    def test_no_value_uses_default(self):
-        resp = login_redirect(self.make_request())
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry')
 
 
 class NotificationSettingsTest(TestCase):
