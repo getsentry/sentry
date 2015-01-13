@@ -5,19 +5,11 @@ Configuring Sentry with Nginx
 Nginx provides a very powerful platform for running in front of Sentry as it
 gives us features like rate limiting.
 
-Below is a sample configuration for Nginx which includes (reasonable) rate
-limits:
+Below is a sample configuration for Nginx:
 
 ::
 
     http {
-      # we limit both on IP (single machine) as well as project ID
-      limit_req_zone  $binary_remote_addr  zone=one:10m   rate=3r/s;
-      limit_req_zone  $projectid  zone=two:10m   rate=3r/s;
-
-      # limit_req_status requires nginx 1.3.15 or newer
-      limit_req_status 429;
-
       # set REMOTE_ADDR from any internal proxies
       # see http://nginx.org/en/docs/http/ngx_http_realip_module.html
       set_real_ip_from 127.0.0.1;
