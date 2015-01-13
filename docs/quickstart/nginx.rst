@@ -81,8 +81,13 @@ While Sentry provides a default webserver, you'll likely want to move to somethi
 a bit more powerful. We suggest using `uWSGI <http://projects.unbit.it/uwsgi/>`_ to
 run Sentry.
 
-Within your uWSGI configuration, you'll need to export your configuration path
-as well the ``sentry.wsgi`` module:
+Install uWSGI into your virtualenv (refer to quickstart if you're confused):
+
+::
+
+    pip install uwsgi
+
+Create a uWSGI configuration which references the Sentry configuration:
 
 ::
 
@@ -107,6 +112,13 @@ as well the ``sentry.wsgi`` module:
     enable-threads = true
     single-interpreter = true
     lazy-apps = true
+
+
+Finally, re-configure supervisor to run uwsgi instead of 'sentry start':
+
+::
+
+  /www/sentry/bin/uwsgi --ini /www/sentry/uwsgi.ini
 
 
 Proxying Incoming Email

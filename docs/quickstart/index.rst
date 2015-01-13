@@ -5,7 +5,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 
 * A UNIX-based operating system
 * Python 2.7
-* python-setuptools, python-dev, libxslt1-dev, libxml2-dev
+* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev
 * A real database (PostgreSQL is preferred, MySQL also works)
 * Redis
 * Nginx (with RealIP, i.e. nginx-full)
@@ -49,7 +49,7 @@ Setting up an Environment
 The first thing you'll need is the Python ``virtualenv`` package. You probably already
 have this, but if not, you can install it with::
 
-  easy_install -UZ virtualenv
+  pip -U virtualenv
 
 Once that's done, choose a location for the environment, and create it with the ``virtualenv``
 command. For our guide, we're going to choose ``/www/sentry/``::
@@ -60,7 +60,7 @@ Finally, activate your virtualenv::
 
   source /www/sentry/bin/activate
 
-.. note:: Activating the environment adjusts your PATH, so that things like easy_install now
+.. note:: Activating the environment adjusts your PATH, so that things like pip now
           install into the virtualenv by default.
 
 Install Sentry
@@ -69,7 +69,7 @@ Install Sentry
 Once you've got the environment setup, you can install Sentry and all its dependencies with
 the same command you used to grab virtualenv::
 
-  easy_install -UZ sentry
+  pip -U sentry
 
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
@@ -94,10 +94,10 @@ These databases require additional packages, but Sentry provides a couple of met
 ::
 
   # install sentry and its postgresql dependencies
-  easy_install -UZ sentry[postgres]
+  pip -U sentry[postgres]
 
   # or if you choose, mysql
-  easy_install -UZ sentry[mysql]
+  pip -U sentry[mysql]
 
 
 Installing from Source
