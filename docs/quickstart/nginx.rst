@@ -49,6 +49,7 @@ Below is a sample production ready configuration for Nginx with Sentry:
 
         proxy_set_header   Host                 $http_host;
         proxy_set_header   X-Forwarded-Proto    $scheme;
+        proxy_set_header   X-Forwarded-For      $remote_addr;
         proxy_redirect     off;
 
         # keepalive + raven.js is a disaster
@@ -112,6 +113,7 @@ Create a uWSGI configuration which references the Sentry configuration:
     enable-threads = true
     single-interpreter = true
     lazy-apps = true
+    log-x-forwarded-for = true
 
 
 Finally, re-configure supervisor to run uwsgi instead of 'sentry start':
