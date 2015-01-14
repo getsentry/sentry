@@ -314,10 +314,12 @@ var StreamActions = React.createClass({
         </div>
         <div className="hidden-sm hidden-xs stream-actions-graph stream-actions-cell">
           <ul className="toggle-graph">
-            <li><a onClick={this.selectStatsPeriod.bind(this, '24h')}
-                   className={this.props.selectStatsPeriod === '24h' ? 'active' : ''}>24h</a></li>
-            <li><a onClick={this.selectStatsPeriod.bind(this, '30d')}
-                   className={this.props.selectStatsPeriod === '30d' ? 'active' : ''}>30d</a></li>
+            <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
+              <a onClick={this.selectStatsPeriod.bind(this, '24h')}>24h</a>
+            </li>
+            <li className={this.props.statsPeriod === '30d' ? 'active' : ''}>
+              <a onClick={this.selectStatsPeriod.bind(this, '30d')}>30d</a>
+            </li>
           </ul>
         </div>
         <div className="stream-actions-occurrences stream-actions-cell align-center hidden-xs"> events</div>
