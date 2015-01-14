@@ -38,7 +38,7 @@ from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
     APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
-    decompress_deflate, decompress_gzip)
+    decompress_deflate, decompress_gzip, ensure_does_not_have_ip)
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -357,8 +357,10 @@ class StoreView(APIView):
         manager = EventManager(data, version=auth.version)
         data = manager.normalize()
 
+        scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
+
         # insert IP address if not available
-        if auth.is_public:
+        if auth.is_public and not scrub_ip_address:
             ensure_has_ip(data, request.META['REMOTE_ADDR'])
 
         event_id = data['event_id']
@@ -375,6 +377,10 @@ class StoreView(APIView):
             # We filter data immediately before it ever gets into the queue
             inst = SensitiveDataFilter()
             inst.apply(data)
+
+        if scrub_ip_address:
+            # We filter data immediately before it ever gets into the queue
+            ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)

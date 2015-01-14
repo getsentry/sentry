@@ -391,6 +391,15 @@ def validate_data(project, data, client=None):
     return data
 
 
+def ensure_does_not_have_ip(data):
+    if 'sentry.interfaces.Http' in data:
+        if 'env' in data['sentry.interfaces.Http']:
+            data['sentry.interfaces.Http']['env'].pop('REMOTE_ADDR', None)
+
+    if 'sentry.interfaces.User' in data:
+        data['sentry.interfaces.User'].pop('ip_address', None)
+
+
 def ensure_has_ip(data, ip_address):
     if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
         return

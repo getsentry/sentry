@@ -67,6 +67,26 @@ class StoreViewTest(TestCase):
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
+    @mock.patch('sentry.web.api.insert_data_to_database')
+    def test_scrubs_ip_address(self, mock_insert_data_to_database):
+        self.project.update_option('sentry:scrub_ip_address', True)
+        body = {
+            "message": "foo bar",
+            "sentry.interfaces.User": {"ip_address": "127.0.0.1"},
+            "sentry.interfaces.Http": {
+                "method": "GET",
+                "url": "http://example.com/",
+                "env": {"REMOTE_ADDR": "127.0.0.1"}
+            },
+        }
+        resp = self._postWithHeader(body)
+        assert resp.status_code == 200
+
+        call_data = mock_insert_data_to_database.call_args[0][0]
+        print call_data
+        assert not call_data['sentry.interfaces.User'].get('ip_address')
+        assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
+
 
 class CrossDomainXmlTest(TestCase):
     @fixture
