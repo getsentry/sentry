@@ -21,7 +21,7 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"'
+LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"'
 
 
 class DocSection(Enum):
@@ -54,6 +54,7 @@ class Endpoint(APIView):
             uri=base_url,
             cursor=str(cursor),
             name=name,
+            has_results='true' if bool(cursor) else 'false',
         )
 
     def paginate(self, request, on_results=lambda x: x, **kwargs):
