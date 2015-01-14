@@ -7,9 +7,10 @@
   },
   "dependencies": {
     "bootstrap": "^3.1.1",
-    "bower": "^1.2.8",
+    "bootstrap-datetimepicker": "0.0.7",
     "browser-sync": "^1.8.2",
     "chai": "1.7.x",
+    "flot": "^0.8.0-alpha",
     "gulp": "^3.8.10",
     "gulp-cached": "^1.0.1",
     "gulp-clean": "^0.3.1",
@@ -47,7 +48,6 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "postinstall": "bower install",
     "pretest": "npm install && gulp dist",
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run"
   }
