@@ -1,5 +1,12 @@
 {% load sentry_helpers %}
-<flash-messages></flash-messages>
+<div id="blk_alerts" class="messages-container"></div>
+<script>
+$(function(){
+  React.render(React.createFactory(Alerts)({
+     className: "alert-list"
+  }), document.getElementById('blk_alerts'));
+});
+</script>
 {% if messages %}
 <div id="messages">
     {% for message in messages %}
