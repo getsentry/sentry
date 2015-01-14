@@ -5,6 +5,7 @@ from mock import patch
 
 from sentry.models import Group, GroupBookmark, GroupStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import parse_link_header
 
 
 class GroupListTest(APITestCase):
@@ -15,8 +16,16 @@ class GroupListTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
             'project_id': self.project.id})
-        response = self.client.get(url, format='json')
+        response = self.client.get(url + '?limit=1', format='json')
         assert response.status_code == 200
+        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
+        links = {
+            d['rel']: d
+            for d in parse_link_header(response['Link']).values()
+        }
+
+        assert links['previous']['results'] == 'false'
+        assert links['next']['results'] == 'true'
 
 
 class GroupUpdateTest(APITestCase):
