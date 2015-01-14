@@ -76,7 +76,7 @@
       <div class="org-selector">
         <ul>
           {% for o in request.user|list_organizations %}
-            <li{% if o == selected_organization.id %} class="active"{% endif %}>
+            <li{% if o.id == organization.id %} class="active"{% endif %}>
               <a href="{% url 'sentry-organization-home' o.slug %}">
                 <img src="https://pbs.twimg.com/profile_images/495064692029526016/lzoDXqf-_400x400.png">
               </a>
