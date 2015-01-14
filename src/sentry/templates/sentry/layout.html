@@ -75,9 +75,13 @@
       {% if request.user.is_authenticated %}
       <div class="org-selector">
         <ul>
-          <li class="active"><a href="#"><img src="https://pbs.twimg.com/profile_images/495064692029526016/lzoDXqf-_400x400.png"></a></li>
-          <li><a href="#"><img src="https://pbs.twimg.com/profile_images/378800000320815801/cbe630c29a62e283cef31afc5c4471da_400x400.png"></a></li>
-          <li><a href="#"><img src="https://pbs.twimg.com/profile_images/426158315781881856/sBsvBbjY_400x400.png"></a></li>
+          {% for o in request.user|list_organizations %}
+            <li{% if o == selected_organization.id %} class="active"{% endif %}>
+              <a href="{% url 'sentry-organization-home' o.slug %}">
+                <img src="https://pbs.twimg.com/profile_images/495064692029526016/lzoDXqf-_400x400.png">
+              </a>
+            </li>
+          {% endfor %}
         </ul>
       </div>
       <div class="app-sidebar">
