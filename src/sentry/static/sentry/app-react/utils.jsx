@@ -1,3 +1,5 @@
+/*** @jsx React.DOM */
+
 var getQueryParams = function() {
   var vars = {},
       href = window.location.href,
@@ -43,7 +45,33 @@ var parseLinkHeader = function(header) {
   return links;
 };
 
+var sortArray = function(arr, score_fn) {
+    arr.sort(function(a, b){
+      var a_score = score_fn(a),
+          b_score = score_fn(b);
+
+      for (var i = 0; i < a_score.length; i++) {
+        if (a_score[i] < b_score[i]) {
+          return 1;
+        }
+        if (a_score[i] > b_score[i]) {
+          return -1;
+        }
+      }
+      return 0;
+    });
+
+    return arr;
+};
+
+var escape = function(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+};
+
 module.exports = {
+  escape: escape,
   getQueryParams: getQueryParams,
-  parseLinkHeader: parseLinkHeader
+  parseLinkHeader: parseLinkHeader,
+  sortArray: sortArray,
+  Collection: require('./utils/collection')
 };

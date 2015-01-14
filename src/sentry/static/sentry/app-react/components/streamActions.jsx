@@ -15,7 +15,7 @@ var ActionLink = React.createClass({
 
   propTypes: {
     actionLabel: React.PropTypes.string,
-    aggList: React.PropTypes.array.isRequired,
+    aggList: React.PropTypes.instanceOf(Array).isRequired,
     canActionAll: React.PropTypes.bool.isRequired,
     confirmLabel: React.PropTypes.string,
     disabled: React.PropTypes.bool,
@@ -144,7 +144,7 @@ var StreamActions = React.createClass({
   SELECTED: 'selected',
 
   propTypes: {
-    aggList: React.PropTypes.array.isRequired,
+    aggList: React.PropTypes.instanceOf(Array).isRequired,
     anySelected: React.PropTypes.bool.isRequired,
     multiSelected: React.PropTypes.bool.isRequired,
     onBookmark: React.PropTypes.func.isRequired,

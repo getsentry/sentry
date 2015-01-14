@@ -6,7 +6,7 @@ var utils = require("../utils");
 
 var StreamPagination = React.createClass({
   propTypes: {
-    aggList: React.PropTypes.array.isRequired,
+    aggList: React.PropTypes.instanceOf(Array).isRequired,
     pageLinks: React.PropTypes.string.isRequired
   },
 
