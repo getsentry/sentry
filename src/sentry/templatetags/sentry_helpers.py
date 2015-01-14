@@ -149,7 +149,7 @@ def serialize(context, value):
 @register.simple_tag(takes_context=True)
 def get_sentry_version(context):
     import sentry
-    current = sentry.get_version()
+    current = sentry.VERSION
 
     latest = options.get('sentry:latest_version') or current
     update_available = Version(latest) > Version(current)
@@ -360,8 +360,8 @@ def render_tag_widget(group, tag):
     cutoff = timezone.now() - timedelta(days=7)
 
     return {
-        'title': tag.replace('_', ' ').title(),
-        'tag_name': tag,
+        'title': tag['label'],
+        'tag_name': tag['key'],
         'group': group,
     }
 
@@ -503,6 +503,7 @@ def needs_access_group_migration(user, organization):
     has_org_access_queryset = OrganizationMember.objects.filter(
         user=user,
         organization=organization,
+        has_global_access=True,
         type__lte=OrganizationMemberType.ADMIN,
     )
 

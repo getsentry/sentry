@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
+from django.http import HttpRequest
+
 from sentry.models import User
 from sentry.testutils import TestCase
-from sentry.utils.auth import EmailAuthBackend
+from sentry.utils.auth import EmailAuthBackend, get_login_redirect
 
 
 class EmailAuthBackendTest(TestCase):
@@ -26,3 +29,25 @@ class EmailAuthBackendTest(TestCase):
     def test_does_not_authenticate_with_invalid_password(self):
         result = self.backend.authenticate(username='foo', password='pizza')
         self.assertEquals(result, None)
+
+
+class GetLoginRedirectTest(TestCase):
+    def make_request(self, next=None):
+        request = HttpRequest()
+        request.session = {}
+        request.user = self.user
+        if next:
+            request.session['_next'] = next
+        return request
+
+    def test_schema_uses_default(self):
+        result = get_login_redirect(self.make_request('http://example.com'))
+        assert result == reverse('sentry')
+
+    def test_login_uses_default(self):
+        result = get_login_redirect(self.make_request(reverse('sentry-login')))
+        assert result == reverse('sentry')
+
+    def test_no_value_uses_default(self):
+        result = get_login_redirect(self.make_request())
+        assert result == reverse('sentry')

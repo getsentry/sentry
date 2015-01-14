@@ -32,7 +32,7 @@ before_script:
 script:
   - make lint
   - make test-js
-  - py.test tests/ --cov sentry --cov-report term-missing
+  - py.test tests
   - make test-cli
 notifications:
   irc:

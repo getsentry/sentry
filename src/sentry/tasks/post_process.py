@@ -69,7 +69,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
                 'is_regresion': is_regression,
                 'is_sample': is_sample,
             },
-            expires=120,
+            expires=300,
         )
 
     for rule in get_rules(project):
@@ -177,11 +177,15 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
 def record_affected_user(event, **kwargs):
     from sentry.models import Group
 
+    logger = record_affected_user.get_logger()
+
     if not settings.SENTRY_ENABLE_EXPLORE_USERS:
+        logger.info('Skipping sentry:user tag due to SENTRY_ENABLE_EXPLORE_USERS')
         return
 
     user_ident = event.user_ident
     if not user_ident:
+        logger.info('No user data found for event_id=%s', event.event_id)
         return
 
     user_data = event.data.get('sentry.interfaces.User', event.data.get('user', {}))

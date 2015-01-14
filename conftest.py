@@ -97,6 +97,9 @@ def pytest_configure(config):
         }
     }
 
+    # Disable South in tests as it is sending incorrect create signals
+    settings.SOUTH_TESTS_MIGRATE = False
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')

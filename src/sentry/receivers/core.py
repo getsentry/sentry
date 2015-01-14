@@ -1,9 +1,13 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth.signals import user_logged_in
 from django.db import connections
+from django.db.utils import OperationalError
 from django.db.models.signals import post_syncdb, post_save
+from functools import wraps
 from pkg_resources import parse_version as Version
 
 from sentry import options
@@ -22,6 +26,17 @@ SELECT setval('sentry_project_id_seq', (
 """
 
 
+def handle_db_failure(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except OperationalError:
+            logging.exception('Failed processing signal %s', func.__name__)
+            return
+    return wrapped
+
+
 def create_default_projects(created_models, verbosity=2, **kwargs):
     if Project not in created_models:
         return
@@ -33,6 +48,7 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
         verbosity=verbosity,
         platform='django',
     )
+
     if settings.SENTRY_FRONTEND_PROJECT:
         project = create_default_project(
             id=settings.SENTRY_FRONTEND_PROJECT,
@@ -58,17 +74,19 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         )
 
     org, _ = Organization.objects.get_or_create(
-        name='Sentry',
+        slug='sentry',
         defaults={
             'owner': user,
+            'name': 'Sentry',
         }
     )
 
     team, _ = Team.objects.get_or_create(
-        name='Sentry',
+        organization=org,
+        slug='sentry',
         defaults={
             'owner': org.owner,
-            'organization': org,
+            'name': 'Sentry',
         }
     )
 
@@ -99,13 +117,16 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
 def set_sentry_version(latest=None, **kwargs):
     import sentry
-    current = sentry.get_version()
+    current = sentry.VERSION
 
     version = options.get('sentry:latest_version')
 
     for ver in (current, version):
         if Version(ver) >= Version(latest):
-            return
+            latest = ver
+
+    if latest == version:
+        return
 
     options.set('sentry:latest_version', (latest or current))
 
@@ -196,20 +217,21 @@ def on_alert_creation(instance, **kwargs):
         safe_execute(plugin.on_alert, alert=instance)
 
 
-# Signal registration
+# Anything that relies on default objects that may not exist with default
+# fields should be wrapped in handle_db_failure
 post_syncdb.connect(
-    create_default_projects,
+    handle_db_failure(create_default_projects),
     dispatch_uid="create_default_project",
     weak=False,
 )
 post_save.connect(
-    create_keys_for_project,
+    handle_db_failure(create_keys_for_project),
     sender=Project,
     dispatch_uid="create_keys_for_project",
     weak=False,
 )
 post_save.connect(
-    create_org_member_for_owner,
+    handle_db_failure(create_org_member_for_owner),
     sender=Organization,
     dispatch_uid="create_org_member_for_owner",
     weak=False,

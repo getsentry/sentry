@@ -51,8 +51,10 @@ locale:
 
 update-transifex:
 	pip install transifex-client
+	cd src/sentry && sentry makemessages -i static -l en
 	tx push -s
 	tx pull -a
+	cd src/sentry && sentry compilemessages
 
 update-submodules:
 	@echo "--> Updating git submodules"

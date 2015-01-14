@@ -36,7 +36,7 @@ from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
     APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
-    decompress_deflate, decompress_gzip)
+    decompress_deflate, decompress_gzip, ensure_does_not_have_ip)
 from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.event_manager import EventManager
 from sentry.models import (
@@ -353,8 +353,10 @@ class StoreView(APIView):
         manager = EventManager(data, version=auth.version)
         data = manager.normalize()
 
+        scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
+
         # insert IP address if not available
-        if auth.is_public:
+        if auth.is_public and not scrub_ip_address:
             ensure_has_ip(data, request.META['REMOTE_ADDR'])
 
         event_id = data['event_id']
@@ -371,6 +373,10 @@ class StoreView(APIView):
             # We filter data immediately before it ever gets into the queue
             inst = SensitiveDataFilter()
             inst.apply(data)
+
+        if scrub_ip_address:
+            # We filter data immediately before it ever gets into the queue
+            ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)
@@ -564,9 +570,34 @@ def get_group_tags(request, organization, project, group_id, tag_name):
         last_seen__gte=cutoff,
     ).values_list('value', 'times_seen').order_by('-times_seen')[:10]
 
+    # fetch TagValue instances so we can get proper labels
+    tag_values = dict(
+        (t.value, t)
+        for t in TagValue.objects.filter(
+            key=tag_name,
+            project_id=project.id,
+            value__in=[u[0] for u in unique_tags],
+        )
+    )
+
+    values = []
+    for tag, times_seen in unique_tags:
+        try:
+            tag_value = tag_values[tag]
+        except KeyError:
+            label = tag
+        else:
+            label = tag_value.get_label()
+
+        values.append({
+            'value': tag,
+            'count': times_seen,
+            'label': label,
+        })
+
     return json.dumps({
         'name': tag_name,
-        'values': list(unique_tags),
+        'values': values,
         'total': total,
     })
 
@@ -787,12 +818,11 @@ def crossdomain_xml_index(request):
 
 @cache_control(max_age=60)
 def crossdomain_xml(request, project_id):
-    if project_id.isdigit():
-        lookup = {'id': project_id}
-    else:
-        lookup = {'slug': project_id}
+    if not project_id.isdigit():
+        return HttpResponse(status=404)
+
     try:
-        project = Project.objects.get_from_cache(**lookup)
+        project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         return HttpResponse(status=404)
 

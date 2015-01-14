@@ -118,6 +118,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
+    'sentry.middleware.proxy.SetRemoteAddrFromForwardedFor',
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -184,6 +185,9 @@ STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 )
+
+# setup a default media root to somewhere useless
+MEDIA_ROOT = '/tmp/sentry-media'
 
 LOCALE_PATHS = (
     os.path.join(PROJECT_ROOT, 'locale'),
@@ -360,9 +364,6 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
-# Disable South in tests as it is sending incorrect create signals
-SOUTH_TESTS_MIGRATE = True
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -433,6 +434,9 @@ STATSD_CLIENT = 'django_statsd.clients.null'
 
 # Sentry and Raven configuration
 
+SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
+
+# Is this an on-premise install? (should things be generally more open)
 SENTRY_PUBLIC = False
 
 # Default project ID for recording internal exceptions
@@ -572,6 +576,11 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+# File storage
+SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
+SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
+
+# URL to embed in js documentation
 SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.15/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
