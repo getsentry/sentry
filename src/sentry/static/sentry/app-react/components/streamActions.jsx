@@ -150,10 +150,12 @@ var StreamActions = React.createClass({
     onBookmark: React.PropTypes.func.isRequired,
     onDelete: React.PropTypes.func.isRequired,
     onMerge: React.PropTypes.func.isRequired,
+    onRealtimeChange: React.PropTypes.func.isRequired,
     onRemoveBookmark: React.PropTypes.func.isRequired,
     onResolve: React.PropTypes.func.isRequired,
     onSelectAll: React.PropTypes.func.isRequired,
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
+    realtimeActive: React.PropTypes.bool.isRequired,
     selectAllActive: React.PropTypes.bool.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
@@ -262,8 +264,13 @@ var StreamActions = React.createClass({
           </div>
 
           <div className="btn-group">
-            <a href="#" className="btn btn-default btn-sm hidden-xs realtime-control">
-              <span className="icon icon-pause"></span>
+            <a className="btn btn-default btn-sm hidden-xs realtime-control"
+               onClick={this.props.onRealtimeChange}>
+              {(this.props.realtimeActive ?
+                <span className="icon icon-pause"></span>
+                :
+                <span className="icon icon-play"></span>
+              )}
             </a>
           </div>
           <DropdownLink
