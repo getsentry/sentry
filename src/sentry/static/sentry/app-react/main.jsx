@@ -49,5 +49,6 @@ module.exports = {
   Raven: require("raven-js"),
   React: require("react"),
 
+  Alerts: require("./components/alerts"),
   Stream: require("./components/stream")
 };

@@ -2,6 +2,7 @@
 var React = require("react");
 var $ = require("jquery");
 
+var alertActions = require("../actions/alertActions");
 var BarChart = require("./barChart");
 var Count = require("./count");
 var StreamActions = require('./streamActions');
@@ -215,7 +216,7 @@ var Stream = React.createClass({
     return this.actionAggregates(aggList, {
       method: 'DELETE',
       success: function() {
-        flash('success', 'The selected events have been scheduled for deletion.');
+        alertActions.addAlert('The selected events have been scheduled for deletion.', 'success');
       }
     });
   },
@@ -223,7 +224,7 @@ var Stream = React.createClass({
     return this.actionAggregates(aggList, {
       data: {merge: 1},
       success: function() {
-        flash('success', 'The selected events have been scheduled to merge.');
+        alertActions.addAlert('The selected events have been scheduled for merge.', 'success');
       }
     });
   },
