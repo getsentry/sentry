@@ -116,7 +116,7 @@
                     <ul class="project-list list-unstyled truncate">
                         {% for p in p_list %}
                             <li{% if p.id == project.id %} class="active"{% endif %}>
-                                <strong><a href="{% url 'sentry-stream' t.slug p.slug %}" title="{{ p.name }}"><span class="badge badge-error pull-right">12</span>{{ p.name }}</a></strong>
+                                <strong><a href="{% url 'sentry-stream' t.organization.slug p.slug %}" title="{{ p.name }}"><span class="badge badge-error pull-right">12</span>{{ p.name }}</a></strong>
                             </li>
                         {% endfor %}
                     </ul>
