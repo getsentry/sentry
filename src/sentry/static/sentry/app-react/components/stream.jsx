@@ -96,7 +96,8 @@ var Stream = React.createClass({
       anySelected: false,
       statsPeriod: '24h',
       query: this.props.initialQuery,
-      pageLinks: this.props.pageLinks
+      pageLinks: this.props.pageLinks,
+      realtimeActive: true
     };
   },
   componentWillMount: function() {
@@ -207,6 +208,11 @@ var Stream = React.createClass({
       data: {isBookmarked: true}
     });
   },
+  handleRealtimeChange: function(event) {
+    this.setState({
+      realtimeActive: !this.state.realtimeActive
+    });
+  },
   handleRemoveBookmark: function(aggList, event){
     return this.actionAggregates(aggList, {
       data: {isBookmarked: false}
@@ -262,6 +268,8 @@ var Stream = React.createClass({
                 onMerge={this.handleMerge}
                 onRemoveBookmark={this.handleRemoveBookmark}
                 onSelectStatsPeriod={this.handleSelectStatsPeriod}
+                onRealtimeChange={this.handleRealtimeChange}
+                realtimeActive={this.state.realtimeActive}
                 statsPeriod={this.state.statsPeriod}
                 aggList={this.state.aggList}
                 selectAllActive={this.state.selectAllActive}
