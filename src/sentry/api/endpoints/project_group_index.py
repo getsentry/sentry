@@ -94,6 +94,12 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         date_to = request.GET.get('dt')
         time_to = request.GET.get('tt')
+        limit = request.GET.get('limit')
+        if limit:
+            try:
+                query_kwargs['limit'] = int(limit)
+            except ValueError:
+                return Response('{"error": "invalid limit"}', status=400)
 
         today = timezone.now()
         # date format is Y-m-d
