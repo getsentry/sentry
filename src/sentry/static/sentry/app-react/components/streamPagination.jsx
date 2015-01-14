@@ -18,12 +18,12 @@ var StreamPagination = React.createClass({
     var links = utils.parseLinkHeader(this.props.pageLinks);
 
     var previousPageClassName = 'btn btn-default btn-lg prev';
-    if (links.previous === '') {
+    if (links.previous.results === false) {
       previousPageClassName += ' disabled';
     }
 
     var nextPageClassName = 'btn btn-default btn-lg next';
-    if (links.next === '') {
+    if (links.next.results === false) {
       nextPageClassName += ' disabled';
     }
 
@@ -31,13 +31,13 @@ var StreamPagination = React.createClass({
       <div className="stream-pagination">
         <div className="btn-group pull-right">
           <a className={previousPageClassName}
-             disabled={links.previous === ''}
-             href={links.previous}>
+             disabled={links.previous.results === false}
+             href={links.previous.href}>
             <span title="Previous" className="icon-arrow-left"></span>
           </a>
           <a className={nextPageClassName}
-             disabled={links.next === ''}
-             href={links.next}>
+             disabled={links.next.results === false}
+             href={links.next.href}>
             <span title="Next" className="icon-arrow-right"></span>
           </a>
         </div>
