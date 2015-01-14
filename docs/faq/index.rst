@@ -27,7 +27,7 @@ How do I
      configure()
 
      # Do something crazy
-     from sentry.models import Team, Project, ProjectKey, User
+     from sentry.models import Team, Project, ProjectKey, User, Organization
 
      user = User()
      user.username = 'admin'
@@ -36,14 +36,21 @@ How do I
      user.set_password('admin')
      user.save()
 
+     organization = Organization()
+     organization.name = 'MyOrg'
+     organization.owner = user
+     organization.save()
+
      team = Team()
      team.name = 'Sentry'
+     team.organization = organization
      team.owner = user
      team.save()
 
      project = Project()
      project.team = team
      project.name = 'Default'
+     project.organization = organization
      project.save()
 
      key = ProjectKey.objects.filter(project=project)[0]

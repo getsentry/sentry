@@ -18,12 +18,12 @@
         {% trans "Teams" %}
       </a>
     </li>
+    {% if ACCESS.is_global and ACCESS.is_admin %}
     <li class="{% block org_stats_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-stats' organization.slug %}">
         {% trans "Stats" %}
       </a>
     </li>
-    {% if ACCESS.is_global and ACCESS.is_admin %}
     <li class="{% block org_members_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-members' organization.slug %}">
         {% trans "Members" %}

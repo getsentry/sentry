@@ -1,11 +1,6 @@
-"""
-sentry.testutils.helpers
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
+
+__all__ = ('get_auth_header',)
 
 
 def get_auth_header(client, api_key=None, secret_key=None):

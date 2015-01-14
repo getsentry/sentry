@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.contrib.auth.backends import ModelBackend
+from django.core.urlresolvers import reverse
 
 from sentry.models import User
 
@@ -23,6 +24,16 @@ def get_auth_providers():
         in settings.AUTH_PROVIDERS.iteritems()
         if all(getattr(settings, c, None) for c in cfg_names)
     ]
+
+
+def get_login_redirect(request):
+    default = reverse('sentry')
+    login_url = request.session.pop('_next', None) or default
+    if '//' in login_url:
+        login_url = default
+    elif login_url.startswith(reverse('sentry-login')):
+        login_url = default
+    return login_url
 
 
 def find_users(username, with_valid_password=True):

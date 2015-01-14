@@ -1,3 +1,8 @@
+Version 7.1.1
+-------------
+
+- Suggest realip module over X-Forwarded-For
+
 Version 7.1.0
 -------------
 
@@ -12,6 +17,20 @@ The beginnings of version 2 of the plugin interface have landed. This will expan
 - get_notifiers
 - get_rules
 - get_tags
+
+Other Changes
+~~~~~~~~~~~~~
+
+- crossdomain.xml no longer supports projects-by-slug.
+- A basic file storage abstraction is now available internally.
+- The project group list API endpoint now has pagination.
+- Several API endpoints have been added to public docs.
+- X-Forwarded-For is now handled automatically (and we do not support non-proxy installs).
+- Various tweaks to GroupMeta caching.
+- The raven-python Sentry server-specific client code is now part of Sentry.
+- Various improvements to tag rendering.
+- Various improvements to bulk deletion strategies.
+- Added NodeStore.multi_delete.
 
 
 Version 7.0.0
@@ -43,6 +62,7 @@ Backwards Incompatible Changes
 - Static assets are no longer bundled as part of the repository and are instead compiled during the sdist/installation phases (as needed). See installation notes for further information.
 - Graphs have been transitiong to ``sentry.tsdb`` (historical data is not preserved)
 - Workers must now also run ``celerybeat``. This can be done either via passing -B to worker, or by running another process: ``sentry celerybeat``.
+- Access Groups are now deprecated and will be removed in a version version.
 
 Organizations
 ~~~~~~~~~~~~~

@@ -1,0 +1,31 @@
+{% extends "sentry/help/index.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}
+    Pagination | Web API
+{% endblock %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url 'sentry-api-0-help' %}">Web API</a></li>
+    <li class="divider">/</li>
+    <li><a href="{% url 'sentry-api-0-help-pagination' %}">Pagination</a></li>
+{% endblock%}
+
+{% block main %}
+    <h2>Pagination</h2>
+
+    <p>Pagination in the API is handled via the Link header standard:</p>
+
+    <pre>$ curl -I -u PUBLIC_KEY:SECRET_KEY /api/0/projects/{project_id}/groups/
+
+Link: &lt;https://app.getsentry.com/api/0/projects/1/groups/?&amp;cursor=1420837590:0:1&gt;; rel="previous"; results="false",
+      &lt;https://app.getsentry.com/api/0/projects/1/groups/?&amp;cursor=1420837533:0:0&gt;; rel="next"; results="true"</pre>
+
+    <p>In this example we have both a 'previous' link and a 'next' link. The meaning of these links depends on the input query, but in our above example the 'previous' page would be page index -1, and the next page would be page index 1.</p>
+
+    <p>When supported, cursors will *always* be returned for both a previous and a next page, even if there are no results on these pages. This allows you to make a query against the API for yet-undiscovered results. An example where this would be used is when you're implementing polling behavior and you want to see if there is any new data. To help understand if you actually need to paginate we return a <code>results="[true|false]"</code> indicator.</p>
+{% endblock %}

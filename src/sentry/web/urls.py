@@ -37,6 +37,7 @@ __all__ = ('urlpatterns',)
 
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
 from sentry.web.frontend.access_group_migration import AccessGroupMigrationView
+from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_home import OrganizationHomeView
@@ -97,7 +98,7 @@ urlpatterns += patterns('',
     url(r'^api/0/', include('sentry.api.urls')),
 
     # Account
-    url(r'^login/$', accounts.login,
+    url(r'^login/$', AuthLoginView.as_view(),
         name='sentry-login'),
     url(r'^login-redirect/$', accounts.login_redirect,
         name='sentry-login-redirect'),

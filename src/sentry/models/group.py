@@ -229,16 +229,41 @@ class Group(Model):
         ).order_by(order_by)
 
     def get_tags(self, with_internal=True):
-        from sentry.models import GroupTagKey
-
+        from sentry.models import GroupTagKey, TagKey
         if not hasattr(self, '_tag_cache'):
-            self._tag_cache = sorted([
-                t for t in GroupTagKey.objects.filter(
-                    group=self,
+            group_tags = GroupTagKey.objects.filter(
+                group=self,
+                project=self.project,
+            )
+            if not with_internal:
+                group_tags = group_tags.exclude(key__startswith='sentry:')
+
+            group_tags = list(group_tags.values_list('key', flat=True))
+
+            tag_keys = dict(
+                (t.key, t)
+                for t in TagKey.objects.filter(
                     project=self.project,
-                ).values_list('key', flat=True)
-                if with_internal or not t.startswith('sentry:')
-            ])
+                    key__in=group_tags
+                )
+            )
+
+            results = []
+            for key in group_tags:
+                try:
+                    tag_key = tag_keys[key]
+                except KeyError:
+                    label = key.replace('_', ' ').title()
+                else:
+                    label = tag_key.get_label()
+
+                results.append({
+                    'key': key,
+                    'label': label,
+                })
+
+            self._tag_cache = sorted(results, key=lambda x: x['label'])
+
         return self._tag_cache
 
     def error(self):

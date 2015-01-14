@@ -3,13 +3,37 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.app import tsdb
-from sentry.api.base import BaseStatsEndpoint
+from sentry.api.base import BaseStatsEndpoint, DocSection
 from sentry.api.permissions import assert_perm
 from sentry.models import Organization, Project, Team
 
 
 class OrganizationStatsEndpoint(BaseStatsEndpoint):
+    doc_section = DocSection.ORGANIZATIONS
+
     def get(self, request, organization_slug):
+        """
+        Retrieve event counts for an organization
+
+        **Draft:** This endpoint may change in the future without notice.
+
+        Return a set of points representing a normalized timestamp and the
+        number of events seen in the period.
+
+            {method} {path}?since=1421092384.822244&until=1434052399.443363
+
+        Query ranges are limited to Sentry's configured time-series resolutions.
+
+        Parameters:
+
+        - since: a timestamp to set the start of the query
+        - until: a timestamp to set the end of the query
+        - resolution: an explicit resolution to search for (i.e. 10s)
+        - stat: the name of the stat to query (received, rejected)
+
+        **Note:** resolution should not be used unless you're familiar with Sentry
+        internals as it's restricted to pre-defined values.
+        """
         organization = Organization.objects.get_from_cache(
             slug=organization_slug,
         )

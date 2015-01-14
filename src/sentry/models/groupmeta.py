@@ -7,6 +7,8 @@ sentry.models.groupmeta
 """
 from __future__ import absolute_import
 
+import threading
+
 from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
@@ -24,16 +26,26 @@ class GroupMetaManager(BaseManager):
         super(GroupMetaManager, self).__init__(*args, **kwargs)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
-        self.__cache = {}
+        self.__local_cache = threading.local()
 
     def __getstate__(self):
         d = self.__dict__.copy()
-        d.pop('_GroupMetaManager__cache', None)
+        d.pop('_GroupMetaManager__local_cache', None)
         return d
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.__cache = {}
+        self.__local_cache = threading.local()
+
+    def _get_cache(self):
+        if not hasattr(self.__local_cache, 'value'):
+            self.__local_cache.value = {}
+        return self.__local_cache.value
+
+    def _set_cache(self, value):
+        self.__local_cache.value = value
+
+    __cache = property(_get_cache, _set_cache)
 
     def contribute_to_class(self, model, name):
         model.CacheNotPopulated = CacheNotPopulated

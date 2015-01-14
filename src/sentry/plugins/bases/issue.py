@@ -17,6 +17,7 @@ from sentry.models import GroupMeta, Activity
 from sentry.plugins import Plugin
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
+from sentry.utils.safe import safe_execute
 
 
 class NewIssueForm(forms.Form):
@@ -34,9 +35,9 @@ class IssuePlugin(Plugin):
     auth_provider = None
 
     def _get_group_body(self, request, group, event, **kwargs):
-        interface = event.interfaces.get('sentry.interfaces.Stacktrace')
+        interface = event.interfaces.get('exception')
         if interface:
-            return interface.to_string(event)
+            return safe_execute(interface.to_string, event)
         return
 
     def _get_group_description(self, request, group, event):

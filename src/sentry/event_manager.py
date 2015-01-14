@@ -128,6 +128,8 @@ class ScoreClause(object):
 
 
 class EventManager(object):
+    logger = logging.getLogger('sentry.events')
+
     def __init__(self, data, version='5'):
         self.data = data
         self.version = version
@@ -298,17 +300,13 @@ class EventManager(object):
             if added_tags:
                 tags.extend(added_tags)
 
-        result = safe_execute(
+        group, is_new, is_regression, is_sample = safe_execute(
             self._save_aggregate,
             event=event,
             tags=tags,
             hashes=hashes,
             **group_kwargs
         )
-        if result is None:
-            return
-
-        group, is_new, is_regression, is_sample = result
 
         using = group._state.db
 
@@ -323,6 +321,7 @@ class EventManager(object):
                 with transaction.atomic():
                     event.save()
             except IntegrityError:
+                self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
 
         try:
@@ -330,6 +329,7 @@ class EventManager(object):
                 EventMapping.objects.create(
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
+            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
             return event
 
         if not raw:
@@ -340,6 +340,8 @@ class EventManager(object):
                 is_sample=is_sample,
                 is_regression=is_regression,
             )
+        else:
+            self.logger.info('Raw event passed; skipping post process for event_id=%s', event_id)
 
         index_event.delay(event)
 

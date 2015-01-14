@@ -136,7 +136,7 @@ def create_new_user(request):
             project = Project.objects.create(
                 name='%s\'s New Project' % user.username.capitalize()
             )
-            member = project.team.member_set.get(user=user)
+            member = project.organization.member_set.get(user=user)
             key = project.key_set.get(user=user)
 
         if form.cleaned_data['send_welcome_mail']:
@@ -191,7 +191,7 @@ def edit_user(request, user_id):
 
     project_list = Project.objects.filter(
         status=0,
-        team__member_set__user=user,
+        organization__member_set__user=user,
     ).order_by('-date_added')
 
     context = {
@@ -242,7 +242,7 @@ def list_user_projects(request, user_id):
 
     project_list = Project.objects.filter(
         status=0,
-        member_set__user=user,
+        organization__member_set__user=user,
     ).order_by('-date_added')
 
     context = {
