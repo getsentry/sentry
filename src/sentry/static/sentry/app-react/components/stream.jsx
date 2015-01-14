@@ -9,6 +9,7 @@ var StreamActions = require('./streamActions');
 var StreamFilters = require('./streamFilters');
 var StreamPagination = require('./streamPagination');
 var TimeSince = require("./timeSince");
+var utils = require("../utils");
 
 var Aggregate = React.createClass({
   propTypes: {
@@ -79,6 +80,54 @@ var Aggregate = React.createClass({
   }
 });
 
+var StreamPoller = function(options){
+  this.options = options;
+  this._timeoutId = null;
+  this._active = true;
+  this._delay = 3000;
+  this._pollingEndpoint = options.endpoint;
+};
+StreamPoller.prototype.enable = function(){
+  this._active = true;
+  if (!this._timeoutId) {
+    this._timeoutId = window.setTimeout(this.poll.bind(this), this._delay);
+  }
+};
+StreamPoller.prototype.disable = function(){
+  this._active = false;
+  if (this._timeoutId) {
+    window.clearTimeout(this._timeoutId);
+    this._timeoutId = null;
+  }
+};
+StreamPoller.prototype.poll = function() {
+  $.ajax({
+    url: this._pollingEndpoint,
+    method: 'GET',
+    success: function(data, textStatus, jqXHR){
+      // cancel in progress operation if disabled
+      if (!this._active) {
+        return;
+      }
+
+      // if theres no data, nothing changes
+      if (!data.length) {
+        return;
+      }
+
+      var links = utils.parseLinkHeader(jqXHR.getResponseHeader('Link'));
+      this._pollingEndpoint = links.previous.href;
+
+      this.options.success(data);
+    }.bind(this),
+    complete: function(){
+      if (this._active) {
+        this._timeoutId = window.setTimeout(this.poll.bind(this), this._delay);
+      }
+    }.bind(this)
+  });
+};
+
 var Stream = React.createClass({
   propTypes: {
     aggList: React.PropTypes.array.isRequired,
@@ -90,7 +139,17 @@ var Stream = React.createClass({
   },
   getInitialState: function() {
     return {
-      aggList: [],
+      aggList: new utils.Collection(this.props.aggList, {
+        sortFunc: function(data) {
+          utils.sortArray(data, function(item){
+            return [item.sortWeight];
+          });
+        },
+        equals: function(self, other) {
+          return self.id === other.id;
+        },
+        limit: 50
+      }),
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
@@ -100,8 +159,29 @@ var Stream = React.createClass({
       realtimeActive: true
     };
   },
-  componentWillMount: function() {
-    this.state.aggList = this.props.aggList || [];
+  componentDidMount: function() {
+    this._poller = new StreamPoller({
+      success: this.handleRealtimePoll,
+      endpoint: this.getPollingEndpoint()
+    });
+    if (this.state.realtimeActive) {
+      this._poller.enable();
+    }
+  },
+  componentWillUnmount: function() {
+    this._poller.disable();
+  },
+  componentDidUpdate: function(prevProps, prevState) {
+    if (prevState.realtimeActive !== this.state.realtimeActive) {
+      if (this.state.realtimeActive) {
+        this._poller.enable();
+      } else {
+        this._poller.disable();
+      }
+    }
+  },
+  getPollingEndpoint: function() {
+    return '/api/0/projects/' + this.props.project.id + '/groups/?' + window.location.search;
   },
   handleSelect: function(aggId, event) {
     var checked = $(event.target).is(':checked');
@@ -242,6 +322,11 @@ var Stream = React.createClass({
   handleQueryChange: function(value, event) {
     this.setState({
       query: value
+    });
+  },
+  handleRealtimePoll: function(data) {
+    this.setState({
+      aggList: this.state.aggList.extend(data)
     });
   },
   render: function() {
