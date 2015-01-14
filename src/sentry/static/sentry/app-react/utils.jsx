@@ -31,9 +31,13 @@ var parseLinkHeader = function(header) {
       links = {};
 
   header_vals.forEach(function(val){
-    var match = /<([^>]+)>; rel="([^"]+)"/g.exec(val);
+    var match = /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?/g.exec(val);
+    var hasResults = (match[3] === 'true' ? true : (match[3] === 'false' ? false : null));
 
-    links[match[2]] = match[1];
+    links[match[2]] = {
+      href: match[1],
+      results: hasResults
+    };
   });
 
   return links;
