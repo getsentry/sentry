@@ -79,6 +79,11 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Apply server-side data scrubbing to prevent things like passwords and credit cards from being stored.'),
         required=False
     )
+    scrub_ip_address = forms.BooleanField(
+        label=_('Don\'t store IP Addresses'),
+        help_text=_('Prevent IP addresses from being stored for new events.'),
+        required=False
+    )
 
     class Meta:
         fields = ('name', 'platform', 'public', 'team', 'slug')
@@ -174,6 +179,7 @@ class ProjectSettingsView(ProjectView):
             'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
             'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
             'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+            'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
         })
 
     def handle(self, request, organization, team, project):
@@ -181,7 +187,7 @@ class ProjectSettingsView(ProjectView):
 
         if form.is_valid():
             project = form.save()
-            for opt in ('origins', 'resolve_age', 'scrub_data'):
+            for opt in ('origins', 'resolve_age', 'scrub_data', 'scrub_ip_address'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))
