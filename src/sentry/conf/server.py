@@ -529,6 +529,9 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # manually.
 SENTRY_ALLOW_REGISTRATION = True
 
+# Can users be invited to organizations?
+SENTRY_ENABLE_INVITES = True
+
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 SENTRY_ALLOW_ORIGIN = None
 
