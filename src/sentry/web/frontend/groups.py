@@ -13,12 +13,12 @@ from __future__ import absolute_import, division
 
 from django.core.urlresolvers import reverse
 from django.http import (
-    Http404, HttpResponse, HttpResponsePermanentRedirect, HttpResponseRedirect,
-    HttpRequest
+    Http404, HttpResponse, HttpResponsePermanentRedirect, HttpResponseRedirect
 )
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
+from sentry.api import client
 from sentry.api.serializers import serialize
 from sentry.constants import (
     SORT_OPTIONS, MEMBER_USER
@@ -133,25 +133,26 @@ def wall_display(request, organization, team):
 @login_required
 @has_access
 def group_list(request, organization, project):
-    from sentry.api.endpoints.project_group_index import ProjectGroupIndexEndpoint
+    params = request.GET.copy()
+    params.setdefault('query', 'is:resolved')
 
-    m_request = HttpRequest()
-    m_request.auth = None
-    m_request.user = request.user
-    m_request.META = request.META
-    m_request.GET = request.GET.copy()
-    m_request.GET.setdefault('query', 'is:unresolved')
+    response = client.get(
+        path='/projects/{}/groups/'.format(project.id),
+        params=params,
+        user=request.user,
+    )
 
-    endpoint = ProjectGroupIndexEndpoint()
-    response = endpoint.get(m_request, project_id=project.id)
+    event_list = response.data
+    page_links = response['Link']
+    query = params['query']
 
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'organization': organization,
         'project': project,
-        'event_list': response.data,
-        'page_links': response['Link'],
-        'query': m_request.GET['query'],
+        'event_list': event_list,
+        'page_links': page_links,
+        'query': query,
         'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
 
