@@ -182,7 +182,7 @@ class ElasticSearchBackend(SearchBackend):
             cursor=cursor,
             limit=limit,
             # TODO(dcramer): implement cursors
-            key='id',
+            key=lambda x: x.id,
         )
 
     def upgrade(self):
