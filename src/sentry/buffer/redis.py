@@ -102,6 +102,7 @@ class RedisBuffer(Buffer):
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not self.conn.setnx(lock_key, '1'):
+            self.logger.info('Skipped process on %s; unable to get lock', key)
             return
         self.conn.expire(lock_key, 10)
 
@@ -110,6 +111,7 @@ class RedisBuffer(Buffer):
             conn.delete(key)
 
         if not values:
+            self.logger.info('Skipped process on %s; no values found', key)
             return
 
         model = import_string(values['m'])
