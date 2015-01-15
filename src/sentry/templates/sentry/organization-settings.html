@@ -25,11 +25,18 @@
       {% endfor %}
     </fieldset>
 
+    {% if ACCESS.is_owner and ACCESS.is_global %}
+      <div class="form-group">
+        <div class="pull-right" style="margin-top: 2px">
+          <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
+        </div>
+        <h5>Remove Organization</h5>
+        <p class="help-block" style="margin-top: -10px">Removing an organization cannot be undone.</p>
+      </div>
+    {% endif %}
+
     <fieldset class="form-actions">
-      {% if ACCESS.is_owner and ACCESS.is_global %}
-        <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
-      {% endif %}
-      <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+      <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
     </fieldset>
   </form>
 {% endblock %}
