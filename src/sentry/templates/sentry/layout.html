@@ -71,19 +71,21 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %} has-orgs" ng-app="sentry">
+    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %} {% if list_organizations|length > 1 %}has-orgs{% endif %}" ng-app="sentry">
       {% if request.user.is_authenticated %}
-      <div class="org-selector">
-        <ul>
-          {% for o in request.user|list_organizations %}
-            <li{% if o.id == organization.id %} class="active"{% endif %}>
-              <a href="{% url 'sentry-organization-home' o.slug %}">
-                <img src="https://pbs.twimg.com/profile_images/495064692029526016/lzoDXqf-_400x400.png">
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
+        {% if list_organizations|length > 1 %}
+        <div class="org-selector">
+          <ul>
+            {% for o in request.user|list_organizations %}
+              <li{% if o.id == organization.id %} class="active"{% endif %}>
+                <a href="{% url 'sentry-organization-home' o.slug %}">
+                  <img src="https://pbs.twimg.com/profile_images/495064692029526016/lzoDXqf-_400x400.png">
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
       <div class="app-sidebar">
         <div class="user-info">
           <img src="{% gravatar_url user.email size 72 %}">
