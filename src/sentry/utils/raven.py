@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
 
 from django.conf import settings
-from django.db import transaction
 from raven.contrib.django.client import DjangoClient
 
+from sentry.coreapi import insert_data_to_database
 from sentry.event_manager import EventManager
 
 
@@ -12,13 +12,12 @@ class SentryInternalClient(DjangoClient):
         return settings.SENTRY_PROJECT is not None
 
     def send(self, project, **kwargs):
-        if transaction.is_dirty():
-            transaction.rollback()
-
+        # TODO(dcramer): this should respect rate limits/etc and use the normal
+        # pipeline
         try:
             manager = EventManager(kwargs)
-            manager.normalize()
-            return manager.save(project)
+            data = manager.normalize()
+            insert_data_to_database(data)
         except Exception as e:
             if self.raise_send_errors:
                 raise
