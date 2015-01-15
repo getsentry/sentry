@@ -62,7 +62,7 @@ Collection.prototype.unshift = function unshift(items) {
   if (!items instanceof Array) {
     items = [items];
   }
-  items.forEach(function(item){
+  items.reverse().forEach(function(item){
     var existing = this.pop(item);
     if (existing) {
       $.extend(true, existing, item);
