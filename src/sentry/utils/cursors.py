@@ -107,13 +107,13 @@ def build_cursor(results, key, limit=100, cursor=None):
         has_next = True
     elif num_results:
         if not value:
-            value = getattr(results[0], key)
+            value = long(key(results[0]))
 
         # Are there more results than whats on the current page?
         has_next = num_results > limit
 
         # Determine what our next cursor is by ensuring we have a unique offset
-        next_value = getattr(results[-1], key)
+        next_value = long(key(results[-1]))
 
         if next_value == value:
             next_offset = offset + limit
@@ -123,7 +123,7 @@ def build_cursor(results, key, limit=100, cursor=None):
             # skip the last result
             result_iter.next()
             for result in result_iter:
-                if getattr(result, key) == next_value:
+                if long(key(result)) == next_value:
                     next_offset += 1
                 else:
                     break
@@ -134,11 +134,11 @@ def build_cursor(results, key, limit=100, cursor=None):
 
     # Determine what our pervious cursor is by ensuring we have a unique offset
     if is_prev and num_results:
-        prev_value = getattr(results[0], key)
+        prev_value = long(key(results[0]))
 
         if num_results > 2:
             i = 1
-            while i < num_results and prev_value == getattr(results[i], key):
+            while i < num_results and prev_value == long(key(results[i])):
                 i += 1
             i -= 1
         else:

@@ -7,6 +7,8 @@ sentry.api.paginator
 """
 from __future__ import absolute_import
 
+import math
+
 from django.db import connections
 
 from sentry.utils.cursors import build_cursor, Cursor
@@ -21,6 +23,12 @@ class Paginator(object):
         else:
             self.key, self.desc = order_by, False
         self.queryset = queryset
+
+    def _get_item_key(self, item):
+        value = getattr(item, self.key)
+        if self.desc:
+            return math.ceil(value)
+        return math.floor(value)
 
     def _get_results_from_qs(self, value, is_prev):
         results = self.queryset
@@ -95,5 +103,5 @@ class Paginator(object):
             results=results,
             limit=limit,
             cursor=cursor,
-            key=self.key,
+            key=self._get_item_key,
         )
