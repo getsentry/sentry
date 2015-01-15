@@ -3,6 +3,7 @@ var React = require("react");
 var $ = require("jquery");
 
 var alertActions = require("../actions/alertActions");
+var AssigneeSelector = require("./assigneeSelector");
 var BarChart = require("./barChart");
 var Count = require("./count");
 var StreamActions = require('./streamActions');
@@ -16,6 +17,9 @@ var Aggregate = React.createClass({
     data: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
     }).isRequired,
+    memberList: React.PropTypes.instanceOf(Array),
+    onSelect: React.PropTypes.func.isRequired,
+    onAssignTo: React.PropTypes.func.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
     isSelected: React.PropTypes.bool
   },
@@ -64,7 +68,10 @@ var Aggregate = React.createClass({
           </div>
         </div>
         <div className="event-assignee event-cell hidden-xs hidden-sm">
-
+          <AssigneeSelector
+            aggregate={data}
+            memberList={this.props.memberList}
+            onAssignTo={this.props.onAssignTo} />
         </div>
         <div className="hidden-sm hidden-xs event-graph align-right event-cell">
           <BarChart points={chartData} className="sparkline" />
@@ -134,6 +141,7 @@ var Stream = React.createClass({
     project: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
     }).isRequired,
+    memberList: React.PropTypes.instanceOf(Array),
     initialQuery: React.PropTypes.string,
     pageLinks: React.PropTypes.string
   },
@@ -278,6 +286,24 @@ var Stream = React.createClass({
       multiSelected: false
     });
   },
+  handleAssignTo: function(agg, member) {
+    $.ajax({
+      url: '/api/0/groups/' + $scope.group.id + '/',
+      method: 'PUT',
+      data: JSON.stringify({
+        assignedTo: user.email
+      }),
+      contentType: 'application/json',
+      success: function(data){
+        $timeout(function(){
+          $scope.group.assignedTo = user;
+        });
+      },
+      error: function(){
+        flash('error', 'Unable to change assignee. Please try again.');
+      }
+    });
+  },
   handleResolve: function(aggList, event){
     return this.actionAggregates(aggList, {
       data: {status: 'resolved'}
@@ -334,8 +360,10 @@ var Stream = React.createClass({
       return (
         <Aggregate data={node} key={node.id}
                    isSelected={node.isSelected}
-                   statsPeriod={this.state.statsPeriod}
-                   onSelect={this.handleSelect.bind(this, node.id)} />
+                   memberList={this.props.memberList}
+                   onSelect={this.handleSelect.bind(this, node.id)}
+                   onAssignTo={this.handleAssignTo.bind(this, node.id)}
+                   statsPeriod={this.state.statsPeriod} />
       );
     }.bind(this));
 
