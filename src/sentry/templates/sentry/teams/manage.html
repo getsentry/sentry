@@ -5,6 +5,8 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
+{% block wrapperclass %}organization{% endblock %}
+
 {% block title %}{% trans "Team Settings" %} | {{ block.super }}{% endblock %}
 
 {% block team_settings_nav %} class="active"{% endblock %}
