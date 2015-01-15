@@ -16,9 +16,11 @@ class ProjectMemberIndexEndpoint(Endpoint):
         assert_perm(project, request.user, request.auth)
 
         member_list = sorted(set(User.objects.filter(
-            Q(member_set__team=project.team) |
-            Q(accessgroup__projects=project),
-        )[:1000]), key=lambda x: x.email)
+            sentry_orgmember_set__organization=project.organization,
+        ).filter(
+            Q(sentry_orgmember_set__teams=project.team) |
+            Q(sentry_orgmember_set__has_global_access=True)
+        ).distinct()[:1000]), key=lambda x: x.email)
 
         member_list = serialize(member_list, request.user)
 
