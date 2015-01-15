@@ -326,7 +326,7 @@ var Stream = React.createClass({
   },
   handleRealtimePoll: function(data) {
     this.setState({
-      aggList: this.state.aggList.extend(data)
+      aggList: this.state.aggList.unshift(data)
     });
   },
   render: function() {

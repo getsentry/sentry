@@ -1,13 +1,9 @@
 /*** @jsx React.DOM */
 
 var defaults = {
-  sortFunc: null,
   limit: null,
   equals: function(item, other) {
     return item.id == other.id;
-  },
-  canUpdate: function(current, pending) {
-    return true;
   }
 };
 
@@ -29,7 +25,7 @@ function Collection(collection, options) {
   this.options = options;
 
   if (collection !== undefined) {
-    this.extend(collection);
+    this.push(collection);
   }
 
   return this;
@@ -39,40 +35,59 @@ Collection.prototype = [];
 
 Collection.prototype.constructor = Collection;
 
-Collection.prototype.add = function add(item) {
-  if (this.update(item)) {
-    return;
-  }
-
-  Array.prototype.push.apply(this, arguments);
-  if (this.options.sortFunc) {
-    this.options.sortFunc(this);
-  }
+Collection.prototype._refresh = function _refresh() {
   if (this.options.limit && this.length > this.options.limit) {
     this.splice(this.options.limit, this.length - this.options.limit);
   }
 };
 
-Collection.prototype.remove = function remove(item) {
-  for (var i = 0; i < this.length; i++) {
-    if (this[i].id == item.id) {
-      this.splice(i, i + 1);
-      return;
-    }
+Collection.prototype.push = function push(items) {
+  if (!items instanceof Array) {
+    items = [items];
   }
+
+  items.forEach(function(item){
+    var existing = this.pop(item);
+    if (existing) {
+      $.extend(true, existing, item);
+      item = existing;
+    }
+    Array.prototype.push.apply(this, [item]);
+  }.bind(this));
+  this._refresh();
+  return this;
+};
+
+Collection.prototype.unshift = function unshift(items) {
+  if (!items instanceof Array) {
+    items = [items];
+  }
+  items.forEach(function(item){
+    var existing = this.pop(item);
+    if (existing) {
+      $.extend(true, existing, item);
+      item = existing;
+    }
+    Array.prototype.unshift.apply(this, [item]);
+  }.bind(this));
+  this._refresh();
+  return this;
+};
+
+Collection.prototype.pop = function pop(item) {
+  var idx = this.indexOf(item);
+  if (idx === -1) {
+    return;
+  }
+  result = this[idx];
+  this.splice(idx, idx + 1);
+  return result;
 };
 
 Collection.prototype.empty = function empty() {
   while (this.length > 0) {
     this.pop();
   }
-};
-
-Collection.prototype.extend = function extend(data) {
-  for (var i = 0; i < data.length; i++) {
-    this.add(data[i]);
-  }
-  return this;
 };
 
 Collection.prototype.indexOf = function indexOf(item) {
@@ -86,7 +101,6 @@ Collection.prototype.indexOf = function indexOf(item) {
 
 Collection.prototype.update = function update(item) {
   // returns true if the item already existed and was updated (as configured)
-
   var existing = this.indexOf(item);
   if (existing !== -1) {
     if (!this.options.canUpdate(this[existing], item)) {
