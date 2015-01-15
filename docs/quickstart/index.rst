@@ -50,7 +50,7 @@ Setting up an Environment
 The first thing you'll need is the Python ``virtualenv`` package. You probably already
 have this, but if not, you can install it with::
 
-  pip -U virtualenv
+  pip install -U virtualenv
 
 Once that's done, choose a location for the environment, and create it with the ``virtualenv``
 command. For our guide, we're going to choose ``/www/sentry/``::
@@ -70,7 +70,7 @@ Install Sentry
 Once you've got the environment setup, you can install Sentry and all its dependencies with
 the same command you used to grab virtualenv::
 
-  pip -U sentry
+  pip install -U sentry
 
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
@@ -95,10 +95,10 @@ These databases require additional packages, but Sentry provides a couple of met
 ::
 
   # install sentry and its postgresql dependencies
-  pip -U sentry[postgres]
+  pip install -U sentry[postgres]
 
   # or if you choose, mysql
-  pip -U sentry[mysql]
+  pip install -U sentry[mysql]
 
 
 Installing from Source
