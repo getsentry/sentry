@@ -288,20 +288,20 @@ var Stream = React.createClass({
   },
   handleAssignTo: function(agg, member) {
     $.ajax({
-      url: '/api/0/groups/' + $scope.group.id + '/',
+      url: '/api/0/groups/' + agg.id + '/',
       method: 'PUT',
       data: JSON.stringify({
-        assignedTo: user.email
+        assignedTo: member.email
       }),
       contentType: 'application/json',
       success: function(data){
-        $timeout(function(){
-          $scope.group.assignedTo = user;
+        this.setState({
+          aggList: this.state.aggList.update(data)
         });
-      },
+      }.bind(this),
       error: function(){
-        flash('error', 'Unable to change assignee. Please try again.');
-      }
+        alertActions.addAlert('Unable to change assignee. Please try again.', 'error');
+      }.bind(this)
     });
   },
   handleResolve: function(aggList, event){
@@ -362,7 +362,7 @@ var Stream = React.createClass({
                    isSelected={node.isSelected}
                    memberList={this.props.memberList}
                    onSelect={this.handleSelect.bind(this, node.id)}
-                   onAssignTo={this.handleAssignTo.bind(this, node.id)}
+                   onAssignTo={this.handleAssignTo.bind(this, node)}
                    statsPeriod={this.state.statsPeriod} />
       );
     }.bind(this));
