@@ -21,14 +21,14 @@ var AssigneeSelector = React.createClass({
     var memberNodes = [];
     this.props.memberList.forEach(function(item){
       memberNodes.push(
-        <li>
-          <a onClick={this.onAssignTo.bind(this, item)}>
+        <li key={item.id}>
+          <a onClick={this.props.onAssignTo.bind(this, item)}>
             <img src={item.avatarUrl} className="avatar" />
             {item.name || item.email}
           </a>
         </li>
       );
-    });
+    }.bind(this));
 
     return (
       <div className={className}>
