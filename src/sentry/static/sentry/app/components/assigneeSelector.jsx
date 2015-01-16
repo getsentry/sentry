@@ -24,11 +24,10 @@ var AssigneeSelector = React.createClass({
     var memberNodes = [];
     this.props.memberList.forEach(function(item){
       memberNodes.push(
-        <MenuItem noAnchor={true} key={item.id}>
-          <a onClick={this.props.onAssignTo.bind(this, item)}>
-            <img src={item.avatarUrl} className="avatar" />
-            {item.name || item.email}
-          </a>
+        <MenuItem key={item.id}
+                  onSelect={this.props.onAssignTo.bind(this, item)} >
+          <img src={item.avatarUrl} className="avatar" />
+          {item.name || item.email}
         </MenuItem>
       );
     }.bind(this));

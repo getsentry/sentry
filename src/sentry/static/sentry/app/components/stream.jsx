@@ -295,8 +295,9 @@ var Stream = React.createClass({
       }),
       contentType: 'application/json',
       success: function(data){
+        this.state.aggList.update(data);
         this.setState({
-          aggList: this.state.aggList.update(data)
+          aggList: this.state.aggList
         });
       }.bind(this),
       error: function(){
