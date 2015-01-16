@@ -2,6 +2,9 @@
 
 var React = require("react");
 
+var DropdownLink = require("./dropdownLink");
+var MenuItem = require("./menuItem");
+
 var AssigneeSelector = React.createClass({
   propTypes: {
     aggregate: React.PropTypes.shape({
@@ -21,33 +24,29 @@ var AssigneeSelector = React.createClass({
     var memberNodes = [];
     this.props.memberList.forEach(function(item){
       memberNodes.push(
-        <li key={item.id}>
+        <MenuItem noAnchor={true} key={item.id}>
           <a onClick={this.props.onAssignTo.bind(this, item)}>
             <img src={item.avatarUrl} className="avatar" />
             {item.name || item.email}
           </a>
-        </li>
+        </MenuItem>
       );
     }.bind(this));
 
     return (
       <div className={className}>
-        <div className="dropdown">
-          <a href="#" className="btn btn-sm btn-default" dropdown-toggle>
-            {agg.assignedTo ?
-              <img src={agg.assignedTo.avatarUrl} className="avatar" />
-            :
-              <span className="icon-user" />
-            }
-            <span aria-hidden="true" className="icon-arrow-down"></span>
-          </a>
-          <div className="dropdown-menu" role="menu">
+        <DropdownLink
+          className="btn-sm btn-default"
+          title={agg.assignedTo ?
+            <img src={agg.assignedTo.avatarUrl} className="avatar" />
+          :
+            <span className="icon-user" />
+          }>
+          <MenuItem noAnchor={true} key="filter">
             <input type="text" className="form-control input-sm" placeholder="Filter people" />
-            <ul>
-              {memberNodes}
-            </ul>
-          </div>
-        </div>
+          </MenuItem>
+          {memberNodes}
+        </DropdownLink>
       </div>
     );
   }
