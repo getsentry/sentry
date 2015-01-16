@@ -20,9 +20,14 @@ var AssigneeSelector = React.createClass({
     };
   },
 
-  onAssignTo: function(member) {
+  assignTo: function(member) {
     this.setState({loading: true});
     AggregateListActions.setAssignedTo(this.props.aggregate.id, member.email, this.onAssignToComplete);
+  },
+
+  clearAssignTo: function(member) {
+    this.setState({loading: true});
+    AggregateListActions.setAssignedTo(this.props.aggregate.id, '', this.onAssignToComplete);
   },
 
   onAssignToComplete: function() {
@@ -42,7 +47,7 @@ var AssigneeSelector = React.createClass({
       memberNodes.push(
         <MenuItem key={item.id}
                   disabled={!this.state.loading}
-                  onSelect={this.onAssignTo.bind(this, item)} >
+                  onSelect={this.assignTo.bind(this, item)} >
           <img src={item.avatarUrl} className="avatar" />
           {item.name || item.email}
         </MenuItem>
@@ -64,6 +69,13 @@ var AssigneeSelector = React.createClass({
             <MenuItem noAnchor={true} key="filter">
               <input type="text" className="form-control input-sm" placeholder="Filter people" />
             </MenuItem>
+            {agg.assignedTo ?
+              <MenuItem key="clear"
+                        disabled={!this.state.loading}
+                        onSelect={this.clearAssignTo}>
+                Clear Assignee
+              </MenuItem>
+            : ''}
             {memberNodes}
           </DropdownLink>
         }
