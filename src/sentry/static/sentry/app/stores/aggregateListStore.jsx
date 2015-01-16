@@ -2,14 +2,14 @@
 
 var Reflux = require("reflux");
 
-var alertActions = require("../actions/alertActions");
-var aggregateListActions = require('../actions/aggregateListActions');
+var AlertActions = require("../actions/alertActions");
+var AggregateListActions = require('../actions/aggregateListActions');
 var utils = require("../utils");
 
 var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
 
-var aggregateListStore = Reflux.createStore({
-  listenables: aggregateListActions,
+var AggregateListStore = Reflux.createStore({
+  listenables: AggregateListActions,
 
   init: function() {
     // TODO(dcramer): what we want to actually do is keep this as a simple
@@ -51,4 +51,4 @@ var aggregateListStore = Reflux.createStore({
   }
 });
 
-module.exports = aggregateListStore;
+module.exports = AggregateListStore;

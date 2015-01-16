@@ -3,10 +3,10 @@
 var Reflux = require("reflux");
 
 var AlertMessage = require('../components/alertMessage');
-var alertActions = require('../actions/alertActions');
+var AlertActions = require('../actions/alertActions');
 
-var alertStore = Reflux.createStore({
-  listenables: alertActions,
+var AlertStore = Reflux.createStore({
+  listenables: AlertActions,
 
   init: function() {
     this.alerts = [];
@@ -31,4 +31,4 @@ var alertStore = Reflux.createStore({
   }
 });
 
-module.exports = alertStore;
+module.exports = AlertStore;

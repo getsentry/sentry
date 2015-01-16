@@ -2,6 +2,6 @@
 
 var Reflux = require("reflux");
 
-var alertActions = Reflux.createActions(["addAlert", "closeAlert"]);
+var AlertActions = Reflux.createActions(["addAlert", "closeAlert"]);
 
-module.exports = alertActions;
+module.exports = AlertActions;
