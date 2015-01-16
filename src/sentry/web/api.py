@@ -431,6 +431,7 @@ def poll(request, organization, project):
             uri=base_url,
             cursor=cursor,
             name=name,
+            has_results='true' if bool(cursor) else 'false',
         ))
 
     headers = {}
