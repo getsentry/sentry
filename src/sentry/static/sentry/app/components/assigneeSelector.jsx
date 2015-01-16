@@ -21,7 +21,12 @@ var AssigneeSelector = React.createClass({
   },
 
   onAssignTo: function(member) {
-    aggregateListActions.setAssignedTo(this.props.aggregate.id, member.email);
+    this.setState({loading: true});
+    aggregateListActions.setAssignedTo(this.props.aggregate.id, member.email, this.onAssignToComplete);
+  },
+
+  onAssignToComplete: function() {
+    this.setState({loading: false});
   },
 
   render: function() {
@@ -36,6 +41,7 @@ var AssigneeSelector = React.createClass({
     this.props.memberList.forEach(function(item){
       memberNodes.push(
         <MenuItem key={item.id}
+                  disabled={!this.state.loading}
                   onSelect={this.onAssignTo.bind(this, item)} >
           <img src={item.avatarUrl} className="avatar" />
           {item.name || item.email}
@@ -45,18 +51,22 @@ var AssigneeSelector = React.createClass({
 
     return (
       <div className={className}>
-        <DropdownLink
-          className="btn-sm btn-default"
-          title={agg.assignedTo ?
-            <img src={agg.assignedTo.avatarUrl} className="avatar" />
-          :
-            <span className="icon-user" />
-          }>
-          <MenuItem noAnchor={true} key="filter">
-            <input type="text" className="form-control input-sm" placeholder="Filter people" />
-          </MenuItem>
-          {memberNodes}
-        </DropdownLink>
+        {this.state.loading ?
+          <span>LOADING</span>
+        :
+          <DropdownLink
+            className="btn-sm btn-default"
+            title={agg.assignedTo ?
+              <img src={agg.assignedTo.avatarUrl} className="avatar" />
+            :
+              <span className="icon-user" />
+            }>
+            <MenuItem noAnchor={true} key="filter">
+              <input type="text" className="form-control input-sm" placeholder="Filter people" />
+            </MenuItem>
+            {memberNodes}
+          </DropdownLink>
+        }
       </div>
     );
   }

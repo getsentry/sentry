@@ -30,7 +30,7 @@ var aggregateListStore = Reflux.createStore({
     this.trigger(this.items, 'initial');
   },
 
-  onSetAssignedTo: function(itemId, userEmail) {
+  onSetAssignedTo: function(itemId, userEmail, cb) {
     $.ajax({
       url: '/api/0/groups/' + itemId + '/',
       method: 'PUT',
@@ -41,9 +41,11 @@ var aggregateListStore = Reflux.createStore({
       success: function(data){
         this.items.update(data);
         this.trigger(this.items, 'assignedTo', itemId, userEmail);
+        cb(data);
       }.bind(this),
       error: function(){
         alertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
+        cb();
       }.bind(this)
     });
   }
