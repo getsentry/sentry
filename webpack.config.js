@@ -15,7 +15,7 @@ function vendorFile(name) {
 module.exports = {
   entry: {
     "app": file("app/main.jsx"),
-    "vendor": ["react", "react-bootstrap", "reflux", "jquery", "moment"]
+    "vendor": ["react/addons", "react-bootstrap", "reflux", "jquery", "moment"]
   },
   module: {
     loaders: [

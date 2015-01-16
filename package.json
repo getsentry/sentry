@@ -8,7 +8,6 @@
   "dependencies": {
     "bootstrap": "^3.1.1",
     "chai": "1.7.x",
-    "eonasdan-bootstrap-datetimepicker": "^3.1.3",
     "flot": "^0.8.0-alpha",
     "gulp": "^3.8.10",
     "gulp-cached": "^1.0.1",
