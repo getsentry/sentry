@@ -265,7 +265,7 @@ var Stream = React.createClass({
     });
 
     if (aggList === StreamActions.ALL) {
-      aggList = this.props.aggList;
+      aggList = this.state.aggList;
     }
     selectedAggList.forEach(function(node){
       node.version = new Date().getTime() + 10;
@@ -280,7 +280,7 @@ var Stream = React.createClass({
     }
 
     this.setState({
-      aggList: this.props.aggList,
+      aggList: this.state.aggList,
       selectAllActive: false,
       anySelected: false,
       multiSelected: false
