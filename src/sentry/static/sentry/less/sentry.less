@@ -2484,14 +2484,22 @@ legend {
 }
 
 .datepicker-box {
-  width: 400px;
+  width: 420px;
   position: absolute;
-  top:45px;
-  padding: 16px 15px 0;
+  top: 45px;
+  padding: 15px;
 
-  .form-control {
-    display: inline;
-    height: 34px;
+  .input {
+    > span {
+      vertical-align: middle;
+      display: inline-block;
+      margin-right: 5px;
+      position: relative;
+    }
+    .form-control {
+      display: inline;
+      height: 34px;
+    }
   }
 
   .help-block {
@@ -2500,26 +2508,28 @@ legend {
   .radio-inputs {
     position: relative;
     display: inline-block;
-    // height: 26px;
     .radio {
       margin-top: 7px;
       margin-right: 10px;
       margin-bottom: 0;
+      margin-left: 20px;
       display: inline-block;
       font-weight: normal;
+
       input {
-        margin-left: -19px;
+        margin-left: -20px;
         margin-top: 3px;
         vertical-align: middle;
       }
     }
   }
 
-  .time {
-    width: 66px;
+  .submit .btn {
+    margin-left: 5px;
   }
+
   .date {
-    width: 103px;
+    width: 180px;
   }
 }
 

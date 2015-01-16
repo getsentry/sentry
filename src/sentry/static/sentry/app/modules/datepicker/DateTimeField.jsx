@@ -217,19 +217,16 @@ var DateTimeField = React.createClass({
         offset.top = -this.refs.widget.getDOMNode().offsetHeight - this.getDOMNode().clientHeight - 2;
         classes.top = true;
         classes.bottom = false;
-        classes['pull-right'] = true;
       } else {
         offset.top = 40;
         classes.top = false;
         classes.bottom = true;
-        classes['pull-right'] = true;
       }
       styles = {
         display: 'block',
         position: 'absolute',
         top: offset.top,
-        left: 'auto',
-        right: 40
+        left: 0,
       };
       return this.setState({
         widgetStyle: styles,
@@ -264,7 +261,7 @@ var DateTimeField = React.createClass({
   },
   render: function() {
     return (
-          <div>
+          <span>
             {this.renderOverlay()}
             <DateTimePicker ref="widget"
               widgetClasses={this.state.widgetClasses}
@@ -292,13 +289,13 @@ var DateTimeField = React.createClass({
               setSelectedMinute={this.setSelectedMinute}
               togglePicker={this.togglePicker}
               togglePeriod={this.togglePeriod} />
-            <div className="input-group date" ref="datetimepicker">
+            <span className="input-group date" ref="datetimepicker">
               <input type="text" className="form-control" onChange={this.onChange} value={this.state.selectedDate.format(this.props.inputFormat)} />
               <span className="input-group-addon" onClick={this.onClick} onBlur={this.onBlur} ref="dtpbutton">
                 <span className="icon icon-calendar" />
               </span>
-            </div>
-          </div>
+            </span>
+          </span>
     );
   }
 });

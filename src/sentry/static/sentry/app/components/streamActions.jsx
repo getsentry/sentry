@@ -303,15 +303,9 @@ var StreamActions = React.createClass({
                  style={{display: this.state.datePickerActive ? 'block': 'none'}}>
               <form method="GET" action=".">
                 <div className="input">
-                  <div className="inline-inputs">
-                    <DateTimeField />
-                    // <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" className="form-control date" type="text" placeholder="Date" />
-                    // <input className="time form-control" type="text" name="tf" placeholder="Time" />
-                    to
-                    <DateTimeField />
-                    // <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" className="date form-control" type="text" placeholder="Date"/>
-                    // <input className="time form-control" type="text" name="tt" placeholder="Time" />
-                  </div>
+                  <DateTimeField name="df" />
+                  to
+                  <DateTimeField name="dt" />
                   <div className="help-block">All events are represented in UTC time.</div>
                 </div>
                 <div className="submit">
