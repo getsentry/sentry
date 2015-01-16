@@ -244,14 +244,14 @@ var Stream = React.createClass({
     var selectedAggList;
     if (aggList === StreamActions.SELECTED) {
       selectedAggList = [];
-      for (var i = 0, node; (node = this.props.aggList[i]); i++) {
+      for (var i = 0, node; (node = this.state.aggList[i]); i++) {
         if (node.isSelected === true) {
           selectedAggList.push(node);
         }
       }
       url += '?id=' + selectedAggList.map(function(node){ return node.id; }).join('&id=');
     } else {
-      selectedAggList = this.props.aggList;
+      selectedAggList = this.state.aggList;
     }
 
     var data = options.data || {};
