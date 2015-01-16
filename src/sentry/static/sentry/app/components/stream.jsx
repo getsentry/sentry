@@ -148,11 +148,6 @@ var Stream = React.createClass({
   getInitialState: function() {
     return {
       aggList: new utils.Collection(this.props.aggList, {
-        sortFunc: function(data) {
-          utils.sortArray(data, function(item){
-            return [item.sortWeight];
-          });
-        },
         equals: function(self, other) {
           return self.id === other.id;
         },
@@ -189,7 +184,12 @@ var Stream = React.createClass({
     }
   },
   getPollingEndpoint: function() {
-    return '/api/0/projects/' + this.props.project.id + '/groups/?' + window.location.search;
+    var params = utils.getQueryParams();
+    params.query = this.props.initialQuery;
+
+    var querystring = $.param(params);
+
+    return '/api/0/projects/' + this.props.project.id + '/groups/?' + querystring;
   },
   handleSelect: function(aggId, event) {
     var checked = $(event.target).is(':checked');
