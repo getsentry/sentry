@@ -44,7 +44,7 @@ var AggregateListStore = Reflux.createStore({
         cb(data);
       }.bind(this),
       error: function(){
-        alertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
+        AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
         cb();
       }.bind(this)
     });
