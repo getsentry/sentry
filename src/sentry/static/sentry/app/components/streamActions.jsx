@@ -4,7 +4,8 @@ var $ = require("jquery");
 
 var utils = require("../utils");
 
-var joinClasses = require('react-bootstrap/utils/joinClasses');
+var joinClasses = require("react-bootstrap/utils/joinClasses");
+var DateTimeField = require("../modules/datepicker/DateTimeField");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 var Modal = require("react-bootstrap/Modal");
@@ -159,8 +160,18 @@ var StreamActions = React.createClass({
     selectAllActive: React.PropTypes.bool.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
+  getInitialState: function(){
+    return {
+      datePickerActive: false
+    };
+  },
   selectStatsPeriod: function(period) {
     return this.props.onSelectStatsPeriod(period);
+  },
+  toggleDatePicker: function() {
+    this.setState({
+      datePickerActive: !this.state.datePickerActive
+    });
   },
   render: function() {
     var params = utils.getQueryParams();
@@ -284,18 +295,22 @@ var StreamActions = React.createClass({
           </DropdownLink>
 
           <div className="btn-group">
-            <a href="#" className="btn dropdown-toggle btn-sm" onclick="" data-toggle="dropdown">
+            <a href="#" className="btn btn-sm" onClick={this.toggleDatePicker}>
               All time
-            <span aria-hidden="true" className="icon-arrow-down"></span></a>
-            <div className="datepicker-box dropdown-menu" id="daterange">
+              <span aria-hidden="true" className="icon-arrow-down"></span>
+            </a>
+            <div className="datepicker-box dropdown-menu" id="daterange"
+                 style={{display: this.state.datePickerActive ? 'block': 'none'}}>
               <form method="GET" action=".">
                 <div className="input">
                   <div className="inline-inputs">
-                    <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" className="form-control date" type="text" placeholder="Date" />
-                    <input className="time form-control" type="text" name="tf" placeholder="Time" />
+                    <DateTimeField />
+                    // <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" className="form-control date" type="text" placeholder="Date" />
+                    // <input className="time form-control" type="text" name="tf" placeholder="Time" />
                     to
-                    <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" className="date form-control" type="text" placeholder="Date"/>
-                    <input className="time form-control" type="text" name="tt" placeholder="Time" />
+                    <DateTimeField />
+                    // <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" className="date form-control" type="text" placeholder="Date"/>
+                    // <input className="time form-control" type="text" name="tt" placeholder="Time" />
                   </div>
                   <div className="help-block">All events are represented in UTC time.</div>
                 </div>
