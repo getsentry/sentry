@@ -1,7 +1,10 @@
 /*** @jsx React.DOM */
 var React = require("react");
+var Reflux = require("reflux");
 var $ = require("jquery");
 
+var aggregateListActions = require("../actions/aggregateListActions");
+var aggregateListStore = require("../stores/aggregateListStore");
 var alertActions = require("../actions/alertActions");
 var AssigneeSelector = require("./assigneeSelector");
 var BarChart = require("./barChart");
@@ -19,7 +22,6 @@ var Aggregate = React.createClass({
     }).isRequired,
     memberList: React.PropTypes.instanceOf(Array),
     onSelect: React.PropTypes.func.isRequired,
-    onAssignTo: React.PropTypes.func.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
     isSelected: React.PropTypes.bool
   },
@@ -70,8 +72,7 @@ var Aggregate = React.createClass({
         <div className="event-assignee event-cell hidden-xs hidden-sm">
           <AssigneeSelector
             aggregate={data}
-            memberList={this.props.memberList}
-            onAssignTo={this.props.onAssignTo} />
+            memberList={this.props.memberList} />
         </div>
         <div className="hidden-sm hidden-xs event-graph align-right event-cell">
           <BarChart points={chartData} className="sparkline" />
@@ -136,6 +137,8 @@ StreamPoller.prototype.poll = function() {
 };
 
 var Stream = React.createClass({
+  mixins: [Reflux.connect(aggregateListStore, "aggList")],
+
   propTypes: {
     aggList: React.PropTypes.array.isRequired,
     project: React.PropTypes.shape({
@@ -145,9 +148,10 @@ var Stream = React.createClass({
     initialQuery: React.PropTypes.string,
     pageLinks: React.PropTypes.string
   },
+
   getInitialState: function() {
     return {
-      aggList: new utils.Collection(this.props.aggList, {
+      aggList: new utils.Collection([], {
         equals: function(self, other) {
           return self.id === other.id;
         },
@@ -159,9 +163,10 @@ var Stream = React.createClass({
       statsPeriod: '24h',
       query: this.props.initialQuery,
       pageLinks: this.props.pageLinks,
-      realtimeActive: true
+      realtimeActive: false
     };
   },
+
   componentDidMount: function() {
     this._poller = new StreamPoller({
       success: this.handleRealtimePoll,
@@ -170,10 +175,14 @@ var Stream = React.createClass({
     if (this.state.realtimeActive) {
       this._poller.enable();
     }
+
+    aggregateListStore.loadInitialData(this.props.aggList);
   },
+
   componentWillUnmount: function() {
     this._poller.disable();
   },
+
   componentDidUpdate: function(prevProps, prevState) {
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       if (this.state.realtimeActive) {
@@ -183,6 +192,7 @@ var Stream = React.createClass({
       }
     }
   },
+
   getPollingEndpoint: function() {
     var params = utils.getQueryParams();
     params.query = this.props.initialQuery;
@@ -191,6 +201,7 @@ var Stream = React.createClass({
 
     return '/api/0/projects/' + this.props.project.id + '/groups/?' + querystring;
   },
+
   handleSelect: function(aggId, event) {
     var checked = $(event.target).is(':checked');
     var aggList = this.state.aggList;
@@ -222,6 +233,7 @@ var Stream = React.createClass({
       multiSelected: numSelected > 1
     });
   },
+
   handleSelectAll: function(event){
     var checked = $(event.target).is(':checked');
     var aggList = this.state.aggList;
@@ -238,6 +250,7 @@ var Stream = React.createClass({
       multiSelected: numSelected > 1
     });
   },
+
   actionAggregates: function(aggList, options) {
     var url = options.url || '/api/0/projects/' + this.props.project.id + '/groups/';
 
@@ -284,25 +297,6 @@ var Stream = React.createClass({
       selectAllActive: false,
       anySelected: false,
       multiSelected: false
-    });
-  },
-  handleAssignTo: function(agg, member) {
-    $.ajax({
-      url: '/api/0/groups/' + agg.id + '/',
-      method: 'PUT',
-      data: JSON.stringify({
-        assignedTo: member.email
-      }),
-      contentType: 'application/json',
-      success: function(data){
-        this.state.aggList.update(data);
-        this.setState({
-          aggList: this.state.aggList
-        });
-      }.bind(this),
-      error: function(){
-        alertActions.addAlert('Unable to change assignee. Please try again.', 'error');
-      }.bind(this)
     });
   },
   handleResolve: function(aggList, event){
@@ -363,7 +357,6 @@ var Stream = React.createClass({
                    isSelected={node.isSelected}
                    memberList={this.props.memberList}
                    onSelect={this.handleSelect.bind(this, node.id)}
-                   onAssignTo={this.handleAssignTo.bind(this, node)}
                    statsPeriod={this.state.statsPeriod} />
       );
     }.bind(this));

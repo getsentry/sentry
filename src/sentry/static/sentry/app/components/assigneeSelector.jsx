@@ -2,6 +2,7 @@
 
 var React = require("react");
 
+var aggregateListActions = require("../actions/aggregateListActions");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 
@@ -11,8 +12,18 @@ var AssigneeSelector = React.createClass({
       id: React.PropTypes.string.isRequired
     }).isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
-    onAssignTo: React.PropTypes.func.isRequired
   },
+
+  getInitialState: function() {
+    return {
+      loading: false
+    };
+  },
+
+  onAssignTo: function(member) {
+    aggregateListActions.setAssignedTo(this.props.aggregate.id, member.email);
+  },
+
   render: function() {
     var agg = this.props.aggregate;
 
@@ -25,7 +36,7 @@ var AssigneeSelector = React.createClass({
     this.props.memberList.forEach(function(item){
       memberNodes.push(
         <MenuItem key={item.id}
-                  onSelect={this.props.onAssignTo.bind(this, item)} >
+                  onSelect={this.onAssignTo.bind(this, item)} >
           <img src={item.avatarUrl} className="avatar" />
           {item.name || item.email}
         </MenuItem>
