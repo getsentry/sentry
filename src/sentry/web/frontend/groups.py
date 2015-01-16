@@ -141,16 +141,22 @@ def group_list(request, organization, project):
         params=params,
         user=request.user,
     )
-
     event_list = response.data
     page_links = response['Link']
     query = params['query']
+
+    response = client.get(
+        path='/projects/{}/members/'.format(project.id),
+        user=request.user,
+    )
+    member_list = response.data
 
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'organization': organization,
         'project': project,
         'event_list': event_list,
+        'member_list': member_list,
         'page_links': page_links,
         'query': query,
         'SORT_OPTIONS': SORT_OPTIONS,
