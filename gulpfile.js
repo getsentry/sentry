@@ -1,7 +1,6 @@
 "use strict";
 
-var browserSync = require("browser-sync"),
-    gulp = require("gulp"),
+var gulp = require("gulp"),
     gp_cached = require("gulp-cached"),
     gp_clean = require("gulp-clean"),
     gp_concat = require("gulp-concat"),
@@ -63,7 +62,6 @@ function buildCssCompileTask(name, fileList) {
     }))
     .pipe(gp_concat(name))
     .pipe(gulp.dest(distPath))
-    .pipe(browserSync.reload({stream: true}))
     .on("error", gp_util.log);
   };
 }
@@ -124,15 +122,7 @@ gulp.task("watch:webpack", function(callback){
 
 gulp.task("watch", function(){
   gp_livereload.listen();
-  return gulp.start(["livereload", "watch:css", "watch:webpack", "watch:templates"]);
-});
-
-gulp.task("livereload", function() {
-  browserSync({
-    proxy: 'localhost:8000',
-    // dont open a browser, that shit is annoying
-    open: false
-  });
+  return gulp.start(["watch:css", "watch:webpack", "watch:templates"]);
 });
 
 gulp.task("default", ["dist"]);
