@@ -2,8 +2,8 @@
 
 var Reflux = require("reflux");
 
-var aggregateListActions = Reflux.createActions([
+var AggregateListActions = Reflux.createActions([
   "setAssignedTo"
 ]);
 
-module.exports = aggregateListActions;
+module.exports = AggregateListActions;

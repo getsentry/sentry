@@ -2,7 +2,7 @@
 
 var React = require("react");
 var Reflux = require("reflux");
-var alertActions = require('../actions/alertActions');
+var AlertActions = require('../actions/alertActions');
 
 var AlertMessage = React.createClass({
   propTypes: {
@@ -11,7 +11,7 @@ var AlertMessage = React.createClass({
   },
 
   closeAlert: function() {
-    alertActions.closeAlert(this);
+    AlertActions.closeAlert(this);
   },
 
   render: function() {

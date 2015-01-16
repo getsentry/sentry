@@ -3,11 +3,11 @@
 var React = require("react");
 var Reflux = require("reflux");
 
-var alertStore = require('../stores/alertStore');
+var AlertStore = require('../stores/alertStore');
 var AlertMessage = require('./alertMessage');
 
 var Alerts = React.createClass({
-  mixins: [Reflux.connect(alertStore, "alerts")],
+  mixins: [Reflux.connect(AlertStore, "alerts")],
 
   getInitialState: function() {
       return {

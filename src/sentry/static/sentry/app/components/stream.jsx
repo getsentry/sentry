@@ -3,9 +3,9 @@ var React = require("react");
 var Reflux = require("reflux");
 var $ = require("jquery");
 
-var aggregateListActions = require("../actions/aggregateListActions");
-var aggregateListStore = require("../stores/aggregateListStore");
-var alertActions = require("../actions/alertActions");
+var AggregateListActions = require("../actions/aggregateListActions");
+var AggregateListStore = require("../stores/aggregateListStore");
+var AlertActions = require("../actions/alertActions");
 var AssigneeSelector = require("./assigneeSelector");
 var BarChart = require("./barChart");
 var Count = require("./count");
@@ -137,7 +137,7 @@ StreamPoller.prototype.poll = function() {
 };
 
 var Stream = React.createClass({
-  mixins: [Reflux.connect(aggregateListStore, "aggList")],
+  mixins: [Reflux.connect(AggregateListStore, "aggList")],
 
   propTypes: {
     aggList: React.PropTypes.array.isRequired,
@@ -176,7 +176,7 @@ var Stream = React.createClass({
       this._poller.enable();
     }
 
-    aggregateListStore.loadInitialData(this.props.aggList);
+    AggregateListStore.loadInitialData(this.props.aggList);
   },
 
   componentWillUnmount: function() {
@@ -323,7 +323,7 @@ var Stream = React.createClass({
     return this.actionAggregates(aggList, {
       method: 'DELETE',
       success: function() {
-        alertActions.addAlert('The selected events have been scheduled for deletion.', 'success');
+        AlertActions.addAlert('The selected events have been scheduled for deletion.', 'success');
       }
     });
   },
@@ -331,7 +331,7 @@ var Stream = React.createClass({
     return this.actionAggregates(aggList, {
       data: {merge: 1},
       success: function() {
-        alertActions.addAlert('The selected events have been scheduled for merge.', 'success');
+        AlertActions.addAlert('The selected events have been scheduled for merge.', 'success');
       }
     });
   },

@@ -2,7 +2,7 @@
 
 var React = require("react");
 
-var aggregateListActions = require("../actions/aggregateListActions");
+var AggregateListActions = require("../actions/aggregateListActions");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 
@@ -22,7 +22,7 @@ var AssigneeSelector = React.createClass({
 
   onAssignTo: function(member) {
     this.setState({loading: true});
-    aggregateListActions.setAssignedTo(this.props.aggregate.id, member.email, this.onAssignToComplete);
+    AggregateListActions.setAssignedTo(this.props.aggregate.id, member.email, this.onAssignToComplete);
   },
 
   onAssignToComplete: function() {
