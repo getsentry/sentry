@@ -90,7 +90,7 @@ gulp.task("dist:webpack", function(callback){
 gulp.task("dist", ["dist:css", "dist:webpack"]);
 
 gulp.task("watch:css:sentry", function(){
-  return gp_watch(file("less/sentry.less"), function(){
+  return gp_watch(file("less/**/*.less"), function(){
     gulp.start("dist:css:sentry");
   });
 });
