@@ -103,9 +103,6 @@ Collection.prototype.update = function update(item) {
   // returns true if the item already existed and was updated (as configured)
   var existing = this.indexOf(item);
   if (existing !== -1) {
-    if (!this.options.canUpdate(this[existing], item)) {
-      return true;
-    }
     $.extend(true, this[existing], item);
     return true;
   }
