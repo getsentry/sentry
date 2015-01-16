@@ -1,14 +1,8 @@
-
 /** @jsx React.DOM */
-var DateTimePickerHours, DateTimePickerMinutes, DateTimePickerTime, Glyphicon, React;
 
-React = require('react');
-
-DateTimePickerMinutes = require('./DateTimePickerMinutes');
-
-DateTimePickerHours = require('./DateTimePickerHours');
-
-Glyphicon = require('react-bootstrap/Glyphicon');
+var React = require('react');
+var DateTimePickerMinutes = require('./DateTimePickerMinutes');
+var DateTimePickerHours = require('./DateTimePickerHours');
 
 DateTimePickerTime = React.createClass({
   propTypes: {
@@ -65,11 +59,15 @@ DateTimePickerTime = React.createClass({
         <table className="table-condensed">
           <tbody>
             <tr>
-              <td><a className="btn" onClick={this.props.addHour}><Glyphicon glyph="chevron-up" /></a></td>
+              <td><a className="btn" onClick={this.props.addHour}>
+                <span className="icon icon-arrow-up" />
+              </a></td>
 
               <td className="separator"></td>
 
-              <td><a className="btn" onClick={this.props.addMinute}><Glyphicon glyph="chevron-up" /></a></td>
+              <td><a className="btn" onClick={this.props.addMinute}>
+                <span className="icon icon-arrow-up" />
+              </a></td>
 
               <td className="separator"></td>
             </tr>
@@ -87,11 +85,15 @@ DateTimePickerTime = React.createClass({
             </tr>
 
             <tr>
-              <td><a className="btn" onClick={this.props.subtractHour}><Glyphicon glyph="chevron-down" /></a></td>
+              <td><a className="btn" onClick={this.props.subtractHour}>
+                <span className="icon icon-arrow-down" />
+              </a></td>
 
               <td className="separator"></td>
 
-              <td><a className="btn" onClick={this.props.subtractMinute}><Glyphicon glyph="chevron-down" /></a></td>
+              <td><a className="btn" onClick={this.props.subtractMinute}>
+                <span className="icon icon-arrow-down" />
+              </a></td>
 
               <td className="separator"></td>
             </tr>
