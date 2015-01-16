@@ -197,6 +197,10 @@ class GroupDetailsEndpoint(Endpoint):
                         }
                     )
 
+                    if request.user != assignee.user:
+                        # TODO(dcramer): send email
+                        pass
+
             else:
                 affected = GroupAssignee.objects.filter(
                     group=group,
