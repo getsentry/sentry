@@ -482,7 +482,7 @@ class EventManager(object):
                 status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
             ).exclude(
                 # add to the regression window to account for races here
-                active_at__gte=date - timedelta(seconds=5),
+                active_at__gte=date + timedelta(seconds=5),
             ).update(active_at=date, status=GroupStatus.UNRESOLVED))
 
             group.active_at = date
