@@ -58,14 +58,14 @@ Running Tests
 
 Running tests follows the py.test standard. As long as your test files and methods are named appropriately (``test_filename.py`` and ``test_function()``) you can simply call out to py.test:
 
-```
-$ py.test -v
-============================== test session starts ==============================
-platform darwin -- Python 2.7.9 -- py-1.4.26 -- pytest-2.6.4/python2.7
-plugins: django
-collected 1 items
+::
 
-tests/test_myextension.py::MyExtensionTest::test_simple PASSED
+    $ py.test -v
+    ============================== test session starts ==============================
+    platform darwin -- Python 2.7.9 -- py-1.4.26 -- pytest-2.6.4/python2.7
+    plugins: django
+    collected 1 items
 
-=========================== 1 passed in 0.35 seconds ============================
-```
+    tests/test_myextension.py::MyExtensionTest::test_simple PASSED
+
+    =========================== 1 passed in 0.35 seconds ============================
