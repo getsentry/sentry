@@ -20,8 +20,6 @@ from sentry.utils.runner import configure
 configure()
 
 from django.conf import settings
-from raven.contrib.django.middleware.wsgi import Sentry
-
 if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH):
     try:
         os.makedirs(settings.SESSION_FILE_PATH)
@@ -30,4 +28,5 @@ if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH)
 
 # Run WSGI handler for the application
 from django.core.wsgi import get_wsgi_application
+from raven.contrib.django.middleware.wsgi import Sentry
 application = Sentry(get_wsgi_application())
