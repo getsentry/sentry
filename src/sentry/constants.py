@@ -12,9 +12,9 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os.path
+from collections import OrderedDict
 
 from django.conf import settings
-from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -29,7 +29,7 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
-SORT_OPTIONS = SortedDict((
+SORT_OPTIONS = OrderedDict((
     ('priority', _('Priority')),
     ('date', _('Last Seen')),
     ('new', _('First Seen')),
@@ -38,7 +38,7 @@ SORT_OPTIONS = SortedDict((
     ('avgtime', _('Average Time Spent')),
 ))
 
-SEARCH_SORT_OPTIONS = SortedDict((
+SEARCH_SORT_OPTIONS = OrderedDict((
     ('score', _('Score')),
     ('date', _('Last Seen')),
     ('new', _('First Seen')),
