@@ -83,7 +83,7 @@ Next Steps
 Dig into the rest of the plugin documentation, and take a look at existing plugins for ideas/best practices.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    v1interface
    v2interface
