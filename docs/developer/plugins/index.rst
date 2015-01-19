@@ -88,5 +88,6 @@ Dig into the rest of the plugin documentation, and take a look at existing plugi
    v1interface
    v2interface
    permissions
+   testing
 
 More and better docs coming soon..
