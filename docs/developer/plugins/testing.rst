@@ -3,7 +3,7 @@ Testing
 
 Sentry provides a basic py.test-based testing framework for extensions.
 
-.. versionadded:: 7.1.0
+.. versionadded:: 7.2.0
 
 In a simple project, you'll need to do a few things to get it working:
 
