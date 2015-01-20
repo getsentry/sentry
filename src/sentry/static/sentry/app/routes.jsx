@@ -6,20 +6,17 @@ var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
 var App = require("./components/app");
+var AggregateDetails = require("./components/aggregateDetails");
+var ProjectDetails = require("./components/projectDetails");
 var Stream = require("./components/stream");
 
 var routes = (
   <Route name="app" path="/" handler={App}>
-    <Route name="stream" path="/:organizationId/:projectId/" handler={Stream}/>
+    <Route name="projectDetails" path="/:orgId/:projectId/" handler={ProjectDetails}>
+      <DefaultRoute name="stream" handler={Stream} />
+      <Route name="aggregateDetails" path="group/:aggregateId/" handler={AggregateDetails}/>
+    </Route>
   </Route>
 );
 
 module.exports = routes;
-    // React.render(React.createFactory(Stream)({
-    //   aggList: {% serialize event_list %},
-    //   project: {% serialize project %},
-    //   memberList: {% serialize member_list %},
-    //   initialQuery: {% convert_to_json query %},
-    //   pageLinks: {% convert_to_json page_links %}
-    // }), document.getElementById('blk_stream'));
-

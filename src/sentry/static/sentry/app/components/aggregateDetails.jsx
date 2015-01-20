@@ -2,8 +2,9 @@
 
 var React = require("react");
 var Reflux = require("reflux");
+var Router = require("react-router");
 
-var AggregateListStore = require("../stores/aggregateListStore");
+var api = require("../api");
 var AssigneeSelector = require("./assigneeSelector");
 var Count = require("./count");
 var TimeSince = require("./timeSince");
@@ -106,46 +107,47 @@ var AggregateHeader = React.createClass({
 });
 
 var AggregateDetails = React.createClass({
-  mixins: [Reflux.connect(AggregateListStore, "aggList")],
-
-  propTypes: {
-    aggList: React.PropTypes.instanceOf(Array).isRequired,
-    aggId: React.PropTypes.string.isRequired,
-    memberList: React.PropTypes.instanceOf(Array).isRequired,
-  },
+  mixins: [Router.State],
 
   getInitialState: function() {
     return {
-      aggList: new utils.Collection([], {
-        equals: function(self, other) {
-          return self.id === other.id;
-        },
-        limit: 50
-      }),
-      agg: this.props.aggList[0],
-      statsPeriod: '24h'
+      aggregate: null,
+      statsPeriod: '24h',
+      memberList: []
     };
   },
 
-  componentDidMount: function() {
-    AggregateListStore.loadInitialData(this.props.aggList);
+  componentWillMount: function() {
+    api.request(this.getAggregateDetailsEndpoint(), {
+      success: function(data, textStatus, jqXHR) {
+        this.setState({
+          aggregate: data
+        });
+      }.bind(this)
+    });
+  },
+
+  getAggregateDetailsEndpoint: function() {
+    return '/groups/' + this.getParams().aggregateId + '/';
   },
 
   render: function() {
-    var data = this.state.agg;
+    var data = this.state.aggregate;
+
+    if (!data) {
+      return <div />;
+    }
 
     return (
       <div className={this.props.className}>
         <AggregateHeader
-            aggregate={this.state.agg}
-            project={this.props.project}
+            aggregate={this.state.aggregate}
             statsPeriod={this.state.statsPeriod}
-            memberList={this.props.memberList} />
+            memberList={this.state.memberList} />
         <div className="box">
           <div className="box-content with-padding">
             <AggregateChart
-                aggregate={this.state.agg}
-                project={this.props.project} />
+                aggregate={this.state.aggregate} />
           </div>
         </div>
       </div>

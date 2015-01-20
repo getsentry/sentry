@@ -7,9 +7,6 @@ var AggregateChart = React.createClass({
   propTypes: {
     aggregate: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
-    }).isRequired,
-    project: React.PropTypes.shape({
-      id: React.PropTypes.string.isRequired
     }).isRequired
   },
 

@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 var React = require("react");
 var Reflux = require("reflux");
+var Router = require("react-router");
 var $ = require("jquery");
 
 var api = require("../api");
@@ -17,6 +18,8 @@ var TimeSince = require("./timeSince");
 var utils = require("../utils");
 
 var Aggregate = React.createClass({
+  mixins: [Router.State],
+
   propTypes: {
     data: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
@@ -29,6 +32,8 @@ var Aggregate = React.createClass({
   render: function() {
     var data = this.props.data,
         userCount = 0;
+
+    var params = this.getParams();
 
     var chartData = data.stats[this.props.statsPeriod].map(function(point){
       return {x: point[0], y: point[1]};
@@ -57,10 +62,13 @@ var Aggregate = React.createClass({
                    checked={this.props.isSelected}
                    onChange={this.props.onSelect} />
           </div>
-          <h3><a href={data.permalink}>
-            <span className="icon icon-bookmark"></span>
-            {data.title}
-          </a></h3>
+          <h3>
+            <Router.Link to="aggregateDetails"
+                  params={{orgId: params.orgId, projectId: params.projectId, aggregateId: data.id}}>
+              <span className="icon icon-bookmark"></span>
+              {data.title}
+            </Router.Link>
+          </h3>
           <div className="event-message">
             <span className="message">{data.culprit}</span>
           </div>
@@ -136,16 +144,11 @@ StreamPoller.prototype.poll = function() {
 };
 
 var Stream = React.createClass({
-  mixins: [Reflux.connect(AggregateListStore, "aggList")],
-
-  propTypes: {
-    organizationId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-  },
+  mixins: [Reflux.connect(AggregateListStore, "aggList"), Router.State],
 
   getInitialState: function() {
-    var params = utils.getQueryParams();
-    var query = params.query === undefined ? 'is:unresolved': params.query;
+    var queryParams = utils.getQueryParams();
+    var query = queryParams.query === undefined ? 'is:unresolved': queryParams.query;
 
     return {
       aggList: new utils.Collection([], {
@@ -202,12 +205,14 @@ var Stream = React.createClass({
   },
 
   getAggregateListEndpoint: function() {
-    var params = utils.getQueryParams();
-    params.query = this.state.query;
+    var queryParams = utils.getQueryParams();
+    if (queryParams.query === undefined) {
+      queryParams.query = this.state.query;
+    }
+    var querystring = $.param(queryParams);
+    var params = this.getParams();
 
-    var querystring = $.param(params);
-
-    return '/projects/' + this.props.organizationId + '/' + this.props.projectId + '/groups/?' + querystring;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
   },
 
   handleSelect: function(aggId, event) {
@@ -260,7 +265,8 @@ var Stream = React.createClass({
   },
 
   actionAggregates: function(aggList, options) {
-    var url = options.url || '/api/0/projects/' + this.props.project.id + '/groups/';
+    var params = this.getParams();
+    var url = options.url || '/api/0/projects/' + params.orgId + '/' + params.projectId + '/groups/';
 
     var selectedAggList;
     if (aggList === StreamActions.SELECTED) {
@@ -361,7 +367,8 @@ var Stream = React.createClass({
   render: function() {
     var aggNodes = this.state.aggList.map(function(node) {
       return (
-        <Aggregate data={node} key={node.id}
+        <Aggregate key={node.id}
+                   data={node}
                    isSelected={node.isSelected}
                    memberList={this.state.memberList}
                    onSelect={this.handleSelect.bind(this, node.id)}

@@ -1,0 +1,13 @@
+{% extends "sentry/layout.html" %}
+
+{% block content %}
+  <div id="blk_content"></div>
+  <script>
+  $(function(){
+    Router.run(routes, Router.HistoryLocation, function(Handler) {
+      React.render(React.createFactory(Handler)({
+      }), document.getElementById('blk_content'));
+    });
+  });
+  </script>
+{% endblock %}
