@@ -91,7 +91,7 @@ class AuthHelper(object):
         return self.pipeline[idx].dispatch(self.request, self)
 
     def error(self, message):
-        raise NotImplementedError
+        raise Exception(message)
 
     def bind_state(self, key, value):
         self.request.session['auth']['state'][key] = value
