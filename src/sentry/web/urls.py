@@ -40,6 +40,8 @@ from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInv
 from sentry.web.frontend.access_group_migration import AccessGroupMigrationView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
+from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
+from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
@@ -98,13 +100,20 @@ urlpatterns += patterns('',
     # API
     url(r'^api/0/', include('sentry.api.urls')),
 
-    # Account
-    url(r'^login/$', AuthLoginView.as_view(),
+    # Auth
+    url(r'^auth/login/$', AuthLoginView.as_view(),
         name='sentry-login'),
+    url(r'^auth/sso/$', AuthProviderLoginView.as_view(),
+        name='sentry-auth-sso'),
+    url(r'^auth/login/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
+        name='sentry-auth-organization'),
+    url(r'^auth/logout/$', AuthLogoutView.as_view(),
+        name='sentry-logout'),
+
+
+    # Account
     url(r'^login-redirect/$', accounts.login_redirect,
         name='sentry-login-redirect'),
-    url(r'^logout/$', AuthLogoutView.as_view(),
-        name='sentry-logout'),
     url(r'^register/$', accounts.register,
         name='sentry-register'),
     url(r'^account/sudo/$', 'sudo.views.sudo',

@@ -20,6 +20,7 @@ CLIENT_ID = getattr(settings, 'GOOGLE_CLIENT_ID', None)
 
 CLIENT_SECRET = getattr(settings, 'GOOGLE_CLIENT_SECRET', None)
 
+# requires Google+ API enabled
 USER_DETAILS_ENDPOINT = 'https://www.googleapis.com/plus/v1/people/me'
 
 ERR_INVALID_DOMAIN = 'The domain for your Google account is not allowed to authenticate with this provider.'
@@ -42,7 +43,7 @@ class FetchUser(AuthView):
         body = safe_urlread(req)
         data = json.loads(body)
 
-        if self.domain and self.domain != data['domain']:
+        if self.domain and self.domain != data.get('domain'):
             return helper.error(ERR_INVALID_DOMAIN)
 
         helper.bind_state('user', data)

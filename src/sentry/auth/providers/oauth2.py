@@ -1,12 +1,14 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from urllib import urlencode
 from uuid import uuid4
 
 from sentry.auth import Provider, AuthView
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
+from sentry.utils.http import absolute_uri, safe_urlencode
 
 ERR_INVALID_STATE = 'An error occurred while validating your request.'
 
@@ -42,11 +44,14 @@ class OAuth2Login(AuthView):
         }
 
     def dispatch(self, request, helper):
+        if 'code' in request.GET:
+            return helper.next_step()
+
         state = str(uuid4())
 
-        params = self.get_authorized_params(
+        params = self.get_authorize_params(
             state=state,
-            redirect_uri=absolute_uri(self.get_next_url(request)),
+            redirect_uri=absolute_uri(helper.get_next_url()),
         )
 
         redirect_uri = self.get_authorize_url() + '?' + urlencode(params)
@@ -63,7 +68,7 @@ class OAuth2Callback(AuthView):
 
     def __init__(self, access_token_url=None, client_id=None,
                  client_secret=None, *args, **kwargs):
-        super(OAuth2Login, self).__init__(*args, **kwargs)
+        super(OAuth2Callback, self).__init__(*args, **kwargs)
         if access_token_url is not None:
             self.access_token_url = access_token_url
         if client_id is not None:
@@ -82,10 +87,10 @@ class OAuth2Callback(AuthView):
 
     def exchange_token(self, request, helper, code):
         # TODO: this needs the auth yet
-        params = self.get_token_params(
+        params = safe_urlencode(self.get_token_params(
             code=code,
-            redirect_uri=absolute_uri(helper.get_current_url(request)),
-        )
+            redirect_uri=absolute_uri(helper.get_current_url()),
+        ))
         req = safe_urlopen(self.access_token_url, data=params)
         body = safe_urlread(req)
 
@@ -103,6 +108,13 @@ class OAuth2Callback(AuthView):
             return helper.error(ERR_INVALID_STATE)
 
         data = self.exchange_token(request, helper, code)
+
+        if 'error_description' in data:
+            return helper.error(data['error_description'])
+
+        if 'error' in data:
+            logging.info('Error exchanging token: %s', data['error'])
+            return helper.error('Unable to retrieve your token')
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a
