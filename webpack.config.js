@@ -15,7 +15,17 @@ function vendorFile(name) {
 module.exports = {
   entry: {
     "app": file("app/main.jsx"),
-    "vendor": ["react/addons", "react-bootstrap", "reflux", "jquery", "moment"]
+    "vendor": [
+      "flot",
+      "flot/jquery.flot.resize",
+      "flot/jquery.flot.time",
+      "jquery",
+      "moment",
+
+      "react/addons",
+      "react-bootstrap",
+      "reflux"
+    ]
   },
   module: {
     loaders: [
@@ -26,7 +36,11 @@ module.exports = {
     ]
   },
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin("vendor", distPath + "/vendor.js")
+    new webpack.optimize.CommonsChunkPlugin("vendor", distPath + "/vendor.js"),
+    new webpack.ProvidePlugin({
+        $: 'jquery',
+        jQuery: 'jquery',
+    })
   ],
   resolve: {
     modulesDirectories: [distPath, "node_modules"],

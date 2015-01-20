@@ -116,14 +116,17 @@
 
             {% if group|has_charts %}
                 <div class="box">
-                    <div class="box-content with-padding">
-                        <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-group-stats' group.id %}">
-                            <div class="sparkline">
-                                <span class="loading">{% trans "Loading historical data..." %}</span>
-                                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                            </div>
-                        </div>
-                    </div>
+                  <div class="box-content with-padding">
+                    <div id="blk_group_chart"></div>
+                    <script>
+                    $(function(){
+                      React.render(React.createFactory(AggregateChart)({
+                        aggregate: {% serialize group %},
+                        project: {% serialize project %}
+                      }), document.getElementById('blk_group_chart'));
+                    });
+                    </script>
+                  </div>
                 </div>
             {% endif %}
 
