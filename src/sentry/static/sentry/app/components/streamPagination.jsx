@@ -11,7 +11,7 @@ var StreamPagination = React.createClass({
   },
 
   render: function(){
-    if (this.props.aggList.length === 0) {
+    if (!this.props.pageLinks || this.props.aggList.length === 0) {
       return <div />;
     }
 

@@ -4,16 +4,14 @@
 {% load sentry_plugins %}
 
 {% block content %}
-    <div id="blk_stream"></div>
-    <script>
-    $(function(){
-      React.render(React.createFactory(Stream)({
-        aggList: {% serialize event_list %},
-        project: {% serialize project %},
-        memberList: {% serialize member_list %},
-        initialQuery: {% convert_to_json query %},
-        pageLinks: {% convert_to_json page_links %}
+  <div id="blk_stream"></div>
+  <script>
+  $(function(){
+    Router.run(routes, Router.HistoryLocation, function(Handler, state) {
+      React.render(React.createFactory(Handler)({
+        params: state.params
       }), document.getElementById('blk_stream'));
     });
-    </script>
+  });
+  </script>
 {% endblock %}

@@ -3,6 +3,7 @@ var React = require("react");
 var Reflux = require("reflux");
 var $ = require("jquery");
 
+var api = require("../api");
 var AggregateListActions = require("../actions/aggregateListActions");
 var AggregateListStore = require("../stores/aggregateListStore");
 var AlertActions = require("../actions/alertActions");
@@ -109,9 +110,7 @@ StreamPoller.prototype.disable = function(){
   }
 };
 StreamPoller.prototype.poll = function() {
-  $.ajax({
-    url: this._pollingEndpoint,
-    method: 'GET',
+  api.request(this._pollingEndpoint, {
     success: function(data, textStatus, jqXHR){
       // cancel in progress operation if disabled
       if (!this._active) {
@@ -140,16 +139,14 @@ var Stream = React.createClass({
   mixins: [Reflux.connect(AggregateListStore, "aggList")],
 
   propTypes: {
-    aggList: React.PropTypes.array.isRequired,
-    project: React.PropTypes.shape({
-      id: React.PropTypes.string.isRequired
-    }).isRequired,
-    memberList: React.PropTypes.instanceOf(Array),
-    initialQuery: React.PropTypes.string,
-    pageLinks: React.PropTypes.string
+    organizationId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
   },
 
   getInitialState: function() {
+    var params = utils.getQueryParams();
+    var query = params.query === undefined ? 'is:unresolved': params.query;
+
     return {
       aggList: new utils.Collection([], {
         equals: function(self, other) {
@@ -157,26 +154,37 @@ var Stream = React.createClass({
         },
         limit: 50
       }),
+      memberList: [],
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
       statsPeriod: '24h',
-      query: this.props.initialQuery,
-      pageLinks: this.props.pageLinks,
-      realtimeActive: false
+      realtimeActive: false,
+      pageLinks: '',
+      query: query
     };
   },
 
-  componentDidMount: function() {
+  componentWillMount: function() {
     this._poller = new StreamPoller({
       success: this.handleRealtimePoll,
-      endpoint: this.getPollingEndpoint()
+      endpoint: this.getAggregateListEndpoint()
     });
-    if (this.state.realtimeActive) {
-      this._poller.enable();
-    }
 
-    AggregateListStore.loadInitialData(this.props.aggList);
+    api.request(this.getAggregateListEndpoint(), {
+      success: function(data, textStatus, jqXHR) {
+        AggregateListStore.loadInitialData(data);
+
+        this.setState({
+          pageLinks: jqXHR.getResponseHeader('Link')
+        });
+      }.bind(this),
+      complete: function() {
+        if (this.state.realtimeActive) {
+          this._poller.enable();
+        }
+      }.bind(this)
+    });
   },
 
   componentWillUnmount: function() {
@@ -193,13 +201,13 @@ var Stream = React.createClass({
     }
   },
 
-  getPollingEndpoint: function() {
+  getAggregateListEndpoint: function() {
     var params = utils.getQueryParams();
-    params.query = this.props.initialQuery;
+    params.query = this.state.query;
 
     var querystring = $.param(params);
 
-    return '/api/0/projects/' + this.props.project.id + '/groups/?' + querystring;
+    return '/projects/' + this.props.organizationId + '/' + this.props.projectId + '/groups/?' + querystring;
   },
 
   handleSelect: function(aggId, event) {
@@ -355,7 +363,7 @@ var Stream = React.createClass({
       return (
         <Aggregate data={node} key={node.id}
                    isSelected={node.isSelected}
-                   memberList={this.props.memberList}
+                   memberList={this.state.memberList}
                    onSelect={this.handleSelect.bind(this, node.id)}
                    statsPeriod={this.state.statsPeriod} />
       );
