@@ -10,6 +10,12 @@ var MemberListStore = require("../stores/memberListStore");
 var ProjectDetails = React.createClass({
   mixins: [Reflux.connect(MemberListStore, "memberList"), Router.State],
 
+  getInitialState: function(){
+    return {
+      memberList: []
+    };
+  },
+
   componentWillMount: function() {
     api.request(this.getMemberListEndpoint(), {
       success: function(data, textStatus, jqXHR) {
