@@ -4,6 +4,12 @@ Version 7.2.0
 - A py.test plugin now exists to make extension testing easier.
 
 
+Version 7.1.2
+-------------
+
+- Fix migrations to ensure org/teams arent created with empty slugs.
+
+
 Version 7.1.1
 -------------
 
