@@ -22,6 +22,6 @@ class AuthProvider(Model):
         db_table = 'sentry_authprovider'
 
     def get_provider(self):
-        from sentry.auth import providers
+        from sentry.auth import manager
 
-        return providers.get(self.provider)
+        return manager.get(self.provider)
