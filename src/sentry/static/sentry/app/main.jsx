@@ -46,6 +46,7 @@ jQuery(document).ajaxSend(function(event, xhr, settings) {
 // way we can call into scoped objects
 module.exports = {
   jQuery: jQuery,
+  moment: require("moment"),
   Raven: require("raven-js"),
   React: require("react"),
   Router: require("react-router"),

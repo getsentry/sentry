@@ -34,7 +34,6 @@
             window.SentryConfig.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
             window.SentryConfig.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
             window.SentryConfig.urlPrefix = {{ URL_PREFIX|to_json|safe }};
-            window.SentryConfig.lang = {{ request.LANGUAGE_CODE|to_json|safe }};
             {% if selectedProject %}
                 window.SentryConfig.selectedProject = {% convert_to_json selectedProject %}
             {% else %}
@@ -61,6 +60,8 @@
                 window[n] = window.exports[n];
               }
               window.$ = window.jQuery;
+
+              window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
             }());
             </script>
 
@@ -266,41 +267,6 @@
             </div>
           </div>
         </div>
-
-        <script>
-        jQuery('select').selectize();
-
-        moment.lang(window.SentryConfig.lang);
-
-
-        $(function() {
-          $(".team-settings-toggle, .team-settings-cancel").click(function() {
-
-            toggleSettings(this);
-
-          });
-
-          function toggleSettings(target) {
-            if ($(target).closest(".box").hasClass("settings-open")) {
-
-              // close settings
-
-              $(target).closest(".box").removeClass("settings-open");
-              $(target).closest(".box").find(".team-settings").slideUp();
-              $(target).closest(".box").find(".team-list").show();
-
-            } else {
-
-              // open settings
-
-              $(target).closest(".box").addClass("settings-open");
-              $(target).closest(".box").find(".team-settings").slideDown();
-              $(target).closest(".box").find(".team-list").hide();
-            }
-          }
-        });
-
-        </script>
         {% endblock %}
       </div>
     </body>
