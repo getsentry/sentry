@@ -1,3 +1,9 @@
+Version 7.1.2
+-------------
+
+- Fix migrations to ensure org/teams arent created with empty slugs.
+
+
 Version 7.1.1
 -------------
 
