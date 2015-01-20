@@ -70,8 +70,7 @@ class GroupListTest(TestCase):
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-        assert 'event_list' in resp.context
+        self.assertTemplateUsed(resp, 'sentry/bases/react.html')
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
         assert resp.context['organization'] == self.organization

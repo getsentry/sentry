@@ -127,16 +127,6 @@ def wall_display(request, organization, team):
     }, request)
 
 
-@login_required
-@has_access
-def group_list(request, organization, project):
-    return render_to_response('sentry/groups/group_list.html', {
-        'team': project.team,
-        'organization': organization,
-        'project': project,
-    }, request)
-
-
 def group(request, organization_slug, project_id, group_id, event_id=None):
     # TODO(dcramer): remove in 7.1 release
     # Handle redirects from team_slug/project_slug to org_slug/project_slug

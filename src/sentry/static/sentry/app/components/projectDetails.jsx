@@ -3,7 +3,7 @@
 var React = require("react");
 var Router = require('react-router');
 
-var App = React.createClass({
+var ProjectDetails = React.createClass({
   render: function () {
     return (
       <Router.RouteHandler />
@@ -11,4 +11,4 @@ var App = React.createClass({
   }
 });
 
-module.exports = App;
+module.exports = ProjectDetails;
