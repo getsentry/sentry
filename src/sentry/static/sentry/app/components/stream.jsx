@@ -24,7 +24,7 @@ var Aggregate = React.createClass({
     data: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
     }).isRequired,
-    memberList: React.PropTypes.instanceOf(Array),
+    memberList: React.PropTypes.instanceOf(Array).isRequired,
     onSelect: React.PropTypes.func.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
     isSelected: React.PropTypes.bool
@@ -144,7 +144,14 @@ StreamPoller.prototype.poll = function() {
 };
 
 var Stream = React.createClass({
-  mixins: [Reflux.connect(AggregateListStore, "aggList"), Router.State],
+  mixins: [
+    Reflux.connect(AggregateListStore, "aggList"),
+    Router.State
+  ],
+
+  propTypes: {
+    memberList: React.PropTypes.instanceOf(Array).isRequired
+  },
 
   getInitialState: function() {
     var queryParams = utils.getQueryParams();
@@ -157,7 +164,6 @@ var Stream = React.createClass({
         },
         limit: 50
       }),
-      memberList: [],
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
@@ -370,7 +376,7 @@ var Stream = React.createClass({
         <Aggregate key={node.id}
                    data={node}
                    isSelected={node.isSelected}
-                   memberList={this.state.memberList}
+                   memberList={this.props.memberList}
                    onSelect={this.handleSelect.bind(this, node.id)}
                    statsPeriod={this.state.statsPeriod} />
       );
