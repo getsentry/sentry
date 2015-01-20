@@ -15,6 +15,10 @@ class Migration(SchemaMigration):
         Team = orm['sentry.Team']
         Project = orm['sentry.Project']
 
+        # skip this migration if nothing needs corrected
+        if not Project.objects.filter(team__isnull=True).exists():
+            return
+
         try:
             user = User.objects.filter(is_superuser=True)[0]
         except IndexError:
