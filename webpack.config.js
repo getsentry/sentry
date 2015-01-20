@@ -22,6 +22,7 @@ module.exports = {
       "jquery",
       "moment",
 
+      "raven",
       "react/addons",
       "react-bootstrap",
       "reflux"
@@ -37,6 +38,8 @@ module.exports = {
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin("vendor", distPath + "/vendor.js"),
+    new webpack.optimize.UglifyJsPlugin(),
+    new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
         $: 'jquery',
         jQuery: 'jquery',
