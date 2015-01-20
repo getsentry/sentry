@@ -50,5 +50,6 @@ module.exports = {
   React: require("react"),
 
   Alerts: require("./components/alerts"),
-  Stream: require("./components/stream")
+  Stream: require("./components/stream"),
+  AggregateChart: require("./components/aggregateChart")
 };
