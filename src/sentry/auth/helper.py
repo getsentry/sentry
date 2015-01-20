@@ -70,10 +70,7 @@ class AuthHelper(object):
         idx = self.request.session['auth']['idx']
         return self.pipeline[idx]
 
-    def get_next_url(self):
-        return self.request.build_absolute_uri(reverse('sentry-auth-sso'))
-
-    def get_current_url(self):
+    def get_url(self):
         return self.request.build_absolute_uri(reverse('sentry-auth-sso'))
 
     def next_step(self):
