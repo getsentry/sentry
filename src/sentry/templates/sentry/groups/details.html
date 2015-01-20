@@ -19,10 +19,9 @@
   <li class="truncate">{{ group.title }}</li>
 {% endblock %}
 
-{% block content_before %}
-    <!-- <div id="details">
-        <div id="event_list" class="inactive"></div>
-    </div> -->
+{% block main %}
+    {% handle_before_events request group %}
+
     <div id="blk_agg_details"></div>
     <script>
     $(function(){
@@ -30,35 +29,14 @@
         aggList: [{% serialize group %}],
         aggId: '{{ group.id }}',
         project: {% serialize project %},
-        memberList: []
+        memberList: [],
+        chart: true
       }), document.getElementById('blk_agg_details'));
     });
     </script>
-  </div>
-{% endblock %}
-
-{% block main %}
-    {% handle_before_events request group %}
 
     {% block inner %}
         {% with event|get_rendered_interfaces:request as interface_list %}
-
-            {% if group|has_charts %}
-                <div class="box">
-                  <div class="box-content with-padding">
-                    <div id="blk_agg_chart"></div>
-                    <script>
-                    $(function(){
-                      React.render(React.createFactory(AggregateChart)({
-                        aggregate: {% serialize group %},
-                        project: {% serialize project %}
-                      }), document.getElementById('blk_agg_chart'));
-                    });
-                    </script>
-                  </div>
-                </div>
-            {% endif %}
-
             <div class="box">
                 <div class="box-header">
                     <h3>Activity</h3>
