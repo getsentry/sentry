@@ -29,6 +29,7 @@ class Migration(SchemaMigration):
             name='Sentry',
             defaults={
                 'owner': user,
+                'slug': 'default',
             }
         )
 
@@ -37,6 +38,7 @@ class Migration(SchemaMigration):
             defaults={
                 'owner': org.owner,
                 'organization': org,
+                'slug': 'sentry',
             }
         )
 
