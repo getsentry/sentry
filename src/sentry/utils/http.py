@@ -117,10 +117,20 @@ def is_valid_origin(origin, project=None):
 
     for valid in allowed:
         if '://' in valid:
-            # Support partial uri matches that may include path
-            if origin.startswith(valid):
-                return True
-            continue
+            scheme, valid = valid.split('://', 1)
+            if parsed.scheme != scheme:
+                continue
+
+        # Support partial uri matches that may include path
+        if '/' in valid and origin.startswith(valid):
+            return True
+
+        if valid == '*':
+            return True
+
+        # Support matches ending with glob
+        if valid.endswith('*'):
+            valid = valid[:-1]
 
         if valid[:2] == '*.':
             # check foo.domain.com and domain.com
