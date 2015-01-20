@@ -91,7 +91,7 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/groups/$',
         ProjectGroupIndexEndpoint.as_view(),
         name='sentry-api-0-project-group-index'),
-    url(r'^projects/(?P<project_id>\d+)/members/$',
+    url(r'^projects/(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/members/$',
         ProjectMemberIndexEndpoint.as_view(),
         name='sentry-api-0-project-member-index'),
     url(r'^projects/(?P<project_id>\d+)/releases/$',

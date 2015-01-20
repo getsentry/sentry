@@ -7,6 +7,7 @@ var Router = require("react-router");
 var api = require("../api");
 var AssigneeSelector = require("./assigneeSelector");
 var Count = require("./count");
+var MemberListStore = require("../stores/memberListStore");
 var TimeSince = require("./timeSince");
 var utils = require("../utils");
 
@@ -109,11 +110,14 @@ var AggregateHeader = React.createClass({
 var AggregateDetails = React.createClass({
   mixins: [Router.State],
 
+  propTypes: {
+    memberList: React.PropTypes.instanceOf(Array).isRequired
+  },
+
   getInitialState: function() {
     return {
       aggregate: null,
-      statsPeriod: '24h',
-      memberList: []
+      statsPeriod: '24h'
     };
   },
 
@@ -143,7 +147,7 @@ var AggregateDetails = React.createClass({
         <AggregateHeader
             aggregate={this.state.aggregate}
             statsPeriod={this.state.statsPeriod}
-            memberList={this.state.memberList} />
+            memberList={this.props.memberList} />
         <div className="box">
           <div className="box-content with-padding">
             <AggregateChart

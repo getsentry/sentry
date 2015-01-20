@@ -10,8 +10,11 @@ from sentry.models import Project, User
 
 
 class ProjectMemberIndexEndpoint(Endpoint):
-    def get(self, request, project_id):
-        project = Project.objects.get_from_cache(id=project_id)
+    def get(self, request, organization_slug, project_slug):
+        project = Project.objects.get(
+            organization__slug=organization_slug,
+            slug=project_slug,
+        )
 
         assert_perm(project, request.user, request.auth)
 
