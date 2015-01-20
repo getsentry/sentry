@@ -9,37 +9,20 @@ var Count = require("./count");
 var TimeSince = require("./timeSince");
 var utils = require("../utils");
 
-var AggregateDetails = React.createClass({
-  mixins: [Reflux.connect(AggregateListStore, "aggList")],
-
+var AggregateHeader = React.createClass({
   propTypes: {
-    aggList: React.PropTypes.instanceOf(Array).isRequired,
-    aggId: React.PropTypes.string.isRequired,
+    aggregate: React.PropTypes.shape({
+      id: React.PropTypes.string.isRequired
+    }).isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
-  },
-
-  getInitialState: function() {
-    return {
-      aggList: new utils.Collection([], {
-        equals: function(self, other) {
-          return self.id === other.id;
-        },
-        limit: 50
-      }),
-      agg: this.props.aggList[0],
-      statsPeriod: '24h'
-    };
-  },
-
-  componentDidMount: function() {
-    AggregateListStore.loadInitialData(this.props.aggList);
+    statsPeriod: React.PropTypes.string.isRequired
   },
 
   render: function() {
-    var data = this.state.agg,
+    var data = this.props.aggregate,
         userCount = 0;
 
-    var chartData = data.stats[this.state.statsPeriod].map(function(point){
+    var chartData = data.stats[this.props.statsPeriod].map(function(point){
       return {x: point[0], y: point[1]};
     });
 
@@ -114,6 +97,55 @@ var AggregateDetails = React.createClass({
             <a href="#" className="btn btn-default btn-sm dropdown-toggle">More <span className="icon-arrow-down"></span></a>
             <ul className="dropdown-menu">
             </ul>
+          </div>
+        </div>
+      </div>
+
+    );
+  }
+});
+
+var AggregateDetails = React.createClass({
+  mixins: [Reflux.connect(AggregateListStore, "aggList")],
+
+  propTypes: {
+    aggList: React.PropTypes.instanceOf(Array).isRequired,
+    aggId: React.PropTypes.string.isRequired,
+    memberList: React.PropTypes.instanceOf(Array).isRequired,
+  },
+
+  getInitialState: function() {
+    return {
+      aggList: new utils.Collection([], {
+        equals: function(self, other) {
+          return self.id === other.id;
+        },
+        limit: 50
+      }),
+      agg: this.props.aggList[0],
+      statsPeriod: '24h'
+    };
+  },
+
+  componentDidMount: function() {
+    AggregateListStore.loadInitialData(this.props.aggList);
+  },
+
+  render: function() {
+    var data = this.state.agg;
+
+    return (
+      <div className={this.props.className}>
+        <AggregateHeader
+            aggregate={this.state.agg}
+            project={this.props.project}
+            statsPeriod={this.state.statsPeriod}
+            memberList={this.props.memberList} />
+        <div className="box">
+          <div className="box-content with-padding">
+            <AggregateChart
+                aggregate={this.state.agg}
+                project={this.props.project} />
           </div>
         </div>
       </div>
