@@ -23,89 +23,18 @@
     <!-- <div id="details">
         <div id="event_list" class="inactive"></div>
     </div> -->
-    <div class="group-detail">
-      <div class="row">
-          <div class="col-sm-8 details">
-            <h3>{{ group.title }}</h3>
-            <div class="meta">
-                <time>{{ group.last_seen|timesince }}</time> &middot;
-                <span class="message">{{ group.message_short }}</span>
-            </div>
-          </div>
-          <div class="col-sm-4 stats">
-            <div class="row">
-              <div class="col-xs-4 assigned-to">
-
-                  <assignee-selector group="selectedGroup"></assignee-selector>
-                  <div class="is-assigned"><span class="hidden-sm">is</span> assigned</div>
-              </div>
-              <div class="col-xs-4 event-count align-right">
-                <span class="count"
-                      count="selectedGroup.count"></span> events
-              </div>
-              <div class="col-xs-4 user-count align-right"><span class="count">209</span> users</div>
-            </div>
-          </div>
-      </div>
-      {% if seen_by_faces %}
-      <div class="seen-by">
-        <ul>
-          <li>Seen by:</li>
-          {% for s_user, s_last_seen in seen_by_faces %}
-              <li>
-                  <img src="{% gravatar_url s_user.email size 32 %}" class="tip" rel="tooltip" title="<strong>{{ s_user|user_display_name|force_escape }}</strong><br>{{ s_last_seen|timesince }}">
-              </li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-      <div class="group-actions">
-        <div class="btn-group">
-          <a href="#" class="group-resolve btn btn-default btn-sm"
-             ng-class="{active: selectedGroup.status == 'resolved'}"
-             data-action="resolve"><span class="icon-checkmark"></span></a>
-          <a href="#" class="group-bookmark btn btn-default btn-sm"
-             ng-class="{active: selectedGroup.isBookmarked}"
-             data-action="bookmark"><span class="icon-bookmark"></span></a>
-        </div>
-        <div class="btn-group">
-          <a href="#" class="group-remove btn btn-default btn-sm"
-             data-action="remove"><span class="icon-trash"></span></a>
-        </div>
-        <div class="btn-group more">
-          <a href="#" class="btn btn-default btn-sm dropdown-toggle">More <span class="icon-arrow-down"></span></a>
-          <ul class="dropdown-menu">
-            {% if can_admin_event %}
-                {% if not group.is_muted %}
-                    <li><a href="{% url 'sentry-api-set-group-mute' group.organization.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
-                {% elif not group.is_resolved %}
-                    <li><a href="{% url 'sentry-api-set-group-unresolve' group.organization.slug project.slug group.id %}">{% trans "Unmute Event" %}</a></li>
-                {% endif %}
-                {% url 'sentry-group' group.team.slug group.project.slug group.id as group_link %}
-                <li>
-                    <a href="javascript:void(0)"
-                       data-public-url="{% url 'sentry-api-set-group-public' group.organization.slug group.project.slug group.id %}"
-                       data-private-url="{% url 'sentry-api-set-group-private' group.organization.slug group.project.slug group.id %}"
-                       data-share-url="{% absolute_uri group_link %}"
-                       data-public="{% if group.is_public %}true{% else %}false{% endif %}"
-                       class="share-link">{% trans "Share Event" %}</a>
-                </li>
-                {% for label, link, is_active in group|get_actions:request %}
-                    <li><a href="{{ link }}">{{ label }}</a></li>
-                {% endfor %}
-                {% endif %}
-                <li><a {% if event.id %}
-                href="{% url 'sentry-group-event-json' group.organization.slug project.slug group.id event.id %}"{% else %}
-                href="{% url 'sentry-group-event-json' group.organization.slug project.slug group.id 'latest' %}"{% endif %}
-                >{% trans "Raw JSON Data" %}</a></li>
-                {% if can_admin_event %}
-                    <li><a href="{% url 'sentry-api-remove-group' group.organization.slug project.slug group.id %}"
-                           onclick="return confirm('{% trans "Are you sure you wish to delete all data for this event?" %}');">{% trans "Remove Event Data" %}</a></li>
-                {% endif %}
-            </ul>
-        </div>
-      </div>
-    </div>
+    <div id="blk_agg_details"></div>
+    <script>
+    $(function(){
+      React.render(React.createFactory(AggregateDetails)({
+        aggList: [{% serialize group %}],
+        aggId: '{{ group.id }}',
+        project: {% serialize project %},
+        memberList: []
+      }), document.getElementById('blk_agg_details'));
+    });
+    </script>
+  </div>
 {% endblock %}
 
 {% block main %}
@@ -117,13 +46,13 @@
             {% if group|has_charts %}
                 <div class="box">
                   <div class="box-content with-padding">
-                    <div id="blk_group_chart"></div>
+                    <div id="blk_agg_chart"></div>
                     <script>
                     $(function(){
                       React.render(React.createFactory(AggregateChart)({
                         aggregate: {% serialize group %},
                         project: {% serialize project %}
-                      }), document.getElementById('blk_group_chart'));
+                      }), document.getElementById('blk_agg_chart'));
                     });
                     </script>
                   </div>

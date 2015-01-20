@@ -51,5 +51,6 @@ module.exports = {
 
   Alerts: require("./components/alerts"),
   Stream: require("./components/stream"),
-  AggregateChart: require("./components/aggregateChart")
+  AggregateChart: require("./components/aggregateChart"),
+  AggregateDetails: require("./components/aggregateDetails")
 };
