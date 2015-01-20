@@ -22,7 +22,7 @@ module.exports = {
       "jquery",
       "moment",
 
-      "react",
+      "react/addons",
       "react-bootstrap",
       "reflux"
     ]
