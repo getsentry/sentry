@@ -228,7 +228,7 @@ def wall_display(request, organization, team):
 @login_required
 @has_access
 def group_list(request, organization, project):
-    query = request.GET.get('query', 'is:unresolved')
+    query = request.GET.get('query')
     if query and uuid_re.match(query):
         # Forward to event if it exists
         try:
