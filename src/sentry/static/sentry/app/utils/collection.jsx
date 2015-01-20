@@ -85,9 +85,7 @@ Collection.prototype.pop = function pop(item) {
 };
 
 Collection.prototype.empty = function empty() {
-  while (this.length > 0) {
-    this.pop();
-  }
+  this.splice(0, 0);
 };
 
 Collection.prototype.indexOf = function indexOf(item) {
