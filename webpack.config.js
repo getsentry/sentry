@@ -38,7 +38,10 @@ module.exports = {
     ]
   },
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin("vendor", distPath + "/vendor.js"),
+    new webpack.optimize.CommonsChunkPlugin({
+      name: "vendor",
+      filename: distPath + "/vendor.js",
+    }),
     new webpack.optimize.UglifyJsPlugin(),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
