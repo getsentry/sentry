@@ -51,7 +51,7 @@ class OAuth2Login(AuthView):
 
         params = self.get_authorize_params(
             state=state,
-            redirect_uri=absolute_uri(helper.get_url()),
+            redirect_uri=absolute_uri(helper.get_redirect_url()),
         )
 
         redirect_uri = self.get_authorize_url() + '?' + urlencode(params)
@@ -89,7 +89,7 @@ class OAuth2Callback(AuthView):
         # TODO: this needs the auth yet
         params = safe_urlencode(self.get_token_params(
             code=code,
-            redirect_uri=absolute_uri(helper.get_url()),
+            redirect_uri=absolute_uri(helper.get_redirect_url()),
         ))
         req = safe_urlopen(self.access_token_url, data=params)
         body = safe_urlread(req)
