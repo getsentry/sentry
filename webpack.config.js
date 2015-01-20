@@ -24,6 +24,7 @@ module.exports = {
 
       "raven",
       "react/addons",
+      "react-router",
       "react-bootstrap",
       "reflux"
     ]
@@ -38,7 +39,7 @@ module.exports = {
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin("vendor", distPath + "/vendor.js"),
-    new webpack.optimize.UglifyJsPlugin(),
+    // new webpack.optimize.UglifyJsPlugin(),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
         $: 'jquery',

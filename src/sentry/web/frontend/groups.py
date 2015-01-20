@@ -18,11 +18,8 @@ from django.http import (
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from sentry.api import client
 from sentry.api.serializers import serialize
-from sentry.constants import (
-    SORT_OPTIONS, MEMBER_USER
-)
+from sentry.constants import MEMBER_USER
 from sentry.db.models import create_or_update
 from sentry.models import (
     Project, Group, GroupMeta, Event, Activity, TagKey, GroupSeen
@@ -133,33 +130,10 @@ def wall_display(request, organization, team):
 @login_required
 @has_access
 def group_list(request, organization, project):
-    params = request.GET.copy()
-    params.setdefault('query', 'is:resolved')
-
-    response = client.get(
-        path='/projects/{}/groups/'.format(project.id),
-        params=params,
-        user=request.user,
-    )
-    event_list = response.data
-    page_links = response['Link']
-    query = params['query']
-
-    response = client.get(
-        path='/projects/{}/members/'.format(project.id),
-        user=request.user,
-    )
-    member_list = response.data
-
     return render_to_response('sentry/groups/group_list.html', {
         'team': project.team,
         'organization': organization,
         'project': project,
-        'event_list': event_list,
-        'member_list': member_list,
-        'page_links': page_links,
-        'query': query,
-        'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
 
 

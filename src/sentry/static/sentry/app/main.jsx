@@ -48,8 +48,12 @@ module.exports = {
   jQuery: jQuery,
   Raven: require("raven-js"),
   React: require("react"),
+  Router: require("react-router"),
+
+  routes: require("./routes"),
 
   Alerts: require("./components/alerts"),
+  App: require("./components/app"),
   Stream: require("./components/stream"),
   AggregateChart: require("./components/aggregateChart"),
   AggregateDetails: require("./components/aggregateDetails")
