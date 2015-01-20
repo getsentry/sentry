@@ -15,5 +15,5 @@ class AuthProviderLoginView(BaseView):
             return self.redirect(reverse('sentry-login'))
 
         if not helper.pipeline_is_valid():
-            helper.reset_pipeline()
+            return helper.error('Something unexpected happened during authentication.')
         return helper.next_step()
