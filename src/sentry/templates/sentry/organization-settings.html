@@ -6,10 +6,11 @@
 {% block org_settings_nav %}active{% endblock %}
 
 {% block inner %}
-  <div class="page-header">
-    <h2>Settings</h2>
-  </div>
 
+  <h3>Settings</h3>
+
+  <div class="box">
+    <div class="box-content with-padding">
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
@@ -36,7 +37,9 @@
     {% endif %}
 
     <fieldset class="form-actions">
-      <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
+      <p><button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button></p>
     </fieldset>
   </form>
+  <div class="box-content">
+</div>
 {% endblock %}
