@@ -5,6 +5,7 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
+var AggregateListStore = require("../stores/aggregateListStore");
 var AssigneeSelector = require("./assigneeSelector");
 var Count = require("./count");
 var MemberListStore = require("../stores/memberListStore");
@@ -108,7 +109,10 @@ var AggregateHeader = React.createClass({
 });
 
 var AggregateDetails = React.createClass({
-  mixins: [Router.State],
+  mixins: [
+    Reflux.connect(AggregateListStore, "aggList"),
+    Router.State
+  ],
 
   propTypes: {
     memberList: React.PropTypes.instanceOf(Array).isRequired
@@ -116,7 +120,7 @@ var AggregateDetails = React.createClass({
 
   getInitialState: function() {
     return {
-      aggregate: null,
+      aggList: new utils.Collection(),
       statsPeriod: '24h'
     };
   },
@@ -124,9 +128,7 @@ var AggregateDetails = React.createClass({
   componentWillMount: function() {
     api.request(this.getAggregateDetailsEndpoint(), {
       success: function(data, textStatus, jqXHR) {
-        this.setState({
-          aggregate: data
-        });
+        AggregateListStore.loadInitialData([data]);
       }.bind(this)
     });
   },
@@ -135,23 +137,27 @@ var AggregateDetails = React.createClass({
     return '/groups/' + this.getParams().aggregateId + '/';
   },
 
-  render: function() {
-    var data = this.state.aggregate;
+  getAggregate: function() {
+    var id = this.getParams().aggregateId;
+    return this.state.aggList.get(id);
+  },
 
-    if (!data) {
+  render: function() {
+    var aggregate = this.getAggregate();
+
+    if (!aggregate) {
       return <div />;
     }
 
     return (
       <div className={this.props.className}>
         <AggregateHeader
-            aggregate={this.state.aggregate}
+            aggregate={aggregate}
             statsPeriod={this.state.statsPeriod}
             memberList={this.props.memberList} />
         <div className="box">
           <div className="box-content with-padding">
-            <AggregateChart
-                aggregate={this.state.aggregate} />
+            <AggregateChart aggregate={aggregate} />
           </div>
         </div>
       </div>

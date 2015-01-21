@@ -14,9 +14,6 @@ var AggregateListStore = Reflux.createStore({
     // list and have stream add/remove items as they're modified within stream
     // itself
     this.items = new utils.Collection([], {
-      equals: function(self, other) {
-        return self.id === other.id;
-      },
       limit: 50
     });
 
