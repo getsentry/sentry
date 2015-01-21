@@ -581,6 +581,14 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+# rollups must be ordered from highest granularity to lowest
+SENTRY_TSDB_ROLLUPS = (
+    # (time in seconds, samples to keep)
+    (10, 30),  # 5 minute at 10 seconds
+    (3600, 24 * 7),  # 7 days at 1 hour
+)
+
+
 # File storage
 SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
 SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
