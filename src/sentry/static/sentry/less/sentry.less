@@ -43,19 +43,16 @@ body {
   font-family: @font-family-base;
   font-size: 14px;
   line-height: 20px;
-  color: #454C50;
+  color: #343C45;
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
   overflow-x: hidden;
+  background: #fbfbfc;
+
 }
 
 pre, code, kbd, sample {
   font-family: @font-family-code;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 500;
-  margin: 30px 0;
 }
 
 hr {
@@ -82,8 +79,8 @@ th, dt, strong {
 
 .container {
   position: relative;
-  padding-left: 30px;
-  padding-right: 30px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 #content {
@@ -119,21 +116,31 @@ p {
 
 h1, h2, h3, h4, h5 {
   margin: 0 0 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+h1 {
+  font-size: 36px;
 }
 
 h2 {
-  font-weight: normal;
-  font-size: 28px;
-  line-height: 36px;
-  letter-spacing: -0.25px;
-  margin: 0 0 30px;
+  font-size: 30px;
 }
+
 h3 {
-  line-height: 27px;
+  font-size: 26px;
+}
+
+h4 {
   font-size: 22px;
 }
 
-ul,ol {
+h5 {
+  font-size: 18px;
+}
+
+ul, ol {
   margin: 0 0 20px;
 }
 
@@ -361,15 +368,6 @@ body.show-sidebar {
     padding-left: 0;
   }
 
-  .sidebar-toggle {
-    .icon-menu {
-      background: @blue !important;
-      &:before, &:after {
-        background: @blue !important;
-      }
-    }
-  }
-
   &.settings {
     #content {
       margin-bottom: 90px;
@@ -391,7 +389,7 @@ body.show-sidebar {
 }
 
 header {
-  background: #FCFCFC;
+  background: #fff;
   color: @gray;
   padding: 0 0 0;
   margin: 0 0 20px;
@@ -444,93 +442,6 @@ header {
     em {
       font-style: normal;
       opacity: .35;
-    }
-  }
-
-  .sidebar-toggle {
-    padding: 10px;
-    margin: -5px 4px -2px -10px;
-    height: 34px;
-    border-radius: 3px;
-    float: left;
-    position: relative;
-
-    .icon-menu {
-      display: block;
-      background: lighten(@gray, 30);
-      width: 22px;
-      height: 3px;
-      border-radius: 4px;
-      .transition(.2s all);
-
-      &:before, &:after {
-        display: block;
-        content: "";
-        position: absolute;
-        background: lighten(@gray, 30);
-        width: 22px;
-        height: 3px;
-        border-radius: 4px;
-        .transition(.2s all);
-      }
-
-      &:before {
-        top: 6px;
-      }
-      &:after {
-        top: 12px;
-      }
-    }
-
-    &:hover .icon-menu {
-      background: @gray;
-      &:before, &:after {
-        background: @gray;
-      }
-    }
-
-    .badge {
-      position: absolute;
-      top: 0;
-      right: -3px;
-      font-size: 10px;
-    }
-  }
-
-  .new-menu {
-    .icon-new {
-      display: block;
-      width: 21px;
-      height: 21px;
-      margin-top: 2px;
-
-      &:before, &:after {
-        display: block;
-        content: "";
-        position: absolute;
-        background: lighten(@gray, 35);
-        border-radius: 4px;
-        .transition(.2s all);
-      }
-
-      &:before {
-        top: 9px;
-        width: 21px;
-        height: 3px;
-      }
-
-      &:after {
-        top: 0px;
-        left: 9px;
-        width: 3px;
-        height: 21px;
-      }
-    }
-
-    &:hover .icon-new {
-      &:before, &:after {
-        background: @gray;
-      }
     }
   }
 
@@ -990,7 +901,7 @@ footer {
 }
 
 .filter-nav {
-  margin-top: -15px;
+  margin-top: -5px;
   margin-bottom: 15px;
 }
 
@@ -2226,16 +2137,18 @@ ol.context-line {
 // Generic module stuff
 
 .box {
-  border: 1px solid #e1e4e5;
-  border-radius: 4px;
-  margin: 0 0 30px;
-  .box-header {
-    padding: 10px 14px 9px;
-    border-bottom: 1px solid #e1e4e5;
-    background: #fcfcfc;
-    border-radius: 3px 3px 0 0;
+  background: #fff;
+  border: 1px solid #e5e7e8;
+  border-radius: 2px;
+  margin: 0 0 20px;
+  box-shadow: 0 1px 0 rgba(52, 60, 69, .03);
 
-    h3,h4,h5 {
+  .box-header {
+    padding: 20px 20px 17px;
+    border-bottom: 1px solid #E5E7E8;
+    border-radius: 2px 2px 0 0;
+
+    h3, h4, h5 {
       font-size: 14px;
       margin: 0;
       font-weight: 600;
@@ -2270,14 +2183,14 @@ ol.context-line {
   }
   .box-content {
     &.with-padding {
-      padding: 15px 15px 5px;
+      padding: 20px 20px 0;
     }
 
     .form-actions {
-      padding-left: 15px;
-      padding-right: 15px;
-      margin-left: -15px;
-      margin-right: -15px;
+      padding-left: 20px;
+      padding-right: 20px;
+      margin-left: -20px;
+      margin-right: -20px;
     }
   }
 }
@@ -3767,7 +3680,7 @@ table.integrations {
 
   .box-header {
     .pull-right {
-      margin-top: 4px;
+      margin-top: -2px;
       .icon-settings {
         position: relative;
         top: 1px;
@@ -3783,7 +3696,7 @@ table.integrations {
   .teams {
     position: relative;
     overflow: hidden;
-    margin: 0;
+    margin: 0 0 10px;
     padding: 0;
     list-style: none;
 
