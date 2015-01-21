@@ -18,9 +18,10 @@ class Provider(object):
         raise NotImplementedError
 
     def get_auth_pipeline(self):
-        # NOTE: we want to generate a unique url per step, this can be resolved
-        # by doing something like md5('view.Path').hexdigest(). Our only goal
-        # is to make it unique and ensure permanence
+        """
+        Return a list of AuthView instances representing the authentication
+        pipeline for this provider.
+        """
         raise NotImplementedError
 
     def get_identity(self, state):
