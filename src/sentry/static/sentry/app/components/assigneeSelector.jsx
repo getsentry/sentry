@@ -1,12 +1,15 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Reflux = require("reflux");
 
 var AggregateListActions = require("../actions/aggregateListActions");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 
 var AssigneeSelector = React.createClass({
+  mixins: [Reflux.ListenerMixin],
+
   propTypes: {
     aggregate: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
@@ -20,18 +23,32 @@ var AssigneeSelector = React.createClass({
     };
   },
 
-  assignTo: function(member) {
+  componentDidMount: function() {
+    this.listenTo(AggregateListActions.assignTo, this.onAssignTo);
+    this.listenTo(AggregateListActions.assignTo.completed, this.onAssignToCompleted);
+    this.listenTo(AggregateListActions.assignTo.failed, this.onAssignToCompleted);
+  },
+
+  onAssignTo: function(id) {
+    if (id !== this.props.aggregate.id) {
+      return;
+    }
     this.setState({loading: true});
-    AggregateListActions.setAssignedTo(this.props.aggregate.id, member.email, this.onAssignToComplete);
+  },
+
+  onAssignToCompleted: function(id) {
+    if (id !== this.props.aggregate.id) {
+      return;
+    }
+    this.setState({loading: false});
+  },
+
+  assignTo: function(member) {
+    AggregateListActions.assignTo(this.props.aggregate.id, member.email);
   },
 
   clearAssignTo: function(member) {
-    this.setState({loading: true});
-    AggregateListActions.setAssignedTo(this.props.aggregate.id, '', this.onAssignToComplete);
-  },
-
-  onAssignToComplete: function() {
-    this.setState({loading: false});
+    AggregateListActions.assignTo(this.props.aggregate.id, '');
   },
 
   render: function() {
