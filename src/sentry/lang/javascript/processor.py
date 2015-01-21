@@ -17,7 +17,7 @@ from urllib2 import HTTPError
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import Project
+from sentry.models import Project, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
@@ -146,16 +146,44 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_url(url, project=None):
+def fetch_release_file(filename, release):
+    cache_key = 'release:%s:%s' % (
+        release.version,
+        hashlib.sha1(filename.encode('utf-8')).hexdigest(),
+    )
+    result = cache.get(cache_key)
+    if result is None:
+        ident = ReleaseFile.get_ident(filename)
+        try:
+            releasefile = ReleaseFile.objects.filter(
+                release=release,
+                ident=ident,
+            ).select_related('file').get()
+        except ReleaseFile.DoesNotExist:
+            return None
+
+        with releasefile.file.getfile() as fp:
+            body = fp.read()
+        result = (releasefile.file.headers, body)
+        cache.set(cache_key, result, 60)
+
+    return result
+
+
+def fetch_url(url, project=None, release=None):
     """
     Pull down a URL, returning a UrlResult object.
 
     Attempts to fetch from the cache.
     """
-
     cache_key = 'source:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
-    result = cache.get(cache_key)
+
+    if release:
+        result = fetch_release_file(url, release)
+    else:
+        result = cache.get(cache_key)
+
     if result is None:
         # lock down domains that are problematic
         domain = urlparse(url).netloc
@@ -203,11 +231,11 @@ def fetch_url(url, project=None):
     return UrlResult(url, *result)
 
 
-def fetch_sourcemap(url, project=None):
+def fetch_sourcemap(url, project=None, release=None):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
-        result = fetch_url(url, project=project)
+        result = fetch_url(url, project=project, release=release)
         if result == BAD_SOURCE:
             return
 
@@ -305,9 +333,20 @@ class SourceProcessor(object):
             id=data['project'],
         )
 
+        if data.get('release'):
+            try:
+                release = Release.objects.get(
+                    project=project.id,
+                    version=data['release'],
+                )
+            except Release.DoesNotExist:
+                release = None
+        else:
+            release = None
+
         # all of these methods assume mutation on the original
         # objects rather than re-creation
-        self.populate_source_cache(project, frames)
+        self.populate_source_cache(project, frames, release)
         self.expand_frames(frames)
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
@@ -397,7 +436,7 @@ class SourceProcessor(object):
             frame.pre_context, frame.context_line, frame.post_context = get_source_context(
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
 
-    def populate_source_cache(self, project, frames):
+    def populate_source_cache(self, project, frames, release):
         pending_file_list = set()
         done_file_list = set()
         sourcemap_capable = set()
@@ -422,7 +461,7 @@ class SourceProcessor(object):
 
             # TODO: respect cache-control/max-age headers to some extent
             logger.debug('Fetching remote source %r', filename)
-            result = fetch_url(filename, project=project)
+            result = fetch_url(filename, project=project, release=release)
 
             if result == BAD_SOURCE:
                 # TODO(dcramer): we want better errors here
@@ -448,7 +487,11 @@ class SourceProcessor(object):
                 continue
 
             # pull down sourcemap
-            sourcemap_idx = fetch_sourcemap(sourcemap_url, project=project)
+            sourcemap_idx = fetch_sourcemap(
+                sourcemap_url,
+                project=project,
+                release=release,
+            )
             if not sourcemap_idx:
                 cache.add_error(filename, 'Sourcemap was not parseable')
                 continue

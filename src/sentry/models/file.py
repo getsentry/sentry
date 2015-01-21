@@ -12,12 +12,11 @@ from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.db import models
 from django.utils import timezone
-from hashlib import md5
+from hashlib import sha1
+from jsonfield import JSONField
 from uuid import uuid4
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField, GzippedDictField, Model
-)
+from sentry.db.models import BoundedPositiveIntegerField, Model
 
 ONE_DAY = 60 * 60 * 24
 
@@ -25,12 +24,13 @@ ONE_DAY = 60 * 60 * 24
 class File(Model):
     name = models.CharField(max_length=128)
     storage = models.CharField(max_length=128, null=True)
-    storage_options = GzippedDictField()
+    storage_options = JSONField()
     path = models.TextField(null=True)
     type = models.CharField(max_length=64)
     size = BoundedPositiveIntegerField(null=True)
-    checksum = models.CharField(max_length=32, null=True)
+    checksum = models.CharField(max_length=40, null=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
+    headers = JSONField()
 
     class Meta:
         unique_together = (('name', 'checksum'),)
@@ -82,8 +82,8 @@ class File(Model):
         self.storage = settings.SENTRY_FILESTORE
         self.storage_options = settings.SENTRY_FILESTORE_OPTIONS
 
-        checksum = md5('')
-        for chunk in fileobj.chunks():
+        checksum = sha1('')
+        for chunk in fileobj:
             checksum.update(chunk)
         self.checksum = checksum.hexdigest()
 
@@ -97,10 +97,9 @@ class File(Model):
         """
         Return a file-like object for this File's content.
 
-        >>> fileobj = my_file.getfile()
-        >>> with open('/tmp/localfile', 'wb') as fp:
-        >>>     for chunk in fileobj.chunks():
-        >>>         fp.write(chunk)
+        >>> with my_file.getfile() as src, open('/tmp/localfile', 'wb') as dst:
+        >>>     for chunk in src.chunks():
+        >>>         dst.write(chunk)
         """
         assert self.path
 
