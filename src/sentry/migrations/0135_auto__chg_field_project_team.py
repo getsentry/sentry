@@ -33,7 +33,6 @@ class Migration(SchemaMigration):
             name='Sentry',
             defaults={
                 'owner': user,
-                'slug': 'default',
             }
         )
 
