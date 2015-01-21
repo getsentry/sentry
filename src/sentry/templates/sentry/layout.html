@@ -72,22 +72,28 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %} {% if list_organizations|length > 1 %}has-orgs{% endif %}" ng-app="sentry">
+    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %}" ng-app="sentry">
       {% if request.user.is_authenticated %}
-        {% if list_organizations|length > 1 %}
-        <div class="org-selector">
-          <ul>
-            {% for o in request.user|list_organizations %}
-              <li{% if o.id == organization.id %} class="active"{% endif %}>
-                <a href="{% url 'sentry-organization-home' o.slug %}">
-                  <img src="https://pbs.twimg.com/profile_images/495064692029526016/lzoDXqf-_400x400.png">
-                </a>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% endif %}
       <div class="app-sidebar">
+        <div class="org-selector">
+          <a href="#" class="active-org">Sentry</a>
+          <a href="#" class="dropdown-toggle"></a>
+          {% if list_organizations|length > 1 %}
+            <div class="dropdown-menu">
+              <ul>
+                {% for o in request.user|list_organizations %}
+                <li{% if o.id == organization.id %} class="active"{% endif %}>
+                  <a href="{% url 'sentry-organization-home' o.slug %}">
+                    <a href="{% url 'sentry-organization-home' o.slug %}">
+                      {{ o.name }}
+                    </a>
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
         <div class="user-info">
           <img src="{% gravatar_url user.email size 72 %}">
           <p><strong><a class="username" href="#">{{ user.username }}</a></strong></p>
@@ -141,16 +147,11 @@
             <header>
                 <div class="container">
                   {% block menu_toggle %}
-                    {% if request.user.is_authenticated %}
-                      <a class="sidebar-toggle" onclick="$('body').toggleClass('show-sidebar');">
-                        <span class="icon-menu"></span>
-                        <span class="badge badge-error">12</span>
-                      </a>
-                    {% else %}
-                      {% block logo %}
-                        <a href="/"><span class="icon-sentry-logo-full"></span></a>
-                      {% endblock %}
-                    {% endif %}
+                      {% if request.user.is_authenticated == None %}
+                        {% block logo %}
+                          <a href="/"><span class="icon-sentry-logo-full"></span></a>
+                        {% endblock %}
+                      {% endif %}
                   {% endblock %}
                   <div class="pull-right">
                       {% block header_action %}
