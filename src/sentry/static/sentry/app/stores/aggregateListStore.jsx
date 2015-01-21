@@ -23,6 +23,8 @@ var AggregateListStore = Reflux.createStore({
     // TODO(dcramer): theres no documented way to do listenables via these
     this.listenTo(AggregateListActions.assignTo.completed, this.onAssignToCompleted);
     this.listenTo(AggregateListActions.assignTo.failed, this.onAssignToFailed);
+
+    this.listenTo(AggregateListActions.bulkUpdate.completed, this.onBulkUpdateCompleted);
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -33,9 +35,27 @@ var AggregateListStore = Reflux.createStore({
   },
 
   onAssignToCompleted: function(id, email, data) {
-    this.items.update(data);
+    var idx = this.items.indexOf({id: id});
+    if (idx === -1) {
+      return;
+    }
+    // TODO(dcramer): we want to be able to pull the member information from
+    // MemberListStore so we can ignore the return params (which will help us
+    // sort out bulk actions)
+    var item = this.items[idx];
+    $.extend(true, item, data);
     this.trigger(this.items);
   },
+
+  onBulkUpdateCompleted: function(params) {
+    this.items.forEach(function(item){
+      if (params.itemIds.indexOf(item.id) !== -1) {
+        $.extend(true, item, data);
+      }
+    });
+    this.trigger(this.items);
+  },
+
 
   // TODO(dcramer): This is not really the best place for this
   onAssignToFailed: function(id, email) {
