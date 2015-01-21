@@ -159,9 +159,6 @@ var Stream = React.createClass({
 
     return {
       aggList: new utils.Collection([], {
-        equals: function(self, other) {
-          return self.id === other.id;
-        },
         limit: 50
       }),
       selectAllActive: false,

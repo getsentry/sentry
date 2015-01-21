@@ -2,8 +2,8 @@
 
 var defaults = {
   limit: null,
-  equals: function(item, other) {
-    return item.id == other.id;
+  key: function(item) {
+    return item.id;
   }
 };
 
@@ -17,7 +17,7 @@ function Collection(collection, options) {
   }
 
   for (i in defaults) {
-    if (typeof options[i] !== "undefined") {
+    if (typeof options[i] === "undefined") {
       options[i] = defaults[i];
     }
   }
@@ -74,8 +74,16 @@ Collection.prototype.unshift = function unshift(items) {
   return this;
 };
 
+Collection.prototype.get = function get(key) {
+  var idx = this.indexOf(key);
+  if (idx === -1) {
+    return;
+  }
+  return this[idx];
+};
+
 Collection.prototype.pop = function pop(item) {
-  var idx = this.indexOf(item);
+  var idx = this.indexOf(this.options.key(item));
   if (idx === -1) {
     return;
   }
@@ -88,9 +96,10 @@ Collection.prototype.empty = function empty() {
   this.splice(0, 0);
 };
 
-Collection.prototype.indexOf = function indexOf(item) {
+Collection.prototype.indexOf = function indexOf(key) {
+  var keyFunc = this.options.key;
   for (var i = 0; i < this.length; i++) {
-    if (this.options.equals(this[i], item)) {
+    if (keyFunc(this[i]) === key) {
       return i;
     }
   }
@@ -99,7 +108,7 @@ Collection.prototype.indexOf = function indexOf(item) {
 
 Collection.prototype.update = function update(item) {
   // returns true if the item already existed and was updated (as configured)
-  var existing = this.indexOf(item);
+  var existing = this.indexOf(this.options.key(item));
   if (existing !== -1) {
     $.extend(true, this[existing], item);
     return true;
