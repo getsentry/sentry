@@ -32,14 +32,13 @@ var AggregateListStore = Reflux.createStore({
   },
 
   onAssignToCompleted: function(id, email, data) {
-    var idx = this.items.indexOf({id: id});
-    if (idx === -1) {
+    var item = this.items.get(id);
+    if (!item) {
       return;
     }
     // TODO(dcramer): we want to be able to pull the member information from
     // MemberListStore so we can ignore the return params (which will help us
     // sort out bulk actions)
-    var item = this.items[idx];
     $.extend(true, item, data);
     this.trigger(this.items);
   },
