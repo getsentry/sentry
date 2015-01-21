@@ -85,7 +85,7 @@ class File(Model):
         checksum = md5('')
         for chunk in fileobj.chunks():
             checksum.update(chunk)
-        self.checksum = checksum
+        self.checksum = checksum.hexdigest()
 
         storage = self.get_storage()
         storage.save(self.path, fileobj)
