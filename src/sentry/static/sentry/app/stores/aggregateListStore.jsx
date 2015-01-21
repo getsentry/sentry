@@ -34,6 +34,7 @@ var AggregateListStore = Reflux.createStore({
 
   onAssignToCompleted: function(id, email, data) {
     this.items.update(data);
+    this.trigger(this.items);
   },
 
   // TODO(dcramer): This is not really the best place for this
