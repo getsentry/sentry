@@ -9,8 +9,6 @@ var utils = require("../utils");
 var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
 
 var AggregateListStore = Reflux.createStore({
-  listenables: AggregateListActions,
-
   init: function() {
     // TODO(dcramer): what we want to actually do is keep this as a simple
     // list and have stream add/remove items as they're modified within stream
@@ -21,6 +19,10 @@ var AggregateListStore = Reflux.createStore({
       },
       limit: 50
     });
+
+    // TODO(dcramer): theres no documented way to do listenables via these
+    this.listenTo(AggregateListActions.assignTo.completed, this.onAssignToCompleted);
+    this.listenTo(AggregateListActions.assignTo.failed, this.onAssignToFailed);
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -30,24 +32,13 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(this.items, 'initial');
   },
 
-  onSetAssignedTo: function(itemId, userEmail, cb) {
-    $.ajax({
-      url: '/api/0/groups/' + itemId + '/',
-      method: 'PUT',
-      data: JSON.stringify({
-        assignedTo: userEmail
-      }),
-      contentType: 'application/json',
-      success: function(data){
-        this.items.update(data);
-        this.trigger(this.items, 'assignedTo', itemId, userEmail);
-        cb(data);
-      }.bind(this),
-      error: function(){
-        AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
-        cb();
-      }.bind(this)
-    });
+  onAssignToCompleted: function(id, email, data) {
+    this.items.update(data);
+  },
+
+  // TODO(dcramer): This is not really the best place for this
+  onAssignToFailed: function(id, email) {
+    AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
   }
 });
 
