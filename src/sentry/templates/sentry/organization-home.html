@@ -5,7 +5,7 @@
 {% block org_teams_nav %}active{% endblock %}
 
 {% block inner %}
-  <h2>Teams</h2>
+  <h3>Teams</h3>
   {% if not team_list %}
     <p>You don't have any teams for this organization yet. Get started by <a href="{% url 'sentry-create-team' organization.slug %}">creating your first team</a>.</p>
   {% else %}
