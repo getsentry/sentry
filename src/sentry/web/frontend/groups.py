@@ -484,7 +484,7 @@ def group_event_details_json(request, organization, project, group_id, event_id_
     if event_id_or_latest == 'latest':
         # It's possible that a message would not be created under certain
         # circumstances (such as a post_save signal failing)
-        event = group.get_latest_event() or Event()
+        event = group.get_latest_event() or Event(group=group)
     else:
         event = get_object_or_404(group.event_set, pk=event_id_or_latest)
 
