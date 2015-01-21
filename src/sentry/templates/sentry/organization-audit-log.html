@@ -8,16 +8,13 @@
 {% block org_auditlog_nav %}active{% endblock %}
 
 {% block inner %}
-  <div class="page-header">
-    <h2>Audit Log</h2>
-  </div>
+
+  <h3>Audit Log</h3>
 
   {% paginate audit_log_queryset from request as entry_list per_page 50 %}
 
   {% if entry_list.objects %}
-    <p>{% blocktrans %}Sentry keeps track of important events within your Organization.{% endblocktrans %}</p>
-
-    <br>
+    <p>{% blocktrans %}Sentry keeps track of important events within your organization.{% endblocktrans %}</p>
 
     <table class="table">
       <thead>
