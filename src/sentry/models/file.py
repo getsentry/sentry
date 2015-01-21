@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.db import models
 from django.utils import timezone
+from hashlib import md5
 from uuid import uuid4
 
 from sentry.db.models import (
@@ -28,9 +29,11 @@ class File(Model):
     path = models.TextField(null=True)
     type = models.CharField(max_length=64)
     size = BoundedPositiveIntegerField(null=True)
+    checksum = models.CharField(max_length=32, null=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
+        unique_together = (('name', 'checksum'),)
         app_label = 'sentry'
         db_table = 'sentry_file'
 
@@ -69,7 +72,7 @@ class File(Model):
 
         A file's content is idempotent and you may not re-save a given file.
 
-        >>> my_file = File(name='app.dsym', type='release.artifact')
+        >>> my_file = File(name='app.dsym', type='objc.dsym')
         >>> my_file.putfile(fileobj, commit=False)
         >>> my_file.save()
         """
@@ -78,6 +81,11 @@ class File(Model):
         self.path = self.generate_unique_path()
         self.storage = settings.SENTRY_FILESTORE
         self.storage_options = settings.SENTRY_FILESTORE_OPTIONS
+
+        checksum = md5('')
+        for chunk in fileobj.chunks():
+            checksum.update(chunk)
+        self.checksum = checksum
 
         storage = self.get_storage()
         storage.save(self.path, fileobj)
