@@ -147,7 +147,7 @@
             <header>
                 <div class="container">
                   {% block menu_toggle %}
-                      {% if request.user.is_authenticated == None %}
+                      {% if not request.user.is_authenticated %}
                         {% block logo %}
                           <a href="/"><span class="icon-sentry-logo-full"></span></a>
                         {% endblock %}
