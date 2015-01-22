@@ -72,7 +72,7 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %} show-rightbar" ng-app="sentry">
+    <body class="{% block wrapperclass %}{% endblock %} {% if request.user.is_authenticated %}show-sidebar{% endif %}" ng-app="sentry">
       {% if request.user.is_authenticated %}
       <div class="app-sidebar">
         <div class="org-selector">
@@ -143,7 +143,7 @@
       {% endif %}
       <div class="app">
         {% block body %}
-        {% block header %}
+          {% block header %}
             <header>
                 <div class="container">
                   {% block menu_toggle %}
@@ -213,7 +213,12 @@
 
         <section id="content"
                  ng-controller="{% block controller %}DefaultCtrl{% endblock %}"
-                 class="{% block bodyclass %}with-sidebar{% endblock %}">
+                 class="{% block bodyclass %}{% endblock %}">
+                 <div class="rightbar">
+                   {% block rightbar %}
+                      Sup
+                   {% endblock %}
+                 </div>
             <div class="container">
                 {% block above_content %}{% endblock %}
                 <div class="content">
