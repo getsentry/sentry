@@ -30,7 +30,7 @@ Redis, Memcached, and RabbitMQ. It's very rare you'd need this complex of a clus
 this is `getsentry.com <https://getsentry.com/>`_.
 
 For more typical, but still fairly high throughput setups, you can run off of a single machine as long as it has
-reasonable IO (ideally SSDS), and a good amount of memory.
+reasonable IO (ideally SSDs), and a good amount of memory.
 
 The main things you need to consider are:
 
