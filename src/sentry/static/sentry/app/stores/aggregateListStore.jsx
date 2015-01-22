@@ -4,6 +4,7 @@ var Reflux = require("reflux");
 
 var AlertActions = require("../actions/alertActions");
 var AggregateListActions = require('../actions/aggregateListActions');
+var MemberListStore = require("../stores/memberListStore");
 var utils = require("../utils");
 
 var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
@@ -13,15 +14,20 @@ var AggregateListStore = Reflux.createStore({
     // TODO(dcramer): what we want to actually do is keep this as a simple
     // list and have stream add/remove items as they're modified within stream
     // itself
-    this.items = new utils.Collection([], {
-      limit: 50
-    });
+    this.items = new utils.Collection();
+    this.members = [];
 
     // TODO(dcramer): theres no documented way to do listenables via these
     this.listenTo(AggregateListActions.assignTo.completed, this.onAssignToCompleted);
     this.listenTo(AggregateListActions.assignTo.failed, this.onAssignToFailed);
 
     this.listenTo(AggregateListActions.bulkUpdate.completed, this.onBulkUpdateCompleted);
+
+    // listen to changes in member store so we can find project members for
+    // use with mutating assignedTo
+    this.listenTo(MemberListStore, function(members){
+      this.members = members;
+    }.bind(this));
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -31,15 +37,21 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(this.items, 'initial');
   },
 
-  onAssignToCompleted: function(id, email, data) {
+  onAssignToCompleted: function(id, email) {
     var item = this.items.get(id);
     if (!item) {
       return;
     }
-    // TODO(dcramer): we want to be able to pull the member information from
-    // MemberListStore so we can ignore the return params (which will help us
-    // sort out bulk actions)
-    $.extend(true, item, data);
+    if (email === '') {
+      item.assignedTo = '';
+    } else {
+      for (var i=0; i<this.members.length; i++) {
+        if (this.members[i].email === email) {
+          item.assignedTo = this.members[i];
+          break;
+        }
+      }
+    }
     this.trigger(this.items);
   },
 
