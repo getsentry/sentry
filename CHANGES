@@ -4,6 +4,16 @@ Version 7.2.0
 - A py.test plugin now exists to make extension testing easier.
 
 
+Version 7.1.4
+-------------
+
+- Fixed an issue with hourly rollups not expiring accurately in TSDB
+
+If you've been running a 7.x series release for a while you may considering running a cleanup script to ensure erroneous values dont still exist in Redis:
+
+  https://gist.github.com/dcramer/55a44904be883f8d03e1
+
+
 Version 7.1.3
 -------------
 
