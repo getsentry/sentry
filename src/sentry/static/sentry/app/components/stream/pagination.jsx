@@ -2,7 +2,7 @@
 var React = require("react");
 var $ = require("jquery");
 
-var utils = require("../utils");
+var utils = require("../../utils");
 
 var StreamPagination = React.createClass({
   propTypes: {

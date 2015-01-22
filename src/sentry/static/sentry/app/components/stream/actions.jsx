@@ -2,12 +2,12 @@
 var React = require("react");
 var $ = require("jquery");
 
-var utils = require("../utils");
+var utils = require("../../utils");
 
 var joinClasses = require("react-bootstrap/utils/joinClasses");
-var DateTimeField = require("../modules/datepicker/DateTimeField");
-var DropdownLink = require("./dropdownLink");
-var MenuItem = require("./menuItem");
+var DateTimeField = require("../../modules/datepicker/DateTimeField");
+var DropdownLink = require("../dropdownLink");
+var MenuItem = require("../menuItem");
 var Modal = require("react-bootstrap/Modal");
 var OverlayMixin = require("react-bootstrap/OverlayMixin");
 
