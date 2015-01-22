@@ -14,6 +14,8 @@ var StreamFilters = require('./stream/filters');
 var StreamPagination = require('./stream/pagination');
 var utils = require("../utils");
 
+// TODO(dcramer): the poller/collection needs to actually unshift/pop
+// items from the AggregateListStore to ensure it doesnt grow in memory
 var StreamPoller = function(options){
   this.options = options;
   this._timeoutId = null;
