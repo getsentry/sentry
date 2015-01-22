@@ -6,11 +6,11 @@
 
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
 
-{% block wrapperclass %}organization{% endblock %}
+{% block wrapperclass %}organization show-rightbar{% endblock %}
 
 {% block heading %}<em>Organization Overview</em>{% endblock %}
 
-{% block sidebar %}
+{% block rightbar %}
   <ul class="nav nav-stacked">
     <!-- <li class="nav-header"><h6>{{ organization.name }}</h6></li> -->
     <li class="{% block org_teams_nav %}{% endblock %}">
@@ -55,8 +55,6 @@
   {% endif %}
 {% endblock %}
 
-{% block main %}
-  <section class="body">
-    {% block inner %}{% endblock %}
-  </section>
+{% block content %}
+  {% block inner %}{% endblock %}
 {% endblock %}
