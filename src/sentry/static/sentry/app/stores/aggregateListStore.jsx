@@ -64,7 +64,6 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(this.items);
   },
 
-
   // TODO(dcramer): This is not really the best place for this
   onAssignToFailed: function(id, email) {
     AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
