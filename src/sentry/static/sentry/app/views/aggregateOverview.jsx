@@ -5,8 +5,8 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
+var AggregateActivity = require("./aggregate/activity");
 var AggregateChart = require("./aggregate/chart");
-var AggregateHeader = require("./aggregate/header");
 var AggregateListStore = require("../stores/aggregateListStore");
 var MemberListStore = require("../stores/memberListStore");
 var PropTypes = require("../proptypes");
@@ -19,10 +19,9 @@ var AggregateOverview = React.createClass({
 
   render: function() {
     return (
-      <div className="box">
-        <div className="box-content with-padding">
-          <AggregateChart aggregate={this.props.aggregate} />
-        </div>
+      <div>
+        <AggregateChart aggregate={this.props.aggregate} />
+        <AggregateActivity aggregate={this.props.aggregate} />
       </div>
     );
   }
