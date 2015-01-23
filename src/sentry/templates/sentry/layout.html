@@ -76,7 +76,7 @@
       {% if request.user.is_authenticated %}
       <div class="app-sidebar">
         <div class="org-selector dropdown">
-          <a href="#" class="active-org">Sentry</a>
+          <a href="{% url 'sentry-organization-home' organization.slug %}" class="active-org">{{ organization.name }}</a>
           <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="$(this).parent('.dropdown').toggleClass('open');"><span class="icon-arrow-down"></span></a>
           {% if list_organizations|length > 1 %}
             <div class="dropdown-menu">
