@@ -2,10 +2,10 @@
 var React = require("react");
 var Router = require("react-router");
 
-var AssigneeSelector = require("../assigneeSelector");
-var BarChart = require("../barChart");
-var Count = require("../count");
-var TimeSince = require("../timeSince");
+var AssigneeSelector = require("../../components/assigneeSelector");
+var BarChart = require("../../components/barChart");
+var Count = require("../../components/count");
+var TimeSince = require("../../components/timeSince");
 
 var StreamAggregate = React.createClass({
   mixins: [Router.State],

@@ -4,9 +4,9 @@ var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
 
-var AssigneeSelector = require("../assigneeSelector");
-var Count = require("../count");
-var TimeSince = require("../timeSince");
+var AssigneeSelector = require("../../components/assigneeSelector");
+var Count = require("../../components/count");
+var TimeSince = require("../../components/timeSince");
 
 var AggregateHeader = React.createClass({
   propTypes: {
