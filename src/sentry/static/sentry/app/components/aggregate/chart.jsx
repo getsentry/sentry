@@ -1,7 +1,7 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
-var FlotChart = require("./flotChart");
+var FlotChart = require("../flotChart");
 
 var AggregateChart = React.createClass({
   propTypes: {
