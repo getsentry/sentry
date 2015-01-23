@@ -8,6 +8,7 @@ var api = require("../api");
 var AggregateActivity = require("./aggregate/activity");
 var AggregateChart = require("./aggregate/chart");
 var AggregateEventHeader = require("./aggregate/eventHeader");
+var AggregateEventTags = require("./aggregate/eventTags");
 var AggregateListStore = require("../stores/aggregateListStore");
 var MemberListStore = require("../stores/memberListStore");
 var PropTypes = require("../proptypes");
@@ -64,7 +65,12 @@ var AggregateOverview = React.createClass({
             This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
           </div>
         }
+        // TODO(dcramer): we could move these into some kind of
+        // AggregateEvent component
         <AggregateEventHeader
+            aggregate={agg}
+            event={this.state.event} />
+        <AggregateEventTags
             aggregate={agg}
             event={this.state.event} />
       </div>
