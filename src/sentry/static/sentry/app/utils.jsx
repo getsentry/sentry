@@ -68,6 +68,7 @@ var escape = function(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 };
 
+
 module.exports = {
   escape: escape,
   getQueryParams: getQueryParams,

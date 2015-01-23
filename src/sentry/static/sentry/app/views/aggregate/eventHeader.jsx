@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
+var FileSize = require("../../components/fileSize");
 var PropTypes = require("../../proptypes");
 
 var AggregateEventHeader = React.createClass({
@@ -26,7 +27,7 @@ var AggregateEventHeader = React.createClass({
         </a>
         <h4>
           <span>Datetime</span>
-          <span>[{event.size}]</span>
+          <span>[<FileSize bytes={event.size} />]</span>
           <div>
             <small>ID: {event.eventID}</small>
           </div>
