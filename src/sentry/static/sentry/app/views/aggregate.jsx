@@ -60,7 +60,8 @@ var AggregateDetails = React.createClass({
             memberList={this.props.memberList} />
         <Router.RouteHandler
             memberList={this.props.memberList}
-            aggregate={aggregate} />
+            aggregate={aggregate}
+            statsPeriod={this.state.statsPeriod} />
       </div>
     );
   }

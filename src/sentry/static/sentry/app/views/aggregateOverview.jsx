@@ -14,13 +14,16 @@ var utils = require("../utils");
 
 var AggregateOverview = React.createClass({
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired
+    aggregate: PropTypes.Aggregate.isRequired,
+    statsPeriod: React.PropTypes.string.isRequired
   },
 
   render: function() {
     return (
       <div>
-        <AggregateChart aggregate={this.props.aggregate} />
+        <AggregateChart
+            aggregate={this.props.aggregate}
+            statsPeriod={this.props.statsPeriod} />
         <AggregateActivity aggregate={this.props.aggregate} />
       </div>
     );
