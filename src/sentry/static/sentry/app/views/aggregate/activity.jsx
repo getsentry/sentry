@@ -20,7 +20,6 @@ var AggregateActivity = React.createClass({
       </div>
     );
   }
-
 });
 
 module.exports = AggregateActivity;
