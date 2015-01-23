@@ -33,7 +33,7 @@ var StreamAggregate = React.createClass({
       userCount = data.tags["sentry:user"].count;
     }
 
-    var className = "group";
+    var className = "group row";
     if (data.isBookmarked) {
       className += " isBookmarked";
     }
@@ -46,7 +46,7 @@ var StreamAggregate = React.createClass({
 
     return (
       <li className={className}>
-        <div className="event-details event-cell">
+        <div className="col-md-7 event-details">
           <div className="checkbox">
             <input type="checkbox" className="chk-select" value={data.id}
                    checked={this.props.isSelected}
@@ -68,18 +68,18 @@ var StreamAggregate = React.createClass({
             <span className="first-seen">from <TimeSince date={data.firstSeen} /></span>
           </div>
         </div>
-        <div className="event-assignee event-cell hidden-xs hidden-sm">
+        <div className="event-assignee col-md-1 hidden-xs hidden-sm">
           <AssigneeSelector
             aggregate={data}
             memberList={this.props.memberList} />
         </div>
-        <div className="hidden-sm hidden-xs event-graph align-right event-cell">
+        <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
           <BarChart points={chartData} className="sparkline" />
         </div>
-        <div className="hidden-xs event-occurrences align-center event-cell">
+        <div className="col-md-1 hidden-xs event-occurrences align-right">
           <Count value={data.count} />
         </div>
-        <div className="hidden-xs event-users align-center event-cell">
+        <div className="col-md-1 hidden-xs event-users align-right">
           <Count value={userCount} />
         </div>
       </li>
