@@ -8,6 +8,8 @@ var MemberListStore = require("../stores/memberListStore");
 var utils = require("../utils");
 
 var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
+var OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.';
+var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
 var AggregateListStore = Reflux.createStore({
   init: function() {
@@ -15,19 +17,12 @@ var AggregateListStore = Reflux.createStore({
     // list and have stream add/remove items as they're modified within stream
     // itself
     this.items = new utils.Collection();
-    this.members = [];
 
     // TODO(dcramer): theres no documented way to do listenables via these
     this.listenTo(AggregateListActions.assignTo.completed, this.onAssignToCompleted);
     this.listenTo(AggregateListActions.assignTo.failed, this.onAssignToFailed);
 
     this.listenTo(AggregateListActions.bulkUpdate.completed, this.onBulkUpdateCompleted);
-
-    // listen to changes in member store so we can find project members for
-    // use with mutating assignedTo
-    this.listenTo(MemberListStore, function(members){
-      this.members = members;
-    }.bind(this));
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -45,11 +40,9 @@ var AggregateListStore = Reflux.createStore({
     if (email === '') {
       item.assignedTo = '';
     } else {
-      for (var i=0; i<this.members.length; i++) {
-        if (this.members[i].email === email) {
-          item.assignedTo = this.members[i];
-          break;
-        }
+      var member = MemberListStore.getByEmail(email);
+      if (member) {
+        item.assignedTo = member;
       }
     }
     this.trigger(this.items);
@@ -62,6 +55,14 @@ var AggregateListStore = Reflux.createStore({
       }
     });
     this.trigger(this.items);
+  },
+
+  onBulkDeleteCompleted: function(params) {
+    AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
+  },
+
+  onMergeCompleted: function(params) {
+    AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
   },
 
   // TODO(dcramer): This is not really the best place for this
