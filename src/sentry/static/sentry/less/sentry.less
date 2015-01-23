@@ -353,15 +353,55 @@ ul, ol {
 
 .org-selector {
   border-bottom: 1px solid rgba(36, 39, 43, .8);
-  padding: 0 20px;
+  padding: 0;
   margin: 0 -20px 20px;
   height: 66px;
-  line-height: 70px;
+  position: relative;
 
   .active-org {
     font-size: 18px;
     font-weight: 600;
     line-height: 1;
+    padding: 24px 20px;
+    display: block;
+    position: relative;
+  }
+
+  .dropdown-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 22px 20px 20px 5px;
+    z-index: 10;
+  }
+
+  .dropdown-menu {
+    background: #fff;
+    border-radius: 0;
+    top: 66px;
+    width: @sidebar-width;
+    margin: 0;
+    padding: 0;
+  }
+
+  .orgs {
+    line-height: 1;
+    .list-unstyled();
+    margin-bottom: 0;
+
+    li {
+      a {
+        display: block;
+        padding: 20px;
+        font-size: 18px;
+        box-shadow: inset -1px 0 0 rgba(0,0,0, .12);
+
+        &:hover {
+          background: @blue;
+          color: #fff;
+        }
+      }
+    }
   }
 }
 
