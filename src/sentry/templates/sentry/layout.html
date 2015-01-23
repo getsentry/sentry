@@ -125,19 +125,13 @@
                     <ul class="project-list list-unstyled truncate">
                         {% for p in p_list %}
                             <li{% if p.id == project.id %} class="active"{% endif %}>
-                                <strong><a href="{% url 'sentry-stream' t.organization.slug p.slug %}" title="{{ p.name }}"><span class="badge badge-error pull-right">12</span>{{ p.name }}</a></strong>
+                                <strong><a href="{% url 'sentry-stream' t.organization.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a></strong>
                             </li>
                         {% endfor %}
                     </ul>
                 </div>
               {% endfor %}
           {% endif %}
-        </div>
-        <div class="broadcast">
-          <span class="logo icon-sentry-logo"></span>
-          <a class="update" href="#">
-            See what's new in 7.1.1 <span class="icon-arrow-right"></span>
-          </a>
         </div>
       </div>
       {% endif %}
