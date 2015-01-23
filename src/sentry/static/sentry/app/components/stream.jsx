@@ -186,36 +186,31 @@ var Stream = React.createClass({
     });
   },
 
-  actionAggregates: function(aggList, options) {
+  actionAggregates: function(action, aggList, data) {
+    var itemIds;
     var params = this.getParams();
-    var url = options.url || '/api/0/projects/' + params.orgId + '/' + params.projectId + '/groups/';
-
     var selectedAggList;
-    if (aggList === StreamActions.SELECTED) {
+
+    if (aggList === AggregateListActions.SELECTED) {
+      itemIds = [];
       selectedAggList = [];
       for (var i = 0, node; (node = this.state.aggList[i]); i++) {
         if (node.isSelected === true) {
+          itemIds.push(node.id);
           selectedAggList.push(node);
         }
       }
-      url += '?id=' + selectedAggList.map(function(node){ return node.id; }).join('&id=');
-    } else {
+    } else if (aggList === StreamActions.ALL) {
       selectedAggList = this.state.aggList;
     }
 
-    var data = options.data || {};
-
-    // TODO(dcramer): handle errors
-    $.ajax({
-      url: url,
-      method: options.method || 'PUT',
-      contentType: 'application/json',
-      data: JSON.stringify(data)
+    action({
+      orgId: params.orgId,
+      projectId: params.projectId,
+      itemIds: itemIds,
+      data: data
     });
 
-    if (aggList === StreamActions.ALL) {
-      aggList = this.state.aggList;
-    }
     selectedAggList.forEach(function(node){
       node.version = new Date().getTime() + 10;
       node.isSelected = false;
@@ -223,10 +218,6 @@ var Stream = React.createClass({
         node[key] = data[key];
       }
     });
-
-    if (typeof options.success !== "undefined") {
-      options.success(selectedAggList);
-    }
 
     this.setState({
       aggList: this.state.aggList,
@@ -236,14 +227,10 @@ var Stream = React.createClass({
     });
   },
   handleResolve: function(aggList, event){
-    return this.actionAggregates(aggList, {
-      data: {status: 'resolved'}
-    });
+    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {status: 'resolved'});
   },
   handleBookmark: function(aggList, event){
-    return this.actionAggregates(aggList, {
-      data: {isBookmarked: true}
-    });
+    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: true});
   },
   handleRealtimeChange: function(event) {
     this.setState({
@@ -251,25 +238,15 @@ var Stream = React.createClass({
     });
   },
   handleRemoveBookmark: function(aggList, event){
-    return this.actionAggregates(aggList, {
-      data: {isBookmarked: false}
-    });
+    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: false});
   },
   handleDelete: function(aggList, event){
-    return this.actionAggregates(aggList, {
+    return this.actionAggregates(AggregateListActions.bulkDelete, aggList, {
       method: 'DELETE',
-      success: function() {
-        AlertActions.addAlert('The selected events have been scheduled for deletion.', 'success');
-      }
     });
   },
   handleMerge: function(aggList, event) {
-    return this.actionAggregates(aggList, {
-      data: {merge: 1},
-      success: function() {
-        AlertActions.addAlert('The selected events have been scheduled for merge.', 'success');
-      }
-    });
+    return this.actionAggregates(AggregateListActions.merge, {merge: 1});
   },
   handleSelectStatsPeriod: function(period) {
     this.setState({
