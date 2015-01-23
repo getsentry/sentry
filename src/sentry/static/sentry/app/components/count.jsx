@@ -2,6 +2,10 @@
 var React = require("react");
 
 var Count = React.createClass({
+  propTypes: {
+    value: React.PropTypes.number.isRequired
+  },
+
   numberFormats: [
       [1000000000, 'b'],
       [1000000, 'm'],
