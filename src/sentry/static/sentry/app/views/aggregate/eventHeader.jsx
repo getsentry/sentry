@@ -7,7 +7,7 @@ var PropTypes = require("../../proptypes");
 var AggregateEventHeader = React.createClass({
   propTypes: {
     aggregate: PropTypes.Aggregate.isRequired,
-    event: PropTypes.Event
+    event: PropTypes.Event.isRequired
   },
 
   render: function() {

@@ -3,26 +3,25 @@ var React = require("react");
 
 var PropTypes = require("../../proptypes");
 
-var AggregateEventTags = React.createClass({
+var AggregateEventDataSection = React.createClass({
   propTypes: {
     aggregate: PropTypes.Aggregate.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
+    title: React.PropTypes.string.isRequired
   },
 
   render: function() {
     return (
-      <div id="tags" className="box">
+      <div className="box">
         <div className="box-header">
-          <h3>Tags</h3>
+            <h3>{this.props.title}</h3>
         </div>
         <div className="box-content with-padding">
-          <ul className="mini-tag-list">
-          </ul>
+          {this.props.children}
         </div>
       </div>
     );
   }
 });
 
-module.exports = AggregateEventTags;
-
+module.exports = AggregateEventDataSection;
