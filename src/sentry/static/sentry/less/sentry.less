@@ -15,7 +15,7 @@
 @black: #111;
 @white: #fff;
 @sentry-orange: #fb4226;
-@blue: #409AED;
+@blue: #1791F8;
 @green: #07CC6D;
 @yellow: #f5db00;
 @red: #ED4043;
@@ -68,8 +68,29 @@ body {
   display: none;
   position: absolute;
   width: 220px;
-  right: -1px;
-  top: -20px;
+  right: 0px;
+  top: -21px;
+
+  .nav-stacked {
+    li, li+li {
+      margin: 0;
+    }
+    a {
+      font-weight: 500;
+      font-size: 15px;
+      background: none;
+      border-radius: 0;
+      padding: 15px 20px;
+      &:hover {
+        background: rgba(0,0,0, .05);
+      }
+    }
+
+    li.active a {
+      font-weight: 600;
+      background: @blue;
+    }
+  }
 }
 
 pre, code, kbd, sample {
