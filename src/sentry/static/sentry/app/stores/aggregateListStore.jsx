@@ -21,8 +21,6 @@ var AggregateListStore = Reflux.createStore({
     // TODO(dcramer): theres no documented way to do listenables via these
     this.listenTo(AggregateListActions.assignTo.completed, this.onAssignToCompleted);
     this.listenTo(AggregateListActions.assignTo.failed, this.onAssignToFailed);
-
-    this.listenTo(AggregateListActions.bulkUpdate.completed, this.onBulkUpdateCompleted);
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -45,15 +43,6 @@ var AggregateListStore = Reflux.createStore({
         item.assignedTo = member;
       }
     }
-    this.trigger(this.items);
-  },
-
-  onBulkUpdateCompleted: function(params) {
-    this.items.forEach(function(item){
-      if (params.itemIds.indexOf(item.id) !== -1) {
-        $.extend(true, item, data);
-      }
-    });
     this.trigger(this.items);
   },
 
