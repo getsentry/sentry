@@ -8,7 +8,7 @@
 @import url("typeahead.less");
 
 @baseFontSize: 13px;
-@grayDark: #4a535e;
+@grayDark: #343C45;
 @gray: #4f5760;
 @navbarInverseLinkBackgroundActive: #333;
 @orange: #fb4226;
@@ -528,81 +528,97 @@ header {
   }
 
   .user-nav {
-    margin-top: 3px;
-    margin-bottom: 0;
 
-    .clearfix();
+    .dropdown-toggle {
+      img {
+        .square(30px);
+        border-radius: 2px;
+      }
+
+      .icon-arrow-down {
+        top: 4px;
+      }
+    }
     .dropdown-menu {
+      color: #fff;
+      background: @grayDark;
       left: auto;
-      right: 0;
-      border-radius: 0 0 4px 4px;
-      top: 41px;
-      color: @gray;
+      right: -20px;
+      top: 44px;
+      border-radius: 2px;
+      width: 240px;
+      margin: 0;
+      // border: 1px solid darken(@grayDark, 10);
+      border: none;
+      box-shadow: none;
+      padding: 0;
 
-      &.orgs li {
+      &:after {
+        width: 0;
+        height: 0;
+        border-left: 12px solid transparent;
+        border-right: 12px solid transparent;
+        border-bottom: 12px solid @grayDark;
+        content: "";
+        display: block;
+        position: absolute;
+        top: -10px;
+        right: 15px;
+      }
 
-        a {
-          padding-left: 12px;
-          padding-right: 36px;
-          position: relative;
+      ul {
+        .list-unstyled();
+        margin: 0;
+      }
+
+      .user-global {
+        text-align: center;
+        padding: 20px 0;
+
+        li {
+          display: inline-block;
+          margin-right: 10px;
+
+          &:last-child {
+            margin: 0;
+          }
+        }
+
+        .icon {
+          opacity: .5;
+          margin-right: 5px;
+        }
+        .icon-book, .icon-comments {
+          top: 2px;
         }
         .icon-settings {
-          position: absolute;
-          top: 6px;
-          right: 6px;
-          margin-left: 10px;
-        }
-
-        .icon-building, .icon-user {
-          opacity: .5;
-          padding-right: 5px;
-        }
-
-        .icon-user {
           top: 1px;
         }
       }
-    }
 
-    h6 {
-      margin: 6px 12px;
-      font-size: 14px;
-    }
-
-    > li {
-      list-style: none;
-      float: left;
-      margin-left: 30px;
-      line-height: 1;
+      .user-account {
+        li {
+          a {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(0,0,0, .25);
+            display: block;
+            &:hover {
+              background: @blue;
+              color: #fff;
+              border-top-color: transparent;
+            }
+          }
+        }
+      }
 
       a {
-        font-size: 15px;
+        color: #B5B9BD;
+
+        &:hover {
+          color: #fff;
+          background: none;
+        }
       }
-    }
-
-    .icon-settings,
-    .icon-book,
-    .icon-envelope,
-    .icon-building {
-      line-height: 1;
-      padding-right: 5px;
-    }
-
-    .icon-settings, .icon-envelope {
-      top: 1px;
-    }
-
-    .icon-book {
-      top: 2px;
-    }
-
-    .icon-building {
-      top: 1px;
-    }
-
-    .icon-arrow-down {
-      top: 2px;
-      line-height: 0;
     }
   }
 

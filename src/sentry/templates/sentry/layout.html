@@ -94,26 +94,6 @@
             </div>
           {% endif %}
         </div>
-        <div class="user-info">
-          <img src="{% gravatar_url user.email size 72 %}">
-          <p><strong><a class="username" href="#">{{ user.username }}</a></strong></p>
-          <p><small>
-            <a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a>
-            <a class="divider" href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a>
-            </small></p>
-        </div>
-        <div class="user-options">
-          {% block account_nav %}
-          <ul class="list-unstyled truncate">
-              <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
-              {% block support_link %}{% endblock %}
-              <li><strong><a href="https://kiwiirc.com/client/irc.freenode.net/#sentry" target="_blank"><span class="icon icon-comments"></span>Chat</a></strong></li>
-              {% if request.user.is_staff %}
-              <li><strong><a href="{% url 'sentry-admin-status' %}"> <span class="icon icon-settings"></span>{% trans "Admin" %}</a></strong></li>
-              {% endif %}
-          </ul>
-          {% endblock%}
-        </div>
         <div class="teams divider-top">
           {% if TEAM_LIST %}
               {% for t, p_list in TEAM_LIST %}
@@ -150,17 +130,28 @@
                   <div class="pull-right">
                       {% block header_action %}
                           {% if request.user.is_authenticated %}
-                          <div class="dropdown new-dropdown">
-                            <a class="dropdown-toggle new-menu">
-                              <span class="icon-new"></span>
-                            </a>
-                            <ul class="dropdown-menu">
-                              <li><a href="#">Organization</a></li>
-                              <li><a href="#">Team</a></li>
-                              <li><a href="#">Project</a></li>
-                              <li><a href="#">Member</a></li>
-                            </ul>
+                            {% block account_nav %}
+                            <div class="user-nav dropdown">
+                              <a href="#" class="dropdown-toggle" onclick="$(this).parent('.dropdown').toggleClass('open');">
+                                <img src="{% gravatar_url user.email size 72 %}">
+                                <span class="icon-arrow-down"></span>
+                              </a>
+                              <div class="dropdown-menu">
+                                <ul class="user-global">
+                                  <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
+                                  {% block support_link %}{% endblock %}
+                                  <li><strong><a href="https://kiwiirc.com/client/irc.freenode.net/#sentry" target="_blank"><span class="icon icon-comments"></span>Chat</a></strong></li>
+                                  {% if request.user.is_staff %}
+                                  <li><strong><a href="{% url 'sentry-admin-status' %}"> <span class="icon icon-settings"></span>{% trans "Admin" %}</a></strong></li>
+                                  {% endif %}
+                                </ul>
+                                <ul class="user-account">
+                                  <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
+                                  <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
+                                </ul>
+                              </div>
                           </div>
+                            {% endblock%}
                           {% else %}
                             <div class="user-nav">
                               <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
