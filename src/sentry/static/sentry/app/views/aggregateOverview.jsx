@@ -51,15 +51,22 @@ var AggregateOverview = React.createClass({
   },
 
   render: function(){
+    var agg = this.props.aggregate;
+
     return (
       <div>
         <AggregateChart
-            aggregate={this.props.aggregate}
+            aggregate={agg}
             statsPeriod={this.props.statsPeriod} />
-        <AggregateActivity aggregate={this.props.aggregate} />
+        <AggregateActivity aggregate={agg} />
         <AggregateEventHeader
-            aggregate={this.props.aggregate}
+            aggregate={agg}
             event={this.state.event} />
+        {agg.status === 'muted' &&
+          <div className="alert alert-info">
+            This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
+          </div>
+        }
       </div>
     );
   }
