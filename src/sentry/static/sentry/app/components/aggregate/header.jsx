@@ -4,13 +4,9 @@ var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
 
-var api = require("../api");
-var AggregateListStore = require("../stores/aggregateListStore");
-var AssigneeSelector = require("./assigneeSelector");
-var Count = require("./count");
-var MemberListStore = require("../stores/memberListStore");
-var TimeSince = require("./timeSince");
-var utils = require("../utils");
+var AssigneeSelector = require("../assigneeSelector");
+var Count = require("../count");
+var TimeSince = require("../timeSince");
 
 var AggregateHeader = React.createClass({
   propTypes: {
@@ -103,66 +99,8 @@ var AggregateHeader = React.createClass({
           </div>
         </div>
       </div>
-
     );
   }
 });
 
-var AggregateDetails = React.createClass({
-  mixins: [
-    Reflux.connect(AggregateListStore, "aggList"),
-    Router.State
-  ],
-
-  propTypes: {
-    memberList: React.PropTypes.instanceOf(Array).isRequired
-  },
-
-  getInitialState: function() {
-    return {
-      aggList: new utils.Collection(),
-      statsPeriod: '24h'
-    };
-  },
-
-  componentWillMount: function() {
-    api.request(this.getAggregateDetailsEndpoint(), {
-      success: function(data, textStatus, jqXHR) {
-        AggregateListStore.loadInitialData([data]);
-      }.bind(this)
-    });
-  },
-
-  getAggregateDetailsEndpoint: function() {
-    return '/groups/' + this.getParams().aggregateId + '/';
-  },
-
-  getAggregate: function() {
-    var id = this.getParams().aggregateId;
-    return this.state.aggList.get(id);
-  },
-
-  render: function() {
-    var aggregate = this.getAggregate();
-
-    if (!aggregate) {
-      return <div />;
-    }
-
-    return (
-      <div className={this.props.className}>
-        <AggregateHeader
-            aggregate={aggregate}
-            statsPeriod={this.state.statsPeriod}
-            memberList={this.props.memberList} />
-        <div className="box">
-          <div className="box-content with-padding">
-            <AggregateChart aggregate={aggregate} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-});
-
-module.exports = AggregateDetails;
+module.exports = AggregateHeader;
