@@ -194,8 +194,8 @@ var StreamActions = React.createClass({
     }
 
     return (
-      <div className="stream-actions">
-        <div className="stream-actions-left stream-actions-cell">
+      <div className="stream-actions row">
+        <div className="stream-actions-left col-md-7">
           <div className="checkbox">
             <input type="checkbox" className="chk-select-all"
                    onChange={this.props.onSelectAll}
@@ -326,9 +326,9 @@ var StreamActions = React.createClass({
             </div>
           </div>
         </div>
-        <div className="hidden-sm hidden-xs stream-actions-assignee stream-actions-cell">
+        <div className="hidden-sm hidden-xs stream-actions-assignee col-md-1">
         </div>
-        <div className="hidden-sm hidden-xs stream-actions-graph stream-actions-cell">
+        <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
           <ul className="toggle-graph">
             <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
               <a onClick={this.selectStatsPeriod.bind(this, '24h')}>24h</a>
@@ -338,8 +338,8 @@ var StreamActions = React.createClass({
             </li>
           </ul>
         </div>
-        <div className="stream-actions-occurrences stream-actions-cell align-center hidden-xs"> events</div>
-        <div className="stream-actions-users stream-actions-cell align-center hidden-xs"> users</div>
+        <div className="stream-actions-occurrences align-right hidden-xs col-md-1"> events</div>
+        <div className="stream-actions-users align-right hidden-xs col-md-1"> users</div>
       </div>
     );
   }
