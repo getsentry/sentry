@@ -16,6 +16,16 @@ var MemberListStore = Reflux.createStore({
   loadInitialData: function(items) {
     this.items = items;
     this.trigger(this.items, 'initial');
+  },
+
+  getByEmail: function(email) {
+    email = email.toLowerCase();
+    for (var i=0; i<this.items.length; i++) {
+      if (this.items[i].email.toLowerCase() === email) {
+        return this.items[i];
+      }
+    }
+    return null;
   }
 });
 
