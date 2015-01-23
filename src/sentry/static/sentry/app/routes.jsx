@@ -6,6 +6,7 @@ var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
 var Aggregate = require("./views/aggregate");
+var AggregateOverview = require("./views/aggregateOverview");
 var ProjectDetails = require("./views/projectDetails");
 var Stream = require("./views/stream");
 
@@ -21,7 +22,9 @@ var routes = (
   <Route name="app" path="/" handler={App}>
     <Route name="projectDetails" path="/:orgId/:projectId/" handler={ProjectDetails}>
       <DefaultRoute name="stream" handler={Stream} />
-      <Route name="aggregateDetails" path="group/:aggregateId/" handler={Aggregate}/>
+      <Route name="aggregateDetails" path="group/:aggregateId/" handler={Aggregate}>
+        <DefaultRoute name="aggregateOverview" handler={AggregateOverview} />
+      </Route>
     </Route>
   </Route>
 );

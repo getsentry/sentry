@@ -6,14 +6,13 @@ var Reflux = require("reflux");
 var AggregateListActions = require("../actions/aggregateListActions");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
+var PropTypes = require("../proptypes");
 
 var AssigneeSelector = React.createClass({
   mixins: [Reflux.ListenerMixin],
 
   propTypes: {
-    aggregate: React.PropTypes.shape({
-      id: React.PropTypes.string.isRequired
-    }).isRequired,
+    aggregate: PropTypes.Aggregate.isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
   },
 

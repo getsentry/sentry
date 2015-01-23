@@ -58,11 +58,9 @@ var AggregateDetails = React.createClass({
             aggregate={aggregate}
             statsPeriod={this.state.statsPeriod}
             memberList={this.props.memberList} />
-        <div className="box">
-          <div className="box-content with-padding">
-            <AggregateChart aggregate={aggregate} />
-          </div>
-        </div>
+        <Router.RouteHandler
+            memberList={this.props.memberList}
+            aggregate={aggregate} />
       </div>
     );
   }
