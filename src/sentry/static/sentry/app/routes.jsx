@@ -5,10 +5,17 @@ var Router = require("react-router");
 var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
-var App = require("./components/app");
-var Aggregate = require("./components/aggregate");
-var ProjectDetails = require("./components/projectDetails");
-var Stream = require("./components/stream");
+var Aggregate = require("./views/aggregate");
+var ProjectDetails = require("./views/projectDetails");
+var Stream = require("./views/stream");
+
+var App = React.createClass({
+  render: function () {
+    return (
+      <Router.RouteHandler />
+    );
+  }
+});
 
 var routes = (
   <Route name="app" path="/" handler={App}>

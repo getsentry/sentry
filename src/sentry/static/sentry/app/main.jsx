@@ -53,6 +53,5 @@ module.exports = {
 
   routes: require("./routes"),
 
-  Alerts: require("./components/alerts"),
-  App: require("./components/app")
+  Alerts: require("./components/alerts")
 };
