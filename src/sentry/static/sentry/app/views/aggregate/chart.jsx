@@ -6,11 +6,15 @@ var PropTypes = require("../../proptypes");
 
 var AggregateChart = React.createClass({
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired
+    aggregate: PropTypes.Aggregate.isRequired,
+    statsPeriod: React.PropTypes.string.isRequired
   },
 
   render: function() {
-    var points = [{x: 1421722207, y: 50}, {x: 1421722267, y: 150}];
+    var aggregate = this.props.aggregate;
+    var points = aggregate.stats[this.props.statsPeriod].map(function(point){
+      return {x: point[0], y: point[1]};
+    });
 
     return (
       <div className="box">
