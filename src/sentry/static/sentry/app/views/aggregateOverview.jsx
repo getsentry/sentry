@@ -53,7 +53,7 @@ var AggregateOverview = React.createClass({
       },
       complete: function() {
         this.setState({eventIsLoading: false});
-      }
+      }.bind(this)
     });
   },
 
