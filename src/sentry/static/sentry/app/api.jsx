@@ -9,7 +9,7 @@ var Client = function(){
 Client.prototype.request = function(path, options) {
   $.ajax({
     url: this.baseUrl + path,
-    method: options.method,
+    method: options.method || 'GET',
     success: options.success,
     error: options.error,
     complete: options.complete
