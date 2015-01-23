@@ -3,7 +3,7 @@ var React = require("react");
 
 var Count = React.createClass({
   propTypes: {
-    value: React.PropTypes.number.isRequired
+    value: React.PropTypes.any.isRequired
   },
 
   numberFormats: [
