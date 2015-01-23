@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
+var moment = require("moment");
 var FileSize = require("../../components/fileSize");
 var PropTypes = require("../../proptypes");
 
@@ -26,7 +27,7 @@ var AggregateEventHeader = React.createClass({
           Older Sample <span></span>
         </a>
         <h4>
-          <span>Datetime</span>
+          <time>{moment.utc(event.dateCreated).format('lll')}</time>
           <span>[<FileSize bytes={event.size} />]</span>
           <div>
             <small>ID: {event.eventID}</small>
