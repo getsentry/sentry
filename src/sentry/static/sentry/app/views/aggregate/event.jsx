@@ -25,7 +25,7 @@ var AggregateEvent = React.createClass({
     var evt = this.props.event;
 
     var entries = [];
-    evt.entries.forEach(function(entry, _){
+    evt.entries.forEach(function(entry, entryIdx){
       try {
         var Component = this.interfaces[entry.type];
         if (!Component) {
@@ -34,7 +34,7 @@ var AggregateEvent = React.createClass({
         }
         entries.push(
           <Component
-              key={"entry-" + _}
+              key={"entry-" + entryIdx}
               aggregate={agg}
               event={evt}
               data={entry.data} />
