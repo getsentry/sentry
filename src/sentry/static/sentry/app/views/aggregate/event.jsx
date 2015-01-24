@@ -15,9 +15,35 @@ var AggregateEvent = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
+  // TODO(dcramer): figure out how we make this extensible
+  interfaces: {
+    exception: require("./interfaces/exception")
+  },
+
   render: function(){
     var agg = this.props.aggregate;
     var evt = this.props.event;
+
+    var entries = [];
+    evt.entries.forEach(function(entry, _){
+      try {
+        var Component = this.interfaces[entry.type];
+        if (!Component) {
+          throw new Error('Unregistered interface: ' + entry.type);
+
+        }
+        entries.push(
+          <Component
+              key={"entry-" + _}
+              aggregate={agg}
+              event={evt}
+              data={entry.data} />
+        );
+      } catch (ex) {
+        // TODO(dcramer): this should log to Sentry
+        console.error(ex);
+      }
+    }.bind(this));
 
     return (
       <div>
@@ -27,6 +53,7 @@ var AggregateEvent = React.createClass({
         <AggregateEventTags
             aggregate={agg}
             event={evt} />
+        {entries}
         <AggregateEventDataSection
             aggregate={agg}
             event={evt}
