@@ -17,7 +17,8 @@ var AggregateEvent = React.createClass({
 
   // TODO(dcramer): figure out how we make this extensible
   interfaces: {
-    exception: require("./interfaces/exception")
+    exception: require("./interfaces/exception"),
+    request: require("./interfaces/request")
   },
 
   render: function(){
