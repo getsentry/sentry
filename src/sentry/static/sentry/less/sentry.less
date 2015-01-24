@@ -629,30 +629,22 @@ header {
 }
 
 footer {
-  display: none;
-  .clearfix();
-  background: lighten(#dee3e9, 2);
-  padding: 40px 30px 36px;
-  color: #939aa4;
-  font-weight: bold;
+  padding-top: 10px;
+  line-height: 30px;
+  text-align: center;
+  color: #B5B9BD;
+  font-weight: 500;
 
-  .container {
-    .clearfix();
-    > div {
-      float: left;
-      margin: 0 30px 0 0;
-    }
-    .contribute {
-      float: right;
-      margin: 0;
+  a {
+    color: #B5B9BD;
+    &:hover {
+      color: darken(#B5B9BD, 10);
     }
   }
-  a {
-    color: darken(#939aa4, 10);
-    font-weight: bold;
-    &:hover {
-      color: #333;
-    }
+
+  .icon-sentry-logo {
+    color: #D1D3D6;
+    font-size: 28px;
   }
 }
 
