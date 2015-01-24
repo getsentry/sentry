@@ -17,12 +17,35 @@ var ExceptionInterface = React.createClass({
   render: function(){
     var agg = this.props.aggregate;
     var evt = this.props.event;
+    var data = this.props.data;
+
+    var children = [];
+    data.values.forEach(function(exc, excIdx){
+      // TODO(dcramer): This is basically completely wrong rendering atm
+
+      var frames = [];
+      exc.stacktrace.frames.forEach(function(frame){
+      });
+
+      children.push(
+        <div className="traceback" key={"exc-" + excIdx}>
+          <h3>
+            <span>{exc.type}</span>
+          </h3>
+          {exc.value &&
+            <pre>{exc.value}</pre>
+          }
+          {frames}
+        </div>
+      );
+    });
 
     return (
       <AggregateEventDataSection
           aggregate={agg}
           event={evt}
           title="Exception">
+        {children}
       </AggregateEventDataSection>
     );
   }
