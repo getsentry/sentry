@@ -6,6 +6,7 @@
 @import url("pygments.less");
 @import url("simple-slider.less");
 @import url("typeahead.less");
+@import url(http://fonts.googleapis.com/css?family=Lato:300,400,700,400italic);;
 
 @baseFontSize: 13px;
 @grayDark: #343C45;
@@ -27,7 +28,7 @@
 @iconSpritePath:          "../bootstrap/img/glyphicons-halflings.png";
 @iconWhiteSpritePath:     "../bootstrap/img/glyphicons-halflings-white.png";
 
-@font-family-base: "Avenir Next", "Avenir", "Helvetica Neue", helvetica, sans-serif;
+@font-family-base: "Lato", "Helvetica Neue", sans-serif;
 @font-family-code: Monaco, Consolas, "Courier New", monospace;
 
 /* =============================  Angular  ============================= */
@@ -309,7 +310,7 @@ ul, ol {
     font-size: 18px;
     font-weight: 600;
     line-height: 1;
-    padding: 24px 20px;
+    padding: 23px 20px;
     display: block;
     position: relative;
   }
@@ -373,14 +374,14 @@ header {
   border-bottom: 1px solid #E6E7E9;
   position: relative;
   height: 66px;
-  padding: 19px 0 0;
+  padding: 23px 0 0;
+  line-height: 1;
 
   .breadcrumb {
     background: none;
     padding: 0;
     margin-bottom: 0;
     font-size: 18px;
-    line-height: 1.7;
 
     li {
       float: left;
@@ -454,6 +455,7 @@ header {
   }
 
   .user-nav {
+    top: -5px;
 
     .dropdown-toggle {
       img {
@@ -2057,7 +2059,7 @@ ol.context-line {
   box-shadow: 0 1px 0 rgba(52, 60, 69, .03);
 
   .box-header {
-    padding: 20px 20px 17px;
+    padding: 20px 20px 19px;
     border-bottom: 1px solid #E5E7E8;
     border-radius: 2px 2px 0 0;
 
