@@ -11,6 +11,7 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
+from django.utils import timezone
 from hashlib import md5
 
 from sentry.plugins import plugins
@@ -96,6 +97,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             is_regression=is_regression,
             is_sample=is_sample,
             rule_is_active=rule_status.status == GroupRuleStatus.ACTIVE,
+            rule_last_active=rule_status.last_active,
         )
 
         condition_iter = (
@@ -119,12 +121,14 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             GroupRuleStatus.objects.filter(
                 id=rule_status.id,
                 status=GroupRuleStatus.INACTIVE,
+                last_active=timezone.now(),
             ).update(status=GroupRuleStatus.ACTIVE)
         elif not passed and rule_status.status == GroupRuleStatus.ACTIVE:
             # update the state to suggest this rule can fire again
             GroupRuleStatus.objects.filter(
                 id=rule_status.id,
                 status=GroupRuleStatus.ACTIVE,
+                last_active=timezone.now(),
             ).update(status=GroupRuleStatus.INACTIVE)
 
         if passed:

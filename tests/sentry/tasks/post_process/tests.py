@@ -159,6 +159,7 @@ class ExecuteRuleTest(TestCase):
             is_regression=False,
             is_sample=True,
             rule_is_active=False,
+            rule_last_active=None,
         )
 
         execute_rule(
