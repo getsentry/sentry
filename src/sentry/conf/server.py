@@ -400,6 +400,10 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'sentry.rules': {
+            'handlers': ['console'],
+            'propagate': False,
+        },
         'static_compiler': {
             'level': 'INFO',
         },

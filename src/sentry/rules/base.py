@@ -40,8 +40,12 @@ from __future__ import absolute_import
 import logging
 import re
 
+from collections import namedtuple
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
+
+
+CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
 
 
 class RuleDescriptor(type):
@@ -94,6 +98,12 @@ class RuleBase(object):
         form = self.get_form_instance()
 
         return form.is_valid()
+
+    def future(self, callback, **kwargs):
+        return CallbackFuture(
+            callback=callback,
+            kwargs=kwargs,
+        )
 
 
 class EventState(object):
