@@ -78,6 +78,7 @@ def pytest_configure(config):
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
+    # disable error reporting by default
     settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
@@ -89,6 +90,8 @@ def pytest_configure(config):
     settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
     settings.CELERY_ALWAYS_EAGER = False
+
+    settings.DISABLE_RAVEN = True
 
     settings.CACHES = {
         'default': {
