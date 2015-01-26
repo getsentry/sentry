@@ -7,9 +7,6 @@ from django.conf import settings
 
 
 def pytest_configure(config):
-    import warnings
-    warnings.filterwarnings('error', '', Warning, r'(sentry|raven)')
-
     if not settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
@@ -70,7 +67,7 @@ def pytest_configure(config):
     # to assert that the user is always in sudo mode
     middleware = list(settings.MIDDLEWARE_CLASSES)
     sudo = middleware.index('sentry.middleware.sudo.SudoMiddleware')
-    middleware[sudo] = 'tests.middleware.SudoMiddleware'
+    middleware[sudo] = 'sentry.testutils.middleware.SudoMiddleware'
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
     # enable draft features
