@@ -8,7 +8,7 @@ from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry.interfaces import Stacktrace
+from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import Alert, Event, Group, AccessGroup
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
@@ -41,8 +41,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -68,8 +66,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -95,8 +91,6 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'Soubor ji\xc5\xbe existuje'
-        event.logger = 'root'
-        event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -112,12 +106,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -140,12 +135,13 @@ class MailPluginTest(TestCase):
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
+            message='hello world\nfoo bar',
+            logger='root',
         )
 
         event = Event(
             group=group,
-            message='hello world\nfoo bar',
-            logger='root',
+            message=group.message,
             project=self.project,
             datetime=group.last_seen,
         )
@@ -159,22 +155,24 @@ class MailPluginTest(TestCase):
             self.team.name, self.project.name)
 
     def test_get_sendable_users(self):
-        from sentry.models import Project, UserOption, User
+        from sentry.models import UserOption, User
 
-        user = User.objects.create(username='foo', email='foo@example.com', is_active=True)
-        user2 = User.objects.create(username='baz', email='baz@example.com', is_active=True)
-        user3 = User.objects.create(username='baz2', email='bar@example.com', is_active=True)
+        user = self.create_user(email='foo@example.com', is_active=True)
+        user2 = self.create_user(email='baz@example.com', is_active=True)
+        user3 = self.create_user(email='baz2@example.com', is_active=True)
 
         # user with inactive account
-        User.objects.create(username='bar', email='bar@example.com', is_active=False)
+        self.create_user(email='bar@example.com', is_active=False)
         # user not in any groups
-        User.objects.create(username='bar2', email='bar@example.com', is_active=True)
+        self.create_user(email='bar2@example.com', is_active=True)
 
-        project = Project.objects.create(name='Test', slug='test', owner=user)
-        project.team.member_set.get_or_create(user=user)
-        project.team.member_set.get_or_create(user=user2)
+        team = self.create_team(owner=user)
 
-        ag = AccessGroup.objects.create(team=project.team)
+        project = self.create_project(name='Test', team=team)
+        team.member_set.get_or_create(user=user)
+        team.member_set.get_or_create(user=user2)
+
+        ag = AccessGroup.objects.create(team=team)
         ag.members.add(user3)
         ag.projects.add(project)
 

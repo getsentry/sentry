@@ -5,6 +5,8 @@ sentry.web.frontend.teams
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django.contrib import messages
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
@@ -12,13 +14,17 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
+from sudo.decorators import sudo_required
+
 from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
-from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
+from sentry.models import (
+    PendingTeamMember, TeamMember, TeamStatus, AccessGroup, User)
 from sentry.permissions import (
     can_add_team_member, can_remove_team, can_create_projects,
     can_create_teams, can_edit_team_member, can_remove_team_member,
     Permissions)
 from sentry.plugins import plugins
+from sentry.tasks.deletion import delete_team
 from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (
@@ -41,6 +47,7 @@ def render_with_team_context(team, template, context, request=None):
 
 
 @login_required
+@sudo_required
 @csrf_protect
 def create_new_team(request):
     if not can_create_teams(request.user):
@@ -104,9 +111,6 @@ def manage_team(request, team):
                     'type': MEMBER_OWNER,
                 }
             )
-            team.project_set.update(
-                owner=team.owner,
-            )
 
         messages.add_message(request, messages.SUCCESS,
             _('Changes to your team were saved.'))
@@ -136,10 +140,16 @@ def remove_team(request, team):
         form = RemoveTeamForm()
 
     if form.is_valid():
-        team.delete()
+        if team.status == TeamStatus.VISIBLE:
+            team.update(status=TeamStatus.PENDING_DELETION)
+            # we delay the task for 5 minutes so we can implement an undo
+            kwargs = {'object_id': team.id}
+            delete_team.apply_async(kwargs=kwargs, countdown=60 * 5)
+
         messages.add_message(
             request, messages.SUCCESS,
-            _(u'The team %r was permanently deleted.') % (team.name.encode('utf-8'),))
+            _('Deletion has been queued and will happen automatically.'))
+
         return HttpResponseRedirect(reverse('sentry'))
 
     context = csrf(request)
@@ -201,6 +211,8 @@ def manage_team_members(request, team):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def new_team_member(request, team):
+    from django.conf import settings
+
     if not can_add_team_member(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))
 
@@ -208,7 +220,11 @@ def new_team_member(request, team):
         'type': MEMBER_USER,
     }
 
-    invite_form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
+    if settings.SENTRY_ENABLE_INVITES:
+        invite_form = InviteTeamMemberForm(team, request.POST or None, initial=initial, prefix='invite')
+    else:
+        invite_form = None
+
     add_form = NewTeamMemberForm(team, request.POST or None, initial=initial, prefix='add')
 
     if add_form.is_valid():
@@ -221,7 +237,7 @@ def new_team_member(request, team):
 
         return HttpResponseRedirect(reverse('sentry-manage-team-members', args=[team.slug]))
 
-    elif invite_form.is_valid():
+    elif invite_form and invite_form.is_valid():
         pm = invite_form.save(commit=False)
         pm.team = team
         pm.save()
@@ -424,8 +440,6 @@ def create_new_team_project(request, team):
     if form.is_valid():
         project = form.save(commit=False)
         project.team = team
-        if not project.owner:
-            project.owner = request.user
         project.save()
 
         create_sample_event(project)

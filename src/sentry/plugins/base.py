@@ -5,6 +5,7 @@ sentry.plugins.base
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 __all__ = ('Plugin', 'plugins', 'register', 'unregister')
 
@@ -313,7 +314,7 @@ class IPlugin(local):
 
     def get_view_response(self, request, group):
         from sentry.models import Event
-        from sentry.permissions import can_admin_group
+        from sentry.permissions import can_admin_group, can_remove_group
 
         self.selected = request.path == self.get_url(group)
 
@@ -340,6 +341,7 @@ class IPlugin(local):
             'group': group,
             'event': event,
             'can_admin_event': can_admin_group(request.user, group),
+            'can_remove_event': can_remove_group(request.user, group),
         })
 
     def view(self, request, group, **kwargs):
@@ -426,13 +428,6 @@ class IPlugin(local):
 
     # Server side signals which do not have request context
 
-    def is_rate_limited(self, project, **kwargs):
-        """
-        Return True if this project (or the system) is over any defined
-        quotas.
-        """
-        return False
-
     def has_perm(self, user, perm, *objects, **kwargs):
         """
         Given a user, a permission name, and an optional list of objects
@@ -482,6 +477,22 @@ class IPlugin(local):
         >>>     print alert.get_absolute_url()
         """
 
+    def is_regression(self, group, event, **kwargs):
+        """
+        Called on new events when the group's status is STATUS_RESOLVED.
+        Return True if this event is a regression, False if it is not,
+        None to defer to other plugins.
+
+        :param group: an instance of ``Group``
+        :param event: an instance of ``Event``
+
+        >>> def is_regression(self, group, event, **kwargs):
+        >>>     # regression if 'version' tag has a value we haven't seen before
+        >>>     seen_versions = set(t[0] for t in group.get_unique_tags("version"))
+        >>>     event_version = dict(event.get_tags()).get("version")
+        >>>     return event_version not in seen_versions
+        """
+
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         """
         Post processes an event after it has been saved.
@@ -506,17 +517,6 @@ class IPlugin(local):
         >>>     return [('tag-name', 'tag-value')]
         """
 
-    def get_filters(self, project=None, **kwargs):
-        """
-        Provides additional filters to the builtins.
-
-        Must return an iterable.
-
-        >>> def get_filters(self, project, **kwargs):
-        >>>     return [MyFilterClass]
-        """
-        return []
-
     def get_notification_forms(self, **kwargs):
         """
         Provides additional UserOption forms for the Notification Settings page.
@@ -527,6 +527,12 @@ class IPlugin(local):
         >>>     return [MySettingsForm]
         """
         return []
+
+    def is_testable(self, **kwargs):
+        """
+        Returns True if this plugin is able to be tested.
+        """
+        return hasattr(self, 'test_configuration')
 
 
 class Plugin(IPlugin):

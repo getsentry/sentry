@@ -5,6 +5,7 @@ sentry.models.user
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import warnings
 
@@ -34,6 +35,12 @@ class User(Model, AbstractBaseUser):
         _('superuser status'), default=False,
         help_text=_('Designates that this user has all permissions without '
                     'explicitly assigning them.'))
+    is_managed = models.BooleanField(
+        _('managed'), default=False,
+        help_text=_('Designates whether this user should be treated as '
+                    'managed. Select this to disallow the user from '
+                    'modifying their account (username, password, etc).'))
+
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
 
     objects = UserManager(cache_fields=['pk'])

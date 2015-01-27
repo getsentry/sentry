@@ -5,13 +5,15 @@ sentry.utils.imports
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 import pkgutil
 import sys
 
 
 class ModuleProxyCache(dict):
     def __missing__(self, key):
-        if not '.' in key:
+        if '.' not in key:
             return __import__(key)
 
         module_name, class_name = key.rsplit('.', 1)

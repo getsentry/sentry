@@ -5,6 +5,8 @@ sentry.web.frontend.generic
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
@@ -31,6 +33,7 @@ def dashboard(request, template='dashboard.html'):
 
     return render_to_response('sentry/select_team.html', {
         'team_list': team_list.values(),
+        'can_create_teams': can_create_teams(request.user),
     }, request)
 
 

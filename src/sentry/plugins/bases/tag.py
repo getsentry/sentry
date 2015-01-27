@@ -5,6 +5,8 @@ sentry.plugins.bases.tag
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.models import Group
 from sentry.plugins import Plugin

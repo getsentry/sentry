@@ -5,13 +5,17 @@ sentry.models.projectkey
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
+from bitfield import BitField
 from urlparse import urlparse
 from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+
+import six
 
 from sentry.db.models import (
     Model, BaseManager, sane_repr
@@ -20,9 +24,17 @@ from sentry.db.models import (
 
 class ProjectKey(Model):
     project = models.ForeignKey('sentry.Project', related_name='key_set')
+    label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    roles = BitField(flags=(
+        # access to post events to the store endpoint
+        ('store', 'Event API access'),
+
+        # read/write access to rest API
+        ('api', 'Web API access'),
+    ), default=['store'])
 
     # For audits
     user_added = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
@@ -40,7 +52,7 @@ class ProjectKey(Model):
     __repr__ = sane_repr('project_id', 'user_id', 'public_key')
 
     def __unicode__(self):
-        return unicode(self.public_key)
+        return six.text_type(self.public_key)
 
     @classmethod
     def generate_api_key(cls):

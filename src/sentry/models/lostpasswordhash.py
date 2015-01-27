@@ -5,16 +5,14 @@ sentry.models.useroption
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-
-import logging
+from __future__ import absolute_import
 
 from datetime import timedelta
-from urlparse import urlparse
-
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
+from urlparse import urlparse
 
 from sentry.db.models import Model, sane_repr
 from sentry.utils.http import absolute_uri
@@ -43,7 +41,7 @@ class LostPasswordHash(Model):
         self.hash = hashlib.md5(str(random.randint(1, 10000000))).hexdigest()
 
     def is_valid(self):
-        return self.date_added > timezone.now() - timedelta(days=1)
+        return self.date_added > timezone.now() - timedelta(hours=48)
 
     def send_recover_mail(self):
         from sentry.utils.email import MessageBuilder
@@ -61,9 +59,4 @@ class LostPasswordHash(Model):
             template='sentry/emails/recover_account.txt',
             context=context,
         )
-
-        try:
-            msg.send([self.user.email])
-        except Exception, e:
-            logger = logging.getLogger('sentry.mail.errors')
-            logger.exception(e)
+        msg.send_async([self.user.email])

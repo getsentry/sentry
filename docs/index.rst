@@ -25,6 +25,7 @@ Users Guide
    buffer/index
    nodestore/index
    throttling/index
+   tsdb/index
    performance/index
    cli/index
    client/index
@@ -41,6 +42,14 @@ Developers
    developer/client/index
    developer/plugins/index
    developer/interfaces/index
+
+Internals
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   internals/options
 
 Reference
 ---------

@@ -1,9 +1,12 @@
+from __future__ import absolute_import, print_function
+
 import logging
 
 from django.utils.safestring import mark_safe
 
 from sentry.models import Activity, Event, Group, Project, Team
 from sentry.utils.samples import load_data
+from sentry.utils.email import inline_css
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
@@ -19,7 +22,7 @@ class MailPreview(object):
         return render_to_string(self.text_template, self.context)
 
     def html_body(self):
-        return render_to_string(self.html_template, self.context)
+        return inline_css(render_to_string(self.html_template, self.context))
 
 
 @login_required
@@ -48,7 +51,6 @@ def new_event(request):
         group=group,
         message=group.message,
         data=load_data('python'),
-        level=logging.ERROR,
     )
 
     interface_list = []

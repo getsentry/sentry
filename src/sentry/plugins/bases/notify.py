@@ -5,8 +5,14 @@ sentry.plugins.bases.notify
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
+
+import logging
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
+
+from sentry.app import ratelimiter
 from sentry.plugins import Plugin
 from sentry.models import UserOption, AccessGroup
 
@@ -50,7 +56,7 @@ class NotificationPlugin(Plugin):
         conf_key = self.get_conf_key()
 
         alert_settings = dict(
-            (o.user_id, o.value)
+            (o.user_id, int(o.value))
             for o in UserOption.objects.filter(
                 project=project,
                 key='%s:alert' % conf_key,
@@ -84,30 +90,28 @@ class NotificationPlugin(Plugin):
         return member_set
 
     def should_notify(self, group, event):
-        project = group.project
-        send_to = self.get_sendable_users(project)
-        if not send_to:
+        if group.is_muted():
             return False
 
-        allowed_tags = project.get_option('notifcation:tags', {})
-        if allowed_tags:
-            tags = event.data.get('tags', ())
-            if not tags:
-                return False
-            if not any(v in allowed_tags.get(k, ()) for k, v in tags):
-                return False
-        return True
+        project = group.project
 
-    ## plugin hooks
+        rate_limited = ratelimiter.is_limited(
+            project=project,
+            key=self.get_conf_key(),
+            limit=15,
+        )
 
-    def post_process(self, group, event, is_new, is_sample, **kwargs):
-        if not is_new:
-            return
+        if rate_limited:
+            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+            logger.info('Notification for project %s dropped due to rate limiting', project.id)
 
-        if not self.should_notify(group, event):
-            return
+        return not rate_limited
 
-        self.notify_users(group, event)
+    def test_configuration(self, project):
+        from sentry.utils.samples import create_sample_event
+        event = create_sample_event(project, default='python')
+        return self.notify_users(event.group, event, fail_silently=False)
+
 
 # Backwards-compatibility
 NotifyConfigurationForm = NotificationConfigurationForm

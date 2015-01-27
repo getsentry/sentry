@@ -6,9 +6,11 @@ sentry.tasks.email
 :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import logging
+
+from django.core.mail import get_connection
 
 from sentry.tasks.base import instrumented_task
 
@@ -23,7 +25,7 @@ def _get_user_from_email(group, email):
         # Make sure that the user actually has access to this project
         if group.project not in Project.objects.get_for_user(
                 user, team=group.team, superuser=False):
-            logger.warning('User %r does not have access to group %r', (user, group))
+            logger.warning('User %r does not have access to group %r', user, group)
             continue
 
         return user
@@ -58,3 +60,11 @@ def process_inbound_email(mailfrom, group_id, payload):
     form = NewNoteForm({'text': payload})
     if form.is_valid():
         form.save(event, user)
+
+
+@instrumented_task(
+    name='sentry.tasks.email.send_email',
+    queue='email')
+def send_email(message):
+    connection = get_connection()
+    connection.send_messages([message])

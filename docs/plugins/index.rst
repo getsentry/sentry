@@ -43,6 +43,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-bitbucket <https://github.com/neilalbrock/sentry-bitbucket>`_
 * `sentry-campfire <https://github.com/mkhattab/sentry-campfire>`_
 * `sentry-flowdock <https://github.com/getsentry/sentry-flowdock>`_
+* `sentry-fogbugz <https://github.com/glasslion/sentry-fogbugz>`_
 * `sentry-github <https://github.com/getsentry/sentry-github>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
@@ -63,6 +64,8 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
 * `sentry-xmpp <https://github.com/chroto/sentry-xmpp>`_
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_
+* `sentry-slack <https://github.com/getsentry/sentry-slack>`_
+* `sentry-zabbix <https://github.com/m0n5t3r/sentry-zabbix>`_
 
 Have an extension that should be listed here? Submit a `pull request <https://github.com/getsentry/sentry>`_ and we'll
 get it added.

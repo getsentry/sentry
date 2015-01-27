@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth.forms import (
@@ -14,18 +16,27 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
-from sentry.models import Project, Team, User
+
+from sentry.models import Broadcast, Project, Team, TeamMember, User
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
 
 
+class BroadcastAdmin(admin.ModelAdmin):
+    list_display = ('message', 'is_active', 'date_added')
+    list_filter = ('is_active',)
+    search_fields = ('message', 'url')
+
+admin.site.register(Broadcast, BroadcastAdmin)
+
+
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('full_slug', 'owner', 'platform', 'date_added')
+    list_display = ('full_slug', 'platform', 'status', 'date_added')
     list_filter = ('status', 'platform', 'public')
-    search_fields = ('name', 'owner__username', 'owner__email', 'team__slug',
+    search_fields = ('name', 'team__owner__username', 'team__owner__email', 'team__slug',
                      'team__name', 'slug')
-    raw_id_fields = ('owner', 'team')
+    raw_id_fields = ('team',)
 
     def full_slug(self, instance):
         if not instance.team:
@@ -38,10 +49,19 @@ class ProjectAdmin(admin.ModelAdmin):
 admin.site.register(Project, ProjectAdmin)
 
 
+class TeamMemberInline(admin.TabularInline):
+    model = TeamMember
+    extra = 1
+
+    raw_id_fields = ('user', 'team')
+
+
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'slug')
+    list_display = ('name', 'owner', 'slug', 'status')
+    list_filter = ('status',)
     search_fields = ('name', 'owner__username', 'owner__email', 'slug')
     raw_id_fields = ('owner',)
+    inlines = (TeamMemberInline,)
 
 admin.site.register(Team, TeamAdmin)
 
@@ -65,9 +85,10 @@ class UserAdmin(admin.ModelAdmin):
     add_form = UserCreationForm
     change_password_form = AdminPasswordChangeForm
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
-    list_filter = ('is_staff', 'is_superuser', 'is_active')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_managed')
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('username',)
+    inlines = (TeamMemberInline,)
 
     def get_fieldsets(self, request, obj=None):
         if not obj:

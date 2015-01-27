@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-03 11:26+0000\n"
-"PO-Revision-Date: 2013-12-03 11:29+0000\n"
+"POT-Creation-Date: 2014-04-28 18:18+0000\n"
+"PO-Revision-Date: 2014-04-28 18:18+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Afrikaans (http://www.transifex.com/projects/p/sentry/language/af/)\n"
 "MIME-Version: 1.0\n"
@@ -43,17 +43,17 @@ msgstr ""
 msgid "Priority"
 msgstr "Prioriteit"
 
-#: constants.py:32 constants.py:81 templates/sentry/search.html:16
+#: constants.py:32 constants.py:79 templates/sentry/search.html:16
 #: templates/sentry/explore/tag_value_list.html:41
 #: templates/sentry/explore/code/list_tag.html:42
-#: templates/sentry/groups/group_list.html:116
+#: templates/sentry/groups/group_list.html:111
 #: templates/sentry/plugins/bases/tag/index.html:24
 #: templates/sentry/users/list.html:35
 msgid "Last Seen"
 msgstr "Laas Gesien"
 
-#: constants.py:33 constants.py:82 templates/sentry/search.html:18
-#: templates/sentry/groups/group_list.html:119
+#: constants.py:33 constants.py:80 templates/sentry/search.html:18
+#: templates/sentry/groups/group_list.html:114
 #: templates/sentry/plugins/bases/tag/index.html:23
 msgid "First Seen"
 msgstr "Eerste Gesien"
@@ -70,33 +70,28 @@ msgstr "Totale Tyd Spandeer"
 msgid "Average Time Spent"
 msgstr "Gemiddelde Tyd Spandeer"
 
-#: constants.py:37 constants.py:38
-#, python-format
-msgid "Trending: %(minutes)d minutes"
-msgstr "Neiging: %(minutes)d minute"
-
-#: constants.py:80 templates/sentry/search.html:17
+#: constants.py:78 templates/sentry/search.html:17
 msgid "Score"
 msgstr "Telling"
 
-#: constants.py:92 models/alert.py:34
+#: constants.py:90 models/alert.py:31
 msgid "Unresolved"
 msgstr ""
 
-#: constants.py:93 models/alert.py:35
+#: constants.py:91 models/alert.py:32
 msgid "Resolved"
 msgstr ""
 
-#: constants.py:94
+#: constants.py:92
 msgid "Muted"
 msgstr ""
 
-#: constants.py:101 templates/sentry/layout.html:107
+#: constants.py:99 templates/sentry/layout.html:107
 #: templates/sentry/bases/admin.html:5 web/forms/__init__.py:47
 msgid "Admin"
 msgstr ""
 
-#: constants.py:102 constants.py:232
+#: constants.py:100 constants.py:216
 #: templates/sentry/partial/interfaces/user.html:6
 #: templates/sentry/teams/groups/members.html:25
 #: templates/sentry/teams/members/edit.html:27
@@ -106,43 +101,53 @@ msgstr ""
 msgid "User"
 msgstr "Gebruiker"
 
-#: constants.py:103
+#: constants.py:101
 msgid "System Agent"
 msgstr ""
 
-#: constants.py:233
+#: constants.py:215
+msgid "Exception Type"
+msgstr ""
+
+#: constants.py:217
 msgid "File"
 msgstr ""
 
-#: constants.py:234
+#: constants.py:218
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:30
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:57
 msgid "Function"
 msgstr ""
 
-#: constants.py:235
+#: constants.py:219
 msgid "OS"
 msgstr ""
 
-#: constants.py:236 plugins/sentry_urls/models.py:27
+#: constants.py:220 plugins/sentry_urls/models.py:27
+#: templates/sentry/partial/interfaces/http_email.html:5
 msgid "URL"
 msgstr "URL"
 
-#: constants.py:237
+#: constants.py:221
 msgid "Server"
 msgstr ""
 
-#: interfaces.py:603
+#: interfaces.py:663
 msgid "Stacktrace (most recent call first):"
 msgstr ""
 
-#: interfaces.py:605
+#: interfaces.py:665
 msgid "Stacktrace (most recent call last):"
 msgstr ""
 
-#: interfaces.py:1036 templates/sentry/partial/interfaces/http.html:9
+#: interfaces.py:1131 templates/sentry/partial/interfaces/http.html:9
 msgid "Request"
 msgstr "Versoek"
+
+#: api/endpoints/group_details.py:22
+#, python-format
+msgid "Select a valid choice. %(value)s is not one of the available choices."
+msgstr ""
 
 #: filters/builtins.py:17 templates/sentry/projects/base.html:29
 #: templates/sentry/projects/list.html:27
@@ -157,7 +162,7 @@ msgstr "boodskap"
 msgid "messages"
 msgstr "boodskappe"
 
-#: models/event.py:69 models/group.py:196
+#: models/event.py:69 models/group.py:178
 msgid "error"
 msgstr "fout"
 
@@ -169,12 +174,20 @@ msgstr "gegroepeerde boodskappe"
 msgid "grouped message"
 msgstr "gegroepeerde boodskap"
 
-#: models/project.py:47
+#: models/project.py:47 models/team.py:37
 msgid "Visible"
 msgstr ""
 
 #: models/project.py:48
 msgid "Hidden"
+msgstr ""
+
+#: models/team.py:38
+msgid "Pending Deletion"
+msgstr ""
+
+#: models/team.py:39
+msgid "Deletion in Progress"
 msgstr ""
 
 #: models/user.py:21
@@ -227,7 +240,7 @@ msgstr ""
 
 #: models/user.py:47
 msgid "user"
-msgstr ""
+msgstr "gebruiker"
 
 #: models/user.py:48
 msgid "users"
@@ -243,7 +256,7 @@ msgstr ""
 msgid "Auto Tag: Interface Types"
 msgstr ""
 
-#: plugins/sentry_mail/models.py:25
+#: plugins/sentry_mail/models.py:24
 #: templates/sentry/account/notifications.html:54
 #: templates/sentry/bases/admin.html:39
 msgid "Mail"
@@ -485,8 +498,8 @@ msgstr "Geen gevalle pas jou navraag."
 #: templates/sentry/explore/code/list_tag.html:68
 #: templates/sentry/explore/code/tag_details.html:42
 #: templates/sentry/explore/code/tag_details.html:61
-#: templates/sentry/groups/group_list.html:87
-#: templates/sentry/groups/group_list.html:143
+#: templates/sentry/groups/group_list.html:82
+#: templates/sentry/groups/group_list.html:138
 #: templates/sentry/partial/_pager.html:5
 #: templates/sentry/users/details.html:42
 #: templates/sentry/users/details.html:61 templates/sentry/users/list.html:23
@@ -513,8 +526,8 @@ msgstr "Vorige"
 #: templates/sentry/explore/code/list_tag.html:69
 #: templates/sentry/explore/code/tag_details.html:43
 #: templates/sentry/explore/code/tag_details.html:62
-#: templates/sentry/groups/group_list.html:88
-#: templates/sentry/groups/group_list.html:144
+#: templates/sentry/groups/group_list.html:83
+#: templates/sentry/groups/group_list.html:139
 #: templates/sentry/partial/_pager.html:6
 #: templates/sentry/users/details.html:43
 #: templates/sentry/users/details.html:62 templates/sentry/users/list.html:24
@@ -558,13 +571,13 @@ msgstr ""
 
 #: templates/sentry/account/appearance.html:37
 #: templates/sentry/account/notifications.html:105
-#: templates/sentry/account/settings.html:46
+#: templates/sentry/account/settings.html:36
 #: templates/sentry/admin/users/edit.html:19
 #: templates/sentry/partial/_form.html:9
 #: templates/sentry/plugins/bases/issue/create_issue.html:26
 #: templates/sentry/projects/manage.html:44
 #: templates/sentry/projects/manage_tags.html:36
-#: templates/sentry/projects/notifications.html:59
+#: templates/sentry/projects/notifications.html:69
 #: templates/sentry/projects/quotas.html:37
 #: templates/sentry/teams/manage.html:43
 #: templates/sentry/teams/groups/details.html:47
@@ -601,6 +614,7 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/account/notifications.html:47
+#: templates/sentry/projects/notifications.html:23
 msgid "General"
 msgstr ""
 
@@ -616,7 +630,7 @@ msgid ""
 "(via the Project settings)"
 msgstr ""
 
-#: templates/sentry/account/notifications.html:72 web/forms/projects.py:62
+#: templates/sentry/account/notifications.html:72 web/forms/projects.py:61
 msgid "Project Name"
 msgstr ""
 
@@ -628,13 +642,24 @@ msgstr ""
 msgid "Account Settings"
 msgstr ""
 
-#: templates/sentry/account/settings.html:13
-msgid ""
-"To make changes to your account, you must first enter your current password."
+#: templates/sentry/account/settings.html:30
+msgid "You may also optionally change your password."
 msgstr ""
 
-#: templates/sentry/account/settings.html:40
-msgid "You may also optionally change your password."
+#: templates/sentry/account/sudo.html:6
+msgid "Confirm Password"
+msgstr ""
+
+#: templates/sentry/account/sudo.html:23
+msgid "Help us keep your account safe by confirming your password."
+msgstr ""
+
+#: templates/sentry/account/sudo.html:32
+msgid "Your password was not valid."
+msgstr ""
+
+#: templates/sentry/account/sudo.html:40
+msgid "Continue"
 msgstr ""
 
 #: templates/sentry/account/recover/confirm.html:6
@@ -770,7 +795,7 @@ msgstr ""
 msgid "Host"
 msgstr ""
 
-#: templates/sentry/admin/status/mail.html:29
+#: templates/sentry/admin/status/mail.html:29 web/forms/accounts.py:132
 msgid "Username"
 msgstr ""
 
@@ -779,7 +804,7 @@ msgstr ""
 msgid "not set"
 msgstr ""
 
-#: templates/sentry/admin/status/mail.html:33 web/forms/projects.py:86
+#: templates/sentry/admin/status/mail.html:33
 msgid "Password"
 msgstr ""
 
@@ -879,7 +904,7 @@ msgstr "Skep 'n nuwe gebruiker"
 #: templates/sentry/projects/base.html:26
 #: templates/sentry/projects/list.html:24
 #: templates/sentry/teams/groups/list.html:29 web/forms/__init__.py:32
-#: web/forms/accounts.py:135
+#: web/forms/accounts.py:134
 msgid "Name"
 msgstr "Naam"
 
@@ -923,34 +948,16 @@ msgstr "kanselleer"
 msgid "Alert at %(datetime)s"
 msgstr ""
 
-#: templates/sentry/alerts/details.html:21
-msgid "Related Events"
-msgstr ""
-
-#: templates/sentry/alerts/details.html:21
-msgid "Trending at time of alert"
-msgstr ""
-
-#: templates/sentry/alerts/details.html:26
-msgid ""
-"Note: All events represent their current state, not their value at the time "
-"of this alert."
-msgstr ""
-
-#: templates/sentry/alerts/details.html:38
-msgid "No trends are available for this report."
-msgstr ""
-
-#: templates/sentry/alerts/details.html:48
+#: templates/sentry/alerts/details.html:27
 msgid "Meta"
 msgstr ""
 
-#: templates/sentry/alerts/details.html:50
+#: templates/sentry/alerts/details.html:29
 msgid "When:"
 msgstr ""
 
 #: templates/sentry/alerts/list.html:6 templates/sentry/alerts/team.html:6
-#: templates/sentry/projects/notifications.html:23
+#: templates/sentry/projects/notifications.html:33
 msgid "Alerts"
 msgstr ""
 
@@ -962,7 +969,7 @@ msgstr ""
 #: templates/sentry/bases/account.html:30
 #: templates/sentry/bases/explore.html:18
 #: templates/sentry/bases/settings.html:14
-#: templates/sentry/bases/stream.html:22 templates/sentry/bases/team.html:14
+#: templates/sentry/bases/stream.html:25 templates/sentry/bases/team.html:14
 #: templates/sentry/projects/manage.html:64
 #: templates/sentry/teams/manage.html:8
 #: templates/sentry/teams/groups/details.html:22
@@ -996,7 +1003,12 @@ msgid "Stream"
 msgstr "Stroom"
 
 #: templates/sentry/bases/explore.html:14
+#: templates/sentry/bases/stream.html:20
 msgid "Explore"
+msgstr ""
+
+#: templates/sentry/bases/explore.html:34
+msgid "About Explore"
 msgstr ""
 
 #: templates/sentry/bases/stream.html:10
@@ -1007,7 +1019,7 @@ msgstr ""
 msgid "Event ID"
 msgstr ""
 
-#: templates/sentry/bases/stream.html:21
+#: templates/sentry/bases/stream.html:24
 msgid "Project Settings"
 msgstr ""
 
@@ -1036,31 +1048,6 @@ msgstr ""
 msgid "Project:"
 msgstr ""
 
-#: templates/sentry/emails/error.html:10
-msgid "New Event"
-msgstr ""
-
-#: templates/sentry/emails/error.html:12
-msgid "Regression"
-msgstr ""
-
-#: templates/sentry/emails/error.html:30
-msgid "Logger:"
-msgstr ""
-
-#: templates/sentry/emails/error.html:32
-msgid "Level:"
-msgstr "Vlak:"
-
-#: templates/sentry/emails/error.html:36
-msgid "Server:"
-msgstr "Bediener:"
-
-#: templates/sentry/emails/error.html:38
-#: templates/sentry/groups/details.html:93
-msgid "First Seen:"
-msgstr "Eerste Gesien:"
-
 #: templates/sentry/events/event_list.html:6
 #, python-format
 msgid "%(name)s events"
@@ -1086,7 +1073,7 @@ msgstr "Stuur"
 msgid "Tag Details"
 msgstr ""
 
-#: templates/sentry/explore/tag_list.html:42
+#: templates/sentry/explore/tag_list.html:39
 msgid ""
 "There don't seem to be any tags in the system yet. For more information on "
 "how you can tag data, check your client's documentation."
@@ -1148,7 +1135,7 @@ msgstr ""
 #: templates/sentry/groups/details.html:81
 #: templates/sentry/partial/event_nav.html:27
 #: templates/sentry/projects/manage.html:73
-#: templates/sentry/projects/notifications.html:35
+#: templates/sentry/projects/notifications.html:45
 msgid "Tags"
 msgstr ""
 
@@ -1163,6 +1150,10 @@ msgstr "Altesame Besonderhede"
 #: templates/sentry/groups/details.html:91
 msgid "Status:"
 msgstr "Status:"
+
+#: templates/sentry/groups/details.html:93
+msgid "First Seen:"
+msgstr "Eerste Gesien:"
 
 #: templates/sentry/groups/details.html:96
 msgid "Reopened At:"
@@ -1263,15 +1254,15 @@ msgstr ""
 msgid "Enable Updates"
 msgstr ""
 
-#: templates/sentry/groups/group_list.html:107
+#: templates/sentry/groups/group_list.html:102
 msgid "All events are represented in UTC time."
 msgstr ""
 
-#: templates/sentry/groups/group_list.html:111
+#: templates/sentry/groups/group_list.html:106
 msgid "Clear"
 msgstr ""
 
-#: templates/sentry/groups/group_list.html:112
+#: templates/sentry/groups/group_list.html:107
 msgid "Apply"
 msgstr ""
 
@@ -1325,13 +1316,17 @@ msgid ""
 "href=\"%(link)s\">documentation</a>."
 msgstr ""
 
-#: templates/sentry/partial/_event_details.html:29
+#: templates/sentry/partial/_event_details.html:30
 #: templates/sentry/partial/event_nav.html:39
 msgid "Additional Data"
 msgstr "Addisionele Data"
 
-#: templates/sentry/partial/_event_details.html:40
+#: templates/sentry/partial/_event_details.html:41
 msgid "Package Versions"
+msgstr ""
+
+#: templates/sentry/partial/_form.html:11
+msgid "Test Configuration"
 msgstr ""
 
 #: templates/sentry/partial/_group.html:41
@@ -1385,14 +1380,8 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/partial/client_config/connect.html:20
-#: templates/sentry/partial/client_config/express.html:17
-#: templates/sentry/partial/client_config/node.js.html:21
-msgid "Ensure Node is run with <code>NODE_ENV=production</code>:"
-msgstr ""
-
-#: templates/sentry/partial/client_config/connect.html:24
 #: templates/sentry/partial/client_config/django.html:19
-#: templates/sentry/partial/client_config/express.html:21
+#: templates/sentry/partial/client_config/express.html:17
 #: templates/sentry/partial/client_config/flask.html:19
 #: templates/sentry/partial/client_config/ios.html:23
 #: templates/sentry/partial/client_config/rails3.html:14
@@ -1403,9 +1392,9 @@ msgid ""
 "uncaught exceptions to Sentry."
 msgstr ""
 
-#: templates/sentry/partial/client_config/connect.html:26
-#: templates/sentry/partial/client_config/express.html:23
-#: templates/sentry/partial/client_config/node.js.html:33
+#: templates/sentry/partial/client_config/connect.html:22
+#: templates/sentry/partial/client_config/express.html:19
+#: templates/sentry/partial/client_config/node.js.html:29
 #, python-format
 msgid ""
 "For more information on other uses of Raven with Node.js, please see the <a "
@@ -1501,7 +1490,7 @@ msgstr ""
 
 #: templates/sentry/partial/client_config/java.html:18
 #: templates/sentry/partial/client_config/javascript.html:32
-#: templates/sentry/partial/client_config/node.js.html:27
+#: templates/sentry/partial/client_config/node.js.html:23
 #: templates/sentry/partial/client_config/php.html:17
 #: templates/sentry/partial/client_config/python.html:14
 msgid "record a simple message"
@@ -1542,8 +1531,8 @@ msgstr ""
 #: templates/sentry/partial/client_config/javascript.html:9
 #, python-format
 msgid ""
-"Add the any URLs which will be logging errors in your project's settings "
-"under <a href=\"%(project_link)s#client-security\">Client Security</a>:"
+"Add any URLs which will be logging errors in your project's settings under "
+"<a href=\"%(project_link)s#client-security\">Client Security</a>:"
 msgstr ""
 
 #: templates/sentry/partial/client_config/javascript.html:13
@@ -1555,14 +1544,14 @@ msgid "Add additional user context if it's available:"
 msgstr ""
 
 #: templates/sentry/partial/client_config/javascript.html:29
-#: templates/sentry/partial/client_config/node.js.html:25
+#: templates/sentry/partial/client_config/node.js.html:21
 #: templates/sentry/partial/client_config/php.html:15
 #: templates/sentry/partial/client_config/python.html:12
 msgid "Now call out to the raven client to capture events:"
 msgstr ""
 
 #: templates/sentry/partial/client_config/javascript.html:35
-#: templates/sentry/partial/client_config/node.js.html:30
+#: templates/sentry/partial/client_config/node.js.html:26
 #: templates/sentry/partial/client_config/php.html:20
 #: templates/sentry/partial/client_config/python.html:17
 msgid "capture an exception"
@@ -1749,35 +1738,44 @@ msgid "Replay this request"
 msgstr "Herspeel hierdie versoek"
 
 #: templates/sentry/partial/interfaces/http.html:18
-#: templates/sentry/partial/interfaces/http_email.html:8
 msgid "URL:"
 msgstr "URL:"
 
 #: templates/sentry/partial/interfaces/http.html:23
-#: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method:"
 msgstr "Metode:"
 
-#: templates/sentry/partial/interfaces/http.html:28
-#: templates/sentry/partial/interfaces/http_email.html:18
+#: templates/sentry/partial/interfaces/http.html:29
 msgid "Query:"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/http.html:35
+#: templates/sentry/partial/interfaces/http.html:37
+msgid "Fragment:"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/http.html:45
 msgid "Body:"
 msgstr "Lyf:"
 
-#: templates/sentry/partial/interfaces/http.html:43
+#: templates/sentry/partial/interfaces/http.html:53
 msgid "Cookies:"
 msgstr "Koekies:"
 
-#: templates/sentry/partial/interfaces/http.html:51
+#: templates/sentry/partial/interfaces/http.html:61
 msgid "Headers:"
 msgstr "Hoofde:"
 
-#: templates/sentry/partial/interfaces/http.html:59
+#: templates/sentry/partial/interfaces/http.html:69
 msgid "Environment:"
 msgstr "Omgewing:"
+
+#: templates/sentry/partial/interfaces/http_email.html:10
+msgid "Method"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/http_email.html:15
+msgid "Query"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/stacktrace.html:13
 msgid "Stacktrace"
@@ -2043,7 +2041,7 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/projects/manage_tags.html:40
-#: templates/sentry/projects/notifications.html:55
+#: templates/sentry/projects/notifications.html:65
 msgid "We have not yet recorded any tags for this project."
 msgstr ""
 
@@ -2053,13 +2051,13 @@ msgid ""
 " state changes from resolved to unresolved."
 msgstr ""
 
-#: templates/sentry/projects/notifications.html:26
+#: templates/sentry/projects/notifications.html:36
 msgid ""
 "Alerts are triggered when the rate of events for the entire project increase"
 " by a relative amount. Values represent a 60-second interval."
 msgstr ""
 
-#: templates/sentry/projects/notifications.html:38
+#: templates/sentry/projects/notifications.html:48
 msgid ""
 "Tag restrictions are based on your global notification rules. If tags are "
 "specified, notifications will be sent when they match any of the "
@@ -2364,7 +2362,7 @@ msgstr ""
 #: templates/sentry/teams/members/new.html:20
 msgid ""
 "Invite a member to join this team via their email address. If they do not "
-"already have an account they will first be asked to create one."
+"already have an account, they will first be asked to create one."
 msgstr ""
 
 #: templates/sentry/teams/members/new.html:26
@@ -2400,43 +2398,43 @@ msgid ""
 " send this information consult your client's documentation."
 msgstr ""
 
-#: templatetags/sentry_helpers.py:104
+#: templatetags/sentry_helpers.py:107
 msgid "b"
 msgstr ""
 
-#: templatetags/sentry_helpers.py:105
+#: templatetags/sentry_helpers.py:108
 msgid "m"
 msgstr ""
 
-#: templatetags/sentry_helpers.py:106
+#: templatetags/sentry_helpers.py:109
 msgid "k"
 msgstr ""
 
-#: templatetags/sentry_helpers.py:153
+#: templatetags/sentry_helpers.py:156
 msgid "never"
 msgstr "nooit"
 
-#: templatetags/sentry_helpers.py:157
+#: templatetags/sentry_helpers.py:160
 msgid "0 minutes"
 msgstr "0 minute"
 
-#: templatetags/sentry_helpers.py:158
+#: templatetags/sentry_helpers.py:161
 msgid "just now"
 msgstr "nou net"
 
-#: templatetags/sentry_helpers.py:159
+#: templatetags/sentry_helpers.py:162
 msgid "1 day"
 msgstr "1 dag"
 
-#: templatetags/sentry_helpers.py:160
+#: templatetags/sentry_helpers.py:163
 msgid "yesterday"
 msgstr "gister"
 
-#: templatetags/sentry_helpers.py:161
+#: templatetags/sentry_helpers.py:164
 msgid " ago"
 msgstr " gelede"
 
-#: web/api.py:502
+#: web/api.py:549
 msgid "Deletion has been queued and should occur shortly."
 msgstr ""
 
@@ -2461,83 +2459,79 @@ msgstr ""
 msgid "Permanently remove the user and their data."
 msgstr ""
 
-#: web/forms/accounts.py:40 web/forms/accounts.py:215
+#: web/forms/accounts.py:39 web/forms/accounts.py:223
 msgid "Username or email"
 msgstr ""
 
-#: web/forms/accounts.py:45 web/forms/accounts.py:134
+#: web/forms/accounts.py:44 web/forms/accounts.py:133
 msgid "Email"
 msgstr ""
 
-#: web/forms/accounts.py:59
+#: web/forms/accounts.py:58
 msgid "An account is already registered with that email address."
 msgstr ""
 
-#: web/forms/accounts.py:72
+#: web/forms/accounts.py:71
 msgid "Designate an alternative email address to send email notifications to."
 msgstr ""
 
-#: web/forms/accounts.py:75
+#: web/forms/accounts.py:74
 msgid "Automatically subscribe to notifications for new projects"
 msgstr ""
 
-#: web/forms/accounts.py:76
+#: web/forms/accounts.py:75
 msgid "Do not subscribe to notifications for new projects"
 msgstr ""
 
-#: web/forms/accounts.py:81
-msgid "Get notified about new notes on events I've seen"
+#: web/forms/accounts.py:80
+msgid "Get notified about new notes"
 msgstr ""
 
-#: web/forms/accounts.py:82
+#: web/forms/accounts.py:81
 msgid "Do not subscribe to note notifications"
 msgstr ""
 
-#: web/forms/accounts.py:133
-msgid "Current password"
-msgstr ""
-
-#: web/forms/accounts.py:136
+#: web/forms/accounts.py:135
 msgid "New password"
 msgstr "Nuwe wagwoord"
 
-#: web/forms/accounts.py:152
-msgid "Your old password was entered incorrectly. Please enter it again."
-msgstr "Jou ou wagwoord was nie reg ingevul nie. Probeer asseblief weer."
+#: web/forms/accounts.py:148
+msgid "That username is already in use."
+msgstr ""
 
-#: web/forms/accounts.py:168
+#: web/forms/accounts.py:176
 msgid "Language"
 msgstr ""
 
-#: web/forms/accounts.py:171
+#: web/forms/accounts.py:179
 msgid "Stacktrace order"
 msgstr ""
 
-#: web/forms/accounts.py:172
+#: web/forms/accounts.py:180
 msgid "Default (let Sentry decide)"
 msgstr ""
 
-#: web/forms/accounts.py:173
+#: web/forms/accounts.py:181
 msgid "Most recent call last"
 msgstr ""
 
-#: web/forms/accounts.py:174
+#: web/forms/accounts.py:182
 msgid "Most recent call first"
 msgstr ""
 
-#: web/forms/accounts.py:175
+#: web/forms/accounts.py:183
 msgid "Choose the default ordering of frames in stacktraces."
 msgstr ""
 
-#: web/forms/accounts.py:179
+#: web/forms/accounts.py:187
 msgid "Time zone"
 msgstr ""
 
-#: web/forms/accounts.py:222
+#: web/forms/accounts.py:230
 msgid "We were unable to find a matching user."
 msgstr ""
 
-#: web/forms/accounts.py:224
+#: web/forms/accounts.py:232
 msgid "Multiple accounts were found matching this email address."
 msgstr ""
 
@@ -2549,62 +2543,62 @@ msgstr ""
 msgid "e.g. example.com or https://example.com"
 msgstr ""
 
-#: web/forms/projects.py:63
+#: web/forms/projects.py:62
 msgid "Production"
 msgstr ""
 
-#: web/forms/projects.py:65
+#: web/forms/projects.py:64
 msgid "Select a platform"
 msgstr ""
 
-#: web/forms/projects.py:87
-msgid "Confirm your identity by entering your password."
-msgstr ""
-
-#: web/forms/projects.py:102
-msgid "Your password was entered incorrectly. Please enter it again."
-msgstr ""
-
-#: web/forms/projects.py:108
+#: web/forms/projects.py:91
 msgid "Imply public access to any event for this project."
 msgstr ""
 
-#: web/forms/projects.py:110
+#: web/forms/projects.py:93
 msgid "Allowed Domains"
 msgstr ""
 
-#: web/forms/projects.py:111
+#: web/forms/projects.py:94
 msgid "Separate multiple entries with a newline."
 msgstr ""
 
-#: web/forms/projects.py:112
+#: web/forms/projects.py:95
 msgid ""
 "Treat an event as resolved if it hasn't been seen for this amount of time."
 msgstr ""
 
-#: web/forms/projects.py:150
+#: web/forms/projects.py:133
 msgid "Threshold"
 msgstr ""
 
-#: web/forms/projects.py:151
+#: web/forms/projects.py:134
 msgid "Notify when the rate of events increases by this percentage."
 msgstr ""
 
-#: web/forms/projects.py:153
+#: web/forms/projects.py:136
 msgid "Minimum Events"
 msgstr ""
 
-#: web/forms/projects.py:154
+#: web/forms/projects.py:137
 msgid ""
 "Generate an alert only when an event is seen more than this many times "
 "during the interval."
 msgstr ""
 
-#: web/forms/projects.py:173
+#: web/forms/projects.py:142
+msgid "Mail Subject Prefix"
+msgstr ""
+
+#: web/forms/projects.py:143
+msgid "Choose a custom prefix for emails from this project."
+msgstr ""
+
+#: web/forms/projects.py:162
 msgid "Maximum events per minute"
 msgstr ""
 
-#: web/forms/projects.py:175
+#: web/forms/projects.py:164
 msgid ""
 "This cannot be higher than the team (or system) allotted maximum. The value "
 "can be either a fixed number, or a percentage that is relative to the team's"
@@ -2672,47 +2666,47 @@ msgstr ""
 msgid "You do not have the required permissions to %s."
 msgstr ""
 
-#: web/frontend/teams.py:109
+#: web/frontend/teams.py:115
 msgid "Changes to your team were saved."
 msgstr ""
 
-#: web/frontend/teams.py:139
+#: web/frontend/teams.py:145
 #, python-format
 msgid "The team %r was permanently deleted."
 msgstr ""
 
-#: web/frontend/teams.py:217
+#: web/frontend/teams.py:223
 msgid "The team member was added."
 msgstr ""
 
-#: web/frontend/teams.py:229
+#: web/frontend/teams.py:235
 #, python-format
 msgid "An invitation email was sent to %s."
 msgstr ""
 
-#: web/frontend/teams.py:291
+#: web/frontend/teams.py:297
 #, python-format
 msgid "You have been added to the %r team."
 msgstr ""
 
-#: web/frontend/teams.py:319
+#: web/frontend/teams.py:325
 msgid "Changes to your team member were saved."
 msgstr ""
 
-#: web/frontend/teams.py:378
+#: web/frontend/teams.py:384
 msgid "The team member was removed."
 msgstr ""
 
-#: web/frontend/teams.py:398
+#: web/frontend/teams.py:404
 msgid "An email was sent to the pending team member."
 msgstr ""
 
-#: web/frontend/teams.py:522
+#: web/frontend/teams.py:528
 #, python-format
 msgid "%s was permanently removed."
 msgstr ""
 
-#: web/frontend/teams.py:551 web/frontend/teams.py:600
+#: web/frontend/teams.py:557 web/frontend/teams.py:606
 #, python-format
 msgid "%s was added to this access group."
 msgstr ""
@@ -2722,7 +2716,7 @@ msgstr ""
 msgid "The API key (%s) was revoked."
 msgstr ""
 
-#: web/frontend/projects/notifications.py:66
+#: web/frontend/projects/notifications.py:83
 #: web/frontend/projects/plugins.py:36 web/frontend/projects/plugins.py:73
 #: web/frontend/projects/quotas.py:31 web/frontend/projects/tags.py:34
 msgid "Your settings were saved successfully."

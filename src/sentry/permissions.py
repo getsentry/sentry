@@ -5,8 +5,13 @@ sentry.permissions
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from functools import wraps
+from __future__ import absolute_import
+
+import six
+
 from django.conf import settings
+from functools import wraps
+
 from sentry.constants import MEMBER_OWNER
 from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
@@ -21,7 +26,7 @@ class Permission(object):
         return self.name
 
     def __eq__(self, other):
-        return unicode(self) == unicode(other)
+        return six.text_type(self) == six.text_type(other)
 
 
 class Permissions(object):
@@ -54,9 +59,6 @@ def can_create_projects(user, team=None):
         return False
 
     result = plugins.first('has_perm', user, 'add_project', team)
-    if result is None:
-        result = settings.SENTRY_ALLOW_PROJECT_CREATION
-
     if result is False:
         return result
 
@@ -74,9 +76,6 @@ def can_create_teams(user):
         return True
 
     result = plugins.first('has_perm', user, 'add_team')
-    if result is None:
-        result = settings.SENTRY_ALLOW_TEAM_CREATION
-
     if result is False:
         return result
 
@@ -145,15 +144,11 @@ def can_remove_team_member(user, member):
 
 @requires_login
 def can_remove_team(user, team):
-    # projects with teams can never be removed
-    if team.project_set.exists():
-        return False
-
     if user.is_superuser:
         return True
 
     # must be an owner of the team
-    if not team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+    if team.owner != user:
         return False
 
     result = plugins.first('has_perm', user, 'remove_team', team)
@@ -165,7 +160,7 @@ def can_remove_team(user, team):
 
 @requires_login
 def can_remove_project(user, project):
-    if project.is_default_project():
+    if project.is_internal_project():
         return False
 
     if user.is_superuser:
@@ -183,7 +178,7 @@ def can_remove_project(user, project):
 
 
 @requires_login
-def can_admin_group(user, group):
+def can_admin_group(user, group, is_remove=False):
     from sentry.models import Team
 
     if user.is_superuser:
@@ -195,11 +190,23 @@ def can_admin_group(user, group):
     except KeyError:
         return False
 
+    # The "remove_event" permission was added after "admin_event".
+    # First check the new "remove_event" permission, then fall back
+    # to the "admin_event" permission.
+    if is_remove:
+        result = plugins.first('has_perm', user, 'remove_event', group)
+        if result is False:
+            return False
+
     result = plugins.first('has_perm', user, 'admin_event', group)
     if result is False:
         return False
 
     return True
+
+
+def can_remove_group(user, group):
+    return can_admin_group(user, group, is_remove=True)
 
 
 @requires_login
@@ -212,6 +219,22 @@ def can_add_project_key(user, project):
         return False
 
     result = plugins.first('has_perm', user, 'add_project_key', project)
+    if result is False:
+        return False
+
+    return True
+
+
+@requires_login
+def can_edit_project_key(user, project):
+    if user.is_superuser:
+        return True
+
+    # must be an owner of the team
+    if project.team and not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+        return False
+
+    result = plugins.first('has_perm', user, 'edit_project_key', project)
     if result is False:
         return False
 

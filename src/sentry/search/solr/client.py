@@ -13,6 +13,8 @@ dependency on the ``requests`` library.
 :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import absolute_import, print_function
+
 import urllib3
 
 try:
@@ -27,6 +29,8 @@ except ImportError:
 from urlparse import urljoin
 
 from nydus.db.backends import BaseConnection
+
+import six
 
 # Using two-tuples to preserve order.
 REPLACEMENTS = (
@@ -64,7 +68,7 @@ REPLACEMENTS = (
 
 
 def sanitize(data):
-    if isinstance(data, unicode):
+    if isinstance(data, six.text_type):
         data = data.encode('utf-8')
 
     for bad, good in REPLACEMENTS:
@@ -125,7 +129,7 @@ class SolrClient(object):
         if not any(key.lower() == 'content-type' for key in headers.iterkeys()):
             headers['Content-Type'] = 'application/xml; charset=UTF-8'
 
-        if isinstance(body, unicode):
+        if isinstance(body, six.text_type):
             body = body.encode('utf-8')
 
         resp = self.http.urlopen(
@@ -138,7 +142,7 @@ class SolrClient(object):
 
     def _extract_error(self, response):
         if not response.headers.get('content-type', '').startswith('application/xml'):
-            return unicode(response.status)
+            return six.text_type(response.status)
 
         dom_tree = ET.fromstring(response.data)
         reason_node = dom_tree.find('response/lst/str')
@@ -150,7 +154,7 @@ class SolrClient(object):
         if value is None:
             return True
 
-        if isinstance(value, basestring) and len(value) == 0:
+        if isinstance(value, six.string_types) and len(value) == 0:
             return True
 
         return False
@@ -199,7 +203,7 @@ class SolrClient(object):
                 value = u'false'
         else:
             if isinstance(value, str):
-                value = unicode(value, errors='replace')
+                value = six.text_type(value, errors='replace')
 
             value = u"{0}".format(value)
 

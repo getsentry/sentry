@@ -32,6 +32,8 @@ def better_decoder(data):
 
 
 def dumps(value, **kwargs):
+    if 'separators' not in kwargs:
+        kwargs['separators'] = (',', ':')
     return json.dumps(value, cls=BetterJSONEncoder, **kwargs)
 
 

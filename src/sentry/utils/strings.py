@@ -5,7 +5,10 @@ sentry.utils.strings
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 import base64
+import six
 import zlib
 
 from django.utils.encoding import smart_unicode
@@ -41,6 +44,6 @@ def gunzip(value):
 def strip(value):
     if not value:
         return ''
-    if not isinstance(value, basestring):
+    if not isinstance(value, six.string_types):
         return smart_unicode(value)  # fuck it
     return smart_unicode(value).strip()

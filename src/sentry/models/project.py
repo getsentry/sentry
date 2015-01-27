@@ -5,6 +5,7 @@ sentry.models.project
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import, print_function
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -39,7 +40,6 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey('sentry.Team', null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
@@ -75,7 +75,7 @@ class Project(Model):
 
     def merge_to(self, project):
         from sentry.models import (
-            Group, GroupCountByMinute, GroupTag, Event, TagValue
+            Group, GroupTagValue, Event, TagValue
         )
 
         if not isinstance(project, Project):
@@ -85,19 +85,17 @@ class Project(Model):
             try:
                 other = Group.objects.get(
                     project=project,
-                    logger=group.logger,
-                    culprit=group.culprit,
                     checksum=group.checksum,
                 )
             except Group.DoesNotExist:
                 group.update(project=project)
-                for model in (Event, GroupTag, GroupCountByMinute):
+                for model in (Event, GroupTagValue):
                     model.objects.filter(project=self, group=group).update(project=project)
             else:
                 Event.objects.filter(group=group).update(group=other)
 
-                for obj in GroupTag.objects.filter(group=group):
-                    obj2, created = GroupTag.objects.get_or_create(
+                for obj in GroupTagValue.objects.filter(group=group):
+                    obj2, created = GroupTagValue.objects.get_or_create(
                         project=project,
                         group=group,
                         key=obj.key,
@@ -107,33 +105,18 @@ class Project(Model):
                     if not created:
                         obj2.update(times_seen=F('times_seen') + obj.times_seen)
 
-                for obj in GroupCountByMinute.objects.filter(group=group):
-                    obj2, created = GroupCountByMinute.objects.get_or_create(
-                        project=project,
-                        group=group,
-                        date=obj.date,
-                        defaults={
-                            'times_seen': obj.times_seen,
-                            'time_spent_total': obj.time_spent_total,
-                            'time_spent_count': obj.time_spent_count,
-                        }
-                    )
-                    if not created:
-                        obj2.update(
-                            times_seen=F('times_seen') + obj.times_seen,
-                            time_spent_total=F('time_spent_total') + obj.time_spent_total,
-                            time_spent_count=F('time_spent_count') + obj.time_spent_count,
-                        )
-
         for fv in TagValue.objects.filter(project=self):
             TagValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
             fv.delete()
         self.delete()
 
-    def is_default_project(self):
-        return str(self.id) == str(settings.SENTRY_PROJECT) or str(self.slug) == str(settings.SENTRY_PROJECT)
+    def is_internal_project(self):
+        for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
+            if str(self.id) == str(value) or str(self.slug) == str(value):
+                return True
+        return False
 
-    def get_tags(self):
+    def get_tags(self, with_internal=True):
         from sentry.models import TagKey
 
         if not hasattr(self, '_tag_cache'):
@@ -141,7 +124,7 @@ class Project(Model):
             if tags is None:
                 tags = [
                     t for t in TagKey.objects.all_keys(self)
-                    if not t.startswith('sentry:')
+                    if with_internal or not t.startswith('sentry:')
                 ]
             self._tag_cache = tags
         return self._tag_cache
@@ -156,3 +139,8 @@ class Project(Model):
         from sentry.models import ProjectOption
 
         return ProjectOption.objects.get_value(self, *args, **kwargs)
+
+    def delete_option(self, *args, **kwargs):
+        from sentry.models import ProjectOption
+
+        return ProjectOption.objects.unset_value(self, *args, **kwargs)

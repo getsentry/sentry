@@ -7,14 +7,16 @@
 {% block main %}
     <section class="body">
         {% if team_list %}
+            {% if can_create_teams %}
             <div class="pull-right">
                 <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a New Team" %}</a>
             </div>
+            {% endif %}
             <h2>{% trans "Your teams" %}</h2>
             <ul class="team-list">
                 {% for team, project_list in team_list %}
                     <li>
-                        <div class="chart" data-api-url="{% url 'sentry-api-chart' team.slug %}">
+                        <div class="chart" data-api-url="{% url 'sentry-api-0-team-stats' team.id %}">
                             <div class="sparkline">
                                 <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
                                 <span class="loading">{% trans "Loading historical data..." %}</span>

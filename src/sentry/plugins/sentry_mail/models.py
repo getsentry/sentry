@@ -5,12 +5,15 @@ sentry.plugins.sentry_mail.models
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 import sentry
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
+
 from sentry.plugins import register
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.cache import cache
@@ -98,6 +101,13 @@ class MailPlugin(NotificationPlugin):
             context=context,
         )
 
+    def should_notify(self, group, event):
+        send_to = self.get_sendable_users(group.project)
+        if not send_to:
+            return False
+
+        return super(MailPlugin, self).should_notify(group, event)
+
     def get_send_to(self, project=None):
         """
         Returns a list of email addresses for the users that should be notified of alerts.
@@ -137,7 +147,7 @@ class MailPlugin(NotificationPlugin):
                 continue
             interface_list.append((interface.get_title(), mark_safe(body)))
 
-        subject = event.get_email_subject()
+        subject = group.get_email_subject()
 
         link = group.get_absolute_url()
 
@@ -153,11 +163,10 @@ class MailPlugin(NotificationPlugin):
         }
 
         headers = {
-            'X-Sentry-Logger': event.logger,
-            'X-Sentry-Logger-Level': event.get_level_display(),
+            'X-Sentry-Logger': group.logger,
+            'X-Sentry-Logger-Level': group.get_level_display(),
             'X-Sentry-Project': project.name,
-            'X-Sentry-Server': event.server_name,
-            'X-Sentry-Reply-To': group_id_to_email(group.pk),
+            'X-Sentry-Reply-To': group_id_to_email(group.id),
         }
 
         self._send_mail(

@@ -1,8 +1,12 @@
+from __future__ import absolute_import
+
 from functools import wraps
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
+from sudo.decorators import sudo_required
 
+from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team, Group
 from sentry.web.helpers import (
     render_to_response, get_login_url)
@@ -115,6 +119,9 @@ def has_access(access_or_func=None, team=None, access=None):
                 kwargs['team'] = team
 
             return func(request, *args, **kwargs)
+
+        if access is MEMBER_OWNER:
+            _wrapped = login_required(sudo_required(_wrapped))
         return _wrapped
     return wrapped
 
@@ -148,6 +155,7 @@ def has_group_access(func=None, **kwargs):
 
             if allow_public and (group.is_public or group.project.public):
                 team = Team.objects.get_from_cache(slug=team_slug)
+                group.project.team = team
                 return func(request, team=team, project=group.project, group=group, *args, **kwargs)
 
             return prv_func(request, team_slug=team_slug, project_id=project_id, group=group, *args, **kwargs)

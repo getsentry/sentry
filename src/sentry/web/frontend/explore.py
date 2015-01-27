@@ -7,7 +7,7 @@ Contains views for the "Explore" section of Sentry.
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from __future__ import division
+from __future__ import absolute_import, division
 
 from sentry.models import TagKey, TagValue, Group
 from sentry.web.decorators import has_access
@@ -85,7 +85,7 @@ def tag_value_details(request, team, project, key, value_id):
         project=project, key=key, id=value_id)
 
     event_list = Group.objects.filter(
-        project=project,
+        grouptag__project=project,
         grouptag__key=key,
         grouptag__value=tag_value.value,
     ).order_by('-score')

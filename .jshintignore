@@ -2,6 +2,7 @@ tests/
 src/sentry/static/sentry/bootstrap/
 src/sentry/static/sentry/scripts/lib/
 src/sentry/static/CACHE/
+src/sentry/static/sentry/dist/
 src/sentry/static/sentry/scripts/legacy.min.js
 src/sentry/static/sentry/scripts/legacy.map.js
 src/sentry/static/sentry/scripts/global.min.js
@@ -11,3 +12,4 @@ src/sentry/static/sentry/scripts/lib.map.js
 src/sentry/static/sentry/scripts/bootstrap.js
 src/sentry/static/sentry/scripts/bootstrap.min.js
 src/sentry/static/sentry/scripts/bootstrap.map.js
+src/sentry/static/sentry/vendor/

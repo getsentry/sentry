@@ -68,7 +68,7 @@ as well the ``sentry.wsgi`` module:
 ::
 
     [uwsgi]
-    env = SENTRY_CONF=/etc/sentry.conf
+    env = SENTRY_CONF=/etc/sentry.conf.py
     module = sentry.wsgi
 
     ; spawn the master and 4 processes

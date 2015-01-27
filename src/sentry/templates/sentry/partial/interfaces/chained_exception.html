@@ -37,6 +37,11 @@
                     {% endwith %}
                 {% endwith %}
             </div>
+            {% if forloop.counter == first_exc_omitted %}
+            <div class="exc-omitted">
+                Exceptions {{ first_exc_omitted }} until {{ last_exc_omitted }} were omitted and not available.
+            </div>
+            {% endif %}
         {% endfor %}
     </div>
 </div>

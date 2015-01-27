@@ -10,7 +10,6 @@ from django.utils import timezone
 from exam import before, fixture
 
 from sentry.models import GroupSeen, Group
-from sentry.constants import MAX_JSON_RESULTS
 from sentry.testutils import TestCase
 
 
@@ -181,37 +180,6 @@ class GroupEventDetailsTest(TestCase):
         assert resp.context['team'] == self.team
         assert resp.context['group'] == self.group
         assert resp.context['event'] == self.event
-
-
-class GroupEventListJsonTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-group-events-json', kwargs={
-            'team_slug': self.team.slug,
-            'project_id': self.project.slug,
-            'group_id': self.group.id,
-        })
-
-    def test_does_render(self):
-        self.login()
-
-        event = self.create_event(
-            event_id='a' * 32, datetime=timezone.now() - timedelta(minutes=1))
-        event2 = self.create_event(
-            event_id='b' * 32, datetime=timezone.now())
-
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert resp['Content-Type'] == 'application/json'
-        data = json.loads(resp.content)
-        assert len(data) == 2
-        assert data[0]['id'] == str(event2.event_id)
-        assert data[1]['id'] == str(event.event_id)
-
-    def test_does_not_allow_beyond_limit(self):
-        self.login()
-        resp = self.client.get(self.path, {'limit': MAX_JSON_RESULTS + 1})
-        assert resp.status_code == 400
 
 
 class GroupEventJsonTest(TestCase):

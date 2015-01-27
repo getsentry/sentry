@@ -7,6 +7,7 @@ Originally based on https://github.com/martine/python-sourcemap
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import bisect
 
@@ -112,10 +113,14 @@ def sourcemap_to_index(sourcemap):
     key_list = []
     src_list = set()
     content = None
+    root = smap.get('sourceRoot')
 
     if 'sourcesContent' in smap:
         content = {}
         for idx, source in enumerate(smap['sources']):
+            # Apply the root to the source before shoving into the index
+            # so we can look it up correctly later
+            source = urljoin(root, source)
             if smap['sourcesContent'][idx]:
                 content[source] = smap['sourcesContent'][idx].splitlines()
             else:
@@ -124,7 +129,11 @@ def sourcemap_to_index(sourcemap):
     for state in parse_sourcemap(smap):
         state_list.append(state)
         key_list.append((state.dst_line, state.dst_col))
-        src_list.add(state.src)
+
+        # Apparently it's possible to not have a src
+        # specified in the vlq segments
+        if state.src is not None:
+            src_list.add(state.src)
 
     return SourceMapIndex(state_list, key_list, src_list, content)
 

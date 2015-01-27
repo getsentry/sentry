@@ -5,6 +5,7 @@ sentry.utils.db
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import django
 
@@ -20,13 +21,9 @@ def get_db_engine(alias='default'):
     else:
         assert alias == 'default', 'You cannot fetch a database engine other than the default on Django < 1.2'
         value = settings.DATABASE_ENGINE
+    if value == 'mysql.connector.django':
+        return 'mysql'
     return value.rsplit('.', 1)[-1]
-
-
-def has_trending(alias='default'):
-    # we only support trend queries for postgres to db optimization
-    # issues in mysql, and lack of anything useful in sqlite
-    return settings.SENTRY_USE_TRENDING and get_db_engine('default').startswith('postgres')
 
 
 def has_charts(db):

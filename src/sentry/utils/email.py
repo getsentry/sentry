@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes
 from django.utils.functional import cached_property
 
 from email.utils import parseaddr
-from pynliner import Pynliner
+import toronado
 
 from sentry.web.helpers import render_to_string
 
@@ -84,7 +84,7 @@ class MessageBuilder(object):
             html_body = self._html_body
 
         if html_body is not None:
-            return UnicodeSafePynliner().from_string(html_body).run()
+            return inline_css(html_body)
 
     @cached_property
     def txt_body(self):
@@ -177,24 +177,25 @@ class MessageBuilder(object):
 
         return msg
 
-    def send(self, to=None, fail_silently=False):
+    def get_built_messages(self, to=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        self.send_all(
-            [self.build(to=email, reply_to=send_to) for email in send_to],
-            fail_silently=fail_silently)
+        return [self.build(to=email, reply_to=send_to) for email in send_to]
+
+    def send(self, to=None, fail_silently=False):
+        messages = self.get_built_messages(to)
+        self.send_all(messages, fail_silently=fail_silently)
 
     def send_all(self, messages, fail_silently=False):
         connection = get_connection(fail_silently=fail_silently)
         return connection.send_messages(messages)
 
+    def send_async(self, to=None):
+        from sentry.tasks.email import send_email
+        messages = self.get_built_messages(to)
+        for message in messages:
+            send_email.delay(message=message)
 
-class UnicodeSafePynliner(Pynliner):
-    def _get_output(self):
-        """
-        Generate Unicode string of `self.soup` and set it to `self.output`
 
-        Returns self.output
-        """
-        self.output = unicode(self.soup)
-        return self.output
+def inline_css(html):
+    return toronado.from_string(html)

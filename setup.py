@@ -49,6 +49,7 @@ dev_requires = [
 tests_require = [
     'casscache',
     'cqlsh',
+    'elasticsearch',
     'exam>=0.5.1',
     'eventlet',
     'httpretty',
@@ -57,7 +58,6 @@ tests_require = [
     'pytest-django',
     'pytest-timeout',
     'python-coveralls',
-    'nydus',
     'mock>=0.8.0',
     'riak',
     'unittest2',
@@ -68,31 +68,36 @@ install_requires = [
     'BeautifulSoup>=3.2.1,<3.3.0',
     'celery>=3.0.15,<3.1.0',
     'cssutils>=0.9.9,<0.10.0',
-    'Django>=1.5.5,<1.6',
+    'Django>=1.5.8,<1.6',
+    'django-bitfield>=1.7.0,<1.8.0',
     'django-celery>=3.0.11,<3.1.0',
     'django-crispy-forms>=1.2.3,<1.3.0',
     'django-paging>=0.2.5,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
+    'django-recaptcha>=1.0.0,<1.1.0',
     'django-social-auth>=0.7.28,<0.8.0',
     'django-static-compiler>=0.3.0,<0.4.0',
     'django-statsd-mozilla>=0.3.8.0,<0.3.9.0',
-    'django-templatetag-sugar>=0.1.0,<0.2.0',
+    'django-sudo>=1.1.0,<1.2.0',
+    'django-templatetag-sugar>=0.1.0',
     'djangorestframework>=2.3.8,<2.4.0',
     'email-reply-parser>=0.2.0,<0.3.0',
-    'gevent>=1.0.0,<1.1.0',
+    'enum34>=0.9.18,<0.10.0',
     'gunicorn>=0.17.2,<0.18.0',
-    'httpagentparser>=1.6.0,<1.7.0',
+    'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
-    'nydus>=0.10.0,<0.11.0',
+    'nydus>=0.10.7,<0.11.0',
     'Pygments>=1.6.0,<1.7.0',
-    'pynliner>=0.4.0,<0.6.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
-    'raven>=4.0.2',
+    'raven>=5.0.0',
     'redis>=2.7.0,<2.9.0',
     'simplejson>=3.1.0,<3.4.0',
+    'six>=1.6.0,<1.7.0',
     'setproctitle>=1.1.7,<1.2.0',
     'South==0.8.2',
+    'toronado>=0.0.4,<0.1.0',
+    'ua-parser>=0.3.5',
     'urllib3>=1.7.1,<1.8.0',
 ]
 
@@ -116,7 +121,7 @@ class PyTest(TestCommand):
         self.test_suite = True
 
     def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
+        # import here, cause outside the eggs aren't loaded
         import pytest
         errno = pytest.main(self.test_args)
         sys.exit(errno)

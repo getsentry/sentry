@@ -1,19 +1,8 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% if unique_tags %}
-    <ul class="nav nav-list counted-list">
-        <li class="nav-header">{{ title }}</li>
-        {% for tag_value, times_seen, _, _ in unique_tags %}
-            <li>
-                <div class="progressbar">
-                    <div style="width:{% percent times_seen total_count %}%">{{ times_seen }}</div>
-                    <a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_name }}={{ tag_value }}">
-                        {{ tag_value }}
-                        <span title="{{ times_seen }} event(s)">{% percent times_seen total_count %}%</span>
-                    </a>
-                </div>
-            </li>
-        {% endfor %}
-    </ul>
-{% endif %}
+<ul class="nav nav-list counted-list tag-widget"
+    data-url="{% url 'sentry-api-group-tags' group.team.slug group.project.slug group.id tag_name %}">
+    <li class="nav-header">{{ title }}</li>
+    <li class="loading">Loading...</li>
+</ul>

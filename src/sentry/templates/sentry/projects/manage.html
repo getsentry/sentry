@@ -8,6 +8,10 @@
 {% block bodyclass %} with-left-sidebar{% endblock %}
 
 {% block main %}
+    <style>
+    select { width: 300px; }
+    input[type=text] { width: 280px; }
+    </style>
     <section class="body">
     {% block inner %}
         <div class="page-header">
@@ -42,7 +46,7 @@
             </fieldset>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-                {% if not project.is_default_project %}
+                {% if not project.is_internal_project %}
                     <a href="{% url 'sentry-remove-project' project.team.slug project.slug %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
                 {% else %}
                     <p class="pull-right">{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
@@ -68,6 +72,9 @@
         </li>
         <li{% if page == 'quotas' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-project-quotas' project.team.slug project.slug %}">{% trans "Rate Limits" %}</a>
+        </li>
+        <li{% if page == 'rules' %} class="active"{% endif %}>
+            <a href="{% url 'sentry-project-rules' project.team.slug project.slug %}">{% trans "Rules" %}</a>
         </li>
         <li{% if page == 'tags' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-project-tags' project.team.slug project.slug %}">{% trans "Tags" %}</a>

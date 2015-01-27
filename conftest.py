@@ -1,7 +1,10 @@
 from django.conf import settings
 import mock
+import sys
 import os
 import os.path
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 
 def pytest_configure(config):
@@ -10,6 +13,8 @@ def pytest_configure(config):
 
     if not settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
+
+    os.environ['RECAPTCHA_TESTING'] = 'True'
 
     test_db = os.environ.get('DB', 'sqlite')
     if test_db == 'mysql':
@@ -58,24 +63,53 @@ def pytest_configure(config):
         'tests',
     )
     # Need a predictable key for tests that involve checking signatures
-    settings.SENTRY_KEY = 'abc123'
     settings.SENTRY_PUBLIC = False
+
     # This speeds up the tests considerably, pbkdf2 is by design, slow.
     settings.PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
+
+    # Replace real sudo middleware with our mock sudo middleware
+    # to assert that the user is always in sudo mode
+    middleware = list(settings.MIDDLEWARE_CLASSES)
+    sudo = middleware.index('sentry.middleware.sudo.SudoMiddleware')
+    middleware[sudo] = 'tests.middleware.SudoMiddleware'
+    settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
+    settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
+
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
-    # django mail uses socket.getfqdn which doesnt play nice if our
-    # networking isnt stable
+    settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
+    settings.SENTRY_TSDB_OPTIONS = {}
+
+    settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
+    settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
+
+    settings.CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
+
+    # django mail uses socket.getfqdn which doesn't play nice if our
+    # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
     from sentry.utils.runner import initialize_receivers
     initialize_receivers()
+
+    from sentry.testutils.cases import flush_redis
+    flush_redis()
+
+
+def pytest_runtest_teardown(item):
+    from sentry.app import tsdb
+    tsdb.flush()

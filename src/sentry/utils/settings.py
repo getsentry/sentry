@@ -5,8 +5,10 @@ sentry.utils.imports
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import inspect
+import six
 import sys
 
 from sentry.utils.imports import import_string
@@ -42,7 +44,7 @@ def reraise_as(new_exception_or_type):
     new_exception.__cause__ = e_value
 
     try:
-        raise new_type, new_exception, e_traceback
+        six.reraise(new_type, new_exception, e_traceback)
     finally:
         del e_traceback
 

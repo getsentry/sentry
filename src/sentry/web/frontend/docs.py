@@ -5,6 +5,8 @@ sentry.web.frontend.projects
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
@@ -17,15 +19,13 @@ from sentry.web.helpers import render_to_response, render_to_string, get_raven_j
 
 def get_key_context(user, project):
     try:
-        key = ProjectKey.objects.get(user=user, project=project)
-    except ProjectKey.DoesNotExist:
-        try:
-            key = ProjectKey.objects.filter(
-                project=project,
-                user__isnull=True,
-            )[0]
-        except IndexError:
-            key = None
+        key = ProjectKey.objects.filter(
+            project=project,
+            user__isnull=True,
+            roles=ProjectKey.roles.store,
+        )[0]
+    except IndexError:
+        key = None
 
     if key is None:
         dsn = 'SENTRY_DSN'

@@ -5,16 +5,18 @@ sentry.web.forms.projects
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django import forms
 from django.conf import settings
-from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import EMPTY_PASSWORD_VALUES, TAG_LABELS
-from sentry.models import Project, ProjectOption, User
+from sentry.constants import TAG_LABELS
+from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import (
-    UserField, OriginsField, RangeField, get_team_choices)
+    OriginsField, RangeField, get_team_choices
+)
 
 
 BLANK_CHOICE = [("", "")]
@@ -74,33 +76,15 @@ class NewProjectForm(BaseProjectForm):
 
 
 class NewProjectAdminForm(NewProjectForm):
-    owner = UserField(required=False)
-
     class Meta:
         fields = ('name', 'platform')
         model = Project
 
 
 class RemoveProjectForm(forms.Form):
-    password = forms.CharField(
-        label=_("Password"), widget=forms.PasswordInput,
-        help_text=_("Confirm your identity by entering your password."))
-
     def __init__(self, user, *args, **kwargs):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)
         self.user = user
-        # HACK: don't require current password if they don't have one
-        if self.user.password in EMPTY_PASSWORD_VALUES:
-            del self.fields['password']
-
-    def clean_password(self):
-        """
-        Validates that the old_password field is correct.
-        """
-        password = self.cleaned_data["password"]
-        if not isinstance(authenticate(username=self.user.username, password=password), User):
-            raise forms.ValidationError(_("Your password was entered incorrectly. Please enter it again."))
-        return password
 
 
 class EditProjectForm(BaseProjectForm):
@@ -111,10 +95,9 @@ class EditProjectForm(BaseProjectForm):
         help_text=_('Separate multiple entries with a newline.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
         required=False, min_value=0, max_value=168, step_value=1)
-    owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
+        fields = ('name', 'platform', 'public', 'team', 'slug')
         model = Project
 
     def __init__(self, request, team_list, data, instance, *args, **kwargs):
@@ -160,20 +143,6 @@ class NotificationSettingsForm(forms.Form):
         help_text=_('Choose a custom prefix for emails from this project.'))
 
 
-class NotificationTagValuesForm(forms.Form):
-    values = forms.CharField(required=False)
-
-    def __init__(self, project, tag, *args, **kwargs):
-        self.project = project
-        self.tag = tag
-        super(NotificationTagValuesForm, self).__init__(*args, **kwargs)
-        self.fields['values'].label = self.tag
-        self.fields['values'].widget.attrs['data-tag'] = self.tag
-
-    def clean_values(self):
-        return set(filter(bool, self.cleaned_data.get('values').split(',')))
-
-
 class ProjectQuotasForm(forms.Form):
     per_minute = forms.CharField(
         label=_('Maximum events per minute'),
@@ -211,3 +180,10 @@ class ProjectQuotasForm(forms.Form):
         ProjectOption.objects.set_value(
             self.project, 'quotas:per_minute', self.cleaned_data['per_minute'] or ''
         )
+
+
+class NewRuleForm(forms.Form):
+    label = forms.CharField(
+        label=_('Label'),
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. My Custom Rule'}),
+    )
