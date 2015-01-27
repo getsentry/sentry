@@ -16,16 +16,15 @@ RuleFuture = namedtuple('RuleFuture', ['rule', 'kwargs'])
 class RuleProcessor(object):
     logger = logging.getLogger('sentry.rules')
 
-    def __init__(self, event):
+    def __init__(self, event, is_new, is_regression, is_sample):
         self.event = event
         self.group = event.group
         self.project = event.project
 
-        # these should be more or less correct, though
-        # we may want to make them explicit in the future
-        self.is_sample = event.id is None
-        self.is_new = event.group.times_seen == 1
-        self.is_regression = event.group.times_seen != 1
+        self.is_new = is_new
+        self.is_regression = is_regression
+        # TODO(dcramer): lets remove is_sample
+        self.is_sample = is_sample
 
         self.futures_by_cb = defaultdict(list)
 
