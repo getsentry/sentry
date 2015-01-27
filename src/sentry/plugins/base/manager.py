@@ -49,7 +49,8 @@ class PluginManager(InstanceManager):
         raise KeyError(slug)
 
     def first(self, func_name, *args, **kwargs):
-        for plugin in self.all():
+        version = kwargs.pop('version', 1)
+        for plugin in self.all(version=version):
             try:
                 result = getattr(plugin, func_name)(*args, **kwargs)
             except Exception as e:
