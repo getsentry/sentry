@@ -29,7 +29,7 @@ class RuleProcessorTest(TestCase):
             }
         )
 
-        rp = RuleProcessor(event)
+        rp = RuleProcessor(event, is_new=True, is_regression=True, is_sample=False)
         results = list(rp.apply())
         assert len(results) == 1
         callback, futures = results[0]
