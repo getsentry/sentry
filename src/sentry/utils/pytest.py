@@ -7,29 +7,30 @@ from django.conf import settings
 
 
 def pytest_configure(config):
+    os.environ['RECAPTCHA_TESTING'] = 'True'
+
     if not settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
-    os.environ['RECAPTCHA_TESTING'] = 'True'
-
-    test_db = os.environ.get('DB', 'sqlite')
-    if test_db == 'mysql':
-        settings.DATABASES['default'].update({
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'sentry',
-            'USER': 'root',
-        })
-    elif test_db == 'postgres':
-        settings.DATABASES['default'].update({
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'USER': 'postgres',
-            'NAME': 'sentry',
-        })
-    elif test_db == 'sqlite':
-        settings.DATABASES['default'].update({
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': ':memory:',
-        })
+        # only configure the db if its not already done
+        test_db = os.environ.get('DB', 'sqlite')
+        if test_db == 'mysql':
+            settings.DATABASES['default'].update({
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': 'sentry',
+                'USER': 'root',
+            })
+        elif test_db == 'postgres':
+            settings.DATABASES['default'].update({
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'USER': 'postgres',
+                'NAME': 'sentry',
+            })
+        elif test_db == 'sqlite':
+            settings.DATABASES['default'].update({
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': ':memory:',
+            })
 
     # http://djangosnippets.org/snippets/646/
     class InvalidVarException(object):
