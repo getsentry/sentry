@@ -48,14 +48,14 @@ class EventManagerTest(TransactionTestCase):
         assert EventMapping.objects.filter(
             group=event.group, event_id=event_id).exists()
 
-    @patch('sentry.models.group.GroupManager.add_tags')
+    @patch('sentry.models.GroupManager.add_tags')
     def test_tags_as_list(self, add_tags):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
         data = manager.normalize()
 
         assert data['tags'] == [('foo', 'bar')]
 
-    @patch('sentry.models.group.GroupManager.add_tags')
+    @patch('sentry.models.GroupManager.add_tags')
     def test_tags_as_dict(self, add_tags):
         manager = EventManager(self.make_event(tags={'foo': 'bar'}))
         data = manager.normalize()
