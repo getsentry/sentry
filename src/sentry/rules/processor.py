@@ -96,6 +96,7 @@ class RuleProcessor(object):
                               match, rule.id)
             return
 
+        now = timezone.now()
         if passed and rule_status.status == GroupRuleStatus.INACTIVE:
             # we only fire if we're able to say that the state has changed
             GroupRuleStatus.objects.filter(
@@ -103,19 +104,23 @@ class RuleProcessor(object):
                 status=GroupRuleStatus.INACTIVE,
             ).update(
                 status=GroupRuleStatus.ACTIVE,
-                last_active=timezone.now(),
+                last_active=now,
             )
+            rule_status.last_active = now
+            rule_status.status = GroupRuleStatus.ACTIVE
         elif not passed and rule_status.status == GroupRuleStatus.ACTIVE:
             # update the state to suggest this rule can fire again
             GroupRuleStatus.objects.filter(
                 id=rule_status.id,
                 status=GroupRuleStatus.ACTIVE,
             ).update(status=GroupRuleStatus.INACTIVE)
+            rule_status.status = GroupRuleStatus.INACTIVE
         elif passed:
             GroupRuleStatus.objects.filter(
                 id=rule_status.id,
                 status=GroupRuleStatus.ACTIVE,
-            ).update(last_active=timezone.now())
+            ).update(last_active=now)
+            rule_status.last_active = now
 
         if not passed:
             return
