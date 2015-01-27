@@ -54,7 +54,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
     for callback, futures in rp.apply():
-        callback(event, futures)
+        safe_execute(callback, event, futures)
 
 
 @instrumented_task(
