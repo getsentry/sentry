@@ -216,6 +216,9 @@ class EventManager(object):
             if not data['culprit']:
                 data['culprit'] = data['sentry.interfaces.Http']['url']
 
+        if data['time_spent']:
+            data['time_spent'] = int(data['time_spent'])
+
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
