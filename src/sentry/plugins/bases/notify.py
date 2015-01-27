@@ -51,7 +51,7 @@ class NotificationPlugin(Plugin):
         rules = []
         for future in futures:
             rules.append(future.rule)
-            if not futures.kwargs:
+            if not future.kwargs:
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
