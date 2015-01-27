@@ -300,7 +300,8 @@ class EventManager(object):
             tags.append(('sentry:release', release))
 
         for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event)
+            added_tags = safe_execute(plugin.get_tags, event,
+                                      _with_transaction=False)
             if added_tags:
                 tags.extend(added_tags)
 
@@ -317,7 +318,8 @@ class EventManager(object):
         event.group = group
 
         # Rounded down to the nearest interval
-        safe_execute(Group.objects.add_tags, group, tags)
+        safe_execute(Group.objects.add_tags, group, tags,
+                     _with_transaction=False)
 
         # save the event unless its been sampled
         if not is_sample:
