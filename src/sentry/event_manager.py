@@ -77,7 +77,7 @@ else:
         silence_timedelta = event.datetime - group.last_seen
         silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
-        if group.times_seen % count_limit(group.times_seen):
+        if group.times_seen % count_limit(group.times_seen) == 0:
             return False
 
         if group.times_seen % time_limit(silence):
@@ -446,18 +446,20 @@ class EventManager(object):
                 'time_spent_count': 1,
             })
 
-        if not is_new:
-            is_regression = self._process_existing_aggregate(group, event, kwargs)
-        else:
-            is_regression = False
-
         # Determine if we've sampled enough data to store this event
         if is_new:
             is_sample = False
+        # XXX(dcramer): it's important this gets called **before** the aggregate
+        # is processed as otherwise values like last_seen will get mutated
         elif not should_sample(group, event):
             is_sample = False
         else:
             is_sample = True
+
+        if not is_new:
+            is_regression = self._process_existing_aggregate(group, event, kwargs)
+        else:
+            is_regression = False
 
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
