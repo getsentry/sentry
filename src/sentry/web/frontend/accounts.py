@@ -78,15 +78,6 @@ def login_redirect(request):
     return HttpResponseRedirect(login_url)
 
 
-@never_cache
-def logout(request):
-    from django.contrib.auth import logout
-
-    logout(request)
-
-    return HttpResponseRedirect(reverse('sentry'))
-
-
 def recover(request):
     form = RecoverPasswordForm(request.POST or None,
                                captcha=bool(request.session.get('needs_captcha')))

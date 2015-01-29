@@ -50,6 +50,12 @@ class AccessGroupMigrationView(OrganizationView):
             accessgroup__team__organization=organization,
         ).select_related('user', 'accessgroup', 'accessgroup__team'))
 
+        if not member_list:
+            # Fix an issue where empty groups would show up
+            AccessGroup.objects.filter(
+                team__organization=organization,
+            ).delete()
+
         if request.method == 'POST':
             for member in member_list:
                 self.process_posted_member(request, organization, member)

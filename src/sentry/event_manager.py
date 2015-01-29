@@ -77,7 +77,7 @@ else:
         silence_timedelta = event.datetime - group.last_seen
         silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
-        if group.times_seen % count_limit(group.times_seen):
+        if group.times_seen % count_limit(group.times_seen) == 0:
             return False
 
         if group.times_seen % time_limit(silence):
@@ -89,7 +89,8 @@ else:
 def plugin_is_regression(group, event):
     project = event.project
     for plugin in plugins.for_project(project):
-        result = safe_execute(plugin.is_regression, group, event, _with_transaction=False)
+        result = safe_execute(plugin.is_regression, group, event,
+                              version=1, _with_transaction=False)
         if result is not None:
             return result
     return True
@@ -215,6 +216,9 @@ class EventManager(object):
             if not data['culprit']:
                 data['culprit'] = data['sentry.interfaces.Http']['url']
 
+        if data['time_spent']:
+            data['time_spent'] = int(data['time_spent'])
+
         if data['culprit']:
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
@@ -296,7 +300,8 @@ class EventManager(object):
             tags.append(('sentry:release', release))
 
         for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event)
+            added_tags = safe_execute(plugin.get_tags, event,
+                                      _with_transaction=False)
             if added_tags:
                 tags.extend(added_tags)
 
@@ -313,7 +318,8 @@ class EventManager(object):
         event.group = group
 
         # Rounded down to the nearest interval
-        safe_execute(Group.objects.add_tags, group, tags)
+        safe_execute(Group.objects.add_tags, group, tags,
+                     _with_transaction=False)
 
         # save the event unless its been sampled
         if not is_sample:
@@ -440,18 +446,20 @@ class EventManager(object):
                 'time_spent_count': 1,
             })
 
-        if not is_new:
-            is_regression = self._process_existing_aggregate(group, event, kwargs)
-        else:
-            is_regression = False
-
         # Determine if we've sampled enough data to store this event
         if is_new:
             is_sample = False
+        # XXX(dcramer): it's important this gets called **before** the aggregate
+        # is processed as otherwise values like last_seen will get mutated
         elif not should_sample(group, event):
             is_sample = False
         else:
             is_sample = True
+
+        if not is_new:
+            is_regression = self._process_existing_aggregate(group, event, kwargs)
+        else:
+            is_regression = False
 
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
@@ -483,8 +491,13 @@ class EventManager(object):
             ).exclude(
                 # add to the regression window to account for races here
                 active_at__gte=date - timedelta(seconds=5),
-            ).update(active_at=date, status=GroupStatus.UNRESOLVED))
-
+            ).update(
+                active_at=date,
+                # explicitly set last_seen here as ``is_resolved()`` looks
+                # at the value
+                last_seen=date,
+                status=GroupStatus.UNRESOLVED
+            ))
             group.active_at = date
             group.status = GroupStatus.UNRESOLVED
 

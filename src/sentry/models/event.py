@@ -8,10 +8,10 @@ sentry.models.event
 from __future__ import absolute_import
 
 import warnings
+from collections import OrderedDict
 
 from django.db import models
 from django.utils import timezone
-from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
@@ -149,7 +149,7 @@ class Event(Model):
 
             result.append((key, value))
 
-        return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
+        return OrderedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
 
     def get_tags(self, with_internal=True):
         try:
@@ -171,8 +171,8 @@ class Event(Model):
         return None
 
     def as_dict(self):
-        # We use a SortedDict to keep elements ordered for a potential JSON serializer
-        data = SortedDict()
+        # We use a OrderedDict to keep elements ordered for a potential JSON serializer
+        data = OrderedDict()
         data['id'] = self.event_id
         data['culprit'] = self.group.culprit
         data['message'] = self.message

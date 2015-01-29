@@ -10,7 +10,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry.tsdb.base import ROLLUPS
+from sentry.app import tsdb
 from sentry.utils.cursors import Cursor
 
 from .authentication import KeyAuthentication
@@ -89,7 +89,7 @@ class BaseStatsEndpoint(Endpoint):
         if resolution:
             resolution = self._parse_resolution(resolution)
 
-            assert any(r for r in ROLLUPS if r[0] == resolution)
+            assert any(r for r in tsdb.rollups if r[0] == resolution)
 
         end = request.GET.get('until')
         if end:

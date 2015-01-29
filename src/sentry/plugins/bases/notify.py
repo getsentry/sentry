@@ -13,7 +13,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import ratelimiter
-from sentry.plugins import Plugin
+from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption, AccessGroup
 
 
@@ -46,6 +46,17 @@ class NotificationPlugin(Plugin):
     def notify(self, notification):
         event = notification.event
         return self.notify_users(event.group, event)
+
+    def rule_notify(self, event, futures):
+        rules = []
+        for future in futures:
+            rules.append(future.rule)
+            if not future.kwargs:
+                continue
+            raise NotImplementedError('The default behavior for notification de-duplication does not support args')
+
+        notification = Notification(event=event, rules=rules)
+        self.notify(notification)
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError

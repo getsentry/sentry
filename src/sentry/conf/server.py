@@ -54,11 +54,10 @@ DATABASES = {
         'HOST': '',
         'PORT': '',
         'AUTOCOMMIT': True,
+        'ATOMIC_REQUESTS': False,
     }
 }
 
-ATOMIC_REQUESTS = False
-AUTOCOMMIT = True
 
 if 'DATABASE_URL' in os.environ:
     url = urlparse.urlparse(os.environ['DATABASE_URL'])
@@ -400,6 +399,10 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'sentry.rules': {
+            'handlers': ['console'],
+            'propagate': False,
+        },
         'static_compiler': {
             'level': 'INFO',
         },
@@ -578,6 +581,14 @@ SENTRY_SEARCH_OPTIONS = {}
 # Time-series storage backend
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
+
+# rollups must be ordered from highest granularity to lowest
+SENTRY_TSDB_ROLLUPS = (
+    # (time in seconds, samples to keep)
+    (10, 30),  # 5 minute at 10 seconds
+    (3600, 24 * 7),  # 7 days at 1 hour
+)
+
 
 # File storage
 SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
