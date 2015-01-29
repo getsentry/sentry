@@ -108,7 +108,7 @@ Celery
 
 Celery can be difficult to tune. Your goal is to maximize the CPU usage without running out of memory. If you have JavaScript clients this becomes more difficult, as currently the sourcemap and context scraping can buffer large amounts of memory depending on your configurations and the size of your source files.
 
-On a completely anecdotal note, you can take the same approach that you might take with improving the webserver: spam more processes. We again look to supervisord for managing this for us:
+On a completely anecdotal note, you can take the same approach that you might take with improving the webserver: spawn more processes. We again look to supervisord for managing this for us:
 
 ::
 

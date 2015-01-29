@@ -20,8 +20,6 @@ from sentry.utils.cache import cache
 class ProjectOptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super(ProjectOptionManager, self).__init__(*args, **kwargs)
-        task_postrun.connect(self.clear_local_cache)
-        request_finished.connect(self.clear_local_cache)
         self.__cache = {}
 
     def __getstate__(self):
@@ -99,6 +97,11 @@ class ProjectOptionManager(BaseManager):
 
     def post_delete(self, instance, **kwargs):
         self.reload_cache(instance.project_id)
+
+    def contribute_to_class(self, model, name):
+        super(ProjectOptionManager, self).contribute_to_class(model, name)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
 
 
 class ProjectOption(Model):

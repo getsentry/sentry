@@ -311,7 +311,8 @@ class StoreView(APIView):
         event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
-        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project)
+        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
+                                  _with_transaction=False)
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
@@ -329,7 +330,8 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
             ])
 
-        result = plugins.first('has_perm', request.user, 'create_event', project)
+        result = plugins.first('has_perm', request.user, 'create_event', project,
+                               version=1)
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
 

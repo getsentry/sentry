@@ -9,9 +9,11 @@ from sentry.event_manager import EventManager
 
 class SentryInternalClient(DjangoClient):
     def is_enabled(self):
+        if getattr(settings, 'DISABLE_RAVEN', False):
+            return False
         return settings.SENTRY_PROJECT is not None
 
-    def send(self, project, **kwargs):
+    def send(self, **kwargs):
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
         try:

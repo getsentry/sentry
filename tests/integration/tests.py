@@ -8,7 +8,7 @@ import logging
 import mock
 import zlib
 
-from django.conf import settings as django_settings
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -270,16 +270,16 @@ class DepdendencyTest(TestCase):
             raise ImportError("No module named %s" % (package,))
         return callable
 
-    @mock.patch('django.conf.settings')
+    @mock.patch('django.conf.settings', mock.Mock())
     @mock.patch('sentry.utils.settings.import_string')
     def validate_dependency(self, key, package, dependency_type, dependency,
-                            setting_value, import_string, settings):
+                            setting_value, import_string):
 
         import_string.side_effect = self.raise_import_error(package)
 
         with self.settings(**{key: setting_value}):
             with self.assertRaises(ConfigurationError):
-                validate_settings(django_settings)
+                validate_settings(settings)
 
     def test_validate_fails_on_postgres(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA['postgresql'])

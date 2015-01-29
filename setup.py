@@ -50,20 +50,15 @@ dev_requires = [
 ]
 
 tests_require = [
+    'blist',  # used by cassandra
     'casscache',
     'cqlsh',
     'elasticsearch',
-    'exam>=0.5.1',
-    'eventlet',
     'httpretty',
-    'pytest',
     'pytest-cov>=1.4',
-    'pytest-django',
     'pytest-timeout',
     'python-coveralls',
-    'mock>=0.8.0',
     'riak',
-    'unittest2',
 ]
 
 
@@ -85,13 +80,18 @@ install_requires = [
     'djangorestframework>=2.3.8,<2.4.0',
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<0.10.0',
+    'exam>=0.5.1',
     'gunicorn>=0.17.2,<0.18.0',
     'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
+    'lxml>=3.4.1',
+    'mock>=0.8.0',
     'nydus>=0.10.7,<0.11.0',
     'markdown>=2.4.1,<2.5.0',
     'progressbar>=2.2,<2.4',
     'Pygments>=1.6.0,<1.7.0',
+    'pytest',
+    'pytest-django',
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
     'raven>=5.0.0',

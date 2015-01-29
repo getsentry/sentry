@@ -153,13 +153,12 @@ class MailPlugin(NotificationPlugin):
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
 
-        rule = notification.rule
-        if rule:
+        rules = []
+        for rule in notification.rules:
             rule_link = reverse('sentry-edit-project-rule', args=[
                 group.organization.slug, project.slug, rule.id
             ])
-        else:
-            rule_link = None
+            rules.append((rule.label, rule_link))
 
         context = {
             'group': group,
@@ -167,13 +166,13 @@ class MailPlugin(NotificationPlugin):
             'tags': event.get_tags(),
             'link': link,
             'interfaces': interface_list,
-            'rule': rule,
-            'rule_link': rule_link,
+            'rules': rules,
         }
 
         headers = {
             'X-Sentry-Logger': group.logger,
             'X-Sentry-Logger-Level': group.get_level_display(),
+            'X-Sentry-Team': project.team.name,
             'X-Sentry-Project': project.name,
             'X-Sentry-Reply-To': group_id_to_email(group.id),
         }

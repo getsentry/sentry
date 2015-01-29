@@ -39,7 +39,12 @@
     </div>
     {% endfor %}
 
-    {% if rule %}
-        <p class="via">You are receiving this email due to rule: <a href="{% absolute_uri rule_link %}">{{ rule.label }}</a></p>
+    {% if rules %}
+        <p class="via">
+            You are receiving this email due to matching rules:
+            {% for rule_label, rule_link in rules %}
+                <a href="{% absolute_uri rule_link %}">{{ rule_label }}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </p>
     {% endif %}
 {% endblock %}
