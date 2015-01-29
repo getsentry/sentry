@@ -1396,6 +1396,11 @@ code {
    border-color: #bbb;
   }
 }
+
+pre.clippy {
+  display: block;
+}
+
 td .clippy {
   border: 0;
 }
@@ -2950,15 +2955,39 @@ pre {
     background-size: 211px 100%;
   }
 
+  .clippy {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .select-project {
-    font-size: 16px;
+    color: #fff;
+    font-size: 15px;
+    border: 1px solid #1C85DD;
+    background: #2e9fff;
+    border-right: 0;
+    padding: 10px 30px;
+    border-radius: 0;
+    border-left: 0;
+    margin-left: -31px;
+    margin-right: -31px;
+    margin-bottom: 20px;
+
+    .caret {
+      border-top-color: #fff !important;
+      border-bottom-color: #fff !important;
+    }
+
+    .dropdown-toggle {
+      color: #fff;
+    }
 
     &.open {
       .dropdown-toggle {
         text-decoration: none;
         position: relative;
         z-index: 2;
-        color: @gray;
 
         &:after {
           display: block;
@@ -2975,11 +3004,8 @@ pre {
       }
     }
 
-    .project-label {
-      color: #A4ABB5;
-    }
-
     .dropdown-menu {
+      color: #000;
       left: auto;
       right: -6px;
       width: 500px;
@@ -3093,6 +3119,7 @@ pre {
     padding: 30px 30px 15px;
     border-right: 1px solid #e9ecf0;
     margin-right: -1px;
+    font-size: 14px;
 
     h4 {
       font-size: 14px;
@@ -3102,11 +3129,18 @@ pre {
     ul {
       margin: 0 0 15px;
       list-style-type: none;
+
+      li a {
+        line-height: 22px;
+        margin-left: -30px;
+        margin-right: -30px;
+        padding: 0 30px;
+      }
     }
   }
   .docs-main {
     width: 76.7%;
-    padding: 30px 40px 10px;
+    padding: 30px 30px 10px;
     border-left: 1px solid #e9ecf0;
     margin-left: 0;
 

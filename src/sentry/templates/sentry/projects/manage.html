@@ -83,18 +83,20 @@
         <li{% if page == 'keys' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "API Keys" %}</a>
         </li>
-    </ul>
+        <li class="nav-header">{% trans "Help" %}</li>
+        <li>
+            <a href="{% url 'sentry-help-platform-list' %}?pid={{ project.id }}">{% trans "Setup &amp; Installation" %}</a>
+        </li>
     {% with project|get_plugins as plugins %}
-        <ul class="nav nav-list">
-            <li class="nav-header">{% trans "Integrations" %}</li>
-            <li class="{% if page == 'plugins' %} active{% endif %}">
-                <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "Manage Integrations" %} ({{ PLUGINS|length }})</a>
+        <li class="nav-header">{% trans "Integrations" %}</li>
+        <li class="{% if page == 'plugins' %} active{% endif %}">
+            <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "Manage Integrations" %} ({{ PLUGINS|length }})</a>
+        </li>
+        {% for p in plugins %}
+            <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
+                <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
             </li>
-            {% for p in plugins %}
-                <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-                    <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
-                </li>
-            {% endfor %}
-        </ul>
+        {% endfor %}
     {% endwith %}
+    </ul>
 {% endblock %}
