@@ -2,6 +2,7 @@ Version 7.2.0
 -------------
 
 - A py.test plugin now exists to make extension testing easier.
+- A Mailgun webhook endpoint is now available for incoming email.
 
 
 Version 7.1.4

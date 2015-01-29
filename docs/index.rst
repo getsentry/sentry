@@ -26,6 +26,7 @@ Users Guide
    nodestore/index
    throttling/index
    tsdb/index
+   inbound-mail/index
    performance/index
    cli/index
    client/index
