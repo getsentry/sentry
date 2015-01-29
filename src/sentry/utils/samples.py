@@ -40,10 +40,6 @@ def load_data(platform, default=None):
         "id": "1671",
         "email": "foo@example.com"
     }
-    data['tags'] = [
-        ('foo', 'bar'),
-        ('version', '1.0'),
-    ]
     data['extra'] = {
         'session': {
             'foo': 'bar',
