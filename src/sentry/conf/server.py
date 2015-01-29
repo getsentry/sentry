@@ -439,12 +439,6 @@ STATSD_CLIENT = 'django_statsd.clients.null'
 
 SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
-# Is this an on-premise install? (should things be generally more open)
-SENTRY_PUBLIC = False
-
-# Default project ID for recording internal exceptions
-SENTRY_PROJECT = 1
-
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
 
