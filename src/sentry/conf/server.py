@@ -241,6 +241,8 @@ TRELLO_API_SECRET = ''
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
 
+MAILGUN_API_KEY = ''
+
 SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.get_username',
     'social_auth.backends.pipeline.social.social_auth_user',
@@ -439,12 +441,6 @@ STATSD_CLIENT = 'django_statsd.clients.null'
 
 SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
-# Is this an on-premise install? (should things be generally more open)
-SENTRY_PUBLIC = False
-
-# Default project ID for recording internal exceptions
-SENTRY_PROJECT = 1
-
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
 
@@ -610,7 +606,7 @@ SENTRY_ENABLE_EXPLORE_USERS = True
 # size in characters
 SENTRY_MAX_VARIABLE_SIZE = 512
 
-# Prevent varabiesl within extra context from exceeding this size in
+# Prevent variables within extra context from exceeding this size in
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 

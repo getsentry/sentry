@@ -21,11 +21,6 @@ from sentry.web.frontend import (
     admin, users, explore, explore_code,
 )
 
-from sentry.web.frontend.help_index import HelpIndexView
-from sentry.web.frontend.help_page import HelpPageView
-from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
-from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
-
 import sentry.web.frontend.projects.keys
 import sentry.web.frontend.projects.notifications
 import sentry.web.frontend.projects.plugins
@@ -40,6 +35,11 @@ from sentry.web.frontend.access_group_migration import AccessGroupMigrationView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.home import HomeView
+from sentry.web.frontend.help_index import HelpIndexView
+from sentry.web.frontend.help_page import HelpPageView
+from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
+from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
+from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
@@ -98,6 +98,8 @@ urlpatterns += patterns('',
 
     # API
     url(r'^api/0/', include('sentry.api.urls')),
+    url(r'^api/hooks/mailgun/inbound/', MailgunInboundWebhookView.as_view(),
+        name='sentry-mailgun-inbound-hook'),
 
     # Account
     url(r'^login/$', AuthLoginView.as_view(),
