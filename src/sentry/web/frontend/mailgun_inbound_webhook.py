@@ -30,6 +30,10 @@ class MailgunInboundWebhookView(View):
         signature = request.POST['signature']
         timestamp = request.POST['timestamp']
 
+        if not settings.MAILGUN_API_KEY:
+            logging.error('MAILGUN_API_KEY is not set')
+            return HttpResponse(status=500)
+
         if not self.verify(settings.MAILGUN_API_KEY, token, timestamp, signature):
             logging.info('Unable to verify signature for mailgun request')
             return HttpResponse(status=403)
