@@ -18,6 +18,19 @@ class TestMailgunInboundWebhookView(TestCase):
 
     @mock.patch('sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email')
     def test_invalid_signature(self, process_inbound_email):
+        with self.settings(MAILGUN_API_KEY='a' * 32):
+            resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
+                'To': 'Sentry <%s>' % (self.mailto,),
+                'From': 'David <%s>' % (self.user.email,),
+                'body-plain': body_plain,
+                'signature': '',
+                'token': '',
+                'timestamp': '',
+            })
+            assert resp.status_code == 403
+
+    @mock.patch('sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email')
+    def test_missing_api_key(self, process_inbound_email):
         resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
             'To': 'Sentry <%s>' % (self.mailto,),
             'From': 'David <%s>' % (self.user.email,),
@@ -26,22 +39,23 @@ class TestMailgunInboundWebhookView(TestCase):
             'token': '',
             'timestamp': '',
         })
-        assert resp.status_code == 403
+        assert resp.status_code == 500
 
     @mock.patch('sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email')
     def test_simple(self, process_inbound_email):
         token = 'a' * 50
         timestamp = '1422513193'
-        signature = '436688eb38038505394ff31e621c1e4c61b26b09638016b6d630d6199aa48403'
+        signature = '414a4705e6c12a39905748549f9135fbe8b739a5b12b2349ee40f31d3ee12f83'
 
-        resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
-            'To': 'Sentry <%s>' % (self.mailto,),
-            'From': 'David <%s>' % (self.user.email,),
-            'body-plain': body_plain,
-            'signature': signature,
-            'token': token,
-            'timestamp': timestamp,
-        })
+        with self.settings(MAILGUN_API_KEY='a' * 32):
+            resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
+                'To': 'Sentry <%s>' % (self.mailto,),
+                'From': 'David <%s>' % (self.user.email,),
+                'body-plain': body_plain,
+                'signature': signature,
+                'token': token,
+                'timestamp': timestamp,
+            })
         assert resp.status_code == 201
         process_inbound_email.delay.assert_called_once_with(
             self.user.email,
