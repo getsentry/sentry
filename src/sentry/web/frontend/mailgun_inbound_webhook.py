@@ -7,6 +7,7 @@ import logging
 from django.conf import settings
 from django.http import HttpResponse
 from django.views.generic import View
+from django.utils.crypto import constant_time_compare
 from email_reply_parser import EmailReplyParser
 from email.utils import parseaddr
 
@@ -18,11 +19,11 @@ class MailgunInboundWebhookView(View):
     auth_required = False
 
     def verify(self, api_key, token, timestamp, signature):
-        return signature == hmac.new(
+        return constant_time_compare(signature, hmac.new(
             key=api_key,
             msg='{}{}'.format(timestamp, token),
             digestmod=hashlib.sha256
-        ).hexdigest()
+        ).hexdigest())
 
     def post(self, request):
         token = request.POST['token']
