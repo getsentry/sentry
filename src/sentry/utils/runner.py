@@ -185,6 +185,10 @@ EMAIL_USE_TLS = False
 # The email address to send on behalf of
 SERVER_EMAIL = 'root@localhost'
 
+# If you're using mailgun for inbound mail, set your API key and configure a
+# route to forward to /api/hooks/mailgun/inbound/
+MAILGUN_API_KEY = ''
+
 ###########
 ## etc. ##
 ###########

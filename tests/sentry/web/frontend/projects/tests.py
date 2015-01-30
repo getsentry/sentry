@@ -150,7 +150,7 @@ class ManageProjectTagsTest(TestCase):
         assert resp.context['organization'] == self.organization
         assert resp.context['team'] == self.team
         assert resp.context['project'] == self.project
-        tag_list = resp.context['tag_list']
+        tag_list = [t.key for t in resp.context['tag_list']]
         assert 'site' in tag_list
         assert 'url' in tag_list
         assert 'os' in tag_list

@@ -36,6 +36,8 @@ class AuditLogEntryEvent(object):
     PROJECT_SET_PUBLIC = 33
     PROJECT_SET_PRIVATE = 34
 
+    TAGKEY_REMOVE = 40
+
 
 class AuditLogEntry(Model):
     organization = FlexibleForeignKey('sentry.Organization')
@@ -63,6 +65,8 @@ class AuditLogEntry(Model):
 
         (AuditLogEntryEvent.ORG_ADD, 'org.create'),
         (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
+
+        (AuditLogEntryEvent.TAGKEY_REMOVE, 'tagkey.remove'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -101,5 +105,8 @@ class AuditLogEntry(Model):
             return 'edited project %s' % (self.data['slug'],)
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return 'removed project %s' % (self.data['slug'],)
+
+        elif self.event == AuditLogEntryEvent.TAGKEY_REMOVE:
+            return 'removed tags matching %s = *' % (self.data['key'],)
 
         return ''

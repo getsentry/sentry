@@ -11,47 +11,8 @@ from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import TAG_LABELS
 from sentry.models import ProjectOption
 from sentry.web.forms.fields import RangeField
-
-
-class ProjectTagsForm(forms.Form):
-    filters = forms.MultipleChoiceField(
-        choices=(), widget=forms.CheckboxSelectMultiple(), required=False)
-    annotations = forms.MultipleChoiceField(
-        choices=(), widget=forms.CheckboxSelectMultiple(), required=False)
-
-    def __init__(self, project, tag_list, *args, **kwargs):
-        self.project = project
-        super(ProjectTagsForm, self).__init__(*args, **kwargs)
-
-        tag_choices = []
-        for tag in tag_list:
-            tag_choices.append(
-                (tag, TAG_LABELS.get(tag) or tag.replace(u'_', u' ').title())
-            )
-
-        for field in ('filters', 'annotations'):
-            self.fields[field].choices = tag_choices
-            self.fields[field].widget.choices = self.fields[field].choices
-
-        enabled_filters = ProjectOption.objects.get_value(
-            self.project, 'tags', tag_list)
-        self.fields['filters'].initial = enabled_filters
-
-        enable_annotations = ProjectOption.objects.get_value(
-            self.project, 'annotations', ['sentry:user'])
-        self.fields['annotations'].initial = enable_annotations
-
-    def save(self):
-        filters = self.cleaned_data.get('filters')
-        ProjectOption.objects.set_value(
-            self.project, 'tags', filters)
-
-        annotations = self.cleaned_data.get('annotations')
-        ProjectOption.objects.set_value(
-            self.project, 'annotations', annotations)
 
 
 class AlertSettingsForm(forms.Form):

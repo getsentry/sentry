@@ -156,6 +156,40 @@ def delete_group(object_id, **kwargs):
     group.delete()
 
 
+@instrumented_task(name='sentry.tasks.deletion.delete_tag_key', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry
+def delete_tag_key(object_id, **kwargs):
+    from sentry.models import (
+        GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, TagValue
+    )
+
+    try:
+        tagkey = TagKey.objects.get(id=object_id)
+    except TagKey.DoesNotExist:
+        return
+
+    logger = delete_tag_key.get_logger()
+
+    if tagkey.status != TagKeyStatus.DELETION_IN_PROGRESS:
+        tagkey.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
+
+    bulk_model_list = (
+        GroupTagValue, GroupTagKey, TagValue
+    )
+    for model in bulk_model_list:
+        has_more = bulk_delete_objects(model, key=tagkey.key, logger=logger)
+        if has_more:
+            delete_tag_key.delay(object_id=object_id, countdown=15)
+            return
+
+    has_more = delete_events(relation={'group_id': object_id}, logger=logger)
+    if has_more:
+        delete_tag_key.delay(object_id=object_id, countdown=15)
+        return
+    tagkey.delete()
+
+
 def delete_events(relation, limit=1000, logger=None):
     from sentry.app import nodestore
     from sentry.models import Event
@@ -191,17 +225,11 @@ def delete_objects(models, relation, limit=1000, logger=None):
     return has_more
 
 
-def bulk_delete_objects(model, group_id=None, project_id=None, limit=10000,
-                        logger=None):
-    assert group_id or project_id, 'Must pass either project_id or group_id'
+def bulk_delete_objects(model, limit=10000,
+                        logger=None, **filters):
+    assert len(filters) == 1, 'Must pass a single column=value filter.'
 
-    if group_id:
-        column = 'group_id'
-        value = group_id
-
-    elif project_id:
-        column = 'project_id'
-        value = project_id
+    column, value = filters.items()[0]
 
     connection = connections['default']
     quote_name = connection.ops.quote_name
@@ -238,7 +266,7 @@ def bulk_delete_objects(model, group_id=None, project_id=None, limit=10000,
     else:
         logger.warning('Using slow deletion strategy due to unknown database')
         has_more = False
-        for obj in model.objects.filter(project=project_id)[:limit]:
+        for obj in model.objects.filter(**{column: value})[:limit]:
             obj.delete()
             has_more = True
         return has_more
