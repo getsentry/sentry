@@ -160,7 +160,9 @@ def delete_group(object_id, **kwargs):
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def delete_tag_key(object_id, **kwargs):
-    from sentry.models import GroupTagKey, GroupTagValue, TagKey, TagValue
+    from sentry.models import (
+        GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, TagValue
+    )
 
     try:
         tagkey = TagKey.objects.get(id=object_id)
@@ -168,6 +170,9 @@ def delete_tag_key(object_id, **kwargs):
         return
 
     logger = delete_tag_key.get_logger()
+
+    if tagkey.status != TagKeyStatus.DELETION_IN_PROGRESS:
+        tagkey.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
 
     bulk_model_list = (
         GroupTagValue, GroupTagKey, TagValue
