@@ -67,6 +67,10 @@
 
   <script>
   var removeTagKey = function(keyName) {
+    if (!confirm('Are you sure you wish to delete all data for this tag?')) {
+      return;
+    }
+
     $.ajax({
       url: '/api/0/projects/{{ project.id }}/tags/' + keyName + '/',
       method: 'DELETE',
