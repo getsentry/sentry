@@ -608,7 +608,7 @@ SENTRY_ENABLE_EXPLORE_USERS = True
 # size in characters
 SENTRY_MAX_VARIABLE_SIZE = 512
 
-# Prevent varabiesl within extra context from exceeding this size in
+# Prevent variables within extra context from exceeding this size in
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 
