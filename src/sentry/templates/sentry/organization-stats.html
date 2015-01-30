@@ -78,11 +78,10 @@
         $.each(data, function(_, project){
           projectMap[project.id] = project;
         });
-        requestFinished();
+        projectRequestFinished();
       },
       error: function(data) {
         $projectData.html('<div class="error">There was an error loading project data.</div>');
-        requestFinished();
       }
     });
 
@@ -99,11 +98,10 @@
         },
         success: function(data){
           rawProjectData[statName] = data;
-          requestFinished();
+          projectRequestFinished();
         },
         error: function(data) {
           $projectData.html('<div class="error">There was an error loading project data.</div>');
-          requestFinished();
         }
       });
     });
@@ -122,7 +120,7 @@
         },
         success: function(data){
           rawOrgData[statName] = data;
-          requestFinished();
+          orgRequestFinished();
         },
         error: function(data) {
           $sparkline.html('<div class="error">There was an error loading statistics.</div>');
@@ -130,12 +128,14 @@
       });
     });
 
-    function requestFinished() {
+    function orgRequestFinished() {
       if (rawOrgData.received && rawOrgData.rejected) {
         processOrgData();
         renderChart();
       }
+    }
 
+    function projectRequestFinished() {
       if (rawProjectData.received && rawProjectData.rejected && projectMap) {
         processProjectData();
         renderTable();
