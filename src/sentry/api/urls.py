@@ -21,6 +21,7 @@ from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
+from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_access_group_index import TeamAccessGroupIndexEndpoint
@@ -96,6 +97,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<project_id>\d+)/stats/$',
         ProjectStatsEndpoint.as_view(),
         name='sentry-api-0-project-stats'),
+    url(r'^projects/(?P<project_id>\d+)/tags/(?P<key>[^/]+)/$',
+        ProjectTagKeyDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-tagkey-details'),
 
     # Releases
     url(r'^releases/(?P<release_id>\d+)/$',
