@@ -33,7 +33,9 @@ module.exports = {
     loaders: [
       {
         test: /\.jsx$/,
-        loader: "jsx-loader?insertPragma=React.DOM&harmony"
+        loader: "jsx-loader?insertPragma=React.DOM&harmony",
+        include: path.join(__dirname, staticPrefix),
+        exclude: /vendor/
       }
     ]
   },
