@@ -46,7 +46,7 @@ var AssigneeSelector = React.createClass({
     AggregateListActions.assignTo(this.props.aggregate.id, member.email);
   },
 
-  clearAssignTo: function(member) {
+  clearAssignTo: function() {
     AggregateListActions.assignTo(this.props.aggregate.id, '');
   },
 

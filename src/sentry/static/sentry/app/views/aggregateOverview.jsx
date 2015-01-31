@@ -1,17 +1,13 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
 var AggregateActivity = require("./aggregate/activity");
 var AggregateChart = require("./aggregate/chart");
 var AggregateEvent = require("./aggregate/event");
-var AggregateListStore = require("../stores/aggregateListStore");
-var MemberListStore = require("../stores/memberListStore");
 var PropTypes = require("../proptypes");
-var utils = require("../utils");
 
 var AggregateOverview = React.createClass({
   mixins: [Router.State],

@@ -4,6 +4,9 @@ var $ = require("jquery");
 
 class Client {
   constructor(options) {
+    if (typeof options === 'undefined') {
+      options = {};
+    }
     this.baseUrl = options.baseUrl || "/api/0";
   }
 

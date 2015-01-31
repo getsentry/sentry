@@ -1,10 +1,8 @@
 /*** @jsx React.DOM */
 var React = require("react");
-var $ = require("jquery");
 
 var utils = require("../../utils");
 
-var joinClasses = require("react-bootstrap/utils/joinClasses");
 var DateTimeField = require("../../modules/datepicker/DateTimeField");
 var DropdownLink = require("../../components/dropdownLink");
 var MenuItem = require("../../components/menuItem");

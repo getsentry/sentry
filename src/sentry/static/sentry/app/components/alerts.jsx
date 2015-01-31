@@ -4,7 +4,6 @@ var React = require("react");
 var Reflux = require("reflux");
 
 var AlertStore = require('../stores/alertStore');
-var AlertMessage = require('./alertMessage');
 
 var Alerts = React.createClass({
   mixins: [Reflux.connect(AlertStore, "alerts")],
