@@ -93,18 +93,22 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(this.getAllItems());
   },
 
-  onpdateError: function(id, itemIds, error){
+  onUpdateError: function(id, itemIds, error){
     this.pendingChanges.remove(id);
     this.trigger(this.getAllItems());
   },
 
-  onpdateSuccess: function(id, itemIds, response){
+  onUpdateSuccess: function(id, itemIds, response){
     if (typeof itemIds === 'undefined') this.items.map(item => item.id);
     itemIds.forEach(item => {
       $.extend(true, item, response);
     });
     this.pendingChanges.remove(id);
     this.trigger(this.getAllItems());
+  },
+
+  onAssignTo: function() {
+
   },
 
   // TODO(dcramer): This is not really the best place for this
