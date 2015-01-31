@@ -5,11 +5,7 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var AggregateChart = require("./aggregate/chart");
 var AggregateHeader = require("./aggregate/header");
-var AggregateListStore = require("../stores/aggregateListStore");
-var MemberListStore = require("../stores/memberListStore");
-var utils = require("../utils");
 
 var AggregateDetails = React.createClass({
   mixins: [
