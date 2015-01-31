@@ -19,7 +19,6 @@ module.exports = {
       "flot",
       "flot/jquery.flot.resize",
       "flot/jquery.flot.time",
-      "fluxxor",
       "jquery",
       "moment",
       "raven",
