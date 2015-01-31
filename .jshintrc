@@ -1,6 +1,7 @@
 {
     "strict": false,
     "browser": true,
+    "esnext": true,
     "predef": [
         "angular",
         "module",

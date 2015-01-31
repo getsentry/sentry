@@ -1,8 +1,6 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
 
 var AssigneeSelector = require("../../components/assigneeSelector");
 var Count = require("../../components/count");

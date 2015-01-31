@@ -74,5 +74,7 @@ module.exports = {
   getQueryParams: getQueryParams,
   parseLinkHeader: parseLinkHeader,
   sortArray: sortArray,
-  Collection: require('./utils/collection')
+
+  Collection: require('./utils/collection'),
+  PendingChangeQueue: require('./utils/pendingChangeQueue')
 };

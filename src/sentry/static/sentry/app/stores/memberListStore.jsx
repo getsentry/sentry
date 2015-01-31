@@ -3,7 +3,6 @@
 var Reflux = require("reflux");
 
 // var MemberListActions = require('../actions/aggregateListActions');
-var utils = require("../utils");
 
 var MemberListStore = Reflux.createStore({
   // listenables: MemberListActions,
