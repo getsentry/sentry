@@ -4,86 +4,17 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block controller %}EditProjectRuleCtrl{% endblock %}
-
 {% block inner %}
-    <h3>
-        {% if rule.id %}
-            {% trans "Edit Rule" %}
-        {% else %}
-            {% trans "New Rule" %}
-        {% endif %}
-        <small>Applying to Events</small>
-    </h3>
-
-    <form method="POST" action="." name="editRuleForm">
-        {% csrf_token %}
-
-        {% if not form_is_valid %}
-            <div class="alert-block alert alert-error">
-                <p>{% trans "There were errors with your submission. Please ensure all options are filled out correctly." %}</p>
-            </div>
-        {% endif %}
-
-        {{ form|as_crispy_errors }}
-
-
-        <div class="box">
-          <div class="box-header">
-            <h3>{% trans "Rule label:" %}</h3>
-          </div>
-          <div class="box-content" style="padding: 10px;">
-            <input type="text" name="label" class="form-control" placeholder="{% trans "e.g. My Rule Name" %}">
-          </div>
-        </div>
-
-        <div class="box">
-            <div class="box-header" style="padding-top: 5px; padding-bottom: 0px; font-weight: 500">
-                Every time <select name="action_match" style="width:100px;" class="select2-small select2-inline">
-                    <option value="all">all of</option>
-                    <option value="any">any of</option>
-                    <option value="none">none of</option>
-                </select> these conditions are met:
-            </div>
-            <div class="box-content" style="padding: 0 10px 6px;">
-              <table class="condition-list table table-light" style="margin-bottom: 10px;">
-                  <col>
-                  <col style="width: 10%; text-align: right">
-                  <tbody></tbody>
-              </table>
-              <div class="controls">
-                  <select id="condition-select" placeholder="add a condition"></select>
-              </div>
-            </div>
-        </div>
-
-        <div class="box">
-            <div class="box-header">
-                <h3>Take these actions:</h3>
-            </div>
-            <div class="box-content" style="padding: 0 10px 6px;">
-              <table class="action-list table table-light" style="margin-bottom: 10px;">
-                  <col>
-                  <col style="width: 25%; text-align: right">
-                  <tbody></tbody>
-              </table>
-              <div class="controls">
-                  <select id="action-select" placeholder="add an action"></select>
-              </div>
-            </div>
-        </div>
-
-        <div class="actions">
-            <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Rule" %}</button>
-        </div>
-    </form>
-
-    <script>
-    window.SentryApp.ruleData = {
+  <div id="blk_rule_editor"></div>
+  <script>
+  $(function(){
+    React.render(React.createFactory(RuleEditor)({
       actions: {{ action_list|safe }},
       conditions: {{ condition_list|safe }},
-      formData: {{ form_data|to_json|safe }},
-      formErrors: {{ form_errors|to_json|safe }}
-    };
-    </script>
+      // formData: {{ form_data|to_json|safe }},
+      // formErrors: {{ form_errors|to_json|safe }}
+      project: {% serialize project %}
+    }), document.getElementById('blk_rule_editor'));
+  });
+  </script>
 {% endblock %}
