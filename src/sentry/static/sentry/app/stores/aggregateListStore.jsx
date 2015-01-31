@@ -52,8 +52,8 @@ var AggregateListStore = Reflux.createStore({
 
   // TODO(dcramer): this should actually come from an action of some sorts
   loadInitialData: function(items) {
-    _items.empty();
-    _dirtyItems.empty();
+    _items.splice(0);
+    _pendingChanges.splice(0);
     items.forEach(function(item){
       _items.push(item);
     });
