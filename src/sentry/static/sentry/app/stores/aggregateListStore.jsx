@@ -28,10 +28,10 @@ var AggregateListStore = Reflux.createStore({
   loadInitialData: function(items) {
     this.items = [];
     this.pendingChanges.clear();
-    items.forEach(function(item){
+    items.forEach(item => {
       this.items.push(item);
     });
-    this.trigger("initial");
+    this.trigger(this.getAllItems());
   },
 
   getItem: function(id) {
@@ -61,26 +61,24 @@ var AggregateListStore = Reflux.createStore({
   getAllItems: function() {
     // regroup pending changes by their itemID
     var pendingById = {};
-    this.pendingChanges.forEach(function(change){
+    this.pendingChanges.forEach(change => {
       if (typeof pendingById[change.id] === 'undefined') {
         pendingById[change.id] = [];
       }
       pendingById[change.id].push(change);
     });
 
-    var results = [];
-    this.items.forEach(function(item){
+    return this.items.map(item => {
       var rItem = item;
       if (typeof pendingById[item.id] !== 'undefined') {
         // copy the object so dirty state doesnt mutate original
         rItem = $.extend(true, {}, rItem);
-        pendingById[item.id].forEach(function(change){
+        pendingById[item.id].forEach(change => {
           rItem = $.extend(true, rItem, change.params);
         });
       }
-      results.push(cItem);
+      return rItem;
     });
-    return results;
   },
 
   // re-fire bulk events as individual actions
