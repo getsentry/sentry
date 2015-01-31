@@ -24,8 +24,8 @@ var AssigneeSelector = React.createClass({
 
   componentDidMount: function() {
     this.listenTo(AggregateListActions.assignTo, this.onAssignTo);
-    this.listenTo(AggregateListActions.assignTo.completed, this.onAssignToCompleted);
-    this.listenTo(AggregateListActions.assignTo.failed, this.onAssignToCompleted);
+    this.listenTo(AggregateListActions.assignToError, this.onAssignToCompleted);
+    this.listenTo(AggregateListActions.assignToSuccess, this.onAssignToCompleted);
   },
 
   onAssignTo: function(id) {
