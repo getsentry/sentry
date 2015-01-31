@@ -6,6 +6,8 @@ var Router = require("react-router");
 
 var api = require("../api");
 var AggregateHeader = require("./aggregate/header");
+var AggregateListStore = require("../stores/aggregateListStore");
+var utils = require("../utils");
 
 var AggregateDetails = React.createClass({
   mixins: [
