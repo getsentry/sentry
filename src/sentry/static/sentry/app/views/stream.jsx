@@ -7,7 +7,6 @@ var $ = require("jquery");
 var api = require("../api");
 var AggregateListActions = require("../actions/aggregateListActions");
 var AggregateListStore = require("../stores/aggregateListStore");
-var AlertActions = require("../actions/alertActions");
 var StreamAggregate = require('./stream/aggregate');
 var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
