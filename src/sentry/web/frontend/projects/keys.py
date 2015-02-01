@@ -16,7 +16,9 @@ from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_ADMIN
-from sentry.models import ProjectKey, ProjectKeyStatus
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
+)
 from sentry.permissions import (
     can_remove_project_key, can_add_project_key, can_edit_project_key
 )
@@ -61,9 +63,18 @@ def new_project_key(request, organization, project):
     if not can_add_project_key(request.user, project):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
-    ProjectKey.objects.create(
+    key = ProjectKey.objects.create(
         project=project,
         user_added=request.user,
+    )
+
+    AuditLogEntry.objects.create(
+        organization=organization,
+        actor=request.user,
+        ip_address=request.META['REMOTE_ADDR'],
+        target_object=key.id,
+        event=AuditLogEntryEvent.PROJECTKEY_ADD,
+        data=key.get_audit_log_data(),
     )
 
     return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
@@ -85,7 +96,17 @@ def edit_project_key(request, organization, project, key_id):
 
     form = EditProjectKeyForm(request.POST or None, instance=key)
     if form.is_valid():
-        form.save()
+        key = form.save()
+
+        AuditLogEntry.objects.create(
+            organization=organization,
+            actor=request.user,
+            ip_address=request.META['REMOTE_ADDR'],
+            target_object=key.id,
+            event=AuditLogEntryEvent.PROJECTKEY_EDIT,
+            data=key.get_audit_log_data(),
+        )
+
         messages.add_message(
             request, messages.SUCCESS,
             _('Changes to the API key (%s) were saved.') % (key.public_key,))
@@ -115,7 +136,19 @@ def remove_project_key(request, organization, project, key_id):
     if not can_remove_project_key(request.user, key):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
+    audit_data = key.get_audit_log_data()
+
     key.delete()
+
+    AuditLogEntry.objects.create(
+        organization=organization,
+        actor=request.user,
+        ip_address=request.META['REMOTE_ADDR'],
+        target_object=key.id,
+        event=AuditLogEntryEvent.PROJECTKEY_REMOVE,
+        data=audit_data,
+    )
+
     messages.add_message(
         request, messages.SUCCESS,
         _('The API key (%s) was revoked.') % (key.public_key,))
@@ -137,6 +170,16 @@ def disable_project_key(request, organization, project, key_id):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     key.update(status=ProjectKeyStatus.INACTIVE)
+
+    AuditLogEntry.objects.create(
+        organization=organization,
+        actor=request.user,
+        ip_address=request.META['REMOTE_ADDR'],
+        target_object=key.id,
+        event=AuditLogEntryEvent.PROJECTKEY_DISABLE,
+        data=key.get_audit_log_data(),
+    )
+
     messages.add_message(
         request, messages.SUCCESS,
         _('The API key (%s) was disabled.') % (key.public_key,))
@@ -158,6 +201,16 @@ def enable_project_key(request, organization, project, key_id):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     key.update(status=ProjectKeyStatus.ACTIVE)
+
+    AuditLogEntry.objects.create(
+        organization=organization,
+        actor=request.user,
+        ip_address=request.META['REMOTE_ADDR'],
+        target_object=key.id,
+        event=AuditLogEntryEvent.PROJECTKEY_ENABLE,
+        data=key.get_audit_log_data(),
+    )
+
     messages.add_message(
         request, messages.SUCCESS,
         _('The API key (%s) was enabled.') % (key.public_key,))
