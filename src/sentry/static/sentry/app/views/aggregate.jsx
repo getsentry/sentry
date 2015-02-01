@@ -40,7 +40,8 @@ var AggregateDetails = React.createClass({
 
   getAggregate: function() {
     var id = this.getParams().aggregateId;
-    return this.state.aggList.get(id);
+    // TODO(dcramer): 99% certain someone will say this is inappropriate
+    return AggregateListStore.getItem(id);
   },
 
   render: function() {
