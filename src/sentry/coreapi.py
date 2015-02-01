@@ -12,14 +12,14 @@ from __future__ import absolute_import, print_function
 
 import base64
 import logging
+import six
 import uuid
 import zlib
-from gzip import GzipFile
 
 from datetime import datetime, timedelta
+from django.utils.crypto import constant_time_compare
 from django.utils.encoding import smart_str
-
-import six
+from gzip import GzipFile
 
 from sentry.app import cache, env
 from sentry.constants import (
@@ -145,7 +145,7 @@ def project_from_auth_vars(auth_vars):
     except ProjectKey.DoesNotExist:
         raise APIForbidden('Invalid api key')
 
-    if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
+    if not constant_time_compare(pk.secret_key, auth_vars.get('sentry_secret', pk.secret_key)):
         raise APIForbidden('Invalid api key')
 
     if not pk.is_active:
