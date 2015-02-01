@@ -8,7 +8,7 @@ import logging
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import ProjectKey, ProjectOption, TagKey
+from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption, TagKey
 from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,62 @@ class RemoveProjectKeyTest(TestCase):
         resp = self.client.post(self.path)
         assert resp.status_code == 302
         assert not ProjectKey.objects.filter(id=self.key.id).exists()
+
+
+class EnableProjectKeyTest(TestCase):
+    def setUp(self):
+        super(EnableProjectKeyTest, self).setUp()
+        self.key = ProjectKey.objects.create(
+            project=self.project,
+            status=ProjectKeyStatus.INACTIVE,
+        )
+
+    @fixture
+    def path(self):
+        return reverse('sentry-enable-project-key', args=[self.organization.slug, self.project.id, self.key.id])
+
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path, 'POST')
+
+    def test_does_not_respond_to_get(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 405
+
+    def test_does_enable(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path)
+        assert resp.status_code == 302
+        key = ProjectKey.objects.get(id=self.key.id)
+        assert key.status == ProjectKeyStatus.ACTIVE
+
+
+class DisableProjectKeyTest(TestCase):
+    def setUp(self):
+        super(DisableProjectKeyTest, self).setUp()
+        self.key = ProjectKey.objects.create(
+            project=self.project,
+            status=ProjectKeyStatus.ACTIVE,
+        )
+
+    @fixture
+    def path(self):
+        return reverse('sentry-disable-project-key', args=[self.organization.slug, self.project.id, self.key.id])
+
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path, 'POST')
+
+    def test_does_not_respond_to_get(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 405
+
+    def test_does_enable(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path)
+        assert resp.status_code == 302
+        key = ProjectKey.objects.get(id=self.key.id)
+        assert key.status == ProjectKeyStatus.INACTIVE
 
 
 class DashboardTest(TestCase):
