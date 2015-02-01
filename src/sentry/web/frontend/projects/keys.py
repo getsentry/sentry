@@ -16,7 +16,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_ADMIN
-from sentry.models import ProjectKey
+from sentry.models import ProjectKey, ProjectKeyStatus
 from sentry.permissions import (
     can_remove_project_key, can_add_project_key, can_edit_project_key
 )
@@ -40,6 +40,7 @@ def manage_project_keys(request, organization, project):
     for key in key_list:
         key.project = project
         key.can_remove = can_remove_project_key(request.user, key),
+        key.can_edit = can_edit_project_key(request.user, key),
 
     context = csrf(request)
     context.update({
@@ -85,9 +86,9 @@ def edit_project_key(request, organization, project, key_id):
     form = EditProjectKeyForm(request.POST or None, instance=key)
     if form.is_valid():
         form.save()
-
         messages.add_message(
-            request, messages.SUCCESS, _('Changes to your API key were saved.'))
+            request, messages.SUCCESS,
+            _('Changes to the API key (%s) were saved.') % (key.public_key,))
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     context = {
@@ -118,5 +119,47 @@ def remove_project_key(request, organization, project, key_id):
     messages.add_message(
         request, messages.SUCCESS,
         _('The API key (%s) was revoked.') % (key.public_key,))
+
+    return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
+
+
+@require_http_methods(['POST'])
+@has_access(MEMBER_ADMIN)
+@csrf_protect
+def disable_project_key(request, organization, project, key_id):
+    try:
+        key = ProjectKey.objects.get(id=key_id)
+    except ProjectKey.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
+
+    # we require removal permission for this
+    if not can_edit_project_key(request.user, key):
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
+
+    key.update(status=ProjectKeyStatus.INACTIVE)
+    messages.add_message(
+        request, messages.SUCCESS,
+        _('The API key (%s) was disabled.') % (key.public_key,))
+
+    return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
+
+
+@require_http_methods(['POST'])
+@has_access(MEMBER_ADMIN)
+@csrf_protect
+def enable_project_key(request, organization, project, key_id):
+    try:
+        key = ProjectKey.objects.get(id=key_id)
+    except ProjectKey.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
+
+    # we require removal permission for this
+    if not can_edit_project_key(request.user, key):
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
+
+    key.update(status=ProjectKeyStatus.ACTIVE)
+    messages.add_message(
+        request, messages.SUCCESS,
+        _('The API key (%s) was enabled.') % (key.public_key,))
 
     return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
