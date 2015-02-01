@@ -10,13 +10,9 @@ class PendingChangeQueue extends Array {
   }
 
   getForItem(itemId) {
-    var results = [];
-    this.changes.forEach(function(change){
-      if (change[1] == itemId) {
-        results.push(change);
-      }
-    });
-    return results;
+    return this.changes.filter(
+      (change) => (change[1] === itemId)
+    );
   }
 
   push(changeId, itemId, data) {
@@ -24,13 +20,9 @@ class PendingChangeQueue extends Array {
   }
 
   remove(changeId, itemId) {
-    var newChanges = [];
-    this.changes.forEach(function(change){
-      if (change[0] != changeId || change[1] != itemId) {
-        newChanges.push(change);
-      }
-    });
-    this.changes = newChanges;
+    this.changes = this.changes.filter(
+      (change) => change[0] != changeId || change[1] != itemId
+    );
   }
 }
 
