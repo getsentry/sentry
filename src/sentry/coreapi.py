@@ -148,6 +148,9 @@ def project_from_auth_vars(auth_vars):
     if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
         raise APIForbidden('Invalid api key')
 
+    if not pk.is_active:
+        raise APIForbidden('API key is disabled')
+
     if not pk.roles.store:
         raise APIForbidden('Key does not allow event storage access')
 
