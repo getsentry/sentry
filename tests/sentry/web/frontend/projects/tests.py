@@ -40,15 +40,14 @@ class NewProjectKeyTest(TestCase):
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
 
-    @mock.patch('sentry.models.ProjectKey.objects.create')
-    def test_generates_new_key_and_redirects(self, create):
+    def test_generates_new_key_and_redirects(self):
+        keycount = ProjectKey.objects.filter(project=self.project).count()
         self.login_as(self.user)
 
         resp = self.client.get(self.path)
         assert resp.status_code == 302
-        create.assert_any_call(
-            project=self.project, user_added=self.user
-        )
+        newkeycount = ProjectKey.objects.filter(project=self.project).count()
+        assert newkeycount == keycount + 1
 
 
 class RemoveProjectKeyTest(TestCase):
