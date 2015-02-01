@@ -12,7 +12,7 @@ var OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.'
 var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
 var AggregateListStore = Reflux.createStore({
-  init: function() {
+  init() {
     this.items = [];
     this.pendingChanges = new utils.PendingChangeQueue();
 
@@ -25,7 +25,7 @@ var AggregateListStore = Reflux.createStore({
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
-  loadInitialData: function(items) {
+  loadInitialData(items) {
     this.items = [];
     this.pendingChanges.clear();
     items.forEach(item => {
@@ -34,9 +34,9 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(this.getAllItems());
   },
 
-  getItem: function(id) {
+  getItem(id) {
     var pendingForId = [];
-    this.pendingChanges.forEach(function(change){
+    this.pendingChanges.forEach(change => {
       if (change.id === id) {
         pendingForId.push(change);
       }
@@ -58,7 +58,7 @@ var AggregateListStore = Reflux.createStore({
     }
   },
 
-  getAllItems: function() {
+  getAllItems() {
     // regroup pending changes by their itemID
     var pendingById = {};
     this.pendingChanges.forEach(change => {
@@ -85,38 +85,38 @@ var AggregateListStore = Reflux.createStore({
   // XXX(dcramer): ideally we could do this as part of the actions API but
   // there's no way for us to know "all events" for us to actually fire the action
   // on each individual event when its a global action (i.e. id-less)
-  onUpdate: function(id, itemIds, data){
+  onUpdate(changeId, itemIds, data){
     if (typeof itemIds === 'undefined') this.items.map(item => item.id);
     itemIds.forEach(item => {
-      this.pendingChanges.push(id, itemId, data);
+      this.pendingChanges.push(changeId, itemId, data);
     });
     this.trigger(this.getAllItems());
   },
 
-  onUpdateError: function(id, itemIds, error){
-    this.pendingChanges.remove(id);
+  onUpdateError(changeId, itemIds, error){
+    this.pendingChanges.remove(changeId);
     this.trigger(this.getAllItems());
   },
 
-  onUpdateSuccess: function(id, itemIds, response){
+  onUpdateSuccess(changeId, itemIds, response){
     if (typeof itemIds === 'undefined') this.items.map(item => item.id);
     itemIds.forEach(item => {
       $.extend(true, item, response);
     });
-    this.pendingChanges.remove(id);
+    this.pendingChanges.remove(changeId);
     this.trigger(this.getAllItems());
   },
 
-  onAssignTo: function() {
+  onAssignTo() {
 
   },
 
   // TODO(dcramer): This is not really the best place for this
-  onAssignToError: function(id, email) {
+  onAssignToError(id, email) {
     AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
   },
 
-  onAssignToSuccess: function(id, email) {
+  onAssignToSuccess(id, email) {
     var item = this.items.get(id);
     if (!item) {
       return;
@@ -132,11 +132,11 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(_items);
   },
 
-  onDeleteCompleted: function(params) {
+  onDeleteCompleted(params) {
     AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
   },
 
-  onMergeCompleted: function(params) {
+  onMergeCompleted(params) {
     AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
   }
 });
