@@ -105,3 +105,13 @@ class ProjectKey(Model):
     @property
     def dsn_public(self):
         return self.get_dsn(public=True)
+
+    def get_audit_log_data(self):
+        return {
+            'label': self.label,
+            'user_id': self.user_id,
+            'public_key': self.public_key,
+            'secret_key': self.secret_key,
+            'roles': int(self.roles),
+            'status': self.status,
+        }
