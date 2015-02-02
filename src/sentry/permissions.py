@@ -278,14 +278,16 @@ def can_add_project_key(user, project):
 
 
 @requires_login
-def can_edit_project_key(user, project):
+def can_edit_project_key(user, key):
     if user.is_superuser:
         return True
+
+    project = key.project
 
     if not is_project_admin(user, project):
         return False
 
-    result = plugins.first('has_perm', user, 'edit_project_key', project)
+    result = plugins.first('has_perm', user, 'edit_project_key', project, key)
     if result is False:
         return False
 
