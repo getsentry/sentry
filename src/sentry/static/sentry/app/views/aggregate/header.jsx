@@ -63,13 +63,13 @@ var AggregateHeader = React.createClass({
                     memberList={this.props.memberList} />
                 <div className="is-assigned"><span className="hidden-sm">is</span> assigned</div>
               </div>
-              <div className="col-xs-4 event-count align-right">
+              <div className="col-xs-4 count align-right">
                 <Count value={data.count} />
-                events
+                <span className="count-label">events</span>
               </div>
-              <div className="col-xs-4 user-count align-right">
+              <div className="col-xs-4 count align-right">
                 <Count value={userCount} />
-                users
+                <span className="count-label">users</span>
               </div>
             </div>
           </div>
