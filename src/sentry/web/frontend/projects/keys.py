@@ -83,15 +83,15 @@ def new_project_key(request, organization, project):
 @has_access(MEMBER_ADMIN)
 @csrf_protect
 def edit_project_key(request, organization, project, key_id):
-    if not can_edit_project_key(request.user, project):
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
-
     try:
         key = ProjectKey.objects.get(
             id=key_id,
             project=project,
         )
     except ProjectKey.DoesNotExist():
+        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
+
+    if not can_edit_project_key(request.user, key):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     form = EditProjectKeyForm(request.POST or None, instance=key)
