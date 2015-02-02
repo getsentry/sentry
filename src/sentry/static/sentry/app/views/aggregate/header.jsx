@@ -43,7 +43,6 @@ var AggregateHeader = React.createClass({
         <div className="row">
           <div className="col-sm-8 details">
             <h3>
-              <span className="icon icon-bookmark"></span>
               {data.title}
             </h3>
             <div className="event-message">
