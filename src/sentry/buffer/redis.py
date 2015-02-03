@@ -87,17 +87,26 @@ class RedisBuffer(Buffer):
         pipe.execute()
 
     def process_pending(self):
-        for conn in self.conn.hosts.itervalues():
-            keys = conn.zrange(self.pending_key, 0, -1)
-            if not keys:
-                continue
-            for key in keys:
-                process_incr.apply_async(kwargs={
-                    'key': key,
-                })
-            pipe = conn.pipeline()
-            pipe.zrem(self.pending_key, *keys)
-            pipe.execute()
+        lock_key = self._make_lock_key(self.pending_key)
+        # prevent a stampede due to celerybeat + periodic task
+        if not self.conn.setnx(lock_key, '1'):
+            return
+        self.conn.expire(lock_key, 60)
+
+        try:
+            for conn in self.conn.hosts.itervalues():
+                keys = conn.zrange(self.pending_key, 0, -1)
+                if not keys:
+                    continue
+                for key in keys:
+                    process_incr.apply_async(kwargs={
+                        'key': key,
+                    })
+                pipe = conn.pipeline()
+                pipe.zrem(self.pending_key, *keys)
+                pipe.execute()
+        finally:
+            self.conn.delete(lock_key)
 
     def process(self, key):
         lock_key = self._make_lock_key(key)
@@ -107,21 +116,24 @@ class RedisBuffer(Buffer):
             return
         self.conn.expire(lock_key, 10)
 
-        with self.conn.map() as conn:
-            values = conn.hgetall(key)
-            conn.delete(key)
+        try:
+            with self.conn.map() as conn:
+                values = conn.hgetall(key)
+                conn.delete(key)
 
-        if not values:
-            return
+            if not values:
+                return
 
-        model = import_string(values['m'])
-        filters = pickle.loads(values['f'])
-        incr_values = {}
-        extra_values = {}
-        for k, v in values.iteritems():
-            if k.startswith('i+'):
-                incr_values[k[2:]] = int(v)
-            elif k.startswith('e+'):
-                extra_values[k[2:]] = pickle.loads(v)
+            model = import_string(values['m'])
+            filters = pickle.loads(values['f'])
+            incr_values = {}
+            extra_values = {}
+            for k, v in values.iteritems():
+                if k.startswith('i+'):
+                    incr_values[k[2:]] = int(v)
+                elif k.startswith('e+'):
+                    extra_values[k[2:]] = pickle.loads(v)
 
-        super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+        finally:
+            self.conn.delete(lock_key)
