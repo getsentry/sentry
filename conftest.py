@@ -1,8 +1,13 @@
 from __future__ import absolute_import
 
+import os
+import sys
+
 pytest_plugins = [
     'sentry.utils.pytest'
 ]
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 
 def pytest_configure(config):
