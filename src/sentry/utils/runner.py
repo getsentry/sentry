@@ -385,9 +385,6 @@ def configure(config_path=None):
         initializer=initialize_app,
     )
 
-    from sentry.app import celery
-    celery.config_from_object('django.conf:settings')
-
 
 def main():
     if USE_GEVENT:

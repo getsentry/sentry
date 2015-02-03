@@ -279,7 +279,6 @@ from kombu import Exchange, Queue
 
 BROKER_URL = "django://"
 
-CELERY_ACCEPT_CONTENT = ['pickle', 'json']
 CELERY_ALWAYS_EAGER = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
