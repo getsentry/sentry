@@ -328,7 +328,7 @@ def apply_legacy_settings(config):
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
-    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com'):
+    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
         # Maybe also point to a piece of documentation for more information?
         # This directly coincides with users getting the awkward
         # `ALLOWED_HOSTS` exception.
