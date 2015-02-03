@@ -414,6 +414,6 @@ def ensure_has_ip(data, ip_address):
 
 
 def insert_data_to_database(data):
-    cache_key = 'e:{0}'.format(data['event_id'])
+    cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
     cache.set(cache_key, data, timeout=3600)
     preprocess_event.delay(cache_key=cache_key)
