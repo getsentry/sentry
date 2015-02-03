@@ -11,7 +11,7 @@ from sentry.models import Project
 class ProjectStatsEndpoint(BaseStatsEndpoint):
     doc_section = DocSection.PROJECTS
 
-    def get(self, request, project_id):
+    def get(self, request, organization_slug, project_slug):
         """
         Retrieve event counts for a project
 
@@ -33,8 +33,9 @@ class ProjectStatsEndpoint(BaseStatsEndpoint):
         **Note:** resolution should not be used unless you're familiar with Sentry
         internals as it's restricted to pre-defined values.
         """
-        project = Project.objects.get_from_cache(
-            id=project_id,
+        project = Project.objects.get(
+            organization__slug=organization_slug,
+            slug=project_slug,
         )
 
         assert_perm(project, request.user, request.auth)

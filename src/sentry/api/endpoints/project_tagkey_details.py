@@ -11,7 +11,7 @@ from sentry.tasks.deletion import delete_tag_key
 
 
 class ProjectTagKeyDetailsEndpoint(Endpoint):
-    def delete(self, request, project_id, key):
+    def delete(self, request, organization_slug, project_slug, key):
         """
         Remove all occurances of the given tag key.
 
@@ -19,7 +19,8 @@ class ProjectTagKeyDetailsEndpoint(Endpoint):
 
         """
         project = Project.objects.get(
-            id=project_id,
+            organization__slug=organization_slug,
+            slug=project_slug,
         )
 
         tagkey = TagKey.objects.get(

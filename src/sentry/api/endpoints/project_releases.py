@@ -9,7 +9,7 @@ from sentry.models import Project, Release
 class ProjectReleasesEndpoint(Endpoint):
     doc_section = DocSection.RELEASES
 
-    def get(self, request, project_id):
+    def get(self, request, organization_slug, project_slug):
         """
         List a project's releases
 
@@ -19,7 +19,8 @@ class ProjectReleasesEndpoint(Endpoint):
 
         """
         project = Project.objects.get(
-            id=project_id,
+            organization__slug=organization_slug,
+            slug=project_slug,
         )
 
         assert_perm(project, request.user, request.auth)

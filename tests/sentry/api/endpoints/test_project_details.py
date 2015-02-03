@@ -12,7 +12,10 @@ class ProjectDetailsTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={'project_id': project.id})
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug
+        })
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data['id'] == str(project.id)
@@ -22,7 +25,10 @@ class ProjectUpdateTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={'project_id': project.id})
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug
+        })
         resp = self.client.put(url, data={
             'name': 'hello world',
             'slug': 'foobar',
@@ -40,7 +46,10 @@ class ProjectDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-details', kwargs={'project_id': project.id})
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug
+        })
 
         with self.settings(SENTRY_PROJECT=0):
             response = self.client.delete(url)
@@ -58,7 +67,10 @@ class ProjectDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-project-details', kwargs={'project_id': project.id})
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug
+        })
 
         with self.settings(SENTRY_PROJECT=project.id):
             response = self.client.delete(url)

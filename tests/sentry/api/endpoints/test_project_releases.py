@@ -31,7 +31,8 @@ class ProjectReleasesTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-project-releases', kwargs={
-            'project_id': project1.id,
+            'organization_slug': project1.organization.slug,
+            'project_slug': project1.slug,
         })
         response = self.client.get(url, format='json')
 

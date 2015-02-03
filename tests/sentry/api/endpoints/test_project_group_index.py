@@ -10,12 +10,15 @@ from sentry.testutils.helpers import parse_link_header
 
 class GroupListTest(APITestCase):
     def test_simple(self):
+        project = self.project
         self.create_group(checksum='a' * 32)
         self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
-            'project_id': self.project.id})
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug
+        })
         response = self.client.get(url + '?limit=1', format='json')
         assert response.status_code == 200
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -30,6 +33,7 @@ class GroupListTest(APITestCase):
 
 class GroupUpdateTest(APITestCase):
     def test_global_status_update(self):
+        project = self.project
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
@@ -39,7 +43,9 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
-            'project_id': self.project.id})
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug
+        })
         response = self.client.put(url, data={
             'status': 'resolved',
         }, format='json')
@@ -62,6 +68,7 @@ class GroupUpdateTest(APITestCase):
         assert new_group4.resolved_at is None
 
     def test_selective_status_update(self):
+        project = self.project
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
@@ -72,7 +79,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug
             }),
             group1=group1,
             group2=group2,
@@ -99,6 +107,7 @@ class GroupUpdateTest(APITestCase):
         assert new_group4.status == GroupStatus.UNRESOLVED
 
     def test_set_bookmarked(self):
+        project = self.project
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
@@ -109,7 +118,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug
             }),
             group1=group1,
             group2=group2,
@@ -134,6 +144,7 @@ class GroupUpdateTest(APITestCase):
 
     @patch('sentry.api.endpoints.project_group_index.merge_group')
     def test_merge(self, merge_group):
+        project = self.project
         group1 = self.create_group(checksum='a' * 32, times_seen=1)
         group2 = self.create_group(checksum='b' * 32, times_seen=50)
         group3 = self.create_group(checksum='c' * 32, times_seen=2)
@@ -142,7 +153,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug
             }),
             group1=group1,
             group2=group2,
@@ -160,15 +172,19 @@ class GroupUpdateTest(APITestCase):
 
 class GroupDeleteTest(APITestCase):
     def test_global_is_forbidden(self):
+        project = self.project
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
-            'project_id': self.project.id})
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug
+        })
         response = self.client.delete(url, data={
             'status': 'resolved',
         }, format='json')
         assert response.status_code == 400
 
     def test_delete_by_id(self):
+        project = self.project
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
@@ -179,7 +195,8 @@ class GroupDeleteTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug
             }),
             group1=group1,
             group2=group2,
