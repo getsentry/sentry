@@ -116,24 +116,21 @@ class RedisBuffer(Buffer):
             return
         self.conn.expire(lock_key, 10)
 
-        try:
-            with self.conn.map() as conn:
-                values = conn.hgetall(key)
-                conn.delete(key)
+        with self.conn.map() as conn:
+            values = conn.hgetall(key)
+            conn.delete(key)
 
-            if not values:
-                return
+        if not values:
+            return
 
-            model = import_string(values['m'])
-            filters = pickle.loads(values['f'])
-            incr_values = {}
-            extra_values = {}
-            for k, v in values.iteritems():
-                if k.startswith('i+'):
-                    incr_values[k[2:]] = int(v)
-                elif k.startswith('e+'):
-                    extra_values[k[2:]] = pickle.loads(v)
+        model = import_string(values['m'])
+        filters = pickle.loads(values['f'])
+        incr_values = {}
+        extra_values = {}
+        for k, v in values.iteritems():
+            if k.startswith('i+'):
+                incr_values[k[2:]] = int(v)
+            elif k.startswith('e+'):
+                extra_values[k[2:]] = pickle.loads(v)
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
-        finally:
-            self.conn.delete(lock_key)
+        super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
