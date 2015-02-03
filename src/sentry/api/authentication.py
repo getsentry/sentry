@@ -18,6 +18,9 @@ class KeyAuthentication(BasicAuthentication):
         if not constant_time_compare(pk.secret_key, password):
             raise AuthenticationFailed('Invalid api key')
 
+        if not pk.is_active:
+            raise AuthenticationFailed('Key is disabled')
+
         if not pk.roles.api:
             raise AuthenticationFailed('Key does not allow API access')
 

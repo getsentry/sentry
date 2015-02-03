@@ -38,6 +38,12 @@ class AuditLogEntryEvent(object):
 
     TAGKEY_REMOVE = 40
 
+    PROJECTKEY_ADD = 50
+    PROJECTKEY_EDIT = 51
+    PROJECTKEY_REMOVE = 52
+    PROJECTKEY_ENABLE = 53
+    PROJECTKEY_DISABLE = 53
+
 
 class AuditLogEntry(Model):
     organization = FlexibleForeignKey('sentry.Organization')
@@ -67,6 +73,12 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
 
         (AuditLogEntryEvent.TAGKEY_REMOVE, 'tagkey.remove'),
+
+        (AuditLogEntryEvent.PROJECTKEY_ADD, 'projectkey.create'),
+        (AuditLogEntryEvent.PROJECTKEY_EDIT, 'projectkey.edit'),
+        (AuditLogEntryEvent.PROJECTKEY_REMOVE, 'projectkey.remove'),
+        (AuditLogEntryEvent.PROJECTKEY_ENABLE, 'projectkey.enable'),
+        (AuditLogEntryEvent.PROJECTKEY_DISABLE, 'projectkey.disable'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -108,5 +120,16 @@ class AuditLogEntry(Model):
 
         elif self.event == AuditLogEntryEvent.TAGKEY_REMOVE:
             return 'removed tags matching %s = *' % (self.data['key'],)
+
+        elif self.event == AuditLogEntryEvent.PROJECTKEY_ADD:
+            return 'added project key %s' % (self.data['public_key'],)
+        elif self.event == AuditLogEntryEvent.PROJECTKEY_EDIT:
+            return 'edited project key %s' % (self.data['public_key'],)
+        elif self.event == AuditLogEntryEvent.PROJECTKEY_REMOVE:
+            return 'removed project key %s' % (self.data['public_key'],)
+        elif self.event == AuditLogEntryEvent.PROJECTKEY_ENABLE:
+            return 'enabled project key %s' % (self.data['public_key'],)
+        elif self.event == AuditLogEntryEvent.PROJECTKEY_DISABLE:
+            return 'disabled project key %s' % (self.data['public_key'],)
 
         return ''

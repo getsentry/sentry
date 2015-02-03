@@ -84,8 +84,11 @@ class TeamDetailsEndpoint(Endpoint):
 
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
-        if team.status == TeamStatus.VISIBLE:
-            team.update(status=TeamStatus.PENDING_DELETION)
+        updated = Team.objects.filter(
+            id=team.id,
+            status=TeamStatus.VISIBLE,
+        ).update(status=TeamStatus.PENDING_DELETION)
+        if updated:
             delete_team.delay(object_id=team.id, countdown=60 * 5)
 
             AuditLogEntry.objects.create(

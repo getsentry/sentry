@@ -12,14 +12,14 @@ from __future__ import absolute_import, print_function
 
 import base64
 import logging
+import six
 import uuid
 import zlib
-from gzip import GzipFile
 
 from datetime import datetime, timedelta
+from django.utils.crypto import constant_time_compare
 from django.utils.encoding import smart_str
-
-import six
+from gzip import GzipFile
 
 from sentry.app import cache, env
 from sentry.constants import (
@@ -145,8 +145,11 @@ def project_from_auth_vars(auth_vars):
     except ProjectKey.DoesNotExist:
         raise APIForbidden('Invalid api key')
 
-    if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
+    if not constant_time_compare(pk.secret_key, auth_vars.get('sentry_secret', pk.secret_key)):
         raise APIForbidden('Invalid api key')
+
+    if not pk.is_active:
+        raise APIForbidden('API key is disabled')
 
     if not pk.roles.store:
         raise APIForbidden('Key does not allow event storage access')
@@ -411,6 +414,6 @@ def ensure_has_ip(data, ip_address):
 
 
 def insert_data_to_database(data):
-    cache_key = 'e:{0}'.format(data['event_id'])
+    cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
     cache.set(cache_key, data, timeout=3600)
     preprocess_event.delay(cache_key=cache_key)
