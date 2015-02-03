@@ -7,6 +7,7 @@ sentry.app
 """
 from __future__ import absolute_import
 
+from celery import Celery
 from django.conf import settings
 from sentry.utils.imports import import_string
 from threading import local

@@ -657,7 +657,3 @@ SENTRY_OPTIONS = {}
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
-
-# Configure celery
-import djcelery
-djcelery.setup_loader()
