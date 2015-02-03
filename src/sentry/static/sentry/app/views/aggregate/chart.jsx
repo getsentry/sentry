@@ -17,12 +17,11 @@ var AggregateChart = React.createClass({
     });
 
     return (
-      <div className="box">
-        <div className="box-content with-padding">
-          <FlotChart
-              points={points}
-              className="chart" />
-        </div>
+      <div>
+        <h5>Last 48 Hours</h5>
+        <FlotChart
+            points={points}
+            className="chart" />
       </div>
     );
   }

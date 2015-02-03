@@ -10,17 +10,26 @@ var AggregateActivity = React.createClass({
 
   render: function() {
     return (
-      <div className="box">
-        <div className="box-header">
-            <h3>Activity</h3>
+      <div>
+        <h5>Timeline</h5>
+        <div className="activity-field">
+          <input />
         </div>
-        <div className="box-content with-padding">
-
-        </div>
+        <ul className="activity">
+          <li className="activity-item">
+            <img className="avatar" src="" />
+            <h6><a href="#">David Cramer</a></h6>
+            <p>This seems fixed in riak-2.2.0. That is, it will likely still error somehow, but I think they addressed the BadStatusLine stuff.</p>
+          </li>
+          <li className="activity-item">
+            <img className="avatar" src="" />
+            <h6><a href="#">Sentry</a></h6>
+            <p>Heads up, we just saw this event for the first time.</p>
+          </li>
+        </ul>
       </div>
     );
   }
 });
 
 module.exports = AggregateActivity;
-

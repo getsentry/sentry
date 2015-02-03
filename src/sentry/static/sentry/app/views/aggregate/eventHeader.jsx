@@ -21,10 +21,10 @@ var AggregateEventHeader = React.createClass({
     return (
       <div className="btn-toolbar event-toolbar">
         <a className="btn btn-default btn-lg pull-left prev">
-          <span></span> Newer Sample
+          <span className="icon-arrow-left"></span> Newer Sample
         </a>
         <a className="btn btn-default btn-lg pull-right next">
-          Older Sample <span></span>
+          Older Sample <span className="icon-arrow-right"></span>
         </a>
         <h4>
           <time>{moment.utc(event.dateCreated).format('lll')}</time>
@@ -39,4 +39,3 @@ var AggregateEventHeader = React.createClass({
 });
 
 module.exports = AggregateEventHeader;
-

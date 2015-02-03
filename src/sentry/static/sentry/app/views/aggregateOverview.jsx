@@ -59,23 +59,59 @@ var AggregateOverview = React.createClass({
 
     return (
       <div>
-        <AggregateChart
-            aggregate={agg}
-            statsPeriod={this.props.statsPeriod} />
-        <AggregateActivity aggregate={agg} />
-        {agg.status === 'muted' &&
-          <div className="alert alert-info">
-            This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
+        <div className="row">
+
+          <div className="col-md-6">
+            <AggregateActivity aggregate={agg} />
           </div>
-        }
-        {evt ?
-          <AggregateEvent
-              aggregate={agg}
-              event={this.state.event} />
-        : this.state.eventIsLoading &&
-          <div className="loading">Loading event data..</div>
-        }
-      </div>
+          <div className="col-md-6">
+            <AggregateChart
+                aggregate={agg}
+                statsPeriod={this.props.statsPeriod} />
+                <div className="row">
+                  <div className="col-md-6">
+                    <h5>First seen</h5>
+                    <h3>Jan 15, 2015</h3>
+                    <h5>Last seen</h5>
+                    <h3>Jan 15, 2015</h3>
+                  </div>
+                  <div className="col-md-6">
+                    <h5>In release</h5>
+                    <h3>cd5b4c4d93ad</h3>
+                    <h5>Status</h5>
+                    <h3>Unresolved</h3>
+                  </div>
+                </div>
+          </div>
+        </div>
+        <div className="event-toolbar" />
+        <div className="row">
+          <div className="col-md-9">
+            {agg.status === 'muted' &&
+              <div className="alert alert-info">
+                This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
+              </div>
+            }
+            {evt ?
+              <AggregateEvent
+                  aggregate={agg}
+                  event={this.state.event} />
+            : this.state.eventIsLoading &&
+              <div className="loading">Loading event data..</div>
+            }
+          </div>
+          <div className="col-md-3 aggregate-sidebar">
+            <h5>Sample ID</h5>
+            <p><strong>fb2a9940cd5b4c4d93ad9fa8843</strong></p>
+
+            <h5>Time</h5>
+            <p><strong>Jan. 20, 2015, 8:22 p.m.</strong></p>
+
+            <h5>User</h5>
+            <p><strong><a href="#">tony@hawk.com</a></strong></p>
+          </div>
+        </div>
+    </div>
     );
   }
 });
