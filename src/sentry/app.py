@@ -7,7 +7,6 @@ sentry.app
 """
 from __future__ import absolute_import
 
-from celery import Celery
 from django.conf import settings
 from sentry.utils.imports import import_string
 from threading import local
@@ -36,6 +35,3 @@ ratelimiter = get_instance(
     settings.SENTRY_RATELIMITER, settings.SENTRY_RATELIMITER_OPTIONS)
 search = get_instance(settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
 tsdb = get_instance(settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS)
-
-# Configuration for Celery happens in runner
-celery = Celery()
