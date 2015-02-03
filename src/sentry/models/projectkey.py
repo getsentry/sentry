@@ -7,6 +7,8 @@ sentry.models.projectkey
 """
 from __future__ import absolute_import, print_function
 
+import six
+
 from bitfield import BitField
 from urlparse import urlparse
 from uuid import uuid4
@@ -14,12 +16,18 @@ from uuid import uuid4
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-
-import six
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
-    Model, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
+    sane_repr
 )
+
+
+# TODO(dcramer): pull in enum library
+class ProjectKeyStatus(object):
+    ACTIVE = 0
+    INACTIVE = 1
 
 
 class ProjectKey(Model):
@@ -35,6 +43,10 @@ class ProjectKey(Model):
         # read/write access to rest API
         ('api', 'Web API access'),
     ), default=['store'])
+    status = BoundedPositiveIntegerField(default=0, choices=(
+        (ProjectKeyStatus.ACTIVE, _('Active')),
+        (ProjectKeyStatus.INACTIVE, _('Inactive')),
+    ), db_index=True)
 
     # For audits
     user_added = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
@@ -57,6 +69,10 @@ class ProjectKey(Model):
     @classmethod
     def generate_api_key(cls):
         return uuid4().hex
+
+    @property
+    def is_active(self):
+        return self.status == ProjectKeyStatus.ACTIVE
 
     def save(self, *args, **kwargs):
         if not self.public_key:
@@ -88,3 +104,13 @@ class ProjectKey(Model):
     @property
     def dsn_public(self):
         return self.get_dsn(public=True)
+
+    def get_audit_log_data(self):
+        return {
+            'label': self.label,
+            'user_id': self.user_id,
+            'public_key': self.public_key,
+            'secret_key': self.secret_key,
+            'roles': int(self.roles),
+            'status': self.status,
+        }

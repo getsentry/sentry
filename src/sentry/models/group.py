@@ -19,9 +19,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import buffer, tsdb
-from sentry.constants import (
-    LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
-)
+from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, Model, GzippedDictField, sane_repr
@@ -63,13 +61,6 @@ class GroupManager(BaseManager):
                 (key, value), data = tag_item, None
             else:
                 key, value, data = tag_item
-
-            if not value:
-                continue
-
-            value = six.text_type(value)
-            if len(value) > MAX_TAG_VALUE_LENGTH:
-                continue
 
             tsdb_id = u'%s=%s' % (key, value)
 

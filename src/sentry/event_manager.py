@@ -21,7 +21,7 @@ from uuid import uuid4
 
 from sentry.app import buffer, tsdb
 from sentry.constants import (
-    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
+    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
 )
 from sentry.models import (
     Event, EventMapping, Group, GroupHash, GroupStatus, Project
@@ -195,7 +195,16 @@ class EventManager(object):
         else:
             tags = list(tags)
 
-        data['tags'] = tags
+        data['tags'] = []
+        for key, value in tags:
+            key = six.text_type(key).strip()
+            value = six.text_type(value).strip()
+            if not (key and value):
+                continue
+
+            if len(value) > MAX_TAG_VALUE_LENGTH:
+                continue
+            data['tags'].append((key, value))
 
         if not isinstance(data['extra'], dict):
             # throw it away

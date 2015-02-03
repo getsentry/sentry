@@ -89,9 +89,10 @@ class EditProjectForm(forms.ModelForm):
         fields = ('name', 'platform', 'public', 'team', 'slug')
         model = Project
 
-    def __init__(self, request, team_list, data, instance, *args, **kwargs):
+    def __init__(self, request, organization, team_list, data, instance, *args, **kwargs):
         super(EditProjectForm, self).__init__(data=data, instance=instance, *args, **kwargs)
 
+        self.organization = organization
         self.team_list = team_list
 
         if not can_set_public_projects(request.user):
@@ -138,6 +139,18 @@ class EditProjectForm(forms.ModelForm):
 
         raise forms.ValidationError('Unable to find chosen team')
 
+    def clean_slug(self):
+        slug = self.cleaned_data.get('slug')
+        if not slug:
+            return
+        exists_qs = Project.objects.filter(
+            slug=slug,
+            organization=self.organization
+        ).exclude(id=self.instance.id)
+        if exists_qs.exists():
+            raise forms.ValidationError('Another project is already using that slug')
+        return slug
+
 
 class ProjectSettingsView(ProjectView):
     required_access = OrganizationMemberType.ADMIN
@@ -175,12 +188,15 @@ class ProjectSettingsView(ProjectView):
             access=OrganizationMemberType.ADMIN,
         )
 
-        return EditProjectForm(request, team_list, request.POST or None, instance=project, initial={
-            'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
-            'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-            'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
-            'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
-        })
+        return EditProjectForm(
+            request, organization, team_list, request.POST or None,
+            instance=project, initial={
+                'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
+                'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+                'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+                'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
+            },
+        )
 
     def handle(self, request, organization, team, project):
         form = self.get_form(request, project)

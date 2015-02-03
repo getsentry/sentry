@@ -124,8 +124,11 @@ class ProjectDetailsEndpoint(Endpoint):
         if not (request.user.is_superuser or project.team.owner_id == request.user.id):
             return Response('{"error": "form"}', status=status.HTTP_403_FORBIDDEN)
 
-        if project.status == ProjectStatus.VISIBLE:
-            project.update(status=ProjectStatus.PENDING_DELETION)
+        updated = Project.objects.filter(
+            id=project.id,
+            status=ProjectStatus.VISIBLE,
+        ).update(status=ProjectStatus.PENDING_DELETION)
+        if updated:
             delete_project.delay(object_id=project.id)
 
             AuditLogEntry.objects.create(
