@@ -309,6 +309,8 @@ def initialize_app(config):
 
     apply_legacy_settings(config)
 
+    initialize_celery(settings)
+
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
@@ -317,6 +319,16 @@ def initialize_app(config):
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
 
     initialize_receivers()
+
+
+def initialize_celery(settings):
+    # Configure celery
+    import djcelery
+    djcelery.setup_loader()
+
+    from celery.app import default_app
+    default_app.config_from_object(settings, force=True)
+
 
 
 def apply_legacy_settings(config):
