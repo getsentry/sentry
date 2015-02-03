@@ -29,8 +29,11 @@ class ProjectTagKeyDetailsEndpoint(Endpoint):
 
         assert_perm(tagkey, request.user, request.auth)
 
-        if tagkey.status == TagKeyStatus.VISIBLE:
-            tagkey.update(status=TagKeyStatus.PENDING_DELETION)
+        updated = TagKey.objects.filter(
+            id=tagkey.id,
+            status=TagKeyStatus.VISIBLE,
+        ).update(status=TagKeyStatus.PENDING_DELETION)
+        if updated:
             delete_tag_key.delay(object_id=tagkey.id)
 
             AuditLogEntry.objects.create(
