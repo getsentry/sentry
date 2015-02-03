@@ -95,7 +95,9 @@ class RedisBuffer(Buffer):
                 process_incr.apply_async(kwargs={
                     'key': key,
                 })
-            conn.zrem(self.pending_key, *keys)
+            pipe = conn.pipeline()
+            pipe.zrem(self.pending_key, *keys)
+            pipe.execute()
 
     def process(self, key):
         lock_key = self._make_lock_key(key)
