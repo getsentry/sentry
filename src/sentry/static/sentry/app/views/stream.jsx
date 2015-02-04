@@ -190,68 +190,10 @@ var Stream = React.createClass({
       multiSelected: numSelected > 1
     });
   },
-
-  actionAggregates(action, aggList, data) {
-    var itemIds;
-    var params = this.getParams();
-    var selectedAggList;
-
-    if (aggList === AggregateListActions.SELECTED) {
-      itemIds = [];
-      selectedAggList = [];
-      this.state.aggList.forEach((node) => {
-        if (node.isSelected === true) {
-          itemIds.push(node.id);
-          selectedAggList.push(node);
-        }
-      });
-    } else if (aggList === StreamActions.ALL) {
-      selectedAggList = this.state.aggList;
-    }
-
-    action({
-      orgId: params.orgId,
-      projectId: params.projectId,
-      itemIds: itemIds,
-      data: data
-    });
-
-    selectedAggList.forEach((node) => {
-      node.version = new Date().getTime() + 10;
-      node.isSelected = false;
-      for (var key in data) {
-        node[key] = data[key];
-      }
-    });
-
-    this.setState({
-      aggList: this.state.aggList,
-      selectAllActive: false,
-      anySelected: false,
-      multiSelected: false
-    });
-  },
-  handleResolve(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {status: 'resolved'});
-  },
-  handleBookmark(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: true});
-  },
   handleRealtimeChange(event) {
     this.setState({
       realtimeActive: !this.state.realtimeActive
     });
-  },
-  handleRemoveBookmark(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: false});
-  },
-  handleDelete(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkDelete, aggList, {
-      method: 'DELETE',
-    });
-  },
-  handleMerge(aggList, event) {
-    return this.actionAggregates(AggregateListActions.merge, {merge: 1});
   },
   handleSelectStatsPeriod(period) {
     this.setState({

@@ -24,7 +24,7 @@ var ActionLink = React.createClass({
     selectAllActive: React.PropTypes.bool.isRequired
   },
 
-  getDefaultProps: function() {
+  getDefaultProps() {
     return {
       confirmLabel: 'Edit',
       onlyIfBulk: false,
@@ -33,13 +33,13 @@ var ActionLink = React.createClass({
     };
   },
 
-  getInitialState: function() {
+  getInitialState() {
     return {
       isModalOpen: false
     };
   },
 
-  handleToggle: function() {
+  handleToggle() {
     if (this.props.disabled) {
       return;
     }
@@ -48,25 +48,25 @@ var ActionLink = React.createClass({
     });
   },
 
-  handleActionAll: function(event) {
+  handleActionAll(event) {
     this.props.onAction(StreamActions.ALL, event);
     this.setState({
       isModalOpen: false
     });
   },
 
-  handleActionSelected: function(event) {
+  handleActionSelected(event) {
     this.props.onAction(StreamActions.SELECTED, event);
     this.setState({
       isModalOpen: false
     });
   },
 
-  defaultActionLabel: function(confirmLabel) {
+  defaultActionLabel(confirmLabel) {
     return confirmLabel.toLowerCase() + ' these {count} events';
   },
 
-  render: function () {
+  render() {
     var className = this.props.className;
     if (this.props.disabled) {
       className += ' disabled';
@@ -78,17 +78,14 @@ var ActionLink = React.createClass({
     );
   },
 
-  renderOverlay: function() {
+  renderOverlay() {
     if (!this.state.isModalOpen) {
       return <span/>;
     }
 
-    var selectedAggList = [];
-    for (var i = 0, node; (node = this.props.aggList[i]); i++) {
-      if (node.isSelected === true) {
-        selectedAggList.push(node);
-      }
-    }
+    var selectedAggList = this.props.aggList.filter(
+      (node) => node.isSelected
+    );
 
     if (selectedAggList.length === 0) {
       throw new Error('ActionModal rendered without any selected aggregates');
@@ -146,32 +143,84 @@ var StreamActions = React.createClass({
     aggList: React.PropTypes.instanceOf(Array).isRequired,
     anySelected: React.PropTypes.bool.isRequired,
     multiSelected: React.PropTypes.bool.isRequired,
-    onBookmark: React.PropTypes.func.isRequired,
-    onDelete: React.PropTypes.func.isRequired,
-    onMerge: React.PropTypes.func.isRequired,
     onRealtimeChange: React.PropTypes.func.isRequired,
-    onRemoveBookmark: React.PropTypes.func.isRequired,
-    onResolve: React.PropTypes.func.isRequired,
     onSelectAll: React.PropTypes.func.isRequired,
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired,
     selectAllActive: React.PropTypes.bool.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
-  getInitialState: function(){
+  getInitialState() {
     return {
       datePickerActive: false
     };
   },
-  selectStatsPeriod: function(period) {
+  selectStatsPeriod(period) {
     return this.props.onSelectStatsPeriod(period);
   },
-  toggleDatePicker: function() {
+  toggleDatePicker() {
     this.setState({
       datePickerActive: !this.state.datePickerActive
     });
   },
-  render: function() {
+  actionAggregates(action, aggList, data) {
+    var itemIds;
+    var params = this.getParams();
+    var selectedAggList;
+
+    if (aggList === AggregateListActions.SELECTED) {
+      itemIds = [];
+      selectedAggList = [];
+      this.state.aggList.forEach((node) => {
+        if (node.isSelected === true) {
+          itemIds.push(node.id);
+          selectedAggList.push(node);
+        }
+      });
+    } else if (aggList === StreamActions.ALL) {
+      selectedAggList = this.state.aggList;
+    }
+
+    action({
+      orgId: params.orgId,
+      projectId: params.projectId,
+      itemIds: itemIds,
+      data: data
+    });
+
+    selectedAggList.forEach((node) => {
+      node.version = new Date().getTime() + 10;
+      node.isSelected = false;
+      for (var key in data) {
+        node[key] = data[key];
+      }
+    });
+
+    this.setState({
+      aggList: this.state.aggList,
+      selectAllActive: false,
+      anySelected: false,
+      multiSelected: false
+    });
+  },
+  onResolve(aggList, event) {
+    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {status: 'resolved'});
+  },
+  onBookmark(aggList, event) {
+    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: true});
+  },
+  onRemoveBookmark(aggList, event) {
+    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: false});
+  },
+  onDelete(aggList, event) {
+    return this.actionAggregates(AggregateListActions.bulkDelete, aggList, {
+      method: 'DELETE',
+    });
+  },
+  onMerge(aggList, event) {
+    return this.actionAggregates(AggregateListActions.merge, {merge: 1});
+  },
+  render() {
     var params = utils.getQueryParams();
     var sortBy = params.sort || 'date';
     var sortLabel;
@@ -203,7 +252,7 @@ var StreamActions = React.createClass({
             <ActionLink
                className="btn btn-default btn-sm action-resolve"
                disabled={!this.props.anySelected}
-               onAction={this.props.onResolve}
+               onAction={this.onResolve}
                confirmLabel="Resolve"
                canActionAll={true}
                onlyIfBulk={true}
@@ -214,7 +263,7 @@ var StreamActions = React.createClass({
             <ActionLink
                className="btn btn-default btn-sm action-bookmark"
                disabled={!this.props.anySelected}
-               onAction={this.props.onBookmark}
+               onAction={this.onBookmark}
                neverConfirm={true}
                confirmLabel="Bookmark"
                canActionAll={false}
@@ -234,7 +283,7 @@ var StreamActions = React.createClass({
                 <ActionLink
                    className="action-merge"
                    disabled={!this.props.multiSelected}
-                   onAction={this.props.onMerge}
+                   onAction={this.onMerge}
                    confirmLabel="Merge"
                    canActionAll={false}
                    selectAllActive={this.props.selectAllActive}
@@ -246,7 +295,7 @@ var StreamActions = React.createClass({
                 <ActionLink
                    className="action-remove-bookmark"
                    disabled={!this.props.anySelected}
-                   onAction={this.props.onRemoveBookmark}
+                   onAction={this.onRemoveBookmark}
                    neverConfirm={true}
                    actionLabel="remove these {count} events from your bookmarks"
                    onlyIfBulk={true}
@@ -261,7 +310,7 @@ var StreamActions = React.createClass({
                 <ActionLink
                    className="action-delete"
                    disabled={!this.props.anySelected}
-                   onAction={this.props.onDelete}
+                   onAction={this.onDelete}
                    confirmLabel="Delete"
                    canActionAll={false}
                    selectAllActive={this.props.selectAllActive}
