@@ -33,7 +33,7 @@ var AggregateListStore = Reflux.createStore({
     items.forEach(item => {
       this.items.push(item);
     });
-    this.trigger(this.getAllItems());
+    this.trigger();
   },
 
   addStatus(id, status) {
@@ -114,7 +114,7 @@ var AggregateListStore = Reflux.createStore({
       this.addStatus(itemId, 'update');
       this.pendingChanges.push(changeId, itemId, data);
     });
-    this.trigger(this.getAllItems());
+    this.trigger();
   },
 
   onUpdateError(changeId, itemIds, error){
@@ -122,7 +122,7 @@ var AggregateListStore = Reflux.createStore({
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'update');
     });
-    this.trigger(this.getAllItems());
+    this.trigger();
   },
 
   onUpdateSuccess(changeId, itemIds, response){
@@ -134,12 +134,12 @@ var AggregateListStore = Reflux.createStore({
       }
     });
     this.pendingChanges.remove(changeId);
-    this.trigger(this.getAllItems());
+    this.trigger();
   },
 
   onAssignTo(changeId, itemId, data) {
     this.addStatus(itemId, 'assignTo');
-    this.trigger(this.getAllItems());
+    this.trigger();
   },
 
   // TODO(dcramer): This is not really the best place for this
@@ -155,7 +155,7 @@ var AggregateListStore = Reflux.createStore({
     }
     item.assignedTo = response.assignedTo;
     this.clearStatus(itemId, 'assignTo');
-    this.trigger(this.getAllItems());
+    this.trigger();
   },
 
   onDeleteCompleted(changeId, itemIds, response) {
@@ -163,7 +163,7 @@ var AggregateListStore = Reflux.createStore({
       this.clearStatus(itemId, 'delete');
     });
     AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
-    this.trigger(this.getAllItems());
+    this.trigger();
   },
 
   onMergeCompleted(changeId, itemIds, response) {
@@ -171,7 +171,7 @@ var AggregateListStore = Reflux.createStore({
       this.clearStatus(itemId, 'merge');
     });
     AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
-    this.trigger(this.getAllItems());
+    this.trigger();
   }
 });
 
