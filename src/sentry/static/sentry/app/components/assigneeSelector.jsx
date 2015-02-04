@@ -3,7 +3,8 @@
 var React = require("react");
 var Reflux = require("reflux");
 
-var AggregateListActions = require("../actions/aggregateListActions");
+var api = require("./api");
+var AggregateListStore = require("./stores/aggregateListStore");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 var PropTypes = require("../proptypes");
@@ -16,42 +17,18 @@ var AssigneeSelector = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired,
   },
 
-  getInitialState: function() {
-    return {
-      loading: false
-    };
-  },
-
-  componentDidMount: function() {
-    this.listenTo(AggregateListActions.assignTo, this.onAssignTo);
-    this.listenTo(AggregateListActions.assignToError, this.onAssignToCompleted);
-    this.listenTo(AggregateListActions.assignToSuccess, this.onAssignToCompleted);
-  },
-
-  onAssignTo: function(id) {
-    if (id !== this.props.aggregate.id) {
-      return;
-    }
-    this.setState({loading: true});
-  },
-
-  onAssignToCompleted: function(id) {
-    if (id !== this.props.aggregate.id) {
-      return;
-    }
-    this.setState({loading: false});
-  },
-
   assignTo: function(member) {
-    AggregateListActions.assignTo(this.props.aggregate.id, member.email);
+    api.assignTo(this.props.aggregate.id, member.email);
   },
 
   clearAssignTo: function() {
-    AggregateListActions.assignTo(this.props.aggregate.id, '');
+    api.assignTo(this.props.aggregate.id, '');
   },
 
   render: function() {
     var agg = this.props.aggregate;
+
+    var loading = AggregateListStore.hasStatus(agg.id, 'assignTo');
 
     var className = "user-selector";
     if (!agg.assignedTo) {
@@ -62,7 +39,7 @@ var AssigneeSelector = React.createClass({
     this.props.memberList.forEach(function(item){
       memberNodes.push(
         <MenuItem key={item.id}
-                  disabled={!this.state.loading}
+                  disabled={!loading}
                   onSelect={this.assignTo.bind(this, item)} >
           <img src={item.avatarUrl} className="avatar" />
           {item.name || item.email}
@@ -72,7 +49,7 @@ var AssigneeSelector = React.createClass({
 
     return (
       <div className={className}>
-        {this.state.loading ?
+        {loading ?
           <span>LOADING</span>
         :
           <DropdownLink
@@ -87,7 +64,7 @@ var AssigneeSelector = React.createClass({
             </MenuItem>
             {agg.assignedTo ?
               <MenuItem key="clear"
-                        disabled={!this.state.loading}
+                        disabled={!loading}
                         onSelect={this.clearAssignTo}>
                 Clear Assignee
               </MenuItem>
