@@ -50,7 +50,7 @@ var AggregateListStore = Reflux.createStore({
     this.statuses[id][status] = false;
   },
 
-  hasStatus(item, status) {
+  hasStatus(id, status) {
     if (typeof this.statuses[id] === 'undefined') {
       return false;
     }
@@ -139,6 +139,7 @@ var AggregateListStore = Reflux.createStore({
 
   onAssignTo(changeId, itemId, data) {
     this.addStatus(itemId, 'assignTo');
+    this.trigger(this.getAllItems());
   },
 
   // TODO(dcramer): This is not really the best place for this
@@ -148,18 +149,11 @@ var AggregateListStore = Reflux.createStore({
   },
 
   onAssignToSuccess(changeId, itemId, response) {
-    var item = this.items.get(id);
+    var item = this.getItem(itemId);
     if (!item) {
       return;
     }
-    if (email === '') {
-      item.assignedTo = '';
-    } else {
-      var member = MemberListStore.getByEmail(email);
-      if (member) {
-        item.assignedTo = member;
-      }
-    }
+    item.assignedTo = response.assignedTo;
     this.clearStatus(itemId, 'assignTo');
     this.trigger(this.getAllItems());
   },

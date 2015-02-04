@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var $ = require("jquery");
+var AggregateListActions = require("./actions/aggregateListActions");
 
 class Client {
   constructor(options) {
@@ -33,6 +34,7 @@ class Client {
       url: this.baseUrl + path + "?" + query,
       method: method,
       data: data,
+      contentType: 'application/json',
       success: options.success,
       error: options.error,
       complete: options.complete
@@ -63,11 +65,11 @@ class Client {
     var path = "/groups/" + params.id + "/";
     var id = this.uniqueId();
 
-    AggregateListActions.assignTo(id, params.id, params.data);
+    AggregateListActions.assignTo(id, params.id, {email: params.email});
 
     return this.request(path, {
       method: "PUT",
-      data: params.data,
+      data: {assignedTo: params.email},
       success: function(response){
        AggregateListActions.assignToSuccess(id, params.id, response);
       },
