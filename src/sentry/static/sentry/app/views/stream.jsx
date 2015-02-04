@@ -37,7 +37,7 @@ StreamPoller.prototype.disable = function(){
 };
 StreamPoller.prototype.poll = function() {
   api.request(this._pollingEndpoint, {
-    success: function(data, textStatus, jqXHR){
+    success: (data, _, jqXHR) => {
       // cancel in progress operation if disabled
       if (!this._active) {
         return;
@@ -52,18 +52,18 @@ StreamPoller.prototype.poll = function() {
       this._pollingEndpoint = links.previous.href;
 
       this.options.success(data);
-    }.bind(this),
-    complete: function(){
+    },
+    complete: () => {
       if (this._active) {
         this._timeoutId = window.setTimeout(this.poll.bind(this), this._delay);
       }
-    }.bind(this)
+    }
   });
 };
 
 var Stream = React.createClass({
   mixins: [
-    Reflux.connect(AggregateListStore, "aggList"),
+    Reflux.listenTo(AggregateListStore, "onAggListChange"),
     Router.State
   ],
 
@@ -71,7 +71,13 @@ var Stream = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
-  getInitialState: function() {
+  onAggListChange() {
+    this.setState({
+      aggList: AggregateListStore.getAllItems()
+    });
+  },
+
+  getInitialState() {
     var queryParams = utils.getQueryParams();
     var query = queryParams.query === undefined ? 'is:unresolved': queryParams.query;
 
@@ -89,33 +95,33 @@ var Stream = React.createClass({
     };
   },
 
-  componentWillMount: function() {
+  componentWillMount() {
     this._poller = new StreamPoller({
       success: this.handleRealtimePoll,
       endpoint: this.getAggregateListEndpoint()
     });
 
     api.request(this.getAggregateListEndpoint(), {
-      success: function(data, textStatus, jqXHR) {
+      success: (data, _, jqXHR) => {
         AggregateListStore.loadInitialData(data);
 
         this.setState({
           pageLinks: jqXHR.getResponseHeader('Link')
         });
-      }.bind(this),
-      complete: function() {
+      },
+      complete: () => {
         if (this.state.realtimeActive) {
           this._poller.enable();
         }
-      }.bind(this)
+      }
     });
   },
 
-  componentWillUnmount: function() {
+  componentWillUnmount() {
     this._poller.disable();
   },
 
-  componentDidUpdate: function(prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       if (this.state.realtimeActive) {
         this._poller.enable();
@@ -125,7 +131,7 @@ var Stream = React.createClass({
     }
   },
 
-  getAggregateListEndpoint: function() {
+  getAggregateListEndpoint() {
     var queryParams = utils.getQueryParams();
     if (queryParams.query === undefined) {
       queryParams.query = this.state.query;
@@ -136,7 +142,7 @@ var Stream = React.createClass({
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
   },
 
-  handleSelect: function(aggId, event) {
+  handleSelect(aggId, event) {
     var checked = $(event.target).is(':checked');
     var aggList = this.state.aggList;
     var aggNode = null;
@@ -144,7 +150,7 @@ var Stream = React.createClass({
     var numSelected = 0,
         numTotal = 0;
 
-    for (var i = 0, node; (node = this.state.aggList[i]); i++) {
+    this.state.aggList.forEach((node) => {
       if (aggId === node.id) {
         aggNode = node;
         aggNode.isSelected = checked;
@@ -154,7 +160,7 @@ var Stream = React.createClass({
         numSelected += 1;
       }
       numTotal += 1;
-    }
+    });
 
     if (aggNode === null) {
       throw new Error('Unable to find aggregate node for ID ' + aggId);
@@ -168,14 +174,14 @@ var Stream = React.createClass({
     });
   },
 
-  handleSelectAll: function(event){
+  handleSelectAll(event){
     var checked = $(event.target).is(':checked');
     var aggList = this.state.aggList;
     var numSelected = checked ? aggList.length : 0;
 
-    for (var i = 0, node; (node = aggList[i]); i++) {
+    aggList.forEach((node) => {
       node.isSelected = checked;
-    }
+    });
 
     this.setState({
       aggList: aggList,
@@ -185,7 +191,7 @@ var Stream = React.createClass({
     });
   },
 
-  actionAggregates: function(action, aggList, data) {
+  actionAggregates(action, aggList, data) {
     var itemIds;
     var params = this.getParams();
     var selectedAggList;
@@ -193,12 +199,12 @@ var Stream = React.createClass({
     if (aggList === AggregateListActions.SELECTED) {
       itemIds = [];
       selectedAggList = [];
-      for (var i = 0, node; (node = this.state.aggList[i]); i++) {
+      this.state.aggList.forEach((node) => {
         if (node.isSelected === true) {
           itemIds.push(node.id);
           selectedAggList.push(node);
         }
-      }
+      });
     } else if (aggList === StreamActions.ALL) {
       selectedAggList = this.state.aggList;
     }
@@ -210,7 +216,7 @@ var Stream = React.createClass({
       data: data
     });
 
-    selectedAggList.forEach(function(node){
+    selectedAggList.forEach((node) => {
       node.version = new Date().getTime() + 10;
       node.isSelected = false;
       for (var key in data) {
@@ -225,55 +231,53 @@ var Stream = React.createClass({
       multiSelected: false
     });
   },
-  handleResolve: function(aggList, event){
+  handleResolve(aggList, event) {
     return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {status: 'resolved'});
   },
-  handleBookmark: function(aggList, event){
+  handleBookmark(aggList, event) {
     return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: true});
   },
-  handleRealtimeChange: function(event) {
+  handleRealtimeChange(event) {
     this.setState({
       realtimeActive: !this.state.realtimeActive
     });
   },
-  handleRemoveBookmark: function(aggList, event){
+  handleRemoveBookmark(aggList, event) {
     return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: false});
   },
-  handleDelete: function(aggList, event){
+  handleDelete(aggList, event) {
     return this.actionAggregates(AggregateListActions.bulkDelete, aggList, {
       method: 'DELETE',
     });
   },
-  handleMerge: function(aggList, event) {
+  handleMerge(aggList, event) {
     return this.actionAggregates(AggregateListActions.merge, {merge: 1});
   },
-  handleSelectStatsPeriod: function(period) {
+  handleSelectStatsPeriod(period) {
     this.setState({
       statsPeriod: period
     });
   },
-  handleQueryChange: function(value, event) {
+  handleQueryChange(value, event) {
     this.setState({
       query: value
     });
   },
-  handleRealtimePoll: function(data) {
+  handleRealtimePoll(data) {
     this.setState({
       aggList: this.state.aggList.unshift(data)
     });
   },
-  render: function() {
-    var aggNodes = this.state.aggList.map(function(node) {
-      return (
-        <StreamAggregate
-            key={node.id}
-            data={node}
-            isSelected={node.isSelected}
-            memberList={this.props.memberList}
-            onSelect={this.handleSelect.bind(this, node.id)}
-            statsPeriod={this.state.statsPeriod} />
-      );
-    }.bind(this));
+  render() {
+    var aggNodes = this.state.aggList.map((node) => {
+      return <StreamAggregate
+          key={node.id}
+          data={node}
+          isSelected={node.isSelected}
+          memberList={this.props.memberList}
+          onSelect={this.handleSelect.bind(this, node.id)}
+          statsPeriod={this.state.statsPeriod} />;
+    });
 
     return (
       <div>
