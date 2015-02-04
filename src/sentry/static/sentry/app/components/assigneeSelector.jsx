@@ -18,11 +18,11 @@ var AssigneeSelector = React.createClass({
   },
 
   assignTo: function(member) {
-    api.assignTo(this.props.aggregate.id, member.email);
+    api.assignTo({id: this.props.aggregate.id, email: member.email});
   },
 
   clearAssignTo: function() {
-    api.assignTo(this.props.aggregate.id, '');
+    api.assignTo({id: this.props.aggregate.id, email: ''});
   },
 
   render: function() {
