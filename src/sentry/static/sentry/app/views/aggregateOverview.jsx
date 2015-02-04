@@ -70,21 +70,34 @@ var AggregateOverview = React.createClass({
                 statsPeriod={this.props.statsPeriod} />
                 <div className="row">
                   <div className="col-md-6">
-                    <h5>First seen</h5>
+                    <h6>First seen</h6>
                     <h3>Jan 15, 2015</h3>
-                    <h5>Last seen</h5>
+                    <h6>Last seen</h6>
                     <h3>Jan 15, 2015</h3>
                   </div>
                   <div className="col-md-6">
-                    <h5>In release</h5>
+                    <h6>In release</h6>
                     <h3>cd5b4c4d93ad</h3>
-                    <h5>Status</h5>
+                    <h6>Status</h6>
                     <h3>Unresolved</h3>
                   </div>
                 </div>
           </div>
         </div>
-        <div className="event-toolbar" />
+        <div className="event-toolbar">
+          <div className="pull-right">
+            <div className="btn-group">
+              <a href="#" className="btn btn-default btn-lg">Newer</a>
+              <a href="#" className="btn btn-default btn-lg">Older</a>
+            </div>
+          </div>
+          <ul className="nav nav-tabs">
+            <li className="active"><a href="#">Tags</a></li>
+            <li><a href="#">Exception</a></li>
+            <li><a href="#">Request</a></li>
+            <li><a href="#">Additional Data</a></li>
+          </ul>
+        </div>
         <div className="row">
           <div className="col-md-9">
             {agg.status === 'muted' &&
@@ -101,13 +114,13 @@ var AggregateOverview = React.createClass({
             }
           </div>
           <div className="col-md-3 aggregate-sidebar">
-            <h5>Sample ID</h5>
+            <h6>Sample ID</h6>
             <p><strong>fb2a9940cd5b4c4d93ad9fa8843</strong></p>
 
-            <h5>Time</h5>
+            <h6>Time</h6>
             <p><strong>Jan. 20, 2015, 8:22 p.m.</strong></p>
 
-            <h5>User</h5>
+            <h6>User</h6>
             <p><strong><a href="#">tony@hawk.com</a></strong></p>
           </div>
         </div>
