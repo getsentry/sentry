@@ -137,17 +137,17 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(this.getAllItems());
   },
 
-  onAssignTo(id, email) {
+  onAssignTo(changeId, itemId, data) {
     this.addStatus(itemId, 'assignTo');
   },
 
   // TODO(dcramer): This is not really the best place for this
-  onAssignToError(id, email) {
+  onAssignToError(changeId, itemId, error) {
     this.clearStatus(itemId, 'assignTo');
     AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
   },
 
-  onAssignToSuccess(id, email) {
+  onAssignToSuccess(changeId, itemId, response) {
     var item = this.items.get(id);
     if (!item) {
       return;
@@ -164,18 +164,20 @@ var AggregateListStore = Reflux.createStore({
     this.trigger(this.getAllItems());
   },
 
-  onDeleteCompleted(changeId, itemIds) {
+  onDeleteCompleted(changeId, itemIds, response) {
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'delete');
     });
     AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
+    this.trigger(this.getAllItems());
   },
 
-  onMergeCompleted(changeId, itemIds) {
+  onMergeCompleted(changeId, itemIds, response) {
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'merge');
     });
     AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
+    this.trigger(this.getAllItems());
   }
 });
 
