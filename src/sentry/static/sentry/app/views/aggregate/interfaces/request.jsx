@@ -30,7 +30,7 @@ var RequestInterface = React.createClass({
           aggregate={agg}
           event={evt}
           title="Request">
-        <table class="table table-striped vars">
+        <table className="table table-striped vars">
           <colgroup>
             <col style={{width: "130px;"}} />
           </colgroup>
@@ -48,7 +48,7 @@ var RequestInterface = React.createClass({
             {data.query_string &&
               <tr>
                 <th>Query:</th>
-                <td class="values">
+                <td className="values">
                   <pre>{data.query_string}</pre>
                 </td>
               </tr>
@@ -56,7 +56,7 @@ var RequestInterface = React.createClass({
             {data.fragment &&
               <tr>
                 <th>Fragment:</th>
-                <td class="values">
+                <td className="values">
                   <pre>{data.fragment}</pre>
                 </td>
               </tr>
@@ -64,7 +64,7 @@ var RequestInterface = React.createClass({
             {data.data &&
               <tr>
                 <th>Body:</th>
-                <td class="values">
+                <td className="values">
                   <pre>{JSON.stringify(data.body, null, 2)}</pre>
                 </td>
               </tr>
@@ -72,7 +72,7 @@ var RequestInterface = React.createClass({
             {data.cookies &&
               <tr>
                 <th>Cookies:</th>
-                <td class="values">
+                <td className="values">
                   <pre>{JSON.stringify(data.cookies, null, 2)}</pre>
                 </td>
               </tr>
@@ -80,7 +80,7 @@ var RequestInterface = React.createClass({
             {data.headers &&
               <tr>
                 <th>Headers:</th>
-                <td class="values">
+                <td className="values">
                   <pre>{JSON.stringify(data.headers, null, 2)}</pre>
                 </td>
               </tr>
@@ -88,7 +88,7 @@ var RequestInterface = React.createClass({
             {data.env &&
               <tr>
                 <th>Environment:</th>
-                <td class="values">
+                <td className="values">
                   <pre>{JSON.stringify(data.env, null, 2)}</pre>
                 </td>
               </tr>
