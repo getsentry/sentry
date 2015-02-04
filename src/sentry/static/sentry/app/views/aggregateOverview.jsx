@@ -68,7 +68,7 @@ var AggregateOverview = React.createClass({
             <AggregateChart
                 aggregate={agg}
                 statsPeriod={this.props.statsPeriod} />
-                <div className="row">
+                <div className="row group-stats">
                   <div className="col-md-6">
                     <h6>First seen</h6>
                     <h3>Jan 15, 2015</h3>
@@ -113,7 +113,7 @@ var AggregateOverview = React.createClass({
               <div className="loading">Loading event data..</div>
             }
           </div>
-          <div className="col-md-3 aggregate-sidebar">
+          <div className="col-md-3 event-stats">
             <h6>Sample ID</h6>
             <p><strong>fb2a9940cd5b4c4d93ad9fa8843</strong></p>
 

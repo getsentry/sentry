@@ -18,8 +18,10 @@ var AggregateEventHeader = React.createClass({
       return <div />;
     }
 
+    // TODO(dcramer): put this at the overview level
+
     return (
-      <div className="btn-toolbar event-toolbar">
+      <div className="btn-toolbar hide">
         <a className="btn btn-default btn-lg pull-left prev">
           <span className="icon-arrow-left"></span> Newer Sample
         </a>
