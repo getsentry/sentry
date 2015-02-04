@@ -61,17 +61,18 @@ class Client {
 
   assignTo(params) {
     var path = "/groups/" + params.id + "/";
+    var id = this.uniqueId();
 
-    AggregateListActions.assignTo(params);
+    AggregateListActions.assignTo(id, params.id, params.data);
 
     return this.request(path, {
       method: "PUT",
       data: params.data,
-      success: function(data){
-       AggregateListActions.assignToSuccess(params, data);
+      success: function(response){
+       AggregateListActions.assignToSuccess(id, params.id, response);
       },
       error: function(error){
-       AggregateListActions.assignToError(params, error);
+       AggregateListActions.assignToError(id, params.id, error);
       }
     });
   }
