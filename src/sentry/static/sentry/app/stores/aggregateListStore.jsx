@@ -126,7 +126,9 @@ var AggregateListStore = Reflux.createStore({
   },
 
   onUpdateSuccess(changeId, itemIds, response){
-    if (typeof itemIds === 'undefined') this.items.map(item => item.id);
+    if (typeof itemIds === 'undefined') {
+      itemIds = this.items.map(item => item.id);
+    }
     this.items.forEach(item => {
       if (itemIds.indexOf(item.id) !== 1) {
         $.extend(true, item, response);
