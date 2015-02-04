@@ -729,6 +729,7 @@ footer {
   border: 1px solid #e1e4e5;
   padding: 8px 12px 7px;
   position: relative;
+  border-radius: 2px;
 
   &:focus {
     box-shadow: none;
@@ -2838,32 +2839,59 @@ table.integrations {
 .activity {
   position: relative;
 
+  .activity-field {
+    margin-bottom: 15px;
+    textarea {
+      max-height: 45px;
+      max-width: 100%;
+      margin: 0;
+      .transition(.1s ease-in-out all);
+      padding: 11px 15px;
+
+      &.expanded {
+        max-height: 100px;
+      }
+    }
+  }
+
   > ul {
-    list-style: none;
-    margin: 0 0 0;
-    padding-left: 0;
+    .list-unstyled();
 
     > li {
-      padding: 10px 0;
-      position: relative;
-      padding-left: 24px;
-      border-bottom: 1px solid #E9EBEC;
+      padding: 0 0 10px 35px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #E5E7E8;
 
       &:last-child {
         border: 0;
       }
 
+      h6 {
+        margin: 0 0 4px;
+        a {
+          font-weight: 600;
+          color: @gray-dark;
+        }
+      }
+
+      time {
+        line-height: 1;
+        color: #C0C3C6;
+        font-size: 12px;
+        float: right;
+      }
+
       .avatar {
         position: absolute;
         left: 0;
-        top: 11px;
-        width: 16px;
-        height: 16px;
+        top: 0;
+        width: 24px;
+        height: 24px;
         display: block;
-        background-size: 16px 16px;
+        background-size: 24px 24px;
         background-repeat: no-repeat;
         background-position: center center;
-        border-radius: 3px;
+        border-radius: 2px;
 
         img {
           width: 16px;
@@ -2895,16 +2923,7 @@ table.integrations {
   .post-box {
     margin: -0 -0 5px;
 
-    textarea {
-      .form-control();
-      min-height: 36px;
-      margin: 0;
-      .transition(.1s ease-in-out min-height);
 
-      &.expanded {
-        min-height: 52px;
-      }
-    }
   }
 }
 
