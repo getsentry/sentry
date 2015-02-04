@@ -5,16 +5,26 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var BreadcrumbStore = require("../stores/breadcrumbStore");
+var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var MemberListStore = require("../stores/memberListStore");
 
 var ProjectDetails = React.createClass({
-  mixins: [Reflux.connect(MemberListStore, "memberList"), Router.State],
+  mixins: [
+    Reflux.connect(MemberListStore, "memberList"),
+    Router.State,
+    BreadcrumbMixin,
+  ],
 
   getInitialState: function(){
     return {
       memberList: []
     };
+  },
+
+  getBreadcrumbNodes: function() {
+    return [
+      <a href="#">Foobar</a>
+    ];
   },
 
   componentWillMount: function() {
@@ -23,14 +33,6 @@ var ProjectDetails = React.createClass({
         MemberListStore.loadInitialData(data);
       }.bind(this)
     });
-
-    BreadcrumbStore.push(
-      <a href="#">Foobar</a>
-    );
-  },
-
-  componentWillUnmount: function() {
-    BreadcrumbStore.pop();
   },
 
   getMemberListEndpoint: function() {
