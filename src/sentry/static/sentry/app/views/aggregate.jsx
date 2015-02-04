@@ -11,7 +11,7 @@ var utils = require("../utils");
 
 var AggregateDetails = React.createClass({
   mixins: [
-    Reflux.connect(AggregateListStore, "aggList"),
+    Reflux.listenTo(AggregateListStore, "onAggListChange"),
     Router.State
   ],
 
@@ -19,14 +19,22 @@ var AggregateDetails = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
-  getInitialState: function() {
+  onAggListChange() {
+    var id = this.getParams().aggregateId;
+
+    this.setState({
+      aggregate: AggregateListStore.getItem(id)
+    });
+  },
+
+  getInitialState() {
     return {
-      aggList: new utils.Collection(),
+      aggregate: null,
       statsPeriod: '24h'
     };
   },
 
-  componentWillMount: function() {
+  componentWillMount() {
     api.request(this.getAggregateDetailsEndpoint(), {
       success: function(data, textStatus, jqXHR) {
         AggregateListStore.loadInitialData([data]);
@@ -38,14 +46,8 @@ var AggregateDetails = React.createClass({
     return '/groups/' + this.getParams().aggregateId + '/';
   },
 
-  getAggregate: function() {
-    var id = this.getParams().aggregateId;
-    // TODO(dcramer): 99% certain someone will say this is inappropriate
-    return AggregateListStore.getItem(id);
-  },
-
   render: function() {
-    var aggregate = this.getAggregate();
+    var aggregate = this.state.aggregate;
 
     if (!aggregate) {
       return <div />;
