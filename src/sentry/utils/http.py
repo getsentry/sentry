@@ -16,16 +16,18 @@ from django.core.urlresolvers import get_script_prefix
 
 
 def absolute_uri(url=None):
+    """
+    Given a path (possibly with a query/fragment part), create a full url with
+    scheme, domain and path parts based on the current sentry configuration.
+    This honours the WSGI `SCRIPT_NAME` environment variable as per
+    https://www.python.org/dev/peps/pep-0333/#id19 or the overridden
+    ``django.conf.settings.FORCE_SCRIPT_NAME`` if given.
+    """
+    full_prefix = urljoin(settings.SENTRY_URL_PREFIX, get_script_prefix().rstrip('/'))
     if not url:
-        return settings.SENTRY_URL_PREFIX
+        return full_prefix
 
-    script_name = get_script_prefix().rstrip('/')
-    l = len(script_name)
-    if l:
-        prefix = settings.SENTRY_URL_PREFIX[:0 - l]
-    else:
-        prefix = settings.SENTRY_URL_PREFIX
-    return urljoin(prefix.rstrip('/') + '/', url.lstrip('/'))
+    return urljoin(full_prefix.rstrip('/') + '/', url.lstrip('/'))
 
 
 def safe_urlencode(params, doseq=0):
