@@ -10,7 +10,7 @@
 
 {% block inner %}
     <h2>
-        {% url 'sentry-stream' group.project.team.slug group.project.slug as project_link %}
+        {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
         {% if group.times_seen == 1 %}
             New Event on <a href="{% absolute_uri project_link %}" class="highlight">{{ group.team.name }} {{ group.project.name }}</a>
         {% else %}
@@ -38,4 +38,13 @@
 		{{ text }}
     </div>
     {% endfor %}
+
+    {% if rules %}
+        <p class="via">
+            You are receiving this email due to matching rules:
+            {% for rule_label, rule_link in rules %}
+                <a href="{% absolute_uri rule_link %}">{{ rule_label }}</a>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+    {% endif %}
 {% endblock %}

@@ -20,6 +20,7 @@ from django.contrib import admin
 from django.views.defaults import page_not_found
 
 from sentry.web.urls import urlpatterns as web_urlpatterns
+from sentry.web.frontend.csrf_failure import CsrfFailureView
 
 
 admin.autodiscover()
@@ -43,8 +44,10 @@ def handler500(request):
     t = loader.get_template('sentry/500.html')
     return HttpResponseServerError(t.render(Context(context)))
 
+
 urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^500/', handler500),
-    url(r'^404/', handler404),
+    url(r'^500/', handler500, name='error-500'),
+    url(r'^404/', handler404, name='error-400'),
+    url(r'^403-csrf-failure/', CsrfFailureView.as_view(), name='error-403-csrf-failure'),
 ) + web_urlpatterns

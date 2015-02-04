@@ -33,7 +33,8 @@ class GroupNotesEndpoint(Endpoint):
         return self.paginate(
             request=request,
             queryset=notes,
-            order_by='-datetime',
+            # TODO(dcramer): we want to sort by datetime
+            order_by='-id',
             on_results=lambda x: serialize(x, request.user),
         )
 

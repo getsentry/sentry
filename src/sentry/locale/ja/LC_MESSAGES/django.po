@@ -3,15 +3,16 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# しろう, 2013
-# しろう, 2012
-# しろう, 2013
+# WAKAYAMA Shirou <shirou.faw@gmail.com>, 2013
+# WAKAYAMA Shirou <shirou.faw@gmail.com>, 2012
+# deeeki <deeeki@gmail.com>, 2014
+# WAKAYAMA Shirou <shirou.faw@gmail.com>, 2013-2014
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-03 11:26+0000\n"
-"PO-Revision-Date: 2013-12-03 11:30+0000\n"
+"POT-Creation-Date: 2015-01-12 17:57+0000\n"
+"PO-Revision-Date: 2015-01-12 18:11+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/sentry/language/ja/)\n"
 "MIME-Version: 1.0\n"
@@ -20,220 +21,257 @@ msgstr ""
 "Language: ja\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: admin.py:54
+#: admin.py:115
 msgid "Personal info"
-msgstr ""
+msgstr "個人情報"
 
-#: admin.py:55
+#: admin.py:116
 msgid "Permissions"
-msgstr ""
+msgstr "権限"
 
-#: admin.py:56
+#: admin.py:117
 msgid "Important dates"
-msgstr ""
+msgstr "重要な日付"
 
-#: admin.py:143
+#: admin.py:205
 msgid "Password changed successfully."
-msgstr ""
+msgstr "パスワードを変更しました。"
 
-#: admin.py:153
+#: admin.py:215
 #, python-format
 msgid "Change password: %s"
-msgstr ""
+msgstr "変更後パスワード: %s"
 
-#: constants.py:31
+#: constants.py:33
 msgid "Priority"
 msgstr "優先度"
 
-#: constants.py:32 constants.py:81 templates/sentry/search.html:16
+#: constants.py:34 constants.py:43
 #: templates/sentry/explore/tag_value_list.html:41
 #: templates/sentry/explore/code/list_tag.html:42
-#: templates/sentry/groups/group_list.html:116
+#: templates/sentry/groups/group_list.html:119
 #: templates/sentry/plugins/bases/tag/index.html:24
 #: templates/sentry/users/list.html:35
 msgid "Last Seen"
 msgstr "新しい順"
 
-#: constants.py:33 constants.py:82 templates/sentry/search.html:18
-#: templates/sentry/groups/group_list.html:119
+#: constants.py:35 constants.py:44 templates/sentry/groups/group_list.html:122
 #: templates/sentry/plugins/bases/tag/index.html:23
 msgid "First Seen"
 msgstr "古い順"
 
-#: constants.py:34
+#: constants.py:36
 msgid "Frequency"
 msgstr "頻度順"
 
-#: constants.py:35
+#: constants.py:37
 msgid "Total Time Spent"
 msgstr "総処理時間"
 
-#: constants.py:36
+#: constants.py:38
 msgid "Average Time Spent"
 msgstr "平均処理時間"
 
-#: constants.py:37 constants.py:38
-#, python-format
-msgid "Trending: %(minutes)d minutes"
-msgstr "トレンド: %(minutes)d 分"
-
-#: constants.py:80 templates/sentry/search.html:17
+#: constants.py:42
 msgid "Score"
 msgstr "スコア"
 
-#: constants.py:92 models/alert.py:34
-msgid "Unresolved"
-msgstr "未解決"
+#: constants.py:65 models/organizationmember.py:51
+#: templates/sentry/projects/edit_key.html:22
+#: web/forms/edit_organization_member.py:15
+msgid "Owner"
+msgstr "所有者"
 
-#: constants.py:93 models/alert.py:35
-msgid "Resolved"
-msgstr "解決済み"
-
-#: constants.py:94
-msgid "Muted"
-msgstr "抑制中"
-
-#: constants.py:101 templates/sentry/layout.html:107
-#: templates/sentry/bases/admin.html:5 web/forms/__init__.py:47
+#: constants.py:66 models/organizationmember.py:50 models/teammember.py:39
+#: templates/sentry/layout.html:143 templates/sentry/bases/admin.html:5
+#: web/forms/__init__.py:49 web/forms/edit_organization_member.py:14
 msgid "Admin"
 msgstr "システム"
 
-#: constants.py:102 constants.py:232
+#: constants.py:67 constants.py:181
 #: templates/sentry/partial/interfaces/user.html:6
-#: templates/sentry/teams/groups/members.html:25
-#: templates/sentry/teams/members/edit.html:27
-#: templates/sentry/teams/members/index.html:30
-#: templates/sentry/teams/members/index.html:80
 #: templates/sentry/users/list.html:34
 msgid "User"
 msgstr "ユーザー"
 
-#: constants.py:103
+#: constants.py:68
 msgid "System Agent"
 msgstr "システムエージェント"
 
-#: constants.py:233
-msgid "File"
-msgstr ""
+#: constants.py:180
+msgid "Exception Type"
+msgstr "例外の種類"
 
-#: constants.py:234
+#: constants.py:182
+msgid "File"
+msgstr "ファイル"
+
+#: constants.py:183
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:30
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:57
 msgid "Function"
 msgstr "関数"
 
-#: constants.py:235
-msgid "OS"
+#: constants.py:184
+msgid "Release"
 msgstr ""
 
-#: constants.py:236 plugins/sentry_urls/models.py:27
+#: constants.py:185
+msgid "OS"
+msgstr "OS"
+
+#: constants.py:186 plugins/sentry_urls/models.py:29
+#: templates/sentry/partial/interfaces/http_email.html:5
 msgid "URL"
 msgstr "URL"
 
-#: constants.py:237
+#: constants.py:187
 msgid "Server"
+msgstr "サーバー"
+
+#: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
+msgid "Big Integer"
 msgstr ""
 
-#: interfaces.py:603
-msgid "Stacktrace (most recent call first):"
-msgstr "スタックトレース(最後の呼び出しが最初に表示)"
+#: filters/builtins.py:21 models/alert.py:36 models/group.py:124
+msgid "Unresolved"
+msgstr "未解決"
 
-#: interfaces.py:605
-msgid "Stacktrace (most recent call last):"
-msgstr "スタックトレース(最後の呼び出しが最後に表示)"
+#: filters/builtins.py:22 models/alert.py:37 models/group.py:125
+msgid "Resolved"
+msgstr "解決済み"
 
-#: interfaces.py:1036 templates/sentry/partial/interfaces/http.html:9
-msgid "Request"
-msgstr "リクエスト"
+#: filters/builtins.py:23 models/group.py:126
+msgid "Muted"
+msgstr "抑制中"
 
-#: filters/builtins.py:17 templates/sentry/projects/base.html:29
-#: templates/sentry/projects/list.html:27
+#: filters/builtins.py:28 templates/sentry/organization-member-details.html:29
+#: templates/sentry/organization-member-settings.html:38
 msgid "Status"
 msgstr "ステータス"
 
-#: models/event.py:56
+#: interfaces/http.py:231 templates/sentry/partial/interfaces/http.html:10
+msgid "Request"
+msgstr "リクエスト"
+
+#: interfaces/stacktrace.py:518
+msgid "Stacktrace (most recent call first):"
+msgstr "スタックトレース(最後の呼び出しが最初に表示)"
+
+#: interfaces/stacktrace.py:520
+msgid "Stacktrace (most recent call last):"
+msgstr "スタックトレース(最後の呼び出しが最後に表示)"
+
+#: models/event.py:47
 msgid "message"
 msgstr "メッセージ"
 
-#: models/event.py:57
+#: models/event.py:48
 msgid "messages"
 msgstr "メッセージ"
 
-#: models/event.py:69 models/group.py:196
+#: models/event.py:61 models/group.py:271
 msgid "error"
 msgstr "エラー"
 
-#: models/group.py:69
+#: models/group.py:146
 msgid "grouped messages"
 msgstr "グループメッセージ"
 
-#: models/group.py:70
+#: models/group.py:147
 msgid "grouped message"
 msgstr "グループメッセージ"
 
-#: models/project.py:47
+#: models/organization.py:80
 msgid "Visible"
 msgstr "表示"
 
-#: models/project.py:48
-msgid "Hidden"
-msgstr "非表示"
+#: models/organization.py:81 models/project.py:96 models/team.py:131
+msgid "Pending Deletion"
+msgstr "削除は保留中です"
 
-#: models/user.py:21
+#: models/organization.py:82 models/project.py:97 models/team.py:132
+msgid "Deletion in Progress"
+msgstr "削除は進行中です"
+
+#: models/organizationmember.py:48 models/teammember.py:40
+msgid "Bot"
+msgstr "ボット"
+
+#: models/organizationmember.py:49 models/teammember.py:38
+#: web/forms/edit_organization_member.py:13
+msgid "Member"
+msgstr "メンバー"
+
+#: models/project.py:95 models/team.py:130
+msgid "Active"
+msgstr ""
+
+#: models/user.py:25
 msgid "username"
-msgstr ""
-
-#: models/user.py:22
-msgid "first name"
-msgstr ""
-
-#: models/user.py:23
-msgid "last name"
-msgstr ""
-
-#: models/user.py:24
-msgid "email address"
-msgstr ""
+msgstr "ユーザー名"
 
 #: models/user.py:26
-msgid "staff status"
-msgstr ""
+msgid "first name"
+msgstr "名前"
 
 #: models/user.py:27
+msgid "last name"
+msgstr "苗字"
+
+#: models/user.py:28
+msgid "email address"
+msgstr "メールアドレス"
+
+#: models/user.py:30
+msgid "staff status"
+msgstr "スタッフの状態"
+
+#: models/user.py:31
 msgid "Designates whether the user can log into this admin site."
 msgstr ""
 
-#: models/user.py:30
+#: models/user.py:34
 msgid "active"
 msgstr ""
 
-#: models/user.py:31
+#: models/user.py:35
 msgid ""
 "Designates whether this user should be treated as active. Unselect this "
 "instead of deleting accounts."
 msgstr ""
 
-#: models/user.py:34
+#: models/user.py:38
 msgid "superuser status"
-msgstr ""
+msgstr "スーパーユーザーの状態"
 
-#: models/user.py:35
+#: models/user.py:39
 msgid ""
 "Designates that this user has all permissions without explicitly assigning "
 "them."
 msgstr ""
 
-#: models/user.py:37
-msgid "date joined"
+#: models/user.py:42
+msgid "managed"
+msgstr ""
+
+#: models/user.py:43
+msgid ""
+"Designates whether this user should be treated as managed. Select this to "
+"disallow the user from modifying their account (username, password, etc)."
 msgstr ""
 
 #: models/user.py:47
-msgid "user"
-msgstr "ユーザ"
+msgid "date joined"
+msgstr "参加した日付"
 
-#: models/user.py:48
+#: models/user.py:57
+msgid "user"
+msgstr "ユーザー"
+
+#: models/user.py:58
 msgid "users"
-msgstr ""
+msgstr "ユーザー"
 
 #: plugins/bases/notify.py:41
 msgid ""
@@ -241,90 +279,245 @@ msgid ""
 "an already resolved event has changed back to unresolved."
 msgstr "新しいイベントが発生した時、あるいは解決済みイベントが未解決に戻った時にプロジェクトメンバーに通知する"
 
-#: plugins/sentry_interface_types/models.py:22
+#: plugins/sentry_interface_types/models.py:24
 msgid "Auto Tag: Interface Types"
 msgstr "自動タグ: インターフェースタイプ"
 
-#: plugins/sentry_mail/models.py:25
+#: plugins/sentry_mail/models.py:27
 #: templates/sentry/account/notifications.html:54
 #: templates/sentry/bases/admin.html:39
 msgid "Mail"
 msgstr "メール"
 
-#: plugins/sentry_sites/models.py:21
-msgid "Auto Tag: Sites"
-msgstr "自動タグ: サイト"
-
-#: plugins/sentry_sites/models.py:26
-msgid "Site"
-msgstr "サイト"
-
-#: plugins/sentry_urls/models.py:22
+#: plugins/sentry_urls/models.py:24
 msgid "Auto Tag: URLs"
 msgstr "自動タグ: URL"
 
-#: plugins/sentry_user_emails/models.py:24
-msgid "Auto Tag: User Emails"
-msgstr "自動タグ: ユーザーEメール"
-
-#: plugins/sentry_user_emails/models.py:29
-msgid "User Email"
-msgstr "メールアドレス:"
-
-#: plugins/sentry_useragents/models.py:46
+#: plugins/sentry_useragents/models.py:48
 msgid "Auto Tag: Browsers"
 msgstr "自動タグ: ブラウザー"
 
-#: plugins/sentry_useragents/models.py:48
+#: plugins/sentry_useragents/models.py:50
 msgid "Browser Name"
 msgstr "ブラウザー名"
 
-#: plugins/sentry_useragents/models.py:70
+#: plugins/sentry_useragents/models.py:77
 msgid "Auto Tag: Operating Systems"
 msgstr "自動タグ: OS"
 
-#: plugins/sentry_useragents/models.py:72
+#: plugins/sentry_useragents/models.py:79
 msgid "Operating System"
 msgstr "OS"
 
-#: templates/sentry/404.html:5 templates/sentry/404.html.py:13
+#: plugins/sentry_useragents/models.py:107
+msgid "Auto Tag: Device"
+msgstr "自動タグ: デバイス"
+
+#: plugins/sentry_useragents/models.py:109
+msgid "Device"
+msgstr "デバイス"
+
+#: templates/sentry/403-csrf-failure.html:5
+#: templates/sentry/403-csrf-failure.html:10
+msgid "CSRF Verification Failed"
+msgstr ""
+
+#: templates/sentry/403-csrf-failure.html:13
+msgid "A required security token was not found or was invalid."
+msgstr ""
+
+#: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
 msgstr "ページが見つかりません"
 
-#: templates/sentry/404.html:15
+#: templates/sentry/404.html:12
 msgid "The page you are looking for was not found."
 msgstr "お探しのページは見つかりませんでした"
 
-#: templates/sentry/404.html:16
+#: templates/sentry/404.html:13
 msgid "Return to the dashboard"
 msgstr "ダッシュボードに戻る"
 
-#: templates/sentry/500.html:5 templates/sentry/500.html.py:13
+#: templates/sentry/500.html:5 templates/sentry/500.html.py:10
 msgid "Internal Server Error"
 msgstr "Internal Server Error"
 
-#: templates/sentry/500.html:15
+#: templates/sentry/500.html:12
 msgid "There was an internal server error while processing your request."
 msgstr "リクエストの処理中にサーバ側でなんらかのエラーが起こりました。"
 
-#: templates/sentry/500.html:17
+#: templates/sentry/500.html:14
 #, python-format
 msgid "You may reference this error as <strong>%(id)s</strong>."
 msgstr "このエラーに関しては <strong>%(id)s</strong> を参照してください。"
 
-#: templates/sentry/dashboard.html:5 templates/sentry/layout.html:129
+#: templates/sentry/accept-organization-invite.html:5
+msgid "Team Invite"
+msgstr "チームへ招待"
+
+#: templates/sentry/accept-organization-invite.html:15
+msgid "Organization Invite"
+msgstr ""
+
+#: templates/sentry/accept-organization-invite.html:19
+#, python-format
+msgid "<strong>%(org_name)s</strong> is using Sentry to aggregate errors."
+msgstr ""
+
+#: templates/sentry/accept-organization-invite.html:22
+#, python-format
+msgid ""
+"You have been invited to join this organization, which manages "
+"<strong>%(project_count)s</strong> project(s):"
+msgstr ""
+
+#: templates/sentry/accept-organization-invite.html:32
+msgid ""
+"To continue, you must either login to your existing account, or create a new"
+" one."
+msgstr "続けるにはあなたのアカウントにログインするか、新しいアカウントを作成してください。"
+
+#: templates/sentry/accept-organization-invite.html:36
+#: templates/sentry/register.html:26
+msgid "Login as an existing user"
+msgstr "既存のユーザーでログイン"
+
+#: templates/sentry/accept-organization-invite.html:38
+#: templates/sentry/login.html:31 templates/sentry/register.html:16
+msgid "Create a new account"
+msgstr "新しいアカウントを作成"
+
+#: templates/sentry/accept-organization-invite.html:45
+#, python-format
+msgid "Join the %(org_name)s organization"
+msgstr ""
+
+#: templates/sentry/access-group-migration.html:5
+#: templates/sentry/access-group-migration.html:12
+msgid "Access Group Migration"
+msgstr ""
+
+#: templates/sentry/access-group-migration.html:67
+#: templates/sentry/organization-member-settings.html:73
+#: templates/sentry/organization-settings.html:32
+#: templates/sentry/account/appearance.html:37
+#: templates/sentry/account/notifications.html:105
+#: templates/sentry/account/settings.html:41
+#: templates/sentry/admin/users/edit.html:19
+#: templates/sentry/partial/_form.html:9
+#: templates/sentry/plugins/bases/issue/create_issue.html:26
+#: templates/sentry/projects/edit_key.html:78
+#: templates/sentry/projects/manage.html:48
+#: templates/sentry/projects/manage_tags.html:36
+#: templates/sentry/projects/notifications.html:46
+#: templates/sentry/projects/quotas.html:37
+#: templates/sentry/teams/manage.html:47
+msgid "Save Changes"
+msgstr "変更を保存"
+
+#: templates/sentry/create-organization-member.html:6
+#: templates/sentry/create-organization-member.html:14
+msgid "Add Member to Organization"
+msgstr ""
+
+#: templates/sentry/create-organization-member.html:19
+msgid ""
+"Invite a member to join this organization via their email address. If they "
+"do not already have an account, they will first be asked to create one."
+msgstr ""
+
+#: templates/sentry/create-organization-member.html:20
+#: templates/sentry/create-organization-member.html:25
+msgid ""
+"You will be able to configure permissions and team access on the following "
+"page."
+msgstr ""
+
+#: templates/sentry/create-organization-member.html:21
+msgid "Send Invite"
+msgstr "招待を送信"
+
+#: templates/sentry/create-organization-member.html:24
+msgid "You may add a user by their username if they already have an account."
+msgstr "もしアカウントがあれば、ユーザ名を入力することでユーザを追加できます。"
+
+#: templates/sentry/create-organization.html:6
+msgid "New Organization"
+msgstr ""
+
+#: templates/sentry/create-organization.html:11
+msgid "Create a New Organization"
+msgstr ""
+
+#: templates/sentry/create-organization.html:14
+msgid ""
+"Organizations represent the top level in your hierarchy. You'll be able to "
+"bundle a collection of teams within an organization as well as give "
+"organization-wide permissions to users."
+msgstr ""
+
+#: templates/sentry/create-organization.html:27
+msgid "Create Organization"
+msgstr ""
+
+#: templates/sentry/create-project.html:5
+#: templates/sentry/bases/organization.html:21
+#: templates/sentry/projects/cannot_create_teams.html:5
+msgid "New Project"
+msgstr "新しいプロジェクト"
+
+#: templates/sentry/create-project.html:14
+msgid "Create a New Project"
+msgstr "新しいプロジェクトを作成"
+
+#: templates/sentry/create-project.html:18
+msgid ""
+"Projects allow you to scope events to a specific application in your "
+"organization. For example, you might have separate projects for production "
+"vs development instances, or separate projects for your web app and mobile "
+"app."
+msgstr ""
+
+#: templates/sentry/create-team.html:6
+#: templates/sentry/bases/organization.html:18
+msgid "New Team"
+msgstr "チームを作成する"
+
+#: templates/sentry/create-team.html:12
+msgid "Create a team"
+msgstr ""
+
+#: templates/sentry/create-team.html:13
+msgid "Add a project"
+msgstr ""
+
+#: templates/sentry/create-team.html:30
+msgid "Back"
+msgstr ""
+
+#: templates/sentry/create-team.html:35
+msgid "Skip this step"
+msgstr ""
+
+#: templates/sentry/create-team.html:38 templates/sentry/account/sudo.html:40
+msgid "Continue"
+msgstr "続ける"
+
+#: templates/sentry/dashboard.html:5 templates/sentry/layout.html:165
 msgid "Dashboard"
 msgstr "ダッシュボード"
 
-#: templates/sentry/dashboard.html:24 templates/sentry/select_team.html:19
+#: templates/sentry/dashboard.html:24
+#: templates/sentry/organization-stats.html:20
 #: templates/sentry/groups/details.html:26
-#: templates/sentry/groups/group_list.html:10
+#: templates/sentry/groups/group_list.html:11
 msgid "Get yourself some JavaScripts dood"
 msgstr ""
 
-#: templates/sentry/dashboard.html:25 templates/sentry/select_team.html:20
-#: templates/sentry/wall.html:27 templates/sentry/groups/details.html:25
-#: templates/sentry/groups/group_list.html:11
+#: templates/sentry/dashboard.html:25
+#: templates/sentry/organization-stats.html:21 templates/sentry/wall.html:26
+#: templates/sentry/groups/details.html:25
+#: templates/sentry/groups/group_list.html:12
 msgid "Loading historical data..."
 msgstr "過去データを読み込んでいます..."
 
@@ -363,36 +556,32 @@ msgstr "どのプロジェクトにも属していません。<a href=\"%(link)s
 msgid "Getting Started"
 msgstr "はじめよう"
 
-#: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:7
-msgid "Search"
-msgstr "検索"
+#: templates/sentry/layout.html:114
+msgid "Docs"
+msgstr ""
 
-#: templates/sentry/invalid_message_id.html:9
-msgid "We were unable to find a message matching the ID you entered."
-msgstr "入力されたIDが見つかりません。"
+#: templates/sentry/layout.html:120 templates/sentry/layout.html.py:126
+msgid "Organizations"
+msgstr ""
 
-#: templates/sentry/layout.html:104 templates/sentry/bases/account.html:31
+#: templates/sentry/layout.html:141 templates/sentry/bases/account.html:31
 msgid "Account"
 msgstr "アカウント"
 
-#: templates/sentry/layout.html:105 templates/sentry/bases/admin.html:17
-msgid "Teams"
-msgstr "チーム"
-
-#: templates/sentry/layout.html:110
+#: templates/sentry/layout.html:146
 msgid "Logout"
 msgstr "ログアウト"
 
-#: templates/sentry/layout.html:114 templates/sentry/login.html:6
+#: templates/sentry/layout.html:150 templates/sentry/login.html:6
 #: templates/sentry/login.html.py:34
 msgid "Login"
 msgstr "ログイン"
 
-#: templates/sentry/layout.html:170
+#: templates/sentry/layout.html:206
 msgid "Contribute"
 msgstr "貢献する"
 
-#: templates/sentry/layout.html:170
+#: templates/sentry/layout.html:206
 msgid "Translate"
 msgstr "翻訳する"
 
@@ -403,11 +592,6 @@ msgstr "続けるにはログインしてください。"
 #: templates/sentry/login.html:20
 msgid "Login with your Sentry account"
 msgstr "Sentryアカウントでログイン"
-
-#: templates/sentry/login.html:31 templates/sentry/register.html:16
-#: templates/sentry/teams/members/accept_invite_unauthenticated.html:36
-msgid "Create a new account"
-msgstr "新しいアカウントを作成"
 
 #: templates/sentry/login.html:34
 msgid "Lose your password?"
@@ -437,14 +621,79 @@ msgstr "許可されていません"
 msgid "You do not have access to this page with your current permissions."
 msgstr "現在の権限ではこのページにアクセスできません。"
 
+#: templates/sentry/organization-audit-log.html:6
+#: templates/sentry/bases/organization.html:54
+msgid "Audit Log"
+msgstr ""
+
+#: templates/sentry/organization-audit-log.html:18
+msgid "Sentry keeps track of important events within your Organization."
+msgstr ""
+
+#: templates/sentry/organization-member-details.html:7
+msgid "Member Details"
+msgstr ""
+
+#: templates/sentry/organization-member-details.html:22
+#: templates/sentry/organization-member-settings.html:31
+#: web/forms/accounts.py:133 web/forms/accounts.py:241
+msgid "Email"
+msgstr "メール"
+
+#: templates/sentry/organization-member-details.html:40
+#: web/forms/edit_organization_member.py:20
+msgid "Membership Type"
+msgstr ""
+
+#: templates/sentry/organization-member-details.html:48
+#: templates/sentry/organization-member-settings.html:52
+#: templates/sentry/bases/admin.html:17
+#: templates/sentry/bases/organization.html:38
+msgid "Teams"
+msgstr "チーム"
+
+#: templates/sentry/organization-member-settings.html:7
+msgid "Member Settings"
+msgstr ""
+
+#: templates/sentry/organization-member-settings.html:24
+#: templates/sentry/organization-settings.html:17
+#: templates/sentry/partial/form_base.html:5
+#: templates/sentry/teams/manage.html:26
+msgid "Please correct the errors below."
+msgstr "以下のエラーを修正してください。"
+
+#: templates/sentry/organization-member-settings.html:72
+msgid "Resend Invite"
+msgstr ""
+
+#: templates/sentry/organization-members.html:7
+#: templates/sentry/bases/organization.html:49
+msgid "Members"
+msgstr "メンバー"
+
+#: templates/sentry/organization-members.html:16
+msgid ""
+"Members of your organization gain slightly elevated permissions over "
+"individual team members. For example, organization administrators can create"
+" new teams as well as manage all organization settings (including the list "
+"of admins)."
+msgstr ""
+
+#: templates/sentry/organization-settings.html:30
+#: templates/sentry/remove-organization.html:35
+msgid "Remove Organization"
+msgstr ""
+
+#: templates/sentry/organization-stats.html:7
+#: templates/sentry/admin/stats.html:8
+#: templates/sentry/bases/organization.html:44
+msgid "Stats"
+msgstr "状態"
+
 #: templates/sentry/register.html:6 templates/sentry/register.html.py:28
 msgid "Register"
 msgstr "登録"
-
-#: templates/sentry/register.html:26
-#: templates/sentry/teams/members/accept_invite_unauthenticated.html:34
-msgid "Login as an existing user"
-msgstr "既存のユーザーでログイン"
 
 #: templates/sentry/register.html:35
 msgid "Register using another service"
@@ -455,92 +704,26 @@ msgstr "他のサービスを使って登録する"
 msgid "Sign in with %(service)s"
 msgstr "%(service)s で登録"
 
-#: templates/sentry/search.html:14
-#: templates/sentry/explore/tag_value_list.html:21
-#: templates/sentry/explore/code/list_tag.html:22
-#: templates/sentry/groups/group_list.html:53
-#: templates/sentry/users/list.html:15
-#, python-format
-msgid "Sort by: %(label)s"
-msgstr "並び替え: %(label)s"
+#: templates/sentry/remove-organization.html:16
+msgid "Removing this organization is permanent and cannot be undone!"
+msgstr ""
 
-#: templates/sentry/search.html:32
-msgid "No events match your search query."
-msgstr "イベントの検索結果が見つかりませんでした。"
+#: templates/sentry/remove-organization.html:19
+msgid "This will also remove the following teams and all associated projects:"
+msgstr ""
 
-#: templates/sentry/search.html:38
-#: templates/sentry/admin/projects/list.html:18
-#: templates/sentry/admin/projects/list.html:81
-#: templates/sentry/admin/teams/list.html:18
-#: templates/sentry/admin/teams/list.html:73
-#: templates/sentry/admin/users/list.html:21
-#: templates/sentry/admin/users/list.html:78
-#: templates/sentry/events/event_list.html:24
-#: templates/sentry/events/event_list.html:43
-#: templates/sentry/explore/tag_details.html:35
-#: templates/sentry/explore/tag_details.html:54
-#: templates/sentry/explore/tag_value_details.html:37
-#: templates/sentry/explore/tag_value_details.html:56
-#: templates/sentry/explore/tag_value_list.html:29
-#: templates/sentry/explore/tag_value_list.html:63
-#: templates/sentry/explore/code/list_tag.html:30
-#: templates/sentry/explore/code/list_tag.html:68
-#: templates/sentry/explore/code/tag_details.html:42
-#: templates/sentry/explore/code/tag_details.html:61
-#: templates/sentry/groups/group_list.html:87
-#: templates/sentry/groups/group_list.html:143
-#: templates/sentry/partial/_pager.html:5
-#: templates/sentry/users/details.html:42
-#: templates/sentry/users/details.html:61 templates/sentry/users/list.html:23
-#: templates/sentry/users/list.html:52
-msgid "Previous"
-msgstr "前へ"
+#: templates/sentry/remove-organization.html:35
+#: templates/sentry/admin/users/remove.html:17
+#: templates/sentry/projects/remove.html:18
+#: templates/sentry/teams/remove.html:27
+msgid "Cancel"
+msgstr "キャンセル"
 
-#: templates/sentry/search.html:39
-#: templates/sentry/admin/projects/list.html:19
-#: templates/sentry/admin/projects/list.html:82
-#: templates/sentry/admin/teams/list.html:19
-#: templates/sentry/admin/teams/list.html:74
-#: templates/sentry/admin/users/list.html:22
-#: templates/sentry/admin/users/list.html:79
-#: templates/sentry/events/event_list.html:25
-#: templates/sentry/events/event_list.html:44
-#: templates/sentry/explore/tag_details.html:36
-#: templates/sentry/explore/tag_details.html:55
-#: templates/sentry/explore/tag_value_details.html:38
-#: templates/sentry/explore/tag_value_details.html:57
-#: templates/sentry/explore/tag_value_list.html:30
-#: templates/sentry/explore/tag_value_list.html:64
-#: templates/sentry/explore/code/list_tag.html:31
-#: templates/sentry/explore/code/list_tag.html:69
-#: templates/sentry/explore/code/tag_details.html:43
-#: templates/sentry/explore/code/tag_details.html:62
-#: templates/sentry/groups/group_list.html:88
-#: templates/sentry/groups/group_list.html:144
-#: templates/sentry/partial/_pager.html:6
-#: templates/sentry/users/details.html:43
-#: templates/sentry/users/details.html:62 templates/sentry/users/list.html:24
-#: templates/sentry/users/list.html:53
-msgid "Next"
-msgstr "次へ"
-
-#: templates/sentry/select_team.html:11 templates/sentry/teams/new.html:11
-msgid "Create a New Team"
-msgstr "新しいチームを作成"
-
-#: templates/sentry/select_team.html:13
-msgid "Your teams"
-msgstr "所属チーム"
-
-#: templates/sentry/select_team.html:33
-msgid "You are not a member of any teams."
-msgstr "どのチームにも属していません。"
-
-#: templates/sentry/wall.html:35
+#: templates/sentry/wall.html:34
 msgid "Trending"
 msgstr "トレンド"
 
-#: templates/sentry/wall.html:43
+#: templates/sentry/wall.html:42
 msgid "New"
 msgstr "新規"
 
@@ -558,24 +741,8 @@ msgstr "イベント"
 msgid "Localization"
 msgstr "言語"
 
-#: templates/sentry/account/appearance.html:37
-#: templates/sentry/account/notifications.html:105
-#: templates/sentry/account/settings.html:46
-#: templates/sentry/admin/users/edit.html:19
-#: templates/sentry/partial/_form.html:9
-#: templates/sentry/plugins/bases/issue/create_issue.html:26
-#: templates/sentry/projects/manage.html:44
-#: templates/sentry/projects/manage_tags.html:36
-#: templates/sentry/projects/notifications.html:59
-#: templates/sentry/projects/quotas.html:37
-#: templates/sentry/teams/manage.html:43
-#: templates/sentry/teams/groups/details.html:47
-#: templates/sentry/teams/members/edit.html:38
-msgid "Save Changes"
-msgstr "変更を保存"
-
 #: templates/sentry/account/identities.html:7
-#: templates/sentry/bases/account.html:34
+#: templates/sentry/bases/account.html:35
 msgid "Identities"
 msgstr "認証"
 
@@ -600,25 +767,27 @@ msgid ""
 "Notifications are generally sent when a new event is\n"
 "            seen, an already resolved event has changed to unresolved, or a\n"
 "            system-wide spike in events is detected."
-msgstr ""
+msgstr "通知は以下の場合に送信されます。 1. 新しいイベントが発生した時、 2. 解決済みのイベントが未解決になった時、 3. システム全体でイベントの急発生が検出された時、の３つです。"
 
 #: templates/sentry/account/notifications.html:47
+#: templates/sentry/projects/notifications.html:24
 msgid "General"
-msgstr ""
+msgstr "一般"
 
 #: templates/sentry/account/notifications.html:55
 msgid ""
 "Choose which projects you wish to receive email notifications for, as well "
 "as an alternative email address to send to."
-msgstr ""
+msgstr "メール通知を受け取りたいプロジェクトを選択してください。また、受信する他のメールアドレスを選択することもできます。"
 
 #: templates/sentry/account/notifications.html:56
 msgid ""
 "Note: You will never receive notifications if a project has them disabled "
 "(via the Project settings)"
-msgstr ""
+msgstr "注意: プロジェクトが(プロジェクト設定で)無効になっている場合、通知は送信されません。"
 
-#: templates/sentry/account/notifications.html:72 web/forms/projects.py:62
+#: templates/sentry/account/notifications.html:72
+#: web/frontend/project_settings.py:66
 msgid "Project Name"
 msgstr "プロジェクト名"
 
@@ -630,14 +799,21 @@ msgstr "メールアドレス"
 msgid "Account Settings"
 msgstr "アカウント設定"
 
-#: templates/sentry/account/settings.html:13
-msgid ""
-"To make changes to your account, you must first enter your current password."
-msgstr "アカウント設定を変更したい場合、パスワードを入力してください。"
-
-#: templates/sentry/account/settings.html:40
+#: templates/sentry/account/settings.html:33
 msgid "You may also optionally change your password."
 msgstr "同時にパスワードも変更できます。"
+
+#: templates/sentry/account/sudo.html:6
+msgid "Confirm Password"
+msgstr "パスワード確認"
+
+#: templates/sentry/account/sudo.html:23
+msgid "Help us keep your account safe by confirming your password."
+msgstr ""
+
+#: templates/sentry/account/sudo.html:32
+msgid "Your password was not valid."
+msgstr "パスワードが不正です"
 
 #: templates/sentry/account/recover/confirm.html:6
 #: templates/sentry/account/recover/confirm.html:11
@@ -680,11 +856,7 @@ msgstr "メールを送る"
 msgid ""
 "We have sent an email to the address registered with this account containing"
 " further instructions to reset your password."
-msgstr ""
-
-#: templates/sentry/admin/stats.html:8
-msgid "Stats"
-msgstr "状態"
+msgstr "パスワードをリセットする方法について記されたメールを、登録済みメールアドレスに送りました。"
 
 #: templates/sentry/admin/stats.html:12 templates/sentry/bases/admin.html:41
 msgid "Statistics"
@@ -693,6 +865,60 @@ msgstr "統計情報"
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
 msgstr "プロジェクト管理"
+
+#: templates/sentry/admin/projects/list.html:18
+#: templates/sentry/admin/projects/list.html:72
+#: templates/sentry/admin/teams/list.html:18
+#: templates/sentry/admin/teams/list.html:73
+#: templates/sentry/admin/users/list.html:16
+#: templates/sentry/admin/users/list.html:74
+#: templates/sentry/explore/tag_details.html:35
+#: templates/sentry/explore/tag_details.html:54
+#: templates/sentry/explore/tag_value_details.html:37
+#: templates/sentry/explore/tag_value_details.html:56
+#: templates/sentry/explore/tag_value_list.html:29
+#: templates/sentry/explore/tag_value_list.html:63
+#: templates/sentry/explore/code/list_tag.html:30
+#: templates/sentry/explore/code/list_tag.html:68
+#: templates/sentry/explore/code/tag_details.html:42
+#: templates/sentry/explore/code/tag_details.html:61
+#: templates/sentry/groups/group_list.html:83
+#: templates/sentry/groups/group_list.html:85
+#: templates/sentry/groups/group_list.html:147
+#: templates/sentry/groups/group_list.html:149
+#: templates/sentry/partial/_pager.html:5
+#: templates/sentry/users/details.html:42
+#: templates/sentry/users/details.html:61 templates/sentry/users/list.html:23
+#: templates/sentry/users/list.html:52
+msgid "Previous"
+msgstr "前へ"
+
+#: templates/sentry/admin/projects/list.html:19
+#: templates/sentry/admin/projects/list.html:73
+#: templates/sentry/admin/teams/list.html:19
+#: templates/sentry/admin/teams/list.html:74
+#: templates/sentry/admin/users/list.html:17
+#: templates/sentry/admin/users/list.html:75
+#: templates/sentry/explore/tag_details.html:36
+#: templates/sentry/explore/tag_details.html:55
+#: templates/sentry/explore/tag_value_details.html:38
+#: templates/sentry/explore/tag_value_details.html:57
+#: templates/sentry/explore/tag_value_list.html:30
+#: templates/sentry/explore/tag_value_list.html:64
+#: templates/sentry/explore/code/list_tag.html:31
+#: templates/sentry/explore/code/list_tag.html:69
+#: templates/sentry/explore/code/tag_details.html:43
+#: templates/sentry/explore/code/tag_details.html:62
+#: templates/sentry/groups/group_list.html:88
+#: templates/sentry/groups/group_list.html:90
+#: templates/sentry/groups/group_list.html:152
+#: templates/sentry/groups/group_list.html:154
+#: templates/sentry/partial/_pager.html:6
+#: templates/sentry/users/details.html:43
+#: templates/sentry/users/details.html:62 templates/sentry/users/list.html:24
+#: templates/sentry/users/list.html:53
+msgid "Next"
+msgstr "次へ"
 
 #: templates/sentry/admin/projects/list.html:24
 msgid ""
@@ -703,8 +929,6 @@ msgstr ""
 #: templates/sentry/admin/projects/list.html:39
 #: templates/sentry/admin/users/edit.html:38
 #: templates/sentry/admin/users/list_projects.html:24
-#: templates/sentry/teams/groups/projects.html:26
-#: templates/sentry/teams/projects/index.html:21 web/forms/teams.py:155
 msgid "Project"
 msgstr "プロジェクト"
 
@@ -714,11 +938,10 @@ msgstr "イベント(24時間)"
 
 #: templates/sentry/admin/projects/list.html:41
 #: templates/sentry/admin/teams/list.html:37
-#: templates/sentry/teams/projects/index.html:22
 msgid "Date Added"
 msgstr "日付を追加しました。"
 
-#: templates/sentry/admin/projects/list.html:76
+#: templates/sentry/admin/projects/list.html:67
 msgid "There are no active projects in Sentry."
 msgstr "Sentryには活動しているプロジェクトはありません。"
 
@@ -766,13 +989,13 @@ msgstr "SMTP設定"
 
 #: templates/sentry/admin/status/mail.html:21
 msgid "From Address"
-msgstr ""
+msgstr "Fromのアドレス"
 
 #: templates/sentry/admin/status/mail.html:25
 msgid "Host"
 msgstr "ホスト名"
 
-#: templates/sentry/admin/status/mail.html:29
+#: templates/sentry/admin/status/mail.html:29 web/forms/accounts.py:240
 msgid "Username"
 msgstr "ユーザ名"
 
@@ -781,7 +1004,7 @@ msgstr "ユーザ名"
 msgid "not set"
 msgstr "未設定"
 
-#: templates/sentry/admin/status/mail.html:33 web/forms/projects.py:86
+#: templates/sentry/admin/status/mail.html:33 web/forms/accounts.py:74
 msgid "Password"
 msgstr "パスワード"
 
@@ -840,10 +1063,7 @@ msgstr "チーム"
 #: templates/sentry/admin/teams/list.html:36
 #: templates/sentry/admin/users/edit.html:28
 #: templates/sentry/admin/users/list_projects.html:7
-#: templates/sentry/bases/admin.html:18 templates/sentry/bases/team.html:17
-#: templates/sentry/teams/groups/details.html:28
-#: templates/sentry/teams/groups/projects.html:8
-#: templates/sentry/teams/projects/index.html:11
+#: templates/sentry/bases/admin.html:18
 msgid "Projects"
 msgstr "プロジェクト"
 
@@ -873,29 +1093,27 @@ msgstr "毎日のイベント"
 msgid "Manage Users"
 msgstr "ユーザ管理"
 
-#: templates/sentry/admin/users/list.html:11
-msgid "Create a new user"
-msgstr "新しいユーザーを作成する"
-
-#: templates/sentry/admin/users/list.html:37
-#: templates/sentry/projects/base.html:26
-#: templates/sentry/projects/list.html:24
-#: templates/sentry/teams/groups/list.html:29 web/forms/__init__.py:32
-#: web/forms/accounts.py:135
+#: templates/sentry/admin/users/list.html:32 web/forms/__init__.py:34
+#: web/forms/accounts.py:242 web/forms/add_project.py:14
+#: web/forms/add_team.py:10
 msgid "Name"
 msgstr "名前"
 
-#: templates/sentry/admin/users/list.html:38
+#: templates/sentry/admin/users/list.html:33
 msgid "Joined"
 msgstr "参加"
 
-#: templates/sentry/admin/users/list.html:39
+#: templates/sentry/admin/users/list.html:34
 msgid "Last Login"
 msgstr "最後のログイン"
 
-#: templates/sentry/admin/users/list.html:73
+#: templates/sentry/admin/users/list.html:68
 msgid "There are no users matching your query in Sentry."
 msgstr "探しているユーザはSentryにはいません。"
+
+#: templates/sentry/admin/users/list.html:72
+msgid "Create a new user"
+msgstr "新しいユーザーを作成する"
 
 #: templates/sentry/admin/users/list_projects.html:45
 msgid "There are no active projects for this user."
@@ -906,53 +1124,25 @@ msgid "New User"
 msgstr "新規ユーザー"
 
 #: templates/sentry/admin/users/remove.html:17
-#: templates/sentry/teams/remove.html:18
-#: templates/sentry/teams/groups/remove.html:18
-#: templates/sentry/teams/members/remove.html:17
+#: templates/sentry/teams/remove.html:26
 msgid "Confirm"
 msgstr "確認"
-
-#: templates/sentry/admin/users/remove.html:17
-#: templates/sentry/projects/remove.html:18
-#: templates/sentry/teams/remove.html:18
-#: templates/sentry/teams/groups/remove.html:18
-#: templates/sentry/teams/members/remove.html:17
-msgid "Cancel"
-msgstr "キャンセル"
 
 #: templates/sentry/alerts/details.html:14
 #, python-format
 msgid "Alert at %(datetime)s"
 msgstr "%(datetime)s のアラート"
 
-#: templates/sentry/alerts/details.html:21
-msgid "Related Events"
-msgstr "関連イベント"
-
-#: templates/sentry/alerts/details.html:21
-msgid "Trending at time of alert"
-msgstr ""
-
-#: templates/sentry/alerts/details.html:26
-msgid ""
-"Note: All events represent their current state, not their value at the time "
-"of this alert."
-msgstr ""
-
-#: templates/sentry/alerts/details.html:38
-msgid "No trends are available for this report."
-msgstr ""
-
-#: templates/sentry/alerts/details.html:48
+#: templates/sentry/alerts/details.html:27
 msgid "Meta"
-msgstr ""
+msgstr "メタ"
 
-#: templates/sentry/alerts/details.html:50
+#: templates/sentry/alerts/details.html:29
 msgid "When:"
 msgstr "時刻:"
 
 #: templates/sentry/alerts/list.html:6 templates/sentry/alerts/team.html:6
-#: templates/sentry/projects/notifications.html:23
+#: templates/sentry/projects/notifications.html:34
 msgid "Alerts"
 msgstr "アラート"
 
@@ -962,17 +1152,16 @@ msgstr "最近のアラート"
 
 #: templates/sentry/bases/account.html:6
 #: templates/sentry/bases/account.html:30
-#: templates/sentry/bases/explore.html:18
-#: templates/sentry/bases/settings.html:14
-#: templates/sentry/bases/stream.html:22 templates/sentry/bases/team.html:14
-#: templates/sentry/projects/manage.html:64
-#: templates/sentry/teams/manage.html:8
-#: templates/sentry/teams/groups/details.html:22
+#: templates/sentry/bases/explore.html:20
+#: templates/sentry/bases/organization.html:59
+#: templates/sentry/bases/settings.html:18
+#: templates/sentry/bases/stream.html:26
+#: templates/sentry/projects/manage.html:68
 msgid "Settings"
 msgstr "設定"
 
 #: templates/sentry/bases/account.html:33
-#: templates/sentry/projects/manage.html:67
+#: templates/sentry/projects/manage.html:71
 #: templates/sentry/projects/notifications.html:7
 #: templates/sentry/projects/notifications.html:11
 msgid "Notifications"
@@ -990,45 +1179,33 @@ msgstr "ユーザー"
 msgid "Plugins"
 msgstr "プラグイン"
 
-#: templates/sentry/bases/explore.html:11
-#: templates/sentry/bases/settings.html:11
-#: templates/sentry/bases/stream.html:17
-#: templates/sentry/projects/list.html:34
+#: templates/sentry/bases/explore.html:12
+#: templates/sentry/bases/settings.html:12
+#: templates/sentry/bases/stream.html:18
 msgid "Stream"
 msgstr "ストリーム"
 
-#: templates/sentry/bases/explore.html:14
+#: templates/sentry/bases/explore.html:15
+#: templates/sentry/bases/settings.html:15
+#: templates/sentry/bases/stream.html:21
 msgid "Explore"
+msgstr "調査"
+
+#: templates/sentry/bases/explore.html:37
+msgid "About Explore"
+msgstr "「調査」について"
+
+#: templates/sentry/bases/organization.html:7
+msgid "Organization Settings"
 msgstr ""
 
-#: templates/sentry/bases/stream.html:10
+#: templates/sentry/bases/organization.html:24
+msgid "New Member"
+msgstr "メンバー追加"
+
+#: templates/sentry/bases/stream.html:11
 msgid "Search query or event ID"
 msgstr "検索クエリーかイベントID"
-
-#: templates/sentry/bases/stream.html:10
-msgid "Event ID"
-msgstr "イベントID"
-
-#: templates/sentry/bases/stream.html:21
-msgid "Project Settings"
-msgstr "プロジェクト設定"
-
-#: templates/sentry/bases/team.html:9
-#: templates/sentry/teams/projects/new.html:10
-msgid "Create a New Project"
-msgstr "新しいプロジェクトを作成"
-
-#: templates/sentry/bases/team.html:20
-#: templates/sentry/teams/groups/details.html:25
-#: templates/sentry/teams/groups/members.html:8
-#: templates/sentry/teams/members/index.html:20
-msgid "Members"
-msgstr "メンバー"
-
-#: templates/sentry/bases/team.html:23
-#: templates/sentry/teams/groups/list.html:18
-msgid "Access Groups"
-msgstr "グループへのアクセス"
 
 #: templates/sentry/emails/alert.html:22
 msgid "Datetime:"
@@ -1037,40 +1214,6 @@ msgstr "日時:"
 #: templates/sentry/emails/alert.html:24
 msgid "Project:"
 msgstr "プロジェクト:"
-
-#: templates/sentry/emails/error.html:10
-msgid "New Event"
-msgstr "新しいイベント"
-
-#: templates/sentry/emails/error.html:12
-msgid "Regression"
-msgstr "後退"
-
-#: templates/sentry/emails/error.html:30
-msgid "Logger:"
-msgstr "ロガー:"
-
-#: templates/sentry/emails/error.html:32
-msgid "Level:"
-msgstr "レベル:"
-
-#: templates/sentry/emails/error.html:36
-msgid "Server:"
-msgstr "サーバー:"
-
-#: templates/sentry/emails/error.html:38
-#: templates/sentry/groups/details.html:93
-msgid "First Seen:"
-msgstr "初出:"
-
-#: templates/sentry/events/event_list.html:6
-#, python-format
-msgid "%(name)s events"
-msgstr "%(name)s のイベント"
-
-#: templates/sentry/events/event_list.html:37
-msgid "No events match your filters."
-msgstr "フィルターに適合するイベントはありません。"
 
 #: templates/sentry/events/replay_request.html:6
 msgid "Replay Request"
@@ -1088,21 +1231,28 @@ msgstr "登録"
 msgid "Tag Details"
 msgstr "タグ詳細"
 
-#: templates/sentry/explore/tag_list.html:42
+#: templates/sentry/explore/tag_list.html:39
 msgid ""
 "There don't seem to be any tags in the system yet. For more information on "
 "how you can tag data, check your client's documentation."
 msgstr "システムにタグがないようです。データにタグ付けする方法については、お使いのクライアントのドキュメントをご覧ください。"
 
 #: templates/sentry/explore/tag_value_details.html:10
-#: templates/sentry/projects/manage.html:62
-#: templates/sentry/teams/members/edit.html:18
+#: templates/sentry/projects/manage.html:66
 msgid "Details"
 msgstr "詳細"
 
 #: templates/sentry/explore/tag_value_details.html:12
 msgid "Key:"
 msgstr "キー:"
+
+#: templates/sentry/explore/tag_value_list.html:21
+#: templates/sentry/explore/code/list_tag.html:22
+#: templates/sentry/groups/group_list.html:53
+#: templates/sentry/users/list.html:15
+#, python-format
+msgid "Sort by: %(label)s"
+msgstr "並び替え: %(label)s"
 
 #: templates/sentry/explore/tag_value_list.html:35
 #: templates/sentry/explore/code/list_tag.html:36
@@ -1135,28 +1285,25 @@ msgstr "関数:"
 
 #: templates/sentry/groups/details.html:48
 msgid "Add Note"
-msgstr ""
+msgstr "注釈を追加"
 
 #: templates/sentry/groups/details.html:55
-#: templates/sentry/groups/public_details.html:31
-msgid "Newer Event"
-msgstr "新しいイベント"
+msgid "Newer Sample"
+msgstr ""
 
 #: templates/sentry/groups/details.html:56
-#: templates/sentry/groups/public_details.html:32
-msgid "Older Event"
-msgstr "古いイベント"
+msgid "Older Sample"
+msgstr ""
 
 #: templates/sentry/groups/details.html:81
 #: templates/sentry/partial/event_nav.html:27
-#: templates/sentry/projects/manage.html:73
-#: templates/sentry/projects/notifications.html:35
+#: templates/sentry/projects/manage.html:80
 msgid "Tags"
 msgstr "タグ"
 
 #: templates/sentry/groups/details.html:84
-msgid "Similar Events"
-msgstr "類似イベント"
+msgid "Samples"
+msgstr ""
 
 #: templates/sentry/groups/details.html:88
 msgid "Aggregate Details"
@@ -1166,9 +1313,13 @@ msgstr "詳細"
 msgid "Status:"
 msgstr "ステータス:"
 
+#: templates/sentry/groups/details.html:93
+msgid "First Seen:"
+msgstr "初出:"
+
 #: templates/sentry/groups/details.html:96
 msgid "Reopened At:"
-msgstr ""
+msgstr "再オープン時間:"
 
 #: templates/sentry/groups/details.html:99
 msgid "Last Seen:"
@@ -1188,46 +1339,36 @@ msgstr "N/A"
 msgid "Seen By"
 msgstr ""
 
-#: templates/sentry/groups/details.html:127
-msgid "This event is <strong>publicly visible</strong>."
-msgstr "このイベントは<strong>公開</strong>です。"
-
-#: templates/sentry/groups/details.html:130
-msgid "This event is <strong>not publicly visible</strong>."
-msgstr "このイベントは<strong>非公開</strong>です。"
-
-#: templates/sentry/groups/details.html:133
-msgid "Link"
-msgstr "リンク"
-
-#: templates/sentry/groups/details.html:137
-#: templates/sentry/groups/details.html:140
-msgid "Change"
-msgstr "変更"
-
-#: templates/sentry/groups/details.html:147
-#: templates/sentry/projects/keys.html:27
-#: templates/sentry/teams/groups/list.html:31
-#: templates/sentry/teams/groups/members.html:26
-#: templates/sentry/teams/groups/projects.html:27
-#: templates/sentry/teams/members/index.html:32
-#: templates/sentry/teams/members/index.html:82
+#: templates/sentry/groups/details.html:124
+#: templates/sentry/projects/keys.html:26
 msgid "Actions"
 msgstr "アクション"
 
-#: templates/sentry/groups/details.html:149
+#: templates/sentry/groups/details.html:127
 msgid "Mute Event"
-msgstr ""
+msgstr "イベントのミュート"
 
-#: templates/sentry/groups/details.html:151
+#: templates/sentry/groups/details.html:129
 msgid "Unmute Event"
-msgstr ""
+msgstr "ミュートを解除"
 
-#: templates/sentry/groups/details.html:163
+#: templates/sentry/groups/details.html:138
+msgid "Share Event"
+msgstr "イベントを共有"
+
+#: templates/sentry/groups/details.html:147
+msgid "Raw JSON Data"
+msgstr "JSONデータ"
+
+#: templates/sentry/groups/details.html:150
+msgid "Are you sure you wish to delete all data for this event?"
+msgstr "このイベントに関するデータを本当にすべて消しますか？"
+
+#: templates/sentry/groups/details.html:150
 msgid "Remove Event Data"
 msgstr "イベントデータ削除"
 
-#: templates/sentry/groups/event_list.html:10
+#: templates/sentry/groups/event_list.html:11
 #, python-format
 msgid ""
 "This list only contains a portion of all events seen. For more information "
@@ -1235,26 +1376,26 @@ msgid ""
 "href=\"%(link)s\">documentation</a>."
 msgstr "このリストは全イベントのうちの一部しか含んでいません。Sentryのイベント収集については <a href=\"%(link)s\">ドキュメント</a>を参照してください。"
 
-#: templates/sentry/groups/event_list.html:23
+#: templates/sentry/groups/event_list.html:24
 #: templates/sentry/plugins/bases/tag/index.html:41
 msgid "There are no records recorded for this event."
 msgstr "このイベントに関連する履歴はありません。"
 
-#: templates/sentry/groups/group_list.html:18
+#: templates/sentry/groups/group_list.html:19
 msgid "Bookmarks"
 msgstr "ブックマーク"
 
-#: templates/sentry/groups/group_list.html:21
+#: templates/sentry/groups/group_list.html:22
 msgid "All Events"
 msgstr "全てのイベント"
 
-#: templates/sentry/groups/group_list.html:22
+#: templates/sentry/groups/group_list.html:23
 msgid "Only Bookmarks"
 msgstr "ブックマークのみ"
 
 #: templates/sentry/groups/group_list.html:45
-msgid "Resolve Feed"
-msgstr "フィードの解決"
+msgid "Resolve All Events"
+msgstr "全イベントを解決"
 
 #: templates/sentry/groups/group_list.html:48
 #: templates/sentry/groups/group_list.html:49
@@ -1265,17 +1406,25 @@ msgstr "更新を一時停止"
 msgid "Enable Updates"
 msgstr "更新を有効化"
 
-#: templates/sentry/groups/group_list.html:107
+#: templates/sentry/groups/group_list.html:110
 msgid "All events are represented in UTC time."
 msgstr "すべてのイベントはUTC時間で表示されます"
 
-#: templates/sentry/groups/group_list.html:111
+#: templates/sentry/groups/group_list.html:114
 msgid "Clear"
 msgstr "クリア"
 
-#: templates/sentry/groups/group_list.html:112
+#: templates/sentry/groups/group_list.html:115
 msgid "Apply"
 msgstr "実行"
+
+#: templates/sentry/groups/public_details.html:31
+msgid "Newer Event"
+msgstr "新しいイベント"
+
+#: templates/sentry/groups/public_details.html:32
+msgid "Older Event"
+msgstr "古いイベント"
 
 #: templates/sentry/groups/public_details.html:39
 msgid ""
@@ -1289,68 +1438,41 @@ msgid ""
 "on how you can tag data, check your client's documentation."
 msgstr "このイベントにはタグが付けられていません。データにタグを付ける方法については、クライアントドキュメントを参照してください。"
 
-#: templates/sentry/partial/_client_config.html:42
-msgid ""
-"To start sending events, configure your client with the following DSN value:"
-msgstr "イベント送信を開始するには、クライアントで以下のDSNの値を設定してください:"
+#: templates/sentry/help/platform_index.html:6
+msgid "Platforms"
+msgstr "プラットフォーム"
 
-#: templates/sentry/partial/_client_config.html:46
+#: templates/sentry/help/platform_index.html:48
+msgid "Clients"
+msgstr ""
+
+#: templates/sentry/help/platform_index.html:64
+msgid "If you already know what you're doing, here's your DSN:"
+msgstr ""
+
+#: templates/sentry/help/platform_index.html:69
 #, python-format
 msgid ""
 "If this is a client that only needs public access (like <a href=\"%(link)s"
 "\">raven-js</a>), you can use the following public DSN:"
 msgstr "もしこのクライアントが (<a href=\"%(link)s\">raven-js</a>のように)公開アクセスしか必要ない場合、公開用DSNを使ってください:"
 
-#: templates/sentry/partial/_client_config.html:51
-#, python-format
-msgid ""
-"There is no API key assigned to your account. Generate a new key or select "
-"one from the <a href=\"%(link)s\">API Keys page</a>."
-msgstr "あなたのアカウントにはAPIキーがありません。新しいキーを作成するか、<a href=\"%(link)s\">APIキーのページ</a>で既存のキーを選択してください。"
-
-#: templates/sentry/partial/_client_config.html:55
-msgid "Platforms"
-msgstr "プラットフォーム"
-
-#: templates/sentry/partial/_client_config.html:102
-msgid "Frameworks"
-msgstr "フレームワーク"
-
-#: templates/sentry/partial/_client_config.html:126
-msgid "More Clients"
-msgstr "他のクライアント"
-
-#: templates/sentry/partial/_client_config.html:141
-#, python-format
-msgid ""
-"For more information on developing clients and the Sentry API, see the <a "
-"href=\"%(link)s\">documentation</a>."
-msgstr "クライアントの開発とSentry APIに関する詳しい情報は、<a href=\"%(link)s\">ドキュメント</a>を参照してください。"
-
-#: templates/sentry/partial/_event_details.html:29
+#: templates/sentry/partial/_event_details.html:30
 #: templates/sentry/partial/event_nav.html:39
 msgid "Additional Data"
 msgstr "その他の情報"
 
-#: templates/sentry/partial/_event_details.html:40
+#: templates/sentry/partial/_event_details.html:41
 msgid "Package Versions"
 msgstr "パッケージバージョン"
 
-#: templates/sentry/partial/_group.html:41
-msgid "Mark as Resolved"
-msgstr "解決済みにする"
-
-#: templates/sentry/partial/_group.html:43
-msgid "Already Resolved"
-msgstr "すでに解決済み"
-
-#: templates/sentry/partial/_group.html:46
-msgid "Bookmark"
-msgstr "ブックマーク"
+#: templates/sentry/partial/_form.html:11
+msgid "Test Configuration"
+msgstr "設定テスト"
 
 #: templates/sentry/partial/data_values.html:13
 msgid "Index"
-msgstr ""
+msgstr "インデックス"
 
 #: templates/sentry/partial/data_values.html:15
 msgid "Value"
@@ -1387,14 +1509,8 @@ msgid ""
 msgstr "<strong>あなたのメインアプリケーションハンドラーの後に</strong>Connectミドルウェアのインスタンスを登録してください。"
 
 #: templates/sentry/partial/client_config/connect.html:20
-#: templates/sentry/partial/client_config/express.html:17
-#: templates/sentry/partial/client_config/node.js.html:21
-msgid "Ensure Node is run with <code>NODE_ENV=production</code>:"
-msgstr "Nodeが<code>NODE_ENV=production</code>で動作していることを確認してください:"
-
-#: templates/sentry/partial/client_config/connect.html:24
 #: templates/sentry/partial/client_config/django.html:19
-#: templates/sentry/partial/client_config/express.html:21
+#: templates/sentry/partial/client_config/express.html:17
 #: templates/sentry/partial/client_config/flask.html:19
 #: templates/sentry/partial/client_config/ios.html:23
 #: templates/sentry/partial/client_config/rails3.html:14
@@ -1405,9 +1521,9 @@ msgid ""
 "uncaught exceptions to Sentry."
 msgstr "これで終わりです！Ravenは捕捉されなかった例外をすべてSentryに送るようにエラーハンドリングを設定しました。"
 
-#: templates/sentry/partial/client_config/connect.html:26
-#: templates/sentry/partial/client_config/express.html:23
-#: templates/sentry/partial/client_config/node.js.html:33
+#: templates/sentry/partial/client_config/connect.html:22
+#: templates/sentry/partial/client_config/express.html:19
+#: templates/sentry/partial/client_config/node.js.html:29
 #, python-format
 msgid ""
 "For more information on other uses of Raven with Node.js, please see the <a "
@@ -1455,7 +1571,7 @@ msgstr "インストール済みアプリのリストにravenを加えます"
 msgid ""
 "If you wish to test your connection to the server, you can use the raven "
 "test command:"
-msgstr ""
+msgstr "サーバーへの接続をテストしたい場合、ravenのテストコマンドを使います:"
 
 #: templates/sentry/partial/client_config/express.html:11
 msgid "Register an instance of the Express middleware:"
@@ -1463,7 +1579,7 @@ msgstr "Expressミドルウェアのインスタンスを登録します:"
 
 #: templates/sentry/partial/client_config/flask.html:6
 msgid "You'll also need blinker if you do not have it already:"
-msgstr ""
+msgstr "また、もしまだインストールしていない場合、blinkerも必要となります:"
 
 #: templates/sentry/partial/client_config/flask.html:10
 msgid "Blinker is required for signals to work within Flask."
@@ -1473,6 +1589,18 @@ msgstr "BlinkerはFlaskの中でシグナルを有効にするために必要で
 #: templates/sentry/partial/client_config/tornado.html:6
 msgid "Add the required configuration in your application setup:"
 msgstr "あなたのアプリケーション設定に必要な設定を加えてください。"
+
+#: templates/sentry/partial/client_config/go.html:5
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-go</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/go.html:49
+#, python-format
+msgid ""
+"For more information on other uses of Raven with PHP, please see the <a "
+"href=\"%(link)s\">official documentation for raven-go</a>."
+msgstr ""
 
 #: templates/sentry/partial/client_config/ios.html:3
 #, python-format
@@ -1503,7 +1631,7 @@ msgstr "EventBuilderを使って、手動でイベントを送ることもでき
 
 #: templates/sentry/partial/client_config/java.html:18
 #: templates/sentry/partial/client_config/javascript.html:32
-#: templates/sentry/partial/client_config/node.js.html:27
+#: templates/sentry/partial/client_config/node.js.html:23
 #: templates/sentry/partial/client_config/php.html:17
 #: templates/sentry/partial/client_config/python.html:14
 msgid "record a simple message"
@@ -1512,7 +1640,7 @@ msgstr "簡単なメッセージを記録"
 #: templates/sentry/partial/client_config/java_base.html:16
 #, python-format
 msgid "Start by installing <a href=\"%(link)s\">raven-java</a>."
-msgstr "まず<a href=\"%(link)s\">raven-java</a>をインストールしてください。その後:"
+msgstr "まず<a href=\"%(link)s\">raven-java</a>をインストールしてください。:"
 
 #: templates/sentry/partial/client_config/java_base.html:18
 msgid "The easiest way to add the Raven dependency is with Maven:"
@@ -1544,9 +1672,9 @@ msgstr "まず<a href=\"%(link)s\">raven-js</a>をインストールします。
 #: templates/sentry/partial/client_config/javascript.html:9
 #, python-format
 msgid ""
-"Add the any URLs which will be logging errors in your project's settings "
-"under <a href=\"%(project_link)s#client-security\">Client Security</a>:"
-msgstr "プロジェクト設定の<a href=\"%(project_link)s#client-security\">クライアントセキュリティ</a>でエラーを捕捉したいURLを追加してください。"
+"Add any URLs which will be logging errors in your project's settings under "
+"<a href=\"%(project_link)s#client-security\">Client Security</a>:"
+msgstr ""
 
 #: templates/sentry/partial/client_config/javascript.html:13
 msgid "Configure the client:"
@@ -1554,17 +1682,17 @@ msgstr "クライアントの設定:"
 
 #: templates/sentry/partial/client_config/javascript.html:22
 msgid "Add additional user context if it's available:"
-msgstr ""
+msgstr "必要であればユーザーの情報を追加します。"
 
 #: templates/sentry/partial/client_config/javascript.html:29
-#: templates/sentry/partial/client_config/node.js.html:25
+#: templates/sentry/partial/client_config/node.js.html:21
 #: templates/sentry/partial/client_config/php.html:15
 #: templates/sentry/partial/client_config/python.html:12
 msgid "Now call out to the raven client to capture events:"
 msgstr "イベントを捕捉するためにRavenクライアントを呼び出します:"
 
 #: templates/sentry/partial/client_config/javascript.html:35
-#: templates/sentry/partial/client_config/node.js.html:30
+#: templates/sentry/partial/client_config/node.js.html:26
 #: templates/sentry/partial/client_config/php.html:20
 #: templates/sentry/partial/client_config/python.html:17
 msgid "capture an exception"
@@ -1613,18 +1741,38 @@ msgid ""
 "href=\"%(link)s\">official documentation for raven-php</a>."
 msgstr "PHPでRavenを使う他の方法に関しては、<a href=\"%(link)s\">raven-phpの公式ドキュメント</a>を参照してください。"
 
+#: templates/sentry/partial/client_config/pyramid.html:6
+#, python-format
+msgid ""
+"A filter factory for <a href=\"%(link)s\">PasteDeploy</a> exists to allow "
+"easily inserting Raven into a WSGI pipeline:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/pyramid.html:21
+msgid ""
+" In the <em>[filter:raven]</em> section, you must specify the entry-point "
+"for raven with the <em>use =</em> key. All other raven client parameters can"
+" be included in this section as well."
+msgstr ""
+
+#: templates/sentry/partial/client_config/pyramid.html:24
+msgid ""
+"Add the following lines to your project's <em>.ini</em> file to setup "
+"<em>SentryHandler</em>:"
+msgstr ""
+
 #: templates/sentry/partial/client_config/python.html:23
 msgid ""
 "If you want to wrap a WSGI app to record uncaught exceptions, Raven provides"
 " a middleware for that:"
 msgstr "捕捉出来なかった例外を記録するためにWSGIをラップしたい場合のために、Ravenはミドルウェアを提供します:"
 
-#: templates/sentry/partial/client_config/python_base.html:15
+#: templates/sentry/partial/client_config/python_base.html:16
 #, python-format
 msgid "Start by installing <a href=\"%(link)s\">raven-python</a>:"
 msgstr "はじめに<a href=\"%(link)s\">raven-python</a>をインストールします:"
 
-#: templates/sentry/partial/client_config/python_base.html:22
+#: templates/sentry/partial/client_config/python_base.html:23
 #, python-format
 msgid ""
 "For more information on other uses of Raven with Python, please see the <a "
@@ -1664,28 +1812,28 @@ msgstr "<code>config/initializers/raven.rb</code>を作成し、以下のコー�
 msgid "Now wrap your application to capture events:"
 msgstr "イベントを捕捉するためにアプリケーションを囲みます:"
 
-#: templates/sentry/partial/client_config/ruby_base.html:17
+#: templates/sentry/partial/client_config/ruby_base.html:16
 #, python-format
 msgid "Start by installing <a href=\"%(link)s\">raven-ruby</a>:"
-msgstr "まず<a href=\\\"%(link)s\\\">raven-ruby</a>をインストールします:"
+msgstr "まず<a href=\"%(link)s\">raven-ruby</a>をインストールします:"
 
-#: templates/sentry/partial/client_config/ruby_base.html:21
+#: templates/sentry/partial/client_config/ruby_base.html:20
 msgid "Or add it to your <code>Gemfile</code>:"
 msgstr "あるいは <code>Gemfile</code>に追加します:"
 
-#: templates/sentry/partial/client_config/ruby_base.html:28
+#: templates/sentry/partial/client_config/ruby_base.html:27
 msgid ""
 "You may want to give things a try, you might want to use the included Rake "
 "task to test your configuration:"
 msgstr ""
 
-#: templates/sentry/partial/client_config/ruby_base.html:32
+#: templates/sentry/partial/client_config/ruby_base.html:31
 msgid ""
 "Note: If you're not bootstrapping the Raven gem somewhere that's included in"
 " your Rakefile, you'll have to manually pass the DSN value:"
 msgstr ""
 
-#: templates/sentry/partial/client_config/ruby_base.html:36
+#: templates/sentry/partial/client_config/ruby_base.html:35
 #, python-format
 msgid ""
 "For more information on other uses of Raven with Ruby, please see the <a "
@@ -1711,7 +1859,7 @@ msgid ""
 "Once the sentry client is attached to the application, request handlers can "
 "automatically capture uncaught exceptions by inheriting the SentryMixin "
 "class."
-msgstr ""
+msgstr "一度sentry clientがアプリケーションにアタッチされると、SentryMixinクラスを継承したリクエストハンドラーは自動的に捕捉されなかった例外をキャプチャーします。"
 
 #: templates/sentry/partial/interfaces/chained_exception.html:7
 #: templates/sentry/partial/interfaces/stacktrace.html:6
@@ -1734,52 +1882,65 @@ msgstr "最後の呼び出しを最初に表示"
 msgid "most recent call last"
 msgstr "最後の呼び出しを最後に表示"
 
-#: templates/sentry/partial/interfaces/exception.html:13
-msgid "Types:"
-msgstr "タイプ:"
+#: templates/sentry/partial/interfaces/exception.html:12
+msgid "Type:"
+msgstr "種類"
 
-#: templates/sentry/partial/interfaces/exception.html:19
+#: templates/sentry/partial/interfaces/exception.html:17
 msgid "Value:"
 msgstr "値:"
 
-#: templates/sentry/partial/interfaces/exception.html:25
+#: templates/sentry/partial/interfaces/exception.html:23
 msgid "Location:"
 msgstr "場所:"
 
-#: templates/sentry/partial/interfaces/http.html:7
+#: templates/sentry/partial/interfaces/http.html:6
+msgid "Copy as cURL"
+msgstr "cURLとしてコピー"
+
+#: templates/sentry/partial/interfaces/http.html:8
 msgid "Replay this request"
 msgstr "リクエストを再送"
 
-#: templates/sentry/partial/interfaces/http.html:18
-#: templates/sentry/partial/interfaces/http_email.html:8
+#: templates/sentry/partial/interfaces/http.html:19
 msgid "URL:"
 msgstr "URL:"
 
-#: templates/sentry/partial/interfaces/http.html:23
-#: templates/sentry/partial/interfaces/http_email.html:13
+#: templates/sentry/partial/interfaces/http.html:24
 msgid "Method:"
 msgstr "メソッド:"
 
-#: templates/sentry/partial/interfaces/http.html:28
-#: templates/sentry/partial/interfaces/http_email.html:18
+#: templates/sentry/partial/interfaces/http.html:30
 msgid "Query:"
 msgstr "クエリー:"
 
-#: templates/sentry/partial/interfaces/http.html:35
+#: templates/sentry/partial/interfaces/http.html:38
+msgid "Fragment:"
+msgstr "フラグメント"
+
+#: templates/sentry/partial/interfaces/http.html:46
 msgid "Body:"
 msgstr "内容:"
 
-#: templates/sentry/partial/interfaces/http.html:43
+#: templates/sentry/partial/interfaces/http.html:54
 msgid "Cookies:"
 msgstr "クッキー:"
 
-#: templates/sentry/partial/interfaces/http.html:51
+#: templates/sentry/partial/interfaces/http.html:62
 msgid "Headers:"
 msgstr "ヘッダー:"
 
-#: templates/sentry/partial/interfaces/http.html:59
+#: templates/sentry/partial/interfaces/http.html:70
 msgid "Environment:"
 msgstr "環境:"
+
+#: templates/sentry/partial/interfaces/http_email.html:10
+msgid "Method"
+msgstr "メソッド"
+
+#: templates/sentry/partial/interfaces/http_email.html:15
+msgid "Query"
+msgstr "クエリー"
 
 #: templates/sentry/partial/interfaces/stacktrace.html:13
 msgid "Stacktrace"
@@ -1818,19 +1979,19 @@ msgstr "表示・非表示切替"
 msgid "Template Error"
 msgstr "テンプレート エラー"
 
-#: templates/sentry/partial/interfaces/user.html:16
+#: templates/sentry/partial/interfaces/user.html:25
 msgid "ID:"
 msgstr "ID:"
 
-#: templates/sentry/partial/interfaces/user.html:22
+#: templates/sentry/partial/interfaces/user.html:31
 msgid "IP Address:"
-msgstr ""
+msgstr "IPアドレス:"
 
-#: templates/sentry/partial/interfaces/user.html:28
+#: templates/sentry/partial/interfaces/user.html:37
 msgid "Username:"
 msgstr "ユーザー名:"
 
-#: templates/sentry/partial/interfaces/user.html:34
+#: templates/sentry/partial/interfaces/user.html:43
 msgid "Email:"
 msgstr "メールアドレス:"
 
@@ -1863,49 +2024,55 @@ msgstr "使う前に<a href=\"%(link)s\">プラグイン設定</a>が必要で�
 msgid "Times Seen"
 msgstr "回数"
 
-#: templates/sentry/projects/base.html:5 templates/sentry/projects/base.html:8
-#: templates/sentry/projects/list.html:5 templates/sentry/projects/list.html:8
-msgid "Project List"
-msgstr "プロジェクト一覧"
-
-#: templates/sentry/projects/base.html:16
-#: templates/sentry/projects/list.html:14
-msgid "The following is a list of projects that you are a member of."
-msgstr "メンバーとなっているプロジェクト一覧"
-
-#: templates/sentry/projects/base.html:27
-#: templates/sentry/projects/list.html:25
-msgid "Membership"
-msgstr "関係"
-
-#: templates/sentry/projects/base.html:28
-#: templates/sentry/projects/list.html:26
-#: templates/sentry/teams/members/index.html:44
-msgid "Owner"
-msgstr "所有者"
-
-#: templates/sentry/projects/base.html:46
-#: templates/sentry/projects/list.html:44
-msgid "no owner"
-msgstr "所有者はいません"
-
-#: templates/sentry/projects/cannot_create_teams.html:5
-#: templates/sentry/teams/projects/index.html:9
-#: templates/sentry/teams/projects/new.html:5
-msgid "New Project"
-msgstr "新しいプロジェクト"
-
 #: templates/sentry/projects/cannot_create_teams.html:9
 msgid ""
 "You are not able to create a new project because you are not a member of any"
 " teams. Ask an administrator to add you to a team."
 msgstr "どのチームにも属していないため、新しいプロジェクトを作成できません。管理者にチームに加えてもらうよう相談してください。"
 
-#: templates/sentry/projects/client_help.html:6
-#: templates/sentry/projects/client_help.html:10
-#: templates/sentry/projects/manage.html:80
-msgid "Client Configuration"
-msgstr "クライアント設定"
+#: templates/sentry/projects/edit_key.html:7
+#: templates/sentry/projects/edit_key.html:11
+msgid "Edit API Key"
+msgstr "APIキーの編集"
+
+#: templates/sentry/projects/edit_key.html:28
+msgid "Created"
+msgstr "作成"
+
+#: templates/sentry/projects/edit_key.html:37
+msgid ""
+"Your credentials are bound to public and secret key (though both should be "
+"considered semi-secret). Different clients will require different "
+"credentials, so make sure you check the documentation before plugging things"
+" in."
+msgstr ""
+
+#: templates/sentry/projects/edit_key.html:39
+msgid "DSN"
+msgstr "DSN"
+
+#: templates/sentry/projects/edit_key.html:45
+msgid "DSN (Public)"
+msgstr "DSN(公開)"
+
+#: templates/sentry/projects/edit_key.html:46
+#, python-format
+msgid ""
+"Use your public DSN with insecure clients such as <a href=\"%(link)s"
+"\">raven-js</a>."
+msgstr "公開DSNは <a href=\"%(link)s\">raven-js</a> のような安全ではないクライアントで使います。"
+
+#: templates/sentry/projects/edit_key.html:52
+msgid "Public Key"
+msgstr "公開鍵"
+
+#: templates/sentry/projects/edit_key.html:58
+msgid "Secret Key"
+msgstr "秘密鍵"
+
+#: templates/sentry/projects/edit_key.html:64
+msgid "Project ID"
+msgstr ""
 
 #: templates/sentry/projects/keys.html:7
 #: templates/sentry/projects/keys.html:15
@@ -1916,97 +2083,70 @@ msgstr "APIキーの管理"
 msgid "Generate New Key"
 msgstr "新しいキーの生成"
 
-#: templates/sentry/projects/keys.html:26
+#: templates/sentry/projects/keys.html:25
 msgid "API Key"
 msgstr "APIキー"
 
-#: templates/sentry/projects/keys.html:44
+#: templates/sentry/projects/keys.html:47
 msgid "Revoke"
 msgstr "無効化"
 
-#: templates/sentry/projects/list.html:53
-msgid "You do not have access to any projects."
-msgstr "どのプロジェクトにもアクセス出来ません。"
-
-#: templates/sentry/projects/manage.html:14
+#: templates/sentry/projects/manage.html:18
 msgid "Project Details"
 msgstr "プロジェクト詳細"
 
-#: templates/sentry/projects/manage.html:29
+#: templates/sentry/projects/manage.html:32
 msgid "Event Settings"
 msgstr "イベント設定"
 
-#: templates/sentry/projects/manage.html:36
+#: templates/sentry/projects/manage.html:40
 msgid "Client Security"
 msgstr "クライアントセキュリティ"
 
-#: templates/sentry/projects/manage.html:38
+#: templates/sentry/projects/manage.html:42
 #, python-format
 msgid ""
 "Configure origin URLs which Sentry should accept events from. This is used "
 "for communication with clients like <a href=\"%(link)s\">raven-js</a>."
 msgstr "Sentryがイベントを許可するorigin URLを設定します。<a href=\"%(link)s\">raven-js</a>などのクライアントとの通信に使われます。"
 
-#: templates/sentry/projects/manage.html:39
+#: templates/sentry/projects/manage.html:43
 msgid ""
 "This will restrict requests based on the <code>Origin</code> and "
 "<code>Referer</code> headers."
 msgstr "リクエストは<code>Origin</code>と<code>Referer</code> ヘッダーによって制限されています。"
 
-#: templates/sentry/projects/manage.html:46
+#: templates/sentry/projects/manage.html:50
 #: templates/sentry/projects/remove.html:6
 #: templates/sentry/projects/remove.html:18
 msgid "Remove Project"
 msgstr "プロジェクトを削除"
 
-#: templates/sentry/projects/manage.html:48
+#: templates/sentry/projects/manage.html:52
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
 msgstr "このプロジェクトは削除出来ません。Sentryサーバーが内部で使用しています。"
 
-#: templates/sentry/projects/manage.html:70
+#: templates/sentry/projects/manage.html:74
 #: templates/sentry/projects/quotas.html:7
 #: templates/sentry/projects/quotas.html:11
 msgid "Rate Limits"
-msgstr ""
+msgstr "回数制限"
 
-#: templates/sentry/projects/manage.html:76
+#: templates/sentry/projects/manage.html:77
+#: templates/sentry/projects/rules/list.html:8
+msgid "Rules"
+msgstr "ルール"
+
+#: templates/sentry/projects/manage.html:83
 msgid "API Keys"
 msgstr "APIキー"
 
-#: templates/sentry/projects/manage.html:82
-msgid "All Platforms"
-msgstr "全プラットフォーム"
-
-#: templates/sentry/projects/manage.html:85
-msgid "JavaScript"
-msgstr "JavaScript"
-
 #: templates/sentry/projects/manage.html:88
-msgid "Python"
-msgstr "Python"
-
-#: templates/sentry/projects/manage.html:91
-msgid "PHP"
-msgstr "PHP"
-
-#: templates/sentry/projects/manage.html:94
-msgid "Ruby"
-msgstr "Ruby"
-
-#: templates/sentry/projects/manage.html:97
-msgid "Node.js"
-msgstr "Node.js"
-
-#: templates/sentry/projects/manage.html:100
-msgid "Java"
-msgstr "Java"
-
-#: templates/sentry/projects/manage.html:105
 msgid "Integrations"
 msgstr "連携"
 
-#: templates/sentry/projects/manage.html:107
+#: templates/sentry/projects/manage.html:90
 #: templates/sentry/projects/plugins/list.html:7
 #: templates/sentry/projects/plugins/list.html:11
 msgid "Manage Integrations"
@@ -2022,58 +2162,51 @@ msgid ""
 "Each event in Sentry may be annotated with various tags (key and value "
 "pairs). For more information on how send additional tags, see your client's "
 "documentation."
-msgstr ""
+msgstr "Sentryでのイベントにはいくつものタグ(キーとバリューの組)を付けられます。タグを追加して送信する詳しい方法については、クライアントのドキュメントを参照してください。"
 
 #: templates/sentry/projects/manage_tags.html:21
 msgid "Stream Filters"
-msgstr ""
+msgstr "ストリームフィルター"
 
 #: templates/sentry/projects/manage_tags.html:22
 msgid ""
 "Filters allow you to do limited searching on the stream view based on a "
 "tag's value. They are selectable via the sidebar on the stream."
-msgstr ""
+msgstr "フィルターではタグの値を使ってストリームビューの検索を絞り込めます。これらはストリームのサイドバーから選択できます。"
 
 #: templates/sentry/projects/manage_tags.html:28
 msgid "Stream Annotations"
-msgstr ""
+msgstr "ストリームの注釈"
 
 #: templates/sentry/projects/manage_tags.html:29
 msgid ""
 "Annotations display the total number of unique values that have been seen "
 "for an event. They are rendered on the stream with each individual event."
-msgstr ""
+msgstr "注釈はある一つのイベントで発生した値の総数を表示します。これらは個々のイベントのストリーム上に表示されます。"
 
 #: templates/sentry/projects/manage_tags.html:40
-#: templates/sentry/projects/notifications.html:55
 msgid "We have not yet recorded any tags for this project."
 msgstr "このプロジェクトにはタグが記録されていません。"
 
-#: templates/sentry/projects/notifications.html:20
+#: templates/sentry/projects/notifications.html:21
+#, python-format
 msgid ""
-"Sentry will automatically notify you whenever an event is first seen, or its"
-" state changes from resolved to unresolved."
-msgstr "Sentryはイベントが最初に起きた時、あるいは状態が解決から未解決に変更された時に自動的に通知します。"
+"Sentry will notify you based on the <a href=\"%(link)s\">rules configured "
+"for this project</a>."
+msgstr ""
 
-#: templates/sentry/projects/notifications.html:26
+#: templates/sentry/projects/notifications.html:37
 msgid ""
 "Alerts are triggered when the rate of events for the entire project increase"
 " by a relative amount. Values represent a 60-second interval."
 msgstr "プロジェクト全体でのイベント発生割合が相対量以上になった時に発生します。値は60秒間隔を表しています。"
-
-#: templates/sentry/projects/notifications.html:38
-msgid ""
-"Tag restrictions are based on your global notification rules. If tags are "
-"specified, notifications will be sent when they match any of the "
-"restrictions."
-msgstr "タグ制限はあなたの通知ルール設定に基づいています。タグが指定された場合、タグの制限のいずれかに適合した場合に通知が送られます。"
 
 #: templates/sentry/projects/quotas.html:14
 msgid ""
 "With the nature of Sentry, sometimes the amount of data collected can be "
 "overwhelming. You can set rate limits per-project to ensure that a single "
 "flood of errors won't affect any other projects utilizing Sentry."
-msgstr ""
+msgstr "Sentryの性質から、収集するデータの量がとても大量になる場合があります。プロジェクトごとに回数を制限すると、大量のエラーがSentryの他のプロジェクトに影響を及ぼすことを避けられます。"
 
 #: templates/sentry/projects/quotas.html:16
 msgid ""
@@ -2081,18 +2214,18 @@ msgid ""
 "the start of a new minute. When you attempt to send an event and the project"
 " is over its quota, the client will receive an HTTP 429 (Too Many Requests) "
 "response."
-msgstr ""
+msgstr "回数制限は一分ごとに決められています。これはつまり、新しい一分が始まった時に繰り越されるということを意味します。プロジェクトで回数制限を超えていた場合にイベントを送ると、クライアントには HTTP 429  (Too Many Requests) レスポンスが返されます。"
 
 #: templates/sentry/projects/quotas.html:19
 msgid "Note: The Sentry application is not configured to manage rate limits."
-msgstr ""
+msgstr "注意: このSentryは回数制限をするように設定されていません。"
 
 #: templates/sentry/projects/quotas.html:21
 #, python-format
 msgid ""
 "Your team has <strong>%(team_quota)s events per minute</strong> allocated "
 "collectively among projects."
-msgstr ""
+msgstr "あなたのチームはプロジェクト全体で <strong>一分間に %(team_quota)s 回のイベント</strong> を受け取ることができます。"
 
 #: templates/sentry/projects/quotas.html:23
 #, python-format
@@ -2103,17 +2236,7 @@ msgstr ""
 
 #: templates/sentry/projects/remove.html:11
 msgid "WARNING: This operation is permanent and cannot be undone!"
-msgstr ""
-
-#: templates/sentry/projects/docs/client_config.html:5
-#, python-format
-msgid "%(platform_title)s Client Configuration"
-msgstr "%(platform_title)sでのクライアント設定"
-
-#: templates/sentry/projects/docs/client_config.html:9
-#, python-format
-msgid "Configuring %(platform_title)s"
-msgstr "%(platform_title)sでの設定方法"
+msgstr "警告: この操作は永続的であり、取り返しできません！"
 
 #: templates/sentry/projects/plugins/configure.html:11
 msgid "Enable Plugin"
@@ -2152,248 +2275,50 @@ msgstr "バージョン"
 msgid "Enabled"
 msgstr "有効"
 
+#: templates/sentry/projects/rules/list.html:7
+#: templates/sentry/projects/rules/new.html:13
+msgid "New Rule"
+msgstr "新しいルール"
+
+#: templates/sentry/projects/rules/new.html:11
+msgid "Edit Rule"
+msgstr "ルールの編集"
+
+#: templates/sentry/projects/rules/new.html:24
+msgid ""
+"There were errors with your submission. Please ensure all options are filled"
+" out correctly."
+msgstr "登録時にエラーが発生しました。すべての選択肢が正しく入力されているか確認して下さい。"
+
+#: templates/sentry/projects/rules/new.html:32
+msgid "Label:"
+msgstr "ラベル:"
+
+#: templates/sentry/projects/rules/new.html:32
+msgid "e.g. My Rule Name"
+msgstr "例: My Rule Name"
+
+#: templates/sentry/projects/rules/new.html:71
+msgid "Save Rule"
+msgstr "ルールを保存"
+
 #: templates/sentry/teams/base.html:5
 msgid "Team List"
 msgstr "チームリスト"
 
-#: templates/sentry/teams/manage.html:16
-msgid "Team Details"
-msgstr "チーム詳細"
+#: templates/sentry/teams/manage.html:8
+msgid "Team Settings"
+msgstr ""
 
-#: templates/sentry/teams/manage.html:22
-#: templates/sentry/teams/members/edit.html:21
-msgid "Please correct the errors below."
-msgstr "以下のエラーを修正してください。"
-
-#: templates/sentry/teams/manage.html:45 templates/sentry/teams/remove.html:6
+#: templates/sentry/teams/manage.html:49 templates/sentry/teams/remove.html:6
+#: templates/sentry/teams/remove.html:14
 msgid "Remove Team"
 msgstr "チームを削除する"
 
-#: templates/sentry/teams/manage.html:47
-msgid "You cannot remove this team because it has projects assigned to it"
-msgstr "このチームにはプロジェクトが割り当てられているため削除出来ません。"
-
-#: templates/sentry/teams/new.html:6
-msgid "New Team"
-msgstr "チームを作成する"
-
-#: templates/sentry/teams/new.html:14
+#: templates/sentry/teams/remove.html:19
 msgid ""
-"Teams in Sentry represent a collection of users and projects. They're the top level component\n"
-"           of your organization allowing you to control access and scope of events."
-msgstr "Sentryのチームとは、ユーザーとプロジェクトの集まりです。これらはあなたの組織のトップレベルの構成要素で、アクセス権限のやイベントのスコープを管理出来ます。"
-
-#: templates/sentry/teams/new.html:28
-msgid "Create Team"
-msgstr "チーム作成"
-
-#: templates/sentry/teams/remove.html:11
-msgid "Are you sure you wish to remove this team? This change is permanent!"
-msgstr "このチームを削除しますか？この変更は取り消せません！"
-
-#: templates/sentry/teams/groups/details.html:20
-msgid "Access Group"
-msgstr "グループ"
-
-#: templates/sentry/teams/groups/details.html:35
-msgid "Group Settings"
-msgstr "グループ設定"
-
-#: templates/sentry/teams/groups/details.html:48
-#: templates/sentry/teams/groups/remove.html:6
-msgid "Remove Access Group"
-msgstr "グループを削除"
-
-#: templates/sentry/teams/groups/list.html:7
-msgid "About Access Groups"
-msgstr "アクセスグループについて"
-
-#: templates/sentry/teams/groups/list.html:8
-msgid ""
-"This page lists access groups within your team. An access group is an "
-"alternative to using team-wide membership, which allows you to restrict "
-"access to only specific projects."
-msgstr ""
-
-#: templates/sentry/teams/groups/list.html:16
-#: templates/sentry/teams/groups/new.html:5
-#: templates/sentry/teams/groups/new.html:9
-msgid "New Access Group"
-msgstr "グループを作成"
-
-#: templates/sentry/teams/groups/list.html:30 web/forms/teams.py:130
-msgid "Access Type"
-msgstr "種類"
-
-#: templates/sentry/teams/groups/list.html:37
-msgid "automatically managed"
-msgstr ""
-
-#: templates/sentry/teams/groups/list.html:39
-#: templates/sentry/teams/groups/members.html:37
-#: templates/sentry/teams/groups/projects.html:37
-#: templates/sentry/teams/members/index.html:60
-#: templates/sentry/teams/members/index.html:95
-msgid "Remove"
-msgstr "削除"
-
-#: templates/sentry/teams/groups/list.html:45
-msgid "You have not created any access groups yet."
-msgstr "グループが作成されていません。"
-
-#: templates/sentry/teams/groups/members.html:13
-msgid "Group Members"
-msgstr "グループメンバー"
-
-#: templates/sentry/teams/groups/members.html:44
-msgid "There are no members assigned to this group."
-msgstr "このグループに所属するメンバーはいません。"
-
-#: templates/sentry/teams/groups/members.html:51
-msgid "Add Member"
-msgstr "メンバー追加"
-
-#: templates/sentry/teams/groups/projects.html:14
-msgid "Group Projects"
-msgstr "グループのプロジェクト"
-
-#: templates/sentry/teams/groups/projects.html:44
-msgid "There are no projects assigned to this group."
-msgstr "このグループが管理するプロジェクトはありません。"
-
-#: templates/sentry/teams/groups/projects.html:51
-msgid "Add Project"
-msgstr "プロジェクト追加"
-
-#: templates/sentry/teams/groups/remove.html:11
-msgid ""
-"Are you sure you wish to remove this access group? This change is permanent!"
-msgstr "本当にアクセスグループを消しますか? この変更は取り消せません!"
-
-#: templates/sentry/teams/members/accept_invite.html:5
-#: templates/sentry/teams/members/accept_invite.html:15
-#: templates/sentry/teams/members/accept_invite_unauthenticated.html:5
-#: templates/sentry/teams/members/accept_invite_unauthenticated.html:15
-msgid "Team Invite"
-msgstr "チームへ招待"
-
-#: templates/sentry/teams/members/accept_invite.html:18
-#: templates/sentry/teams/members/accept_invite_unauthenticated.html:18
-#, python-format
-msgid ""
-"<strong>%(team_owner)s</strong> is using Sentry to aggregate errors for the "
-"<strong>%(team_name)s</strong> team."
-msgstr "<strong>%(team_owner)s</strong>は<strong>%(team_name)s</strong> チームでエラーを集約するためにSentryを使っています。"
-
-#: templates/sentry/teams/members/accept_invite.html:20
-#: templates/sentry/teams/members/accept_invite_unauthenticated.html:20
-#, python-format
-msgid ""
-"You have been invited to join this team, which manages "
-"<strong>%(project_count)s</strong> project(s):"
-msgstr "<strong>%(project_count)s</strong>プロジェクトを管理するチームに招待されました。"
-
-#: templates/sentry/teams/members/accept_invite.html:31
-#, python-format
-msgid "Join the %(team_name)s team"
-msgstr "%(team_name)s チームに参加"
-
-#: templates/sentry/teams/members/accept_invite_unauthenticated.html:30
-msgid ""
-"To continue, you must either login to your existing account, or create a new"
-" one."
-msgstr "続けるにはあなたのアカウントにログインするか、新しいアカウントを作成してください。"
-
-#: templates/sentry/teams/members/edit.html:7
-msgid "Edit Member"
-msgstr "メンバーを編集"
-
-#: templates/sentry/teams/members/edit.html:11
-#: templates/sentry/teams/members/new.html:9
-msgid "Access Levels"
-msgstr ""
-
-#: templates/sentry/teams/members/edit.html:12
-#: templates/sentry/teams/members/new.html:10
-msgid ""
-"The primary difference between access levels is team management. Any member "
-"with admin access is treated almost identical to the team owner."
-msgstr ""
-
-#: templates/sentry/teams/members/edit.html:33
-#: templates/sentry/teams/members/index.html:31
-#: templates/sentry/teams/members/index.html:81
-msgid "Access"
-msgstr "アクセス"
-
-#: templates/sentry/teams/members/index.html:10
-msgid "About Memberships"
-msgstr ""
-
-#: templates/sentry/teams/members/index.html:12
-#, python-format
-msgid ""
-"This page lists team-wide memberships whom have access to all projects owned"
-" by this team. If you wish to add memberships bound to individual projects, "
-"you can do so with <a href=\"%(link)s\">Access Groups</a>."
-msgstr ""
-
-#: templates/sentry/teams/members/index.html:18
-#: templates/sentry/teams/members/new.html:5
-msgid "New Member"
-msgstr "メンバー追加"
-
-#: templates/sentry/teams/members/index.html:47
-msgid "unavailable for owner"
-msgstr "所有者に対して有効になっていません"
-
-#: templates/sentry/teams/members/index.html:69
-msgid "Pending Members"
-msgstr "保留中メンバー"
-
-#: templates/sentry/teams/members/index.html:98
-msgid "Resend"
-msgstr "再送"
-
-#: templates/sentry/teams/members/new.html:15
-msgid "Invite a new user"
-msgstr "新しいユーザーを招待"
-
-#: templates/sentry/teams/members/new.html:16
-msgid "Add an existing user"
-msgstr "既存のユーザを追加する"
-
-#: templates/sentry/teams/members/new.html:20
-msgid ""
-"Invite a member to join this team via their email address. If they do not "
-"already have an account they will first be asked to create one."
-msgstr "Eメールアドレスを使ってこのチームに招待します。もし招待された人がアカウントを持っていない場合、アカウントを作成するよう依頼されます。"
-
-#: templates/sentry/teams/members/new.html:26
-msgid "You may add a user by their username if they already have an account."
-msgstr "もしアカウントがあれば、ユーザ名を入力することでユーザを追加できます。"
-
-#: templates/sentry/teams/members/remove.html:5
-#: templates/sentry/teams/members/remove.html:7
-msgid "Remove Member"
-msgstr "メンバー削除"
-
-#: templates/sentry/teams/members/remove.html:14
-msgid ""
-"Are you sure you wish to revoke this user's access? <strong>This change is "
-"permanent and will revoke their API keys immediately.</strong>"
-msgstr "本当にこのユーザのアクセスを無効化しますか？<strong>APIキーを即座に無効化します。この変更は取り消せません。</strong>"
-
-#: templates/sentry/teams/projects/index.html:43
-msgid "There are no projects managed by this team."
-msgstr "このチームが管理しているプロジェクトはありません。"
-
-#: templates/sentry/teams/projects/new.html:13
-msgid ""
-"Projects allow you to scope events to a specific application in your "
-"organization. For example, you might have seperate projects for production "
-"vs development instances, or separate projects for your web app and mobile "
-"app."
+"Are you sure you wish to remove this team? This change is permanent and "
+"cannot be undone!"
 msgstr ""
 
 #: templates/sentry/users/list.html:29
@@ -2402,338 +2327,384 @@ msgid ""
 " send this information consult your client's documentation."
 msgstr "ユーザーデータが記録されていません。この情報を送る方法については、クライアントのドキュメントを参照してください。"
 
-#: templatetags/sentry_helpers.py:104
+#: templatetags/sentry_helpers.py:111
 msgid "b"
 msgstr "b"
 
-#: templatetags/sentry_helpers.py:105
+#: templatetags/sentry_helpers.py:112
 msgid "m"
 msgstr "m"
 
-#: templatetags/sentry_helpers.py:106
+#: templatetags/sentry_helpers.py:113
 msgid "k"
 msgstr "k"
 
-#: templatetags/sentry_helpers.py:153
+#: templatetags/sentry_helpers.py:160
 msgid "never"
 msgstr "一度もない"
 
-#: templatetags/sentry_helpers.py:157
+#: templatetags/sentry_helpers.py:164
 msgid "0 minutes"
 msgstr "0分"
 
-#: templatetags/sentry_helpers.py:158
+#: templatetags/sentry_helpers.py:165
 msgid "just now"
 msgstr "たった今"
 
-#: templatetags/sentry_helpers.py:159
+#: templatetags/sentry_helpers.py:166
 msgid "1 day"
 msgstr "1日"
 
-#: templatetags/sentry_helpers.py:160
+#: templatetags/sentry_helpers.py:167
 msgid "yesterday"
 msgstr "昨日"
 
-#: templatetags/sentry_helpers.py:161
+#: templatetags/sentry_helpers.py:168
 msgid " ago"
 msgstr "前"
 
-#: web/api.py:502
+#: web/api.py:616
 msgid "Deletion has been queued and should occur shortly."
 msgstr "削除がキューに追加され、まもなく実行されます。"
 
-#: web/forms/__init__.py:37
+#: web/forms/__init__.py:39
 msgid "Create a project for this user."
 msgstr "このユーザに対してプロジェクトを作成する。"
 
-#: web/forms/__init__.py:39
+#: web/forms/__init__.py:41
 msgid ""
 "Send this user a welcome email which will contain their generated password."
 msgstr "このユーザに、生成されたパスワードを含む、ウェルカムメッセージを送信する"
 
-#: web/forms/__init__.py:48
+#: web/forms/__init__.py:50
 msgid "Designates whether this user can perform administrative functions."
 msgstr "管理者の機能を使える他のユーザーを指定します。"
 
-#: web/forms/__init__.py:57
+#: web/forms/__init__.py:51
+msgid "Superuser"
+msgstr "スーパーユーザー"
+
+#: web/forms/__init__.py:52
+msgid ""
+"Designates whether this user has all permissions without explicitly "
+"assigning them."
+msgstr ""
+
+#: web/forms/__init__.py:74
 msgid "Disable the account."
 msgstr "このアカウントを無効にする。"
 
-#: web/forms/__init__.py:58
+#: web/forms/__init__.py:75
 msgid "Permanently remove the user and their data."
 msgstr "このユーザとデータを永久に削除する。"
 
-#: web/forms/accounts.py:40 web/forms/accounts.py:215
+#: web/forms/accounts.py:73 web/forms/accounts.py:160
 msgid "Username or email"
+msgstr "ユーザー名かメールアドレス"
+
+#: web/forms/accounts.py:77
+#, python-format
+msgid ""
+"Please enter a correct %(username)s and password. Note that both fields may "
+"be case-sensitive."
 msgstr ""
 
-#: web/forms/accounts.py:45 web/forms/accounts.py:134
-msgid "Email"
-msgstr "メール"
+#: web/forms/accounts.py:79
+msgid ""
+"Your Web browser doesn't appear to have cookies enabled. Cookies are "
+"required for logging in."
+msgstr ""
 
-#: web/forms/accounts.py:59
+#: web/forms/accounts.py:81
+msgid "This account is inactive."
+msgstr "このアカウントは無効です。"
+
+#: web/forms/accounts.py:147
 msgid "An account is already registered with that email address."
 msgstr "既にこのメールアドレスを持つアカウントが登録されています。"
 
-#: web/forms/accounts.py:72
-msgid "Designate an alternative email address to send email notifications to."
-msgstr "メール通知を送る他のEメールアドレスを指定します。"
-
-#: web/forms/accounts.py:75
-msgid "Automatically subscribe to notifications for new projects"
-msgstr "新しいプロジェクトの通知を自動的に購読する。"
-
-#: web/forms/accounts.py:76
-msgid "Do not subscribe to notifications for new projects"
-msgstr "新しいプロジェクトの通知を購読しない。"
-
-#: web/forms/accounts.py:81
-msgid "Get notified about new notes on events I've seen"
-msgstr ""
-
-#: web/forms/accounts.py:82
-msgid "Do not subscribe to note notifications"
-msgstr ""
-
-#: web/forms/accounts.py:133
-msgid "Current password"
-msgstr "現在のパスワード"
-
-#: web/forms/accounts.py:136
-msgid "New password"
-msgstr "新しいパスワード"
-
-#: web/forms/accounts.py:152
-msgid "Your old password was entered incorrectly. Please enter it again."
-msgstr "入力された現在のパスワードは正しくありません。もう一度入力してください。"
-
-#: web/forms/accounts.py:168
-msgid "Language"
-msgstr "言語"
-
-#: web/forms/accounts.py:171
-msgid "Stacktrace order"
-msgstr "スタックトレースの表示順"
-
-#: web/forms/accounts.py:172
-msgid "Default (let Sentry decide)"
-msgstr "標準(Sentryが決定)"
-
-#: web/forms/accounts.py:173
-msgid "Most recent call last"
-msgstr "最後の呼び出しを最後に表示"
-
-#: web/forms/accounts.py:174
-msgid "Most recent call first"
-msgstr "最後の呼び出しを最初に表示"
-
-#: web/forms/accounts.py:175
-msgid "Choose the default ordering of frames in stacktraces."
-msgstr "スタックトレースでの、フレームの表示順を選択してください。"
-
-#: web/forms/accounts.py:179
-msgid "Time zone"
-msgstr ""
-
-#: web/forms/accounts.py:222
+#: web/forms/accounts.py:167
 msgid "We were unable to find a matching user."
 msgstr "入力されたユーザーが見つかりません。"
 
-#: web/forms/accounts.py:224
+#: web/forms/accounts.py:169
 msgid "Multiple accounts were found matching this email address."
+msgstr "このメールアドレスに該当する複数のアカウントが見つかりました。"
+
+#: web/forms/accounts.py:179
+msgid "Designate an alternative email address to send email notifications to."
+msgstr "メール通知を送る他のEメールアドレスを指定します。"
+
+#: web/forms/accounts.py:182
+msgid "Automatically subscribe to notifications for new projects"
+msgstr "新しいプロジェクトの通知を自動的に購読する。"
+
+#: web/forms/accounts.py:183
+msgid "Do not subscribe to notifications for new projects"
+msgstr "新しいプロジェクトの通知を購読しない。"
+
+#: web/forms/accounts.py:188
+msgid "Get notified about new notes"
+msgstr "新しい注釈を通知する"
+
+#: web/forms/accounts.py:189
+msgid "Do not subscribe to note notifications"
+msgstr "注釈の通知を受け取らない"
+
+#: web/forms/accounts.py:243
+msgid "New password"
+msgstr "新しいパスワード"
+
+#: web/forms/accounts.py:282
+msgid "That username is already in use."
+msgstr "このユーザー名はすでに使われています。"
+
+#: web/forms/accounts.py:310
+msgid "Language"
+msgstr "言語"
+
+#: web/forms/accounts.py:313
+msgid "Stacktrace order"
+msgstr "スタックトレースの表示順"
+
+#: web/forms/accounts.py:314
+msgid "Default (let Sentry decide)"
+msgstr "標準(Sentryが決定)"
+
+#: web/forms/accounts.py:315
+msgid "Most recent call last"
+msgstr "最後の呼び出しを最後に表示"
+
+#: web/forms/accounts.py:316
+msgid "Most recent call first"
+msgstr "最後の呼び出しを最初に表示"
+
+#: web/forms/accounts.py:317
+msgid "Choose the default ordering of frames in stacktraces."
+msgstr "スタックトレースでのフレームの表示順を選択してください。"
+
+#: web/forms/accounts.py:321
+msgid "Time zone"
+msgstr "タイムゾーン"
+
+#: web/forms/add_project.py:16
+msgid "e.g. Backend, Frontend, iOS, Android"
 msgstr ""
 
-#: web/forms/fields.py:54
-msgid "Invalid username"
-msgstr "無効なユーザ名です。"
-
-#: web/forms/fields.py:75
-msgid "e.g. example.com or https://example.com"
-msgstr "例: example.com や https://example.com"
-
-#: web/forms/projects.py:63
-msgid "Production"
-msgstr ""
-
-#: web/forms/projects.py:65
+#: web/forms/add_project.py:22 web/frontend/project_settings.py:69
 msgid "Select a platform"
 msgstr "プラットフォームを選択"
 
-#: web/forms/projects.py:87
-msgid "Confirm your identity by entering your password."
-msgstr "パスワードを入力してください。"
-
-#: web/forms/projects.py:102
-msgid "Your password was entered incorrectly. Please enter it again."
-msgstr "入力されたパスワードは間違っています。もう一度入力してください。"
-
-#: web/forms/projects.py:108
-msgid "Imply public access to any event for this project."
+#: web/forms/add_team.py:12
+msgid "E.g. Platform, API, Website, ..."
 msgstr ""
 
-#: web/forms/projects.py:110
-msgid "Allowed Domains"
-msgstr "許可ドメイン"
+#: web/forms/edit_organization_member.py:22
+msgid "This member should have access to all teams within the organization."
+msgstr ""
 
-#: web/forms/projects.py:111
-msgid "Separate multiple entries with a newline."
-msgstr "複数のエントリーを入力するには改行してください。"
+#: web/forms/fields.py:77
+msgid "Invalid username"
+msgstr "無効なユーザ名です。"
 
-#: web/forms/projects.py:112
-msgid ""
-"Treat an event as resolved if it hasn't been seen for this amount of time."
-msgstr "設定した時間内に再度イベントが発生しなければ、解決されたものとみなします。"
+#: web/forms/fields.py:99
+msgid "Not set"
+msgstr "未設定"
 
-#: web/forms/projects.py:150
+#: web/forms/projects.py:59
 msgid "Threshold"
 msgstr "閾値"
 
-#: web/forms/projects.py:151
+#: web/forms/projects.py:60
 msgid "Notify when the rate of events increases by this percentage."
 msgstr "イベント発生率がこの数字よりも大きくなった場合に通知する"
 
-#: web/forms/projects.py:153
+#: web/forms/projects.py:62
 msgid "Minimum Events"
 msgstr ""
 
-#: web/forms/projects.py:154
+#: web/forms/projects.py:63
 msgid ""
 "Generate an alert only when an event is seen more than this many times "
 "during the interval."
 msgstr "一定間隔の中で指定した回数以上イベントが起きた場合にアラートを発生させる"
 
-#: web/forms/projects.py:173
+#: web/forms/projects.py:68
+msgid "Mail Subject Prefix"
+msgstr ""
+
+#: web/forms/projects.py:69
+msgid "Choose a custom prefix for emails from this project."
+msgstr "このプロジェクトにおけるメールの先頭に付ける言葉を選択して下さい"
+
+#: web/forms/projects.py:74
 msgid "Maximum events per minute"
 msgstr "一分間での最大イベント数"
 
-#: web/forms/projects.py:175
+#: web/forms/projects.py:76
 msgid ""
 "This cannot be higher than the team (or system) allotted maximum. The value "
 "can be either a fixed number, or a percentage that is relative to the team's"
 " overall quota."
-msgstr ""
+msgstr "この値はチーム(あるいはシステム全体)で設定された最大値を超えることはできません。この値には固定値か、あるいはチーム全体の制限値からのパーセンテージを設定できます。"
 
-#: web/forms/teams.py:21
-msgid "Team Name"
-msgstr "チーム名"
+#: web/forms/projects.py:113
+msgid "Label"
+msgstr "ラベル"
 
-#: web/forms/teams.py:22
-msgid "example.com"
-msgstr "example.com"
-
-#: web/forms/teams.py:97
-msgid "There is already a member with this email address"
-msgstr "既にこのメールアドレスを持つメンバーが登録されています"
-
-#: web/forms/teams.py:100
-msgid "There is already a pending invite for this user"
-msgstr "このユーザに対する未対応の招待が残っています。"
-
-#: web/forms/teams.py:118
-msgid "User is already a member of this team"
-msgstr "このユーザは既にこのチームのメンバーです"
-
-#: web/forms/teams.py:128
+#: web/forms/teams.py:19
 msgid "Group Name"
 msgstr "グループ名"
 
-#: web/forms/teams.py:129
+#: web/forms/teams.py:20
 msgid "API Team"
 msgstr "例: APIチーム"
 
-#: web/forms/teams.py:131
+#: web/forms/teams.py:21
+msgid "Access Type"
+msgstr "種類"
+
+#: web/forms/teams.py:22
 msgid ""
 "Members will gain this level of access to all projects assigned to this "
 "group."
 msgstr "メンバーはこのグループに割り当てられたすべてのプロジェクトに対して、指定のレベルの権限を持ちます。"
 
-#: web/forms/teams.py:155
-msgid "slug"
-msgstr "slug"
+#: web/forms/teams.py:64
+msgid "Invalid project"
+msgstr "無効なプロジェクト"
 
-#: web/forms/teams.py:166
-msgid "Invalid project slug"
-msgstr "無効なプロジェクトslugです"
-
-#: web/frontend/generic.py:28
-msgid "No Membership"
+#: web/frontend/accept_organization_invite.py:34
+#: web/frontend/accept_organization_invite.py:42
+#: web/frontend/accept_organization_invite.py:50
+msgid "The invite link you followed is no longer valid."
 msgstr ""
 
-#: web/frontend/generic.py:29
-msgid ""
-"You are not a member of any teams in Sentry and you do not have access to "
-"create a new team."
-msgstr "Sentryのどのチームにも所属していません。また、新しいチームを作成する権限はありません。"
+#: web/frontend/accept_organization_invite.py:87
+#, python-format
+msgid "You are already a member of the %r organization."
+msgstr ""
 
-#: web/frontend/generic.py:74
+#: web/frontend/accept_organization_invite.py:110
+#, python-format
+msgid "You have been added to the %r organization."
+msgstr ""
+
+#: web/frontend/create_organization.py:16
+msgid "Organization Name"
+msgstr ""
+
+#: web/frontend/create_organization.py:17
+msgid "My Company"
+msgstr ""
+
+#: web/frontend/create_organization_member.py:41
+msgid "The organization member was added."
+msgstr ""
+
+#: web/frontend/create_organization_member.py:44
+msgid "The organization member already exists."
+msgstr ""
+
+#: web/frontend/generic.py:56
 msgid "Missing Permission"
-msgstr ""
+msgstr "権限がありません"
 
-#: web/frontend/generic.py:75
+#: web/frontend/generic.py:57
 #, python-format
 msgid "You do not have the required permissions to %s."
 msgstr "%s に必要な権限がありません"
 
-#: web/frontend/teams.py:109
+#: web/frontend/organization_member_settings.py:28
+#, python-format
+msgid "An invitation to join %(organization)s has been sent to %(email)s"
+msgstr ""
+
+#: web/frontend/organization_member_settings.py:78
+msgid "Your changes were saved."
+msgstr ""
+
+#: web/frontend/organization_settings.py:45
+msgid "Changes to your organization were saved."
+msgstr ""
+
+#: web/frontend/project_settings.py:30
+msgid "e.g. example.com or https://example.com"
+msgstr "例: example.com や https://example.com"
+
+#: web/frontend/project_settings.py:67
+msgid "Production"
+msgstr ""
+
+#: web/frontend/project_settings.py:71
+msgid "Imply public access to any event for this project."
+msgstr ""
+
+#: web/frontend/project_settings.py:73
+msgid "Allowed Domains"
+msgstr "許可ドメイン"
+
+#: web/frontend/project_settings.py:74
+msgid "Separate multiple entries with a newline."
+msgstr "複数のエントリーを入力するには改行してください。"
+
+#: web/frontend/project_settings.py:75
+msgid ""
+"Treat an event as resolved if it hasn't been seen for this amount of time."
+msgstr "設定した時間内に再度イベントが発生しなければ、解決されたものとみなします。"
+
+#: web/frontend/project_settings.py:78
+msgid "Data Scrubber"
+msgstr ""
+
+#: web/frontend/project_settings.py:79
+msgid ""
+"Apply server-side data scrubbing to prevent things like passwords and credit"
+" cards from being stored."
+msgstr ""
+
+#: web/frontend/project_settings.py:202
+msgid "Changes to your project were saved."
+msgstr "プロジェクトへの変更が保存されました。"
+
+#: web/frontend/remove_organization.py:13
+#, python-format
+msgid "The %s organization has been scheduled for removal."
+msgstr ""
+
+#: web/frontend/remove_project.py:64
+#, python-format
+msgid "The project %r was scheduled for deletion."
+msgstr ""
+
+#: web/frontend/remove_team.py:48
+#, python-format
+msgid "The team %r was scheduled for deletion."
+msgstr ""
+
+#: web/frontend/team_settings.py:49
 msgid "Changes to your team were saved."
 msgstr "チーム設定の変更を保存しました。"
 
-#: web/frontend/teams.py:139
-#, python-format
-msgid "The team %r was permanently deleted."
-msgstr "%r チームを完全に削除しました。"
+#: web/frontend/projects/keys.py:90
+msgid "Changes to your API key were saved."
+msgstr "APIキーの変更を保存しました。"
 
-#: web/frontend/teams.py:217
-msgid "The team member was added."
-msgstr "チームメンバーを追加しました。"
-
-#: web/frontend/teams.py:229
-#, python-format
-msgid "An invitation email was sent to %s."
-msgstr "%s への招待メールを送りました。"
-
-#: web/frontend/teams.py:291
-#, python-format
-msgid "You have been added to the %r team."
-msgstr "%r チームに追加されました。"
-
-#: web/frontend/teams.py:319
-msgid "Changes to your team member were saved."
-msgstr "チームメンバーに関する変更を保存しました。"
-
-#: web/frontend/teams.py:378
-msgid "The team member was removed."
-msgstr "チームメンバーを削除しました。"
-
-#: web/frontend/teams.py:398
-msgid "An email was sent to the pending team member."
-msgstr "停止中のチームメンバーにEメールを送信しました。"
-
-#: web/frontend/teams.py:522
-#, python-format
-msgid "%s was permanently removed."
-msgstr "%s を完全に削除しました。"
-
-#: web/frontend/teams.py:551 web/frontend/teams.py:600
-#, python-format
-msgid "%s was added to this access group."
-msgstr "このグループに %s を追加しました。"
-
-#: web/frontend/projects/keys.py:82
+#: web/frontend/projects/keys.py:120
 #, python-format
 msgid "The API key (%s) was revoked."
 msgstr "APIキー (%s) は無効になりました。"
 
-#: web/frontend/projects/notifications.py:66
-#: web/frontend/projects/plugins.py:36 web/frontend/projects/plugins.py:73
-#: web/frontend/projects/quotas.py:31 web/frontend/projects/tags.py:34
+#: web/frontend/projects/notifications.py:63
+#: web/frontend/projects/plugins.py:38 web/frontend/projects/plugins.py:76
+#: web/frontend/projects/quotas.py:33 web/frontend/projects/tags.py:36
 msgid "Your settings were saved successfully."
 msgstr "設定の変更を保存しました。"
 
-#: web/frontend/projects/remove.py:38
-msgid "Deletion has been queued and will happen automatically."
-msgstr ""
+#: web/frontend/projects/rules.py:146
+msgid "Changes to your rule were saved."
+msgstr "ルールの変更を保存しました。"
 
-#: web/frontend/projects/settings.py:45
-msgid "Changes to your project were saved."
-msgstr "プロジェクトへの変更が保存されました。"
+#: web/frontend/projects/rules.py:198
+msgid "The rule was removed."
+msgstr "ルールを削除しました。"

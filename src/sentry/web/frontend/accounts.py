@@ -20,57 +20,23 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from sudo.decorators import sudo_required
 
-from sentry.constants import MEMBER_USER
-from sentry.models import Project, UserOption, LostPasswordHash
+from sentry.models import (
+    LostPasswordHash, Organization, Project, Team, UserOption
+)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm, AuthenticationForm)
+    ProjectEmailOptionsForm)
 from sentry.web.helpers import render_to_response
-from sentry.utils.auth import get_auth_providers
+from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
 
 
 @csrf_protect
 @never_cache
-def login(request):
-    from django.conf import settings
-
-    if request.user.is_authenticated():
-        return login_redirect(request)
-
-    form = AuthenticationForm(request, request.POST or None,
-                              captcha=bool(request.session.get('needs_captcha')))
-    if form.is_valid():
-        login_user(request, form.get_user())
-
-        request.session.pop('needs_captcha', None)
-
-        return login_redirect(request)
-
-    elif request.POST and not request.session.get('needs_captcha'):
-        request.session['needs_captcha'] = 1
-        form = AuthenticationForm(request, request.POST or None, captcha=True)
-        form.errors.pop('captcha', None)
-
-    request.session.set_test_cookie()
-
-    context = csrf(request)
-    context.update({
-        'form': form,
-        'next': request.session.get('_next'),
-        'CAN_REGISTER': settings.SENTRY_ALLOW_REGISTRATION or request.session.get('can_register'),
-        'AUTH_PROVIDERS': get_auth_providers(),
-        'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
-    })
-    return render_to_response('sentry/login.html', context, request)
-
-
-@csrf_protect
-@never_cache
-@transaction.commit_on_success
+@transaction.atomic
 def register(request):
     from django.conf import settings
 
@@ -108,22 +74,8 @@ def register(request):
 
 @login_required
 def login_redirect(request):
-    default = reverse('sentry')
-    login_url = request.session.pop('_next', None) or default
-    if '//' in login_url:
-        login_url = default
-    elif login_url.startswith(reverse('sentry-login')):
-        login_url = default
+    login_url = get_login_redirect(request)
     return HttpResponseRedirect(login_url)
-
-
-@never_cache
-def logout(request):
-    from django.contrib.auth import logout
-
-    logout(request)
-
-    return HttpResponseRedirect(reverse('sentry'))
 
 
 def recover(request):
@@ -202,7 +154,7 @@ def recover_confirm(request, user_id, hash):
 @never_cache
 @login_required
 @sudo_required
-@transaction.commit_on_success
+@transaction.atomic
 def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
         'email': request.user.email,
@@ -227,7 +179,7 @@ def settings(request):
 @never_cache
 @login_required
 @sudo_required
-@transaction.commit_on_success
+@transaction.atomic
 def appearance_settings(request):
     from django.conf import settings
 
@@ -256,11 +208,29 @@ def appearance_settings(request):
 @never_cache
 @login_required
 @sudo_required
-@transaction.commit_on_success
+@transaction.atomic
 def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)
 
-    project_list = Project.objects.get_for_user(request.user, access=MEMBER_USER)
+    # TODO(dcramer): this is an extremely bad pattern and we need a more optimal
+    # solution for rendering this (that ideally plays well with the org data)
+    project_list = []
+    organization_list = Organization.objects.get_for_user(
+        user=request.user,
+    )
+    for organization in organization_list:
+        team_list = Team.objects.get_for_user(
+            user=request.user,
+            organization=organization,
+        )
+        for team in team_list:
+            project_list.extend(
+                Project.objects.get_for_user(
+                    user=request.user,
+                    team=team,
+                )
+            )
+
     project_forms = [
         (project, ProjectEmailOptionsForm(
             project, request.user,

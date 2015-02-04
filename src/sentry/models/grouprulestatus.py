@@ -10,16 +10,19 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.constants import STATUS_ACTIVE
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class GroupRuleStatus(Model):
-    project = models.ForeignKey('sentry.Project')
-    rule = models.ForeignKey('sentry.Rule')
-    group = models.ForeignKey('sentry.Group')
-    status = models.PositiveSmallIntegerField(default=STATUS_ACTIVE)
+    ACTIVE = 0
+    INACTIVE = 1
+
+    project = FlexibleForeignKey('sentry.Project')
+    rule = FlexibleForeignKey('sentry.Rule')
+    group = FlexibleForeignKey('sentry.Group')
+    status = models.PositiveSmallIntegerField(default=ACTIVE)
     date_added = models.DateTimeField(default=timezone.now)
+    last_active = models.DateTimeField(null=True)
 
     class Meta:
         db_table = 'sentry_grouprulestatus'

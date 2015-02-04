@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.contrib.auth.models import AnonymousUser
 
 
-serializers = {}
+registry = {}
 
 
 def serialize(objects, user=None):
@@ -18,27 +18,27 @@ def serialize(objects, user=None):
     # elif isinstance(obj, dict):
     #     return dict((k, serialize(v, request=request)) for k, v in obj.iteritems())
     try:
-        t = serializers[type(objects[0])]
+        serializer = registry[type(objects[0])]
     except KeyError:
         return objects
 
-    t.attach_metadata(objects, user=user)
-    return [t(o, user=user) for o in objects]
+    attrs = serializer.get_attrs(item_list=objects, user=user)
+    return [serializer(o, attrs=attrs.get(o, {}), user=user) for o in objects]
 
 
 def register(type):
     def wrapped(cls):
-        serializers[type] = cls()
+        registry[type] = cls()
         return cls
     return wrapped
 
 
 class Serializer(object):
-    def __call__(self, obj, user):
-        return self.serialize(obj, user)
+    def __call__(self, *args, **kwargs):
+        return self.serialize(*args, **kwargs)
 
-    def attach_metadata(self, objects, user):
-        pass
+    def get_attrs(self, item_list, user):
+        return {}
 
-    def serialize(self, obj, user):
+    def serialize(self, obj, attrs, user):
         return {}

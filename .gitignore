@@ -7,8 +7,10 @@
 *.egg
 *.db
 *.pid
+MANIFEST
 test.conf
 pip-log.txt
+celerybeat-schedule
 /htmlcov
 /cover
 /build
@@ -17,7 +19,6 @@ pip-log.txt
 /docs/html
 /docs/doctrees
 example/db.sqlite
-/src/sentry/static/CACHE/
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/
 /wheelhouse

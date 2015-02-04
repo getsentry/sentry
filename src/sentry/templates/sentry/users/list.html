@@ -39,7 +39,7 @@
             <tbody>
                 {% for tag in tag_list.paginator.objects %}
                     <tr>
-                        <td><a href="{% url 'sentry-user-details' team.slug project.slug tag.id %}">{{ tag.get_label }}</a></td>
+                        <td><a href="{% url 'sentry-user-details' organization.slug project.slug tag.id %}">{{ tag.get_label }}</a></td>
                         <td style="text-align:center">{{ tag.last_seen|timesince }}</td>
                         <td style="text-align:center">{{ tag.times_seen|small_count }}</td>
                     </tr>

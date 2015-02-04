@@ -8,7 +8,8 @@ sentry.testutils.cases
 
 from __future__ import absolute_import
 
-__all__ = ('TestCase', 'TransactionTestCase', 'APITestCase')
+__all__ = ('TestCase', 'TransactionTestCase', 'APITestCase', 'RuleTestCase',
+           'PermissionTestCase', 'PluginTestCase')
 
 import base64
 import os.path
@@ -17,19 +18,17 @@ import urllib
 from django.conf import settings
 from django.contrib.auth import login
 from django.core.cache import cache
-from django.core.management import call_command
 from django.core.urlresolvers import reverse
-from django.db import connections, DEFAULT_DB_ALIAS
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
-from django.test.client import Client
 from django.utils.importlib import import_module
-from exam import Exam
+from exam import before, Exam
 from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.constants import MODULE_ROOT
-from sentry.models import GroupMeta, ProjectOption
+from sentry.models import GroupMeta, OrganizationMemberType, ProjectOption
+from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
 
@@ -60,26 +59,18 @@ class BaseTestCase(Fixtures, Exam):
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
 
-    def login_as(self, user):
-        user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
+    @before
+    def setup_session(self):
         engine = import_module(settings.SESSION_ENGINE)
 
-        request = HttpRequest()
-        if self.client.session:
-            request.session = self.client.session
-        else:
-            request.session = engine.SessionStore()
+        session = engine.SessionStore()
+        session.save()
 
-        login(request, user)
-        request.user = user
+        self.session = session
 
-        # Save the session values.
-        request.session.save()
+    def save_session(self):
+        self.session.save()
 
-        # Set the cookie to represent the session.
-        session_cookie = settings.SESSION_COOKIE_NAME
-        self.client.cookies[session_cookie] = request.session.session_key
         cookie_data = {
             'max-age': None,
             'path': '/',
@@ -87,10 +78,22 @@ class BaseTestCase(Fixtures, Exam):
             'secure': settings.SESSION_COOKIE_SECURE or None,
             'expires': None,
         }
+
+        session_cookie = settings.SESSION_COOKIE_NAME
+        self.client.cookies[session_cookie] = self.session.session_key
         self.client.cookies[session_cookie].update(cookie_data)
 
-    def login(self):
-        self.login_as(self.user)
+    def login_as(self, user):
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        request = HttpRequest()
+        request.session = self.session
+
+        login(request, user)
+        request.user = user
+
+        # Save the session values.
+        self.save_session()
 
     def load_fixture(self, filepath):
         filepath = os.path.join(
@@ -103,14 +106,16 @@ class BaseTestCase(Fixtures, Exam):
             return fp.read()
 
     def _pre_setup(self):
+        super(BaseTestCase, self)._pre_setup()
+
         cache.clear()
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
-        super(BaseTestCase, self)._pre_setup()
 
     def _post_teardown(self):
-        flush_redis()
         super(BaseTestCase, self)._post_teardown()
+
+        flush_redis()
 
     def _makeMessage(self, data):
         return json.dumps(data)
@@ -124,11 +129,12 @@ class BaseTestCase(Fixtures, Exam):
             secret = self.projectkey.secret_key
 
         message = self._makePostMessage(data)
-        resp = self.client.post(
-            reverse('sentry-api-store'), message,
-            content_type='application/octet-stream',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                reverse('sentry-api-store'), message,
+                content_type='application/octet-stream',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
         return resp
 
     def _getWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
@@ -146,10 +152,11 @@ class BaseTestCase(Fixtures, Exam):
             'sentry_key': key,
             'sentry_data': message,
         }
-        resp = self.client.get(
-            '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
-            **headers
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.get(
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                **headers
+            )
         return resp
 
     _postWithSignature = _postWithHeader
@@ -161,54 +168,7 @@ class TestCase(BaseTestCase, TestCase):
 
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
-    """
-    Subclass of ``django.test.TransactionTestCase`` that quickly tears down
-    fixtures and doesn't `flush` on setup.  This enables tests to be run in
-    any order.
-    """
-    urls = 'tests.urls'
-
-    def __call__(self, result=None):
-        """
-        Wrapper around default __call__ method to perform common Django test
-        set up. This means that user-defined Test Cases aren't required to
-        include a call to super().setUp().
-        """
-        self.client = getattr(self, 'client_class', Client)()
-        try:
-            self._pre_setup()
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except Exception:
-            import sys
-            result.addError(self, sys.exc_info())
-            return
-        try:
-            super(TransactionTestCase, self).__call__(result)
-        finally:
-            try:
-                self._post_teardown()
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except Exception:
-                import sys
-                result.addError(self, sys.exc_info())
-
-    def _get_databases(self):
-        if getattr(self, 'multi_db', False):
-            return connections
-        return [DEFAULT_DB_ALIAS]
-
-    def _fixture_setup(self):
-        for db in self._get_databases():
-            if hasattr(self, 'fixtures') and self.fixtures:
-                # We have to use this slightly awkward syntax due to the fact
-                # that we're using *args and **kwargs together.
-                call_command('loaddata', *self.fixtures, **{'verbosity': 0, 'database': db})
-
-    def _fixture_teardown(self):
-        for db in self._get_databases():
-            call_command('flush', verbosity=0, interactive=False, database=db)
+    pass
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
@@ -232,6 +192,7 @@ class RuleTestCase(TestCase):
         kwargs.setdefault('is_regression', True)
         kwargs.setdefault('is_sample', True)
         kwargs.setdefault('rule_is_active', False)
+        kwargs.setdefault('rule_last_active', None)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -245,3 +206,208 @@ class RuleTestCase(TestCase):
             event = self.event
         state = self.get_state(**kwargs)
         assert rule.passes(event, state) is False
+
+
+class PermissionTestCase(TestCase):
+    def setUp(self):
+        super(PermissionTestCase, self).setUp()
+        self.owner = self.create_user()
+        self.organization = self.create_organization(owner=self.owner)
+        self.team = self.create_team(organization=self.organization)
+
+    def assert_can_access(self, user, path, method='GET'):
+        self.login_as(user)
+        resp = getattr(self.client, method.lower())(path)
+        assert resp.status_code >= 200 and resp.status_code < 300
+
+    def assert_cannot_access(self, user, path, method='GET'):
+        self.login_as(user)
+        resp = getattr(self.client, method.lower())(path)
+        assert resp.status_code >= 300
+
+    def assert_team_member_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_org_member_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_teamless_member_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_team_member_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_org_member_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_teamless_member_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_team_admin_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_org_admin_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_teamless_admin_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_team_admin_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_org_admin_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_teamless_admin_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.ADMIN,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_team_owner_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_org_owner_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_teamless_owner_can_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_team_owner_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False, teams=[self.team],
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_org_owner_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=True,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_teamless_owner_cannot_access(self, path):
+        user = self.create_user()
+        self.create_member(
+            user=user, organization=self.organization,
+            has_global_access=False,
+            type=OrganizationMemberType.OWNER,
+        )
+
+        self.assert_cannot_access(user, path)
+
+    def assert_non_member_cannot_access(self, path):
+        user = self.create_user()
+        self.assert_cannot_access(user, path)
+
+
+class PluginTestCase(TestCase):
+    plugin = None
+
+    def setUp(self):
+        super(PluginTestCase, self).setUp()
+        plugins.register(self.plugin)
+        self.addCleanup(plugins.unregister, self.plugin)

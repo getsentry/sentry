@@ -1,0 +1,22 @@
+{
+  "name": "sentry",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/getsentry/sentry.git"
+  },
+  "private": true,
+  "dependencies": {
+    "bootstrap": "~2.3.2",
+    "jquery": "~2.1.0",
+    "jquery-flot": "~0.8.3",
+    "moment": "~2.8.4",
+    "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
+    "platformicons": "1.0.2",
+    "raven-js": "~1.1.16"
+  },
+  "resolutions": {
+    "bootstrap": "~2.3.2",
+    "jquery": "~2.1.0",
+    "moment": "~2.8.4"
+  }
+}

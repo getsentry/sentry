@@ -13,8 +13,8 @@ from django.utils import timezone
 
 from sentry.constants import MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, GzippedDictField, BaseManager,
-    sane_repr
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
+    BaseManager, sane_repr
 )
 from sentry.utils.http import absolute_uri
 
@@ -23,7 +23,7 @@ class TagValue(Model):
     """
     Stores references to available filters.
     """
-    project = models.ForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
@@ -63,7 +63,7 @@ class TagValue(Model):
         else:
             url_name = 'sentry-explore-tag-value'
             return absolute_uri(reverse(url_name, args=[
-                self.project.team.slug, self.project.slug, self.key, self.id]))
+                self.project.organization.slug, self.project.slug, self.key, self.id]))
 
         return absolute_uri(reverse(url_name, args=[
-            self.project.team.slug, self.project.slug, self.id]))
+            self.project.organization.slug, self.project.slug, self.id]))

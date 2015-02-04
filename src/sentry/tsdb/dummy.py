@@ -15,7 +15,7 @@ class DummyTSDB(BaseTSDB):
     A no-op time-series storage.
     """
     def incr(self, model, key, timestamp=None, count=1):
-        pass
+        assert isinstance(key, (int, long)), 'Key is not an int'
 
     def get_range(self, model, keys, start, end, rollup=None):
         return dict((k, []) for k in keys)

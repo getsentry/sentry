@@ -53,8 +53,11 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
+        'AUTOCOMMIT': True,
+        'ATOMIC_REQUESTS': False,
     }
 }
+
 
 if 'DATABASE_URL' in os.environ:
     url = urlparse.urlparse(os.environ['DATABASE_URL'])
@@ -114,6 +117,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
+    'sentry.middleware.proxy.SetRemoteAddrFromForwardedFor',
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -170,7 +174,6 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
-    'static_compiler',
     'sudo',
 )
 
@@ -180,12 +183,16 @@ STATIC_URL = '/_static/'
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    "static_compiler.finders.StaticCompilerFinder",
 )
+
+# setup a default media root to somewhere useless
+MEDIA_ROOT = '/tmp/sentry-media'
 
 LOCALE_PATHS = (
     os.path.join(PROJECT_ROOT, 'locale'),
 )
+
+CSRF_FAILURE_VIEW = 'sentry.web.frontend.csrf_failure.view'
 
 # Auth configuration
 
@@ -213,6 +220,7 @@ SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
+SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
 
 TWITTER_CONSUMER_KEY = ''
 TWITTER_CONSUMER_SECRET = ''
@@ -232,6 +240,8 @@ TRELLO_API_SECRET = ''
 
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
+
+MAILGUN_API_KEY = ''
 
 SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.get_username',
@@ -355,9 +365,6 @@ CELERYBEAT_SCHEDULE = {
     },
 }
 
-# Disable South in tests as it is sending incorrect create signals
-SOUTH_TESTS_MIGRATE = True
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -394,6 +401,10 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'sentry.rules': {
+            'handlers': ['console'],
+            'propagate': False,
+        },
         'static_compiler': {
             'level': 'INFO',
         },
@@ -408,90 +419,6 @@ LOGGING = {
         },
     }
 }
-
-NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules'))
-
-SENTRY_STATIC_BUNDLES = {
-    "packages": {
-        "sentry/scripts/global.min.js": {
-            "src": [
-                "sentry/scripts/core.js",
-                "sentry/scripts/models.js",
-                "sentry/scripts/templates.js",
-                "sentry/scripts/utils.js",
-                "sentry/scripts/collections.js",
-                "sentry/scripts/charts.js",
-                "sentry/scripts/views.js",
-                "sentry/scripts/app.js",
-            ],
-        },
-        "sentry/scripts/legacy.min.js": {
-            "src": [
-                "sentry/scripts/sentry.core.js",
-                "sentry/scripts/sentry.charts.js",
-                "sentry/scripts/sentry.stream.js",
-            ],
-        },
-        "sentry/scripts/lib.min.js": {
-            "src": [
-                "sentry/scripts/lib/jquery.js",
-                "sentry/scripts/lib/jquery-migrate.js",
-                "sentry/scripts/lib/jquery.animate-colors.js",
-                "sentry/scripts/lib/jquery.clippy.min.js",
-                "sentry/scripts/lib/jquery.cookie.js",
-                "sentry/scripts/lib/jquery.flot.js",
-                "sentry/scripts/lib/jquery.flot.dashes.js",
-                "sentry/scripts/lib/jquery.flot.resize.js",
-                "sentry/scripts/lib/jquery.flot.time.js",
-                "sentry/scripts/lib/jquery.flot.tooltip.js",
-                "sentry/scripts/lib/moment.js",
-                "sentry/scripts/lib/simple-slider.js",
-                "sentry/scripts/lib/json2.js",
-                "sentry/scripts/lib/underscore.js",
-                "sentry/scripts/lib/backbone.js",
-                "sentry/scripts/lib/select2/select2.js",
-            ],
-        },
-        "sentry/scripts/bootstrap.min.js": {
-            "src": [
-                "sentry/bootstrap/js/bootstrap-transition.js",
-                "sentry/bootstrap/js/bootstrap-alert.js",
-                "sentry/bootstrap/js/bootstrap-button.js",
-                "sentry/bootstrap/js/bootstrap-carousel.js",
-                "sentry/bootstrap/js/bootstrap-collapse.js",
-                "sentry/bootstrap/js/bootstrap-dropdown.js",
-                "sentry/bootstrap/js/bootstrap-modal.js",
-                "sentry/bootstrap/js/bootstrap-tooltip.js",
-                "sentry/bootstrap/js/bootstrap-popover.js",
-                "sentry/bootstrap/js/bootstrap-scrollspy.js",
-                "sentry/bootstrap/js/bootstrap-tab.js",
-                "sentry/bootstrap/js/bootstrap-typeahead.js",
-                "sentry/bootstrap/js/bootstrap-affix.js",
-                "sentry/scripts/lib/bootstrap-datepicker.js"
-            ],
-        },
-        "sentry/styles/global.min.css": {
-            "src": {
-                "sentry/less/sentry.less": "sentry/styles/sentry.css",
-            },
-        },
-        "sentry/styles/wall.min.css": {
-            "src": {
-                "sentry/less/wall.less": "sentry/styles/wall.css",
-            },
-        },
-    },
-    "postcompilers": {
-        "*.js": ["node_modules/.bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],
-    },
-    "preprocessors": {
-        "*.less": ["node_modules/.bin/lessc {input} {output}"],
-    },
-}
-
-# We only define static bundles if NPM has been setup
-if os.path.exists(NPM_ROOT):
-    STATIC_BUNDLES = SENTRY_STATIC_BUNDLES
 
 # django-rest-framework
 
@@ -510,10 +437,7 @@ STATSD_CLIENT = 'django_statsd.clients.null'
 
 # Sentry and Raven configuration
 
-SENTRY_PUBLIC = False
-
-# Default project ID for recording internal exceptions
-SENTRY_PROJECT = 1
+SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
@@ -656,6 +580,19 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+# rollups must be ordered from highest granularity to lowest
+SENTRY_TSDB_ROLLUPS = (
+    # (time in seconds, samples to keep)
+    (10, 30),  # 5 minute at 10 seconds
+    (3600, 24 * 7),  # 7 days at 1 hour
+)
+
+
+# File storage
+SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
+SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
+
+# URL to embed in js documentation
 SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.15/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
@@ -671,7 +608,7 @@ SENTRY_ENABLE_EXPLORE_USERS = True
 # size in characters
 SENTRY_MAX_VARIABLE_SIZE = 512
 
-# Prevent varabiesl within extra context from exceeding this size in
+# Prevent variables within extra context from exceeding this size in
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 
@@ -716,6 +653,10 @@ SENTRY_MANAGED_USER_FIELDS = ('email',)
 
 # See sentry/options/__init__.py for more information
 SENTRY_OPTIONS = {}
+
+# You should not change this setting after your database has been created
+# unless you have altered all schemas first
+SENTRY_USE_BIG_INTS = False
 
 # Configure celery
 import djcelery

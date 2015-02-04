@@ -9,35 +9,96 @@ from __future__ import absolute_import, print_function
 
 import logging
 import math
+import six
 import time
 
 from datetime import timedelta
-
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-import six
-
-from sentry.constants import (
-    LOG_LEVELS, STATUS_LEVELS, MAX_CULPRIT_LENGTH, STATUS_RESOLVED,
-    STATUS_UNRESOLVED, STATUS_MUTED
-)
+from sentry.app import buffer, tsdb
+from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
-    Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
-    sane_repr
+    BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
+    FlexibleForeignKey, Model, GzippedDictField, sane_repr
 )
-from sentry.manager import GroupManager
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars, strip
+
+
+# TODO(dcramer): pull in enum library
+class GroupStatus(object):
+    UNRESOLVED = 0
+    RESOLVED = 1
+    MUTED = 2
+
+
+class GroupManager(BaseManager):
+    use_for_related_fields = True
+
+    def get_by_natural_key(self, project, checksum):
+        return self.get(project=project, checksum=checksum)
+
+    def from_kwargs(self, project, **kwargs):
+        from sentry.event_manager import EventManager
+
+        manager = EventManager(kwargs)
+        manager.normalize()
+        return manager.save(project)
+
+    def add_tags(self, group, tags):
+        from sentry.models import TagValue, GroupTagValue
+
+        project = group.project
+        date = group.last_seen
+
+        tsdb_keys = []
+
+        for tag_item in tags:
+            if len(tag_item) == 2:
+                (key, value), data = tag_item, None
+            else:
+                key, value, data = tag_item
+
+            tsdb_id = u'%s=%s' % (key, value)
+
+            tsdb_keys.extend([
+                (tsdb.models.project_tag_value, tsdb_id),
+            ])
+
+            buffer.incr(TagValue, {
+                'times_seen': 1,
+            }, {
+                'project': project,
+                'key': key,
+                'value': value,
+            }, {
+                'last_seen': date,
+                'data': data,
+            })
+
+            buffer.incr(GroupTagValue, {
+                'times_seen': 1,
+            }, {
+                'group': group,
+                'project': project,
+                'key': key,
+                'value': value,
+            }, {
+                'last_seen': date,
+            })
+
+        if tsdb_keys:
+            tsdb.incr_multi(tsdb_keys)
 
 
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
     """
-    project = models.ForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     logger = models.CharField(
         max_length=64, blank=True, default='root', db_index=True)
     level = BoundedPositiveIntegerField(
@@ -50,8 +111,11 @@ class Group(Model):
     checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
-    status = BoundedPositiveIntegerField(
-        default=0, choices=STATUS_LEVELS, db_index=True)
+    status = BoundedPositiveIntegerField(default=0, choices=(
+        (GroupStatus.UNRESOLVED, _('Unresolved')),
+        (GroupStatus.RESOLVED, _('Resolved')),
+        (GroupStatus.MUTED, _('Muted')),
+    ), db_index=True)
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -95,7 +159,7 @@ class Group(Model):
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-group', args=[
-            self.team.slug, self.project.slug, self.id]))
+            self.organization.slug, self.project.slug, self.id]))
 
     @property
     def avg_time_spent(self):
@@ -113,14 +177,14 @@ class Group(Model):
         return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
 
     def is_muted(self):
-        return self.get_status() == STATUS_MUTED
+        return self.get_status() == GroupStatus.MUTED
 
     def is_resolved(self):
-        return self.get_status() == STATUS_RESOLVED
+        return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
-        if self.status == STATUS_UNRESOLVED and self.is_over_resolve_age():
-            return STATUS_RESOLVED
+        if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
+            return GroupStatus.RESOLVED
         return self.status
 
     def get_score(self):
@@ -156,16 +220,41 @@ class Group(Model):
         ).order_by(order_by)
 
     def get_tags(self, with_internal=True):
-        from sentry.models import GroupTagKey
-
+        from sentry.models import GroupTagKey, TagKey
         if not hasattr(self, '_tag_cache'):
-            self._tag_cache = sorted([
-                t for t in GroupTagKey.objects.filter(
-                    group=self,
+            group_tags = GroupTagKey.objects.filter(
+                group=self,
+                project=self.project,
+            )
+            if not with_internal:
+                group_tags = group_tags.exclude(key__startswith='sentry:')
+
+            group_tags = list(group_tags.values_list('key', flat=True))
+
+            tag_keys = dict(
+                (t.key, t)
+                for t in TagKey.objects.filter(
                     project=self.project,
-                ).values_list('key', flat=True)
-                if with_internal or not t.startswith('sentry:')
-            ])
+                    key__in=group_tags
+                )
+            )
+
+            results = []
+            for key in group_tags:
+                try:
+                    tag_key = tag_keys[key]
+                except KeyError:
+                    label = key.replace('_', ' ').title()
+                else:
+                    label = tag_key.get_label()
+
+                results.append({
+                    'key': key,
+                    'label': label,
+                })
+
+            self._tag_cache = sorted(results, key=lambda x: x['label'])
+
         return self._tag_cache
 
     def error(self):
@@ -191,6 +280,10 @@ class Group(Model):
         else:
             message = truncatechars(message.splitlines()[0], 100)
         return message
+
+    @property
+    def organization(self):
+        return self.project.organization
 
     @property
     def team(self):

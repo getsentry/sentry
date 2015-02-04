@@ -46,8 +46,8 @@
                         <tr>
                             <td>
                                 {% if project.team %}
-                                    <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}"><strong>{{ project.team.slug }}/{{ project.slug }}</strong></a>
-                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}">[stream]</a><br/>
+                                    <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}"><strong>{{ project.organization.slug }}/{{ project.slug }}</strong></a>
+                                    <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">[stream]</a><br/>
                                 {% else %}
                                     <strong>{{ project.slug }}</strong>
                                 {% endif %}

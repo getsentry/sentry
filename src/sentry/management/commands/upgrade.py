@@ -26,4 +26,15 @@ class Command(BaseCommand):
     )
 
     def handle(self, **options):
-        call_command('syncdb', migrate=True, interactive=(not options['noinput']))
+        call_command(
+            'syncdb',
+            migrate=True,
+            interactive=(not options['noinput']),
+            traceback=options['traceback'],
+            verbosity=options['verbosity'],
+        )
+        call_command(
+            'load_help_pages',
+            traceback=options['traceback'],
+            verbosity=options['verbosity'],
+        )

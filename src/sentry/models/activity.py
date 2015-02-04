@@ -13,7 +13,8 @@ from django.db.models import F
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, GzippedDictField, sane_repr
+    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
+    sane_repr
 )
 
 
@@ -45,14 +46,14 @@ class Activity(Model):
         (ASSIGNED, 'assigned'),
     )
 
-    project = models.ForeignKey('sentry.Project')
-    group = models.ForeignKey('sentry.Group', null=True)
-    event = models.ForeignKey('sentry.Event', null=True)
+    project = FlexibleForeignKey('sentry.Project')
+    group = FlexibleForeignKey('sentry.Group', null=True)
+    event = FlexibleForeignKey('sentry.Event', null=True)
     # index on (type, ident)
     type = BoundedPositiveIntegerField(choices=TYPE)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
 
@@ -99,9 +100,7 @@ class Activity(Model):
         if self.project.team:
             # fetch team members
             user_id_list |= set(
-                u_id for u_id in self.project.team.member_set.filter(
-                    user__is_active=True,
-                ).exclude(
+                u_id for u_id in self.project.team.member_set.exclude(
                     user__id=self.user_id,
                 ).values_list('user', flat=True)
             )

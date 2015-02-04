@@ -1,49 +1,59 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-<div id="request" class="module">
+<div id="request" class="module module-user">
     <div class="page-header">
         <h2>{% trans "User" %}</h2>
     </div>
     <div class="module-content">
-        <table class="table table-striped vars">
-            <colgroup>
-                <col style="width:130px;">
-            </colgroup>
-            <tbody>
-                {% if user_id %}
-                <tr>
-                    <th>{% trans "ID:" %}</th>
-                    <td class="code">{{ user_id }}</td>
-                </tr>
-                {% endif %}
-                {% if user_ip_address %}
-                <tr>
-                    <th>{% trans "IP Address:" %}</th>
-                    <td class="code">{{ user_ip_address }}</td>
-                </tr>
-                {% endif %}
-                {% if user_username %}
+        <div class="row">
+        {% if user_email %}
+            <div class="span1">
+                <div class="avatar">
+                    <img src="{% gravatar_url user_email size 64 %}">
+                </div>
+            </div>
+        {% endif %}
+        <div class="span11">
+            <table class="table table-striped vars">
+                <colgroup>
+                    <col style="width:130px;">
+                </colgroup>
+                <tbody>
+                    {% if user_id %}
                     <tr>
-                        <th>{% trans "Username:" %}</th>
-                        <td class="code">{{ user_username }}</td>
+                        <th>{% trans "ID:" %}</th>
+                        <td class="code">{{ user_id }}</td>
                     </tr>
-                {% endif %}
-                {% if user_email %}
+                    {% endif %}
+                    {% if user_ip_address %}
                     <tr>
-                        <th>{% trans "Email:" %}</th>
-                        <td class="code">{{ user_email }}</td>
+                        <th>{% trans "IP Address:" %}</th>
+                        <td class="code">{{ user_ip_address }}</td>
                     </tr>
-                {% endif %}
-                {% if user_data %}
-                    {% for key, value in user_data.iteritems %}
+                    {% endif %}
+                    {% if user_username %}
                         <tr>
-                            <th>{{ key|titlize }}</th>
-                            <td class="code">{{ value }}</td>
+                            <th>{% trans "Username:" %}</th>
+                            <td class="code">{{ user_username }}</td>
                         </tr>
-                    {% endfor %}
-                {% endif %}
-            </tbody>
-        </table>
+                    {% endif %}
+                    {% if user_email %}
+                        <tr>
+                            <th>{% trans "Email:" %}</th>
+                            <td class="code">{{ user_email }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if user_data %}
+                        {% for key, value in user_data.iteritems %}
+                            <tr>
+                                <th>{{ key|titlize }}</th>
+                                <td class="code">{{ value }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

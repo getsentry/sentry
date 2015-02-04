@@ -40,3 +40,9 @@ class RiakNodeStorageTest(TestCase):
         assert result[node_id2] == {
             'foo': 'bar',
         }
+
+        self.ns.delete(node_id)
+        assert not self.ns.get(node_id)
+
+        self.ns.delete_multi([node_id2])
+        assert not self.ns.get(node_id2)

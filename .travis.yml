@@ -1,3 +1,4 @@
+sudo: false
 language: python
 services:
   - elasticsearch
@@ -8,8 +9,12 @@ services:
   - redis-server
   - cassandra
 python:
-  - "2.6"
   - "2.7"
+cache:
+  directories:
+    - node_modules
+    - .pip_download_cache
+    - "$HOME/virtualenv/python2.7.9"
 env:
   matrix:
     - DB=sqlite
@@ -17,27 +22,8 @@ env:
     - DB=postgres
   global:
     - PIP_DOWNLOAD_CACHE=".pip_download_cache"
-    - WAD_FILES="package.json,Makefile,setup.py"
-    - WAD_INSTALL_COMMAND="make develop dev-postgres dev-mysql"
-
-    # This should be specified with:
-    # travis encrypt S3_BUCKET_NAME=secretvalue S3_CREDENTIALS=accesskey:secretkey
-    # - S3_BUCKET_NAME=
-    # - S3_CREDENTIALS=
-    - secure: pZ7DtkEu2q/pGINfVT9S+iPRE5ck6mBQmuHTQz3PVXF/UJmpM1LCbC7aqrw4GXWuUhYc50QCnMZJL1yoBORVEfY4nfXHLRc3HMoWE6Srqf0IBDywi6T+UUdLeOYe13EDb4p8WIpnRGlV4WI1WaPXuFlMEdj5tAjlC9ZotLxyVaI=
-
-before_install:
-  # Use closer nameservers
-  - printf "nameserver 199.91.168.70\nnameserver 199.91.168.71\n" | sudo tee /etc/resolv.conf
-
-  # These need to be here and not in the env hash because they need to be
-  # evaluated after the virtualenv has been setup
-  - mkdir -p $PIP_DOWNLOAD_CACHE
-  - export WAD_ENVIRONMENT_VARIABLES="TRAVIS_PYTHON_VERSION,TRAVIS_NODE_VERSION,WAD_CACHE_PATH"
-  - export WAD_CACHE_PATH="node_modules,$PIP_DOWNLOAD_CACHE,$VIRTUAL_ENV"
-
 install:
-  - time script/wad
+  - time make develop dev-postgres dev-mysql
 before_script:
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
@@ -46,7 +32,7 @@ before_script:
 script:
   - make lint
   - make test-js
-  - py.test tests/ --cov sentry --cov-report term-missing
+  - py.test tests
   - make test-cli
 notifications:
   irc:

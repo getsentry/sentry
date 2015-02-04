@@ -40,8 +40,12 @@ from __future__ import absolute_import
 import logging
 import re
 
+from collections import namedtuple
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
+
+
+CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
 
 
 class RuleDescriptor(type):
@@ -59,9 +63,10 @@ class RuleBase(object):
 
     __metaclass__ = RuleDescriptor
 
-    def __init__(self, project, data=None):
+    def __init__(self, project, data=None, rule=None):
         self.project = project
         self.data = data or {}
+        self.rule = rule
 
     def get_option(self, key):
         return self.data.get(key)
@@ -94,10 +99,18 @@ class RuleBase(object):
 
         return form.is_valid()
 
+    def future(self, callback, **kwargs):
+        return CallbackFuture(
+            callback=callback,
+            kwargs=kwargs,
+        )
+
 
 class EventState(object):
-    def __init__(self, is_new, is_regression, is_sample, rule_is_active):
+    def __init__(self, is_new, is_regression, is_sample, rule_is_active,
+                 rule_last_active):
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_sample = is_sample,
         self.rule_is_active = rule_is_active
+        self.rule_last_active = rule_last_active

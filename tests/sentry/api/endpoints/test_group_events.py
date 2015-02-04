@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 
 
-class GroupResolveTest(APITestCase):
+class GroupEventsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 

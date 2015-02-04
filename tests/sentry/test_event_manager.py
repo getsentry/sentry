@@ -8,13 +8,13 @@ from mock import patch
 
 from django.conf import settings
 
-from sentry.constants import MAX_CULPRIT_LENGTH, STATUS_RESOLVED
+from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager, get_hashes_for_event
-from sentry.models import Event, Group, EventMapping
-from sentry.testutils import TestCase
+from sentry.models import Event, Group, GroupStatus, EventMapping
+from sentry.testutils import TestCase, TransactionTestCase
 
 
-class EventManagerTest(TestCase):
+class EventManagerTest(TransactionTestCase):
     def make_event(self, **kwargs):
         result = {
             'event_id': 'a' * 32,
@@ -48,14 +48,14 @@ class EventManagerTest(TestCase):
         assert EventMapping.objects.filter(
             group=event.group, event_id=event_id).exists()
 
-    @patch('sentry.manager.GroupManager.add_tags')
+    @patch('sentry.models.GroupManager.add_tags')
     def test_tags_as_list(self, add_tags):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
         data = manager.normalize()
 
         assert data['tags'] == [('foo', 'bar')]
 
-    @patch('sentry.manager.GroupManager.add_tags')
+    @patch('sentry.models.GroupManager.add_tags')
     def test_tags_as_dict(self, add_tags):
         manager = EventManager(self.make_event(tags={'foo': 'bar'}))
         data = manager.normalize()
@@ -95,7 +95,8 @@ class EventManagerTest(TestCase):
             message='foo bar', event_id='b' * 32,
             checksum='a' * 32,
         ))
-        event2 = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event2 = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
 
@@ -110,10 +111,11 @@ class EventManagerTest(TestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        event = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
-        group.status = STATUS_RESOLVED
+        group.status = GroupStatus.RESOLVED
         group.save()
         assert group.is_resolved()
 
@@ -137,10 +139,11 @@ class EventManagerTest(TestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        event = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
-        group.status = STATUS_RESOLVED
+        group.status = GroupStatus.RESOLVED
         group.save()
         assert group.is_resolved()
 
@@ -161,14 +164,16 @@ class EventManagerTest(TestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        event = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event = manager.save(1)
 
         mock_is_resolved.return_value = True
         manager = EventManager(self.make_event(
             event_id='b' * 32, checksum='a' * 32,
             timestamp=1403007414,
         ))
-        event2 = manager.save(1)
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            event2 = manager.save(1)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)

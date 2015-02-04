@@ -1,12 +1,5 @@
-VERSION = 2.0.0
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
-BOOTSTRAP_JS = ${STATIC_DIR}/scripts/lib/bootstrap.js
-BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
-UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
-
-JS_TESTS = tests/js/index.html
-JS_REPORTER = dot
 
 develop: update-submodules setup-git
 	@echo "--> Installing dependencies"
@@ -27,6 +20,16 @@ dev-mysql: develop
 dev-docs:
 	pip install -r docs/requirements.txt
 
+reset-db:
+	@echo "--> Dropping existing 'sentry' database"
+	dropdb sentry || true
+	@echo "--> Creating 'sentry' database"
+	createdb -E utf-8 sentry
+	@echo "--> Applying migrations"
+	sentry upgrade
+	@echo "--> Creating default user"
+	sentry createuser
+
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
@@ -37,7 +40,7 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	rm -rf src/sentry/static/CACHE
+	${NPM_ROOT}/.bin/gulp clean
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo ""
@@ -48,12 +51,10 @@ locale:
 
 update-transifex:
 	pip install transifex-client
+	cd src/sentry && sentry makemessages -i static -l en
 	tx push -s
 	tx pull -a
-
-compile-bootstrap-js:
-	@cat src/bootstrap/js/bootstrap-transition.js src/bootstrap/js/bootstrap-alert.js src/bootstrap/js/bootstrap-button.js src/bootstrap/js/bootstrap-carousel.js src/bootstrap/js/bootstrap-collapse.js src/bootstrap/js/bootstrap-dropdown.js src/bootstrap/js/bootstrap-modal.js src/bootstrap/js/bootstrap-tooltip.js src/bootstrap/js/bootstrap-popover.js src/bootstrap/js/bootstrap-scrollspy.js src/bootstrap/js/bootstrap-tab.js src/bootstrap/js/bootstrap-typeahead.js src/bootstrap/js/bootstrap-affix.js ${STATIC_DIR}/scripts/bootstrap-datepicker.js > ${BOOTSTRAP_JS}
-	${UGLIFY_JS} -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
+	cd src/sentry && sentry compilemessages
 
 update-submodules:
 	@echo "--> Updating git submodules"
@@ -79,7 +80,7 @@ test-cli:
 
 test-js:
 	@echo "--> Running JavaScript tests"
-	${NPM_ROOT}/.bin/mocha-phantomjs -p ${NPM_ROOT}/phantomjs/bin/phantomjs -R ${JS_REPORTER} ${JS_TESTS}
+	npm test
 	@echo ""
 
 test-python:
@@ -96,7 +97,7 @@ lint-python:
 
 lint-js:
 	@echo "--> Linting JavaScript files"
-	${NPM_ROOT}/.bin/jshint src/sentry/ || exit 1
+	npm run lint
 	@echo ""
 
 coverage: develop
@@ -109,4 +110,4 @@ run-uwsgi:
 publish:
 	python setup.py sdist bdist_wheel upload
 
-.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex compile-bootstrap-js update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish
+.PHONY: develop dev-postgres dev-mysql dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python lint lint-python lint-js coverage run-uwsgi publish

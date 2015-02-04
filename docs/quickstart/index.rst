@@ -5,15 +5,13 @@ Some basic prerequisites which you'll need in order to run Sentry:
 
 * A UNIX-based operating system
 * Python 2.7
-* python-setuptools, python-dev, libxslt1-dev, libxml2-dev
+* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev
 * A real database (PostgreSQL is preferred, MySQL also works)
 * Redis
+* Nginx (with RealIP, i.e. nginx-full)
+* A dedicated domain to host Sentry on (i.e. sentry.yourcompany.com)
 
-The recommended configuration of Sentry involves setting up a separate web server to handle your error
-logging. This means that any number of Sentry clients simply pass on this information to your primary Sentry
-server.
-
-This guide will step you through setting up a virtualenv, installing the required packages,
+This guide will step you through setting up a Python-based virtualenv, installing the required packages,
 and configuring the basic web service.
 
 Hardware
@@ -32,7 +30,7 @@ Redis, Memcached, and RabbitMQ. It's very rare you'd need this complex of a clus
 this is `getsentry.com <https://getsentry.com/>`_.
 
 For more typical, but still fairly high throughput setups, you can run off of a single machine as long as it has
-reasonable IO (ideally SSDS), and a good amount of memory.
+reasonable IO (ideally SSDs), and a good amount of memory.
 
 The main things you need to consider are:
 
@@ -52,7 +50,7 @@ Setting up an Environment
 The first thing you'll need is the Python ``virtualenv`` package. You probably already
 have this, but if not, you can install it with::
 
-  easy_install -UZ virtualenv
+  pip install -U virtualenv
 
 Once that's done, choose a location for the environment, and create it with the ``virtualenv``
 command. For our guide, we're going to choose ``/www/sentry/``::
@@ -63,7 +61,7 @@ Finally, activate your virtualenv::
 
   source /www/sentry/bin/activate
 
-.. note:: Activating the environment adjusts your PATH, so that things like easy_install now
+.. note:: Activating the environment adjusts your PATH, so that things like pip now
           install into the virtualenv by default.
 
 Install Sentry
@@ -72,10 +70,19 @@ Install Sentry
 Once you've got the environment setup, you can install Sentry and all its dependencies with
 the same command you used to grab virtualenv::
 
-  easy_install -UZ sentry
+  pip install -U sentry
 
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
+
+Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
+like the following:
+
+.. code-block:: bash
+
+  $ sentry
+  usage: sentry [--config=/path/to/settings.py] [command] [options]
+
 
 Using MySQL or Postgres
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,34 +95,24 @@ These databases require additional packages, but Sentry provides a couple of met
 ::
 
   # install sentry and its postgresql dependencies
-  easy_install -UZ sentry[postgres]
+  pip install -U sentry[postgres]
 
   # or if you choose, mysql
-  easy_install -UZ sentry[mysql]
+  pip install -U sentry[mysql]
 
 
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you're installing the Sentry source (e.g. from git), you'll need a couple of extra dependencies:
+If you're installing the Sentry source (e.g. from git), you'll also need to install **npm**.
 
-- node.js (npm)
-- git
-
-Once your system is prepared, simply run the ``make`` command to
-get all of the application dependencies:
+Once your system is prepared, symlink your source into the virtualenv:
 
 .. code-block:: bash
 
-  $ make develop
+  $ python setup.py develop
 
-Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
-like the following:
-
-.. code-block:: bash
-
-  $ sentry
-  usage: sentry [--config=/path/to/settings.py] [command] [options]
+.. Note:: This command will install npm dependencies as well as compile static assets.
 
 
 Initializing the Configuration
@@ -146,9 +143,6 @@ is not a fully supported database and should not be used in production**.
             'PASSWORD': '',
             'HOST': '',
             'PORT': '',
-            'OPTIONS': {
-                'autocommit': True,
-            }
         }
     }
 
@@ -227,18 +221,12 @@ Once done, you can create the initial schema using the ``upgrade`` command:
 
     $ sentry --config=/etc/sentry.conf.py upgrade
 
-**It's very important that you create the default superuser through the upgrade process. If you do not, there is
-a good chance you'll see issues in your initial install.**
-
-If you did not create the user on the first run, you can correct this by doing the following:
+Next up you'll need to create the first user, which will act as a superuser:
 
 .. code-block:: bash
 
     # create a new user
-    $ sentry --config=/etc/sentry.conf.py createsuperuser
-
-    # run the automated repair script
-    $ sentry --config=/etc/sentry.conf.py repair --owner=<username>
+    $ sentry --config=/etc/sentry.conf.py createuser
 
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
@@ -362,8 +350,8 @@ power and flexibility that goes with it.
 
 Some of those which you'll likely find useful are:
 
-createsuperuser
-~~~~~~~~~~~~~~~
+createuser
+~~~~~~~~~~
 
 Quick and easy creation of superusers. These users have full access to the entirety of the Sentry server.
 

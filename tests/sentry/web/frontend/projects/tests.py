@@ -6,10 +6,9 @@ import mock
 import logging
 
 from django.core.urlresolvers import reverse
-from exam import before, fixture
+from exam import fixture
 
-from sentry.constants import STATUS_HIDDEN
-from sentry.models import Project, ProjectKey, ProjectOption, TagKey
+from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption, TagKey
 from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ManageProjectKeysTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-manage-project-keys', args=[self.team.slug, self.project.id])
+        return reverse('sentry-manage-project-keys', args=[self.organization.slug, self.project.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -36,30 +35,29 @@ class ManageProjectKeysTest(TestCase):
 class NewProjectKeyTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-new-project-key', args=[self.team.slug, self.project.id])
+        return reverse('sentry-new-project-key', args=[self.organization.slug, self.project.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
 
-    @mock.patch('sentry.models.ProjectKey.objects.create')
-    def test_generates_new_key_and_redirects(self, create):
+    def test_generates_new_key_and_redirects(self):
+        keycount = ProjectKey.objects.filter(project=self.project).count()
         self.login_as(self.user)
 
         resp = self.client.get(self.path)
         assert resp.status_code == 302
-        create.assert_any_call(
-            project=self.project, user_added=self.user
-        )
+        newkeycount = ProjectKey.objects.filter(project=self.project).count()
+        assert newkeycount == keycount + 1
 
 
 class RemoveProjectKeyTest(TestCase):
-    @before
-    def create_key(self):
+    def setUp(self):
+        super(RemoveProjectKeyTest, self).setUp()
         self.key = ProjectKey.objects.create(project=self.project)
 
     @fixture
     def path(self):
-        return reverse('sentry-remove-project-key', args=[self.team.slug, self.project.id, self.key.id])
+        return reverse('sentry-remove-project-key', args=[self.organization.slug, self.project.id, self.key.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path, 'POST')
@@ -76,10 +74,66 @@ class RemoveProjectKeyTest(TestCase):
         assert not ProjectKey.objects.filter(id=self.key.id).exists()
 
 
+class EnableProjectKeyTest(TestCase):
+    def setUp(self):
+        super(EnableProjectKeyTest, self).setUp()
+        self.key = ProjectKey.objects.create(
+            project=self.project,
+            status=ProjectKeyStatus.INACTIVE,
+        )
+
+    @fixture
+    def path(self):
+        return reverse('sentry-enable-project-key', args=[self.organization.slug, self.project.id, self.key.id])
+
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path, 'POST')
+
+    def test_does_not_respond_to_get(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 405
+
+    def test_does_enable(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path)
+        assert resp.status_code == 302
+        key = ProjectKey.objects.get(id=self.key.id)
+        assert key.status == ProjectKeyStatus.ACTIVE
+
+
+class DisableProjectKeyTest(TestCase):
+    def setUp(self):
+        super(DisableProjectKeyTest, self).setUp()
+        self.key = ProjectKey.objects.create(
+            project=self.project,
+            status=ProjectKeyStatus.ACTIVE,
+        )
+
+    @fixture
+    def path(self):
+        return reverse('sentry-disable-project-key', args=[self.organization.slug, self.project.id, self.key.id])
+
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path, 'POST')
+
+    def test_does_not_respond_to_get(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 405
+
+    def test_does_enable(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path)
+        assert resp.status_code == 302
+        key = ProjectKey.objects.get(id=self.key.id)
+        assert key.status == ProjectKeyStatus.INACTIVE
+
+
 class DashboardTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry', args=[self.team.slug])
+        return reverse('sentry-team-dashboard', args=[self.organization.slug, self.team.slug])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -94,8 +148,10 @@ class DashboardTest(TestCase):
 
         can_create_projects.assert_called_once_with(self.user, team=self.team)
 
+        url = reverse('sentry-create-project', args=[self.organization.slug])
+
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-new-project', args=[self.team.slug])
+        assert resp['Location'] == 'http://testserver%s?team=%s' % (url, self.team.slug)
 
     @mock.patch('sentry.web.frontend.groups.can_create_projects')
     def test_does_not_reidrect_if_missing_project_permission(self, can_create_projects):
@@ -123,6 +179,7 @@ class DashboardTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')
+        assert resp.context['organization'] == self.organization
         assert resp.context['team'] == self.team
         assert resp.context['project_list'] == [self.project]
 
@@ -130,7 +187,7 @@ class DashboardTest(TestCase):
 class GetStartedTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-get-started', args=[self.team.slug, self.project.slug])
+        return reverse('sentry-get-started', args=[self.organization.slug, self.project.slug])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -143,40 +200,13 @@ class GetStartedTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/get_started.html')
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
-
-
-class RemoveProjectTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-remove-project', args=[self.team.slug, self.project.id])
-
-    def test_requires_authentication(self):
-        self.assertRequiresAuthentication(self.path, 'POST')
-
-    def test_renders_template_with_get(self):
-        self.login_as(self.user)
-
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/projects/remove.html')
-        assert resp.context['team'] == self.team
-        assert resp.context['project'] == self.project
-
-    @mock.patch('sentry.web.frontend.projects.remove.delete_project')
-    def test_deletion_flow(self, delete_project):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, {'project': self.project.id})
-        assert resp.status_code == 302
-        delete_project.delay.assert_called_once_with(
-            object_id=self.project.id)
-        assert Project.objects.get(id=self.project.id).status == STATUS_HIDDEN
+        assert resp.context['organization'] == self.organization
 
 
 class ManageProjectTagsTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-manage-project-tags', args=[self.team.slug, self.project.id])
+        return reverse('sentry-manage-project-tags', args=[self.organization.slug, self.project.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -191,9 +221,10 @@ class ManageProjectTagsTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/projects/manage_tags.html')
+        assert resp.context['organization'] == self.organization
         assert resp.context['team'] == self.team
         assert resp.context['project'] == self.project
-        tag_list = resp.context['tag_list']
+        tag_list = [t.key for t in resp.context['tag_list']]
         assert 'site' in tag_list
         assert 'url' in tag_list
         assert 'os' in tag_list

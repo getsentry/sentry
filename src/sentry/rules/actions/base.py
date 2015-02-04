@@ -15,4 +15,20 @@ class EventAction(RuleBase):
     rule_type = 'action/event'
 
     def after(self, event, state):
-        pass
+        """
+        Executed after a Rule matches.
+
+        Should yield CallBackFuture instances which will then be passed into
+        the given callback.
+
+        See the notification implementation for example usage.
+
+        >>> def after(self, event, state):
+        >>>     yield self.future(self.print_results)
+        >>>
+        >>> def print_results(self, event, futures):
+        >>>     print('Got futures for Event {}'.format(event.id))
+        >>>     for future in futures:
+        >>>         print(future)
+        """
+        raise NotImplementedError

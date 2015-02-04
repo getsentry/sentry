@@ -4,10 +4,11 @@ from __future__ import absolute_import, print_function
 
 import datetime
 import json
+import logging
 import mock
 import zlib
 
-from django.conf import settings as django_settings
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -15,8 +16,8 @@ from gzip import GzipFile
 from exam import fixture
 from raven import Client
 
-from sentry.models import Group, Event, User
-from sentry.testutils import TestCase
+from sentry.models import Group, Event
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
 from sentry.utils.compat import StringIO
 from sentry.utils.settings import (
@@ -69,25 +70,36 @@ DEPENDENCY_TEST_DATA = {
 }
 
 
-class RavenIntegrationTest(TestCase):
+class AssertHandler(logging.Handler):
+    def emit(self, entry):
+        raise AssertionError(entry.message)
+
+
+class RavenIntegrationTest(TransactionTestCase):
     """
     This mocks the test server and specifically tests behavior that would
     happen between Raven <--> Sentry over HTTP communication.
     """
     def setUp(self):
-        self.user = User.objects.create(username='coreapi')
+        self.user = self.create_user('coreapi@example.com')
         self.team = self.create_team(owner=self.user)
         self.project = self.create_project(team=self.team)
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 
-    def sendRemote(self, url, data, headers={}):
-        # TODO: make this install a temporary handler which raises an assertion error
-        import logging
+        self.configure_sentry_errors()
+
+    def configure_sentry_errors(self):
+        assert_handler = AssertHandler()
         sentry_errors = logging.getLogger('sentry.errors')
-        sentry_errors.addHandler(logging.StreamHandler())
+        sentry_errors.addHandler(assert_handler)
         sentry_errors.setLevel(logging.DEBUG)
 
+        def remove_handler():
+            sentry_errors.handlers.pop(sentry_errors.handlers.index(assert_handler))
+        self.addCleanup(remove_handler)
+
+    def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
         resp = self.client.post(
@@ -104,7 +116,9 @@ class RavenIntegrationTest(TestCase):
             dsn='http://%s:%s@localhost:8000/%s' % (
                 self.pk.public_key, self.pk.secret_key, self.pk.project_id)
         )
-        client.capture('Message', message='foo')
+
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            client.capture('Message', message='foo')
 
         send_remote.assert_called_once()
         self.assertEquals(Group.objects.count(), 1)
@@ -201,12 +215,13 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        resp = self.client.post(
-            self.path, message,
-            content_type='application/octet-stream',
-            HTTP_CONTENT_ENCODING='deflate',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                self.path, message,
+                content_type='application/octet-stream',
+                HTTP_CONTENT_ENCODING='deflate',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
 
         assert resp.status_code == 200, resp.content
 
@@ -231,12 +246,13 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        resp = self.client.post(
-            self.path, fp.getvalue(),
-            content_type='application/octet-stream',
-            HTTP_CONTENT_ENCODING='gzip',
-            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
-        )
+        with self.settings(CELERY_ALWAYS_EAGER=True):
+            resp = self.client.post(
+                self.path, fp.getvalue(),
+                content_type='application/octet-stream',
+                HTTP_CONTENT_ENCODING='gzip',
+                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+            )
 
         assert resp.status_code == 200, resp.content
 
@@ -254,16 +270,16 @@ class DepdendencyTest(TestCase):
             raise ImportError("No module named %s" % (package,))
         return callable
 
-    @mock.patch('django.conf.settings')
+    @mock.patch('django.conf.settings', mock.Mock())
     @mock.patch('sentry.utils.settings.import_string')
     def validate_dependency(self, key, package, dependency_type, dependency,
-                            setting_value, import_string, settings):
+                            setting_value, import_string):
 
         import_string.side_effect = self.raise_import_error(package)
 
         with self.settings(**{key: setting_value}):
             with self.assertRaises(ConfigurationError):
-                validate_settings(django_settings)
+                validate_settings(settings)
 
     def test_validate_fails_on_postgres(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA['postgresql'])

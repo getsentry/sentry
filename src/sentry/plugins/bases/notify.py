@@ -13,7 +13,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import ratelimiter
-from sentry.plugins import Plugin
+from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption, AccessGroup
 
 
@@ -37,17 +37,26 @@ class BaseNotificationUserOptionsForm(forms.Form):
         raise NotImplementedError
 
 
-class Message(object):
-    def __init__(self, short, long):
-        self.short = short
-        self.long = long
-
-
 class NotificationPlugin(Plugin):
     description = _('Notify project members when a new event is seen for the first time, or when an '
                     'already resolved event has changed back to unresolved.')
     # site_conf_form = NotificationConfigurationForm
     project_conf_form = NotificationConfigurationForm
+
+    def notify(self, notification):
+        event = notification.event
+        return self.notify_users(event.group, event)
+
+    def rule_notify(self, event, futures):
+        rules = []
+        for future in futures:
+            rules.append(future.rule)
+            if not future.kwargs:
+                continue
+            raise NotImplementedError('The default behavior for notification de-duplication does not support args')
+
+        notification = Notification(event=event, rules=rules)
+        self.notify(notification)
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
@@ -73,9 +82,9 @@ class NotificationPlugin(Plugin):
 
         if project.team:
             # fetch team members
-            member_set |= set(project.team.member_set.filter(
-                user__is_active=True,
-            ).exclude(user__in=disabled).values_list('user', flat=True))
+            member_set |= set(project.team.member_set.exclude(
+                user__in=disabled,
+            ).values_list('user', flat=True))
 
         # determine members default settings
         members_to_check = set(u for u in member_set if u not in alert_settings)

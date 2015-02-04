@@ -4,12 +4,14 @@ from __future__ import absolute_import
 
 import mock
 
+from django.core import mail
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import Alert, Event, Group, AccessGroup
+from sentry.models import AccessGroup, Alert, Event, Group, Rule
+from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
 
@@ -24,30 +26,21 @@ class MailPluginTest(TestCase):
     def test_should_notify_no_sendable_users(self):
         assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_notify_users_renders_interfaces(self, _send_mail):
-        group = Group(
-            id=2,
-            first_seen=timezone.now(),
-            last_seen=timezone.now(),
-            project=self.project,
-        )
+    def test_simple_notification(self):
+        group = self.create_group(message='Hello world')
+        event = self.create_event(group=group, message='Hello world')
 
-        stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_email_html.return_value = 'foo bar'
-        stacktrace.get_title.return_value = 'Stacktrace'
+        rule = Rule.objects.create(project=self.project, label='my rule')
 
-        event = Event()
-        event.group = group
-        event.project = self.project
-        event.message = 'hello world'
-        event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
+        notification = Notification(event=event, rule=rule)
 
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
-            self.plugin.notify_users(group, event)
+            self.plugin.notify(notification)
 
-        stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_email_html.assert_called_once_with(event)
+        msg = mail.outbox[0]
+        assert msg.subject == '[Sentry] [foo Bar] ERROR: Hello world'
+        print dir(msg)
+        assert 'my rule' in msg.alternatives[0][0]
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_renders_interfaces_with_utf8(self, _send_mail):
@@ -68,8 +61,10 @@ class MailPluginTest(TestCase):
         event.message = 'hello world'
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
+        notification = Notification(event=event)
+
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
-            self.plugin.notify_users(group, event)
+            self.plugin.notify(notification)
 
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_email_html.assert_called_once_with(event)
@@ -93,8 +88,10 @@ class MailPluginTest(TestCase):
         event.message = 'Soubor ji\xc5\xbe existuje'
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
+        notification = Notification(event=event)
+
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
-            self.plugin.notify_users(group, event)
+            self.plugin.notify(notification)
 
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_email_html.assert_called_once_with(event)
@@ -117,12 +114,13 @@ class MailPluginTest(TestCase):
             datetime=group.last_seen,
         )
 
+        notification = Notification(event=event)
+
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
-            self.plugin.notify_users(group, event)
+            self.plugin.notify(notification)
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
-        self.assertEquals(kwargs.get('fail_silently'), False)
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('group'), group)
         assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
@@ -146,8 +144,10 @@ class MailPluginTest(TestCase):
             datetime=group.last_seen,
         )
 
+        notification = Notification(event=event)
+
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
-            self.plugin.notify_users(group, event)
+            self.plugin.notify(notification)
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
@@ -166,11 +166,12 @@ class MailPluginTest(TestCase):
         # user not in any groups
         self.create_user(email='bar2@example.com', is_active=True)
 
-        team = self.create_team(owner=user)
+        organization = self.create_organization(owner=user)
+        team = self.create_team(organization=organization)
 
         project = self.create_project(name='Test', team=team)
-        team.member_set.get_or_create(user=user)
-        team.member_set.get_or_create(user=user2)
+        organization.member_set.get_or_create(user=user)
+        organization.member_set.get_or_create(user=user2)
 
         ag = AccessGroup.objects.create(team=team)
         ag.members.add(user3)
@@ -188,7 +189,7 @@ class MailPluginTest(TestCase):
 
         user4 = User.objects.create(username='baz4', email='bar@example.com',
                                     is_active=True)
-        project.team.member_set.get_or_create(user=user4)
+        organization.member_set.get_or_create(user=user4)
 
         assert user4.pk in self.plugin.get_sendable_users(project)
 

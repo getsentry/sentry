@@ -19,12 +19,7 @@ sys.stdout = sys.stderr
 from sentry.utils.runner import configure
 configure()
 
-# Build the wsgi app
-import django.core.handlers.wsgi
-
 from django.conf import settings
-from raven.contrib.django.middleware.wsgi import Sentry
-
 if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH):
     try:
         os.makedirs(settings.SESSION_FILE_PATH)
@@ -32,4 +27,6 @@ if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH)
         pass
 
 # Run WSGI handler for the application
-application = Sentry(django.core.handlers.wsgi.WSGIHandler())
+from django.core.wsgi import get_wsgi_application
+from raven.contrib.django.middleware.wsgi import Sentry
+application = Sentry(get_wsgi_application())

@@ -43,14 +43,12 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
-
-        # If you're using Postgres, we recommend turning on autocommit
-        # 'OPTIONS': {
-        #     'autocommit': True,
-        # }
     }
 }
 
+# You should not change this setting after your database has been created
+# unless you have altered all schemas first
+SENTRY_USE_BIG_INTS = True
 
 # If you're expecting any kind of real traffic on Sentry, we highly recommend
 # configuring the CACHES and Redis settings
@@ -137,6 +135,18 @@ SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
 
 SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
+##################
+## File storage ##
+##################
+
+# Any Django storage backend is compatible with Sentry. For more solutions see
+# the django-storages package: https://django-storages.readthedocs.org/en/latest/
+
+SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
+SENTRY_FILESTORE_OPTIONS = {
+    'location': '/tmp/sentry-files',
+}
+
 ################
 ## Web Server ##
 ################
@@ -174,6 +184,10 @@ EMAIL_USE_TLS = False
 
 # The email address to send on behalf of
 SERVER_EMAIL = 'root@localhost'
+
+# If you're using mailgun for inbound mail, set your API key and configure a
+# route to forward to /api/hooks/mailgun/inbound/
+MAILGUN_API_KEY = ''
 
 ###########
 ## etc. ##
@@ -314,7 +328,7 @@ def apply_legacy_settings(config):
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
-    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com'):
+    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
         # Maybe also point to a piece of documentation for more information?
         # This directly coincides with users getting the awkward
         # `ALLOWED_HOSTS` exception.

@@ -20,10 +20,15 @@ class NotifyEventAction(EventAction):
         from sentry.plugins.bases.notify import NotificationPlugin
 
         results = []
-        for plugin in plugins.for_project(self.project):
+        for plugin in plugins.for_project(self.project, version=1):
             if not isinstance(plugin, NotificationPlugin):
                 continue
             results.append(plugin)
+
+        for plugin in plugins.for_project(self.project, version=2):
+            for notifier in (safe_execute(plugin.get_notifiers) or ()):
+                results.append(notifier)
+
         return results
 
     def after(self, event, state):
@@ -33,4 +38,4 @@ class NotifyEventAction(EventAction):
             if not safe_execute(plugin.should_notify, group=group, event=event):
                 continue
 
-            safe_execute(plugin.notify_users, group=group, event=event)
+            yield self.future(plugin.rule_notify)

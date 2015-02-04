@@ -10,12 +10,12 @@ from __future__ import absolute_import, print_function
 
 import collections
 import logging
+import six
 import warnings
 
 from django.db import models
 from django.db.models.signals import post_delete
-
-import six
+from south.modelsinspector import add_introspection_rules
 
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
@@ -131,3 +131,6 @@ class NodeField(GzippedDictField):
         return compress(pickle.dumps({
             'node_id': value.id
         }))
+
+
+add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])

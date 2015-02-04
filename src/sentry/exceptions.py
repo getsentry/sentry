@@ -23,3 +23,7 @@ class InvalidOrigin(InvalidRequest):
 
     def __str__(self):
         return "Invalid origin: '%s'" % self.origin
+
+
+class CacheNotPopulated(Exception):
+    pass

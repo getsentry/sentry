@@ -5,48 +5,11 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
-from django.http import HttpRequest
-from exam import before, fixture
+from exam import fixture
 from social_auth.models import UserSocialAuth
 
 from sentry.models import UserOption, LostPasswordHash, User
 from sentry.testutils import TestCase
-from sentry.web.frontend.accounts import login_redirect
-
-
-class LoginTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-login')
-
-    def test_renders_correct_template(self):
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/login.html')
-
-    def test_invalid_password(self):
-        # load it once for test cookie
-        self.client.get(self.path)
-
-        resp = self.client.post(self.path, {
-            'username': self.user.username,
-            'password': 'bizbar',
-        })
-        assert resp.status_code == 200
-        assert resp.context['form'].errors['__all__'] == [
-            u'Please enter a correct username and password. Note that both fields may be case-sensitive.'
-        ]
-
-    def test_valid_credentials(self):
-        # load it once for test cookie
-        self.client.get(self.path)
-
-        resp = self.client.post(self.path, {
-            'username': self.user.username,
-            'password': 'admin',
-        })
-        assert resp.status_code == 302
 
 
 class RegisterTest(TestCase):
@@ -173,54 +136,6 @@ class SettingsTest(TestCase):
         assert user.check_password('foobar')
 
 
-class LogoutTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-logout')
-
-    def test_logs_user_out(self):
-        self.login_as(self.user)
-
-        resp = self.client.get(self.path)
-        assert resp.status_code == 302
-        assert self.client.session.keys() == []
-
-    def test_same_behavior_with_anonymous_user(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 302
-        assert self.client.session.keys() == []
-
-
-class LoginRedirectTest(TestCase):
-    def make_request(self, next=None):
-        request = HttpRequest()
-        request.session = {}
-        request.user = self.user
-        if next:
-            request.session['_next'] = next
-        return request
-
-    def test_schema_uses_default(self):
-        resp = login_redirect(self.make_request('http://example.com'))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry')
-
-    def test_login_uses_default(self):
-        resp = login_redirect(self.make_request(reverse('sentry-login')))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry')
-
-    def test_no_value_uses_default(self):
-        resp = login_redirect(self.make_request())
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry')
-
-    def test_standard_view_works(self):
-        resp = login_redirect(self.make_request(reverse('sentry', args=[1])))
-        assert resp.status_code == 302
-        assert resp['Location'] == reverse('sentry', args=[1])
-
-
 class NotificationSettingsTest(TestCase):
     @fixture
     def path(self):
@@ -307,8 +222,8 @@ class RecoverPasswordTest(TestCase):
 
 
 class RecoverPasswordConfirmTest(TestCase):
-    @before
-    def create_hash(self):
+    def setUp(self):
+        super(RecoverPasswordConfirmTest, self).setUp()
         self.password_hash = LostPasswordHash.objects.create(user=self.user)
 
     @fixture

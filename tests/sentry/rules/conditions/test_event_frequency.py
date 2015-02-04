@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+
+from django.utils import timezone
+
 from sentry.app import tsdb
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition, Interval
@@ -41,3 +45,20 @@ class EventFrequencyConditionTest(RuleTestCase):
             'value': '10',
         })
         self.assertPasses(rule, event)
+
+    def test_doesnt_send_consecutive(self):
+        event = self.get_event()
+        rule = self.get_rule({
+            'interval': Interval.ONE_HOUR,
+            'value': '10',
+        })
+
+        tsdb.incr(tsdb.models.group, event.group_id, count=11)
+
+        rule = self.get_rule({
+            'interval': Interval.ONE_HOUR,
+            'value': '10',
+        })
+        self.assertPasses(rule, event)
+
+        self.assertDoesNotPass(rule, event, rule_last_active=timezone.now())

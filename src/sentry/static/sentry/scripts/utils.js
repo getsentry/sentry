@@ -87,15 +87,15 @@
         },
 
         getSearchUsersUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/users/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/users/search/';
         },
 
         getSearchProjectsUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/projects/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/projects/search/';
         },
 
         getSearchTagsUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/tags/search/';
+            return app.config.urlPrefix + '/api/' + app.config.organizationId + '/' + app.config.projectId + '/tags/search/';
         },
 
         makeSearchableInput: function(el, url, callback, options) {
@@ -157,7 +157,24 @@
             }, this), {
                 escapeMarkup: function(s) { return s; }
             });
-        }
+        },
+
+        parseLinkHeader: function(header) {
+          if (header === null) {
+            return {};
+          }
+
+          var header_vals = header.split(','),
+              links = {};
+
+          $.each(header_vals, function(_, val){
+              var match = /<([^>]+)>; rel="([^"]+)"/g.exec(val);
+
+              links[match[2]] = match[1];
+          });
+
+          return links;
+        },
 
     };
 

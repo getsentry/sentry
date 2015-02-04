@@ -12,7 +12,9 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import Model, BoundedIntegerField, BaseManager, sane_repr
+from sentry.db.models import (
+    Model, BoundedIntegerField, BaseManager, FlexibleForeignKey, sane_repr
+)
 
 
 # TODO(dcramer): pull in enum library
@@ -30,8 +32,8 @@ class TeamMember(Model):
     and could be thought of as team owners (though their access level may not)
     be set to ownership.
     """
-    team = models.ForeignKey('sentry.Team', related_name="member_set")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
+    team = FlexibleForeignKey('sentry.Team', related_name=None)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name=None)
     type = BoundedIntegerField(choices=(
         (TeamMemberType.MEMBER, _('Member')),
         (TeamMemberType.ADMIN, _('Admin')),

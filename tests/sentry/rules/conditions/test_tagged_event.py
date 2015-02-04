@@ -19,7 +19,7 @@ class TaggedEventConditionTest(RuleTestCase):
         event = self.get_event()
         rule = self.get_rule({
             'match': MatchType.EQUAL,
-            'key': 'logger',
+            'key': 'LOGGER',
             'value': 'sentry.example',
         })
         self.assertPasses(rule, event)

@@ -1,6 +1,6 @@
 {% load i18n %}
 {% load sentry_helpers %}
-{% load static_compiler %}
+{% load sentry_permissions %}
 {% get_sentry_version %}
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +11,7 @@
         <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-            {% staticbundle 'sentry/styles/global.min.css' %}
+            <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
         {% endblock %}
 
         <title>{% block title %}Sentry{% endblock %}</title>
@@ -20,10 +20,12 @@
         <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
         <![endif]-->
         {% block scripts %}
-            {% staticbundle 'sentry/scripts/lib.min.js' %}
-            {% staticbundle 'sentry/scripts/bootstrap.min.js' %}
-            {% staticbundle 'sentry/scripts/global.min.js' %}
-            {% staticbundle 'sentry/scripts/legacy.min.js' %}
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-jquery.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-backbone.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-bootstrap.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/vendor-misc.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/app.min.js" %}"></script>
+            <script src="{% url 'sentry-media' "sentry" "dist/app-legacy.min.js" %}"></script>
             <script type="text/javascript">
             {% if request.LANGUAGE_CODE %}
                 moment.lang('{{ request.LANGUAGE_CODE }}');
@@ -35,12 +37,19 @@
             {% if project %}
                 app.config.projectId = {{ project.slug|to_json|safe }};
                 app.config.teamId = {{ project.team.slug|to_json|safe }};
+                app.config.organizationId = {{ project.organization.slug|to_json|safe }};
             {% elif team %}
                 app.config.projectId = null;
                 app.config.teamId = {{ team.slug|to_json|safe }};
+                app.config.organizationId = {{ team.organization.slug|to_json|safe }};
+            {% elif organization %}
+                app.config.projectId = null;
+                app.config.teamId = null;
+                app.config.organizationId = {{ organization.slug|to_json|safe }};
             {% else %}
                 app.config.projectId = null;
                 app.config.teamId = null;
+                app.config.organizationId = null;
             {% endif %}
             </script>
         {% endblock %}
@@ -57,25 +66,31 @@
                 <div class="navbar navbar-inverse">
                     <div class="navbar-inner">
                         <div class="container">
-                            <a id="logo" href="{% url 'sentry' %}">Sentry</a>
+                            {% if organization %}
+                                <a id="logo" href="{% url 'sentry-organization-home' organization.slug %}">Sentry</a>
+                            {% else %}
+                                <a id="logo" href="{% url 'sentry' %}">Sentry</a>
+                            {% endif %}
                             {% if team %}
                             <div id="team-banner">
                                 {% if TEAM_LIST %}
                                     <a class="dropdown-toggle" data-toggle="dropdown">
-                                        {{ team.name }}
-                                        {% if project %}
-                                            <small>{{ project.name }}</small>
+                                        {% if team %}
+                                            {{ team.name }}
+                                            {% if project %}
+                                                <small>{{ project.name }}</small>
+                                            {% endif %}
+                                            <span class="caret"></span>
                                         {% endif %}
-                                        <span class="caret"></span>
                                     </a>
                                     <nav class="dropdown-menu">
                                         <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
-                                        {% for t, p_list in TEAM_LIST|reorder_teams:team %}
-                                            <h6><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>
+                                        {% for t, p_list in TEAM_LIST %}
+                                            <h6><a href="{% url 'sentry-team-dashboard' organization.slug t.slug %}">{{ t.name }}</a></h6>
                                             <ul class="project-list">
                                                 {% for p in p_list %}
                                                     <li{% if p.id == project.id %} class="active"{% endif %}>
-                                                        <a href="{% url 'sentry-stream' t.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a>
+                                                        <a href="{% url 'sentry-stream' organization.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a>
                                                     </li>
                                                 {% endfor %}
                                             </ul>
@@ -96,14 +111,34 @@
                             <ul class="nav pull-right">
                                 {% block account_nav %}
                                     {% if request.user.is_authenticated %}
-                                        {% if team and request.user|can_admin_team:team %}
-                                            <li><a href="{% url 'sentry-manage-team' team.slug %}">Team Settings</a></li>
-                                        {% endif %}
+                                        <li><a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a></li>
+                                        <li class="dropdown org-dropdown">
+                                          <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                            {% if organization %}
+                                              {{ organization.name }}
+                                            {% else %}
+                                              {% trans "Organizations" %}
+                                            {% endif %}
+                                            <span class="caret"></span>
+                                          </a>
+                                          <ul class="dropdown-menu">
+                                            {% if request.user|can_create_organizations %}
+                                              <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>{% trans "Organizations" %}</h6></li>
+                                            {% endif %}
+                                            {% for o in request.user|list_organizations %}
+                                                <li{% if o == organization %} class="active"{% endif %}>
+                                                    <a href="{% url 'sentry-organization-home' o.slug %}">{{ o.name }}</a>
+                                                    {% if request.user|can_manage_org:o %}
+                                                        <a href="{% url 'sentry-organization-settings' o.slug %}" class="org-settings"><span class="icon-cog"></span></a>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                          </ul>
+                                        </li>
                                         <li class="dropdown">
                                             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> <span class="caret"></span></a>
                                             <ul class="dropdown-menu">
                                                 <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-                                                <li><a href="{% url 'sentry' %}">{% trans "Teams" %}</a></li>
                                                 {% if request.user.is_staff %}
                                                     <li><a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a></li>
                                                 {% endif %}
@@ -127,7 +162,7 @@
                     {% block page_header %}
                         {% if team %}
                             <div class="dashboard-btn">
-                                <a href="{% url 'sentry' team.slug %}" title="{% trans "Dashboard" %}">
+                                <a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}" title="{% trans "Dashboard" %}">
                                     <i aria-hidden="true" class="icon-list"></i>
                                 </a>
                             </div>
@@ -169,7 +204,7 @@
                 {% block footer %}
                     <div class="contribute">Sentry is <a href="http://en.wikipedia.org/wiki/Open-source_software">Open Source Software</a>
                         <a href="https://github.com/getsentry/sentry" class="btn btn-small">{% trans "Contribute" %}</a> <a href="https://www.transifex.com/projects/p/sentry/" class="btn btn-small">{% trans "Translate" %}</a></div>
-                    <div class="version">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running a year old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
+                    <div class="version">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
                     <div class="credits">Handcrafted by the <a href="https://www.getsentry.com">Sentry team</a> and its <a href="https://github.com/getsentry/sentry/contributors">many contributors</a></div>
                 {% endblock %}
             </div>

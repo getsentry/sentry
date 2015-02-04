@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from django import forms
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from social_auth.models import UserSocialAuth
@@ -18,6 +17,7 @@ from sentry.models import GroupMeta, Activity
 from sentry.plugins import Plugin
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
+from sentry.utils.safe import safe_execute
 
 
 class NewIssueForm(forms.Form):
@@ -35,18 +35,14 @@ class IssuePlugin(Plugin):
     auth_provider = None
 
     def _get_group_body(self, request, group, event, **kwargs):
-        interface = event.interfaces.get('sentry.interfaces.Stacktrace')
+        interface = event.interfaces.get('exception')
         if interface:
-            return interface.to_string(event)
+            return safe_execute(interface.to_string, event)
         return
 
     def _get_group_description(self, request, group, event):
         output = [
-            absolute_uri(reverse('sentry-group', kwargs={
-                'project_id': group.project.slug,
-                'team_slug': group.team.slug,
-                'group_id': group.id,
-            })),
+            absolute_uri(group.get_absolute_url()),
         ]
         body = self._get_group_body(request, group, event)
         if body:
@@ -190,7 +186,7 @@ class IssuePlugin(Plugin):
                 data=issue_information,
             )
 
-            return self.redirect(reverse('sentry-group', args=[group.team.slug, group.project_id, group.pk]))
+            return self.redirect(group.get_absolute_url())
 
         context = {
             'form': form,

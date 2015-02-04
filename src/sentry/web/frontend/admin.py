@@ -113,7 +113,7 @@ def manage_users(request):
 
 
 @requires_admin
-@transaction.commit_on_success
+@transaction.atomic
 @csrf_protect
 def create_new_user(request):
     if not request.user.is_superuser:
@@ -134,10 +134,9 @@ def create_new_user(request):
 
         if form.cleaned_data['create_project']:
             project = Project.objects.create(
-                owner=user,
                 name='%s\'s New Project' % user.username.capitalize()
             )
-            member = project.team.member_set.get(user=user)
+            member = project.organization.member_set.get(user=user)
             key = project.key_set.get(user=user)
 
         if form.cleaned_data['send_welcome_mail']:
@@ -192,7 +191,7 @@ def edit_user(request, user_id):
 
     project_list = Project.objects.filter(
         status=0,
-        team__member_set__user=user,
+        organization__member_set__user=user,
     ).order_by('-date_added')
 
     context = {
@@ -243,7 +242,7 @@ def list_user_projects(request, user_id):
 
     project_list = Project.objects.filter(
         status=0,
-        member_set__user=user,
+        organization__member_set__user=user,
     ).order_by('-date_added')
 
     context = {
@@ -321,7 +320,10 @@ def status_packages(request):
 
     return render_to_response('sentry/admin/status/packages.html', {
         'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
-        'extensions': [(p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__)) for p in plugins.all()],
+        'extensions': [
+            (p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__))
+            for p in plugins.all(version=None)
+        ],
     }, request)
 
 

@@ -9,10 +9,11 @@ from __future__ import absolute_import
 
 import six
 
-from django.core.validators import URLValidator
-from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea, Widget
+from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
 from django.forms.util import flatatt
-from django.forms import Field, CharField, IntegerField, ValidationError
+from django.forms import (
+    Field, CharField, IntegerField, TypedChoiceField, ValidationError
+)
 from django.utils.encoding import force_unicode
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -20,8 +21,24 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import User
 
-# Special case origins that don't fit the normal regex pattern, but are valid
-WHITELIST_ORIGINS = ('*', 'localhost')
+
+class CustomTypedChoiceField(TypedChoiceField):
+    # A patched version of TypedChoiceField which correctly validates a 0
+    # as a real input that may be invalid
+    # See https://github.com/django/django/pull/3774
+    def validate(self, value):
+        """
+        Validates that the input is in self.choices.
+        """
+        super(CustomTypedChoiceField, self).validate(value)
+        # this will validate itself twice due to the internal ChoiceField
+        # validation
+        if value is not None and not self.valid_value(value):
+            raise ValidationError(
+                self.error_messages['invalid_choice'],
+                code='invalid_choice',
+                params={'value': value},
+            )
 
 
 class RangeInput(TextInput):
@@ -75,42 +92,6 @@ class RangeField(IntegerField):
         return attrs
 
 
-class OriginsField(CharField):
-    _url_validator = URLValidator()
-    widget = Textarea(
-        attrs={'placeholder': mark_safe(_('e.g. example.com or https://example.com')), 'class': 'span8'},
-    )
-
-    def clean(self, value):
-        if not value:
-            return []
-        values = filter(bool, (v.strip() for v in value.split('\n')))
-        for value in values:
-            if not self.is_valid_origin(value):
-                raise ValidationError('%r is not an acceptable value' % value)
-        return values
-
-    def is_valid_origin(self, value):
-        if value in WHITELIST_ORIGINS:
-            return True
-
-        if '://' in value:
-            # URLValidator will raise a forms.ValidationError itself
-            self._url_validator(value)
-            return True
-
-        # ports are not supported on matching expressions (yet)
-        if ':' in value:
-            return False
-
-        # no .com's
-        parts = filter(bool, value.split('.'))
-        if len(parts) < 2:
-            return False
-
-        return True
-
-
 class ReadOnlyTextWidget(Widget):
     def render(self, name, value, attrs):
         final_attrs = self.build_attrs(attrs)
@@ -130,25 +111,3 @@ class ReadOnlyTextField(Field):
         # Always return initial because the widget doesn't
         # render an input field.
         return initial
-
-
-def get_team_label(team):
-    return '%s (%s)' % (team.name, team.slug)
-
-
-def get_team_choices(team_list, default=None):
-    sorted_team_list = sorted(team_list.itervalues(), key=lambda x: x.name)
-
-    choices = []
-    for team in sorted_team_list:
-        # TODO: optimize queries
-        choices.append(
-            (team.id, get_team_label(team))
-        )
-
-    if default is None:
-        choices.insert(0, (-1, mark_safe('&ndash;' * 8)))
-    elif default not in sorted_team_list:
-        choices.insert(0, (default.id, get_team_label(default)))
-
-    return choices

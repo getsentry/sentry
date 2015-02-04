@@ -7,31 +7,78 @@ sentry.models.project
 """
 from __future__ import absolute_import, print_function
 
+import logging
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import (
-    PLATFORM_TITLES, PLATFORM_LIST, STATUS_VISIBLE, STATUS_HIDDEN
-)
+from sentry.constants import PLATFORM_TITLES, PLATFORM_LIST
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, sane_repr
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.manager import ProjectManager
 from sentry.utils.http import absolute_uri
+
+
+class ProjectManager(BaseManager):
+    # TODO(dcramer): we might want to cache this per user
+    def get_for_user(self, team, user, access=None, _skip_team_check=False):
+        from sentry.models import Team
+
+        if not (user and user.is_authenticated()):
+            return []
+
+        if not _skip_team_check:
+            team_list = Team.objects.get_for_user(
+                organization=team.organization,
+                user=user,
+                access=access,
+            )
+
+            try:
+                team = team_list[team_list.index(team)]
+            except ValueError:
+                logging.info('User does not have access to team: %s', team.id)
+                return []
+
+        # Identify access groups
+        if getattr(team, 'is_access_group', False):
+            logging.warning('Team is using deprecated access groups: %s', team.id)
+            base_qs = Project.objects.filter(
+                accessgroup__team=team,
+                accessgroup__members=user,
+                status=ProjectStatus.VISIBLE,
+            )
+        else:
+            base_qs = self.filter(
+                team=team,
+                status=ProjectStatus.VISIBLE,
+            )
+
+        project_list = []
+        for project in base_qs:
+            project.team = team
+            project_list.append(project)
+
+        return sorted(project_list, key=lambda x: x.name.lower())
+
+
+# TODO(dcramer): pull in enum library
+class ProjectStatus(object):
+    VISIBLE = 0
+    PENDING_DELETION = 1
+    DELETION_IN_PROGRESS = 2
 
 
 class Project(Model):
     """
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
-
-    A project may be owned by only a single team, and may or may not
-    have an owner (which is thought of as a project creator).
     """
     PLATFORM_CHOICES = tuple(
         (p, PLATFORM_TITLES.get(p, p.title()))
@@ -40,12 +87,14 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    team = models.ForeignKey('sentry.Team', null=True)
+    organization = FlexibleForeignKey('sentry.Organization')
+    team = FlexibleForeignKey('sentry.Team')
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(default=0, choices=(
-        (STATUS_VISIBLE, _('Visible')),
-        (STATUS_HIDDEN, _('Hidden')),
+        (ProjectStatus.VISIBLE, _('Active')),
+        (ProjectStatus.PENDING_DELETION, _('Pending Deletion')),
+        (ProjectStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), db_index=True)
     platform = models.CharField(max_length=32, choices=PLATFORM_CHOICES, null=True)
 
@@ -57,21 +106,21 @@ class Project(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_project'
-        unique_together = (('team', 'slug'),)
+        unique_together = (('team', 'slug'), ('organization', 'slug'))
 
-    __repr__ = sane_repr('team_id', 'slug', 'owner_id')
+    __repr__ = sane_repr('team_id', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name, team=self.team)
+            slugify_instance(self, self.name, organization=self.organization)
         super(Project, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-stream', args=[
-            self.team.slug, self.slug]))
+            self.organization.slug, self.slug]))
 
     def merge_to(self, project):
         from sentry.models import (
@@ -144,3 +193,26 @@ class Project(Model):
         from sentry.models import ProjectOption
 
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
+
+    def has_access(self, user, access=None):
+        from sentry.models import OrganizationMember
+
+        queryset = OrganizationMember.objects.filter(
+            Q(teams=self.team) | Q(has_global_access=True),
+            user__is_active=True,
+            user=user,
+            organization=self.organization,
+        )
+        if access is not None:
+            queryset = queryset.filter(type__lte=access)
+
+        return queryset.exists()
+
+    def get_audit_log_data(self):
+        return {
+            'slug': self.slug,
+            'name': self.name,
+            'status': self.status,
+            'public': self.public,
+            'platform': self.platform,
+        }

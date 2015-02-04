@@ -1,0 +1,28 @@
+<h4>Guides</h4>
+<ul class="nav">
+  {% for page in page_list %}
+      <li><a href="{% url 'sentry-help-page' page.id page.slug %}">{{ page.title }}</a></li>
+  {% endfor %}
+</ul>
+
+<h4>Clients</h4>
+<ul class="nav">
+  <li class="{% block client_overview_class %}{% endblock %}"><a href="{% url 'sentry-help-platform-list' %}">Overview</a></li>
+  <li class="{% ifequal platform "python" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'python' %}">Python</a></li>
+  <li class="{% ifequal platform "php" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'php' %}">PHP</a></li>
+  <li class="{% ifequal platform "ruby" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'ruby' %}">Ruby</a></li>
+  <li class="{% ifequal platform "javascript" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'javascript' %}">JavaScript</a></li>
+  <li class="{% ifequal platform "java" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'java' %}">Java</a></li>
+  <li class="{% ifequal platform "node.js" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'node.js' %}">Node.js</a></li>
+  <li class="{% ifequal platform "go" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'go' %}">Go</a></li>
+</ul>
+
+<h4>API Reference</h4>
+<ul class="nav">
+    <li><a href="{% url 'sentry-api-0-help' %}">Overview</a></li>
+    <li><a href="{% url 'sentry-api-0-help-pagination' %}">Pagination</a></li>
+    {% for section in api_sections %}
+      <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
+    {% endfor %}
+    <li><a href="http://sentry.readthedocs.org/en/latest/developer/client/index.html">Client Specification</a></li>
+</ul>

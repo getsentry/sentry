@@ -1,0 +1,30 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% trans "Add Member to Organization" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+  <div class="create-flow">
+    <div class="page-header">
+      <div class="pull-right">
+        <a class="go-back" href="{% url 'sentry-organization-home' organization.slug %}">Back to Organization Home</a>
+      </div>
+      <h2>{% trans "Add Member to Organization" %}</h2>
+    </div>
+
+    <fieldset>
+      {% if is_invite %}
+        <p>{% trans "Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
+        <p>{% trans "You will be able to configure permissions and team access on the following page." %}</p>
+        {% trans "Send Invite" as submit_label %}
+        {% include "sentry/partial/_form.html" %}
+      {% else %}
+        <p>{% trans "You may add a user by their username if they already have an account." %}</p>
+        <p>{% trans "You will be able to configure permissions and team access on the following page." %}</p>
+        {% include "sentry/partial/_form.html" %}
+      {% endif %}
+    </fieldset>
+  </div>
+{% endblock %}

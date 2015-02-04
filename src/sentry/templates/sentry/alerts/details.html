@@ -21,7 +21,7 @@
 
 {% block sidebar %}
     {% if not alert.is_resolved %}
-        <a href="{% url 'sentry-resolve-alert' project.team.slug project.slug alert.id %}" class="btn btn-primary" style="display: block">Resolve Alert</a>
+        <a href="{% url 'sentry-resolve-alert' project.organization.slug project.slug alert.id %}" class="btn btn-primary" style="display: block">Resolve Alert</a>
         <br>
     {% endif %}
     <h6>{% trans "Meta" %}</h6>

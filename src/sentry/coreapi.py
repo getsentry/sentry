@@ -12,14 +12,14 @@ from __future__ import absolute_import, print_function
 
 import base64
 import logging
+import six
 import uuid
 import zlib
-from gzip import GzipFile
 
 from datetime import datetime, timedelta
+from django.utils.crypto import constant_time_compare
 from django.utils.encoding import smart_str
-
-import six
+from gzip import GzipFile
 
 from sentry.app import cache, env
 from sentry.constants import (
@@ -107,12 +107,15 @@ def client_metadata(client=None, project=None, exception=None, tags=None, extra=
         if project.team:
             extra['team_slug'] = project.team.slug
             extra['team_id'] = project.team.id
+        if project.organization:
+            extra['organization_slug'] = project.organization.slug
+            extra['organization_id'] = project.organization.id
 
     tags['client'] = client
     if exception:
         tags['exc_type'] = type(exception).__name__
-    if project and project.team:
-        tags['project'] = '%s/%s' % (project.team.slug, project.slug)
+    if project and project.organization:
+        tags['project'] = '%s/%s' % (project.organization.slug, project.slug)
 
     result = {'extra': extra}
     if exception:
@@ -142,8 +145,11 @@ def project_from_auth_vars(auth_vars):
     except ProjectKey.DoesNotExist:
         raise APIForbidden('Invalid api key')
 
-    if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
+    if not constant_time_compare(pk.secret_key, auth_vars.get('sentry_secret', pk.secret_key)):
         raise APIForbidden('Invalid api key')
+
+    if not pk.is_active:
+        raise APIForbidden('API key is disabled')
 
     if not pk.roles.store:
         raise APIForbidden('Key does not allow event storage access')
@@ -388,6 +394,15 @@ def validate_data(project, data, client=None):
     return data
 
 
+def ensure_does_not_have_ip(data):
+    if 'sentry.interfaces.Http' in data:
+        if 'env' in data['sentry.interfaces.Http']:
+            data['sentry.interfaces.Http']['env'].pop('REMOTE_ADDR', None)
+
+    if 'sentry.interfaces.User' in data:
+        data['sentry.interfaces.User'].pop('ip_address', None)
+
+
 def ensure_has_ip(data, ip_address):
     if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
         return
@@ -399,6 +414,6 @@ def ensure_has_ip(data, ip_address):
 
 
 def insert_data_to_database(data):
-    cache_key = 'e:{0}'.format(data['event_id'])
+    cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
     cache.set(cache_key, data, timeout=3600)
     preprocess_event.delay(cache_key=cache_key)

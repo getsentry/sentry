@@ -11,7 +11,7 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db import models
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
@@ -20,8 +20,6 @@ from sentry.utils.cache import cache
 class ProjectOptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super(ProjectOptionManager, self).__init__(*args, **kwargs)
-        task_postrun.connect(self.clear_local_cache)
-        request_finished.connect(self.clear_local_cache)
         self.__cache = {}
 
     def __getstate__(self):
@@ -100,6 +98,11 @@ class ProjectOptionManager(BaseManager):
     def post_delete(self, instance, **kwargs):
         self.reload_cache(instance.project_id)
 
+    def contribute_to_class(self, model, name):
+        super(ProjectOptionManager, self).contribute_to_class(model, name)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
+
 
 class ProjectOption(Model):
     """
@@ -108,7 +111,7 @@ class ProjectOption(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
-    project = models.ForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project')
     key = models.CharField(max_length=64)
     value = UnicodePickledObjectField()
 

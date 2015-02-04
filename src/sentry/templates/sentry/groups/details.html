@@ -52,10 +52,10 @@
 
                 <div class="btn-toolbar event-toolbar">
                     <!-- We switch the ordering of events here as it makes more sense visually -->
-                    <a class="btn pull-left prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Event" %}</a>
-                    <a class="btn pull-right next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Event" %} <span></span></a>
+                    <a class="btn pull-left prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url 'sentry-group-event' group.organization.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Sample" %}</a>
+                    <a class="btn pull-right next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url 'sentry-group-event' group.organization.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Sample" %} <span></span></a>
                     <h4>
-                    Event at <span title="{{ event.datetime }}">{% localized_datetime event.datetime %}</span> [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
+                    Sample at <span title="{{ event.datetime }}">{% localized_datetime event.datetime %}</span> [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
                 </div>
 
                 {% include "sentry/partial/event_nav.html" %}
@@ -76,12 +76,12 @@
 
 {% block sidebar %}
     <ul class="nav nav-list">
-        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url 'sentry-group' group.team.slug group.project.slug group.id %}">Aggregate</a></li>
+        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url 'sentry-group' group.organization.slug group.project.slug group.id %}">Aggregate</a></li>
         <li{% if page == 'tag_list' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-group-tags' group.team.slug group.project.slug group.id %}">{% trans "Tags" %}</a>
+            <a href="{% url 'sentry-group-tags' group.organization.slug group.project.slug group.id %}">{% trans "Tags" %}</a>
         </li>
         <li{% if page == 'event_list' or page == 'event' %} class="active"{% endif %}>
-            <a href="{% url 'sentry-group-events' group.team.slug group.project.slug group.id %}">{% trans "Similar Events" %}</a>
+            <a href="{% url 'sentry-group-events' group.organization.slug group.project.slug group.id %}">{% trans "Samples" %}</a>
         </li>
     </ul>
 
@@ -124,15 +124,15 @@
         <li class="nav-header">{% trans "Actions" %}</li>
         {% if can_admin_event %}
             {% if not group.is_muted %}
-                <li><a href="{% url 'sentry-api-set-group-mute' group.team.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
+                <li><a href="{% url 'sentry-api-set-group-mute' group.organization.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
             {% elif not group.is_resolved %}
-                <li><a href="{% url 'sentry-api-set-group-unresolve' group.team.slug project.slug group.id %}">{% trans "Unmute Event" %}</a></li>
+                <li><a href="{% url 'sentry-api-set-group-unresolve' group.organization.slug project.slug group.id %}">{% trans "Unmute Event" %}</a></li>
             {% endif %}
-            {% url 'sentry-group' group.team.slug group.project.slug group.id as group_link %}
+            {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
             <li>
                 <a href="javascript:void(0)"
-                   data-public-url="{% url 'sentry-api-set-group-public' group.team.slug group.project.slug group.id %}"
-                   data-private-url="{% url 'sentry-api-set-group-private' group.team.slug group.project.slug group.id %}"
+                   data-public-url="{% url 'sentry-api-set-group-public' group.organization.slug group.project.slug group.id %}"
+                   data-private-url="{% url 'sentry-api-set-group-private' group.organization.slug group.project.slug group.id %}"
                    data-share-url="{% absolute_uri group_link %}"
                    data-public="{% if group.is_public %}true{% else %}false{% endif %}"
                    class="share-link">{% trans "Share Event" %}</a>
@@ -142,11 +142,11 @@
             {% endfor %}
         {% endif %}
         <li><a {% if event.id %}
-        href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id event.id %}"{% else %}
-        href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id 'latest' %}"{% endif %}
+        href="{% url 'sentry-group-event-json' group.organization.slug project.slug group.id event.id %}"{% else %}
+        href="{% url 'sentry-group-event-json' group.organization.slug project.slug group.id 'latest' %}"{% endif %}
         >{% trans "Raw JSON Data" %}</a></li>
         {% if can_remove_event %}
-            <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}"
+            <li><a href="{% url 'sentry-api-remove-group' group.organization.slug project.slug group.id %}"
                    onclick="return confirm('{% trans "Are you sure you wish to delete all data for this event?" %}');">{% trans "Remove Event Data" %}</a></li>
         {% endif %}
     </ul>

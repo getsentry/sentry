@@ -8,15 +8,15 @@ sentry.models.event
 from __future__ import absolute_import
 
 import warnings
+from collections import OrderedDict
 
 from django.db import models
 from django.utils import timezone
-from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import (
     Model, NodeField, BoundedIntegerField, BoundedPositiveIntegerField,
-    BaseManager, sane_repr
+    BaseManager, FlexibleForeignKey, sane_repr
 )
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
@@ -28,9 +28,9 @@ class Event(Model):
     """
     An individual event.
     """
-    group = models.ForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
+    group = FlexibleForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
-    project = models.ForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
     message = models.TextField()
     checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
@@ -76,6 +76,10 @@ class Event(Model):
     @property
     def team(self):
         return self.project.team
+
+    @property
+    def organization(self):
+        return self.project.organization
 
     @property
     def version(self):
@@ -145,7 +149,7 @@ class Event(Model):
 
             result.append((key, value))
 
-        return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
+        return OrderedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
 
     def get_tags(self, with_internal=True):
         try:
@@ -158,9 +162,17 @@ class Event(Model):
             # vs ((tag, foo), (tag, bar))
             return []
 
+    tags = property(get_tags)
+
+    def get_tag(self, key):
+        for t, v in (self.data.get('tags') or ()):
+            if t == key:
+                return v
+        return None
+
     def as_dict(self):
-        # We use a SortedDict to keep elements ordered for a potential JSON serializer
-        data = SortedDict()
+        # We use a OrderedDict to keep elements ordered for a potential JSON serializer
+        data = OrderedDict()
         data['id'] = self.event_id
         data['culprit'] = self.group.culprit
         data['message'] = self.message
@@ -195,20 +207,20 @@ class Event(Model):
     def logger(self):
         warnings.warn('Event.logger is deprecated. Use Event.tags instead.',
                       DeprecationWarning)
-        return self.tags.get('logger')
+        return self.get_tag('logger')
 
     @property
     def site(self):
         warnings.warn('Event.site is deprecated. Use Event.tags instead.',
                       DeprecationWarning)
-        return self.tags.get('site')
+        return self.get_tag('site')
 
     @property
     def server_name(self):
         warnings.warn('Event.server_name is deprecated. Use Event.tags instead.')
-        return self.tags.get('server_name')
+        return self.get_tag('server_name')
 
     @property
     def culprit(self):
-        warnings.warn('Event.culprit is deprecated. Use Event.tags instead.')
-        return self.tags.get('culprit')
+        warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
+        return self.group.culprit
