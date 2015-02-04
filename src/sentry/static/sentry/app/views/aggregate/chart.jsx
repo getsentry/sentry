@@ -1,7 +1,7 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
-var FlotChart = require("../../components/flotChart");
+var BarChart = require("../../components/barChart");
 var PropTypes = require("../../proptypes");
 
 var AggregateChart = React.createClass({
@@ -19,9 +19,7 @@ var AggregateChart = React.createClass({
     return (
       <div>
         <h6>Last 48 Hours</h6>
-        <FlotChart
-            points={points}
-            className="chart" />
+        <BarChart points={points} className="sparkline" />
       </div>
     );
   }
