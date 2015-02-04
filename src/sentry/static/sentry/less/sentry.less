@@ -610,41 +610,32 @@ header {
 }
 
 .nav-tabs {
-  border-bottom: 1px solid darken(#E9EBEC, 3);
+  border-bottom: 0;
+  margin: 0 0 20px;
+
   li {
-    margin-bottom: -1px;
+    margin-right: 20px;
 
     > a {
-      font-size: 14px;
-      color: #4c5459;
-      font-weight: 600;
-      margin-right: 0;
-      line-height: 1.428571429;
-      border: 1px solid transparent;
-      border-radius: 4px 4px 0 0;
-      padding: 10px 15px;
-      min-width: 100px;
-      text-align: center;
-      opacity: .75;
-      .transition(.2s opacity);
+      font-size: 15px;
+      padding: 0 0 10px;
+      border: 0;
+      background: none;
+      color: rgba(52, 60, 69, .5);
 
       &:hover {
-        background: transparent;
-        border-color: transparent;
-        opacity: 1;
+        background: none;
+        color: rgba(52, 60, 69, 1);
       }
     }
 
     &.active {
-      margin-top: -3px;
-
       a, a:hover, a:focus {
-        opacity: 1;
-        padding-top: 13px;
-        padding-bottom: 11px;
-        background: #fff;
-        border: 1px solid darken(#E9EBEC, 3);
-        border-bottom-color: transparent;
+        border: 0;
+        border-bottom: 2px solid @gray-dark;
+        background: none;
+        color: rgba(52, 60, 69, 1);
+        font-weight: 600;
       }
     }
   }
@@ -830,14 +821,6 @@ footer {
 
 .form-group {
   margin-bottom: 20px;
-}
-
-.nav {
-  li {
-    a {
-      color: #4c5459;
-    }
-  }
 }
 
 .nav-stacked li  {
@@ -1361,7 +1344,7 @@ a.icon-share {
 
 .group-detail {
   position: relative;
-  padding: 20px;
+  padding: 20px 20px 0;
   margin: -19px -20px 20px !important;
   border-bottom: 1px solid #E9EBEC;
   margin-top: -5px;
@@ -1468,6 +1451,11 @@ a.icon-share {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+  }
+
+  .nav-tabs {
+    margin-top: 20px;
+    margin-bottom: 0;
   }
 }
 
@@ -2194,6 +2182,16 @@ ol.context-line {
   height: 50px;
   border-top: 1px solid #E3E5E7;
   border-bottom: 1px solid #E3E5E7;
+
+  .nav-tabs {
+    margin-left: 20px;
+    position: relative;
+    top: 14px;
+
+    > li a {
+      padding-bottom: 12px;
+    }
+  }
 
   .btn-group {
     margin: -1px -1px -1px 0;
