@@ -4,13 +4,12 @@ var React = require("react");
 
 var AssigneeSelector = require("../../components/assigneeSelector");
 var Count = require("../../components/count");
+var PropTypes = require("../../proptypes");
 var TimeSince = require("../../components/timeSince");
 
 var AggregateHeader = React.createClass({
   propTypes: {
-    aggregate: React.PropTypes.shape({
-      id: React.PropTypes.string.isRequired
-    }).isRequired,
+    aggregate: PropTypes.Aggregate.isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
