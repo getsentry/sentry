@@ -5,6 +5,7 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
+var BreadcrumbStore = require("../stores/breadcrumbStore");
 var MemberListStore = require("../stores/memberListStore");
 
 var ProjectDetails = React.createClass({
@@ -22,6 +23,14 @@ var ProjectDetails = React.createClass({
         MemberListStore.loadInitialData(data);
       }.bind(this)
     });
+
+    BreadcrumbStore.push(
+      <a href="#">Foobar</a>
+    );
+  },
+
+  componentWillUnmount: function() {
+    BreadcrumbStore.pop();
   },
 
   getMemberListEndpoint: function() {

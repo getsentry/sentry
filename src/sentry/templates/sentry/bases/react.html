@@ -1,5 +1,15 @@
 {% extends "sentry/layout.html" %}
 
+{% block breadcrumb_outer %}
+  <div id="blk_breadcrumb"></div>
+  <script>
+  $(function(){
+    React.render(React.createFactory(Breadcrumbs)({
+    }), document.getElementById('blk_breadcrumb'));
+  });
+  </script>
+{% endblock %}
+
 {% block content %}
   <div id="blk_content"></div>
   <script>
