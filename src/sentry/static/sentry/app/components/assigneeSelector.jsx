@@ -3,8 +3,8 @@
 var React = require("react");
 var Reflux = require("reflux");
 
-var api = require("./api");
-var AggregateListStore = require("./stores/aggregateListStore");
+var api = require("../api");
+var AggregateListStore = require("../stores/aggregateListStore");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 var PropTypes = require("../proptypes");
