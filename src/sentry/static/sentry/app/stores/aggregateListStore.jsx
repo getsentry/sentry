@@ -14,6 +14,7 @@ var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 var AggregateListStore = Reflux.createStore({
   init() {
     this.items = [];
+    this.statuses = {};
     this.pendingChanges = new utils.PendingChangeQueue();
 
     this.listenTo(AggregateListActions.update, this.onUpdate);
@@ -27,11 +28,33 @@ var AggregateListStore = Reflux.createStore({
   // TODO(dcramer): this should actually come from an action of some sorts
   loadInitialData(items) {
     this.items = [];
+    this.statuses = {};
     this.pendingChanges.clear();
     items.forEach(item => {
       this.items.push(item);
     });
     this.trigger(this.getAllItems());
+  },
+
+  addStatus(id, status) {
+    if (typeof this.statuses[id] === 'undefined') {
+      this.statuses[id] = {};
+    }
+    this.statuses[id][status] = true;
+  },
+
+  clearStatus(id, status) {
+    if (typeof this.statuses[id] === 'undefined') {
+      return;
+    }
+    this.statuses[id][status] = false;
+  },
+
+  hasStatus(item, status) {
+    if (typeof this.statuses[id] === 'undefined') {
+      return false;
+    }
+    return this.statuses[id][status] || false;
   },
 
   getItem(id) {
@@ -88,6 +111,7 @@ var AggregateListStore = Reflux.createStore({
   onUpdate(changeId, itemIds, data){
     if (typeof itemIds === 'undefined') this.items.map(item => item.id);
     itemIds.forEach(item => {
+      this.addStatus(itemId, 'update');
       this.pendingChanges.push(changeId, itemId, data);
     });
     this.trigger(this.getAllItems());
@@ -95,24 +119,31 @@ var AggregateListStore = Reflux.createStore({
 
   onUpdateError(changeId, itemIds, error){
     this.pendingChanges.remove(changeId);
+    itemIds.forEach(itemId => {
+      this.clearStatus(itemId, 'update');
+    });
     this.trigger(this.getAllItems());
   },
 
   onUpdateSuccess(changeId, itemIds, response){
     if (typeof itemIds === 'undefined') this.items.map(item => item.id);
-    itemIds.forEach(item => {
-      $.extend(true, item, response);
+    this.items.forEach(item => {
+      if (itemIds.indexOf(item.id) !== 1) {
+        $.extend(true, item, response);
+        this.clearStatus(item.id, 'update');
+      }
     });
     this.pendingChanges.remove(changeId);
     this.trigger(this.getAllItems());
   },
 
-  onAssignTo() {
-
+  onAssignTo(id, email) {
+    this.addStatus(itemId, 'assignTo');
   },
 
   // TODO(dcramer): This is not really the best place for this
   onAssignToError(id, email) {
+    this.clearStatus(itemId, 'assignTo');
     AlertActions.addAlert(ERR_CHANGE_ASSIGNEE, 'error');
   },
 
@@ -129,14 +160,21 @@ var AggregateListStore = Reflux.createStore({
         item.assignedTo = member;
       }
     }
-    this.trigger(_items);
+    this.clearStatus(itemId, 'assignTo');
+    this.trigger(this.getAllItems());
   },
 
-  onDeleteCompleted(params) {
+  onDeleteCompleted(changeId, itemIds) {
+    itemIds.forEach(itemId => {
+      this.clearStatus(itemId, 'delete');
+    });
     AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
   },
 
-  onMergeCompleted(params) {
+  onMergeCompleted(changeId, itemIds) {
+    itemIds.forEach(itemId => {
+      this.clearStatus(itemId, 'merge');
+    });
     AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
   }
 });
