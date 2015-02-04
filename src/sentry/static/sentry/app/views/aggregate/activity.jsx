@@ -11,7 +11,7 @@ var AggregateActivity = React.createClass({
   render: function() {
     return (
       <div className="activity">
-        <h5>Timeline</h5>
+        <h6>Timeline</h6>
         <div className="activity-field">
           <textarea className="form-control" placeholder="Type a note and press enter" />
         </div>

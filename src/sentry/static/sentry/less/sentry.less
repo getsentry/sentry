@@ -165,9 +165,9 @@ p {
   margin: 0 0 20px;
 }
 
-h1, h2, h3, h4, h5 {
+h1, h2, h3, h4, h5, h6 {
   margin: 0 0 20px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -189,6 +189,10 @@ h4 {
 
 h5 {
   font-size: 18px;
+}
+
+h6 {
+  font-size: 14px;
 }
 
 ul, ol {
@@ -623,7 +627,7 @@ header {
       background: none;
       color: rgba(52, 60, 69, .5);
 
-      &:hover {
+      &:hover, &:active, &:focus {
         background: none;
         color: rgba(52, 60, 69, 1);
       }
@@ -1031,6 +1035,7 @@ footer {
   position: relative;
   min-height: 150px;
   max-height: 200px;
+  margin-bottom: 20px;
 
   > .title {
     font-size: 2em;
@@ -1421,6 +1426,10 @@ a.icon-share {
   .group-actions {
     margin-top: 15px;
 
+    .btn-group {
+      margin-right: 5px;
+    }
+
     .group-resolve.active {
       background: @green;
       color: #fff;
@@ -1457,6 +1466,20 @@ a.icon-share {
   .nav-tabs {
     margin-top: 20px;
     margin-bottom: 0;
+  }
+}
+
+.group-stats, .event-stats {
+  padding-bottom: 5px;
+
+  h6 {
+    opacity: .6;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+
+  h3 {
+    font-size: 20px;
   }
 }
 
@@ -2196,6 +2219,8 @@ ol.context-line {
 
   .btn-group {
     margin: -1px -1px -1px 0;
+    position: relative;
+    z-index: 10;
   }
 
   .btn {
@@ -2847,6 +2872,7 @@ table.integrations {
       margin: 0;
       .transition(.1s ease-in-out all);
       padding: 11px 15px;
+      border-color: #DFE1E3;
 
       &.expanded {
         max-height: 100px;
@@ -2859,7 +2885,7 @@ table.integrations {
 
     > li {
       padding: 0 0 10px 35px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       border-bottom: 1px solid #E5E7E8;
 
       &:last-child {
@@ -2867,6 +2893,7 @@ table.integrations {
       }
 
       h6 {
+        font-size: 13px;
         margin: 0 0 4px;
         a {
           font-weight: 600;
@@ -2906,7 +2933,7 @@ table.integrations {
       }
 
       p {
-        font-size: 12px;
+        font-size: 13px;
         margin-bottom: 10px;
         &:last-child {
           margin: 0;

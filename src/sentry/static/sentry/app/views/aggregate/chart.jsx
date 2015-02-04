@@ -18,7 +18,7 @@ var AggregateChart = React.createClass({
 
     return (
       <div>
-        <h5>Last 48 Hours</h5>
+        <h6>Last 48 Hours</h6>
         <FlotChart
             points={points}
             className="chart" />
