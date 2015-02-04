@@ -94,6 +94,11 @@ var AggregateHeader = React.createClass({
             </ul>
           </div>
         </div>
+        <ul className="nav nav-tabs">
+          <li className="active"><a href="#">Overview</a></li>
+          <li><a href="#">Tags</a></li>
+          <li><a href="#">Similar Events</a></li>
+        </ul>
       </div>
     );
   }
