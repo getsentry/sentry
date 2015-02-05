@@ -30,8 +30,17 @@ class Client {
       data = JSON.stringify(data);
     }
 
+    var fullUrl = this.baseUrl + path;
+    if (query) {
+      if (fullUrl.indexOf('?') !== -1) {
+        fullUrl += '&' + query;
+      } else {
+        fullUrl += '?' + query;
+      }
+    }
+
     $.ajax({
-      url: this.baseUrl + path + "?" + query,
+      url: fullUrl,
       method: method,
       data: data,
       contentType: 'application/json',
