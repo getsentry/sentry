@@ -1483,6 +1483,38 @@ a.icon-share {
   }
 }
 
+.group-chart {
+  figure {
+    margin-bottom: 20px;
+    .clearfix();
+
+    a {
+      height: 100px;
+      position: relative;
+
+      &:before {
+        content: "";
+        background: rgba(52, 60, 69, .04);
+        display: block;
+        border-radius: 2px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        min-width: 6px;
+        border-radius: 2px;
+      }
+
+      span {
+        border-radius: 2px;
+        min-height: 4px;
+        min-width: 6px;
+        background: @gray-dark;
+      }
+    }
+  }
+}
+
 .stream-empty {
   margin-top: 40px;
   border: 1px solid darken(#f1f2f3, 2);
