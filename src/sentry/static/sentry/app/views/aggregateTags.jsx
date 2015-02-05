@@ -17,7 +17,8 @@ var AggregateTags = React.createClass({
   getInitialState() {
     return {
       tagList: null,
-      loading: true
+      loading: true,
+      error: false
     };
   },
 
@@ -30,21 +31,39 @@ var AggregateTags = React.createClass({
 
     this.setState({loading: true});
 
+    this.setState({
+      loading: true,
+      error: false
+    });
+
     api.request('/groups/' + params.aggregateId + '/tags/', {
       success: (data) => {
-        this.setState({tagList: data});
+        this.setState({
+          tagList: data,
+          error: false,
+          loading: false
+        });
       },
-      error: () => {
-        // TODO(dcramer):
-      },
-      complete: () => {
-        this.setState({loading: false});
+      error: (error) => {
+        this.setState({
+          error: true,
+          loading: false
+        });
       }
     });
   },
 
-
   render() {
+    if (this.state.loading) {
+      return <div className="loading"></div>;
+    } else if (this.state.error) {
+      return (
+        <div className="alert alert-error alert-block">
+          <p>There was an error loading data. <a onClick={this.fetchData}>Retry</a></p>
+        </div>
+      );
+    }
+
     var children = [];
 
     if (this.state.tagList) {
