@@ -1,25 +1,47 @@
 /*** @jsx React.DOM */
 var React = require("react");
+var Reflux = require("reflux");
 var Router = require("react-router");
 
 var AssigneeSelector = require("../../components/assigneeSelector");
 var BarChart = require("../../components/barChart");
 var Count = require("../../components/count");
+var SelectedAggregateStore = require("../../stores/selectedAggregateStore");
 var TimeSince = require("../../components/timeSince");
 
 var StreamAggregate = React.createClass({
-  mixins: [Router.State],
+  mixins: [
+    Reflux.listenTo(SelectedAggregateStore, "onSelectedAggregateChange"),
+    Router.State
+  ],
 
   propTypes: {
     data: React.PropTypes.shape({
       id: React.PropTypes.string.isRequired
     }).isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
-    onSelect: React.PropTypes.func.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
-    isSelected: React.PropTypes.bool
   },
-  render: function() {
+
+  getInitialState() {
+    return {
+      isSelected: false,
+    };
+  },
+
+  onSelectedAggregateChange() {
+    var id = this.getParams().aggregateId;
+
+    this.setState({
+      isSelected: SelectedAggregateStore.isSelected(id),
+    });
+  },
+
+  onSelect() {
+    SelectedAggregateStore.toggleSelect(this.props.data.id);
+  },
+
+  render() {
     var data = this.props.data,
         userCount = 0;
 
@@ -49,8 +71,8 @@ var StreamAggregate = React.createClass({
         <div className="col-md-7 event-details">
           <div className="checkbox">
             <input type="checkbox" className="chk-select" value={data.id}
-                   checked={this.props.isSelected}
-                   onChange={this.props.onSelect} />
+                   checked={this.state.isSelected}
+                   onChange={this.onSelect} />
           </div>
           <h3>
             <Router.Link to="aggregateDetails"

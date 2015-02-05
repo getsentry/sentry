@@ -141,55 +141,6 @@ var Stream = React.createClass({
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
   },
-
-  handleSelect(aggId, event) {
-    var checked = $(event.target).is(':checked');
-    var aggList = this.state.aggList;
-    var aggNode = null;
-
-    var numSelected = 0,
-        numTotal = 0;
-
-    this.state.aggList.forEach((node) => {
-      if (aggId === node.id) {
-        aggNode = node;
-        aggNode.isSelected = checked;
-      }
-
-      if (node.isSelected) {
-        numSelected += 1;
-      }
-      numTotal += 1;
-    });
-
-    if (aggNode === null) {
-      throw new Error('Unable to find aggregate node for ID ' + aggId);
-    }
-
-    this.setState({
-      aggList: aggList,
-      selectAllActive: (numSelected === numTotal),
-      anySelected: numSelected !== 0,
-      multiSelected: numSelected > 1
-    });
-  },
-
-  handleSelectAll(event){
-    var checked = $(event.target).is(':checked');
-    var aggList = this.state.aggList;
-    var numSelected = checked ? aggList.length : 0;
-
-    aggList.forEach((node) => {
-      node.isSelected = checked;
-    });
-
-    this.setState({
-      aggList: aggList,
-      selectAllActive: checked,
-      anySelected: numSelected !== 0,
-      multiSelected: numSelected > 1
-    });
-  },
   handleRealtimeChange(event) {
     this.setState({
       realtimeActive: !this.state.realtimeActive
@@ -215,9 +166,7 @@ var Stream = React.createClass({
       return <StreamAggregate
           key={node.id}
           data={node}
-          isSelected={node.isSelected}
           memberList={this.props.memberList}
-          onSelect={this.handleSelect.bind(this, node.id)}
           statsPeriod={this.state.statsPeriod} />;
     });
 
@@ -228,7 +177,6 @@ var Stream = React.createClass({
           <div className="container">
             <div className="group-header">
               <StreamActions
-                onSelectAll={this.handleSelectAll}
                 onResolve={this.handleResolve}
                 onBookmark={this.handleBookmark}
                 onDelete={this.handleDelete}
@@ -238,10 +186,7 @@ var Stream = React.createClass({
                 onRealtimeChange={this.handleRealtimeChange}
                 realtimeActive={this.state.realtimeActive}
                 statsPeriod={this.state.statsPeriod}
-                aggList={this.state.aggList}
-                selectAllActive={this.state.selectAllActive}
-                anySelected={this.state.anySelected}
-                multiSelected={this.state.multiSelected} />
+                aggList={this.state.aggList} />
             </div>
           </div>
         </div>

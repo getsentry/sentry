@@ -81,6 +81,10 @@ var AggregateListStore = Reflux.createStore({
     }
   },
 
+  getAllItemIds() {
+    return this.items.map((item) => item.id);
+  },
+
   getAllItems() {
     // regroup pending changes by their itemID
     var pendingById = {};
