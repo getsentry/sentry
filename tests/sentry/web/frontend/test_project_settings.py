@@ -29,10 +29,14 @@ class OriginsFieldTest(TestCase):
         result = self.field.clean(value)
         self.assertEquals(result, ['example.com'])
 
-    def test_supports_full_base_uri(self):
+    def test_does_not_support_port(self):
         value = 'http://example.com:80'
-        result = self.field.clean(value)
-        self.assertEquals(result, ['http://example.com:80'])
+        with self.assertRaises(forms.ValidationError):
+            self.field.clean(value)
+
+        value = 'example.com:80'
+        with self.assertRaises(forms.ValidationError):
+            self.field.clean(value)
 
     def test_doesnt_support_domain_with_port(self):
         value = 'example.com:80'
