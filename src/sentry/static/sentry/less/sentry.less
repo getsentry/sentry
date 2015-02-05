@@ -11,6 +11,7 @@
 @baseFontSize: 13px;
 @grayDark: #343C45;
 @gray: #4f5760;
+@gray-light: #B5B9BD;
 @navbarInverseLinkBackgroundActive: #333;
 @orange: #F78300;
 @black: #111;
@@ -433,6 +434,12 @@ header {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
+      &:last-child {
+        a {
+          color: @gray-light;
+        }
+      }
     }
 
     .icon-settings {
@@ -638,7 +645,7 @@ header {
     &.active {
       a, a:hover, a:focus {
         border: 0;
-        border-bottom: 2px solid @gray-dark;
+        border-bottom: 2px solid @grayDark;
         background: none;
         color: rgba(52, 60, 69, 1);
         font-weight: 600;
@@ -1511,7 +1518,7 @@ a.icon-share {
         border-radius: 1px;
         min-height: 4px;
         min-width: 6px;
-        background: @gray-dark;
+        background: @grayDark;
       }
     }
   }
@@ -1950,7 +1957,7 @@ ul.traceback {
 }
 
 .traceback > pre {
-  color: @gray-dark;
+  color: @grayDark;
   font-size: 12px;
   padding: 0;
   background: inherit;
@@ -2040,7 +2047,7 @@ ul.traceback {
   > div > table.vars {
     margin-bottom: 5px;
     > tbody > tr > th {
-      color: @gray-dark;
+      color: @grayDark;
       text-align: right;
       padding-right: 12px !important;
     }
@@ -2931,7 +2938,7 @@ table.integrations {
         margin: 0 0 4px;
         a {
           font-weight: 600;
-          color: @gray-dark;
+          color: @grayDark;
         }
       }
 
