@@ -17,50 +17,49 @@ var AggregateOverview = React.createClass({
     statsPeriod: React.PropTypes.string.isRequired
   },
 
-  getInitialState: function(){
+  getInitialState() {
     return {
       event: null,
       eventIsLoading: true
     };
   },
 
-  componentWillMount: function(){
+  componentWillMount() {
     this.fetchEventData();
   },
 
-  componentWillReceiveProps: function(nextProps) {
+  componentWillReceiveProps(nextProps) {
     var eventId = this.getParams().eventId || 'latest';
     console.log(nextProps);
     // if (this.)
     // this.fetchEventData();
   },
 
-  fetchEventData: function(){
+  fetchEventData() {
     var eventId = this.getParams().eventId || 'latest';
 
     this.setState({eventIsLoading: true});
 
     api.request('/groups/' + this.props.aggregate.id + '/events/' + eventId + '/', {
-      success: function(data) {
+      success: (data) => {
         this.setState({event: data});
-      }.bind(this),
-      error: function() {
+      },
+      error: () => {
         // TODO(dcramer):
       },
-      complete: function() {
+      complete: () => {
         this.setState({eventIsLoading: false});
-      }.bind(this)
+      }
     });
   },
 
-  render: function(){
+  render() {
     var agg = this.props.aggregate;
     var evt = this.state.event;
 
     return (
       <div>
         <div className="row">
-
           <div className="col-md-6">
             <AggregateActivity aggregate={agg} />
           </div>
@@ -124,7 +123,7 @@ var AggregateOverview = React.createClass({
             <p><strong><a href="#">tony@hawk.com</a></strong></p>
           </div>
         </div>
-    </div>
+      </div>
     );
   }
 });
