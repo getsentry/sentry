@@ -49,7 +49,10 @@ class GroupUpdateTest(APITestCase):
         response = self.client.put(url, data={
             'status': 'resolved',
         }, format='json')
-        assert response.status_code == 204
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+        }
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.status == GroupStatus.RESOLVED
@@ -90,6 +93,9 @@ class GroupUpdateTest(APITestCase):
             'status': 'resolved',
         }, format='json')
         assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+        }
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is None
@@ -129,6 +135,9 @@ class GroupUpdateTest(APITestCase):
             'isBookmarked': 'true',
         }, format='json')
         assert response.status_code == 200
+        assert response.data == {
+            'isBookmarked': True,
+        }
 
         bookmark1 = GroupBookmark.objects.filter(group=group1, user=self.user)
         assert bookmark1.exists()
@@ -164,6 +173,9 @@ class GroupUpdateTest(APITestCase):
             'merge': '1',
         }, format='json')
         assert response.status_code == 200
+        assert response.data == {
+            'merge': True,
+        }
 
         assert len(merge_group.mock_calls) == 2
         merge_group.delay.assert_any_call(from_object_id=group1.id, to_object_id=group2.id)
