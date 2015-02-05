@@ -17,7 +17,7 @@ var AggregateChart = React.createClass({
     });
 
     return (
-      <div>
+      <div className="group-chart">
         <h6>Last 48 Hours</h6>
         <BarChart points={points} className="sparkline" />
       </div>
