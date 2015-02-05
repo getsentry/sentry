@@ -2,6 +2,7 @@
 
 var React = require("react");
 
+var api = require("../../api");
 var AssigneeSelector = require("../../components/assigneeSelector");
 var Count = require("../../components/count");
 var PropTypes = require("../../proptypes");
@@ -9,12 +10,35 @@ var TimeSince = require("../../components/timeSince");
 
 var AggregateHeader = React.createClass({
   propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     aggregate: PropTypes.Aggregate.isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
 
-  render: function() {
+  onToggleResolve() {
+    api.bulkUpdate({
+      orgId: this.props.orgId,
+      projectId: this.props.projectId,
+      itemIds: [this.props.aggregate.id],
+      data: {
+        status: this.props.aggregate.status === 'resolved' ? 'unresolved' : 'resolved'
+      }
+    });
+  },
+
+  onToggleBookmark() {
+    api.bulkUpdate({
+      orgId: this.props.orgId,
+      projectId: this.props.projectId,
+      itemIds: [this.props.aggregate.id],
+      data: {
+        isBookmarked: !this.props.aggregate.isBookmarked
+      }
+    });
+  },
+  render() {
     var data = this.props.aggregate,
         userCount = 0;
 
@@ -35,6 +59,16 @@ var AggregateHeader = React.createClass({
     }
     if (data.status === "resolved") {
       className += " isResolved";
+    }
+
+    var resolveClassName = "group-resolve btn btn-default btn-sm";
+    if (data.status === "resolved") {
+      resolveClassName += " active";
+    }
+
+    var bookmarkClassName = "group-bookmark btn btn-default btn-sm";
+    if (data.isBookmarked) {
+      bookmarkClassName += " active";
     }
 
     return (
@@ -79,10 +113,14 @@ var AggregateHeader = React.createClass({
         </div>
         <div className="group-actions">
           <div className="btn-group">
-            <a href="#" className="group-resolve btn btn-default btn-sm"
-               data-action="resolve"><span className="icon-checkmark"></span></a>
-            <a href="#" className="group-bookmark btn btn-default btn-sm"
-               data-action="bookmark"><span className="icon-bookmark"></span></a>
+            <a className={resolveClassName}
+               onClick={this.onToggleResolve}>
+              <span className="icon-checkmark"></span>
+            </a>
+            <a className={bookmarkClassName}
+               onClick={this.onToggleBookmark}>
+              <span className="icon-bookmark"></span>
+            </a>
           </div>
           <div className="btn-group">
             <a href="#" className="group-remove btn btn-default btn-sm"

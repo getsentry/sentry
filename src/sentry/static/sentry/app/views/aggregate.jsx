@@ -42,12 +42,13 @@ var AggregateDetails = React.createClass({
     });
   },
 
-  getAggregateDetailsEndpoint: function() {
+  getAggregateDetailsEndpoint() {
     return '/groups/' + this.getParams().aggregateId + '/';
   },
 
-  render: function() {
+  render() {
     var aggregate = this.state.aggregate;
+    var params = this.getParams();
 
     if (!aggregate) {
       return <div />;
@@ -56,6 +57,8 @@ var AggregateDetails = React.createClass({
     return (
       <div className={this.props.className}>
         <AggregateHeader
+            orgId={params.orgId}
+            projectId={params.projectId}
             aggregate={aggregate}
             statsPeriod={this.state.statsPeriod}
             memberList={this.props.memberList} />
