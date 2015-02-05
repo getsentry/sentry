@@ -32,7 +32,7 @@ var AggregateDetails = React.createClass({
   getInitialState() {
     return {
       aggregate: null,
-      statsPeriod: '24h'
+      statsPeriod: '48h'
     };
   },
 

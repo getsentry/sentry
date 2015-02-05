@@ -12,7 +12,8 @@ var AggregateChart = React.createClass({
 
   render: function() {
     var aggregate = this.props.aggregate;
-    var points = aggregate.stats[this.props.statsPeriod].map(function(point){
+    var stats = aggregate.stats[this.props.statsPeriod];
+    var points = stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
 
