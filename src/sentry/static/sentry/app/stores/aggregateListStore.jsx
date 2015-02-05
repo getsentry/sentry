@@ -8,6 +8,9 @@ var MemberListStore = require("../stores/memberListStore");
 var utils = require("../utils");
 
 var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
+var ERR_SCHEDULE_DELETE = 'Unable to delete events. Please try again.';
+var ERR_SCHEDULE_MERGE = 'Unable to merge events. Please try again.';
+var ERR_UPDATE = 'Unable to update events. Please try again.';
 var OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.';
 var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
@@ -17,12 +20,16 @@ var AggregateListStore = Reflux.createStore({
     this.statuses = {};
     this.pendingChanges = new utils.PendingChangeQueue();
 
-    this.listenTo(AggregateListActions.update, this.onUpdate);
-    this.listenTo(AggregateListActions.updateError, this.onUpdateError);
-    this.listenTo(AggregateListActions.updateSuccess, this.onUpdateSuccess);
     this.listenTo(AggregateListActions.assignTo, this.onAssignTo);
     this.listenTo(AggregateListActions.assignToError, this.onAssignToError);
     this.listenTo(AggregateListActions.assignToSuccess, this.onAssignToSuccess);
+    this.listenTo(AggregateListActions.delete, this.onDelete);
+    this.listenTo(AggregateListActions.deleteError, this.onDeleteError);
+    this.listenTo(AggregateListActions.merge, this.onMerge);
+    this.listenTo(AggregateListActions.mergeError, this.onMergeError);
+    this.listenTo(AggregateListActions.update, this.onUpdate);
+    this.listenTo(AggregateListActions.updateError, this.onUpdateError);
+    this.listenTo(AggregateListActions.updateSuccess, this.onUpdateSuccess);
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -108,41 +115,6 @@ var AggregateListStore = Reflux.createStore({
     });
   },
 
-  // re-fire bulk events as individual actions
-  // XXX(dcramer): ideally we could do this as part of the actions API but
-  // there's no way for us to know "all events" for us to actually fire the action
-  // on each individual event when its a global action (i.e. id-less)
-  onUpdate(changeId, itemIds, data){
-    if (typeof itemIds === 'undefined') this.items.map(item => item.id);
-    itemIds.forEach(itemId => {
-      this.addStatus(itemId, 'update');
-      this.pendingChanges.push(changeId, itemId, data);
-    });
-    this.trigger();
-  },
-
-  onUpdateError(changeId, itemIds, error){
-    this.pendingChanges.remove(changeId);
-    itemIds.forEach(itemId => {
-      this.clearStatus(itemId, 'update');
-    });
-    this.trigger();
-  },
-
-  onUpdateSuccess(changeId, itemIds, response){
-    if (typeof itemIds === 'undefined') {
-      itemIds = this.items.map(item => item.id);
-    }
-    this.items.forEach(item => {
-      if (itemIds.indexOf(item.id) !== 1) {
-        $.extend(true, item, response);
-        this.clearStatus(item.id, 'update');
-      }
-    });
-    this.pendingChanges.remove(changeId);
-    this.trigger();
-  },
-
   onAssignTo(changeId, itemId, data) {
     this.addStatus(itemId, 'assignTo');
     this.trigger();
@@ -164,19 +136,83 @@ var AggregateListStore = Reflux.createStore({
     this.trigger();
   },
 
-  onDeleteCompleted(changeId, itemIds, response) {
+  onDelete(changeId, itemIds) {
+    itemIds.forEach(itemId => {
+      this.addStatus(itemId, 'delete');
+    });
+    this.trigger();
+  },
+
+  onDeleteError(changeId, itemIds, response) {
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'delete');
     });
+    AlertActions.addAlert(ERR_SCHEDULE_DELETE, 'error');
+    this.trigger();
+  },
+  
+  onDeleteSuccess(changeId, itemIds, response) {
+    var itemIdSet = new Set(itemIds);
+    itemIds.forEach(itemId => {
+      delete this.statuses[itemId];
+      this.clearStatus(itemId, 'delete');
+    });
+    this.items.filter((item) => !itemIdSet.has(item.id));
     AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
     this.trigger();
   },
 
-  onMergeCompleted(changeId, itemIds, response) {
+  onMerge(changeId, itemIds) {
+    itemIds.forEach(itemId => {
+      this.addStatus(itemId, 'merge');
+    });
+  },
+
+  onMergeError(changeId, itemIds, response) {
+    itemIds.forEach(itemId => {
+      this.clearStatus(itemId, 'merge');
+    });
+    AlertActions.addAlert(ERR_SCHEDULE_MERGE, 'error');
+    this.trigger();
+  },
+
+  onMergeSuccess(changeId, itemIds, response) {
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'merge');
     });
     AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
+    this.trigger();
+  },
+
+  onUpdate(changeId, itemIds, data){
+    if (typeof itemIds === 'undefined') this.items.map(item => item.id);
+    itemIds.forEach(itemId => {
+      this.addStatus(itemId, 'update');
+      this.pendingChanges.push(changeId, itemId, data);
+    });
+    this.trigger();
+  },
+
+  onUpdateError(changeId, itemIds, error){
+    this.pendingChanges.remove(changeId);
+    itemIds.forEach(itemId => {
+      this.clearStatus(itemId, 'update');
+    });
+    AlertActions.addAlert(ERR_UPDATE, 'error');
+    this.trigger();
+  },
+
+  onUpdateSuccess(changeId, itemIds, response){
+    if (typeof itemIds === 'undefined') {
+      itemIds = this.items.map(item => item.id);
+    }
+    this.items.forEach(item => {
+      if (itemIds.indexOf(item.id) !== 1) {
+        $.extend(true, item, response);
+        this.clearStatus(item.id, 'update');
+      }
+    });
+    this.pendingChanges.remove(changeId);
     this.trigger();
   }
 });
