@@ -20,36 +20,34 @@ var AggregateOverview = React.createClass({
 
   getInitialState() {
     return {
-      event: null,
-      eventIsLoading: true
+      loading: true,
+      error: false,
+      event: null
     };
   },
 
   componentWillMount() {
-    this.fetchEventData();
+    this.fetchData();
   },
 
-  componentWillReceiveProps(nextProps) {
-    var eventId = this.getParams().eventId || 'latest';
-    console.log(nextProps);
-    // if (this.)
-    // this.fetchEventData();
-  },
-
-  fetchEventData() {
+  fetchData() {
     var eventId = this.getParams().eventId || 'latest';
 
     this.setState({eventIsLoading: true});
 
     api.request('/groups/' + this.props.aggregate.id + '/events/' + eventId + '/', {
       success: (data) => {
-        this.setState({event: data});
+        this.setState({
+          event: data,
+          error: false,
+          loading: false
+        });
       },
       error: () => {
-        // TODO(dcramer):
-      },
-      complete: () => {
-        this.setState({eventIsLoading: false});
+        this.setState({
+          error: true,
+          loading: false
+        });
       }
     });
   },
@@ -98,32 +96,22 @@ var AggregateOverview = React.createClass({
             <li><a href="#">Additional Data</a></li>
           </ul>
         </div>
-        <div className="row">
-          <div className="col-md-9">
-            {agg.status === 'muted' &&
-              <div className="alert alert-info">
-                This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
-              </div>
-            }
-            {evt ?
-              <AggregateEvent
-                  aggregate={agg}
-                  event={this.state.event} />
-            : this.state.eventIsLoading &&
-              <div className="loading">Loading event data..</div>
-            }
+        {agg.status === 'muted' &&
+          <div className="alert alert-info">
+            This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
           </div>
-          <div className="col-md-3 event-stats">
-            <h6>Sample ID</h6>
-            <p><strong>fb2a9940cd5b4c4d93ad9fa8843</strong></p>
-
-            <h6>Time</h6>
-            <p><strong>Jan. 20, 2015, 8:22 p.m.</strong></p>
-
-            <h6>User</h6>
-            <p><strong><a href="#">tony@hawk.com</a></strong></p>
+        }
+        {this.state.loading ?
+          <div className="loading">Loading event data..</div>
+        : (this.state.error ?
+          <div className="alert alert-error alert-block">
+            <p>There was an error loading data. <a onClick={this.fetchData}>Retry</a></p>
           </div>
-        </div>
+        :
+          <AggregateEvent
+              aggregate={agg}
+              event={this.state.event} />
+        )}
       </div>
     );
   }
