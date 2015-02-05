@@ -6,7 +6,9 @@ var Reflux = require("reflux");
 var BreadcrumbStore = require('../stores/breadcrumbStore');
 
 var Breadcrumbs = React.createClass({
-  mixins: [Reflux.listenTo(BreadcrumbStore, "onBreadcrumbChange", "onBreadcrumbChange")],
+  mixins: [
+    Reflux.listenTo(BreadcrumbStore, "onBreadcrumbChange", "onBreadcrumbChange"),
+  ],
 
   getInitialState() {
       return {

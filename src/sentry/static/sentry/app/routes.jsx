@@ -10,9 +10,15 @@ var AggregateEvents = require("./views/aggregateEvents");
 var AggregateTags = require("./views/aggregateTags");
 var AggregateOverview = require("./views/aggregateOverview");
 var ProjectDetails = require("./views/projectDetails");
+var PropTypes = require("./proptypes");
 var Stream = require("./views/stream");
 
 var App = React.createClass({
+  propTypes: {
+    isAuthenticated: React.PropTypes.bool.isRequired,
+    user: PropTypes.User
+  },
+
   render: function () {
     return (
       <Router.RouteHandler />
