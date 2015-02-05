@@ -12,11 +12,11 @@ class Client {
   }
 
   uniqueId() {
-    function s4() {
+    var s4 = () => {
       return Math.floor((1 + Math.random()) * 0x10000)
                  .toString(16)
                  .substring(1);
-    }
+    };
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
            s4() + '-' + s4() + s4() + s4();
   }
@@ -60,11 +60,11 @@ class Client {
     return this.request(path, {
       query: query,
       method: "DELETE",
-      success: function(response){
-       AggregateListActions.deleteSuccess(id, params.itemIds, response);
+      success: (response) => {
+        AggregateListActions.deleteSuccess(id, params.itemIds, response);
       },
-      error: function(error){
-       AggregateListActions.deleteError(id, params.itemIds, error);
+      error: (error) => {
+        AggregateListActions.deleteError(id, params.itemIds, error);
       }
     });
   }
@@ -80,11 +80,11 @@ class Client {
       query: query,
       method: "PUT",
       data: params.data,
-      success: function(response){
-       AggregateListActions.updateSuccess(id, params.itemIds, response);
+      success: (response) => {
+        AggregateListActions.updateSuccess(id, params.itemIds, response);
       },
-      error: function(error){
-       AggregateListActions.updateError(id, params.itemIds, error);
+      error: (error) => {
+        AggregateListActions.updateError(id, params.itemIds, error);
       }
     });
   }
@@ -100,11 +100,11 @@ class Client {
       query: query,
       method: "PUT",
       data: {merge: 1},
-      success: function(response){
-       AggregateListActions.mergeSuccess(id, params.itemIds, response);
+      success: (response) => {
+        AggregateListActions.mergeSuccess(id, params.itemIds, response);
       },
-      error: function(error){
-       AggregateListActions.mergeError(id, params.itemIds, error);
+      error: (error) => {
+        AggregateListActions.mergeError(id, params.itemIds, error);
       }
     });
   }
@@ -118,11 +118,11 @@ class Client {
     return this.request(path, {
       method: "PUT",
       data: {assignedTo: params.email},
-      success: function(response){
-       AggregateListActions.assignToSuccess(id, params.id, response);
+      success: (response) => {
+        AggregateListActions.assignToSuccess(id, params.id, response);
       },
-      error: function(error){
-       AggregateListActions.assignToError(id, params.id, error);
+      error: (error) => {
+        AggregateListActions.assignToError(id, params.id, error);
       }
     });
   }

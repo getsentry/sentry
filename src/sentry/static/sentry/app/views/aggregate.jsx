@@ -38,13 +38,13 @@ var AggregateDetails = React.createClass({
 
   componentWillMount() {
     api.request(this.getAggregateDetailsEndpoint(), {
-      success: function(data, textStatus, jqXHR) {
+      success: (data) => {
         AggregateListStore.loadInitialData([data]);
 
         this.setBreadcrumbs([
           {name: data.title, to: 'aggregateDetails'}
         ]);
-      }.bind(this)
+      }
     });
   },
 
