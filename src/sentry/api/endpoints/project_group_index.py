@@ -272,13 +272,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
                     to_object_id=primary_group.id,
                 )
 
-        if group_list:
-            GroupMeta.objects.populate_cache(group_list)
-            # TODO(dcramer): we need create a public API for 'sort_value'
-            context = serialize(list(group_list), request.user)
-            return Response(context)
-
-        return Response(status=204)
+        return Response(dict(result))
 
     def delete(self, request, project_id):
         """
