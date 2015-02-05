@@ -79,7 +79,7 @@ var Stream = React.createClass({
 
   getInitialState() {
     var queryParams = utils.getQueryParams();
-    var query = queryParams.query === undefined ? 'is:unresolved': queryParams.query;
+    var query = queryParams.query === undefined ? 'is:unresolved' : queryParams.query;
 
     return {
       aggList: new utils.Collection([], {
@@ -133,7 +133,7 @@ var Stream = React.createClass({
 
   getAggregateListEndpoint() {
     var queryParams = utils.getQueryParams();
-    if (queryParams.query === undefined) {
+    if (typeof queryParams.query === 'undefined') {
       queryParams.query = this.state.query;
     }
     var querystring = $.param(queryParams);
