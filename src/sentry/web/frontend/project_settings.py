@@ -15,12 +15,13 @@ from sentry.permissions import can_remove_project, can_set_public_projects
 from sentry.plugins import plugins
 from sentry.web.forms.fields import CustomTypedChoiceField, RangeField
 from sentry.web.frontend.base import ProjectView
+from sentry.utils.http import parse_uri_match
 
 
 BLANK_CHOICE = [("", "")]
 
 # Special case origins that don't fit the normal regex pattern, but are valid
-WHITELIST_ORIGINS = ('*', 'localhost')
+WHITELIST_ORIGINS = ('*')
 
 
 class OriginsField(forms.CharField):
@@ -45,18 +46,9 @@ class OriginsField(forms.CharField):
         if value in WHITELIST_ORIGINS:
             return True
 
-        if '://' in value:
-            # URLValidator will raise a forms.ValidationError itself
-            self._url_validator(value)
-            return True
-
+        bits = parse_uri_match(value)
         # ports are not supported on matching expressions (yet)
-        if ':' in value:
-            return False
-
-        # no .com's
-        parts = filter(bool, value.split('.'))
-        if len(parts) < 2:
+        if ':' in bits.domain:
             return False
 
         return True
