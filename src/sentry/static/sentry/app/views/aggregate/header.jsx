@@ -6,6 +6,7 @@ var Router = require("react-router");
 var api = require("../../api");
 var AssigneeSelector = require("../../components/assigneeSelector");
 var Count = require("../../components/count");
+var ListLink = require("../../components/listLink");
 var PropTypes = require("../../proptypes");
 var TimeSince = require("../../components/timeSince");
 
@@ -140,21 +141,15 @@ var AggregateHeader = React.createClass({
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <li className="active">
-            <Router.Link to="aggregateOverview" params={aggRouteParams}>
-              Overview
-            </Router.Link>
-          </li>
-          <li>
-            <Router.Link to="aggregateTags" params={aggRouteParams}>
-              Tags
-            </Router.Link>
-          </li>
-          <li>
-            <Router.Link to="aggregateEvents" params={aggRouteParams}>
-              Similar Events
-            </Router.Link>
-          </li>
+          <ListLink to="aggregateOverview" params={aggRouteParams}>
+            Overview
+          </ListLink>
+          <ListLink to="aggregateTags" params={aggRouteParams}>
+            Tags
+          </ListLink>
+          <ListLink to="aggregateEvents" params={aggRouteParams}>
+            Similar Events
+          </ListLink>
         </ul>
       </div>
     );
