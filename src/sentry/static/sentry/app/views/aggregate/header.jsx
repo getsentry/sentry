@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Router = require("react-router");
 
 var api = require("../../api");
 var AssigneeSelector = require("../../components/assigneeSelector");
@@ -71,6 +72,12 @@ var AggregateHeader = React.createClass({
       bookmarkClassName += " active";
     }
 
+    var aggRouteParams = {
+      orgId: this.props.orgId,
+      projectId: this.props.projectId,
+      aggregateId: data.id
+    };
+
     return (
       <div className={className}>
         <div className="row">
@@ -133,8 +140,16 @@ var AggregateHeader = React.createClass({
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <li className="active"><a href="#">Overview</a></li>
-          <li><a href="#">Tags</a></li>
+          <li className="active">
+            <Router.Link to="aggregateOverview" params={aggRouteParams}>
+              Overview
+            </Router.Link>
+          </li>
+          <li>
+            <Router.Link to="aggregateTags" params={aggRouteParams}>
+              Tags
+            </Router.Link>
+          </li>
           <li><a href="#">Similar Events</a></li>
         </ul>
       </div>
