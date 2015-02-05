@@ -21,16 +21,21 @@ var ProjectDetails = React.createClass({
   getInitialState() {
     return {
       memberList: [],
-      project: null
+      project: null,
+      team: null
     };
   },
 
   childContextTypes: {
-    project: PropTypes.Project
+    project: PropTypes.Project,
+    team: PropTypes.Team
   },
 
   getChildContext() {
-     return {project: this.state.project};
+    return {
+      project: this.state.project,
+      team: this.state.team
+    };
   },
 
   componentWillMount() {
@@ -43,7 +48,8 @@ var ProjectDetails = React.createClass({
     api.request(this.getProjectDetailsEndpoint(), {
       success: (data) => {
         this.setState({
-          project: data
+          project: data,
+          team: data.team
         });
 
         this.setBreadcrumbs([
