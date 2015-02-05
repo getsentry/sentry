@@ -154,3 +154,24 @@ class IsValidOriginTestCase(TestCase):
     def test_null_invalid_graceful_with_domains(self):
         result = self.isValidOrigin('null', ['http://example.com'])
         self.assertEquals(result, False)
+
+    def test_custom_protocol_with_location(self):
+        result = self.isValidOrigin('sp://custom-thing/foo/bar', ['sp://custom-thing'])
+        assert result is True
+
+        result = self.isValidOrigin('sp://custom-thing-two/foo/bar', ['sp://custom-thing'])
+        assert result is False
+
+    def test_custom_protocol_without_location(self):
+        result = self.isValidOrigin('sp://custom-thing/foo/bar', ['sp://*'])
+        assert result is True
+
+        result = self.isValidOrigin('dp://custom-thing/foo/bar', ['sp://'])
+        assert result is False
+
+    def test_custom_protocol_with_domainish_match(self):
+        result = self.isValidOrigin('sp://custom-thing.foobar/foo/bar', ['sp://*.foobar'])
+        assert result is True
+
+        result = self.isValidOrigin('sp://custom-thing.bizbaz/foo/bar', ['sp://*.foobar'])
+        assert result is False

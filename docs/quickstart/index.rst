@@ -257,11 +257,17 @@ Starting the Workers
 --------------------
 
 A large amount of Sentry's work is typically done via it's workers. While Sentry will seemingly work without
-using a queue, you'll quickly hit limitations. Once you've configured the queue, you'll also need to run
-workers. Generally, this is as simple as running "celery" from the Sentry CLI.
+using a queue you will not actually see anything show up in Sentry.  Once you've configured the queue, you'll
+also need to run workers. Generally, this is as simple as running "celery" from the Sentry CLI.
+
+So do not forget to run the workers!
+
 ::
 
   sentry --config=/etc/sentry.conf.py celery worker -B
+
+Technically there is a way to run sentry without the queues by setting ``CELERY_ALWAYS_EAGER`` to `True`
+but this is heavily discouraged and not supported.
 
 .. note:: `Celery <http://celeryproject.org/>`_ is an open source task framework for Python.
 
