@@ -36,6 +36,7 @@ class EventSerializer(Serializer):
             'size': obj.size,
             'entries': attrs['entries'],
             'message': obj.message,
+            'tags': obj.get_tags(),
             'platform': obj.platform,
             'dateCreated': obj.datetime,
             'timeSpent': obj.time_spent,

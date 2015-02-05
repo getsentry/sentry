@@ -9,7 +9,17 @@ var AggregateEventTags = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
-  render: function() {
+  render() {
+    var children = this.props.event.tags.map((tag) => {
+      var key = tag[0];
+      var value = tag[1];
+      return (
+        <li>
+          {key} = {value}
+        </li>
+      );
+    });
+
     return (
       <div id="tags" className="box">
         <div className="box-header">
@@ -17,6 +27,7 @@ var AggregateEventTags = React.createClass({
         </div>
         <div className="box-content with-padding">
           <ul className="mini-tag-list">
+            {children}
           </ul>
         </div>
       </div>
