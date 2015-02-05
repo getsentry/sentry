@@ -10,8 +10,12 @@ from __future__ import absolute_import
 import six
 import urllib
 
+from collections import namedtuple
 from django.conf import settings
 from urlparse import urlparse, urljoin
+
+
+ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
 
 def absolute_uri(url=None):
@@ -78,6 +82,20 @@ def get_origins(project=None):
     return frozenset(filter(bool, map(lambda x: x.lower().rstrip('/'), result)))
 
 
+def parse_uri_match(value):
+    if '://' in value:
+        scheme, value = value.split('://', 1)
+    else:
+        scheme = '*'
+
+    if '/' in value:
+        domain, path = value.split('/', 1)
+    else:
+        domain, path = value, '*'
+
+    return ParsedUriMatch(scheme, domain, path)
+
+
 def is_valid_origin(origin, project=None):
     """
     Given an ``origin`` which matches a base URI (e.g. http://example.com)
@@ -115,30 +133,27 @@ def is_valid_origin(origin, project=None):
     if parsed.hostname is None:
         return False
 
-    for valid in allowed:
-        if '://' in valid:
-            scheme, valid = valid.split('://', 1)
-            if parsed.scheme != scheme:
-                continue
+    for value in allowed:
+        bits = parse_uri_match(value)
 
-        # Support partial uri matches that may include path
-        if '/' in valid and origin.startswith(valid):
-            return True
-
-        if valid == '*':
-            return True
-
-        # Support matches ending with glob
-        if valid.endswith('*'):
-            valid = valid[:-1]
-
-        if valid[:2] == '*.':
-            # check foo.domain.com and domain.com
-            if parsed.hostname.endswith(valid[1:]) or parsed.hostname == valid[2:]:
-                return True
+        # scheme supports exact and any match
+        if bits.scheme not in ('*', parsed.scheme):
             continue
 
-        if parsed.hostname == valid:
-            return True
+        # domain supports exact, any, and prefix match
+        if bits.domain[:2] == '*.':
+            if parsed.hostname.endswith(bits.domain[1:]) or parsed.hostname == bits.domain[2:]:
+                return True
+            continue
+        elif bits.domain not in ('*', parsed.hostname):
+            continue
 
+        # path supports exact, any, and suffix match (with or without *)
+        path = bits.path
+        if path == '*':
+            return True
+        if path.endswith('*'):
+            path = path[:-1]
+        if parsed.path.startswith(path):
+            return True
     return False
