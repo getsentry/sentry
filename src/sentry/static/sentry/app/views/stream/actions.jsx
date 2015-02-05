@@ -4,6 +4,7 @@ var Reflux = require("reflux");
 
 var utils = require("../../utils");
 
+var api = require("../../api");
 var AggregateListStore = require("../../stores/aggregateListStore");
 var DateTimeField = require("../../modules/datepicker/DateTimeField");
 var DropdownLink = require("../../components/dropdownLink");
@@ -140,6 +141,8 @@ var StreamActions = React.createClass({
   ],
 
   propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     aggList: React.PropTypes.instanceOf(Array).isRequired,
     onRealtimeChange: React.PropTypes.func.isRequired,
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
@@ -163,56 +166,79 @@ var StreamActions = React.createClass({
       datePickerActive: !this.state.datePickerActive
     });
   },
-  actionSelectedAggregates(action, data) {
+  actionSelectedAggregates(callback, data) {
     var itemIds;
-    var params = this.getParams();
     var selectedAggList;
 
-    if (SelectedAggregateStore.allSelected) {
-      selectedAggList = this.state.aggList;
+    if (StreamActions.ALL) {
+      selectedAggList = this.props.aggList;
     } else {
-      itemIds = new SelectedAggregateStore.getSelectedIds();
-      selectedAggList = this.state.aggList.filter(
-        (item) => itemIds.has(item.id)
+      itemIdSet = SelectedAggregateStore.getSelectedIds();
+      selectedAggList = this.props.aggList.filter(
+        (item) => itemIdSet.has(item.id)
+      );
+      itemIds = selectedAggList.map(
+        (item) => item.id
       );
     }
 
-    action({
-      orgId: params.orgId,
-      projectId: params.projectId,
-      itemIds: itemIds,
-      data: data
-    });
+    callback(itemIds);
 
     SelectedAggregateStore.clearAll();
-
-    selectedAggList.forEach((node) => {
-      node.version = new Date().getTime() + 10;
-      for (var key in data) {
-        node[key] = data[key];
-      }
-    });
-
-    this.setState({
-      aggList: this.state.aggList,
-    });
   },
   onResolve(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {status: 'resolved'});
+    this.actionSelectedAggregates((itemIds) => {
+      api.bulkUpdate({
+        orgId: this.props.orgId,
+        projectId: this.props.projectId,
+        itemIds: itemIds,
+        data: {
+          status: 'resolved'
+        }
+      });
+    });
   },
   onBookmark(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: true});
+    this.actionSelectedAggregates((itemIds) => {
+      api.bulkUpdate({
+        orgId: this.props.orgId,
+        projectId: this.props.projectId,
+        itemIds: itemIds,
+        data: {
+          isBookmarked: true
+        }
+      });
+    });
   },
   onRemoveBookmark(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkUpdate, aggList, {isBookmarked: false});
+    this.actionSelectedAggregates((itemIds) => {
+      api.bulkUpdate({
+        orgId: this.props.orgId,
+        projectId: this.props.projectId,
+        itemIds: itemIds,
+        data: {
+          isBookmarked: false
+        }
+      });
+    });
   },
   onDelete(aggList, event) {
-    return this.actionAggregates(AggregateListActions.bulkDelete, aggList, {
-      method: 'DELETE',
+    this.actionSelectedAggregates((itemIds) => {
+      api.bulkDelete({
+        orgId: this.props.orgId,
+        projectId: this.props.projectId,
+        itemIds: itemIds
+      });
     });
   },
   onMerge(aggList, event) {
-    return this.actionAggregates(AggregateListActions.merge, {merge: 1});
+    this.actionSelectedAggregates((itemIds) => {
+      api.merge({
+        orgId: this.props.orgId,
+        projectId: this.props.projectId,
+        itemIds: itemIds,
+      });
+    });
   },
   onSelectedAggregateChange() {
     this.setState({

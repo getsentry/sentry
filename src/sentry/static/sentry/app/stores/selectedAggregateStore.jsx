@@ -56,7 +56,7 @@ var SelectedAggregateStore = Reflux.createStore({
 
   toggleSelect(itemId) {
     if (this.selected.has(itemId)) {
-      this.selected.remove(itemId);
+      this.selected.delete(itemId);
     } else {
       this.selected.add(itemId);
     }

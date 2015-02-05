@@ -41,22 +41,61 @@ class Client {
     });
   }
 
+  bulkDelete(params) {
+    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
+    var query = (params.itemIds ? {id: params.itemIds} : undefined);
+    var id = this.uniqueId();
+
+    AggregateListActions.delete(id, params.itemIds);
+
+    return this.request(path, {
+      query: query,
+      method: "DELETE",
+      success: function(response){
+       AggregateListActions.deleteSuccess(id, params.itemIds, response);
+      },
+      error: function(error){
+       AggregateListActions.deleteError(id, params.itemIds, error);
+      }
+    });
+  }
+
   bulkUpdate(params) {
     var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
     var query = (params.itemIds ? {id: params.itemIds} : undefined);
     var id = this.uniqueId();
 
-    AggregateListActions.bulkUpdate(id, params.itemIds, params.data);
+    AggregateListActions.update(id, params.itemIds, params.data);
 
     return this.request(path, {
       query: query,
       method: "PUT",
       data: params.data,
       success: function(response){
-       AggregateListActions.bulkUpdateSuccess(id, params.itemIds, response);
+       AggregateListActions.updateSuccess(id, params.itemIds, response);
       },
       error: function(error){
-       AggregateListActions.bulkUpdateError(id, params.itemIds, error);
+       AggregateListActions.updateError(id, params.itemIds, error);
+      }
+    });
+  }
+
+  merge(params) {
+    var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
+    var query = (params.itemIds ? {id: params.itemIds} : undefined);
+    var id = this.uniqueId();
+
+    AggregateListActions.merge(id, params.itemIds);
+
+    return this.request(path, {
+      query: query,
+      method: "PUT",
+      data: {merge: 1},
+      success: function(response){
+       AggregateListActions.mergeSuccess(id, params.itemIds, response);
+      },
+      error: function(error){
+       AggregateListActions.mergeError(id, params.itemIds, error);
       }
     });
   }
