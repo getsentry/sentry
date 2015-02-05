@@ -10,37 +10,52 @@ var MemberListStore = require("../stores/memberListStore");
 
 var ProjectDetails = React.createClass({
   mixins: [
-    Reflux.connect(MemberListStore, "memberList"),
-    Router.State,
     BreadcrumbMixin,
+    Reflux.connect(MemberListStore, "memberList"),
+    Router.Navigation,
+    Router.State
   ],
 
-  getInitialState: function(){
+  getInitialState(){
     return {
-      memberList: []
+      memberList: [],
+      project: null
     };
   },
 
-  getBreadcrumbNodes: function() {
-    return [
-      <a href="#">Foobar</a>
-    ];
-  },
-
-  componentWillMount: function() {
+  componentWillMount() {
     api.request(this.getMemberListEndpoint(), {
-      success: function(data, textStatus, jqXHR) {
+      success: (data) => {
         MemberListStore.loadInitialData(data);
-      }.bind(this)
+      }
+    });
+
+    api.request(this.getProjectDetailsEndpoint(), {
+      success: (data) => {
+        this.setState({
+          project: data
+        });
+
+        this.setBreadcrumbs([
+          <a onClick={this.transitionTo.bind(this, "projectDetails", this.getParams(), {})}>
+            {data.name}
+          </a>
+        ]);
+      }
     });
   },
 
-  getMemberListEndpoint: function() {
+  getProjectDetailsEndpoint() {
+    var params = this.getParams();
+    return '/projects/' + params.orgId + '/' + params.projectId + '/';
+  },
+
+  getMemberListEndpoint() {
     var params = this.getParams();
     return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
   },
 
-  render: function () {
+  render() {
     return (
       <Router.RouteHandler memberList={this.state.memberList} />
     );

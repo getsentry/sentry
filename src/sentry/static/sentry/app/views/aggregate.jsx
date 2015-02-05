@@ -7,11 +7,14 @@ var Router = require("react-router");
 var api = require("../api");
 var AggregateHeader = require("./aggregate/header");
 var AggregateListStore = require("../stores/aggregateListStore");
+var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var utils = require("../utils");
 
 var AggregateDetails = React.createClass({
   mixins: [
+    BreadcrumbMixin,
     Reflux.listenTo(AggregateListStore, "onAggListChange"),
+    Router.Navigation,
     Router.State
   ],
 
@@ -38,6 +41,12 @@ var AggregateDetails = React.createClass({
     api.request(this.getAggregateDetailsEndpoint(), {
       success: function(data, textStatus, jqXHR) {
         AggregateListStore.loadInitialData([data]);
+
+        this.setBreadcrumbs([
+          <a onClick={this.transitionTo.bind(this, "aggregateDetails", this.getParams(), {})}>
+            {data.title}
+          </a>
+        ]);
       }.bind(this)
     });
   },

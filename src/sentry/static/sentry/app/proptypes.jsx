@@ -10,6 +10,9 @@ var PropTypes = {
   }),
   Event: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
+  }),
+  User: React.PropTypes.shape({
+    id: React.PropTypes.string.isRequired
   })
 };
 
