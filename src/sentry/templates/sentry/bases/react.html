@@ -1,5 +1,7 @@
 {% extends "sentry/layout.html" %}
 
+{% load sentry_api %}
+
 {% block breadcrumb_outer %}
   <div id="blk_breadcrumb"></div>
   <script>
@@ -11,12 +13,19 @@
 {% endblock %}
 
 {% block content %}
-  <div id="blk_content"></div>
+  <div id="blk_router"></div>
   <script>
   $(function(){
     Router.run(routes, Router.HistoryLocation, function(Handler) {
       React.render(React.createFactory(Handler)({
-      }), document.getElementById('blk_content'));
+        {% if request.user.is_authenticated %}
+          'isAuthenticated': true,
+          'user': {% serialize request.user %}
+        {% else %}
+          'isAuthenticated': false,
+          'user': null
+        {% endif %}
+      }), document.getElementById('blk_router'));
     });
   });
   </script>

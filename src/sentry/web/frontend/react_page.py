@@ -7,4 +7,8 @@ from sentry.web.frontend.base import OrganizationView
 # generic
 class ReactPageView(OrganizationView):
     def handle(self, request, **kwargs):
+        if request.user.is_authenticated():
+            # remove lazy eval
+            request.user = request.user._wrapped
+
         return self.respond('sentry/bases/react.html')
