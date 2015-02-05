@@ -42,12 +42,20 @@ var StreamAggregate = React.createClass({
   },
 
   render() {
-    var data = this.props.data,
-        userCount = 0;
-
+    var data = this.props.data;
+    var userCount = 0;
     var params = this.getParams();
+    var points;
 
-    var chartData = data.stats[this.props.statsPeriod].map(function(point){
+    switch(this.props.statsPeriod) {
+      case '24h':
+        points = data.stats['48h'].slice(-24);
+        break;
+      default:
+        points = data.stats[this.props.statsPeriod];
+    }
+
+    var chartData = points.map((point) => {
       return {x: point[0], y: point[1]};
     });
 
