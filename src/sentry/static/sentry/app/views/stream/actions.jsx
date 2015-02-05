@@ -1,13 +1,16 @@
 /*** @jsx React.DOM */
 var React = require("react");
+var Reflux = require("reflux");
 
 var utils = require("../../utils");
 
+var AggregateListStore = require("../../stores/aggregateListStore");
 var DateTimeField = require("../../modules/datepicker/DateTimeField");
 var DropdownLink = require("../../components/dropdownLink");
 var MenuItem = require("../../components/menuItem");
 var Modal = require("react-bootstrap/Modal");
 var OverlayMixin = require("react-bootstrap/OverlayMixin");
+var SelectedAggregateStore = require("../../stores/selectedAggregateStore");
 
 var ActionLink = React.createClass({
   mixins: [OverlayMixin],
@@ -83,11 +86,8 @@ var ActionLink = React.createClass({
       return <span/>;
     }
 
-    var selectedAggList = this.props.aggList.filter(
-      (node) => node.isSelected
-    );
-
-    if (selectedAggList.length === 0) {
+    var selectedItemIds = SelectedAggregateStore.getSelectedIds();
+    if (selectedItemIds.size === 0) {
       throw new Error('ActionModal rendered without any selected aggregates');
     }
 
@@ -109,7 +109,7 @@ var ActionLink = React.createClass({
 
     var confirmLabel = this.props.confirmLabel;
     var actionLabel = this.props.actionLabel || this.defaultActionLabel(confirmLabel);
-    var numEvents = selectedAggList.length;
+    var numEvents = selectedItemIds.size;
 
     actionLabel = actionLabel.replace('{count}', numEvents);
 
@@ -135,24 +135,24 @@ var ActionLink = React.createClass({
 });
 
 var StreamActions = React.createClass({
-  ALL: 'all',
-
-  SELECTED: 'selected',
+  mixins: [
+    Reflux.listenTo(SelectedAggregateStore, 'onSelectedAggregateChange')
+  ],
 
   propTypes: {
     aggList: React.PropTypes.instanceOf(Array).isRequired,
-    anySelected: React.PropTypes.bool.isRequired,
-    multiSelected: React.PropTypes.bool.isRequired,
     onRealtimeChange: React.PropTypes.func.isRequired,
-    onSelectAll: React.PropTypes.func.isRequired,
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired,
-    selectAllActive: React.PropTypes.bool.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
+
   getInitialState() {
     return {
-      datePickerActive: false
+      datePickerActive: false,
+      selectAllActive: false,
+      anySelected: false,
+      multiSelected: false,
     };
   },
   selectStatsPeriod(period) {
@@ -163,22 +163,18 @@ var StreamActions = React.createClass({
       datePickerActive: !this.state.datePickerActive
     });
   },
-  actionAggregates(action, aggList, data) {
+  actionSelectedAggregates(action, data) {
     var itemIds;
     var params = this.getParams();
     var selectedAggList;
 
-    if (aggList === AggregateListActions.SELECTED) {
-      itemIds = [];
-      selectedAggList = [];
-      this.state.aggList.forEach((node) => {
-        if (node.isSelected === true) {
-          itemIds.push(node.id);
-          selectedAggList.push(node);
-        }
-      });
-    } else if (aggList === StreamActions.ALL) {
+    if (SelectedAggregateStore.allSelected) {
       selectedAggList = this.state.aggList;
+    } else {
+      itemIds = new SelectedAggregateStore.getSelectedIds();
+      selectedAggList = this.state.aggList.filter(
+        (item) => itemIds.has(item.id)
+      );
     }
 
     action({
@@ -188,9 +184,10 @@ var StreamActions = React.createClass({
       data: data
     });
 
+    SelectedAggregateStore.clearAll();
+
     selectedAggList.forEach((node) => {
       node.version = new Date().getTime() + 10;
-      node.isSelected = false;
       for (var key in data) {
         node[key] = data[key];
       }
@@ -198,9 +195,6 @@ var StreamActions = React.createClass({
 
     this.setState({
       aggList: this.state.aggList,
-      selectAllActive: false,
-      anySelected: false,
-      multiSelected: false
     });
   },
   onResolve(aggList, event) {
@@ -219,6 +213,16 @@ var StreamActions = React.createClass({
   },
   onMerge(aggList, event) {
     return this.actionAggregates(AggregateListActions.merge, {merge: 1});
+  },
+  onSelectedAggregateChange() {
+    this.setState({
+      selectAllActive: SelectedAggregateStore.allSelected,
+      multiSelected: SelectedAggregateStore.multiSelected,
+      anySelected: SelectedAggregateStore.anySelected
+    });
+  },
+  onSelectAll() {
+    SelectedAggregateStore.toggleSelectAll();
   },
   render() {
     var params = utils.getQueryParams();
@@ -245,30 +249,30 @@ var StreamActions = React.createClass({
         <div className="stream-actions-left col-md-7">
           <div className="checkbox">
             <input type="checkbox" className="chk-select-all"
-                   onChange={this.props.onSelectAll}
-                   checked={this.props.selectAllActive} />
+                   onChange={this.onSelectAll}
+                   checked={this.state.selectAllActive} />
           </div>
           <div className="btn-group">
             <ActionLink
                className="btn btn-default btn-sm action-resolve"
-               disabled={!this.props.anySelected}
+               disabled={!this.state.anySelected}
                onAction={this.onResolve}
                confirmLabel="Resolve"
                canActionAll={true}
                onlyIfBulk={true}
-               selectAllActive={this.props.selectAllActive}
+               selectAllActive={this.state.selectAllActive}
                aggList={this.props.aggList}>
               <i aria-hidden="true" className="icon-checkmark"></i>
             </ActionLink>
             <ActionLink
                className="btn btn-default btn-sm action-bookmark"
-               disabled={!this.props.anySelected}
+               disabled={!this.state.anySelected}
                onAction={this.onBookmark}
                neverConfirm={true}
                confirmLabel="Bookmark"
                canActionAll={false}
                onlyIfBulk={true}
-               selectAllActive={this.props.selectAllActive}
+               selectAllActive={this.state.selectAllActive}
                aggList={this.props.aggList}>
               <i aria-hidden="true" className="icon-bookmark"></i>
             </ActionLink>
@@ -276,17 +280,17 @@ var StreamActions = React.createClass({
             <DropdownLink
               key="actions"
               caret={false}
-              disabled={!this.props.anySelected}
+              disabled={!this.state.anySelected}
               className="btn-sm btn-default hidden-xs action-more"
               title={<span className="icon-ellipsis"></span>}>
               <MenuItem noAnchor={true}>
                 <ActionLink
                    className="action-merge"
-                   disabled={!this.props.multiSelected}
+                   disabled={!this.state.multiSelected}
                    onAction={this.onMerge}
                    confirmLabel="Merge"
                    canActionAll={false}
-                   selectAllActive={this.props.selectAllActive}
+                   selectAllActive={this.state.selectAllActive}
                    aggList={this.props.aggList}>
                   Merge Events
                 </ActionLink>
@@ -294,13 +298,13 @@ var StreamActions = React.createClass({
               <MenuItem noAnchor={true}>
                 <ActionLink
                    className="action-remove-bookmark"
-                   disabled={!this.props.anySelected}
+                   disabled={!this.state.anySelected}
                    onAction={this.onRemoveBookmark}
                    neverConfirm={true}
                    actionLabel="remove these {count} events from your bookmarks"
                    onlyIfBulk={true}
                    canActionAll={false}
-                   selectAllActive={this.props.selectAllActive}
+                   selectAllActive={this.state.selectAllActive}
                    aggList={this.props.aggList}>
                   Remove from Bookmarks
                 </ActionLink>
@@ -309,11 +313,11 @@ var StreamActions = React.createClass({
               <MenuItem noAnchor={true}>
                 <ActionLink
                    className="action-delete"
-                   disabled={!this.props.anySelected}
+                   disabled={!this.state.anySelected}
                    onAction={this.onDelete}
                    confirmLabel="Delete"
                    canActionAll={false}
-                   selectAllActive={this.props.selectAllActive}
+                   selectAllActive={this.state.selectAllActive}
                    aggList={this.props.aggList}>
                   Delete Events
                 </ActionLink>
