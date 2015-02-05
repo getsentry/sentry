@@ -371,7 +371,7 @@ urlpatterns += patterns('',
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', ReactPageView.as_view(),
         name='sentry-stream'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/$', groups.dashboard,
+    url(r'^(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/$', ReactPageView.as_view(),
         name='sentry-team-dashboard'),
 
     # Legacy

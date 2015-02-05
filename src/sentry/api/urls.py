@@ -66,7 +66,7 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-teams'),
 
     # Teams
-    url(r'^teams/(?P<team_id>\d+)/$',
+    url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/$',
         TeamDetailsEndpoint.as_view(),
         name='sentry-api-0-team-details'),
     url(r'^teams/(?P<team_id>\d+)/groups/new/$',
