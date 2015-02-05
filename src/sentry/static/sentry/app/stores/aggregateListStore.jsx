@@ -114,7 +114,7 @@ var AggregateListStore = Reflux.createStore({
   // on each individual event when its a global action (i.e. id-less)
   onUpdate(changeId, itemIds, data){
     if (typeof itemIds === 'undefined') this.items.map(item => item.id);
-    itemIds.forEach(item => {
+    itemIds.forEach(itemId => {
       this.addStatus(itemId, 'update');
       this.pendingChanges.push(changeId, itemId, data);
     });

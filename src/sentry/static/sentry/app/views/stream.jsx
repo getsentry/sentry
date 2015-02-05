@@ -170,6 +170,8 @@ var Stream = React.createClass({
           statsPeriod={this.state.statsPeriod} />;
     });
 
+    var params = this.getParams();
+
     return (
       <div>
         <StreamFilters query={this.state.query} onQueryChange={this.handleQueryChange} />
@@ -177,6 +179,8 @@ var Stream = React.createClass({
           <div className="container">
             <div className="group-header">
               <StreamActions
+                orgId={params.orgId}
+                projectId={params.projectId}
                 onResolve={this.handleResolve}
                 onBookmark={this.handleBookmark}
                 onDelete={this.handleDelete}
