@@ -150,7 +150,7 @@ var AggregateListStore = Reflux.createStore({
     AlertActions.addAlert(ERR_SCHEDULE_DELETE, 'error');
     this.trigger();
   },
-  
+
   onDeleteSuccess(changeId, itemIds, response) {
     var itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
@@ -184,7 +184,7 @@ var AggregateListStore = Reflux.createStore({
     this.trigger();
   },
 
-  onUpdate(changeId, itemIds, data){
+  onUpdate(changeId, itemIds, data) {
     if (typeof itemIds === 'undefined') this.items.map(item => item.id);
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'update');
@@ -193,7 +193,7 @@ var AggregateListStore = Reflux.createStore({
     this.trigger();
   },
 
-  onUpdateError(changeId, itemIds, error){
+  onUpdateError(changeId, itemIds, error) {
     this.pendingChanges.remove(changeId);
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'update');
@@ -202,7 +202,7 @@ var AggregateListStore = Reflux.createStore({
     this.trigger();
   },
 
-  onUpdateSuccess(changeId, itemIds, response){
+  onUpdateSuccess(changeId, itemIds, response) {
     if (typeof itemIds === 'undefined') {
       itemIds = this.items.map(item => item.id);
     }
