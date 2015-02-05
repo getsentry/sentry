@@ -127,6 +127,10 @@ def main():
 
     # force the buffer to process any pending incrs
     # (this ensures tags get populated)
+    # TODO(dcramer): we should load a buffer backend which just does incr's in
+    # realtime
+    buffer.process_pending()
+    # Run it once again to handle TagKey incrs
     buffer.process_pending()
 
 
