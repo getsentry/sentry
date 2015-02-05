@@ -5,7 +5,7 @@ var Router = require("react-router");
 
 var PropTypes = require("../proptypes");
 
-var AggregateTags = React.createClass({
+var AggregateEvents = React.createClass({
   mixins: [Router.State],
 
   propTypes: {
@@ -15,10 +15,10 @@ var AggregateTags = React.createClass({
   render() {
     return (
       <div>
-      Tags
+      Events
       </div>
     );
   }
 });
 
-module.exports = AggregateTags;
+module.exports = AggregateEvents;

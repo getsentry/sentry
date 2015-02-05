@@ -150,7 +150,11 @@ var AggregateHeader = React.createClass({
               Tags
             </Router.Link>
           </li>
-          <li><a href="#">Similar Events</a></li>
+          <li>
+            <Router.Link to="aggregateEvents" params={aggRouteParams}>
+              Similar Events
+            </Router.Link>
+          </li>
         </ul>
       </div>
     );

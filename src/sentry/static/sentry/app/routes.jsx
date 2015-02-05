@@ -6,6 +6,7 @@ var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
 var Aggregate = require("./views/aggregate");
+var AggregateEvents = require("./views/aggregateEvents");
 var AggregateTags = require("./views/aggregateTags");
 var AggregateOverview = require("./views/aggregateOverview");
 var ProjectDetails = require("./views/projectDetails");
@@ -26,6 +27,7 @@ var routes = (
       <Route name="aggregateDetails" path="group/:aggregateId/" handler={Aggregate}>
         <DefaultRoute name="aggregateOverview" handler={AggregateOverview} />
         <Route name="aggregateTags" path="tags/" handler={AggregateTags} />
+        <Route name="aggregateEvents" path="events/" handler={AggregateEvents} />
       </Route>
     </Route>
   </Route>
