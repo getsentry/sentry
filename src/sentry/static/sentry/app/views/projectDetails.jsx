@@ -53,7 +53,10 @@ var ProjectDetails = React.createClass({
         });
 
         this.setBreadcrumbs([
-          {name: data.team.name, to: 'teamDashboard'},
+          {name: data.team.name, to: 'teamDetails', params: {
+            orgId: this.getParams().orgId,
+            teamId: data.team.slug
+          }},
           {name: data.name, to: 'projectDetails'}
         ]);
       }
