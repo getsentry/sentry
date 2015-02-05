@@ -8,7 +8,6 @@ var AssigneeSelector = require("../../components/assigneeSelector");
 var Count = require("../../components/count");
 var ListLink = require("../../components/listLink");
 var PropTypes = require("../../proptypes");
-var TimeSince = require("../../components/timeSince");
 
 var AggregateHeader = React.createClass({
   propTypes: {
@@ -88,11 +87,6 @@ var AggregateHeader = React.createClass({
             </h3>
             <div className="event-message">
               <span className="message">{data.culprit}</span>
-            </div>
-            <div className="event-meta">
-              <span className="last-seen"><TimeSince date={data.lastSeen} /></span>
-              &nbsp;&mdash;&nbsp;
-              <span className="first-seen">from <TimeSince date={data.firstSeen} /></span>
             </div>
           </div>
           <div className="col-sm-4 stats">
