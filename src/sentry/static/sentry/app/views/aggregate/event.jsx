@@ -19,12 +19,12 @@ var AggregateEvent = React.createClass({
     request: require("./interfaces/request")
   },
 
-  render: function(){
+  render(){
     var agg = this.props.aggregate;
     var evt = this.props.event;
 
     var entries = [];
-    evt.entries.forEach(function(entry, entryIdx){
+    evt.entries.forEach((entry, entryIdx) => {
       try {
         var Component = this.interfaces[entry.type];
         if (!Component) {
@@ -42,7 +42,7 @@ var AggregateEvent = React.createClass({
         // TODO(dcramer): this should log to Sentry
         console.error(ex);
       }
-    }.bind(this));
+    });
 
     return (
       <div>
