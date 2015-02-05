@@ -10,11 +10,11 @@ var AggregateEventTags = React.createClass({
   },
 
   render() {
-    var children = this.props.event.tags.map((tag) => {
+    var children = this.props.event.tags.map((tag, tagIdx) => {
       var key = tag[0];
       var value = tag[1];
       return (
-        <li>
+        <li key={tagIdx}>
           {key} = {value}
         </li>
       );
