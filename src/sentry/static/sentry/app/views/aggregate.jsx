@@ -14,7 +14,6 @@ var AggregateDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
     Reflux.listenTo(AggregateListStore, "onAggListChange"),
-    Router.Navigation,
     Router.State
   ],
 
@@ -43,9 +42,7 @@ var AggregateDetails = React.createClass({
         AggregateListStore.loadInitialData([data]);
 
         this.setBreadcrumbs([
-          <a onClick={this.transitionTo.bind(this, "aggregateDetails", this.getParams(), {})}>
-            {data.title}
-          </a>
+          {name: data.title, to: 'aggregateDetails'}
         ]);
       }.bind(this)
     });

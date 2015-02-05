@@ -12,7 +12,6 @@ var ProjectDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
     Reflux.connect(MemberListStore, "memberList"),
-    Router.Navigation,
     Router.State
   ],
 
@@ -37,9 +36,7 @@ var ProjectDetails = React.createClass({
         });
 
         this.setBreadcrumbs([
-          <a onClick={this.transitionTo.bind(this, "projectDetails", this.getParams(), {})}>
-            {data.name}
-          </a>
+          {name: data.name, to: 'projectDetails'}
         ]);
       }
     });
