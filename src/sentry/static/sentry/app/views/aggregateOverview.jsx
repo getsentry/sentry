@@ -8,6 +8,7 @@ var AggregateActivity = require("./aggregate/activity");
 var AggregateChart = require("./aggregate/chart");
 var AggregateEvent = require("./aggregate/event");
 var PropTypes = require("../proptypes");
+var TimeSince = require("../components/timeSince");
 
 var AggregateOverview = React.createClass({
   mixins: [Router.State],
@@ -70,15 +71,15 @@ var AggregateOverview = React.createClass({
             <div className="row group-stats">
               <div className="col-md-6">
                 <h6>First seen</h6>
-                <h3>Jan 15, 2015</h3>
+                <h3><TimeSince date={agg.firstSeen} /></h3>
                 <h6>Last seen</h6>
-                <h3>Jan 15, 2015</h3>
+                <h3><TimeSince date={agg.lastSeen} /></h3>
               </div>
               <div className="col-md-6">
                 <h6>In release</h6>
                 <h3>cd5b4c4d93ad</h3>
                 <h6>Status</h6>
-                <h3>Unresolved</h3>
+                <h3>{agg.status}</h3>
               </div>
             </div>
           </div>
