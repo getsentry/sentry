@@ -181,11 +181,6 @@ var Stream = React.createClass({
               <StreamActions
                 orgId={params.orgId}
                 projectId={params.projectId}
-                onResolve={this.handleResolve}
-                onBookmark={this.handleBookmark}
-                onDelete={this.handleDelete}
-                onMerge={this.handleMerge}
-                onRemoveBookmark={this.handleRemoveBookmark}
                 onSelectStatsPeriod={this.handleSelectStatsPeriod}
                 onRealtimeChange={this.handleRealtimeChange}
                 realtimeActive={this.state.realtimeActive}
