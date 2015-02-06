@@ -140,7 +140,7 @@ var FilterSelectLink = React.createClass({
           to="stream"
           activeClassName=""
           params={this.getParams()}
-          query={queryParams}
+          query={finalQueryParams}
           className={className}>
         {this.props.label}
       </Router.Link>
