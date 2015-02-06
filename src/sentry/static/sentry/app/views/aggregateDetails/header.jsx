@@ -10,6 +10,8 @@ var ListLink = require("../../components/listLink");
 var PropTypes = require("../../proptypes");
 
 var AggregateHeader = React.createClass({
+  mixins: [Router.State],
+
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
@@ -72,11 +74,7 @@ var AggregateHeader = React.createClass({
       bookmarkClassName += " active";
     }
 
-    var aggRouteParams = {
-      orgId: this.props.orgId,
-      projectId: this.props.projectId,
-      aggregateId: data.id
-    };
+    var aggRouteParams = this.getParams();
 
     return (
       <div className={className}>

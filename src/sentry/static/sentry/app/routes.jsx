@@ -5,7 +5,7 @@ var Router = require("react-router");
 var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
-var Aggregate = require("./views/aggregate");
+var AggregateDetails = require("./views/aggregateDetails");
 var AggregateEvents = require("./views/aggregateEvents");
 var AggregateTags = require("./views/aggregateTags");
 var AggregateOverview = require("./views/aggregateOverview");
@@ -35,11 +35,12 @@ var routes = (
     </Route>
     <Route name="projectDetails" path="/:orgId/:projectId/" handler={ProjectDetails}>
       <DefaultRoute name="stream" handler={Stream} />
-      <Route name="aggregateDetails" path="group/:aggregateId/" handler={Aggregate}>
+      <Route name="aggregateDetails" path="group/:aggregateId/" handler={AggregateDetails}
+             ignoreScrollBehavior>
         <DefaultRoute name="aggregateOverview" handler={AggregateOverview} />
+        <Route name="aggregateEventDetails" path="events/:eventId/" handler={AggregateOverview} />
         <Route name="aggregateTags" path="tags/" handler={AggregateTags} />
         <Route name="aggregateEvents" path="events/" handler={AggregateEvents} />
-        <Route name="aggregateEventDetails" path="events/:eventId/" handler={AggregateOverview} />
       </Route>
     </Route>
   </Route>
