@@ -36,7 +36,7 @@ var DropdownButton = React.createClass({
   },
 
   render: function () {
-    var className = 'dropdown-toggle btn';
+    var className = 'dropdown-toggle';
     if (this.props.disabled) {
       className += ' disabled';
     }

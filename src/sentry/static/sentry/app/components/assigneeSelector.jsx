@@ -30,7 +30,7 @@ var AssigneeSelector = React.createClass({
 
     var loading = AggregateListStore.hasStatus(agg.id, 'assignTo');
 
-    var className = "user-selector";
+    var className = "assignee-selector anchor-right";
     if (!agg.assignedTo) {
       className += " unassigned";
     }
@@ -53,10 +53,10 @@ var AssigneeSelector = React.createClass({
           <span>LOADING</span>
         :
           <DropdownLink
-            className="btn-sm btn-default"
+            className="assignee-selector-toggle"
             title={agg.assignedTo ?
               <img src={agg.assignedTo.avatarUrl} className="avatar" />
-            :
+              :
               <span className="icon-user" />
             }>
             <MenuItem noAnchor={true} key="filter">
