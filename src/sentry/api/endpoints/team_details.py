@@ -50,7 +50,10 @@ class TeamDetailsEndpoint(Endpoint):
 
         assert_perm(team, request.user, request.auth)
 
-        return Response(serialize(team, request.user))
+        context = serialize(team, request.user)
+        context['organization'] = serialize(team.organization, request.user)
+
+        return Response(context)
 
     @sudo_required
     def put(self, request, organization_slug, team_slug):

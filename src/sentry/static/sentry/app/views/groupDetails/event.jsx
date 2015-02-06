@@ -2,9 +2,10 @@
 
 var React = require("react");
 
-var AggregateEventDataSection = require("./eventDataSection");
-var AggregateEventHeader = require("./eventHeader");
-var AggregateEventTags = require("./eventTags");
+var GroupEventDataSection = require("./eventDataSection");
+var GroupEventHeader = require("./eventHeader");
+var GroupEventTags = require("./eventTags");
+var GroupState = require("../../mixins/groupState");
 var Gravatar = require("../../components/gravatar");
 var PropTypes = require("../../proptypes");
 
@@ -26,9 +27,10 @@ var UserWidget = React.createClass({
   }
 });
 
-var AggregateEvent = React.createClass({
+var GroupEvent = React.createClass({
+  mixins: [GroupState],
+
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired,
     event: PropTypes.Event.isRequired
   },
 
@@ -39,7 +41,7 @@ var AggregateEvent = React.createClass({
   },
 
   render(){
-    var agg = this.props.aggregate;
+    var group = this.getGroup();
     var evt = this.props.event;
 
     var entries = [];
@@ -53,7 +55,7 @@ var AggregateEvent = React.createClass({
         entries.push(
           <Component
               key={"entry-" + entryIdx}
-              aggregate={agg}
+              group={group}
               event={evt}
               data={entry.data} />
         );
@@ -66,15 +68,15 @@ var AggregateEvent = React.createClass({
     return (
       <div className="row">
         <div className="col-md-9">
-          <AggregateEventHeader
-              aggregate={agg}
+          <GroupEventHeader
+              group={group}
               event={evt} />
-          <AggregateEventTags
-              aggregate={agg}
+          <GroupEventTags
+              group={group}
               event={evt} />
           {entries}
-          <AggregateEventDataSection
-              aggregate={agg}
+          <GroupEventDataSection
+              group={group}
               event={evt}
               title="Additional Data" />
         </div>
@@ -94,4 +96,4 @@ var AggregateEvent = React.createClass({
   }
 });
 
-module.exports = AggregateEvent;
+module.exports = GroupEvent;

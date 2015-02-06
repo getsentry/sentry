@@ -5,10 +5,13 @@ var PropTypes = {
   AnyModel: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
   }),
-  Aggregate: React.PropTypes.shape({
+  Group: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
   }),
   Event: React.PropTypes.shape({
+    id: React.PropTypes.string.isRequired
+  }),
+  Organization: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
   }),
   Project: React.PropTypes.shape({

@@ -23,17 +23,22 @@ var TeamDashboard = React.createClass({
   },
 
   childContextTypes: {
+    organization: PropTypes.Organization,
     team: PropTypes.Team
   },
 
   getChildContext() {
-     return {team: this.state.team};
+    return {
+      organization: this.state.organization,
+      team: this.state.team
+    };
   },
 
   componentWillMount() {
     api.request(this.getTeamDetailsEndpoint(), {
       success: (data) => {
         this.setState({
+          organization: data.organization,
           team: data
         });
 

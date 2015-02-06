@@ -6,20 +6,20 @@ var Router = require("react-router");
 var utils = require("../../utils");
 
 var api = require("../../api");
-var AggregateListStore = require("../../stores/aggregateListStore");
+var GroupListStore = require("../../stores/groupStore");
 var DateTimeField = require("../../modules/datepicker/DateTimeField");
 var DropdownLink = require("../../components/dropdownLink");
 var MenuItem = require("../../components/menuItem");
 var Modal = require("react-bootstrap/Modal");
 var OverlayMixin = require("react-bootstrap/OverlayMixin");
-var SelectedAggregateStore = require("../../stores/selectedAggregateStore");
+var SelectedGroupStore = require("../../stores/selectedGroupStore");
 
 var ActionLink = React.createClass({
   mixins: [OverlayMixin],
 
   propTypes: {
     actionLabel: React.PropTypes.string,
-    aggList: React.PropTypes.instanceOf(Array).isRequired,
+    groupList: React.PropTypes.instanceOf(Array).isRequired,
     canActionAll: React.PropTypes.bool.isRequired,
     confirmLabel: React.PropTypes.string,
     disabled: React.PropTypes.bool,
@@ -88,9 +88,9 @@ var ActionLink = React.createClass({
       return <span/>;
     }
 
-    var selectedItemIds = SelectedAggregateStore.getSelectedIds();
+    var selectedItemIds = SelectedGroupStore.getSelectedIds();
     if (selectedItemIds.size === 0) {
-      throw new Error('ActionModal rendered without any selected aggregates');
+      throw new Error('ActionModal rendered without any selected groups');
     }
 
     var shouldConfirm = true;
@@ -192,13 +192,13 @@ var SortOptions = React.createClass({
 
 var StreamActions = React.createClass({
   mixins: [
-    Reflux.listenTo(SelectedAggregateStore, 'onSelectedAggregateChange')
+    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')
   ],
 
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    aggList: React.PropTypes.instanceOf(Array).isRequired,
+    groupList: React.PropTypes.instanceOf(Array).isRequired,
     onRealtimeChange: React.PropTypes.func.isRequired,
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired,
@@ -221,15 +221,15 @@ var StreamActions = React.createClass({
       datePickerActive: !this.state.datePickerActive
     });
   },
-  actionSelectedAggregates(callback, data) {
+  actionSelectedGroups(callback, data) {
     var itemIds;
     var selectedAggList;
 
     if (StreamActions.ALL) {
-      selectedAggList = this.props.aggList;
+      selectedAggList = this.props.groupList;
     } else {
-      itemIdSet = SelectedAggregateStore.getSelectedIds();
-      selectedAggList = this.props.aggList.filter(
+      itemIdSet = SelectedGroupStore.getSelectedIds();
+      selectedAggList = this.props.groupList.filter(
         (item) => itemIdSet.has(item.id)
       );
       itemIds = selectedAggList.map(
@@ -239,10 +239,10 @@ var StreamActions = React.createClass({
 
     callback(itemIds);
 
-    SelectedAggregateStore.clearAll();
+    SelectedGroupStore.clearAll();
   },
-  onResolve(aggList, event) {
-    this.actionSelectedAggregates((itemIds) => {
+  onResolve(groupList, event) {
+    this.actionSelectedGroups((itemIds) => {
       api.bulkUpdate({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
@@ -253,8 +253,8 @@ var StreamActions = React.createClass({
       });
     });
   },
-  onBookmark(aggList, event) {
-    this.actionSelectedAggregates((itemIds) => {
+  onBookmark(groupList, event) {
+    this.actionSelectedGroups((itemIds) => {
       api.bulkUpdate({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
@@ -265,8 +265,8 @@ var StreamActions = React.createClass({
       });
     });
   },
-  onRemoveBookmark(aggList, event) {
-    this.actionSelectedAggregates((itemIds) => {
+  onRemoveBookmark(groupList, event) {
+    this.actionSelectedGroups((itemIds) => {
       api.bulkUpdate({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
@@ -277,8 +277,8 @@ var StreamActions = React.createClass({
       });
     });
   },
-  onDelete(aggList, event) {
-    this.actionSelectedAggregates((itemIds) => {
+  onDelete(groupList, event) {
+    this.actionSelectedGroups((itemIds) => {
       api.bulkDelete({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
@@ -286,8 +286,8 @@ var StreamActions = React.createClass({
       });
     });
   },
-  onMerge(aggList, event) {
-    this.actionSelectedAggregates((itemIds) => {
+  onMerge(groupList, event) {
+    this.actionSelectedGroups((itemIds) => {
       api.merge({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
@@ -295,15 +295,15 @@ var StreamActions = React.createClass({
       });
     });
   },
-  onSelectedAggregateChange() {
+  onSelectedGroupChange() {
     this.setState({
-      selectAllActive: SelectedAggregateStore.allSelected,
-      multiSelected: SelectedAggregateStore.multiSelected,
-      anySelected: SelectedAggregateStore.anySelected
+      selectAllActive: SelectedGroupStore.allSelected,
+      multiSelected: SelectedGroupStore.multiSelected,
+      anySelected: SelectedGroupStore.anySelected
     });
   },
   onSelectAll() {
-    SelectedAggregateStore.toggleSelectAll();
+    SelectedGroupStore.toggleSelectAll();
   },
   render() {
     return (
@@ -323,7 +323,7 @@ var StreamActions = React.createClass({
                canActionAll={true}
                onlyIfBulk={true}
                selectAllActive={this.state.selectAllActive}
-               aggList={this.props.aggList}>
+               groupList={this.props.groupList}>
               <i aria-hidden="true" className="icon-checkmark"></i>
             </ActionLink>
             <ActionLink
@@ -335,7 +335,7 @@ var StreamActions = React.createClass({
                canActionAll={false}
                onlyIfBulk={true}
                selectAllActive={this.state.selectAllActive}
-               aggList={this.props.aggList}>
+               groupList={this.props.groupList}>
               <i aria-hidden="true" className="icon-bookmark"></i>
             </ActionLink>
 
@@ -353,7 +353,7 @@ var StreamActions = React.createClass({
                    confirmLabel="Merge"
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}
-                   aggList={this.props.aggList}>
+                   groupList={this.props.groupList}>
                   Merge Events
                 </ActionLink>
               </MenuItem>
@@ -367,7 +367,7 @@ var StreamActions = React.createClass({
                    onlyIfBulk={true}
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}
-                   aggList={this.props.aggList}>
+                   groupList={this.props.groupList}>
                   Remove from Bookmarks
                 </ActionLink>
               </MenuItem>
@@ -380,7 +380,7 @@ var StreamActions = React.createClass({
                    confirmLabel="Delete"
                    canActionAll={false}
                    selectAllActive={this.state.selectAllActive}
-                   aggList={this.props.aggList}>
+                   groupList={this.props.groupList}>
                   Delete Events
                 </ActionLink>
               </MenuItem>

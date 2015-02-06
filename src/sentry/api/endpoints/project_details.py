@@ -45,6 +45,7 @@ class ProjectDetailsEndpoint(Endpoint):
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
         }
         data['team'] = serialize(project.team, request.user)
+        data['organization'] = serialize(project.organization, request.user)
 
         return Response(data)
 

@@ -6,12 +6,12 @@ var Router = require("react-router");
 var AssigneeSelector = require("../../components/assigneeSelector");
 var BarChart = require("../../components/barChart");
 var Count = require("../../components/count");
-var SelectedAggregateStore = require("../../stores/selectedAggregateStore");
+var SelectedGroupStore = require("../../stores/selectedGroupStore");
 var TimeSince = require("../../components/timeSince");
 
-var StreamAggregate = React.createClass({
+var StreamGroup = React.createClass({
   mixins: [
-    Reflux.listenTo(SelectedAggregateStore, "onSelectedAggregateChange"),
+    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange"),
     Router.State
   ],
 
@@ -29,16 +29,16 @@ var StreamAggregate = React.createClass({
     };
   },
 
-  onSelectedAggregateChange() {
+  onSelectedGroupChange() {
     var id = this.props.data.id;
     this.setState({
-      isSelected: SelectedAggregateStore.isSelected(id),
+      isSelected: SelectedGroupStore.isSelected(id),
     });
   },
 
   onSelect() {
     var id = this.props.data.id;
-    SelectedAggregateStore.toggleSelect(id);
+    SelectedGroupStore.toggleSelect(id);
   },
 
   render() {
@@ -83,8 +83,8 @@ var StreamAggregate = React.createClass({
                    onChange={this.onSelect} />
           </div>
           <h3>
-            <Router.Link to="aggregateDetails"
-                  params={{orgId: params.orgId, projectId: params.projectId, aggregateId: data.id}}>
+            <Router.Link to="groupDetails"
+                  params={{orgId: params.orgId, projectId: params.projectId, groupId: data.id}}>
               <span className="icon icon-bookmark"></span>
               {data.title}
             </Router.Link>
@@ -100,7 +100,7 @@ var StreamAggregate = React.createClass({
         </div>
         <div className="event-assignee col-md-1 hidden-xs hidden-sm">
           <AssigneeSelector
-            aggregate={data}
+            group={data}
             memberList={this.props.memberList} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
@@ -117,4 +117,4 @@ var StreamAggregate = React.createClass({
   }
 });
 
-module.exports = StreamAggregate;
+module.exports = StreamGroup;

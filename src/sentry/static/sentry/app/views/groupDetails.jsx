@@ -5,15 +5,16 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var AggregateHeader = require("./aggregate/header");
-var AggregateListStore = require("../stores/aggregateListStore");
+var GroupHeader = require("./groupDetails/header");
+var GroupListStore = require("../stores/groupStore");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
+var PropTypes = require("../proptypes");
 var utils = require("../utils");
 
-var AggregateDetails = React.createClass({
+var GroupDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
-    Reflux.listenTo(AggregateListStore, "onAggListChange"),
+    Reflux.listenTo(GroupListStore, "onAggListChange"),
     Router.State
   ],
 
@@ -21,60 +22,70 @@ var AggregateDetails = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
-  onAggListChange() {
-    var id = this.getParams().aggregateId;
+  childContextTypes: {
+    group: PropTypes.Group,
+  },
 
-    this.setState({
-      aggregate: AggregateListStore.getItem(id)
-    });
+  getChildContext() {
+    return {
+      group: this.state.group,
+    };
   },
 
   getInitialState() {
     return {
-      aggregate: null,
+      group: null,
       statsPeriod: '48h'
     };
   },
 
   componentWillMount() {
-    api.request(this.getAggregateDetailsEndpoint(), {
+    api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
-        AggregateListStore.loadInitialData([data]);
+        GroupListStore.loadInitialData([data]);
 
         this.setBreadcrumbs([
-          {name: data.title, to: 'aggregateDetails'}
+          {name: data.title, to: 'groupDetails'}
         ]);
       }
     });
   },
 
-  getAggregateDetailsEndpoint() {
-    return '/groups/' + this.getParams().aggregateId + '/';
+  onAggListChange() {
+    var id = this.getParams().groupId;
+
+    this.setState({
+      group: GroupListStore.getItem(id)
+    });
+  },
+
+  getGroupDetailsEndpoint() {
+    return '/groups/' + this.getParams().groupId + '/';
   },
 
   render() {
-    var aggregate = this.state.aggregate;
+    var group = this.state.group;
     var params = this.getParams();
 
-    if (!aggregate) {
+    if (!group) {
       return <div />;
     }
 
     return (
       <div className={this.props.className}>
-        <AggregateHeader
+        <GroupHeader
             orgId={params.orgId}
             projectId={params.projectId}
-            aggregate={aggregate}
+            group={group}
             statsPeriod={this.state.statsPeriod}
             memberList={this.props.memberList} />
         <Router.RouteHandler
             memberList={this.props.memberList}
-            aggregate={aggregate}
+            group={group}
             statsPeriod={this.state.statsPeriod} />
       </div>
     );
   }
 });
 
-module.exports = AggregateDetails;
+module.exports = GroupDetails;

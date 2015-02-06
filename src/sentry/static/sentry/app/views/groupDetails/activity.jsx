@@ -1,12 +1,11 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
+var GroupState = require("../../mixins/groupState");
 var PropTypes = require("../../proptypes");
 
-var AggregateActivity = React.createClass({
-  propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired
-  },
+var GroupActivity = React.createClass({
+  mixins: [GroupState],
 
   render: function() {
     return (
@@ -34,4 +33,4 @@ var AggregateActivity = React.createClass({
   }
 });
 
-module.exports = AggregateActivity;
+module.exports = GroupActivity;

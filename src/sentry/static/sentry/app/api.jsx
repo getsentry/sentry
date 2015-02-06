@@ -1,7 +1,7 @@
 /*** @jsx React.DOM */
 
 var $ = require("jquery");
-var AggregateListActions = require("./actions/aggregateListActions");
+var GroupActions = require("./actions/groupActions");
 
 class Client {
   constructor(options) {
@@ -55,16 +55,16 @@ class Client {
     var query = (params.itemIds ? {id: params.itemIds} : undefined);
     var id = this.uniqueId();
 
-    AggregateListActions.delete(id, params.itemIds);
+    GroupActions.delete(id, params.itemIds);
 
     return this.request(path, {
       query: query,
       method: "DELETE",
       success: (response) => {
-        AggregateListActions.deleteSuccess(id, params.itemIds, response);
+        GroupActions.deleteSuccess(id, params.itemIds, response);
       },
       error: (error) => {
-        AggregateListActions.deleteError(id, params.itemIds, error);
+        GroupActions.deleteError(id, params.itemIds, error);
       }
     });
   }
@@ -74,17 +74,17 @@ class Client {
     var query = (params.itemIds ? {id: params.itemIds} : undefined);
     var id = this.uniqueId();
 
-    AggregateListActions.update(id, params.itemIds, params.data);
+    GroupActions.update(id, params.itemIds, params.data);
 
     return this.request(path, {
       query: query,
       method: "PUT",
       data: params.data,
       success: (response) => {
-        AggregateListActions.updateSuccess(id, params.itemIds, response);
+        GroupActions.updateSuccess(id, params.itemIds, response);
       },
       error: (error) => {
-        AggregateListActions.updateError(id, params.itemIds, error);
+        GroupActions.updateError(id, params.itemIds, error);
       }
     });
   }
@@ -94,17 +94,17 @@ class Client {
     var query = (params.itemIds ? {id: params.itemIds} : undefined);
     var id = this.uniqueId();
 
-    AggregateListActions.merge(id, params.itemIds);
+    GroupActions.merge(id, params.itemIds);
 
     return this.request(path, {
       query: query,
       method: "PUT",
       data: {merge: 1},
       success: (response) => {
-        AggregateListActions.mergeSuccess(id, params.itemIds, response);
+        GroupActions.mergeSuccess(id, params.itemIds, response);
       },
       error: (error) => {
-        AggregateListActions.mergeError(id, params.itemIds, error);
+        GroupActions.mergeError(id, params.itemIds, error);
       }
     });
   }
@@ -113,16 +113,16 @@ class Client {
     var path = "/groups/" + params.id + "/";
     var id = this.uniqueId();
 
-    AggregateListActions.assignTo(id, params.id, {email: params.email});
+    GroupActions.assignTo(id, params.id, {email: params.email});
 
     return this.request(path, {
       method: "PUT",
       data: {assignedTo: params.email},
       success: (response) => {
-        AggregateListActions.assignToSuccess(id, params.id, response);
+        GroupActions.assignToSuccess(id, params.id, response);
       },
       error: (error) => {
-        AggregateListActions.assignToError(id, params.id, error);
+        GroupActions.assignToError(id, params.id, error);
       }
     });
   }

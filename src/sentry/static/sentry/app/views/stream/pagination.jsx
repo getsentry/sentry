@@ -5,12 +5,12 @@ var utils = require("../../utils");
 
 var StreamPagination = React.createClass({
   propTypes: {
-    aggList: React.PropTypes.instanceOf(Array).isRequired,
+    groupList: React.PropTypes.instanceOf(Array).isRequired,
     pageLinks: React.PropTypes.string.isRequired
   },
 
   render: function(){
-    if (!this.props.pageLinks || this.props.aggList.length === 0) {
+    if (!this.props.pageLinks || this.props.groupList.length === 0) {
       return <div />;
     }
 

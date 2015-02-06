@@ -2,17 +2,19 @@
 var React = require("react");
 
 var BarChart = require("../../components/barChart");
+var GroupState = require("../../mixins/groupState");
 var PropTypes = require("../../proptypes");
 
-var AggregateChart = React.createClass({
+var GroupChart = React.createClass({
+  mixins: [GroupState],
+
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
 
   render: function() {
-    var aggregate = this.props.aggregate;
-    var stats = aggregate.stats[this.props.statsPeriod];
+    var group = this.getGroup();
+    var stats = group.stats[this.props.statsPeriod];
     var points = stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
@@ -27,4 +29,4 @@ var AggregateChart = React.createClass({
 
 });
 
-module.exports = AggregateChart;
+module.exports = GroupChart;

@@ -2,18 +2,18 @@
 
 var React = require("react");
 
-var AggregateEventDataSection = require("../eventDataSection");
+var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
 
 var RequestInterface = React.createClass({
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired,
+    group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     data: React.PropTypes.object.isRequired
   },
 
   render: function(){
-    var agg = this.props.aggregate;
+    var group = this.props.group;
     var evt = this.props.event;
     var data = this.props.data;
 
@@ -26,8 +26,8 @@ var RequestInterface = React.createClass({
     }
 
     return (
-      <AggregateEventDataSection
-          aggregate={agg}
+      <GroupEventDataSection
+          group={group}
           event={evt}
           title="Request">
         <table className="table table-striped vars">
@@ -95,7 +95,7 @@ var RequestInterface = React.createClass({
             }
           </tbody>
         </table>
-      </AggregateEventDataSection>
+      </GroupEventDataSection>
     );
   }
 });

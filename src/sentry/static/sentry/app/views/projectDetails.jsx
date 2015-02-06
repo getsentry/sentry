@@ -20,18 +20,21 @@ var ProjectDetails = React.createClass({
   getInitialState() {
     return {
       memberList: [],
+      organization: null,
       project: null,
       team: null
     };
   },
 
   childContextTypes: {
+    organization: PropTypes.Organization,
     project: PropTypes.Project,
     team: PropTypes.Team
   },
 
   getChildContext() {
     return {
+      organization: this.state.organization,
       project: this.state.project,
       team: this.state.team
     };
@@ -47,6 +50,7 @@ var ProjectDetails = React.createClass({
     api.request(this.getProjectDetailsEndpoint(), {
       success: (data) => {
         this.setState({
+          organization: data.organization,
           project: data,
           team: data.team
         });
