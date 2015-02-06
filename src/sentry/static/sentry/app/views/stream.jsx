@@ -9,6 +9,7 @@ var GroupActions = require("../actions/groupActions");
 var GroupListStore = require("../stores/groupStore");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
+var RouteMixin = require("../mixins/routeMixin");
 var StreamGroup = require('./stream/group');
 var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
@@ -66,7 +67,8 @@ StreamPoller.prototype.poll = function() {
 var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupListStore, "onAggListChange"),
-    Router.State
+    Router.State,
+    RouteMixin
   ],
 
   propTypes: {
@@ -104,7 +106,7 @@ var Stream = React.createClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps(nextProps) {
+  routeDidChange(nextProps) {
     this.fetchData();
   },
 
