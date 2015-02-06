@@ -28,6 +28,16 @@ var DropdownButton = React.createClass({
     disabled:  React.PropTypes.bool,
   },
 
+  childContextTypes: {
+    setDropdownState: React.PropTypes.func,
+  },
+
+  getChildContext() {
+    return {
+      setDropdownState: this.setDropdownState,
+    };
+  },
+
   getDefaultProps: function() {
     return {
       caret: true,
