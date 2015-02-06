@@ -5,7 +5,26 @@ var React = require("react");
 var AggregateEventDataSection = require("./eventDataSection");
 var AggregateEventHeader = require("./eventHeader");
 var AggregateEventTags = require("./eventTags");
+var Gravatar = require("../../components/gravatar");
 var PropTypes = require("../../proptypes");
+
+var UserWidget = React.createClass({
+  propTypes: {
+    data: React.PropTypes.object.isRequired,
+  },
+
+  render() {
+    var user = this.props.data;
+
+    return (
+      <div>
+        <h6>User</h6>
+        <p><strong>{user.email}</strong></p>
+        <Gravatar email={user.email} />
+      </div>
+    );
+  }
+});
 
 var AggregateEvent = React.createClass({
   propTypes: {
@@ -66,8 +85,9 @@ var AggregateEvent = React.createClass({
           <h6>Time</h6>
           <p><strong>{evt.dateCreated}</strong></p>
 
-          <h6>User</h6>
-          <p><strong><a href="#">tony@hawk.com</a></strong></p>
+          {evt.user &&
+            <UserWidget data={evt.user} />
+          }
         </div>
       </div>
     );
