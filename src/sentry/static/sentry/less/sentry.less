@@ -362,19 +362,6 @@ margin-right: -10px;
     width: @sidebar-width;
     margin: 0;
     padding: 0;
-
-    &:after {
-      width: 0;
-      height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 10px solid #fff;
-      content: "";
-      display: block;
-      position: absolute;
-      top: -10px;
-      right: 18px;
-    }
   }
 
   .orgs {
@@ -825,6 +812,10 @@ footer {
 
 .btn-group .btn + .btn {
   margin-left: -1px;
+}
+
+.btn-group.open .dropdown-toggle {
+  box-shadow: none;
 }
 
 // Disabled buttons
@@ -1416,16 +1407,14 @@ a.icon-share {
   .is-assigned {
     clear: both;
     text-align: right;
-    padding-top: 6px;
+    padding-top: 7px;
   }
 
   .assigned-to {
     text-align: right;
     position: relative;
-    top: -1px;
 
     .btn-group {
-      margin-top: -3px;
       float: right;
     }
 
@@ -1758,49 +1747,60 @@ a.icon-share {
   }
 }
 
-.user-selector {
-  .btn {
-    padding-left: 5px;
-    padding-right: 5px;
-    border-radius: 4px;
-    width: 50px;
-    box-shadow: none;
-    text-align: right;
-    border-color: transparent;
+.assignee-selector {
+  height: 24px;
 
-    .icon-user {
-      width: 16px;
-      height: 16px;
-    }
+  .btn-group {
+    height: 24px;
 
-    .icon-arrow-down {
-      top: 3px;
-    }
-    .avatar {
-      border-radius: 2px;
+    &.open {
+      .dropdown-toggle {
+        color: @gray-dark;
+      }
     }
   }
 
-  .open .btn {
-    background: #f6f7f8 !important;
-    border-color: #cacccc !important;
-    box-shadow: inset 0 1px 1px rgba(0,0,0, .06);
+  .icon-arrow-down {
+    top: 3px;
+    right: -2px;
   }
+
+  .avatar {
+    display: block;
+    width: 24px;
+    height: 24px;
+    border-radius: 2px;
+    position: relative;
+    left: -2px;
+    float: left;
+  }
+
+  .dropdown-toggle {
+    color: inherit;
+
+    .avatar + span, .icon-user + span {
+      display: none;
+    }
+  }
+
+  .open
+
 
   .dropdown-menu {
     left: auto;
-    right: 16px;
+    right: -14px !important;
     min-width: 180px;
     padding-top: 0;
-    overflow: hidden;
     max-width: 250px;
-    top: 32px;
+    top: 30px;
     z-index: 100;
 
     .form-control {
       border: 0;
       border: 0;
       border-bottom: 1px solid #E9EBEC;
+      background: none;
+      box-shadow: none;
       padding-bottom: 8px;
       margin-bottom: 6px;
       border-radius: 0;
@@ -1835,24 +1835,12 @@ a.icon-share {
   }
 
   &.unassigned {
-    .btn {
-      border-color: transparent;
-      width: 48px;
-      padding-top: 5px;
-      padding-bottom: 3px;
-      color: #616b71;
-    }
-
-    .icon-arrow-down {
-      top: 1px;
-    }
-
     .icon-user {
       margin-right: 3px;
       margin-top: 1px;
       position: relative;
-      top: 1px;
-      font-size: 16px;
+      top: 3px;
+      font-size: 20px;
     }
   }
 }
@@ -2691,10 +2679,38 @@ table.table td .select2-container {
   top: 32px;
   border: none;
   border-radius: 3px;
-  box-shadow: 0 0 0 1px rgba(70, 82, 98, .15), 0 1px 3px rgba(70, 82, 98, .2);
+  box-shadow: 0 0 0 1px rgba(52, 60, 69, .15), 0 1px 2px rgba(70, 82, 98, .1);
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
   background-clip: padding-box;
+
+  &:after {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid #fff;
+    content: "";
+    display: block;
+    position: absolute;
+    top: -8px;
+    left: 12px;
+    z-index: -1;
+  }
+
+  &:before {
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid rgba(52, 60, 69, .2);
+    content: "";
+    display: block;
+    position: absolute;
+    top: -9px;
+    left: 11px;
+    z-index: -2;
+  }
 
   li a {
     .transition(none);
@@ -2722,6 +2738,23 @@ table.table td .select2-container {
     &:hover {
       background: #fff;
       color: #7a8188;
+    }
+  }
+}
+
+.anchor-right {
+  .dropdown-menu {
+    left: auto;
+    right: 0;
+
+    &:after {
+      left: auto;
+      right: 12px;
+    }
+
+    &:before { // top caret
+      left: auto;
+      right: 11px;
     }
   }
 }
