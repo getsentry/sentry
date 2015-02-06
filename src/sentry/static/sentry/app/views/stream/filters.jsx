@@ -2,6 +2,7 @@
 
 var React = require("react");
 var Router = require("react-router");
+var $ = require("jquery");
 
 var utils = require("../../utils");
 
@@ -126,10 +127,9 @@ var FilterSelectLink = React.createClass({
       className += ' active';
     }
 
-    var queryParams = this.getQuery();
-    for (var key in this.props.query) {
-      queryParams[key] = this.props.query[key];
-    }
+    var queryParams = $.extend({
+      query: this.getQuery().query
+    }, this.props.query);
 
     return (
       <Router.Link
