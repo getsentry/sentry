@@ -8,6 +8,8 @@ var AggregateActivity = require("./aggregate/activity");
 var AggregateChart = require("./aggregate/chart");
 var AggregateEvent = require("./aggregate/event");
 var AggregateEventToolbar = require("./aggregate/eventToolbar");
+var LoadingError = require("../components/loadingError");
+var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
@@ -133,11 +135,9 @@ var AggregateOverview = React.createClass({
         </div>
 
         {this.state.loading ?
-          <div className="loading">Loading event data..</div>
+          <LoadingIndicator />
         : (this.state.error ?
-          <div className="alert alert-error alert-block">
-            <p>There was an error loading data. <a onClick={this.fetchData}>Retry</a></p>
-          </div>
+          <LoadingError onRetry={this.fetchData} />
         :
           <div>
             <MutedBox status={agg.status} />

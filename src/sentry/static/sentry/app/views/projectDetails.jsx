@@ -7,6 +7,7 @@ var Router = require("react-router");
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var MemberListStore = require("../stores/memberListStore");
+var LoadingIndicator = require("../components/loadingIndicator");
 var ProjectState = require("../mixins/projectState");
 var PropTypes = require("../proptypes");
 
@@ -75,7 +76,7 @@ var ProjectDetails = React.createClass({
 
   render() {
     if (!this.state.project) {
-      return <div className="loading">PUT ROBOT HERE PLZ KTHX</div>;
+      return <LoadingIndicator />;
     }
     return (
       <Router.RouteHandler

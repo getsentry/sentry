@@ -6,6 +6,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
+var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 var TeamState = require("../mixins/teamState");
 
@@ -50,11 +51,9 @@ var TeamDashboard = React.createClass({
 
   render() {
     if (!this.state.team) {
-      return <div className="loading">PUT ROBOT HERE PLZ KTHX</div>;
+      return <LoadingIndicator />;
     }
-    return (
-      <Router.RouteHandler />
-    );
+    return <Router.RouteHandler />;
   }
 });
 
