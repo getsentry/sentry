@@ -39,6 +39,7 @@ var routes = (
         <DefaultRoute name="aggregateOverview" handler={AggregateOverview} />
         <Route name="aggregateTags" path="tags/" handler={AggregateTags} />
         <Route name="aggregateEvents" path="events/" handler={AggregateEvents} />
+        <Route name="aggregateEventDetails" path="events/:eventId/" handler={AggregateOverview} />
       </Route>
     </Route>
   </Route>

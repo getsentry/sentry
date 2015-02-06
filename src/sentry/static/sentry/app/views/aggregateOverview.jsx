@@ -7,8 +7,23 @@ var api = require("../api");
 var AggregateActivity = require("./aggregate/activity");
 var AggregateChart = require("./aggregate/chart");
 var AggregateEvent = require("./aggregate/event");
+var AggregateEventToolbar = require("./aggregate/eventToolbar");
 var PropTypes = require("../proptypes");
 var TimeSince = require("../components/timeSince");
+var utils = require("../utils");
+
+var MutedBox = React.createClass({
+  render() {
+    if (this.props.status !== 'muted') {
+      return <div />;
+    }
+    return (
+      <div className="alert alert-info">
+        This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
+      </div>
+    );
+  }
+});
 
 var AggregateOverview = React.createClass({
   mixins: [Router.State],
@@ -22,7 +37,8 @@ var AggregateOverview = React.createClass({
     return {
       loading: true,
       error: false,
-      event: null
+      event: null,
+      eventNavLinks: ''
     };
   },
 
@@ -30,13 +46,24 @@ var AggregateOverview = React.createClass({
     this.fetchData();
   },
 
+  componentWillReceiveProps(nextProps) {
+    this.fetchData();
+  },
+
   fetchData() {
     var eventId = this.getParams().eventId || 'latest';
 
-    this.setState({eventIsLoading: true});
+    var url = (eventId === 'latest' ?
+      '/groups/' + this.props.aggregate.id + '/events/' + eventId + '/' :
+      '/events/' + eventId + '/');
 
-    api.request('/groups/' + this.props.aggregate.id + '/events/' + eventId + '/', {
-      success: (data) => {
+    this.setState({
+      loading: true,
+      error: false
+    });
+
+    api.request(url, {
+      success: (data, _, jqXHR) => {
         this.setState({
           event: data,
           error: false,
@@ -55,6 +82,28 @@ var AggregateOverview = React.createClass({
   render() {
     var agg = this.props.aggregate;
     var evt = this.state.event;
+    var params = this.getParams();
+
+    if (evt) {
+      var eventNavNodes = [
+        (evt.nextEventID ?
+          <Router.Link to="aggregateEventDetails"
+            params={{orgId: params.orgId,
+                     projectId: params.projectId,
+                     aggId: params.aggId,
+                     eventId: evt.nextEventID}}
+            className="btn btn-default btn-lg">Newer</Router.Link>
+        : <a class="btn btn-default btn-lg disabled">Newer</a>),
+        (evt.previousEventID ?
+          <Router.Link to="aggregateEventDetails"
+            params={{orgId: params.orgId,
+                     projectId: params.projectId,
+                     aggId: params.aggId,
+                     eventId: evt.previousEventID}}
+            className="btn btn-default btn-lg">Older</Router.Link>
+        : <a class="btn btn-default btn-lg disabled">Older</a>),
+      ];
+    }
 
     return (
       <div>
@@ -82,25 +131,7 @@ var AggregateOverview = React.createClass({
             </div>
           </div>
         </div>
-        <div className="event-toolbar">
-          <div className="pull-right">
-            <div className="btn-group">
-              <a href="#" className="btn btn-default btn-lg">Newer</a>
-              <a href="#" className="btn btn-default btn-lg">Older</a>
-            </div>
-          </div>
-          <ul className="nav nav-tabs">
-            <li className="active"><a href="#">Tags</a></li>
-            <li><a href="#">Exception</a></li>
-            <li><a href="#">Request</a></li>
-            <li><a href="#">Additional Data</a></li>
-          </ul>
-        </div>
-        {agg.status === 'muted' &&
-          <div className="alert alert-info">
-            This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
-          </div>
-        }
+
         {this.state.loading ?
           <div className="loading">Loading event data..</div>
         : (this.state.error ?
@@ -108,9 +139,15 @@ var AggregateOverview = React.createClass({
             <p>There was an error loading data. <a onClick={this.fetchData}>Retry</a></p>
           </div>
         :
-          <AggregateEvent
-              aggregate={agg}
-              event={this.state.event} />
+          <div>
+            <MutedBox status={agg.status} />
+            <AggregateEventToolbar
+                aggregate={agg}
+                event={evt}
+                orgId={params.orgId}
+                projectId={params.projectId} />
+            <AggregateEvent aggregate={agg} event={evt} />
+          </div>
         )}
       </div>
     );
