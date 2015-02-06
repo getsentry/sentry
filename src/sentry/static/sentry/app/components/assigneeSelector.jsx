@@ -6,6 +6,7 @@ var Reflux = require("reflux");
 var api = require("../api");
 var AggregateListStore = require("../stores/aggregateListStore");
 var DropdownLink = require("./dropdownLink");
+var Gravatar = require("./gravatar");
 var MenuItem = require("./menuItem");
 var PropTypes = require("../proptypes");
 
@@ -17,35 +18,60 @@ var AssigneeSelector = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired,
   },
 
-  assignTo: function(member) {
+  getInitialState() {
+    return {
+      filterQuery: ''
+    };
+  },
+
+  assignTo(member) {
     api.assignTo({id: this.props.aggregate.id, email: member.email});
+    this.setState({filterQuery: ''});
   },
 
-  clearAssignTo: function() {
+  clearAssignTo() {
     api.assignTo({id: this.props.aggregate.id, email: ''});
+    this.setState({filterQuery: ''});
   },
 
-  render: function() {
-    var agg = this.props.aggregate;
+  onChangeFilter() {
+    this.setState({
+      filterQuery: event.target.value
+    });
+  },
 
+  onDropdownOpen() {
+    this.refs.filter.getDOMNode().focus();
+  },
+
+  render() {
+    var agg = this.props.aggregate;
     var loading = AggregateListStore.hasStatus(agg.id, 'assignTo');
 
     var className = "assignee-selector anchor-right";
     if (!agg.assignedTo) {
       className += " unassigned";
     }
-
-    var memberNodes = [];
-    this.props.memberList.forEach(function(item){
-      memberNodes.push(
+    var filterQuery = this.state.filterQuery;
+    var memberNodes = this.props.memberList.filter((item) => {
+      if (item.email.indexOf(filterQuery) !== -1) {
+        return true;
+      }
+      if (item.name && item.name.indexOf(filterQuery) !== -1) {
+        return true;
+      }
+      return false;
+    }).map((item) => {
+      return (
         <MenuItem key={item.id}
                   disabled={!loading}
                   onSelect={this.assignTo.bind(this, item)} >
-          <img src={item.avatarUrl} className="avatar" />
+          <Gravatar email={item.email} className="avatar"
+                    size={16} />
           {item.name || item.email}
         </MenuItem>
       );
-    }.bind(this));
+    });
 
     return (
       <div className={className}>
@@ -54,13 +80,16 @@ var AssigneeSelector = React.createClass({
         :
           <DropdownLink
             className="assignee-selector-toggle"
+            onOpen={this.onDropdownOpen}
             title={agg.assignedTo ?
               <img src={agg.assignedTo.avatarUrl} className="avatar" />
               :
               <span className="icon-user" />
             }>
             <MenuItem noAnchor={true} key="filter">
-              <input type="text" className="form-control input-sm" placeholder="Filter people" />
+              <input type="text" className="form-control input-sm"
+                     ref="filter" placeholder="Filter people"
+                     onChange={this.onChangeFilter} />
             </MenuItem>
             {agg.assignedTo ?
               <MenuItem key="clear"
