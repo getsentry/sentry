@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 var React = require("react");
 var Reflux = require("reflux");
+var Router = require("react-router");
 
 var utils = require("../../utils");
 
@@ -135,6 +136,60 @@ var ActionLink = React.createClass({
   }
 });
 
+var SortOptions = React.createClass({
+  mixins: [Router.State],
+
+  getMenuItem(key, label, isActive) {
+    var queryParams = this.getQuery();
+    queryParams.sort = key;
+
+    return (
+      <MenuItem to="stream" params={this.getParams()} query={queryParams} isActive={isActive}>
+        {label}
+      </MenuItem>
+    );
+  },
+
+  render() {
+    var queryParams = this.getQuery();
+    var sortBy = queryParams.sort || 'date';
+    var sortLabel;
+
+    switch (sortBy) {
+      case 'new':
+        sortLabel = 'First Seen';
+        break;
+      case 'priority':
+        sortLabel = 'Priority';
+        break;
+      case 'freq':
+        sortLabel = 'Frequency';
+        break;
+      default:
+        sortLabel = 'Last Seen';
+        sortBy = 'date';
+    }
+
+    var dropdownTitle = (
+      <span>
+        <span className="hidden-sm hidden-xs">Sort by:</span> {sortLabel}
+      </span>
+    );
+
+    return (
+      <DropdownLink
+          key="sort"
+          className="btn-sm"
+          title={dropdownTitle}>
+        {this.getMenuItem('priority', 'Priority', sortBy === 'priority')}
+        {this.getMenuItem('date', 'Last Seen', sortBy === 'date')}
+        {this.getMenuItem('new', 'First Seen', sortBy === 'new')}
+        {this.getMenuItem('freq', 'Occurances', sortBy === 'freq')}
+      </DropdownLink>
+    );
+  }
+});
+
 var StreamActions = React.createClass({
   mixins: [
     Reflux.listenTo(SelectedAggregateStore, 'onSelectedAggregateChange')
@@ -251,25 +306,6 @@ var StreamActions = React.createClass({
     SelectedAggregateStore.toggleSelectAll();
   },
   render() {
-    var params = utils.getQueryParams();
-    var sortBy = params.sort || 'date';
-    var sortLabel;
-
-    switch (sortBy) {
-      case 'new':
-        sortLabel = 'First Seen';
-        break;
-      case 'priority':
-        sortLabel = 'Priority';
-        break;
-      case 'freq':
-        sortLabel = 'Frequency';
-        break;
-      default:
-        sortLabel = 'Last Seen';
-        sortBy = 'date';
-    }
-
     return (
       <div className="stream-actions row">
         <div className="stream-actions-left col-md-7">
@@ -361,15 +397,7 @@ var StreamActions = React.createClass({
               )}
             </a>
           </div>
-          <DropdownLink
-            key="sort"
-            className="btn-sm"
-            title={<span><span className="hidden-sm hidden-xs">Sort by:</span> {sortLabel}</span>}>
-            <MenuItem href="?sort=priority" isActive={sortBy === 'priority'}>Priority</MenuItem>
-            <MenuItem href="?sort=date" isActive={sortBy === 'date'}>Last Seen</MenuItem>
-            <MenuItem href="?sort=new" isActive={sortBy === 'new'}>First Seen</MenuItem>
-            <MenuItem href="?sort=freq" isActive={sortBy === 'freq'}>Occurances</MenuItem>
-          </DropdownLink>
+          <SortOptions />
 
           <div className="btn-group">
             <a href="#" className="btn btn-sm" onClick={this.toggleDatePicker}>
