@@ -12,6 +12,7 @@ var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
+var RouteMixin = require("../mixins/routeMixin");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
 
@@ -31,7 +32,8 @@ var MutedBox = React.createClass({
 var GroupOverview = React.createClass({
   mixins: [
     GroupState,
-    Router.State
+    Router.State,
+    RouteMixin
   ],
 
   propTypes: {
@@ -51,7 +53,7 @@ var GroupOverview = React.createClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps(nextProps) {
+  routeDidChange(prevPath) {
     this.fetchData();
   },
 
