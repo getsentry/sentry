@@ -1785,9 +1785,11 @@ a.icon-share {
     right: -14px !important;
     min-width: 180px;
     padding-top: 0;
+    padding-bottom: 3px;
     max-width: 250px;
     top: 30px;
     z-index: 100;
+    font-size: 13px;
 
     .form-control {
       border: 0;
@@ -1798,6 +1800,8 @@ a.icon-share {
       padding-bottom: 8px;
       margin-bottom: 6px;
       border-radius: 0;
+      font-size: 13px;
+      
       &:focus {
         box-shadow: none;
       }
@@ -1811,7 +1815,7 @@ a.icon-share {
     }
 
     li a {
-      padding: 4px 8px;
+      padding: 5px 8px;
       display: block;
       padding-left: 35px;
       position: relative;
@@ -1824,6 +1828,7 @@ a.icon-share {
         margin-right: 5px;
         position: absolute;
         left: 8px;
+        .square(20px);
       }
     }
   }
@@ -1835,6 +1840,22 @@ a.icon-share {
       position: relative;
       top: 3px;
       font-size: 20px;
+    }
+  }
+
+  .clear-assignee a {
+    background: rgba(52, 60, 69, .03);
+    border-bottom: 1px solid rgba(52, 60, 69, .06);
+    margin-top: -6px;
+    margin-bottom: 2px;
+    padding: 4px 0 2px 35px !important;
+
+    .icon-close {
+      font-size: 16px;
+      position: absolute;
+      left: 10px;
+      top: 4px;
+      opacity: .3;
     }
   }
 }
