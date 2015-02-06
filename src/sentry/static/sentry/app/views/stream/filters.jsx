@@ -127,8 +127,12 @@ var FilterSelectLink = React.createClass({
       className += ' active';
     }
 
-    var queryParams = $.extend({
-      query: this.getQuery().query
+    var queryParams = this.getQuery();
+
+    // whitelist relevant params
+    var finalQueryParams = $.extend({
+      query: queryParams.query,
+      sort: queryParams.sort
     }, this.props.query);
 
     return (
