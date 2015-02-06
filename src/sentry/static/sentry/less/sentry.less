@@ -1098,46 +1098,34 @@ a.icon-share {
     .opacity(100);
   }
 }
-.progressbar {
+
+.tag-bar {
+  .clearfix();
   position: relative;
-  min-height: 1.5em;
-  line-height: 1.5em;
+  display: block;
+  line-height: 2.2;
+  color: @gray-dark;
+  margin-bottom: 4px;
 
-  > a,
-  > div {
-    top: 0px;
-    left: 0px;
-    right: 0px;
-    bottom: 0px;
-    max-width: 100%;
+  .tag-bar-background {
     position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -6px;
+    background: #f1f2f3;
+    border-radius: 2px;
   }
 
-  > div {
-    border-radius: 3px;
-  }
-
-  > a {
-    left: 0;
+  .tag-bar-label {
+    float: left;
     position: relative;
-    z-index: 1;
-    padding-right: 60px;
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    span {
-      position: absolute;
-      right: 0px;
-    }
   }
 
-  > div {
-    background-color: lighten(#f1f2f3, 2);
-    text-indent: -100000em;
-    z-index: 0;
+  .tag-bar-count {
+    float: right;
+    position: relative;
   }
+
 }
 
 .sparkline {
