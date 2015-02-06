@@ -121,7 +121,6 @@ class ProjectGroupIndexEndpoint(Endpoint):
             query_kwargs['cursor'] = Cursor.from_string(cursor)
 
         query = request.GET.get('query', 'is:unresolved')
-        print (query)
         if query is not None:
             query_kwargs.update(parse_query(query, request.user))
 
