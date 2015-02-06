@@ -44,6 +44,12 @@ var AssigneeSelector = React.createClass({
     this.refs.filter.getDOMNode().focus();
   },
 
+  onDropdownClose() {
+    this.setState({
+      filterQuery: ''
+    });
+  },
+
   render() {
     var agg = this.props.aggregate;
     var loading = AggregateListStore.hasStatus(agg.id, 'assignTo');
@@ -81,6 +87,7 @@ var AssigneeSelector = React.createClass({
           <DropdownLink
             className="assignee-selector-toggle"
             onOpen={this.onDropdownOpen}
+            onClose={this.onDropdownClose}
             title={agg.assignedTo ?
               <img src={agg.assignedTo.avatarUrl} className="avatar" />
               :

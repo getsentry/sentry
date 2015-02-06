@@ -24,6 +24,7 @@ var DropdownButton = React.createClass({
     onClick:   React.PropTypes.func,
     onSelect:  React.PropTypes.func,
     onOpen:    React.PropTypes.func,
+    onClose:   React.PropTypes.func,
     navItem:   React.PropTypes.bool,
     caret:     React.PropTypes.bool,
     disabled:  React.PropTypes.bool,
@@ -121,6 +122,8 @@ var DropdownButton = React.createClass({
   componentDidUpdate(prevProps, prevState) {
     if (this.state.open && !prevState.open && this.props.onOpen) {
       this.props.onOpen();
+    } else if (!this.state.open && prevState.open && this.props.onClose) {
+      this.props.onClose();
     }
   },
 
