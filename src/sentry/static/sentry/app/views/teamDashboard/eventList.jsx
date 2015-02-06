@@ -135,11 +135,13 @@ var EventList = React.createClass({
               <LoadingIndicator />
             : (this.state.error ?
               <LoadingError onRetry={this.fetchData} />
-            :
+            : (eventNodes.length ?
               <ul className="dashboard-events">
                 {eventNodes}
               </ul>
-            )}
+            :
+              <div className="alert alert-block alert-info">No data available.</div>
+            ))}
           </div>
         </div>
       </div>
