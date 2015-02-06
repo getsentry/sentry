@@ -10,8 +10,10 @@ class EventSerializer(Serializer):
         # XXX(dcramer): These are called entries for future-proofing
         interface_list = []
         for key, interface in event.interfaces.iteritems():
-            if key == 'user':
+            # we treat user as a special contextual item
+            if key == 'sentry.interfaces.User':
                 continue
+
             entry = {
                 'data': interface.to_json(),
                 'type': interface.get_alias(),
