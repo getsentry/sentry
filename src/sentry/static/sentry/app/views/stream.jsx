@@ -7,6 +7,8 @@ var $ = require("jquery");
 var api = require("../api");
 var AggregateListActions = require("../actions/aggregateListActions");
 var AggregateListStore = require("../stores/aggregateListStore");
+var LoadingError = require("../components/loadingError");
+var LoadingIndicator = require("../components/loadingIndicator");
 var StreamAggregate = require('./stream/aggregate');
 var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
@@ -91,7 +93,9 @@ var Stream = React.createClass({
       statsPeriod: '24h',
       realtimeActive: false,
       pageLinks: '',
-      query: query
+      query: query,
+      loading: true,
+      error: false
     };
   },
 
@@ -101,12 +105,33 @@ var Stream = React.createClass({
       endpoint: this.getAggregateListEndpoint()
     });
 
+    this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.fetchData();
+  },
+
+  fetchData() {
+    this.setState({
+      loading: true,
+      error: false
+    });
+
     api.request(this.getAggregateListEndpoint(), {
       success: (data, _, jqXHR) => {
         AggregateListStore.loadInitialData(data);
 
         this.setState({
+          error: false,
+          loading: false,
           pageLinks: jqXHR.getResponseHeader('Link')
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
         });
       },
       complete: () => {
@@ -189,9 +214,15 @@ var Stream = React.createClass({
             </div>
           </div>
         </div>
-        <ul className="group-list">
-          {aggNodes}
-        </ul>
+        {this.state.loading ?
+          <LoadingIndicator />
+        : (this.state.error ?
+          <LoadingError onRetry={this.fetchData} />
+        :
+          <ul className="group-list">
+            {aggNodes}
+          </ul>
+        )}
         <StreamPagination
           aggList={this.state.aggList}
           pageLinks={this.state.pageLinks} />
