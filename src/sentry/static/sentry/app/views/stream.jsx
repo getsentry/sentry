@@ -80,9 +80,6 @@ var Stream = React.createClass({
   },
 
   getInitialState() {
-    var queryParams = utils.getQueryParams();
-    var query = queryParams.query === undefined ? 'is:unresolved' : queryParams.query;
-
     return {
       aggList: new utils.Collection([], {
         limit: 50
@@ -93,7 +90,6 @@ var Stream = React.createClass({
       statsPeriod: '24h',
       realtimeActive: false,
       pageLinks: '',
-      query: query,
       loading: true,
       error: false
     };
@@ -110,6 +106,20 @@ var Stream = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     this.fetchData();
+  },
+
+  componentWillUnmount() {
+    this._poller.disable();
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.realtimeActive !== this.state.realtimeActive) {
+      if (this.state.realtimeActive) {
+        this._poller.enable();
+      } else {
+        this._poller.disable();
+      }
+    }
   },
 
   fetchData() {
@@ -142,27 +152,10 @@ var Stream = React.createClass({
     });
   },
 
-  componentWillUnmount() {
-    this._poller.disable();
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.realtimeActive !== this.state.realtimeActive) {
-      if (this.state.realtimeActive) {
-        this._poller.enable();
-      } else {
-        this._poller.disable();
-      }
-    }
-  },
-
   getAggregateListEndpoint() {
-    var queryParams = utils.getQueryParams();
-    if (typeof queryParams.query === 'undefined') {
-      queryParams.query = this.state.query;
-    }
-    var querystring = $.param(queryParams);
     var params = this.getParams();
+    var queryParams = this.getQuery();
+    var querystring = $.param(queryParams);
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
   },
@@ -174,11 +167,6 @@ var Stream = React.createClass({
   handleSelectStatsPeriod(period) {
     this.setState({
       statsPeriod: period
-    });
-  },
-  handleQueryChange(value, event) {
-    this.setState({
-      query: value
     });
   },
   handleRealtimePoll(data) {
@@ -199,7 +187,7 @@ var Stream = React.createClass({
 
     return (
       <div>
-        <StreamFilters query={this.state.query} onQueryChange={this.handleQueryChange} />
+        <StreamFilters />
         <div className="group-header-container" data-spy="affix" data-offset-top="134">
           <div className="container">
             <div className="group-header">
