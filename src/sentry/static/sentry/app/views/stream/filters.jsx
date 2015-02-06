@@ -1,5 +1,6 @@
 /*** @jsx React.DOM */
 var React = require("react");
+var Router = require("react-router");
 var $ = require("jquery");
 
 var utils = require("../../utils");
@@ -66,6 +67,8 @@ var SearchBar = React.createClass({
 });
 
 var FilterSelectLink = React.createClass({
+  mixins: [Router.State],
+
   render: function() {
     var className = this.props.extraClass;
     className += ' btn btn-default';
@@ -77,8 +80,14 @@ var FilterSelectLink = React.createClass({
     var queryString = '?' + this.props.query;
 
     return (
-      <a href={queryString}
-          className={className}>{this.props.label}</a>
+      <Router.Link
+          to="stream"
+          activeClassName=""
+          params={this.getParams()}
+          query={this.props.query}
+          className={className}>
+        {this.props.label}
+      </Router.Link>
     );
   }
 });
@@ -105,15 +114,15 @@ var StreamFilters = React.createClass({
           <div className="col-sm-4 primary-filters">
             <div className="btn-group btn-group-justified">
               <FilterSelectLink label="All Events"
-                                query=""
+                                query={{}}
                                 isActive={activeButton === 'all'}
                                 extraClass="btn-all-events" />
               <FilterSelectLink label="Bookmarks"
-                                query="bookmarks=1"
+                                query={{bookmarks: '1'}}
                                 isActive={activeButton === 'bookmarks'}
                                 extraClass="btn-middle btn-bookmarks" />
               <FilterSelectLink label="Assigned"
-                                query="assigned=1"
+                                query={{assigned: '1'}}
                                 isActive={activeButton === 'assigned'}
                                 extraClass="btn-assigned" />
             </div>
