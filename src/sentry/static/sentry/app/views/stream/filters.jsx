@@ -1,22 +1,28 @@
 /*** @jsx React.DOM */
+
 var React = require("react");
 var Router = require("react-router");
-var $ = require("jquery");
 
 var utils = require("../../utils");
 
 var SearchDropdown = React.createClass({
-  componentDidMount: function(){
-    $('.filter-nav .search-input').focus(function(){
-      $('.search-dropdown').show();
-    }).blur(function(){
-      $('.search-dropdown').hide();
-    });
+  propTypes: {
+    dropdownVisible: React.PropTypes.bool
   },
 
-  render: function() {
+  getDefaultProps() {
+    return {
+      dropdownVisible: false
+    };
+  },
+
+  render() {
+    var style = {
+      display: this.props.dropdownVisible ? 'block' : 'none'
+    };
+
     return (
-      <div className="search-dropdown" style={{display:"none"}}>
+      <div className="search-dropdown" style={style}>
         <ul className="search-helper search-autocomplete-list">
           <li className="search-autocomplete-item">
             <span className="icon icon-tag"></span>
@@ -40,26 +46,50 @@ var SearchDropdown = React.createClass({
 });
 
 var SearchBar = React.createClass({
+  mixins: [Router.State],
+
   propTypes: {
     query: React.PropTypes.string.isRequired,
     onQueryChange: React.PropTypes.func.isRequired
   },
-  onQueryChange: function(event){
+
+  getInitialState() {
+    return {
+      dropdownVisible: false
+    };
+  },
+
+  onQueryChange(event) {
     return this.props.onQueryChange(event.target.value, event);
   },
-  render: function() {
+
+  onQueryFocus() {
+    this.setState({
+      dropdownVisible: true
+    });
+  },
+
+  onQueryBlur() {
+    this.setState({
+      dropdownVisible: false
+    });
+  },
+
+  render() {
     return (
       <div className="search">
-        <form className="form-horizontal" action="." method="GET">
+        <form className="form-horizontal">
           <div>
             <input type="text" className="search-input form-control"
                    placeholder="Search for events, users, tags, and everything else."
                    name="query"
                    value={this.props.query}
+                   onFocus={this.onQueryFocus}
+                   onBlur={this.onQueryBlur}
                    onChange={this.onQueryChange} />
             <span className="icon-search"></span>
           </div>
-          <SearchDropdown />
+          <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
         </form>
       </div>
     );
@@ -69,7 +99,7 @@ var SearchBar = React.createClass({
 var FilterSelectLink = React.createClass({
   mixins: [Router.State],
 
-  render: function() {
+  render() {
     var className = this.props.extraClass;
     className += ' btn btn-default';
 
@@ -97,7 +127,8 @@ var StreamFilters = React.createClass({
     query: React.PropTypes.string.isRequired,
     onQueryChange: React.PropTypes.func.isRequired
   },
-  render: function() {
+
+  render() {
     var params = utils.getQueryParams();
     var activeButton;
     if (params.bookmarks) {
