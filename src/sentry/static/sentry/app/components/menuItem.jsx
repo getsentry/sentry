@@ -1,36 +1,64 @@
 /*** @jsx React.DOM */
-var React = require('react');
-var joinClasses = require('react-bootstrap/utils/joinClasses');
-var classSet = require('react-bootstrap/utils/classSet');
+
+var React = require("react");
+var Router = require("react-router");
+var joinClasses = require("react-bootstrap/utils/joinClasses");
+var classSet = require("react-bootstrap/utils/classSet");
+
+var DropdownContext = {
+  contextTypes: {
+    setDropdownState: React.PropTypes.func.isRequired
+  },
+
+  setDropdownState() {
+    this.context.setDropdownState.apply(arguments);
+  }
+};
+
 
 var MenuItem = React.createClass({
+  mixins: [DropdownContext],
+
   propTypes: {
     header:    React.PropTypes.bool,
     divider:   React.PropTypes.bool,
-    href:      React.PropTypes.string,
     title:     React.PropTypes.string,
     onSelect:  React.PropTypes.func,
     eventKey:  React.PropTypes.any,
     isActive:  React.PropTypes.bool,
-    noAnchor:  React.PropTypes.bool
+    noAnchor:  React.PropTypes.bool,
+    // basic link
+    href:      React.PropTypes.string,
+    // router link
+    to:        React.PropTypes.string,
+    params:    React.PropTypes.object,
+    query:     React.PropTypes.object,
   },
 
-  getDefaultProps: function () {
-    return {
-      href: '#'
-    };
-  },
-
-  handleClick: function (e) {
+  handleClick(e) {
     if (this.props.onSelect) {
       e.preventDefault();
       this.props.onSelect(this.props.eventKey);
     }
+    this.setDropdownState(false);
   },
 
-  renderAnchor: function () {
+  renderAnchor() {
+    if (this.props.to) {
+      return (
+        <Router.Link
+            to={this.props.to}
+            params={this.props.params}
+            query={this.props.query}
+            title={this.props.title}
+            onClick={this.handleClick}
+            tabIndex="-1">
+          {this.props.children}
+        </Router.Link>
+      );
+    }
     return (
-      <a onClick={this.handleClick} href={this.props.href} title={this.props.title} tabIndex="-1">
+      <a title={this.props.title} onClick={this.handleClick} href={this.props.href} tabIndex="-1">
         {this.props.children}
       </a>
     );
@@ -38,9 +66,9 @@ var MenuItem = React.createClass({
 
   render: function () {
     var classes = {
-      'dropdown-header': this.props.header,
-      'divider': this.props.divider,
-      'active': this.props.isActive
+      "dropdown-header": this.props.header,
+      "divider": this.props.divider,
+      "active": this.props.isActive
     };
 
     var children = null;
