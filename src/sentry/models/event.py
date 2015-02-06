@@ -153,10 +153,10 @@ class Event(Model):
 
     def get_tags(self, with_internal=True):
         try:
-            return [
+            return sorted(
                 (t, v) for t, v in self.data.get('tags') or ()
                 if with_internal or not t.startswith('sentry:')
-            ]
+            )
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
             # vs ((tag, foo), (tag, bar))
