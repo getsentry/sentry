@@ -134,18 +134,20 @@ var AggregateOverview = React.createClass({
           </div>
         </div>
 
+        <MutedBox status={agg.status} />
+        {evt &&
+          <AggregateEventToolbar
+              aggregate={agg}
+              event={evt}
+              orgId={params.orgId}
+              projectId={params.projectId} />
+        }
         {this.state.loading ?
           <LoadingIndicator />
         : (this.state.error ?
           <LoadingError onRetry={this.fetchData} />
         :
           <div>
-            <MutedBox status={agg.status} />
-            <AggregateEventToolbar
-                aggregate={agg}
-                event={evt}
-                orgId={params.orgId}
-                projectId={params.projectId} />
             <AggregateEvent aggregate={agg} event={evt} />
           </div>
         )}
