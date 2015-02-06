@@ -8,15 +8,13 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var MemberListStore = require("../stores/memberListStore");
 var LoadingIndicator = require("../components/loadingIndicator");
-var ProjectState = require("../mixins/projectState");
 var PropTypes = require("../proptypes");
 
 var ProjectDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
     Reflux.connect(MemberListStore, "memberList"),
-    Router.State,
-    ProjectState
+    Router.State
   ],
 
   getInitialState() {
