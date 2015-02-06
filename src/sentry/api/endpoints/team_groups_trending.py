@@ -11,7 +11,7 @@ from sentry.models import Group, GroupStatus, Project, Team
 
 
 class TeamGroupsTrendingEndpoint(Endpoint):
-    def get(self, request, team_id):
+    def get(self, request, organization_slug, team_slug):
         """
         Return a list of the trending groups for a given team.
 
@@ -19,8 +19,9 @@ class TeamGroupsTrendingEndpoint(Endpoint):
         cutoff date, and then sort those by score, returning the highest scoring
         groups first.
         """
-        team = Team.objects.get_from_cache(
-            id=team_id,
+        team = Team.objects.get(
+            organization__slug=organization_slug,
+            slug=team_slug,
         )
 
         assert_perm(team, request.user, request.auth)
