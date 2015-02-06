@@ -10,8 +10,11 @@ from sentry.models import Team, Project
 
 
 class TeamStatsEndpoint(BaseStatsEndpoint):
-    def get(self, request, team_id):
-        team = Team.objects.get(id=team_id)
+    def get(self, request, organization_slug, team_slug):
+        team = Team.objects.get(
+            organization__slug=organization_slug,
+            slug=team_slug,
+        )
 
         assert_perm(team, request.user, request.auth)
 
