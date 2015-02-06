@@ -23,6 +23,7 @@ var DropdownButton = React.createClass({
     href:      React.PropTypes.string,
     onClick:   React.PropTypes.func,
     onSelect:  React.PropTypes.func,
+    onOpen:    React.PropTypes.func,
     navItem:   React.PropTypes.bool,
     caret:     React.PropTypes.bool,
     disabled:  React.PropTypes.bool,
@@ -38,14 +39,14 @@ var DropdownButton = React.createClass({
     };
   },
 
-  getDefaultProps: function() {
+  getDefaultProps() {
     return {
       caret: true,
       disabled: false
     };
   },
 
-  render: function () {
+  render() {
     var className = 'dropdown-toggle';
     if (this.props.disabled) {
       className += ' disabled';
@@ -82,7 +83,7 @@ var DropdownButton = React.createClass({
     ]);
   },
 
-  renderButtonGroup: function (children) {
+  renderButtonGroup(children) {
     var groupClasses = {
         'open': this.state.open,
         'dropup': this.props.dropup
@@ -97,7 +98,7 @@ var DropdownButton = React.createClass({
     );
   },
 
-  renderNavItem: function (children) {
+  renderNavItem(children) {
     var classes = {
         'dropdown': true,
         'open': this.state.open,
@@ -111,13 +112,19 @@ var DropdownButton = React.createClass({
     );
   },
 
-  componentWillReceiveProps: function(nextProps) {
+  componentWillReceiveProps(nextProps) {
     if (nextProps.disabled === true && this.state.open) {
       this.state.open = false;
     }
   },
 
-  renderMenuItem: function (child, index) {
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.open && !prevState.open && this.props.onOpen) {
+      this.props.onOpen();
+    }
+  },
+
+  renderMenuItem(child, index) {
     // Only handle the option selection if an onSelect prop has been set on the
     // component or it's child, this allows a user not to pass an onSelect
     // handler and have the browser preform the default action.
@@ -137,13 +144,13 @@ var DropdownButton = React.createClass({
     );
   },
 
-  handleDropdownClick: function (e) {
+  handleDropdownClick(e) {
     e.preventDefault();
 
     this.setDropdownState(!this.state.open);
   },
 
-  handleOptionSelect: function (key) {
+  handleOptionSelect(key) {
     if (this.props.onSelect) {
       this.props.onSelect(key);
     }
