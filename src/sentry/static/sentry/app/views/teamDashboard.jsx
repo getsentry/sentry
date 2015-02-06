@@ -3,9 +3,9 @@
 var React = require("react");
 var Router = require("react-router");
 
-var TeamState = require("../mixins/teamState");
-
 var EventList = require("./teamDashboard/eventList");
+var TeamChart = require("./teamDashboard/chart");
+var TeamState = require("../mixins/teamState");
 
 var TeamDashboard = React.createClass({
   mixins: [
@@ -26,13 +26,7 @@ var TeamDashboard = React.createClass({
   render() {
     return (
       <div>
-        <div className="box">
-          <div className="box-header">
-            <h3>Last 7 days</h3>
-          </div>
-          <div className="box-content with-padding">
-          </div>
-        </div>
+        <TeamChart />
         <div className="row">
           <div className="col-md-6">
             <EventList
