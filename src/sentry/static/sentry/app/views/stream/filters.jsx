@@ -46,21 +46,29 @@ var SearchDropdown = React.createClass({
 });
 
 var SearchBar = React.createClass({
-  mixins: [Router.State],
-
-  propTypes: {
-    query: React.PropTypes.string.isRequired,
-    onQueryChange: React.PropTypes.func.isRequired
-  },
+  mixins: [Router.Navigation, Router.State],
 
   getInitialState() {
+    var queryParams = this.getQuery();
+    var query = (typeof queryParams.query === 'undefined' ?
+      'is:unresolved' :
+      queryParams.query);
+
     return {
-      dropdownVisible: false
+      dropdownVisible: false,
+      query: query
     };
   },
 
-  onQueryChange(event) {
-    return this.props.onQueryChange(event.target.value, event);
+  onSubmit(event) {
+    var queryParams = this.getQuery();
+    queryParams.query = this.state.query;
+
+    event.preventDefault();
+
+    this.refs.searchInput.getDOMNode().blur();
+
+    this.transitionTo('stream', this.getParams(), queryParams);
   },
 
   onQueryFocus() {
@@ -75,15 +83,22 @@ var SearchBar = React.createClass({
     });
   },
 
+  onQueryChange() {
+    this.setState({
+      query: event.target.value
+    });
+  },
+
   render() {
     return (
       <div className="search">
-        <form className="form-horizontal">
+        <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <input type="text" className="search-input form-control"
                    placeholder="Search for events, users, tags, and everything else."
                    name="query"
-                   value={this.props.query}
+                   ref="searchInput"
+                   value={this.state.query}
                    onFocus={this.onQueryFocus}
                    onBlur={this.onQueryBlur}
                    onChange={this.onQueryChange} />
@@ -99,6 +114,10 @@ var SearchBar = React.createClass({
 var FilterSelectLink = React.createClass({
   mixins: [Router.State],
 
+  propTypes: {
+    query: React.PropTypes.object.isRequired
+  },
+
   render() {
     var className = this.props.extraClass;
     className += ' btn btn-default';
@@ -107,14 +126,17 @@ var FilterSelectLink = React.createClass({
       className += ' active';
     }
 
-    var queryString = '?' + this.props.query;
+    var queryParams = this.getQuery();
+    for (var key in this.props.query) {
+      queryParams[key] = this.props.query[key];
+    }
 
     return (
       <Router.Link
           to="stream"
           activeClassName=""
           params={this.getParams()}
-          query={this.props.query}
+          query={queryParams}
           className={className}>
         {this.props.label}
       </Router.Link>
@@ -123,10 +145,7 @@ var FilterSelectLink = React.createClass({
 });
 
 var StreamFilters = React.createClass({
-  propTypes: {
-    query: React.PropTypes.string.isRequired,
-    onQueryChange: React.PropTypes.func.isRequired
-  },
+  mixins: [Router.State],
 
   render() {
     var params = utils.getQueryParams();
@@ -140,7 +159,7 @@ var StreamFilters = React.createClass({
     }
 
     return (
-      <div className="filter-nav" ng-controller="ProjectStreamControlsCtrl">
+      <div className="filter-nav">
         <div className="row">
           <div className="col-sm-4 primary-filters">
             <div className="btn-group btn-group-justified">
@@ -159,7 +178,7 @@ var StreamFilters = React.createClass({
             </div>
           </div>
           <div className="col-sm-8">
-            <SearchBar query={this.props.query} onQueryChange={this.props.onQueryChange} />
+            <SearchBar />
           </div>
         </div>
       </div>
