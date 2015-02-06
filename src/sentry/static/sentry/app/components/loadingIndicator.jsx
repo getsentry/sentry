@@ -7,7 +7,7 @@ var LoadingIndicator = React.createClass({
     message: React.PropTypes.string
   },
 
-  getInitialProps() {
+  getDefaultProps() {
     return {
       message: "Loading..."
     };

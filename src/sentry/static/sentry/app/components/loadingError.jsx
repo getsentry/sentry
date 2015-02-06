@@ -8,7 +8,7 @@ var LoadingError = React.createClass({
     message: React.PropTypes.string
   },
 
-  getInitialProps() {
+  getDefaultProps() {
     return {
       message: "There was an error loading data."
     };
@@ -20,7 +20,7 @@ var LoadingError = React.createClass({
         <p>
           {this.props.message}
           {this.props.onRetry &&
-            <a onClick={this.props.onRetry}>Retry</a>
+            <a onClick={this.props.onRetry} className="btn btn-sm">Retry</a>
           }
         </p>
       </div>
