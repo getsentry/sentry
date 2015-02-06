@@ -30,14 +30,14 @@ var StreamAggregate = React.createClass({
   },
 
   onSelectedAggregateChange() {
-    var id = this.getParams().aggregateId;
+    var id = this.props.data.id;
     this.setState({
       isSelected: SelectedAggregateStore.isSelected(id),
     });
   },
 
   onSelect() {
-    var id = this.getParams().aggregateId;
+    var id = this.props.data.id;
     SelectedAggregateStore.toggleSelect(id);
   },
 
