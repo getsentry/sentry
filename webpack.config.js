@@ -16,9 +16,7 @@ module.exports = {
   entry: {
     "app": file("app/main.jsx"),
     "vendor": [
-      "flot",
-      "flot/jquery.flot.resize",
-      "flot/jquery.flot.time",
+      "crypto-js/md5",
       "jquery",
       "moment",
       "raven",
