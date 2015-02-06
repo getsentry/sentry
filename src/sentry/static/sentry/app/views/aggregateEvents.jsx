@@ -4,6 +4,8 @@ var React = require("react");
 var Router = require("react-router");
 
 var api = require("../api");
+var LoadingError = require("../components/loadingError");
+var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
 var AggregateEvents = React.createClass({
@@ -16,7 +18,8 @@ var AggregateEvents = React.createClass({
   getInitialState() {
     return {
       eventList: null,
-      loading: true
+      loading: true,
+      error: false
     };
   },
 
@@ -27,23 +30,35 @@ var AggregateEvents = React.createClass({
   fetchData() {
     var params = this.getParams();
 
-    this.setState({loading: true});
+    this.setState({
+      loading: true,
+      error: false
+    });
 
     api.request('/groups/' + params.aggregateId + '/events/', {
       success: (data) => {
-        this.setState({eventList: data});
+        this.setState({
+          eventList: data,
+          error: false,
+          loading: false
+        });
       },
-      error: () => {
-        // TODO(dcramer):
-      },
-      complete: () => {
-        this.setState({loading: false});
-      }
-    });
+      error: (error) => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+      }    });
   },
 
 
   render() {
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    } else if (this.state.error) {
+      return <LoadingError onRetry={this.fetchData} />;
+    }
+
     var children = [];
 
     if (this.state.eventList) {
@@ -58,7 +73,6 @@ var AggregateEvents = React.createClass({
 
     return (
       <div>
-        Events
         <table>
           {children}
         </table>

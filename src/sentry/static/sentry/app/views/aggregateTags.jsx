@@ -5,6 +5,8 @@ var Router = require("react-router");
 
 var api = require("../api");
 var Count = require("../components/count");
+var LoadingError = require("../components/loadingError");
+var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
 var AggregateTags = React.createClass({
@@ -55,13 +57,9 @@ var AggregateTags = React.createClass({
 
   render() {
     if (this.state.loading) {
-      return <div className="loading"></div>;
+      return <LoadingIndicator />;
     } else if (this.state.error) {
-      return (
-        <div className="alert alert-error alert-block">
-          <p>There was an error loading data. <a onClick={this.fetchData}>Retry</a></p>
-        </div>
-      );
+      return <LoadingError onRetry={this.fetchData} />;
     }
 
     var children = [];
