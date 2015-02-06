@@ -4,28 +4,28 @@ var React = require("react");
 
 var PropTypes = require("../../proptypes");
 
-var AggregateEventToolbar  = React.createClass({
+var GroupEventToolbar  = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-    aggregate: PropTypes.Aggregate.isRequired,
+    group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
   },
 
   render() {
     var orgId = this.props.orgId;
     var projectId = this.props.projectId;
-    var aggId = this.props.aggregate.id;
+    var groupId = this.props.group.id;
     var evt = this.props.event;
 
     var eventNavNodes = [
       (evt.nextEventID ?
         <Router.Link
             key="next"
-            to="aggregateEventDetails"
+            to="groupEventDetails"
             params={{orgId: orgId,
                      projectId: projectId,
-                     aggregateId: aggId,
+                     groupId: groupId,
                      eventId: evt.nextEventID}}
             className="btn btn-default btn-lg">Newer</Router.Link>
       :
@@ -35,10 +35,10 @@ var AggregateEventToolbar  = React.createClass({
       (evt.previousEventID ?
         <Router.Link
             key="prev"
-            to="aggregateEventDetails"
+            to="groupEventDetails"
             params={{orgId: orgId,
                      projectId: projectId,
-                     aggregateId: aggId,
+                     groupId: groupId,
                      eventId: evt.previousEventID}}
             className="btn btn-default btn-lg">Older</Router.Link>
       :
@@ -65,4 +65,4 @@ var AggregateEventToolbar  = React.createClass({
   }
 });
 
-module.exports = AggregateEventToolbar ;
+module.exports = GroupEventToolbar ;

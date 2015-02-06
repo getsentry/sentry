@@ -1,20 +1,16 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var Router = require("react-router");
 
 var api = require("../api");
 var Count = require("../components/count");
+var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
-var AggregateTags = React.createClass({
-  mixins: [Router.State],
-
-  propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired
-  },
+var GroupTags = React.createClass({
+  mixins: [GroupState],
 
   getInitialState() {
     return {
@@ -29,8 +25,6 @@ var AggregateTags = React.createClass({
   },
 
   fetchData() {
-    var params = this.getParams();
-
     this.setState({loading: true});
 
     this.setState({
@@ -38,7 +32,7 @@ var AggregateTags = React.createClass({
       error: false
     });
 
-    api.request('/groups/' + params.aggregateId + '/tags/', {
+    api.request('/groups/' + this.getGroup().id + '/tags/', {
       success: (data) => {
         this.setState({
           tagList: data,
@@ -107,4 +101,4 @@ var AggregateTags = React.createClass({
   }
 });
 
-module.exports = AggregateTags;
+module.exports = GroupTags;

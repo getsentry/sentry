@@ -5,9 +5,9 @@ var moment = require("moment");
 var FileSize = require("../../components/fileSize");
 var PropTypes = require("../../proptypes");
 
-var AggregateEventHeader = React.createClass({
+var GroupEventHeader = React.createClass({
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired,
+    group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
   },
 
@@ -40,4 +40,4 @@ var AggregateEventHeader = React.createClass({
   }
 });
 
-module.exports = AggregateEventHeader;
+module.exports = GroupEventHeader;

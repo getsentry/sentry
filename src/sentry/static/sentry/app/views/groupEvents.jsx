@@ -1,19 +1,15 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var Router = require("react-router");
 
 var api = require("../api");
+var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
-var AggregateEvents = React.createClass({
-  mixins: [Router.State],
-
-  propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired
-  },
+var GroupEvents = React.createClass({
+  mixins: [GroupState,],
 
   getInitialState() {
     return {
@@ -28,14 +24,12 @@ var AggregateEvents = React.createClass({
   },
 
   fetchData() {
-    var params = this.getParams();
-
     this.setState({
       loading: true,
       error: false
     });
 
-    api.request('/groups/' + params.aggregateId + '/events/', {
+    api.request('/groups/' + this.getGroup().id + '/events/', {
       success: (data) => {
         this.setState({
           eventList: data,
@@ -48,9 +42,9 @@ var AggregateEvents = React.createClass({
           error: true,
           loading: false
         });
-      }    });
+      }
+    });
   },
-
 
   render() {
     if (this.state.loading) {
@@ -81,4 +75,4 @@ var AggregateEvents = React.createClass({
   }
 });
 
-module.exports = AggregateEvents;
+module.exports = GroupEvents;

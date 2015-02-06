@@ -3,9 +3,9 @@ var React = require("react");
 
 var PropTypes = require("../../proptypes");
 
-var AggregateEventDataSection = React.createClass({
+var GroupEventDataSection = React.createClass({
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired,
+    group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     title: React.PropTypes.string.isRequired
   },
@@ -24,4 +24,4 @@ var AggregateEventDataSection = React.createClass({
   }
 });
 
-module.exports = AggregateEventDataSection;
+module.exports = GroupEventDataSection;

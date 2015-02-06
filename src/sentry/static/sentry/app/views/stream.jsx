@@ -5,18 +5,18 @@ var Router = require("react-router");
 var $ = require("jquery");
 
 var api = require("../api");
-var AggregateListActions = require("../actions/aggregateListActions");
-var AggregateListStore = require("../stores/aggregateListStore");
+var GroupActions = require("../actions/groupActions");
+var GroupListStore = require("../stores/groupStore");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
-var StreamAggregate = require('./stream/aggregate');
+var StreamGroup = require('./stream/group');
 var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
 var StreamPagination = require('./stream/pagination');
 var utils = require("../utils");
 
 // TODO(dcramer): the poller/collection needs to actually unshift/pop
-// items from the AggregateListStore to ensure it doesnt grow in memory
+// items from the GroupListStore to ensure it doesnt grow in memory
 var StreamPoller = function(options){
   this.options = options;
   this._timeoutId = null;
@@ -65,7 +65,7 @@ StreamPoller.prototype.poll = function() {
 
 var Stream = React.createClass({
   mixins: [
-    Reflux.listenTo(AggregateListStore, "onAggListChange"),
+    Reflux.listenTo(GroupListStore, "onAggListChange"),
     Router.State
   ],
 
@@ -75,13 +75,13 @@ var Stream = React.createClass({
 
   onAggListChange() {
     this.setState({
-      aggList: AggregateListStore.getAllItems()
+      groupList: GroupListStore.getAllItems()
     });
   },
 
   getInitialState() {
     return {
-      aggList: new utils.Collection([], {
+      groupList: new utils.Collection([], {
         limit: 50
       }),
       selectAllActive: false,
@@ -98,7 +98,7 @@ var Stream = React.createClass({
   componentWillMount() {
     this._poller = new StreamPoller({
       success: this.handleRealtimePoll,
-      endpoint: this.getAggregateListEndpoint()
+      endpoint: this.getGroupListEndpoint()
     });
 
     this.fetchData();
@@ -128,9 +128,9 @@ var Stream = React.createClass({
       error: false
     });
 
-    api.request(this.getAggregateListEndpoint(), {
+    api.request(this.getGroupListEndpoint(), {
       success: (data, _, jqXHR) => {
-        AggregateListStore.loadInitialData(data);
+        GroupListStore.loadInitialData(data);
 
         this.setState({
           error: false,
@@ -152,7 +152,7 @@ var Stream = React.createClass({
     });
   },
 
-  getAggregateListEndpoint() {
+  getGroupListEndpoint() {
     var params = this.getParams();
     var queryParams = this.getQuery();
     var querystring = $.param(queryParams);
@@ -171,12 +171,12 @@ var Stream = React.createClass({
   },
   handleRealtimePoll(data) {
     this.setState({
-      aggList: this.state.aggList.unshift(data)
+      groupList: this.state.groupList.unshift(data)
     });
   },
   render() {
-    var aggNodes = this.state.aggList.map((node) => {
-      return <StreamAggregate
+    var groupNodes = this.state.groupList.map((node) => {
+      return <StreamGroup
           key={node.id}
           data={node}
           memberList={this.props.memberList}
@@ -198,7 +198,7 @@ var Stream = React.createClass({
                 onRealtimeChange={this.handleRealtimeChange}
                 realtimeActive={this.state.realtimeActive}
                 statsPeriod={this.state.statsPeriod}
-                aggList={this.state.aggList} />
+                groupList={this.state.groupList} />
             </div>
           </div>
         </div>
@@ -208,11 +208,11 @@ var Stream = React.createClass({
           <LoadingError onRetry={this.fetchData} />
         :
           <ul className="group-list">
-            {aggNodes}
+            {groupNodes}
           </ul>
         )}
         <StreamPagination
-          aggList={this.state.aggList}
+          groupList={this.state.groupList}
           pageLinks={this.state.pageLinks} />
       </div>
     );

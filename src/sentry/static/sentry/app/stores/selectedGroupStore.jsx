@@ -2,11 +2,11 @@
 
 var Reflux = require("reflux");
 
-var AggregateListStore = require("./aggregateListStore");
+var GroupListStore = require("./groupStore");
 
-var SelectedAggregateStore = Reflux.createStore({
+var SelectedGroupStore = Reflux.createStore({
   init() {
-    this.listenTo(AggregateListStore, this.onAggListChange);
+    this.listenTo(GroupListStore, this.onAggListChange);
 
     this.allSelected = false;
     this.anySelected = false;
@@ -16,7 +16,7 @@ var SelectedAggregateStore = Reflux.createStore({
   },
 
   onAggListChange() {
-    var existingIds = new Set(AggregateListStore.getAllItemIds());
+    var existingIds = new Set(GroupListStore.getAllItemIds());
     // prune ids that no longer exist
     this.selected.forEach((itemId) => {
       if (!existingIds.has(itemId)) {
@@ -35,7 +35,7 @@ var SelectedAggregateStore = Reflux.createStore({
 
   getSelectedIds() {
     if (this.allSelected) {
-      return new Set(AggregateListStore.getAllItemIds());
+      return new Set(GroupListStore.getAllItemIds());
     }
     return this.selected;
   },
@@ -72,4 +72,4 @@ var SelectedAggregateStore = Reflux.createStore({
 
 });
 
-module.exports = SelectedAggregateStore;
+module.exports = SelectedGroupStore;

@@ -3,9 +3,9 @@ var React = require("react");
 
 var PropTypes = require("../../proptypes");
 
-var AggregateEventTags = React.createClass({
+var GroupEventTags = React.createClass({
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired,
+    group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
   },
 
@@ -35,5 +35,5 @@ var AggregateEventTags = React.createClass({
   }
 });
 
-module.exports = AggregateEventTags;
+module.exports = GroupEventTags;
 

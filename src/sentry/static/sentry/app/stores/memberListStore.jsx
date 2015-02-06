@@ -2,10 +2,10 @@
 
 var Reflux = require("reflux");
 
-// var MemberListActions = require('../actions/aggregateListActions');
+// var MemberActions = require('../actions/groupActions');
 
 var MemberListStore = Reflux.createStore({
-  // listenables: MemberListActions,
+  // listenables: MemberActions,
 
   init: function() {
     this.items = [];

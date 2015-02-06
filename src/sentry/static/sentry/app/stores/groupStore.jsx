@@ -3,7 +3,7 @@
 var Reflux = require("reflux");
 
 var AlertActions = require("../actions/alertActions");
-var AggregateListActions = require('../actions/aggregateListActions');
+var GroupActions = require('../actions/groupActions');
 var MemberListStore = require("../stores/memberListStore");
 var utils = require("../utils");
 
@@ -14,22 +14,22 @@ var ERR_UPDATE = 'Unable to update events. Please try again.';
 var OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.';
 var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
-var AggregateListStore = Reflux.createStore({
+var GroupListStore = Reflux.createStore({
   init() {
     this.items = [];
     this.statuses = {};
     this.pendingChanges = new utils.PendingChangeQueue();
 
-    this.listenTo(AggregateListActions.assignTo, this.onAssignTo);
-    this.listenTo(AggregateListActions.assignToError, this.onAssignToError);
-    this.listenTo(AggregateListActions.assignToSuccess, this.onAssignToSuccess);
-    this.listenTo(AggregateListActions.delete, this.onDelete);
-    this.listenTo(AggregateListActions.deleteError, this.onDeleteError);
-    this.listenTo(AggregateListActions.merge, this.onMerge);
-    this.listenTo(AggregateListActions.mergeError, this.onMergeError);
-    this.listenTo(AggregateListActions.update, this.onUpdate);
-    this.listenTo(AggregateListActions.updateError, this.onUpdateError);
-    this.listenTo(AggregateListActions.updateSuccess, this.onUpdateSuccess);
+    this.listenTo(GroupActions.assignTo, this.onAssignTo);
+    this.listenTo(GroupActions.assignToError, this.onAssignToError);
+    this.listenTo(GroupActions.assignToSuccess, this.onAssignToSuccess);
+    this.listenTo(GroupActions.delete, this.onDelete);
+    this.listenTo(GroupActions.deleteError, this.onDeleteError);
+    this.listenTo(GroupActions.merge, this.onMerge);
+    this.listenTo(GroupActions.mergeError, this.onMergeError);
+    this.listenTo(GroupActions.update, this.onUpdate);
+    this.listenTo(GroupActions.updateError, this.onUpdateError);
+    this.listenTo(GroupActions.updateSuccess, this.onUpdateSuccess);
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
@@ -217,4 +217,4 @@ var AggregateListStore = Reflux.createStore({
   }
 });
 
-module.exports = AggregateListStore;
+module.exports = GroupListStore;

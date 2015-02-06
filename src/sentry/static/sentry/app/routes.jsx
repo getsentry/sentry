@@ -5,10 +5,10 @@ var Router = require("react-router");
 var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
-var AggregateDetails = require("./views/aggregateDetails");
-var AggregateEvents = require("./views/aggregateEvents");
-var AggregateTags = require("./views/aggregateTags");
-var AggregateOverview = require("./views/aggregateOverview");
+var GroupDetails = require("./views/groupDetails");
+var GroupEvents = require("./views/groupEvents");
+var GroupTags = require("./views/groupTags");
+var GroupOverview = require("./views/groupOverview");
 var ProjectDetails = require("./views/projectDetails");
 var PropTypes = require("./proptypes");
 var Stream = require("./views/stream");
@@ -35,12 +35,12 @@ var routes = (
     </Route>
     <Route name="projectDetails" path="/:orgId/:projectId/" handler={ProjectDetails}>
       <DefaultRoute name="stream" handler={Stream} />
-      <Route name="aggregateDetails" path="group/:aggregateId/" handler={AggregateDetails}
+      <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
              ignoreScrollBehavior>
-        <DefaultRoute name="aggregateOverview" handler={AggregateOverview} />
-        <Route name="aggregateEventDetails" path="events/:eventId/" handler={AggregateOverview} />
-        <Route name="aggregateTags" path="tags/" handler={AggregateTags} />
-        <Route name="aggregateEvents" path="events/" handler={AggregateEvents} />
+        <DefaultRoute name="groupOverview" handler={GroupOverview} />
+        <Route name="groupEventDetails" path="events/:eventId/" handler={GroupOverview} />
+        <Route name="groupTags" path="tags/" handler={GroupTags} />
+        <Route name="groupEvents" path="events/" handler={GroupEvents} />
       </Route>
     </Route>
   </Route>

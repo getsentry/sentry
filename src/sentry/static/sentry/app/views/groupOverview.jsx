@@ -4,10 +4,11 @@ var React = require("react");
 var Router = require("react-router");
 
 var api = require("../api");
-var AggregateActivity = require("./aggregate/activity");
-var AggregateChart = require("./aggregate/chart");
-var AggregateEvent = require("./aggregate/event");
-var AggregateEventToolbar = require("./aggregate/eventToolbar");
+var GroupActivity = require("./groupDetails/activity");
+var GroupChart = require("./groupDetails/chart");
+var GroupEvent = require("./groupDetails/event");
+var GroupEventToolbar = require("./groupDetails/eventToolbar");
+var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
@@ -27,11 +28,13 @@ var MutedBox = React.createClass({
   }
 });
 
-var AggregateOverview = React.createClass({
-  mixins: [Router.State],
+var GroupOverview = React.createClass({
+  mixins: [
+    GroupState,
+    Router.State
+  ],
 
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
 
@@ -56,7 +59,7 @@ var AggregateOverview = React.createClass({
     var eventId = this.getParams().eventId || 'latest';
 
     var url = (eventId === 'latest' ?
-      '/groups/' + this.props.aggregate.id + '/events/' + eventId + '/' :
+      '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
       '/events/' + eventId + '/');
 
     this.setState({
@@ -82,25 +85,25 @@ var AggregateOverview = React.createClass({
   },
 
   render() {
-    var agg = this.props.aggregate;
+    var group = this.getGroup();
     var evt = this.state.event;
     var params = this.getParams();
 
     if (evt) {
       var eventNavNodes = [
         (evt.nextEventID ?
-          <Router.Link to="aggregateEventDetails"
+          <Router.Link to="groupEventDetails"
             params={{orgId: params.orgId,
                      projectId: params.projectId,
-                     aggId: params.aggId,
+                     groupId: params.groupId,
                      eventId: evt.nextEventID}}
             className="btn btn-default btn-lg">Newer</Router.Link>
         : <a class="btn btn-default btn-lg disabled">Newer</a>),
         (evt.previousEventID ?
-          <Router.Link to="aggregateEventDetails"
+          <Router.Link to="groupEventDetails"
             params={{orgId: params.orgId,
                      projectId: params.projectId,
-                     aggId: params.aggId,
+                     groupId: params.groupId,
                      eventId: evt.previousEventID}}
             className="btn btn-default btn-lg">Older</Router.Link>
         : <a class="btn btn-default btn-lg disabled">Older</a>),
@@ -111,33 +114,31 @@ var AggregateOverview = React.createClass({
       <div>
         <div className="row">
           <div className="col-md-6">
-            <AggregateActivity aggregate={agg} />
+            <GroupActivity />
           </div>
           <div className="col-md-6">
-            <AggregateChart
-                aggregate={agg}
-                statsPeriod={this.props.statsPeriod} />
+            <GroupChart statsPeriod={this.props.statsPeriod} />
             <div className="row group-stats">
               <div className="col-md-6">
                 <h6>First seen</h6>
-                <h3><TimeSince date={agg.firstSeen} /></h3>
+                <h3><TimeSince date={group.firstSeen} /></h3>
                 <h6>Last seen</h6>
-                <h3><TimeSince date={agg.lastSeen} /></h3>
+                <h3><TimeSince date={group.lastSeen} /></h3>
               </div>
               <div className="col-md-6">
                 <h6>In release</h6>
                 <h3>cd5b4c4d93ad</h3>
                 <h6>Status</h6>
-                <h3>{agg.status}</h3>
+                <h3>{group.status}</h3>
               </div>
             </div>
           </div>
         </div>
 
-        <MutedBox status={agg.status} />
+        <MutedBox status={group.status} />
         {evt &&
-          <AggregateEventToolbar
-              aggregate={agg}
+          <GroupEventToolbar
+              group={group}
               event={evt}
               orgId={params.orgId}
               projectId={params.projectId} />
@@ -148,7 +149,7 @@ var AggregateOverview = React.createClass({
           <LoadingError onRetry={this.fetchData} />
         :
           <div>
-            <AggregateEvent aggregate={agg} event={evt} />
+            <GroupEvent group={group} event={evt} />
           </div>
         )}
       </div>
@@ -156,4 +157,4 @@ var AggregateOverview = React.createClass({
   }
 });
 
-module.exports = AggregateOverview;
+module.exports = GroupOverview;

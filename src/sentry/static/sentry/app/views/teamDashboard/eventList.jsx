@@ -10,20 +10,20 @@ var PropTypes = require("../../proptypes");
 
 var EventNode = React.createClass({
   propTypes: {
-    aggregate: PropTypes.Aggregate.isRequired
+    group: PropTypes.Group.isRequired
   },
 
   render() {
-    var agg = this.props.aggregate;
+    var group = this.props.group;
 
     return (
       <li>
         <div className="dashboard-count">
-          <Count value={agg.count} />
+          <Count value={group.count} />
         </div>
         <div className="dashboard-details">
-          <h3><a>{agg.title}</a></h3>
-          <p className="message">{agg.culprit}</p>
+          <h3><a>{group.title}</a></h3>
+          <p className="message">{group.culprit}</p>
           <p className="time"><span>First:</span> <time time-since="group.firstSeen"></time>. <span>Last:</span> <time time-since="group.lastSeen"></time>.</p>
         </div>
       </li>
@@ -39,7 +39,7 @@ var EventList = React.createClass({
 
   getInitialState() {
     return {
-      aggList: [],
+      groupList: [],
       loading: true,
       error: false,
       statsPeriod: "24h"
@@ -82,7 +82,7 @@ var EventList = React.createClass({
       },
       success: (data) => {
         this.setState({
-          aggList: data,
+          groupList: data,
           loading: false,
           error: false
         });
@@ -103,8 +103,8 @@ var EventList = React.createClass({
   },
 
   render() {
-    var eventNodes = this.state.aggList.map((item) => {
-      return <EventNode aggregate={item} key={item.id} />;
+    var eventNodes = this.state.groupList.map((item) => {
+      return <EventNode group={item} key={item.id} />;
     });
 
     return (

@@ -4,8 +4,8 @@ var Reflux = require("reflux");
 
 
 // TODO(dcramer): we should probably just make every parameter update
-// work on bulk aggregates
-var AggregateListActions = Reflux.createActions([
+// work on bulk groups
+var GroupActions = Reflux.createActions([
   "assignTo",
   "assignToError",
   "assignToSuccess",
@@ -21,4 +21,4 @@ var AggregateListActions = Reflux.createActions([
 ]);
 
 
-module.exports = AggregateListActions;
+module.exports = GroupActions;
