@@ -29,6 +29,7 @@ var RequestInterface = React.createClass({
       <GroupEventDataSection
           group={group}
           event={evt}
+          type="request"
           title="Request">
         <table className="table table-striped vars">
           <colgroup>
