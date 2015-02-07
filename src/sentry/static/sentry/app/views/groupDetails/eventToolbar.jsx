@@ -3,6 +3,7 @@
 var React = require("react");
 
 var PropTypes = require("../../proptypes");
+var utils = require("../../utils");
 
 var GroupEventToolbar  = React.createClass({
   propTypes: {
@@ -47,6 +48,14 @@ var GroupEventToolbar  = React.createClass({
       ),
     ];
 
+    var entryLinks = evt.entries.map(function(entry){
+      return (
+        <li>
+          <a href={"#" + entry.type}>{utils.toTitleCase(entry.type)}</a>
+        </li>
+      );
+    });
+
     return (
       <div className="event-toolbar">
         <div className="pull-right">
@@ -55,10 +64,8 @@ var GroupEventToolbar  = React.createClass({
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <li className="active"><a href="#">Tags</a></li>
-          <li><a href="#">Exception</a></li>
-          <li><a href="#">Request</a></li>
-          <li><a href="#">Additional Data</a></li>
+          <li className="active"><a href="#tags">Tags</a></li>
+          {entryLinks}
         </ul>
       </div>
     );

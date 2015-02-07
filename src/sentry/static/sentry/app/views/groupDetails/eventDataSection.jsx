@@ -7,12 +7,14 @@ var GroupEventDataSection = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
-    title: React.PropTypes.string.isRequired
+    title: React.PropTypes.string.isRequired,
+    type: React.PropTypes.string.isRequired
   },
 
   render: function() {
     return (
       <div className="box">
+        <a name={this.props.type} />
         <div className="box-header">
             <h3>{this.props.title}</h3>
         </div>

@@ -42,6 +42,7 @@ var ExceptionInterface = React.createClass({
       <GroupEventDataSection
           group={group}
           event={evt}
+          type="exception"
           title="Exception">
         {children}
       </GroupEventDataSection>
