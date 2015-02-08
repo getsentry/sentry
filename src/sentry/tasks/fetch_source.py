@@ -36,7 +36,7 @@ UNKNOWN_MODULE = '<unknown module>'
 CLEAN_MODULE_RE = re.compile(r"""^
 (?:/|  # Leading slashes
 (?:
-    (?:java)?scripts?|js|build|static|[_\.].*?|  # common folder prefixes
+    (?:java)?scripts?|js|build|static|node_modules|bower_components|[_\.].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
