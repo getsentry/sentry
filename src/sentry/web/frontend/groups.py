@@ -48,14 +48,22 @@ def render_with_group_context(group, template, context, request=None,
 
     if event:
         if event.id:
+            # TODO(dcramer): we dont want to actually use gt/lt here as it should
+            # be inclusive. However, that would need to ensure we have some kind
+            # of way to know which event was the previous (an offset), or to add
+            # a third sort key (which is not yet indexed)
             base_qs = group.event_set.exclude(id=event.id)
             try:
-                next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
+                next_event = base_qs.filter(
+                    datetime__gt=event.datetime,
+                ).order_by('datetime')[0:1].get()
             except Event.DoesNotExist:
                 next_event = None
 
             try:
-                prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
+                prev_event = base_qs.filter(
+                    datetime__lt=event.datetime,
+                ).order_by('-datetime')[0:1].get()
             except Event.DoesNotExist:
                 prev_event = None
         else:

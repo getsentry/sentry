@@ -71,7 +71,7 @@ class GroupSerializer(Serializer):
 
             tags = {}
             for key in tag_counts.iterkeys():
-                label = TAG_LABELS.get(key, key.replace('_', ' ')).lower() + 's'
+                label = TAG_LABELS.get(key, key.replace('_', ' ')).lower()
                 try:
                     value = tag_counts[key].get(item.id, 0)
                 except KeyError:

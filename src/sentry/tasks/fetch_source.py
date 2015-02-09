@@ -23,6 +23,7 @@ from urllib2 import HTTPError
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils.cache import cache
+from sentry.utils.http import is_valid_origin
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 from sentry.utils.strings import truncatechars
 
@@ -36,7 +37,7 @@ UNKNOWN_MODULE = '<unknown module>'
 CLEAN_MODULE_RE = re.compile(r"""^
 (?:/|  # Leading slashes
 (?:
-    (?:java)?scripts?|js|build|static|[_\.].*?|  # common folder prefixes
+    (?:java)?scripts?|js|build|static|node_modules|bower_components|[_\.].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
@@ -147,7 +148,7 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_url(url):
+def fetch_url(url, project=None):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -165,9 +166,19 @@ def fetch_url(url):
         if domain_result:
             return BAD_SOURCE
 
+        headers = []
+        if project and is_valid_origin(url, project=project):
+            token = project.get_option('sentry:token')
+            if token:
+                headers.append(('X-Sentry-Token', token))
+
         try:
-            request = safe_urlopen(url, allow_redirects=True,
-                                   timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT)
+            request = safe_urlopen(
+                url,
+                allow_redirects=True,
+                headers=headers,
+                timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+            )
         except HTTPError:
             result = BAD_SOURCE
         except Exception:
@@ -193,11 +204,11 @@ def fetch_url(url):
     return UrlResult(url, *result)
 
 
-def fetch_sourcemap(url):
+def fetch_sourcemap(url, project=None):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
-        result = fetch_url(url)
+        result = fetch_url(url, project=project)
         if result == BAD_SOURCE:
             return
 
@@ -234,6 +245,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     Mutates the input ``data`` with expanded context if available.
     """
     from sentry.interfaces.stacktrace import Stacktrace
+    from sentry.models import Project
 
     try:
         stacktraces = [
@@ -261,6 +273,8 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
         logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
         return data
 
+    project = Project.objects.get_from_cache(id=data['project'])
+
     pending_file_list = set()
     done_file_list = set()
     sourcemap_capable = set()
@@ -284,7 +298,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
 
         # TODO: respect cache-contro/max-age headers to some extent
         logger.debug('Fetching remote source %r', filename)
-        result = fetch_url(filename)
+        result = fetch_url(filename, project=project)
 
         if result == BAD_SOURCE:
             logger.debug('Bad source file %r', filename)
@@ -317,7 +331,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
             continue
 
         # pull down sourcemap
-        index = fetch_sourcemap(sourcemap)
+        index = fetch_sourcemap(sourcemap, project=project)
         if not index:
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue

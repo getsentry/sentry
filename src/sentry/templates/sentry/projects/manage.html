@@ -39,7 +39,7 @@
                     {{ form.scrub_data|as_crispy_field }}
                     {{ form.scrub_ip_address|as_crispy_field }}
                   {% if form.public %}
-                      {{ form.public|as_crispy_field }}
+                    {{ form.public|as_crispy_field }}
                   {% endif %}
                 </div>
             </div>
@@ -55,6 +55,7 @@
                       {% blocktrans %}This will restrict requests based on the <code>Origin</code> and <code>Referer</code> headers.{% endblocktrans %}</p>
                       {{ field|as_crispy_field }}
                   {% endwith %}
+                  {{ form.token|as_crispy_field }}
                 </div>
             </div>
 
