@@ -18,12 +18,14 @@
   $(function(){
     Router.run(routes, Router.HistoryLocation, function(Handler) {
       React.render(React.createFactory(Handler)({
+          urlPrefix: {{ URL_PREFIX|to_json|safe }},
+          mediaUrl: '{% url 'sentry-media' "sentry" '' %}',
         {% if request.user.is_authenticated %}
-          'isAuthenticated': true,
-          'user': {% serialize request.user %}
+          isAuthenticated: true,
+          user: {% serialize request.user %}
         {% else %}
-          'isAuthenticated': false,
-          'user': null
+          isAuthenticated: false,
+          user: null
         {% endif %}
       }), document.getElementById('blk_router'));
     });
