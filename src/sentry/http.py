@@ -22,9 +22,7 @@ CHARSET_RE = re.compile(r'charset=(\S+)')
 
 DEFAULT_ENCODING = 'utf-8'
 
-DEFAULT_HEADERS = (
-    ('Accept-Encoding', 'gzip'),
-)
+DEFAULT_HEADERS = ()
 
 DEFAULT_USER_AGENT = 'sentry/%s' % sentry.VERSION
 
@@ -71,6 +69,7 @@ def safe_urlopen(url, data=None, headers=DEFAULT_HEADERS,
 
     req = urllib2.Request(url, data)
     req.add_header('User-Agent', user_agent)
+    req.add_header('Accept-Encoding', 'gzip')
     for key, value in headers:
         req.add_header(key, value)
 
