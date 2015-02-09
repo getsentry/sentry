@@ -23,7 +23,35 @@ class FetchUrlTest(TestCase):
         result = fetch_url('http://example.com')
 
         safe_urlopen.assert_called_once_with(
-            'http://example.com', allow_redirects=True, timeout=5)
+            'http://example.com', allow_redirects=True, timeout=5,
+            headers=[])
+        safe_urlread.assert_called_once_with(safe_urlopen.return_value)
+
+        assert result.url == 'http://example.com'
+        assert result.body == u'foo bar'
+        assert result.headers == {'content-type': 'application/json'}
+
+        # ensure we use the cached result
+        result2 = fetch_url('http://example.com')
+
+        safe_urlopen.assert_called_once()
+
+        assert result == result2
+
+    @patch('sentry.tasks.fetch_source.safe_urlopen')
+    @patch('sentry.tasks.fetch_source.safe_urlread')
+    def test_with_token(self, safe_urlread, safe_urlopen):
+        self.project.update_option('sentry:token', 'foobar')
+        self.project.update_option('sentry:origins', ['*'])
+
+        safe_urlopen.return_value.headers = (('content-type', 'application/json'),)
+        safe_urlread.return_value = u'foo bar'
+
+        result = fetch_url('http://example.com', project=self.project)
+
+        safe_urlopen.assert_called_once_with(
+            'http://example.com', allow_redirects=True, timeout=5,
+            headers=[('X-Sentry-Token', 'foobar')])
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
         assert result.url == 'http://example.com'
@@ -45,7 +73,8 @@ class FetchUrlTest(TestCase):
         result = fetch_url('http://example.com')
 
         safe_urlopen.assert_called_once_with(
-            'http://example.com', allow_redirects=True, timeout=5)
+            'http://example.com', allow_redirects=True, timeout=5,
+            headers=[])
         assert not safe_urlread.mock_calls
 
         assert result == BAD_SOURCE
@@ -66,7 +95,8 @@ class FetchUrlTest(TestCase):
         result = fetch_url('http://example.com')
 
         safe_urlopen.assert_called_once_with(
-            'http://example.com', allow_redirects=True, timeout=5)
+            'http://example.com', allow_redirects=True, timeout=5,
+            headers=[])
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
         assert result == BAD_SOURCE
@@ -115,6 +145,7 @@ class ExpandJavascriptSourceTest(TestCase):
     @patch('sentry.tasks.fetch_source.discover_sourcemap')
     def test_simple(self, discover_sourcemap, fetch_sourcemap, fetch_url, update):
         data = {
+            'project': self.project.id,
             'sentry.interfaces.Exception': {
                 'values': [{
                     'stacktrace': {
@@ -142,7 +173,8 @@ class ExpandJavascriptSourceTest(TestCase):
 
         expand_javascript_source(data)
 
-        fetch_url.assert_called_once_with('http://example.com/foo.js')
+        fetch_url.assert_called_once_with(
+            'http://example.com/foo.js', project=self.project)
 
         frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
         frame = frame_list[0]
@@ -160,6 +192,7 @@ class ExpandJavascriptSourceTest(TestCase):
     @patch('sentry.tasks.fetch_source.discover_sourcemap')
     def test_inlined_sources(self, discover_sourcemap, fetch_url, update):
         data = {
+            'project': self.project.id,
             'sentry.interfaces.Exception': {
                 'values': [{
                     'stacktrace': {
@@ -180,7 +213,8 @@ class ExpandJavascriptSourceTest(TestCase):
         fetch_url.return_value.body = '\n'.join('<generated source>')
 
         expand_javascript_source(data)
-        fetch_url.assert_called_once_with('http://example.com/test.min.js')
+        fetch_url.assert_called_once_with(
+            'http://example.com/test.min.js', project=self.project)
 
         frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
         frame = frame_list[0]
