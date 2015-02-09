@@ -1,5 +1,10 @@
 // Karma configuration
 // Generated on Sat Jul 26 2014 13:49:45 GMT+0200 (CEST)
+var path = require('path');
+
+var appPrefix = path.join(__dirname, "../src/sentry/static/sentry/app");
+
+console.log(appPrefix);
 
 module.exports = function(config) {
   config.set({
@@ -15,14 +20,6 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'tests/js/base.js',
-      'src/sentry/static/sentry/dist/vendor-angular.min.js',
-      'src/sentry/static/sentry/dist/vendor-jquery.min.js',
-      'src/sentry/static/sentry/dist/vendor-bootstrap.min.js',
-      'src/sentry/static/sentry/dist/vendor-misc.min.js',
-      'src/sentry/static/sentry/vendor/angular-mocks/angular-mocks.js',
-      'src/sentry/static/sentry/dist/app.min.js',
-      'src/sentry/static/sentry/dist/legacy-app.min.js',
       'tests/js/**/*Spec.js'
     ],
 
@@ -31,12 +28,51 @@ module.exports = function(config) {
     exclude: [
     ],
 
+    webpack: {
+      cache: true,
+        module: {
+        resolve: {
+          modulesDirectories: [appPrefix, "node_modules"],
+          extensions: ["", ".jsx", ".js", ".json"]
+        },
+        loaders: [
+          {
+            test: /\.jsx$/,
+            loader: "jsx-loader?insertPragma=React.DOM&harmony",
+            include: path.join(__dirname, appPrefix),
+            exclude: /vendor/
+          }
+        ]
+      },
+      devtool: 'inline-source-map',
+    },
+
+    webpackMiddleware: {
+        // webpack-dev-middleware configuration
+        // i. e.
+        noInfo: true
+    },
+
+    webpackServer: {
+      stats: {
+        colors: true
+      }
+    },
+
+    plugins: [
+      'karma-chai',
+      'karma-mocha',
+      'karma-phantomjs-launcher',
+      'karma-sinon',
+      'karma-sourcemap-loader',
+      'karma-webpack'
+    ],
 
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
+      'tests/**/*.js': ['webpack', 'sourcemap']
     },
-
 
     // test results reporter to use
     // possible values: 'dots', 'progress'

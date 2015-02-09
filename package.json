@@ -32,6 +32,7 @@
     "karma-mocha": "^0.1.6",
     "karma-phantomjs-launcher": "^0.1.4",
     "karma-sinon": "^1.0.3",
+    "karma-sourcemap-loader": "^0.3.3",
     "less": "1.7.0",
     "mocha": "1.9.x",
     "moment": "^2.8.4",
@@ -49,7 +50,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "pretest": "npm install && gulp dist",
+    "pretest": "npm install",
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run"
   }
 }

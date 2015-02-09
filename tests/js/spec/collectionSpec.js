@@ -1,12 +1,6 @@
-describe('sentry.collection', function(){
-
-  beforeEach(module('sentry'));
-
-  var Collection;
-
-  beforeEach(inject(function($injector){
-    Collection = $injector.get('Collection');
-  }));
+describe('utils.Collection', function(){
+  // TODO(dcramer): figure out how we make 'app' a module
+  var Collection = require(__dirname + '/../../../src/sentry/static/sentry/app/utils/collection.jsx');
 
   describe('add', function() {
     it('should append elements', function(){
