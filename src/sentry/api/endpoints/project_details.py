@@ -40,6 +40,8 @@ class ProjectDetailsEndpoint(Endpoint):
         data['options'] = {
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', None) or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+            'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+            'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
         }
 
         return Response(data)
@@ -74,6 +76,10 @@ class ProjectDetailsEndpoint(Endpoint):
                 project.update_option('sentry:origins', options['sentry:origins'].split('\n'))
             if 'sentry:resolve_age' in options:
                 project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
+            if 'sentry:scrub_data' in options:
+                project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
+            if 'sentry:sensitive_fields' in options:
+                project.update_option('sentry:sensitive_fields', options['sentry:sensitive_fields'])
 
             AuditLogEntry.objects.create(
                 organization=project.organization,
