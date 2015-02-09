@@ -20,6 +20,8 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
+      'src/sentry/static/sentry/dist/vendor.js',
+      'src/sentry/static/sentry/dist/app.js',
       'tests/js/**/*Spec.js'
     ],
 
@@ -32,7 +34,10 @@ module.exports = function(config) {
       cache: true,
         module: {
         resolve: {
-          modulesDirectories: [appPrefix, "node_modules"],
+          alias: {
+            "app": appPrefix
+          },
+          modulesDirectories: ["node_modules"],
           extensions: ["", ".jsx", ".js", ".json"]
         },
         loaders: [
