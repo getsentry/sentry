@@ -80,6 +80,7 @@ class ProjectSettingsTest(TestCase):
             'platform': 'python',
             'team': self.team.id,
             'scrub_data': '1',
+            'token': 'foobar',
         })
         assert resp.status_code == 302
         self.assertEquals(resp['Location'], 'http://testserver' + self.path)
