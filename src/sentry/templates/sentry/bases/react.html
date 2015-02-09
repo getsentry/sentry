@@ -18,7 +18,7 @@
   $(function(){
     Router.run(routes, Router.HistoryLocation, function(Handler) {
       React.render(React.createFactory(Handler)({
-          urlPrefix: {{ URL_PREFIX|to_json|safe }},
+          urlPrefix: '{{ URL_PREFIX }}',
           mediaUrl: '{% url 'sentry-media' "sentry" '' %}',
         {% if request.user.is_authenticated %}
           isAuthenticated: true,
