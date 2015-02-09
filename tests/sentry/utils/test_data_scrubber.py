@@ -113,6 +113,23 @@ class SensitiveDataFilterTest(TestCase):
         http = data['request']
         self.assertEquals(http['query_string'], 'foo=bar&password&baz=bar' % dict(m=proc.MASK))
 
+    def test_sanitize_additional_sensitive_fields(self):
+        additional_sensitive_dict = {
+            'fieldy_field': 'value',
+            'moar_other_field': 'another value'
+        }
+        data = {
+            'extra': dict(VARS.items() + additional_sensitive_dict.items())
+        }
+
+        proc = SensitiveDataFilter(additional_sensitive_dict.keys())
+        proc.apply(data)
+
+        for field in additional_sensitive_dict.keys():
+            self.assertEquals(data['extra'][field], proc.MASK)
+
+        self._check_vars_sanitized(data['extra'], proc)
+
     def test_sanitize_credit_card(self):
         proc = SensitiveDataFilter()
         result = proc.sanitize('foo', '4242424242424242')
