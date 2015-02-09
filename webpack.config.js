@@ -4,22 +4,15 @@ var path = require("path"),
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
-function file(name) {
-  return path.join(__dirname, staticPrefix, name);
-}
-
-function vendorFile(name) {
-  return path.join(__dirname, staticPrefix, "vendor", name);
-}
-
 module.exports = {
+  context: path.join(__dirname, staticPrefix),
   entry: {
-    "app": file("app/main.jsx"),
+    "app": "app",
     "vendor": [
       "crypto-js/md5",
       "jquery",
       "moment",
-      "raven",
+      "raven-js",
       "react/addons",
       "react-router",
       "react-bootstrap",
@@ -46,7 +39,10 @@ module.exports = {
     })
   ],
   resolve: {
-    modulesDirectories: [distPath, "node_modules"],
+    alias: {
+      "app": path.join(__dirname, staticPrefix, "app")
+    },
+    modulesDirectories: ["node_modules"],
     extensions: ["", ".jsx", ".js", ".json"]
   },
   output: {
