@@ -82,16 +82,20 @@ def safe_urlopen(url, data=None, headers=DEFAULT_HEADERS,
     return opener.open(req, timeout=timeout)
 
 
-def safe_urlread(request):
-    body = request.read()
+def safe_urlread(response):
+    body = response.read()
 
-    if request.headers.get('content-encoding') == 'gzip':
+    if 'content-encoding' in response.headers:
+        # Make sure we only handle gzip Content-Encoding
+        content_encoding = response.headers['content-encoding']
+        assert content_encoding == 'gzip', content_encoding
+
         # Content doesn't *have* to respect the Accept-Encoding header
         # and may send gzipped data regardless.
         # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
         body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
 
-    content_type = request.headers.get('content-type')
+    content_type = response.headers.get('content-type')
     if content_type is None:
         # If there is no content_type header at all, quickly assume default utf-8 encoding
         encoding = DEFAULT_ENCODING
