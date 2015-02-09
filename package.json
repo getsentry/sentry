@@ -50,7 +50,7 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "pretest": "npm install",
+    "pretest": "npm install && webpack",
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run"
   }
 }

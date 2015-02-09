@@ -1,6 +1,6 @@
 describe('utils.Collection', function(){
   // TODO(dcramer): figure out how we make 'app' a module
-  var Collection = require(__dirname + '/../../../src/sentry/static/sentry/app/utils/collection.jsx');
+  var Collection = require('app/utils/collection.jsx');
 
   describe('add', function() {
     it('should append elements', function(){
