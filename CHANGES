@@ -13,6 +13,7 @@ Version 7.2.0
 - Added UI, API, and async task for deletiong project tag keys.
 - Various fixes/improvements to regression windows.
 - Rules will no longer execute duplicate actions.
+- EventFrequencyCondition will now fire a maximum of once every 30 minutes.
 
 Version 7.1.4
 -------------
