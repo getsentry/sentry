@@ -1,1 +1,0 @@
-<div ui-view></div>
