@@ -7,6 +7,7 @@ from django.core.validators import URLValidator
 from django.http import HttpResponseRedirect
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
+from uuid import uuid1
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
@@ -64,6 +65,8 @@ class EditProjectForm(forms.ModelForm):
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
+    token = forms.CharField(label=_('Security token'), required=True,
+        help_text=_('Outbound requests matching Allowed Domains will have the header "X-Sentry-Token: {token}" appended.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
         required=False, min_value=0, max_value=168, step_value=1)
     scrub_data = forms.BooleanField(
@@ -180,10 +183,17 @@ class ProjectSettingsView(ProjectView):
             access=OrganizationMemberType.ADMIN,
         )
 
+        # TODO(dcramer): this update should happen within a lock
+        security_token = project.get_option('sentry:token', None)
+        if security_token is None:
+            security_token = uuid1().hex
+            project.update_option('sentry:token', security_token)
+
         return EditProjectForm(
             request, organization, team_list, request.POST or None,
             instance=project, initial={
                 'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
+                'token': security_token,
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
@@ -195,7 +205,7 @@ class ProjectSettingsView(ProjectView):
 
         if form.is_valid():
             project = form.save()
-            for opt in ('origins', 'resolve_age', 'scrub_data', 'scrub_ip_address'):
+            for opt in ('origins', 'resolve_age', 'scrub_data', 'scrub_ip_address', 'token'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))
