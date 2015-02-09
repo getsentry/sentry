@@ -26,31 +26,6 @@
         <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
         <![endif]-->
         {% block scripts %}
-            <script>
-            // Legacy app object
-            window.app = {};
-
-            window.SentryConfig = {};
-            window.SentryConfig.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
-            window.SentryConfig.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
-            window.SentryConfig.urlPrefix = {{ URL_PREFIX|to_json|safe }};
-            {% if selectedProject %}
-                window.SentryConfig.selectedProject = {% convert_to_json selectedProject %}
-            {% else %}
-                window.SentryConfig.selectedProject = null;
-            {% endif %}
-            {% if selectedTeam %}
-                window.SentryConfig.selectedTeam = {% convert_to_json selectedTeam %}
-            {% else %}
-                window.SentryConfig.selectedTeam = null;
-            {% endif %}
-            {% if selectedOrganization %}
-                window.SentryConfig.selectedOrganization = {% convert_to_json selectedOrganization %}
-            {% else %}
-                window.SentryConfig.selectedOrganization = null;
-            {% endif %}
-            </script>
-
             <script src="{% url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
             <script src="{% url 'sentry-media' "sentry" "dist/app.js" %}"></script>
 

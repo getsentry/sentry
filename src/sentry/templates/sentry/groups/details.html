@@ -135,9 +135,3 @@
         {{ html|safe }}
     {% endfor %}
 {% endblock %}
-
-{% block content_after %}
-    <script>
-    window.SentryConfig.selectedGroup = {% convert_to_json selectedGroup %};
-    </script>
-{% endblock %}
