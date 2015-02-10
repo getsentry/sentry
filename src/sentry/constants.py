@@ -23,7 +23,11 @@ def get_all_languages():
     for path in os.listdir(os.path.join(MODULE_ROOT, 'locale')):
         if path.startswith('.'):
             continue
+        if '_' in path:
+            pre, post = path.split('_', 1)
+            path = '{}-{}'.format(pre, post.lower())
         results.append(path)
+    print(results)
     return results
 
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
