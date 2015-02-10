@@ -10,7 +10,7 @@ Version 7.2.0
 - Minor optimizations for Redis buffer.
 - Added the ability to enable/disable project keys.
 - Added audit log entries for project keys.
-- Added UI, API, and async task for deletiong project tag keys.
+- Added UI, API, and async task for deleting project tag keys.
 - Various fixes/improvements to regression windows.
 - Rules will no longer execute duplicate actions.
 - EventFrequencyCondition will now fire a maximum of once every 30 minutes.
