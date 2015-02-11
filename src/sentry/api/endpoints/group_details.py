@@ -21,6 +21,7 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    hasSeen = serializers.BooleanField()
     assignedTo = UserField()
 
 
@@ -164,6 +165,22 @@ class GroupDetailsEndpoint(Endpoint):
         elif result.get('status'):
             group.status = STATUS_CHOICES[result['status']]
             group.save()
+
+        if result.get('hasSeen'):
+            instance, created = create_or_update(
+                GroupSeen,
+                group=group,
+                user=request.user,
+                project=group.project,
+                defaults={
+                    'last_seen': timezone.now(),
+                }
+            )
+        elif result.get('hasSeen') is False:
+            GroupSeen.objects.filter(
+                group=group,
+                user=request.user,
+            ).delete()
 
         if result.get('isBookmarked'):
             GroupBookmark.objects.get_or_create(
