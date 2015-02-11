@@ -22,7 +22,7 @@
 
     <p>As an example, to get information about the project which your key is bound to, you might make a request like so:</p>
 
-    <pre>curl -u PUBLIC_KEY:SECRET_KEY /api/0/projects/{project_id}/</pre>
+    <pre>curl -u PUBLIC_KEY:SECRET_KEY {{ SENTRY_URL_PREFIX }}/api/0/projects/{project_id}/</pre>
 
     <p>Note: Currently requests are limited to project-scoped endpoints only.</p>
 
