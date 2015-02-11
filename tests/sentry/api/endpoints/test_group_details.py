@@ -3,7 +3,8 @@ from __future__ import absolute_import, print_function
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupStatus
+    Activity, Group, GroupAssignee, GroupBookmark, GroupStatus, GroupTagValue,
+    Release
 )
 from sentry.testutils import APITestCase
 
@@ -21,6 +22,31 @@ class GroupDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == str(group.id)
+        assert response.data['firstRelease'] is None
+
+    def test_with_first_release(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        release = Release.objects.create(
+            project=group.project,
+            version='1.0',
+        )
+        GroupTagValue.objects.create(
+            group=group,
+            project=group.project,
+            key='sentry:release',
+            value=release.version,
+        )
+
+        url = reverse('sentry-api-0-group-details', kwargs={
+            'group_id': group.id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(group.id)
+        assert response.data['firstRelease']['version'] == release.version
 
 
 class GroupUpdateTest(APITestCase):
