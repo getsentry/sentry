@@ -48,9 +48,9 @@ var GroupEventToolbar  = React.createClass({
       ),
     ];
 
-    var entryLinks = evt.entries.map(function(entry){
+    var entryLinks = evt.entries.map(function(entry, entryIdx){
       return (
-        <li>
+        <li key={entryIdx}>
           <a href={"#" + entry.type}>{utils.toTitleCase(entry.type)}</a>
         </li>
       );
