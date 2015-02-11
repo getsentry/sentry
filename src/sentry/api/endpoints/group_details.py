@@ -11,7 +11,8 @@ from sentry.api.serializers import serialize
 from sentry.constants import STATUS_CHOICES
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
+    GroupTagValue
 )
 
 
@@ -82,7 +83,23 @@ class GroupDetailsEndpoint(Endpoint):
         activity = self._get_activity(request, group, num=7)
         seen_by = self._get_seen_by(request, group)
 
+        # find first seen release
+        try:
+            first_release = GroupTagValue.objects.filter(
+                group=group,
+                key='sentry:release',
+            ).order_by('first_seen')[0]
+        except IndexError:
+            first_release = None
+        else:
+            first_release = {
+                'version': first_release.value,
+                # TODO(dcramer): this should look it up in Release
+                'dateCreated': first_release.first_seen,
+            }
+
         data.update({
+            'firstRelease': first_release,
             'activity': serialize(activity, request.user),
             'seenBy': serialize(seen_by, request.user),
         })
