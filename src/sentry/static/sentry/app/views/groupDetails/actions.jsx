@@ -3,6 +3,7 @@
 var React = require("react");
 var Router = require("react-router");
 
+var api = require("../../api");
 var GroupState = require("../../mixins/groupState");
 
 var GroupActions = React.createClass({
