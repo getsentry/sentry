@@ -158,6 +158,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
         Attributes:
 
         - status: resolved, unresolved, muted
+        - hasSeen: true, false
         - isBookmarked: true, false
         - merge: true, false
 
