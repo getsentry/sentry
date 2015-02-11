@@ -49,8 +49,11 @@ class AccessGroupSerializer(serializers.ModelSerializer):
 
 
 class TeamAccessGroupIndexEndpoint(Endpoint):
-    def get(self, request, team_id):
-        team = Team.objects.get_from_cache(id=team_id)
+    def get(self, request, organization_slug, team_slug):
+        team = Team.objects.get(
+            organization__slug=organization_slug,
+            slug=team_slug,
+        )
 
         assert_perm(team, request.user, request.auth)
 
@@ -58,8 +61,11 @@ class TeamAccessGroupIndexEndpoint(Endpoint):
 
         return Response(serialize(data, request.user))
 
-    def post(self, request, team_id):
-        team = Team.objects.get_from_cache(id=team_id)
+    def post(self, request, organization_slug, team_slug):
+        team = Team.objects.get(
+            organization__slug=organization_slug,
+            slug=team_slug,
+        )
 
         assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
