@@ -7,9 +7,6 @@ from sentry.models import Release, TagValue
 
 
 def ensure_release_exists(instance, created, **kwargs):
-    if not created:
-        return
-
     if instance.key != 'sentry:release':
         return
 
