@@ -13,7 +13,7 @@ var DropdownMenu = require('react-bootstrap/DropdownMenu');
 var ValidComponentChildren = require('react-bootstrap/utils/ValidComponentChildren');
 
 
-var DropdownButton = React.createClass({
+var DropdownLink = React.createClass({
   mixins: [BootstrapMixin, DropdownStateMixin],
 
   propTypes: {
@@ -162,4 +162,4 @@ var DropdownButton = React.createClass({
   }
 });
 
-module.exports = DropdownButton;
+module.exports = DropdownLink;
