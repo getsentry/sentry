@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupStatus, GroupTagValue,
-    Release
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
+    GroupTagValue, Release
 )
 from sentry.testutils import APITestCase
 
@@ -126,6 +126,32 @@ class GroupUpdateTest(APITestCase):
         assert not GroupAssignee.objects.filter(
             group=group, user=self.user
         ).exists()
+
+    def test_mark_seen(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+
+        url = reverse('sentry-api-0-group-details', kwargs={
+            'group_id': group.id
+        })
+        response = self.client.put(url, data={
+            'hasSeen': '1',
+        }, format='json')
+
+        assert response.status_code == 200, response.content
+
+        assert GroupSeen.objects.filter(
+            group=group, user=self.user).exists()
+
+        response = self.client.put(url, data={
+            'hasSeen': '0',
+        }, format='json')
+
+        assert response.status_code == 200, response.content
+
+        assert not GroupSeen.objects.filter(
+            group=group, user=self.user).exists()
 
 
 class GroupDeleteTest(APITestCase):

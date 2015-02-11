@@ -15,7 +15,8 @@ from sentry.constants import (
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupBookmark, GroupMeta, GroupStatus, Project, TagKey
+    Activity, Group, GroupBookmark, GroupMeta, GroupSeen, GroupStatus, Project,
+    TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -28,6 +29,7 @@ class GroupSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=zip(
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
+    hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
     merge = serializers.BooleanField()
 
@@ -228,6 +230,23 @@ class ProjectGroupIndexEndpoint(Endpoint):
             if group_list and happened:
                 for group in group_list:
                     group.status = new_status
+
+        if result.get('hasSeen'):
+            for group in group_list:
+                instance, created = create_or_update(
+                    GroupSeen,
+                    group=group,
+                    user=request.user,
+                    project=group.project,
+                    defaults={
+                        'last_seen': timezone.now(),
+                    }
+                )
+        elif result.get('hasSeen') is False:
+            GroupSeen.objects.filter(
+                group__in=group_ids,
+                user=request.user,
+            ).delete()
 
         if result.get('isBookmarked'):
             for group in group_list:

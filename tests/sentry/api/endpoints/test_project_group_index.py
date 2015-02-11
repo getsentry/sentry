@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.models import Group, GroupBookmark, GroupStatus
+from sentry.models import Group, GroupBookmark, GroupSeen, GroupStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
 
@@ -150,6 +150,45 @@ class GroupUpdateTest(APITestCase):
 
         bookmark4 = GroupBookmark.objects.filter(group=group4, user=self.user)
         assert not bookmark4.exists()
+
+    def test_set_has_seen(self):
+        project = self.project
+        group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
+        group4 = self.create_group(
+            project=self.create_project(slug='foo'),
+            checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+            url=reverse('sentry-api-0-project-group-index', kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug
+            }),
+            group1=group1,
+            group2=group2,
+            group4=group4,
+        )
+        response = self.client.put(url, data={
+            'hasSeen': 'true',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'hasSeen': True,
+        }
+
+        r1 = GroupSeen.objects.filter(group=group1, user=self.user)
+        assert r1.exists()
+
+        r2 = GroupSeen.objects.filter(group=group2, user=self.user)
+        assert r2.exists()
+
+        r3 = GroupSeen.objects.filter(group=group3, user=self.user)
+        assert not r3.exists()
+
+        r4 = GroupSeen.objects.filter(group=group4, user=self.user)
+        assert not r4.exists()
 
     @patch('sentry.api.endpoints.project_group_index.merge_group')
     def test_merge(self, merge_group):
