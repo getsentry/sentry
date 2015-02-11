@@ -53,6 +53,15 @@ var GroupOverview = React.createClass({
     this.fetchData();
   },
 
+  componentDidMount() {
+    api.bulkUpdate({
+      orgId: this.getOrganization().slug,
+      projectId: this.getProject().slug,
+      itemIds: [this.getGroup().id],
+      data: {hasSeen: true}
+    });
+  },
+
   routeDidChange(prevPath) {
     this.fetchData();
   },
