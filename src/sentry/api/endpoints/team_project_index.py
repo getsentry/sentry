@@ -18,8 +18,11 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class TeamProjectIndexEndpoint(Endpoint):
-    def get(self, request, team_id):
-        team = Team.objects.get_from_cache(id=team_id)
+    def get(self, request, organization_slug, team_slug):
+        team = Team.objects.get(
+            organization__slug=organization_slug,
+            slug=team_slug,
+        )
 
         assert_perm(team, request.user, request.auth)
 
@@ -27,9 +30,11 @@ class TeamProjectIndexEndpoint(Endpoint):
 
         return Response(serialize(results, request.user))
 
-    def post(self, request, team_id):
-        team = Team.objects.get_from_cache(id=team_id)
-
+    def post(self, request, organization_slug, team_slug):
+        team = Team.objects.get(
+            organization__slug=organization_slug,
+            slug=team_slug,
+        )
         assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         if not can_create_projects(user=request.user, team=team):
