@@ -338,6 +338,8 @@ folder and you're good to go.
   autostart=true
   autorestart=true
   redirect_stderr=true
+  stdout_logfile syslog
+  stderr_logfile syslog
 
   [program:sentry-worker]
   directory=/www/sentry/
@@ -345,6 +347,8 @@ folder and you're good to go.
   autostart=true
   autorestart=true
   redirect_stderr=true
+  stdout_logfile syslog
+  stderr_logfile syslog
 
 
 Additional Utilities
