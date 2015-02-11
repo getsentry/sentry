@@ -78,6 +78,7 @@ var GroupEvent = React.createClass({
           <GroupEventDataSection
               group={group}
               event={evt}
+              type="extra"
               title="Additional Data" />
         </div>
         <div className="col-md-3 event-stats">
