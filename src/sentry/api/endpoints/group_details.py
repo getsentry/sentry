@@ -121,6 +121,7 @@ class GroupDetailsEndpoint(Endpoint):
         Attributes:
 
         - status: resolved, unresolved, muted
+        - hasSeen: true, false
         - isBookmarked: true, false
         - assignedTo: user
 
