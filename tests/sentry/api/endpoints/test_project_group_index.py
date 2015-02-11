@@ -144,8 +144,7 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'organization_slug': project.organization.slug,
-                'project_slug': project.slug
+                'project_id': self.project.id,
             }),
             group1=group1,
             group2=group2,
@@ -181,7 +180,7 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'project_id': self.project.id,
             }),
             group1=group1,
             group2=group2,
@@ -201,7 +200,8 @@ class GroupDeleteTest(APITestCase):
     def test_global_is_forbidden(self):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
-            'project_id': self.project.id})
+            'project_id': self.project.id,
+        })
         response = self.client.delete(url, data={
             'status': 'resolved',
         }, format='json')
