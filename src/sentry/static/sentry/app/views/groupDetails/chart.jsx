@@ -20,7 +20,7 @@ var GroupChart = React.createClass({
     });
 
     return (
-      <div className="group-chart">
+      <div className="bar-chart group-chart">
         <h6>Last 48 Hours</h6>
         <BarChart points={points} className="sparkline" />
       </div>
