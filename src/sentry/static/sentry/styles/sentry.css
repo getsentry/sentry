@@ -7882,6 +7882,8 @@ ul.traceback {
 .traceback > pre {
   color: #474747;
   font-size: 0.9em;
+  white-space: pre-wrap;
+  word-wrap: break-word;
   background: #F8F8F8;
   padding: 10px;
   border-radius: 4px;

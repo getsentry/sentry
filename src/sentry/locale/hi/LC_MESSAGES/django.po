@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-02-09 20:47+0000\n"
-"PO-Revision-Date: 2015-02-09 20:47+0000\n"
+"POT-Creation-Date: 2015-02-10 19:13+0000\n"
+"PO-Revision-Date: 2015-02-10 19:14+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Hindi (http://www.transifex.com/projects/p/sentry/language/hi/)\n"
 "MIME-Version: 1.0\n"
@@ -40,11 +40,11 @@ msgstr ""
 msgid "Change password: %s"
 msgstr ""
 
-#: constants.py:33
+#: constants.py:36
 msgid "Priority"
 msgstr "प्राथमिकता"
 
-#: constants.py:34 constants.py:43
+#: constants.py:37 constants.py:46
 #: templates/sentry/explore/tag_value_list.html:41
 #: templates/sentry/explore/code/list_tag.html:42
 #: templates/sentry/groups/group_list.html:119
@@ -53,78 +53,370 @@ msgstr "प्राथमिकता"
 msgid "Last Seen"
 msgstr "आखरी बार देखा"
 
-#: constants.py:35 constants.py:44 templates/sentry/groups/group_list.html:122
+#: constants.py:38 constants.py:47 templates/sentry/groups/group_list.html:122
 #: templates/sentry/plugins/bases/tag/index.html:23
 msgid "First Seen"
 msgstr "पहली बार देखा"
 
-#: constants.py:36
+#: constants.py:39
 msgid "Frequency"
 msgstr "आवृत्ति"
 
-#: constants.py:37
+#: constants.py:40
 msgid "Total Time Spent"
 msgstr "कुल समय बिताया"
 
-#: constants.py:38
+#: constants.py:41
 msgid "Average Time Spent"
 msgstr "औसत समय बिताया"
 
-#: constants.py:42
+#: constants.py:45
 msgid "Score"
 msgstr "स्कोर"
 
-#: constants.py:65 models/organizationmember.py:51
+#: constants.py:68 models/organizationmember.py:51
 #: templates/sentry/projects/edit_key.html:22
 #: web/forms/edit_organization_member.py:15
 msgid "Owner"
 msgstr "मालिक"
 
-#: constants.py:66 models/organizationmember.py:50 models/teammember.py:39
+#: constants.py:69 models/organizationmember.py:50 models/teammember.py:39
 #: templates/sentry/layout.html:143 templates/sentry/bases/admin.html:5
 #: web/forms/__init__.py:49 web/forms/edit_organization_member.py:14
 msgid "Admin"
 msgstr "व्यवस्थापक"
 
-#: constants.py:67 constants.py:182
+#: constants.py:70 constants.py:185
 #: templates/sentry/partial/interfaces/user.html:6
 #: templates/sentry/users/list.html:34
 msgid "User"
 msgstr "उपयोगकर्ता"
 
-#: constants.py:68
+#: constants.py:71
 msgid "System Agent"
 msgstr ""
 
-#: constants.py:181
+#: constants.py:184
 msgid "Exception Type"
 msgstr ""
 
-#: constants.py:183
+#: constants.py:186
 msgid "File"
 msgstr ""
 
-#: constants.py:184
+#: constants.py:187
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:30
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:57
 msgid "Function"
 msgstr ""
 
-#: constants.py:185
+#: constants.py:188
 msgid "Release"
 msgstr ""
 
-#: constants.py:186
+#: constants.py:189
 msgid "OS"
 msgstr ""
 
-#: constants.py:187 plugins/sentry_urls/models.py:29
+#: constants.py:190 plugins/sentry_urls/models.py:29
 #: templates/sentry/partial/interfaces/http_email.html:5
 msgid "URL"
 msgstr "यूआरएल"
 
-#: constants.py:188
+#: constants.py:191
 msgid "Server"
+msgstr ""
+
+#: conf/server.py:99
+msgid "Afrikaans"
+msgstr ""
+
+#: conf/server.py:100
+msgid "Arabic"
+msgstr ""
+
+#: conf/server.py:101
+msgid "Azerbaijani"
+msgstr ""
+
+#: conf/server.py:102
+msgid "Bulgarian"
+msgstr ""
+
+#: conf/server.py:103
+msgid "Belarusian"
+msgstr ""
+
+#: conf/server.py:104
+msgid "Bengali"
+msgstr ""
+
+#: conf/server.py:105
+msgid "Breton"
+msgstr ""
+
+#: conf/server.py:106
+msgid "Bosnian"
+msgstr ""
+
+#: conf/server.py:107
+msgid "Catalan"
+msgstr ""
+
+#: conf/server.py:108
+msgid "Czech"
+msgstr ""
+
+#: conf/server.py:109
+msgid "Welsh"
+msgstr ""
+
+#: conf/server.py:110
+msgid "Danish"
+msgstr ""
+
+#: conf/server.py:111
+msgid "German"
+msgstr ""
+
+#: conf/server.py:112
+msgid "Greek"
+msgstr ""
+
+#: conf/server.py:113
+msgid "English"
+msgstr ""
+
+#: conf/server.py:114
+msgid "Esperanto"
+msgstr ""
+
+#: conf/server.py:115
+msgid "Spanish"
+msgstr ""
+
+#: conf/server.py:116
+msgid "Estonian"
+msgstr ""
+
+#: conf/server.py:117
+msgid "Basque"
+msgstr ""
+
+#: conf/server.py:118
+msgid "Persian"
+msgstr ""
+
+#: conf/server.py:119
+msgid "Finnish"
+msgstr ""
+
+#: conf/server.py:120
+msgid "French"
+msgstr ""
+
+#: conf/server.py:121
+msgid "Irish"
+msgstr ""
+
+#: conf/server.py:122
+msgid "Galician"
+msgstr ""
+
+#: conf/server.py:123
+msgid "Hebrew"
+msgstr ""
+
+#: conf/server.py:124
+msgid "Hindi"
+msgstr ""
+
+#: conf/server.py:125
+msgid "Croatian"
+msgstr ""
+
+#: conf/server.py:126
+msgid "Hungarian"
+msgstr ""
+
+#: conf/server.py:127
+msgid "Interlingua"
+msgstr ""
+
+#: conf/server.py:128
+msgid "Indonesian"
+msgstr ""
+
+#: conf/server.py:129
+msgid "Icelandic"
+msgstr ""
+
+#: conf/server.py:130
+msgid "Italian"
+msgstr ""
+
+#: conf/server.py:131
+msgid "Japanese"
+msgstr ""
+
+#: conf/server.py:132
+msgid "Georgian"
+msgstr ""
+
+#: conf/server.py:133
+msgid "Kazakh"
+msgstr ""
+
+#: conf/server.py:134
+msgid "Khmer"
+msgstr ""
+
+#: conf/server.py:135
+msgid "Kannada"
+msgstr ""
+
+#: conf/server.py:136
+msgid "Korean"
+msgstr ""
+
+#: conf/server.py:137
+msgid "Luxembourgish"
+msgstr ""
+
+#: conf/server.py:138
+msgid "Lithuanian"
+msgstr ""
+
+#: conf/server.py:139
+msgid "Latvian"
+msgstr ""
+
+#: conf/server.py:140
+msgid "Macedonian"
+msgstr ""
+
+#: conf/server.py:141
+msgid "Malayalam"
+msgstr ""
+
+#: conf/server.py:142
+msgid "Mongolian"
+msgstr ""
+
+#: conf/server.py:143
+msgid "Burmese"
+msgstr ""
+
+#: conf/server.py:144
+msgid "Norwegian Bokmal"
+msgstr ""
+
+#: conf/server.py:145
+msgid "Nepali"
+msgstr ""
+
+#: conf/server.py:146
+msgid "Dutch"
+msgstr ""
+
+#: conf/server.py:147
+msgid "Norwegian Nynorsk"
+msgstr ""
+
+#: conf/server.py:148
+msgid "Ossetic"
+msgstr ""
+
+#: conf/server.py:149
+msgid "Punjabi"
+msgstr ""
+
+#: conf/server.py:150
+msgid "Polish"
+msgstr ""
+
+#: conf/server.py:151
+msgid "Portuguese"
+msgstr ""
+
+#: conf/server.py:152
+msgid "Brazilian Portuguese"
+msgstr ""
+
+#: conf/server.py:153
+msgid "Romanian"
+msgstr ""
+
+#: conf/server.py:154
+msgid "Russian"
+msgstr ""
+
+#: conf/server.py:155
+msgid "Slovak"
+msgstr ""
+
+#: conf/server.py:156
+msgid "Slovenian"
+msgstr ""
+
+#: conf/server.py:157
+msgid "Albanian"
+msgstr ""
+
+#: conf/server.py:158
+msgid "Serbian"
+msgstr ""
+
+#: conf/server.py:159
+msgid "Swedish"
+msgstr ""
+
+#: conf/server.py:160
+msgid "Swahili"
+msgstr ""
+
+#: conf/server.py:161
+msgid "Tamil"
+msgstr ""
+
+#: conf/server.py:162
+msgid "Telugu"
+msgstr ""
+
+#: conf/server.py:163
+msgid "Thai"
+msgstr ""
+
+#: conf/server.py:164
+msgid "Turkish"
+msgstr ""
+
+#: conf/server.py:165
+msgid "Tatar"
+msgstr ""
+
+#: conf/server.py:166
+msgid "Udmurt"
+msgstr ""
+
+#: conf/server.py:167
+msgid "Ukrainian"
+msgstr ""
+
+#: conf/server.py:168
+msgid "Urdu"
+msgstr ""
+
+#: conf/server.py:169
+msgid "Vietnamese"
+msgstr ""
+
+#: conf/server.py:170
+msgid "Simplified Chinese"
+msgstr ""
+
+#: conf/server.py:171
+msgid "Traditional Chinese"
 msgstr ""
 
 #: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
@@ -411,7 +703,7 @@ msgstr ""
 #: templates/sentry/partial/_form.html:9
 #: templates/sentry/plugins/bases/issue/create_issue.html:26
 #: templates/sentry/projects/edit_key.html:78
-#: templates/sentry/projects/manage.html:49
+#: templates/sentry/projects/manage.html:50
 #: templates/sentry/projects/manage_tags.html:61
 #: templates/sentry/projects/notifications.html:46
 #: templates/sentry/projects/quotas.html:37
@@ -791,7 +1083,7 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/account/notifications.html:72
-#: web/frontend/project_settings.py:58
+#: web/frontend/project_settings.py:59
 msgid "Project Name"
 msgstr ""
 
@@ -1160,12 +1452,12 @@ msgstr ""
 #: templates/sentry/bases/organization.html:59
 #: templates/sentry/bases/settings.html:18
 #: templates/sentry/bases/stream.html:26
-#: templates/sentry/projects/manage.html:69
+#: templates/sentry/projects/manage.html:70
 msgid "Settings"
 msgstr "सेटिंग्स"
 
 #: templates/sentry/bases/account.html:33
-#: templates/sentry/projects/manage.html:72
+#: templates/sentry/projects/manage.html:73
 #: templates/sentry/projects/notifications.html:7
 #: templates/sentry/projects/notifications.html:11
 msgid "Notifications"
@@ -1242,7 +1534,7 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/explore/tag_value_details.html:10
-#: templates/sentry/projects/manage.html:67
+#: templates/sentry/projects/manage.html:68
 msgid "Details"
 msgstr "विवरण"
 
@@ -1301,7 +1593,7 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:81
 #: templates/sentry/partial/event_nav.html:27
-#: templates/sentry/projects/manage.html:81
+#: templates/sentry/projects/manage.html:82
 msgid "Tags"
 msgstr ""
 
@@ -2128,45 +2420,45 @@ msgid ""
 "<code>Referer</code> headers."
 msgstr ""
 
-#: templates/sentry/projects/manage.html:51
+#: templates/sentry/projects/manage.html:52
 #: templates/sentry/projects/remove.html:6
 #: templates/sentry/projects/remove.html:18
 msgid "Remove Project"
 msgstr "परियोजना हटायें"
 
-#: templates/sentry/projects/manage.html:53
+#: templates/sentry/projects/manage.html:54
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
 msgstr ""
 
-#: templates/sentry/projects/manage.html:75
+#: templates/sentry/projects/manage.html:76
 #: templates/sentry/projects/quotas.html:7
 #: templates/sentry/projects/quotas.html:11
 msgid "Rate Limits"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:78
+#: templates/sentry/projects/manage.html:79
 #: templates/sentry/projects/rules/list.html:8
 msgid "Rules"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:84
+#: templates/sentry/projects/manage.html:85
 msgid "API Keys"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:86
+#: templates/sentry/projects/manage.html:87
 msgid "Help"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:88
+#: templates/sentry/projects/manage.html:89
 msgid "Setup &amp; Installation"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:91
+#: templates/sentry/projects/manage.html:92
 msgid "Integrations"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:93
+#: templates/sentry/projects/manage.html:94
 #: templates/sentry/projects/plugins/list.html:7
 #: templates/sentry/projects/plugins/list.html:11
 msgid "Manage Integrations"
@@ -2503,7 +2795,7 @@ msgstr ""
 msgid "e.g. Backend, Frontend, iOS, Android"
 msgstr ""
 
-#: web/forms/add_project.py:22 web/frontend/project_settings.py:61
+#: web/forms/add_project.py:22 web/frontend/project_settings.py:62
 msgid "Select a platform"
 msgstr ""
 
@@ -2640,50 +2932,61 @@ msgstr ""
 msgid "Changes to your organization were saved."
 msgstr ""
 
-#: web/frontend/project_settings.py:31
+#: web/frontend/project_settings.py:32
 msgid "e.g. example.com or https://example.com"
 msgstr ""
 
-#: web/frontend/project_settings.py:59
+#: web/frontend/project_settings.py:60
 msgid "Production"
 msgstr ""
 
-#: web/frontend/project_settings.py:63
+#: web/frontend/project_settings.py:64
 msgid "Imply public access to any event for this project."
 msgstr ""
 
-#: web/frontend/project_settings.py:65
+#: web/frontend/project_settings.py:66
 msgid "Allowed Domains"
 msgstr ""
 
-#: web/frontend/project_settings.py:66
+#: web/frontend/project_settings.py:67
 msgid "Separate multiple entries with a newline."
 msgstr ""
 
-#: web/frontend/project_settings.py:67
+#: web/frontend/project_settings.py:68
+msgid "Security token"
+msgstr ""
+
+#: web/frontend/project_settings.py:69
+#, python-brace-format
+msgid ""
+"Outbound requests matching Allowed Domains will have the header \"X-Sentry-"
+"Token: {token}\" appended."
+msgstr ""
+
+#: web/frontend/project_settings.py:70
 msgid ""
 "Treat an event as resolved if it hasn't been seen for this amount of time."
 msgstr ""
 
-#: web/frontend/project_settings.py:70
+#: web/frontend/project_settings.py:73
 msgid "Data Scrubber"
 msgstr ""
 
-#: web/frontend/project_settings.py:71
+#: web/frontend/project_settings.py:74
 msgid ""
 "Apply server-side data scrubbing to prevent things like passwords and credit"
 " cards from being stored."
 msgstr ""
 
-#: web/frontend/project_settings.py:75
+#: web/frontend/project_settings.py:78
 msgid "Don't store IP Addresses"
 msgstr ""
 
-#: web/frontend/project_settings.py:76
+#: web/frontend/project_settings.py:79
 msgid "Prevent IP addresses from being stored for new events."
 msgstr ""
 
-#: web/frontend/project_settings.py:218
+#: web/frontend/project_settings.py:226
 msgid "Changes to your project were saved."
 msgstr ""
 

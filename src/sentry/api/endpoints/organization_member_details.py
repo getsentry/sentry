@@ -60,6 +60,7 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
             # TODO(dcramer): while we still maintain an owner field on
             # organization we need to ensure it transfers
             organization.owner = OrganizationMember.objects.filter(
+                organization=om.organization,
                 type=OrganizationMemberType.OWNER,
             ).exclude(id=om.id)[0].user
             organization.save()

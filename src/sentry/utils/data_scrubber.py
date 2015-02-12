@@ -41,10 +41,13 @@ class SensitiveDataFilter(object):
     and API keys in frames, http, and basic extra data.
     """
     MASK = '*' * 8
-    FIELDS = frozenset([
+    DEFAULT_FIELDS = frozenset([
         'password', 'secret', 'passwd', 'authorization', 'api_key', 'apikey'
     ])
     VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
+
+    def __init__(self, additional_fields=[]):
+        self.fields = frozenset(self.DEFAULT_FIELDS | set(additional_fields))
 
     def apply(self, data):
         if 'stacktrace' in data:
@@ -71,7 +74,7 @@ class SensitiveDataFilter(object):
             return value
 
         key = key.lower()
-        for field in self.FIELDS:
+        for field in self.fields:
             if field in key:
                 # store mask as a fixed length for security
                 return self.MASK

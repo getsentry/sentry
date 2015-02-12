@@ -3,7 +3,17 @@ Version 7.2.0
 
 - A py.test plugin now exists to make extension testing easier.
 - A Mailgun webhook endpoint is now available for incoming email.
-
+- Added security token for JS source expansion.
+- Duct tape workaround for event navigation buttons repeating the same event.
+- Origins now support custom protocols as well as relaxed support on other components.
+- Minor optimizations for deletion tasks and endpoints.
+- Minor optimizations for Redis buffer.
+- Added the ability to enable/disable project keys.
+- Added audit log entries for project keys.
+- Added UI, API, and async task for deleting project tag keys.
+- Various fixes/improvements to regression windows.
+- Rules will no longer execute duplicate actions.
+- EventFrequencyCondition will now fire a maximum of once every 30 minutes.
 
 Version 7.1.4
 -------------
