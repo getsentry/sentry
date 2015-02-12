@@ -10,11 +10,12 @@ from datetime import datetime, timedelta
 from pytz import utc
 from random import randint
 
-from sentry.app import buffer, tsdb
+from sentry.app import tsdb
 from sentry.models import (
     AccessGroup, Activity, User, Organization, Project, Team
 )
 from sentry.utils.samples import create_sample_event
+
 
 def create_sample_time_series(event):
     group = event.group
@@ -94,10 +95,18 @@ def main():
                 }
             )
 
-            event1 = create_sample_event(project, 'python')
+            event1 = create_sample_event(
+                project=project,
+                platform='python',
+                release='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+            )
             create_sample_time_series(event1)
 
-            event2 = create_sample_event(project, 'javascript')
+            event2 = create_sample_event(
+                project=project,
+                platform='javascript',
+                release='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+            )
             create_sample_time_series(event2)
 
             Activity.objects.create(
@@ -124,14 +133,6 @@ def main():
         user=user,
         data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
     )
-
-    # force the buffer to process any pending incrs
-    # (this ensures tags get populated)
-    # TODO(dcramer): we should load a buffer backend which just does incr's in
-    # realtime
-    buffer.process_pending()
-    # Run it once again to handle TagKey incrs
-    buffer.process_pending()
 
 
 if __name__ == '__main__':
