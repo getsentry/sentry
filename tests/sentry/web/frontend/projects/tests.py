@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import, print_function
 
-import mock
 import logging
 
 from django.core.urlresolvers import reverse
@@ -128,60 +127,6 @@ class DisableProjectKeyTest(TestCase):
         assert resp.status_code == 302
         key = ProjectKey.objects.get(id=self.key.id)
         assert key.status == ProjectKeyStatus.INACTIVE
-
-
-class DashboardTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-team-dashboard', args=[self.organization.slug, self.team.slug])
-
-    def test_requires_authentication(self):
-        self.assertRequiresAuthentication(self.path)
-
-    @mock.patch('sentry.web.frontend.groups.can_create_projects')
-    def test_redirects_to_create_project_if_none_and_can_create_projects(self, can_create_projects):
-        self.login_as(self.user)
-
-        can_create_projects.return_value = True
-
-        resp = self.client.get(self.path)
-
-        can_create_projects.assert_called_once_with(self.user, team=self.team)
-
-        url = reverse('sentry-create-project', args=[self.organization.slug])
-
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver%s?team=%s' % (url, self.team.slug)
-
-    @mock.patch('sentry.web.frontend.groups.can_create_projects')
-    def test_does_not_reidrect_if_missing_project_permission(self, can_create_projects):
-        self.login_as(self.user)
-
-        can_create_projects.return_value = False
-
-        resp = self.client.get(self.path)
-
-        can_create_projects.assert_called_once_with(self.user, team=self.team)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
-
-    @mock.patch('sentry.web.frontend.groups.can_create_projects')
-    def test_does_not_redirect_if_has_projects(self, can_create_projects):
-        self.login_as(self.user)
-
-        # HACK: force creation
-        self.project
-
-        resp = self.client.get(self.path)
-
-        assert not can_create_projects.called
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
-        assert resp.context['organization'] == self.organization
-        assert resp.context['team'] == self.team
-        assert resp.context['project_list'] == [self.project]
 
 
 class ManageProjectTagsTest(TestCase):

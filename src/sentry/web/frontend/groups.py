@@ -24,9 +24,7 @@ from sentry.db.models import create_or_update
 from sentry.models import (
     Project, Group, GroupMeta, Event, Activity, TagKey, GroupSeen
 )
-from sentry.permissions import (
-    can_admin_group, can_remove_group, can_create_projects
-)
+from sentry.permissions import can_admin_group, can_remove_group
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.web.decorators import has_access, has_group_access, login_required
@@ -99,25 +97,6 @@ def redirect_to_group(request, project_id, group_id):
         'organization_slug': group.project.organization.slug,
         'group_id': group.id,
     }))
-
-
-@login_required
-@has_access
-def dashboard(request, organization, team):
-    project_list = list(Project.objects.filter(team=team))
-
-    if not project_list and can_create_projects(request.user, team=team):
-        url = reverse('sentry-create-project', args=[team.organization.slug])
-        return HttpResponseRedirect(url + '?team=' + team.slug)
-
-    for project in project_list:
-        project.team = team
-
-    return render_to_response('sentry/dashboard.html', {
-        'organization': team.organization,
-        'team': team,
-        'project_list': project_list,
-    }, request)
 
 
 @login_required
