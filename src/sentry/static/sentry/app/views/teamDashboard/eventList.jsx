@@ -16,6 +16,11 @@ var EventNode = React.createClass({
   render() {
     var group = this.props.group;
 
+    var userCount = (group.tags["sentry:user"] !== undefined ?
+      userCount = group.tags["sentry:user"].count :
+      0);
+
+
     return (
       <li className="group">
         <div className="row">
@@ -24,11 +29,11 @@ var EventNode = React.createClass({
             <div className="event-message">{group.culprit}</div>
             <div className="event-meta"><span>First:</span> <time time-since="group.firstSeen"></time>. <span>Last:</span> <time time-since="group.lastSeen"></time>.</div>
           </div>
-          <div className="col-xs-2 event-users align-right">
+          <div className="col-xs-2 event-occurrences align-right">
             <Count value={group.count} />
           </div>
-          <div className="col-xs-2 event-occurrences align-right">
-            [todo]
+          <div className="col-xs-2 event-users align-right">
+            <Count value={userCount} />
           </div>
         </div>
       </li>
