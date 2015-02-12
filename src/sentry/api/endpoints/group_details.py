@@ -221,8 +221,7 @@ class GroupDetailsEndpoint(Endpoint):
                     affected = True
 
                 if affected:
-                    create_or_update(
-                        Activity,
+                    Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.ASSIGNED,
@@ -242,8 +241,7 @@ class GroupDetailsEndpoint(Endpoint):
                 ).delete()
 
                 if affected:
-                    create_or_update(
-                        Activity,
+                    Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.UNASSIGNED,
