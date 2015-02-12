@@ -48,7 +48,7 @@ var TeamDashboard = React.createClass({
         <div className="row">
           <div className="col-md-6">
             <EventList
-                title="Trends"
+                title="Trending Events"
                 endpoint={this.getTrendingEventsEndpoint()} />
           </div>
           <div className="col-md-6">

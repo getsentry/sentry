@@ -1481,6 +1481,11 @@ a.icon-share {
 }
 
 .bar-chart {
+  h6 {
+    font-weight: 500;
+    margin-bottom: 18px;
+  }
+
   figure {
     margin-bottom: 20px;
     .clearfix();
@@ -1506,6 +1511,20 @@ a.icon-share {
         min-height: 4px;
         min-width: 4px;
         background: @grayDark;
+      }
+    }
+  }
+
+  &.team-chart {
+    figure a {
+      &:before {
+        min-width: 1px;
+        width: 3px;
+      }
+
+      span {
+        min-width: 3px;
+        max-width: 3px;
       }
     }
   }
@@ -1732,13 +1751,33 @@ a.icon-share {
     }
   }
 
-  &.small {
-    //TODO:Chris style small version
+  &.group-list-small {
+    margin: 0;
+
+    .row {
+      padding: 0 10px;
+    }
+
+    .event-details {
+      padding-left: 20px;
+      &:after {
+        left: -1px;
+      }
+    }
+
+    .group:last-child {
+      border: 0;
+    }
   }
 
   &.similar-events {
     //TODO:Chris style similar events
   }
+}
+
+.group-list-empty {
+  padding: 40px;
+  text-align: center;
 }
 
 .assignee-selector {
@@ -2640,6 +2679,14 @@ header + .messages-container {
   .count-label {
     font-size: 16px;
     opacity: .4;
+  }
+}
+
+.event-list {
+  .list-unstyled();
+
+  .event-list-item {
+    padding: 10px 20px;
   }
 }
 
