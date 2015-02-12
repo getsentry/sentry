@@ -17,14 +17,19 @@ var EventNode = React.createClass({
     var group = this.props.group;
 
     return (
-      <li>
-        <div className="dashboard-count">
-          <Count value={group.count} />
-        </div>
-        <div className="dashboard-details">
-          <h3><a>{group.title}</a></h3>
-          <p className="message">{group.culprit}</p>
-          <p className="time"><span>First:</span> <time time-since="group.firstSeen"></time>. <span>Last:</span> <time time-since="group.lastSeen"></time>.</p>
+      <li className="group">
+        <div className="row">
+          <div className="col-xs-8 event-details">
+            <h3><a>{group.title}</a></h3>
+            <div className="event-message">{group.culprit}</div>
+            <div className="event-meta"><span>First:</span> <time time-since="group.firstSeen"></time>. <span>Last:</span> <time time-since="group.lastSeen"></time>.</div>
+          </div>
+          <div className="col-xs-2 event-users align-right">
+            <Count value={group.count} />
+          </div>
+          <div className="col-xs-2 event-occurrences align-right">
+            [todo]
+          </div>
         </div>
       </li>
     );
@@ -110,24 +115,13 @@ var EventList = React.createClass({
     return (
       <div className="box">
         <div className="box-header clearfix">
-          <h3 className="pull-left">{this.props.title}</h3>
-          <ul className="nav nav-pills nav-small pull-right">
-            <li className={this.state.statsPeriod === "15m" && "active"}>
-              <a onClick={this.onSelectStatsPeriod.bind(this, '15m')}>
-                15 minutes
-              </a>
-            </li>
-            <li className={this.state.statsPeriod === "60m" && "active"}>
-              <a onClick={this.onSelectStatsPeriod.bind(this, '60m')}>
-                60 minutes
-              </a>
-            </li>
-            <li className={this.state.statsPeriod === "24h" && "active"}>
-              <a onClick={this.onSelectStatsPeriod.bind(this, '24h')}>
-                24 hours
-              </a>
-            </li>
-          </ul>
+          <div className="row">
+            <div className="col-xs-8">
+              {this.props.title}
+            </div>
+            <div className="col-xs-2 align-right">Users</div>
+            <div className="col-xs-2 align-right">Events</div>
+          </div>
         </div>
         <div className="box-content">
           <div className="tab-pane active">
@@ -136,11 +130,11 @@ var EventList = React.createClass({
             : (this.state.error ?
               <LoadingError onRetry={this.fetchData} />
             : (eventNodes.length ?
-              <ul className="dashboard-events">
+              <ul className="group-list group-list-small">
                 {eventNodes}
               </ul>
             :
-              <div className="alert alert-block alert-info">No data available.</div>
+              <div className="group-list-empty">No data available.</div>
             ))}
           </div>
         </div>
