@@ -66,8 +66,17 @@ module.exports = {
     return arr;
   },
 
+  nl2br(str) {
+    return str.replace(/\r?\n/, '<br />');
+  },
+
   escape(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  },
+
+  urlize(str) {
+    // TODO
+    return str;
   },
 
   toTitleCase(str) {

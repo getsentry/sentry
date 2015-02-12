@@ -1,13 +1,56 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
+var Gravatar = require("../../components/gravatar");
 var GroupState = require("../../mixins/groupState");
 var PropTypes = require("../../proptypes");
+var TimeSince = require("../../components/timeSince");
+var utils = require("../../utils");
+
+
+var ACTIVITY_ACTION_STRINGS = {
+    note: "left a note",
+    set_resolved: "marked this event as resolved",
+    set_unresolved: "marked this event as unresolved",
+    set_muted: "marked this event as muted",
+    set_public: "made this event public",
+    set_private: "made this event private",
+    set_regression: "marked this event as a regression",
+    create_issue: "created an issue on {provider:s} titled <a href=\"{location:s}\">{title:s}</a>",
+    first_seen: "first saw this event",
+    assigned: "assigned this event to {user:s}",
+    unassigned: "unassigned this event"
+};
 
 var GroupActivity = React.createClass({
   mixins: [GroupState],
 
   render: function() {
+    var group = this.getGroup();
+
+    var children = group.activity.map((item, itemIdx) => {
+      var avatar = (item.user ?
+        <Gravatar email={item.user.email} size={16} className="avatar" /> :
+        <img src="" className="avatar" />);
+
+      var authorName = (item.user ?
+        item.user.name :
+        'Sentry');
+
+      var label = ACTIVITY_ACTION_STRINGS[item.type];
+
+      return (
+        <li className="activity-item">
+          {avatar}
+          <TimeSince date={item.dateCreated} />
+          <strong>{authorName}</strong> {label}
+          {item.type === 'note' &&
+            utils.nl2br(utils.urlize(utils.escape(item.data.text)))
+          }
+        </li>
+      );
+    });
+
     return (
       <div className="activity">
         <h6>Timeline</h6>
@@ -15,18 +58,7 @@ var GroupActivity = React.createClass({
           <textarea className="form-control" placeholder="Type a note and press enter" />
         </div>
         <ul className="activity">
-          <li className="activity-item">
-            <img className="avatar" src="" />
-            <time>just now</time>
-            <h6><a href="#">David Cramer</a></h6>
-            <p>This seems fixed in riak-2.2.0. That is, it will likely still error somehow, but I think they addressed the BadStatusLine stuff.</p>
-          </li>
-          <li className="activity-item">
-            <img className="avatar" src="" />
-            <time>2h ago</time>
-            <h6><a href="#">Sentry</a></h6>
-            <p>Heads up, we just saw this event for the first time.</p>
-          </li>
+          {children}
         </ul>
       </div>
     );
