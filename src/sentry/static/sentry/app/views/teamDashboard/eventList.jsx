@@ -117,7 +117,7 @@ var EventList = React.createClass({
         <div className="box-header clearfix">
           <div className="row">
             <div className="col-xs-8">
-              {this.props.title}
+              <h3>{this.props.title}</h3>
             </div>
             <div className="col-xs-2 align-right">Users</div>
             <div className="col-xs-2 align-right">Events</div>
