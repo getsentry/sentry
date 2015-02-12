@@ -64,7 +64,8 @@ def load_data(platform, default=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None):
+def create_sample_event(project, platform=None, default=None, tags=None,
+                        release=None):
     if not platform:
         platform = project.platform
 
@@ -77,6 +78,12 @@ def create_sample_event(project, platform=None, default=None):
 
     if not data:
         return
+
+    if tags:
+        data['tags'] = tags
+
+    if release:
+        data['release'] = release
 
     manager = EventManager(data)
     manager.normalize()
