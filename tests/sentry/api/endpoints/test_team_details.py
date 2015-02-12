@@ -13,7 +13,7 @@ class TeamDetailsTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-team-details', kwargs={
             'organization_slug': team.organization.slug,
-            'team_slug': team.slug
+            'team_slug': team.slug,
         })
         response = self.client.get(url)
         assert response.status_code == 200
@@ -26,7 +26,7 @@ class TeamUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-team-details', kwargs={
             'organization_slug': team.organization.slug,
-            'team_slug': team.slug
+            'team_slug': team.slug,
         })
         resp = self.client.put(url, data={
             'name': 'hello world',
@@ -57,7 +57,7 @@ class TeamDeleteTest(APITestCase):
 
         url = reverse('sentry-api-0-team-details', kwargs={
             'organization_slug': team.organization.slug,
-            'team_slug': team.slug
+            'team_slug': team.slug,
         })
 
         with self.settings(SENTRY_PROJECT=0):
@@ -93,7 +93,7 @@ class TeamDeleteTest(APITestCase):
 
         url = reverse('sentry-api-0-team-details', kwargs={
             'organization_slug': team.organization.slug,
-            'team_slug': team.slug
+            'team_slug': team.slug,
         })
         response = self.client.delete(url)
 
