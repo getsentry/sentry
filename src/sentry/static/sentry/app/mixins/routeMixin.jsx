@@ -10,9 +10,9 @@ var RouteMixin = {
   },
 
   componentWillReceiveProps(nextProps) {
-    if (this.state.routePath != this.getPath()) {
-      this.routeDidChange(this.state.routePath);
-      this.setState({routePath: this.getPath()});
+    if (this.state.activeRoutePath != this.getPath()) {
+      this.routeDidChange(this.state.activeRoutePath);
+      this.setState({activeRoutePath: this.getPath()});
     }
   },
 };
