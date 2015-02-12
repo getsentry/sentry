@@ -10,10 +10,7 @@ class ActivitySerializer(Serializer):
         d = {
             'id': str(obj.id),
             'user': serialize(obj.user),
-            'type': {
-                'id': str(obj.type),
-                'name': obj.get_type_display(),
-            },
+            'type': obj.get_type_display(),
             'data': obj.data,
             'dateCreated': obj.datetime,
         }
