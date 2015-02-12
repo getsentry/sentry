@@ -2606,69 +2606,22 @@ header + .messages-container {
 
 /* ////////////////////////////////// Flat overrides ////////////////////////////////// */
 
-.dashboard {
-
-  .empty {
-    text-align: center;
-    margin: 30px 0;
+.team-stats {
+  background: #F6F6F7;
+  margin: -20px -20px 20px;
+  .col-md-3 {
+    padding: 20px;
+    line-height: 1;
   }
 
-  .box-header {
-    padding-bottom: 8px;
-
-    .nav-pills {
-      position: relative;
-      top: 1px;
-      right: -2px;
-      margin: 0 0 -4px;
-    }
+  .count {
+    font-size: 30px;
+    display: block;
+    margin-bottom: 6px;
   }
 
-  .dashboard-events {
-    .list-unstyled();
-    margin: 0;
-
-    li {
-      .clearfix();
-      border-bottom: 1px solid #E9EBEC;
-      padding: 10px 10px 10px 0;
-      &:last-child {
-        border-bottom: 0;
-      }
-    }
-
-    .dashboard-count {
-      font-size: 20px;
-      width: 14%;
-      float: left;
-      padding-top: 2px;
-      text-align: center;
-      line-height: 54px;
-    }
-    .dashboard-details {
-      width: 86%;
-      float: left;
-
-      h3 {
-        line-height: 1.2;
-        margin: 0;
-        font-size: 15px;
-      }
-
-      .message {
-        font-size: 13px;
-        margin: 0;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .time {
-        font-size: 12px;
-        margin: 0;
-        opacity: .55;
-      }
-    }
+  .count-label {
+    opacity: .5;
   }
 }
 
