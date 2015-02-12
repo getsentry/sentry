@@ -80,11 +80,9 @@ class NotificationPlugin(Plugin):
             members__is_active=True,
         ).exclude(members__in=disabled).values_list('members', flat=True))
 
-        if project.team:
-            # fetch team members
-            member_set |= set(project.team.member_set.exclude(
-                user__in=disabled,
-            ).values_list('user', flat=True))
+        member_set |= set(project.member_set.exclude(
+            user__in=disabled,
+        ).values_list('user', flat=True))
 
         # determine members default settings
         members_to_check = set(u for u in member_set if u not in alert_settings)

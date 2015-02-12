@@ -213,13 +213,14 @@ class ProjectGroupIndexEndpoint(Endpoint):
                 for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
-                    create_or_update(
-                        Activity,
+                    activity = Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.SET_RESOLVED,
                         user=request.user,
                     )
+                    activity.send_notification()
+
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 

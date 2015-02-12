@@ -1,0 +1,14 @@
+{% spaceless %}
+{% autoescape off %}
+{{ author }} assigned this event to you.
+
+
+Details
+-------
+
+{{ group.title }}
+
+{{ link }}
+
+{% endautoescape %}
+{% endspaceless %}

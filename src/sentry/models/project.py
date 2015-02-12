@@ -195,6 +195,16 @@ class Project(Model):
 
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
 
+    @property
+    def member_set(self):
+        from sentry.models import OrganizationMember
+
+        return OrganizationMember.objects.filter(
+            Q(teams=self.team) | Q(has_global_access=True),
+            user__is_active=True,
+            organization=self.organization,
+        )
+
     def has_access(self, user, access=None):
         from sentry.models import OrganizationMember
 

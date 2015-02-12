@@ -221,8 +221,7 @@ class GroupDetailsEndpoint(Endpoint):
                     affected = True
 
                 if affected:
-                    create_or_update(
-                        Activity,
+                    activity = Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.ASSIGNED,
@@ -231,10 +230,7 @@ class GroupDetailsEndpoint(Endpoint):
                             'assignee': result['assignedTo'].id,
                         }
                     )
-
-                    if request.user != assignee.user:
-                        # TODO(dcramer): send email
-                        pass
+                    activity.send_notification()
 
             else:
                 affected = GroupAssignee.objects.filter(
@@ -242,13 +238,13 @@ class GroupDetailsEndpoint(Endpoint):
                 ).delete()
 
                 if affected:
-                    create_or_update(
-                        Activity,
+                    activity = Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.UNASSIGNED,
                         user=request.user,
                     )
+                    activity.send_notification()
 
         return Response(serialize(group, request.user))
 
