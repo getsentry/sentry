@@ -101,7 +101,7 @@ class Activity(Model):
             send_to = [u for u in member_set if u not in disabled]
 
         # never include the actor
-        send_to = [u for u in member_set if u != self.user_id]
+        send_to = [u for u in send_to if u != self.user_id]
 
         return send_to
 
