@@ -1,16 +1,38 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Router = require("react-router");
 
 var api = require("../../api");
 var Count = require("../../components/count");
 var LoadingError = require("../../components/loadingError");
 var LoadingIndicator = require("../../components/loadingIndicator");
+var TimeSince = require("../../components/timeSince");
+var TeamState = require("../../mixins/teamState");
 var PropTypes = require("../../proptypes");
 
 var EventNode = React.createClass({
+  mixins: [TeamState],
+
   propTypes: {
     group: PropTypes.Group.isRequired
+  },
+
+  makeGroupLink(title) {
+    var group = this.props.group;
+    var org = this.getOrganization();
+
+    var params = {
+      orgId: org.slug,
+      projectId: group.project.slug,
+      groupId: group.id
+    };
+
+    return (
+      <Router.Link to="groupDetails" params={params}>
+        {title}
+      </Router.Link>
+    );
   },
 
   render() {
@@ -20,14 +42,19 @@ var EventNode = React.createClass({
       userCount = group.tags["sentry:user"].count :
       0);
 
-
     return (
       <li className="group">
         <div className="row">
           <div className="col-xs-8 event-details">
-            <h3><a>{group.title}</a></h3>
+            <h3>{this.makeGroupLink(group.title)}</h3>
             <div className="event-message">{group.culprit}</div>
-            <div className="event-meta"><span>First:</span> <time time-since="group.firstSeen"></time>. <span>Last:</span> <time time-since="group.lastSeen"></time>.</div>
+            <div className="event-meta">
+              <span>First:</span>
+              <TimeSince date={group.firstSeen} className="first-seen"/>
+              &nbsp;&mdash;&nbsp;
+              <span>Last:</span>
+              <TimeSince date={group.lastSeen} className="last-seen"/>
+            </div>
           </div>
           <div className="col-xs-2 event-occurrences align-right">
             <Count value={group.count} />
