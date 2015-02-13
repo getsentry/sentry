@@ -25,14 +25,6 @@ class TeamSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class TeamAdminSerializer(TeamSerializer):
-    owner = serializers.SlugRelatedField(slug_field='username', required=False)
-
-    class Meta:
-        model = Team
-        fields = ('name', 'slug', 'owner')
-
-
 class TeamDetailsEndpoint(TeamEndpoint):
     def get(self, request, team):
         """
@@ -51,13 +43,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
     def put(self, request, team):
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
-        # TODO(dcramer): this permission logic is duplicated from the
-        # transformer
-        if request.user.is_superuser or team.owner_id == request.user.id:
-            serializer = TeamAdminSerializer(team, data=request.DATA, partial=True)
-        else:
-            serializer = TeamSerializer(team, data=request.DATA, partial=True)
-
+        serializer = TeamSerializer(team, data=request.DATA, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
