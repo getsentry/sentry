@@ -342,7 +342,7 @@ margin-right: -10px;
     font-size: 18px;
     font-weight: 600;
     line-height: 1;
-    padding: 24px 20px;
+    padding: 25px 20px;
     display: block;
     position: relative;
   }
@@ -392,7 +392,7 @@ header {
   border-bottom: 1px solid #E6E7E9;
   position: relative;
   height: 66px;
-  padding: 24px 0 0;
+  padding: 25px 0 0;
   line-height: 1;
 
   .breadcrumb {
@@ -404,10 +404,7 @@ header {
     li {
       float: left;
       position: relative;
-
-      &:first-child {
-        font-weight: 500;
-      }
+      font-weight: 500;
 
       &+li {
         padding-left: 23px;
@@ -430,6 +427,15 @@ header {
         a {
           color: @gray-light;
         }
+      }
+      &:first-child:last-child {
+        a {
+          color: @gray-dark;
+        }
+      }
+
+      &:nth-child(3) {
+        font-weight: 400;
       }
     }
 
@@ -479,7 +485,7 @@ header {
   }
 
   .user-nav {
-    top: -5px;
+    top: -8px;
 
     .dropdown-toggle {
       img {
