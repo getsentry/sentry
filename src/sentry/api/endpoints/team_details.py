@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
@@ -33,8 +33,8 @@ class TeamAdminSerializer(TeamSerializer):
         fields = ('name', 'slug', 'owner')
 
 
-class TeamDetailsEndpoint(Endpoint):
-    def get(self, request, organization_slug, team_slug):
+class TeamDetailsEndpoint(TeamEndpoint):
+    def get(self, request, team):
         """
         Retrieve a team.
 
@@ -43,22 +43,12 @@ class TeamDetailsEndpoint(Endpoint):
             {method} {path}
 
         """
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
         assert_perm(team, request.user, request.auth)
 
         return Response(serialize(team, request.user))
 
     @sudo_required
-    def put(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
+    def put(self, request, team):
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         # TODO(dcramer): this permission logic is duplicated from the
@@ -85,12 +75,7 @@ class TeamDetailsEndpoint(Endpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
-    def delete(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
+    def delete(self, request, team):
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         updated = Team.objects.filter(

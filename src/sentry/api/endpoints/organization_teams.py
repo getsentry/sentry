@@ -3,10 +3,11 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, Team
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Team
 )
 from sentry.permissions import can_create_teams
 
@@ -16,11 +17,9 @@ class TeamSerializer(serializers.Serializer):
     slug = serializers.CharField(max_length=200, required=False)
 
 
-class OrganizationTeamsEndpoint(Endpoint):
-    def get(self, request, organization_slug):
-        organization = Organization.objects.get_from_cache(
-            slug=organization_slug,
-        )
+class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    def get(self, request, organization):
+        assert_perm(organization, request.user, request.auth)
 
         if request.auth:
             teams = [request.auth.project.team]
@@ -33,10 +32,8 @@ class OrganizationTeamsEndpoint(Endpoint):
             )
         return Response(serialize(teams, request.user))
 
-    def post(self, request, organization_slug):
-        organization = Organization.objects.get_from_cache(
-            slug=organization_slug,
-        )
+    def post(self, request, organization):
+        assert_perm(organization, request.user, request.auth, OrganizationMemberType.ADMIN)
 
         if not can_create_teams(request.user, organization):
             return Response(status=403)

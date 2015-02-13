@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.team import TeamEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import MEMBER_ADMIN, MEMBER_SYSTEM, MEMBER_USER
-from sentry.models import Team, AccessGroup
+from sentry.models import AccessGroup
 
 
 class AccessTypeField(serializers.ChoiceField):
@@ -48,25 +48,15 @@ class AccessGroupSerializer(serializers.ModelSerializer):
         fields = ('name', 'type')
 
 
-class TeamAccessGroupIndexEndpoint(Endpoint):
-    def get(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
+class TeamAccessGroupIndexEndpoint(TeamEndpoint):
+    def get(self, request, team):
         assert_perm(team, request.user, request.auth)
 
         data = sorted(AccessGroup.objects.filter(team=team), key=lambda x: x.name)
 
         return Response(serialize(data, request.user))
 
-    def post(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
+    def post(self, request, team):
         assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         serializer = AccessGroupSerializer(data=request.DATA)

@@ -2,30 +2,30 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import assert_perm
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Project, TagKey, TagKeyStatus
+    AuditLogEntry, AuditLogEntryEvent, TagKey, TagKeyStatus
 )
 from sentry.tasks.deletion import delete_tag_key
 
 
-class ProjectTagKeyDetailsEndpoint(Endpoint):
-    def delete(self, request, project_id, key):
+class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
+    def delete(self, request, project, key):
         """
         Remove all occurances of the given tag key.
 
             {method} {path}
 
         """
-        project = Project.objects.get(
-            id=project_id,
-        )
-
-        tagkey = TagKey.objects.get(
-            project=project,
-            key=key,
-        )
+        try:
+            tagkey = TagKey.objects.get(
+                project=project,
+                key=key,
+            )
+        except TagKey.DoesNotExist:
+            raise ResourceDoesNotExist
 
         assert_perm(tagkey, request.user, request.auth)
 

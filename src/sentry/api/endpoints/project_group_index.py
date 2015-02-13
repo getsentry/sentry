@@ -7,7 +7,8 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.app import search
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import DocSection
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import (
@@ -15,8 +16,7 @@ from sentry.constants import (
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupBookmark, GroupMeta, GroupSeen, GroupStatus, Project,
-    TagKey
+    Activity, Group, GroupBookmark, GroupMeta, GroupSeen, GroupStatus, TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -34,13 +34,13 @@ class GroupSerializer(serializers.Serializer):
     merge = serializers.BooleanField()
 
 
-class ProjectGroupIndexEndpoint(Endpoint):
+class ProjectGroupIndexEndpoint(ProjectEndpoint):
     doc_section = DocSection.EVENTS
 
     # bookmarks=0/1
     # status=<x>
     # <tag>=<value>
-    def get(self, request, project_id):
+    def get(self, request, project):
         """
         List a project's aggregates
 
@@ -54,10 +54,6 @@ class ProjectGroupIndexEndpoint(Endpoint):
         Any standard Sentry structured search query can be passed via the
         ``query`` parameter.
         """
-        project = Project.objects.get_from_cache(
-            id=project_id,
-        )
-
         assert_perm(project, request.user, request.auth)
 
         query_kwargs = {
@@ -139,7 +135,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         return response
 
-    def put(self, request, project_id):
+    def put(self, request, project):
         """
         Bulk mutate a list of aggregates
 
@@ -165,10 +161,6 @@ class ProjectGroupIndexEndpoint(Endpoint):
         If any ids are out of scope this operation will succeed without any data
         mutation.
         """
-        project = Project.objects.get_from_cache(
-            id=project_id,
-        )
-
         assert_perm(project, request.user, request.auth)
 
         group_ids = request.GET.getlist('id')
@@ -275,7 +267,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         return Response(dict(result))
 
-    def delete(self, request, project_id):
+    def delete(self, request, project):
         """
         Bulk remove a list of aggregates
 
@@ -288,10 +280,6 @@ class ProjectGroupIndexEndpoint(Endpoint):
         If any ids are out of scope this operation will succeed without any data
         mutation
         """
-        project = Project.objects.get_from_cache(
-            id=project_id,
-        )
-
         assert_perm(project, request.user, request.auth)
 
         group_ids = request.GET.getlist('id')

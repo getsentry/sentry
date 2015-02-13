@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.team import TeamEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import MEMBER_ADMIN
-from sentry.models import Team, Project
+from sentry.models import Project
 from sentry.permissions import can_create_projects
 
 
@@ -17,24 +17,15 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TeamProjectIndexEndpoint(Endpoint):
-    def get(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
+class TeamProjectIndexEndpoint(TeamEndpoint):
+    def get(self, request, team):
         assert_perm(team, request.user, request.auth)
 
         results = list(Project.objects.get_for_user(team=team, user=request.user))
 
         return Response(serialize(results, request.user))
 
-    def post(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
+    def post(self, request, team):
         assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         if not can_create_projects(user=request.user, team=team):
