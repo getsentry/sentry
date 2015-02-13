@@ -1,8 +1,8 @@
 /*** @jsx React.DOM */
-var React = require('react');
+var React = require("react");
 
-var OverlayTrigger = require('react-bootstrap/OverlayTrigger');
-var Tooltip = require('react-bootstrap/Tooltip');
+var OverlayTrigger = require("react-bootstrap/OverlayTrigger");
+var Tooltip = require("react-bootstrap/Tooltip");
 
 var BarChart = React.createClass({
   propTypes: {
@@ -11,18 +11,48 @@ var BarChart = React.createClass({
       y: React.PropTypes.number.isRequired,
       label: React.PropTypes.string
     })),
+    interval: React.PropTypes.string,
     placement: React.PropTypes.string
   },
 
   getDefaultProps: function(){
     return {
-      placement: 'bottom'
+      placement: "bottom"
     };
   },
 
   floatFormat: function(number, places) {
       var multi = Math.pow(10, places);
       return parseInt(number * multi, 10) / multi;
+  },
+
+  timeLabelAsHour: function(point) {
+    var timeMoment = moment(point.x * 1000);
+    var nextMoment = timeMoment.clone().add(59, "minute");
+
+    return (
+      <span>
+        {timeMoment.format("LL")}<br />
+        {timeMoment.format("LT")} &mdash;&rsaquo; {nextMoment.format("LT")}
+      </span>
+    );
+  },
+
+  timeLabelAsRange: function(interval, point) {
+    var timeMoment = moment(point.x * 1000);
+    var nextMoment = timeMoment.clone().add(interval - 1, "second");
+
+    return (
+      <span>
+        {timeMoment.format("lll")}<br />
+        &mdash;&rsaquo; {nextMoment.format("lll")}
+      </span>
+    );
+  },
+
+  timeLabelAsFull: function(point) {
+    var timeMoment = moment(point.x * 1000);
+    return timeMoment.format("lll");
   },
 
   render: function(){
@@ -36,17 +66,34 @@ var BarChart = React.createClass({
       }
     });
 
-    var pointWidth = this.floatFormat(100.0 / points.length, 2) + '%';
+    var pointWidth = this.floatFormat(100.0 / points.length, 2) + "%";
+
+    var interval = (points.length > 1 ? points[1].x - points[0].x : null);
+    var timeLabelFunc;
+    switch (interval) {
+      case 3600:
+        timeLabelFunc = this.timeLabelAsHour;
+        break;
+      case null:
+        timeLabelFunc = this.timeLabelAsFull;
+        break;
+      default:
+        timeLabelFunc = this.timeLabelAsRange.bind(this, interval);
+    }
 
     var children = [];
-    points.forEach(function(point){
-      var pct = this.floatFormat(point.y / maxval * 99, 2) + '%';
+    points.forEach(function(point, pointIdx){
+      var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
+      var timeLabel = timeLabelFunc(point);
 
-      var title;
+      var title = (
+        <div>
+          {point.y} events<br/>
+          {timeLabel}
+        </div>
+      );
       if (point.label) {
-        title = <span>{point.y} events<br />({point.label})</span>;
-      } else {
-        title = <span>{point.y} events</span>;
+        title += <div>({point.label})</div>;
       }
 
       children.push((
@@ -58,10 +105,10 @@ var BarChart = React.createClass({
           </a>
         </OverlayTrigger>
       ));
-        // $('<a style="width:' + pointWidth + ';" rel="tooltip" title="' + title + '"><span style="height:' + pct + '">' + point.y + '</span></a>').tooltip({
-        //   placement: options.placement || 'bottom',
+        // $("<a style="width:" + pointWidth + ";" rel="tooltip" title="" + title + ""><span style="height:" + pct + "">" + point.y + "</span></a>").tooltip({
+        //   placement: options.placement || "bottom",
         //   html: true,
-        //   container: 'body'
+        //   container: "body"
         // }).appendTo($el);
     }.bind(this));
 
