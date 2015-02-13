@@ -83,7 +83,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
             {method} {path}
 
-        **Note:** Deletion happens asyncrhonously and therefor is not immediate.
+        **Note:** Deletion happens asynchronously and therefor is not immediate.
         However once deletion has begun the state of a project changes and will
         be hidden from most public views.
         """
