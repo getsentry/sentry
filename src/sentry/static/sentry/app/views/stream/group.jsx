@@ -76,7 +76,7 @@ var StreamGroup = React.createClass({
 
     return (
       <li className={className}>
-        <div className="col-md-7 event-details">
+        <div className="col-md-6 event-details">
           <div className="checkbox">
             <input type="checkbox" className="chk-select" value={data.id}
                    checked={this.state.isSelected}
@@ -97,6 +97,11 @@ var StreamGroup = React.createClass({
             &nbsp;&mdash;&nbsp;
             <span className="first-seen">from <TimeSince date={data.firstSeen} /></span>
           </div>
+        </div>
+        <div className="severity col-md-1 col-sm-1 hidden-xs">
+          <span className="severity-indicator-bg">
+            <span className="severity-indicator"></span>
+          </span>
         </div>
         <div className="event-assignee col-md-1 hidden-xs hidden-sm">
           <AssigneeSelector
