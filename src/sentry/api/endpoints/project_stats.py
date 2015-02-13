@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry.app import tsdb
 from sentry.api.base import BaseStatsEndpoint, DocSection
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import assert_perm
 from sentry.models import Project
 
@@ -33,9 +34,12 @@ class ProjectStatsEndpoint(BaseStatsEndpoint):
         **Note:** resolution should not be used unless you're familiar with Sentry
         internals as it's restricted to pre-defined values.
         """
-        project = Project.objects.get_from_cache(
-            id=project_id,
-        )
+        try:
+            project = Project.objects.get_from_cache(
+                id=project_id,
+            )
+        except Project.DoesNotExist:
+            raise ResourceDoesNotExist
 
         assert_perm(project, request.user, request.auth)
 
