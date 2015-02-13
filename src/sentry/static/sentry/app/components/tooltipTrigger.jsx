@@ -18,7 +18,7 @@ var TooltipTrigger = React.createClass({
     return {
       placement: "left",
       viewport: {
-        selector: "body .app",
+        selector: "body",
         padding: 5
       }
     };
