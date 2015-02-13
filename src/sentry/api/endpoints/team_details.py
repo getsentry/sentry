@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
@@ -26,6 +27,8 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class TeamDetailsEndpoint(TeamEndpoint):
+    doc_section = DocSection.TEAMS
+
     def get(self, request, team):
         """
         Retrieve a team.
@@ -41,6 +44,17 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
     @sudo_required
     def put(self, request, team):
+        """
+        Update a team
+
+        Update various attributes and configurable settings for the given team.
+
+            {method} {path}
+            {{
+              "name": "My Team Name"
+            }}
+
+        """
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         serializer = TeamSerializer(team, data=request.DATA, partial=True)
@@ -62,6 +76,17 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
     @sudo_required
     def delete(self, request, team):
+        """
+        Delete a team
+
+        Schedules a team for deletion.
+
+            {method} {path}
+
+        **Note:** Deletion happens asyncrhonously and therefor is not immediate.
+        However once deletion has begun the state of a project changes and will
+        be hidden from most public views.
+        """
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         updated = Team.objects.filter(
