@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
@@ -18,7 +19,17 @@ class TeamSerializer(serializers.Serializer):
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    doc_section = DocSection.ORGANIZATIONS
+
     def get(self, request, organization):
+        """
+        List an organization's teams
+
+        Return a list of teams bound to a organization.
+
+            {method} {path}
+
+        """
         assert_perm(organization, request.user, request.auth)
 
         if request.auth:
@@ -33,6 +44,17 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         return Response(serialize(teams, request.user))
 
     def post(self, request, organization):
+        """
+        Create a new team
+
+        Create a new team bound to an organization.
+
+            {method} {path}
+            {{
+                "name": "My team"
+            }}
+
+        """
         assert_perm(organization, request.user, request.auth, OrganizationMemberType.ADMIN)
 
         if not can_create_teams(request.user, organization):
