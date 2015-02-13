@@ -1,8 +1,8 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
-var OverlayTrigger = require("react-bootstrap/OverlayTrigger");
-var Tooltip = require("react-bootstrap/Tooltip");
+var OverlayTrigger = require("./OverlayTrigger");
+var Tooltip = require("./Tooltip");
 
 var BarChart = React.createClass({
   propTypes: {
@@ -15,18 +15,18 @@ var BarChart = React.createClass({
     placement: React.PropTypes.string
   },
 
-  getDefaultProps: function(){
+  getDefaultProps(){
     return {
       placement: "bottom"
     };
   },
 
-  floatFormat: function(number, places) {
+  floatFormat(number, places) {
       var multi = Math.pow(10, places);
       return parseInt(number * multi, 10) / multi;
   },
 
-  timeLabelAsHour: function(point) {
+  timeLabelAsHour(point) {
     var timeMoment = moment(point.x * 1000);
     var nextMoment = timeMoment.clone().add(59, "minute");
 
@@ -38,7 +38,7 @@ var BarChart = React.createClass({
     );
   },
 
-  timeLabelAsRange: function(interval, point) {
+  timeLabelAsRange(interval, point) {
     var timeMoment = moment(point.x * 1000);
     var nextMoment = timeMoment.clone().add(interval - 1, "second");
 
@@ -50,12 +50,12 @@ var BarChart = React.createClass({
     );
   },
 
-  timeLabelAsFull: function(point) {
+  timeLabelAsFull(point) {
     var timeMoment = moment(point.x * 1000);
     return timeMoment.format("lll");
   },
 
-  render: function(){
+  render(){
     // TODO: maxval could default to # of hours since first_seen / times_seen
     var points = this.props.points;
 
@@ -81,13 +81,12 @@ var BarChart = React.createClass({
         timeLabelFunc = this.timeLabelAsRange.bind(this, interval);
     }
 
-    var children = [];
-    points.forEach(function(point, pointIdx){
+    var children = points.map((point, pointIdx) => {
       var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
       var timeLabel = timeLabelFunc(point);
 
       var title = (
-        <div>
+        <div style={{minWidth: 200}}>
           {point.y} events<br/>
           {timeLabel}
         </div>
@@ -96,21 +95,22 @@ var BarChart = React.createClass({
         title += <div>({point.label})</div>;
       }
 
-      children.push((
-        <OverlayTrigger overlay={<Tooltip>{title}</Tooltip>}
+      var tooltip = (
+        <Tooltip>
+          {title}
+        </Tooltip>
+      );
+
+      return (
+        <OverlayTrigger overlay={tooltip}
                         placement={this.props.placement}
                         key={point.x}>
           <a style={{width: pointWidth}}>
             <span style={{height: pct}}>{point.y}</span>
           </a>
         </OverlayTrigger>
-      ));
-        // $("<a style="width:" + pointWidth + ";" rel="tooltip" title="" + title + ""><span style="height:" + pct + "">" + point.y + "</span></a>").tooltip({
-        //   placement: options.placement || "bottom",
-        //   html: true,
-        //   container: "body"
-        // }).appendTo($el);
-    }.bind(this));
+      );
+    });
 
     return (
       <figure className={this.props.className}>
