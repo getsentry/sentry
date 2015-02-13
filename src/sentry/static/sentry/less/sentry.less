@@ -1602,6 +1602,7 @@ a.icon-share {
       overflow: hidden;
       .transition(all .2s ease-in-out);
     }
+
     &.isBookmarked {
       .icon-bookmark {
         display: inline-block;
@@ -1616,16 +1617,27 @@ a.icon-share {
       bottom: -1px;
       left: 0;
       width: 4px;
-      background: lighten(@blue, 5);
       z-index: 100;
       .transition(all .2s ease-in-out);
     }
 
-    &.hasSeen {
-      .event-details:after {
-        background: transparent;
-      }
+    &.critical .event-details:after {
+      background: #EE3D39;
     }
+
+    &.important .event-details:after {
+      background: #F87C16;
+    }
+
+    &.non-critical .event-details:after {
+      background: #F8ED16;
+    }
+
+    // &.hasSeen {
+    //   .event-details:after {
+    //     background: transparent;
+    //   }
+    // }
 
     &.isResolved {
       h3 {
