@@ -21,5 +21,4 @@ celerybeat-schedule
 example/db.sqlite
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/
-/src/sentry/static/sentry/dist/
 /wheelhouse
