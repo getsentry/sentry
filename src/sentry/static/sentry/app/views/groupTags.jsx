@@ -59,10 +59,11 @@ var GroupTags = React.createClass({
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
         var valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
+          var pct = parseInt(tagValue.count / tag.totalValues * 100, 10);
           return (
             <li key={tagValueIdx}>
               <a className="tag-bar" href="">
-                <span className="tag-bar-background" style={{width: '10%'}}></span>
+                <span className="tag-bar-background" style={{width: pct + '%'}}></span>
                 <span className="tag-bar-label">{tagValue.value}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
               </a>
@@ -93,6 +94,9 @@ var GroupTags = React.createClass({
 
     return (
       <div className="row">
+        <div className="alert alert-info alert-block">
+          Counts represent values seen in the last ~7 days.
+        </div>
         {children}
       </div>
     );
