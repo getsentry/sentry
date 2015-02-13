@@ -9,6 +9,8 @@ module.exports = {
   entry: {
     "app": "app",
     "vendor": [
+      "bootstrap/js/dropdown",
+      "bootstrap/js/tooltip",
       "crypto-js/md5",
       "jquery",
       "moment",
