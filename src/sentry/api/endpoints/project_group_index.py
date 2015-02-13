@@ -46,7 +46,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         Return a list of aggregates bound to a project.
 
-            {method} {path}?id=1&id=2&id=3
+            {method} {path}
 
         A default query of 'is:resolved' is applied. To return results with
         other statuses send an new query value (i.e. ?query= for all results).
