@@ -1,8 +1,7 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
-var OverlayTrigger = require("./OverlayTrigger");
-var Tooltip = require("./Tooltip");
+var TooltipTrigger = require("./tooltipTrigger");
 
 var BarChart = React.createClass({
   propTypes: {
@@ -95,20 +94,15 @@ var BarChart = React.createClass({
         title += <div>({point.label})</div>;
       }
 
-      var tooltip = (
-        <Tooltip>
-          {title}
-        </Tooltip>
-      );
-
       return (
-        <OverlayTrigger overlay={tooltip}
-                        placement={this.props.placement}
-                        key={point.x}>
+        <TooltipTrigger
+            placement={this.props.placement}
+            key={point.x}
+            title={title}>
           <a style={{width: pointWidth}}>
             <span style={{height: pct}}>{point.y}</span>
           </a>
-        </OverlayTrigger>
+        </TooltipTrigger>
       );
     });
 
