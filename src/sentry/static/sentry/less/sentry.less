@@ -1296,7 +1296,7 @@ a.icon-share {
 
   .stream-actions-left {
     position: relative;
-    padding: 10px 0 10px 47px;
+    padding: 10px 0 10px 44px;
 
     .checkbox {
       position: absolute;
@@ -1621,18 +1621,6 @@ a.icon-share {
       .transition(all .2s ease-in-out);
     }
 
-    &.critical .event-details:after {
-      background: #EE3D39;
-    }
-
-    &.important .event-details:after {
-      background: #F87C16;
-    }
-
-    &.non-critical .event-details:after {
-      background: #F8ED16;
-    }
-
     &.hasSeen {
       h3 {
         a {
@@ -1691,7 +1679,7 @@ a.icon-share {
   }
 
   .event-details {
-    padding: 15px 0 15px 47px;
+    padding: 15px 0 15px 44px;
 
     h3 {
       font-size: 15px;
@@ -1747,7 +1735,7 @@ a.icon-share {
 
   .event-assignee {
     color: #B5B9BD;
-    padding-top: 26px;
+    padding-top: 28px;
 
     .dropdown-menu {
       right: 0px;
@@ -1795,6 +1783,92 @@ a.icon-share {
 
   &.similar-events {
     //TODO:Chris style similar events
+  }
+
+  .severity {
+    padding-top: 35px;
+    .severity-indicator-bg {
+      display: block;
+      width: 18px;
+      height: 3px;
+      background: lighten(@gray-light, 20);
+      border-radius: 2px;
+      position: relative;
+
+      &:before {
+        display: block;
+        content: "";
+        position: absolute;
+        top: 6px;
+        width: 18px;
+        height: 3px;
+        background: lighten(@gray-light, 20);
+        border-radius: 2px;
+      }
+
+      &:after {
+        display: block;
+        content: "";
+        position: absolute;
+        top: 12px;
+        width: 18px;
+        height: 3px;
+        background: lighten(@gray-light, 20);
+        border-radius: 2px;
+      }
+    }
+
+    .severity-indicator {
+      display: block;
+      width: 18px;
+      height: 3px;
+      border-radius: 2px;
+      position: relative;
+      z-index: 1;
+
+      &:before {
+        display: block;
+        content: "";
+        position: absolute;
+        top: 6px;
+        width: 18px;
+        height: 3px;
+        border-radius: 2px;
+      }
+
+      &:after {
+        display: block;
+        content: "";
+        position: absolute;
+        top: 12px;
+        width: 18px;
+        height: 3px;
+        border-radius: 2px;
+      }
+    }
+  }
+
+  .group {
+    &.critical .severity-indicator {
+      background: @red;
+
+      &:before,
+      &:after {
+        background: @red;
+      }
+    }
+
+    &.warning .severity-indicator {
+      &:before, &:after {
+        background: @orange;
+      }
+    }
+
+    &.info .severity-indicator {
+      &:after {
+        background: @blue;
+      }
+    }
   }
 }
 
