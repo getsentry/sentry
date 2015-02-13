@@ -25,8 +25,6 @@ var GroupTags = React.createClass({
   },
 
   fetchData() {
-    this.setState({loading: true});
-
     this.setState({
       loading: true,
       error: false
