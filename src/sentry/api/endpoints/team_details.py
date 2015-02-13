@@ -31,7 +31,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
     def get(self, request, team):
         """
-        Retrieve a team.
+        Retrieve a team
 
         Return details on an individual team.
 
