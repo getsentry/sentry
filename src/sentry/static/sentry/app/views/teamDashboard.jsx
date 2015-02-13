@@ -6,6 +6,7 @@ var Router = require("react-router");
 var EventList = require("./teamDashboard/eventList");
 var TeamChart = require("./teamDashboard/chart");
 var TeamState = require("../mixins/teamState");
+var TeamStatsBar = require("./teamDashboard/statsBar");
 
 var TeamDashboard = React.createClass({
   mixins: [
@@ -26,24 +27,7 @@ var TeamDashboard = React.createClass({
   render() {
     return (
       <div>
-        <div className="row team-stats">
-          <div className="col-md-3 stat-column">
-            <span className="count">323</span>
-            <span className="count-label">events seen</span>
-          </div>
-          <div className="col-md-3 stat-column">
-            <span className="count">137</span>
-            <span className="count-label">new events</span>
-          </div>
-          <div className="col-md-3 stat-column">
-            <span className="count">16</span>
-            <span className="count-label">releases</span>
-          </div>
-          <div className="col-md-3 stat-column align-right bad">
-            <span className="count">20%</span>
-            <span className="count-label">more than last week</span>
-          </div>
-        </div>
+        <TeamStatsBar />
         <TeamChart />
         <div className="row">
           <div className="col-md-6">
