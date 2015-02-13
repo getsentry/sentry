@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
@@ -9,7 +10,17 @@ from sentry.models import Project, Team
 
 
 class OrganizationProjectsEndpoint(OrganizationEndpoint):
+    doc_section = DocSection.ORGANIZATIONS
+
     def get(self, request, organization):
+        """
+        List an organization's projects
+
+        Return a list of projects bound to a organization.
+
+            {method} {path}
+
+        """
         assert_perm(organization, request.user, request.auth)
 
         team_list = Team.objects.get_for_user(
