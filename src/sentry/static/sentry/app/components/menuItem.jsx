@@ -2,23 +2,11 @@
 
 var React = require("react");
 var Router = require("react-router");
-var joinClasses = require("react-bootstrap/utils/joinClasses");
-var classSet = require("react-bootstrap/utils/classSet");
 
-var DropdownContext = {
-  contextTypes: {
-    setDropdownState: React.PropTypes.func.isRequired
-  },
-
-  setDropdownState() {
-    this.context.setDropdownState.apply(arguments);
-  }
-};
-
+var joinClasses = require("react/lib/joinClasses");
+var classSet = require("react/lib/cx");
 
 var MenuItem = React.createClass({
-  mixins: [DropdownContext],
-
   propTypes: {
     header:    React.PropTypes.bool,
     divider:   React.PropTypes.bool,
@@ -40,7 +28,6 @@ var MenuItem = React.createClass({
       e.preventDefault();
       this.props.onSelect(this.props.eventKey);
     }
-    this.setDropdownState(false);
   },
 
   renderAnchor() {
