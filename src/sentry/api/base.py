@@ -31,7 +31,7 @@ class DocSection(Enum):
     RELEASES = 'Releases'
     ORGANIZATIONS = 'Organizations'
     PROJECTS = 'Projects'
-    # TEAMS = 'Teams'
+    TEAMS = 'Teams'
 
 
 class Endpoint(APIView):
