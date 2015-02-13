@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
@@ -18,7 +19,17 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class TeamProjectIndexEndpoint(TeamEndpoint):
+    doc_section = DocSection.TEAMS
+
     def get(self, request, team):
+        """
+        List a team's projects
+
+        Return a list of projects bound to a team.
+
+            {method} {path}
+
+        """
         assert_perm(team, request.user, request.auth)
 
         results = list(Project.objects.get_for_user(team=team, user=request.user))
@@ -26,6 +37,17 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
         return Response(serialize(results, request.user))
 
     def post(self, request, team):
+        """
+        Create a new project
+
+        Create a new project bound to a team.
+
+            {method} {path}
+            {{
+                "name": "My project"
+            }}
+
+        """
         assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
 
         if not can_create_projects(user=request.user, team=team):
