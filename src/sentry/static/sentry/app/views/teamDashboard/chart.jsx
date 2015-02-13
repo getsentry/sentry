@@ -1,15 +1,15 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var Router = require("react-router");
 
 var api = require("../../api");
 var BarChart = require("../../components/barChart");
 var LoadingError = require("../../components/loadingError");
 var LoadingIndicator = require("../../components/loadingIndicator");
+var TeamState = require("../../mixins/teamState");
 
 var TeamChart = React.createClass({
-  mixins: [Router.State],
+  mixins: [TeamState],
 
   getInitialState() {
     return {
@@ -20,8 +20,9 @@ var TeamChart = React.createClass({
   },
 
   getStatsEndpoint() {
-    var params = this.getParams();
-    return "/teams/" + params.orgId + "/" + params.teamId + "/stats/";
+    var org = this.getOrganization();
+    var team = this.getTeam();
+    return "/teams/" + org.slug + "/" + team.slug + "/stats/";
   },
 
   componentWillMount() {
