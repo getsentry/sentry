@@ -38,7 +38,7 @@ var DropdownLink = React.createClass({
            data-toggle="dropdown">
           {this.props.title}
           {this.props.caret &&
-            <span className="icon-arrow-down" />
+            <i className="icon-arrow-down" />
           }
         </a>
         <ul className="dropdown-menu" ref="menu">
