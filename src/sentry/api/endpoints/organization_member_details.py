@@ -18,6 +18,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         queryset = OrganizationMember.objects.filter(
             organization=member.organization_id,
             type=OrganizationMemberType.OWNER,
+            user__isnull=False,
         ).exclude(id=member.id)
         if queryset.exists():
             return False
@@ -55,6 +56,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             organization.owner = OrganizationMember.objects.filter(
                 organization=om.organization,
                 type=OrganizationMemberType.OWNER,
+                user__isnull=False,
             ).exclude(id=om.id)[0].user
             organization.save()
 

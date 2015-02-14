@@ -39,7 +39,9 @@ class OrganizationMembersView(OrganizationView):
         # if the member is not the only owner we allow them to leave the org
         member_can_leave = any(
             1 for om, _ in member_list
-            if om.type == OrganizationMemberType.OWNER and om.user != request.user
+            if (om.type == OrganizationMemberType.OWNER
+                and om.user != request.user
+                and om.user is not None)
         )
 
         context = {
