@@ -689,6 +689,9 @@ SENTRY_MAX_VARIABLE_SIZE = 512
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
 
+# For changing the amount of data seen in Http Response Body part.
+SENTRY_MAX_HTTP_BODY_SIZE = 2048
+
 # For various attributes we don't limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of
 # keys
