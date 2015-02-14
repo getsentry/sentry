@@ -25,7 +25,7 @@
   },
   "private": true,
   "scripts": {
-    "postinstall": "bower install",
+    "postinstall": "bower install --allow-root",
     "pretest": "npm install && npm run build_static",
     "test": "mocha-phantomjs -p node_modules/phantomjs/bin/phantomjs -R dot tests/js/index.html",
     "build_static": "gulp dist",
