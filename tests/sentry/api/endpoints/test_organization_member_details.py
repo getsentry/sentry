@@ -35,6 +35,13 @@ class DeleteOrganizationMemberTest(APITestCase):
 
         organization = self.create_organization(name='foo', owner=self.user)
 
+        # create a pending member, which shouldn't be counted in the checks
+        OrganizationMember.objects.create(
+            organization=organization,
+            type=OrganizationMemberType.OWNER,
+            email='bar@example.com',
+        )
+
         owner_om = OrganizationMember.objects.get(
             organization=organization,
             user=self.user,
