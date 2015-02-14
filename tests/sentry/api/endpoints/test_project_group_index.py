@@ -29,7 +29,7 @@ class GroupListTest(APITestCase):
 
 
 class GroupUpdateTest(APITestCase):
-    def test_global_status_update(self):
+    def test_global_resolve(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
@@ -40,7 +40,7 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
             'project_id': self.project.id})
-        response = self.client.put(url, data={
+        response = self.client.put(url + '?status=unresolved', data={
             'status': 'resolved',
         }, format='json')
         assert response.status_code == 200
@@ -48,6 +48,7 @@ class GroupUpdateTest(APITestCase):
             'status': 'resolved',
         }
 
+        # the previously resolved entry should not be included
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.status == GroupStatus.RESOLVED
         assert new_group1.resolved_at is None
@@ -56,9 +57,10 @@ class GroupUpdateTest(APITestCase):
         assert new_group2.status == GroupStatus.RESOLVED
         assert new_group2.resolved_at is not None
 
+        # the muted entry should not be included
         new_group3 = Group.objects.get(id=group3.id)
-        assert new_group3.status == GroupStatus.RESOLVED
-        assert new_group3.resolved_at is not None
+        assert new_group3.status == GroupStatus.MUTED
+        assert new_group3.resolved_at is None
 
         new_group4 = Group.objects.get(id=group4.id)
         assert new_group4.status == GroupStatus.UNRESOLVED

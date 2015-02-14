@@ -147,9 +147,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
               "isBookmarked": true
             }}
 
-        - For non-status updates, only queries by 'id' are accepted.
+        - For non-status updates, the 'id' parameter is required.
         - For status updates, the 'id' parameter may be omitted for a batch
-        "update all" query.
+          "update all" query.
+        - An optional 'status' parameter may be used to restrict mutations to
+          only events with the given status.
 
         Attributes:
 
@@ -185,14 +187,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             return Response(status=400)
 
         if group_ids:
-            filters = Q(id__in=group_ids)
+            filters = [Q(id__in=group_ids)]
         else:
-            filters = Q(project=project)
+            filters = [Q(project=project)]
+
+        if request.GET.get('status'):
+            try:
+                status_filter = STATUS_CHOICES[request.GET['status']]
+            except KeyError:
+                return Response(status=400)
+            filters.append(Q(status=status_filter))
 
         if result.get('status') == 'resolved':
             now = timezone.now()
 
-            happened = Group.objects.filter(filters).exclude(
+            happened = Group.objects.filter(*filters).exclude(
                 status=GroupStatus.RESOLVED,
             ).update(
                 status=GroupStatus.RESOLVED,
@@ -214,14 +223,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
-            happened = Group.objects.filter(filters).exclude(
+            happened = Group.objects.filter(*filters).exclude(
                 status=new_status,
             ).update(
                 status=new_status,
             )
             if group_list and happened:
+                if new_status == GroupStatus.UNRESOLVED:
+                    activity_type = Activity.SET_UNRESOLVED
+                elif new_status == GroupStatus.MUTED:
+                    activity_type = Activity.SET_MUTED
+
                 for group in group_list:
                     group.status = new_status
+                    activity = Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=activity_type,
+                        user=request.user,
+                    )
+                    activity.send_notification()
 
         if result.get('hasSeen'):
             for group in group_list:
