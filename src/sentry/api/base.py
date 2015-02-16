@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 from django.utils.http import urlquote
+from django.views.decorators.csrf import csrf_exempt
 from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
@@ -30,7 +31,7 @@ class DocSection(Enum):
     RELEASES = 'Releases'
     ORGANIZATIONS = 'Organizations'
     PROJECTS = 'Projects'
-    # TEAMS = 'Teams'
+    TEAMS = 'Teams'
 
 
 class Endpoint(APIView):
@@ -56,6 +57,43 @@ class Endpoint(APIView):
             name=name,
             has_results='true' if bool(cursor) else 'false',
         )
+
+    def convert_args(self, request, *args, **kwargs):
+        return (args, kwargs)
+
+    @csrf_exempt
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Identical to rest framework's dispatch except we add the ability
+        to convert arguments (for common URL params).
+        """
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers  # deprecate?
+
+        try:
+            self.initial(request, *args, **kwargs)
+
+            # Get the appropriate handler method
+            if request.method.lower() in self.http_method_names:
+                handler = getattr(self, request.method.lower(),
+                                  self.http_method_not_allowed)
+
+                (args, kwargs) = self.convert_args(request, *args, **kwargs)
+                self.args = args
+                self.kwargs = kwargs
+            else:
+                handler = self.http_method_not_allowed
+
+            response = handler(request, *args, **kwargs)
+
+        except Exception as exc:
+            response = self.handle_exception(exc)
+
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
 
     def paginate(self, request, on_results=lambda x: x, **kwargs):
         per_page = int(request.GET.get('per_page', 100))

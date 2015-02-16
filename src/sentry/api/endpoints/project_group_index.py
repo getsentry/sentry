@@ -7,7 +7,8 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.app import search
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import DocSection
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import (
@@ -15,8 +16,7 @@ from sentry.constants import (
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupBookmark, GroupMeta, GroupSeen, GroupStatus, Project,
-    TagKey
+    Activity, Group, GroupBookmark, GroupMeta, GroupSeen, GroupStatus, TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -34,19 +34,19 @@ class GroupSerializer(serializers.Serializer):
     merge = serializers.BooleanField()
 
 
-class ProjectGroupIndexEndpoint(Endpoint):
+class ProjectGroupIndexEndpoint(ProjectEndpoint):
     doc_section = DocSection.EVENTS
 
     # bookmarks=0/1
     # status=<x>
     # <tag>=<value>
-    def get(self, request, organization_slug, project_slug):
+    def get(self, request, project):
         """
         List a project's aggregates
 
         Return a list of aggregates bound to a project.
 
-            {method} {path}?id=1&id=2&id=3
+            {method} {path}
 
         A default query of 'is:resolved' is applied. To return results with
         other statuses send an new query value (i.e. ?query= for all results).
@@ -54,11 +54,6 @@ class ProjectGroupIndexEndpoint(Endpoint):
         Any standard Sentry structured search query can be passed via the
         ``query`` parameter.
         """
-        project = Project.objects.get(
-            organization__slug=organization_slug,
-            slug=project_slug,
-        )
-
         assert_perm(project, request.user, request.auth)
 
         query_kwargs = {
@@ -140,7 +135,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         return response
 
-    def put(self, request, organization_slug, project_slug):
+    def put(self, request, project):
         """
         Bulk mutate a list of aggregates
 
@@ -152,9 +147,11 @@ class ProjectGroupIndexEndpoint(Endpoint):
               "isBookmarked": true
             }}
 
-        - For non-status updates, only queries by 'id' are accepted.
+        - For non-status updates, the 'id' parameter is required.
         - For status updates, the 'id' parameter may be omitted for a batch
-        "update all" query.
+          "update all" query.
+        - An optional 'status' parameter may be used to restrict mutations to
+          only events with the given status.
 
         Attributes:
 
@@ -166,11 +163,6 @@ class ProjectGroupIndexEndpoint(Endpoint):
         If any ids are out of scope this operation will succeed without any data
         mutation.
         """
-        project = Project.objects.get(
-            organization__slug=organization_slug,
-            slug=project_slug,
-        )
-
         assert_perm(project, request.user, request.auth)
 
         group_ids = request.GET.getlist('id')
@@ -195,14 +187,21 @@ class ProjectGroupIndexEndpoint(Endpoint):
             return Response(status=400)
 
         if group_ids:
-            filters = Q(id__in=group_ids)
+            filters = [Q(id__in=group_ids)]
         else:
-            filters = Q(project=project)
+            filters = [Q(project=project)]
+
+        if request.GET.get('status'):
+            try:
+                status_filter = STATUS_CHOICES[request.GET['status']]
+            except KeyError:
+                return Response(status=400)
+            filters.append(Q(status=status_filter))
 
         if result.get('status') == 'resolved':
             now = timezone.now()
 
-            happened = Group.objects.filter(filters).exclude(
+            happened = Group.objects.filter(*filters).exclude(
                 status=GroupStatus.RESOLVED,
             ).update(
                 status=GroupStatus.RESOLVED,
@@ -224,14 +223,26 @@ class ProjectGroupIndexEndpoint(Endpoint):
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
-            happened = Group.objects.filter(filters).exclude(
+            happened = Group.objects.filter(*filters).exclude(
                 status=new_status,
             ).update(
                 status=new_status,
             )
             if group_list and happened:
+                if new_status == GroupStatus.UNRESOLVED:
+                    activity_type = Activity.SET_UNRESOLVED
+                elif new_status == GroupStatus.MUTED:
+                    activity_type = Activity.SET_MUTED
+
                 for group in group_list:
                     group.status = new_status
+                    activity = Activity.objects.create(
+                        project=group.project,
+                        group=group,
+                        type=activity_type,
+                        user=request.user,
+                    )
+                    activity.send_notification()
 
         if result.get('hasSeen'):
             for group in group_list:
@@ -277,7 +288,7 @@ class ProjectGroupIndexEndpoint(Endpoint):
 
         return Response(dict(result))
 
-    def delete(self, request, organization_slug, project_slug):
+    def delete(self, request, project):
         """
         Bulk remove a list of aggregates
 
@@ -290,11 +301,6 @@ class ProjectGroupIndexEndpoint(Endpoint):
         If any ids are out of scope this operation will succeed without any data
         mutation
         """
-        project = Project.objects.get(
-            organization__slug=organization_slug,
-            slug=project_slug,
-        )
-
         assert_perm(project, request.user, request.auth)
 
         group_ids = request.GET.getlist('id')

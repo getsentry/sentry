@@ -41,7 +41,10 @@ class ProjectUpdateTest(APITestCase):
     def test_options(self):
         project = self.project  # force creation
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-project-details', kwargs={'project_id': project.id})
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
         options = {
             'sentry:origins': 'foo\nbar',
             'sentry:resolve_age': 1,

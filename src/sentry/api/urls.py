@@ -12,6 +12,7 @@ from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
+from .endpoints.index import IndexEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -24,7 +25,6 @@ from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
-from .endpoints.team_access_group_index import TeamAccessGroupIndexEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_project_index import TeamProjectIndexEndpoint
@@ -77,9 +77,6 @@ urlpatterns = patterns(
     url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/projects/$',
         TeamProjectIndexEndpoint.as_view(),
         name='sentry-api-0-team-project-index'),
-    url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/access-groups/$',
-        TeamAccessGroupIndexEndpoint.as_view(),
-        name='sentry-api-0-team-access-group-index'),
     url(r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/stats/$',
         TeamStatsEndpoint.as_view(),
         name='sentry-api-0-team-stats'),
@@ -133,6 +130,11 @@ urlpatterns = patterns(
     url(r'^events/(?P<event_id>\d+)/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'),
+
+    url(r'^$',
+        IndexEndpoint.as_view(),
+        name='sentry-api-catchall'),
+
 
     url(r'^',
         CatchallEndpoint.as_view(),

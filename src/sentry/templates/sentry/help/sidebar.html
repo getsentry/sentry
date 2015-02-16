@@ -20,7 +20,6 @@
 <h4>API Reference</h4>
 <ul class="nav">
     <li><a href="{% url 'sentry-api-0-help' %}">Overview</a></li>
-    <li><a href="{% url 'sentry-api-0-help-pagination' %}">Pagination</a></li>
     {% for section in api_sections %}
       <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
     {% endfor %}
