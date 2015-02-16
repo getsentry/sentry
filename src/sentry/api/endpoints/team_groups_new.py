@@ -4,14 +4,14 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.team import TeamEndpoint
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.models import Group, GroupStatus, Project, Team
+from sentry.models import Group, GroupStatus, Project
 
 
-class TeamGroupsNewEndpoint(Endpoint):
-    def get(self, request, organization_slug, team_slug):
+class TeamGroupsNewEndpoint(TeamEndpoint):
+    def get(self, request, team):
         """
         Return a list of the newest groups for a given team.
 
@@ -19,11 +19,6 @@ class TeamGroupsNewEndpoint(Endpoint):
         cutoff date, and then sort those by score, returning the highest scoring
         groups first.
         """
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
         assert_perm(team, request.user, request.auth)
 
         minutes = int(request.REQUEST.get('minutes', 15))

@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection
+from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
@@ -25,29 +26,18 @@ class TeamSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class TeamAdminSerializer(TeamSerializer):
-    owner = serializers.SlugRelatedField(slug_field='username', required=False)
+class TeamDetailsEndpoint(TeamEndpoint):
+    doc_section = DocSection.TEAMS
 
-    class Meta:
-        model = Team
-        fields = ('name', 'slug', 'owner')
-
-
-class TeamDetailsEndpoint(Endpoint):
-    def get(self, request, organization_slug, team_slug):
+    def get(self, request, team):
         """
-        Retrieve a team.
+        Retrieve a team
 
         Return details on an individual team.
 
             {method} {path}
 
         """
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
-
         assert_perm(team, request.user, request.auth)
 
         context = serialize(team, request.user)
@@ -56,21 +46,21 @@ class TeamDetailsEndpoint(Endpoint):
         return Response(context)
 
     @sudo_required
-    def put(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
+    def put(self, request, team):
+        """
+        Update a team
 
+        Update various attributes and configurable settings for the given team.
+
+            {method} {path}
+            {{
+              "name": "My Team Name"
+            }}
+
+        """
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
-        # TODO(dcramer): this permission logic is duplicated from the
-        # transformer
-        if request.user.is_superuser or team.owner_id == request.user.id:
-            serializer = TeamAdminSerializer(team, data=request.DATA, partial=True)
-        else:
-            serializer = TeamSerializer(team, data=request.DATA, partial=True)
-
+        serializer = TeamSerializer(team, data=request.DATA, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
@@ -88,12 +78,18 @@ class TeamDetailsEndpoint(Endpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
-    def delete(self, request, organization_slug, team_slug):
-        team = Team.objects.get(
-            organization__slug=organization_slug,
-            slug=team_slug,
-        )
+    def delete(self, request, team):
+        """
+        Delete a team
 
+        Schedules a team for deletion.
+
+            {method} {path}
+
+        **Note:** Deletion happens asynchronously and therefor is not immediate.
+        However once deletion has begun the state of a project changes and will
+        be hidden from most public views.
+        """
         assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
 
         updated = Team.objects.filter(
