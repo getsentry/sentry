@@ -3276,6 +3276,7 @@ table.integrations {
 }
 
 .windowed-small {
+  background: #fbfbfc;
   padding-top: 100px;
   .container {
     max-width: 600px !important;
@@ -3342,8 +3343,13 @@ table.integrations {
 // Docs
 
 .docs {
-  .container {
-    max-width: 1100px;
+  background-color: #fff !important;
+
+  .app {
+    .content {
+      max-width: 700px !important;
+      margin: 0 auto;
+    }
   }
 
   header {
@@ -3362,10 +3368,24 @@ table.integrations {
     }
   }
 
+  footer {
+    border-top: 1px solid #f1f2f3;
+    margin-top: 20px;
+    padding-top: 22px;
+  }
+
   .icon-sentry-logo-full {
     font-size: 24px;
     float: left;
     margin-right: 30px;
+  }
+
+  .app-sidebar .btn-primary {
+    .icon-arrow-left {
+      position: relative;
+      left: -10px;
+      margin-right: -10px;
+    }
   }
 
   .content {
@@ -3411,6 +3431,7 @@ table.integrations {
         a {
           color: lighten(@grayDark, 37);
           display: block;
+
           &:hover {
             color: lighten(@grayDark, 20);
           }
@@ -3597,7 +3618,13 @@ table.integrations {
   border: 1px solid #E9EBEC;
   box-shadow: none;
   background: #fff;
-  padding-bottom: 10px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+
+  &.important {
+    background: @yellow;
+    border: 0;
+  }
 }
 
 /* Small screens */
