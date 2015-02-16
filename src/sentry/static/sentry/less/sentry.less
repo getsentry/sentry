@@ -74,8 +74,18 @@ body {
     }
   }
 
-  &.signed-out {
+  &.account {
+    .container {
+      max-width: 660px !important;
+    }
+  }
+
+  &.hide-sidebar {
     padding-left: 0;
+
+    .app-sidebar {
+      display: none;
+    }
 
     .container {
       max-width: 960px;
@@ -395,6 +405,15 @@ header {
   padding: 25px 0 0;
   line-height: 1;
 
+  .logo-logged-in {
+    position: relative;
+    padding-left: 34px;
+    .icon-sentry-logo {
+      position: absolute;
+      left: 0;
+    }
+  }
+
   .breadcrumb {
     background: none;
     padding: 0;
@@ -468,7 +487,7 @@ header {
     margin: 0;
   }
 
-  .icon-sentry-logo-full {
+  .icon-sentry-logo-full, .icon-sentry-logo {
     font-size: 24px;
   }
 
@@ -3260,7 +3279,6 @@ table.integrations {
   padding-top: 100px;
   .container {
     width: auto;
-    max-width: 500px;
     margin: 0 auto;
   }
 }

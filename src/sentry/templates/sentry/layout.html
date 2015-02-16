@@ -47,7 +47,7 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} {% if not request.user.is_authenticated %}signed-out{% endif %}" ng-app="sentry">
+    <body class="{% block wrapperclass %}{% endblock %} {% if not request.user.is_authenticated %}hide-sidebar{% endif %}" ng-app="sentry">
       {% if request.user.is_authenticated %}
       <div class="app-sidebar">
         <div class="org-selector dropdown">
