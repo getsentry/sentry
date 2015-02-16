@@ -79,7 +79,7 @@ class RiakNodeStorage(NodeStorage):
         for obj in result:
             # errors return a tuple of (bucket, key, err)
             if isinstance(obj, tuple):
-                err = obj[2]
+                err = obj[3]
                 six.reraise(type(err), err)
             results[obj.key] = obj.data
         return results
