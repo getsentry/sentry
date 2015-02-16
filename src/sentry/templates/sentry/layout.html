@@ -50,12 +50,9 @@
     <body class="{% block wrapperclass %}{% endblock %} {% if not request.user.is_authenticated %}hide-sidebar{% endif %}" ng-app="sentry">
       {% if request.user.is_authenticated %}
       <div class="app-sidebar">
+        {% if organization %}
         <div class="org-selector dropdown">
-          {% if organization %}
-            <a href="{% url 'sentry-organization-home' organization.slug %}" class="active-org">{{ organization.name }}</a>
-          {% else %}
-            TODO
-          {% endif %}
+          <a href="{% url 'sentry-organization-home' organization.slug %}" class="active-org">{{ organization.name }}</a>
           <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="$(this).parent('.dropdown').toggleClass('open');"><span class="icon-arrow-down"></span></a>
           {% if list_organizations|length > 1 %}
             <div class="dropdown-menu">
@@ -73,6 +70,8 @@
             </div>
           {% endif %}
         </div>
+        {% endif %}
+        {% block app-sidebar %}{% endblock %}
         <div class="teams">
           {% if TEAM_LIST %}
               {% for t, p_list in TEAM_LIST %}
