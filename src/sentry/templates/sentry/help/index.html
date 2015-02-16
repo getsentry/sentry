@@ -4,10 +4,15 @@
 {% load sentry_docs %}
 {% load sentry_helpers %}
 
-{% block wrapperclass %}hide-sidebar docs{% endblock %}
+{% block heading %}{% endblock %}
 
-{% block heading %}
-  <a href="/" class="logo-logged-in"><span class="icon-sentry-logo"></span></a> <a href="{% url 'sentry-help' %}">Docs</a>
+{% block wrapperclass %}docs{% endblock %}
+
+{% block breadcrumb_inner %}
+  {% comment %}
+  //// Shown in header when user is logged in
+  {% endcomment %}
+  <li><a href="{% url 'sentry-help' %}">Docs</a></li>
 {% endblock %}
 
 {% block content %}
