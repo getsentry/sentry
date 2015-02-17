@@ -1826,29 +1826,6 @@ a.icon-share {
   .severity {
     padding-top: 35px;
   }
-
-  .group {
-    &.critical .severity-indicator {
-      background: @red;
-
-      &:before,
-      &:after {
-        background: @red;
-      }
-    }
-
-    &.warning .severity-indicator {
-      &:before, &:after {
-        background: @orange;
-      }
-    }
-
-    &.info .severity-indicator {
-      &:after {
-        background: @blue;
-      }
-    }
-  }
 }
 
 .group-list-empty {
@@ -2035,6 +2012,29 @@ a.icon-share {
       height: 3px;
       border-radius: 2px;
     }
+  }
+}
+
+// Severity colors for stream and group detail
+
+.critical .severity-indicator {
+  background: @red;
+
+  &:before,
+  &:after {
+    background: @red;
+  }
+}
+
+.warning .severity-indicator {
+  &:before, &:after {
+    background: @orange;
+  }
+}
+
+.info .severity-indicator {
+  &:after {
+    background: @blue;
   }
 }
 
