@@ -671,11 +671,13 @@ header {
 }
 
 footer {
-  padding-top: 10px;
   line-height: 30px;
   text-align: center;
   color: #B5B9BD;
   font-weight: 500;
+  border-top: 1px solid #f1f2f3;
+  margin-top: 20px;
+  padding-top: 22px;
 
   a {
     color: #B5B9BD;
@@ -3368,12 +3370,6 @@ table.integrations {
     }
   }
 
-  footer {
-    border-top: 1px solid #f1f2f3;
-    margin-top: 20px;
-    padding-top: 22px;
-  }
-
   .icon-sentry-logo-full {
     font-size: 24px;
     float: left;
@@ -3462,6 +3458,10 @@ table.integrations {
           color: inherit;
           opacity: .4;
         }
+      }
+
+      .well {
+        margin-bottom: 30px;
       }
 
       p, ul, ol {
@@ -3624,6 +3624,9 @@ table.integrations {
   &.important {
     background: @yellow;
     border: 0;
+    a, a:active {
+      color: @gray-dark;
+    }
   }
 }
 
