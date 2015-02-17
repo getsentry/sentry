@@ -3357,12 +3357,11 @@ table.integrations {
 // Docs
 
 .docs {
-  background-color: #fff !important;
+  background: #fff !important;
 
   .app {
     .content {
-      max-width: 700px !important;
-      margin: 0 auto;
+      max-width: 1000px !important;
     }
   }
 
@@ -3416,6 +3415,7 @@ table.integrations {
           line-height: 1.2;
           letter-spacing: -0.5px;
           margin-bottom: 8px;
+          list-style-type: lower-roman;
 
           &.active a {
             color: @grayDark;
@@ -3437,8 +3437,9 @@ table.integrations {
         }
 
         a {
-          color: lighten(@grayDark, 37);
+          color: inherit;
           display: block;
+          text-decoration: underline;
 
           &:hover {
             color: lighten(@grayDark, 20);
@@ -3448,9 +3449,10 @@ table.integrations {
     }
 
     .main {
-      font-size: 18px;
+      font-size: 16px;
       line-height: 1.8;
       padding-top: 0;
+      padding-right: 60px;
 
       .breadcrumb {
         margin: 0 0 30px !important;
@@ -3492,18 +3494,6 @@ table.integrations {
         margin: 0 0 30px;
         font-weight: 600;
         letter-spacing: -0.25px;
-      }
-
-      h2 {
-        font-size: 38px;
-      }
-
-      h3 {
-        font-size: 32px;
-      }
-
-      h4 {
-        font-size: 26px;
       }
 
       pre, code {
