@@ -86,7 +86,8 @@ def delete_team(object_id, **kwargs):
 def delete_project(object_id, **kwargs):
     from sentry.models import (
         Project, ProjectKey, ProjectStatus, TagKey, TagValue, GroupTagKey,
-        GroupTagValue, Activity, EventMapping, Group
+        GroupTagValue, Activity, EventMapping, Group, GroupRuleStatus,
+        GroupHash, GroupSeen,
     )
 
     try:
@@ -102,7 +103,7 @@ def delete_project(object_id, **kwargs):
     # XXX: remove keys first to prevent additional data from flowing in
     model_list = (
         ProjectKey, TagKey, TagValue, GroupTagKey, GroupTagValue, EventMapping,
-        Activity
+        Activity, GroupRuleStatus, GroupHash, GroupSeen,
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, logger=logger)
