@@ -73,6 +73,11 @@ var GroupActions = React.createClass({
           <ul className="dropdown-menu">
           </ul>
         </div>
+        <div className="severity">
+          <span className="severity-indicator-bg">
+            <span className="severity-indicator"></span>
+          </span>
+        </div>
       </div>
     );
   }
