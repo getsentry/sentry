@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
-from sentry.models import Organization
+from sentry.models import Organization, OrganizationMember
 
 
 class OrganizationPermission(ScopedPermission):
@@ -19,7 +19,18 @@ class OrganizationPermission(ScopedPermission):
             return request.auth.organization_id == organization.organization_id
         if request.user.is_superuser:
             return True
-        return organization.has_access(request.user, self.access_map[request.method])
+
+        try:
+            om = OrganizationMember.objects.get(
+                organization=organization,
+                user=request.user,
+            )
+        except OrganizationMember.DoesNotExist:
+            return False
+
+        allowed_scopes = set(self.scope_map[request.method])
+        current_scopes = om.scopes
+        return any(s in allowed_scopes for s in current_scopes)
 
 
 class OrganizationEndpoint(Endpoint):
