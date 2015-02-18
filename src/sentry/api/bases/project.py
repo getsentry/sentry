@@ -8,9 +8,9 @@ from sentry.models import Project
 
 class ProjectPermission(ScopedPermission):
     scope_map = {
-        'GET': ['project:read'],
-        'POST': ['project:write'],
-        'PUT': ['project:write'],
+        'GET': ['project:read', 'project:write', 'project:delete'],
+        'POST': ['project:write', 'project:delete'],
+        'PUT': ['project:write', 'project:delete'],
         'DELETE': ['project:delete'],
     }
 
@@ -22,9 +22,9 @@ class ProjectPermission(ScopedPermission):
 
 class ProjectEventPermission(ProjectPermission):
     scope_map = {
-        'GET': ['event:read'],
-        'POST': ['event:write'],
-        'PUT': ['event:write'],
+        'GET': ['event:read', 'event:write', 'event:delete'],
+        'POST': ['event:write', 'event:delete'],
+        'PUT': ['event:write', 'event:delete'],
         'DELETE': ['event:delete'],
     }
 
