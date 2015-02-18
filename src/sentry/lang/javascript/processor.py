@@ -339,8 +339,9 @@ class SourceProcessor(object):
         for frame in frames:
             errors = cache.get_errors(frame.abs_path)
             if errors:
-                frame.errors = errors
                 has_changes = True
+
+            frame.errors = errors
 
             source = cache.get(frame.abs_path)
             if source is None:
