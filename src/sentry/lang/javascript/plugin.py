@@ -7,17 +7,16 @@ from sentry.plugins import Plugin2
 from .processor import SourceProcessor
 
 
-class JavascriptEventProcessor(object):
-    def __call__(self, data):
-        if data.get('platform') != 'javascript':
-            return
+def preprocess_event(data):
+    if data.get('platform') != 'javascript':
+        return
 
-        processor = SourceProcessor()
-        return processor.process(data)
+    processor = SourceProcessor()
+    return processor.process(data)
 
 
 class JavascriptPlugin(Plugin2):
     def get_event_preprocessors(self, **kwargs):
         if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT:
             return []
-        return [JavascriptEventProcessor()]
+        return [preprocess_event]
