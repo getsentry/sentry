@@ -135,6 +135,8 @@ is not a fully supported database and should not be used in production**.
 
     # ~/.sentry/sentry.conf.py
 
+    # for more information on DATABASES, see the Django configuration at:
+    # https://docs.djangoproject.com/en/1.6/ref/databases/
     DATABASES = {
         'default': {
             # We suggest PostgreSQL for optimal performance
