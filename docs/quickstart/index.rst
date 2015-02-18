@@ -137,7 +137,12 @@ is not a fully supported database and should not be used in production**.
 
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',  # We suggest PostgreSQL for optimal performance
+            # We suggest PostgreSQL for optimal performance
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+
+            # Alternatively you can use MySQL
+            'ENGINE': 'django.db.backends.mysql',
+
             'NAME': 'sentry',
             'USER': 'postgres',
             'PASSWORD': '',
@@ -214,6 +219,9 @@ the first time you'll need to make sure you've created the database:
 
     # If you're using Postgres, and kept the database ``NAME`` as ``sentry``
     $ createdb -E utf-8 sentry
+
+    # alternatively if you're using MySQL, ensure you've created the database:
+    $ mysql -e 'create database sentry'
 
 Once done, you can create the initial schema using the ``upgrade`` command:
 
