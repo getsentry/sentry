@@ -18,6 +18,8 @@ class TeamPermission(ScopedPermission):
 
     def has_object_permission(self, request, view, team):
         if request.auth:
+            if self.is_project_key(request):
+                return False
             return request.auth.organization_id == team.organization_id
         if request.user.is_superuser:
             return True
