@@ -34,7 +34,6 @@ class DocSection(Enum):
     ORGANIZATIONS = 'Organizations'
     PROJECTS = 'Projects'
     RELEASES = 'Releases'
-    TAGS = 'Tags'
     TEAMS = 'Teams'
 
 
