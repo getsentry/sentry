@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import ScopedPermission
+from sentry.api.bases.project import ProjectPermission
 from sentry.models import Group
 
 
-class GroupPermission(ScopedPermission):
+class GroupPermission(ProjectPermission):
     scope_map = {
         'GET': ['event:read', 'event:write', 'event:delete'],
         'POST': ['event:write', 'event:delete'],
@@ -15,11 +15,8 @@ class GroupPermission(ScopedPermission):
     }
 
     def has_object_permission(self, request, view, group):
-        if request.auth:
-            return request.auth.organization_id == group.project.organization_id
-        if request.user.is_superuser:
-            return True
-        return group.project.has_access(request.user, self.access_map[request.method])
+        return super(GroupPermission, self).has_object_permission(
+            request, view, group.project)
 
 
 class GroupEndpoint(Endpoint):

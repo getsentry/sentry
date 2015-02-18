@@ -79,6 +79,22 @@ class OrganizationMember(Model):
             checksum.update(x)
         return checksum.hexdigest()
 
+    @property
+    def scopes(self):
+        scopes = []
+        if self.type <= OrganizationMemberType.MEMBER:
+            scopes.extend(['event:read', 'org:read', 'project:read', 'team:read'])
+        if self.type <= OrganizationMemberType.ADMIN:
+            scopes.extend(['event:write', 'project:write', 'team:write'])
+        if self.type <= OrganizationMemberType.OWNER:
+            scopes.extend(['event:delete', 'project:delete', 'team:delete'])
+        if self.has_global_access:
+            if self.type <= OrganizationMemberType.ADMIN:
+                scopes.extend(['org:write'])
+            if self.type <= OrganizationMemberType.OWNER:
+                scopes.extend(['org:delete'])
+        return scopes
+
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder
 
