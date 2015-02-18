@@ -20,12 +20,11 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         """
         queryset = Release.objects.filter(
             project=project,
-        ).order_by('-date_added')
+        )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            # TODO(dcramer): we want to sort by date_added
             order_by='-id',
             on_results=lambda x: serialize(x, request.user),
         )
