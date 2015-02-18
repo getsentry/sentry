@@ -11,6 +11,15 @@ class NoPermission(permissions.BasePermission):
 
 
 class ScopedPermission(permissions.BasePermission):
+    """
+    Permissions work depending on the type of authentication:
+
+    - A user inherits permissions based on their membership role. These are
+      still dictated as common scopes, but they can't be checked until the
+      has_object_permission hook is called.
+    - ProjectKeys (legacy) are granted only project based scopes. This
+    - APIKeys specify their scope, and work as expected.
+    """
     scope_map = {
         'GET': (),
         'POST': (),
