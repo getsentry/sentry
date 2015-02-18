@@ -6,7 +6,7 @@ from mock import patch
 
 from sentry.lang.javascript.processor import (
     BAD_SOURCE, discover_sourcemap, fetch_sourcemap, fetch_url, generate_module,
-    SourceProcessor, trim_line, UrlResult
+    trim_line, UrlResult
 )
 from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
 from sentry.testutils import TestCase
@@ -137,95 +137,6 @@ class DiscoverSourcemapTest(TestCase):
 
         result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js')
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
-
-
-class SourceProcessorTest(TestCase):
-    def process(self, data):
-        processor = SourceProcessor()
-        return processor.process(data)
-
-    @patch('sentry.models.Event.update')
-    @patch('sentry.lang.javascript.processor.fetch_url')
-    @patch('sentry.lang.javascript.processor.fetch_sourcemap')
-    @patch('sentry.lang.javascript.processor.discover_sourcemap')
-    def test_simple(self, discover_sourcemap, fetch_sourcemap, fetch_url, update):
-        data = {
-            'project': self.project.id,
-            'sentry.interfaces.Exception': {
-                'values': [{
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                            },
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 1,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
-            }
-        }
-        discover_sourcemap.return_value = None
-        fetch_sourcemap.return_value = None
-        fetch_url.return_value.body = '\n'.join('hello world')
-
-        self.process(data)
-
-        fetch_url.assert_called_once_with(
-            'http://example.com/foo.js', project=self.project)
-
-        frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
-        frame = frame_list[0]
-        assert frame['pre_context'] == ['h', 'e', 'l']
-        assert frame['context_line'] == 'l'
-        assert frame['post_context'] == ['o', ' ', 'w', 'o', 'r']
-
-        frame = frame_list[1]
-        assert not frame.get('pre_context')
-        assert frame['context_line'] == 'h'
-        assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
-
-    @patch('sentry.models.Event.update')
-    @patch('sentry.lang.javascript.processor.fetch_url')
-    @patch('sentry.lang.javascript.processor.discover_sourcemap')
-    def test_inlined_sources(self, discover_sourcemap, fetch_url, update):
-        data = {
-            'project': self.project.id,
-            'sentry.interfaces.Exception': {
-                'values': [{
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/test.min.js',
-                                'filename': 'test.js',
-                                'lineno': 1,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
-            }
-        }
-        discover_sourcemap.return_value = base64_sourcemap
-        fetch_url.return_value.url = 'http://example.com/test.min.js'
-        fetch_url.return_value.body = '\n'.join('<generated source>')
-
-        self.process(data)
-        fetch_url.assert_called_once_with(
-            'http://example.com/test.min.js', project=self.project)
-
-        frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
-        frame = frame_list[0]
-        assert not frame.get('pre_context')
-        assert frame['context_line'] == 'console.log("hello, World!")'
-        assert not frame.get('post_context')
 
 
 class GenerateModuleTest(TestCase):
