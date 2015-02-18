@@ -175,7 +175,10 @@ class APIView(BaseView):
         """
         Returns either the Origin or Referer value from the request headers.
         """
-        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
+        origin = request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
+        if origin:
+            origin = origin.decode('utf-8')
+        return origin
 
     def _dispatch(self, request, project_id=None, *args, **kwargs):
         request.user = AnonymousUser()
