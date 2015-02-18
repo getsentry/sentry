@@ -1,16 +1,16 @@
 from __future__ import absolute_import
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import TagKey, TagKeyStatus, TagValue
+from sentry.models import GroupTagValue, TagKey, TagKeyStatus
 
 
-class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
+class GroupTagKeyValuesEndpoint(GroupEndpoint):
+    doc_section = DocSection.EVENTS
 
-    def get(self, request, project, key):
+    def get(self, request, group, key):
         """
         List a tag's values
 
@@ -21,15 +21,15 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         """
         try:
             tagkey = TagKey.objects.get(
-                project=project,
+                project=group.project_id,
                 key=key,
                 status=TagKeyStatus.VISIBLE,
             )
         except TagKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        queryset = TagValue.objects.filter(
-            project=project,
+        queryset = GroupTagValue.objects.filter(
+            group=group,
             key=key,
         )
 
