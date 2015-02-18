@@ -4,13 +4,15 @@ from rest_framework.response import Response
 
 from sentry.app import tsdb
 from sentry.api.base import BaseStatsEndpoint, DocSection
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import assert_perm
 from sentry.models import Organization, Project, Team
 
 
 class OrganizationStatsEndpoint(BaseStatsEndpoint):
     doc_section = DocSection.ORGANIZATIONS
+
+    permission_classes = (OrganizationPermission,)
 
     def get(self, request, organization_slug):
         """
@@ -42,7 +44,7 @@ class OrganizationStatsEndpoint(BaseStatsEndpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        assert_perm(organization, request.user, request.auth)
+        self.check_object_permissions(request, organization)
 
         group = request.GET.get('group')
         if not group:

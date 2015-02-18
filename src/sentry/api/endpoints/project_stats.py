@@ -4,13 +4,15 @@ from rest_framework.response import Response
 
 from sentry.app import tsdb
 from sentry.api.base import BaseStatsEndpoint, DocSection
+from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import assert_perm
 from sentry.models import Project
 
 
 class ProjectStatsEndpoint(BaseStatsEndpoint):
     doc_section = DocSection.PROJECTS
+
+    permission_classes = (ProjectPermission,)
 
     def get(self, request, project_id):
         """
@@ -41,7 +43,7 @@ class ProjectStatsEndpoint(BaseStatsEndpoint):
         except Project.DoesNotExist:
             raise ResourceDoesNotExist
 
-        assert_perm(project, request.user, request.auth)
+        self.check_object_permissions(request, project)
 
         data = tsdb.get_range(
             model=tsdb.models.project,
