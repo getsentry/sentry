@@ -2,8 +2,9 @@
 
 from __future__ import absolute_import
 
-from sentry.utils.sourcemaps import (SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index,
-    find_source)
+from sentry.lang.javascript.sourcemaps import (
+    SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index, find_source
+)
 from sentry.testutils import TestCase
 
 from sentry.utils import json
