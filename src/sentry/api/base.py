@@ -31,9 +31,10 @@ LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"'
 class DocSection(Enum):
     ACCOUNTS = 'Accounts'
     EVENTS = 'Events'
-    RELEASES = 'Releases'
     ORGANIZATIONS = 'Organizations'
     PROJECTS = 'Projects'
+    RELEASES = 'Releases'
+    TAGS = 'Tags'
     TEAMS = 'Teams'
 
 
