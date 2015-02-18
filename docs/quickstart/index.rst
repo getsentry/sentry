@@ -396,8 +396,8 @@ Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install dja
 slightly better).
 
 
-Enabling Social Auth
---------------------
+Enabling Third Party Auth
+-------------------------
 
 Most of the time it doesn't really matter **how** someone authenticates to the service, so much as it that they do. In
 these cases, Sentry provides tight integrated with several large social services, including: Twitter, Facebook, Google,
