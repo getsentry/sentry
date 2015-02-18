@@ -103,7 +103,8 @@ class Endpoint(APIView):
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
 
-    def paginate(self, request, on_results=lambda x: x, **kwargs):
+    def paginate(self, request, on_results=None, paginator_cls=Paginator,
+                 **kwargs):
         per_page = int(request.GET.get('per_page', 100))
         input_cursor = request.GET.get('cursor')
         if input_cursor:
@@ -111,14 +112,15 @@ class Endpoint(APIView):
 
         assert per_page <= 100
 
-        paginator = Paginator(**kwargs)
+        paginator = paginator_cls(**kwargs)
         cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,
         )
 
         # map results based on callback
-        results = on_results(cursor_result.results)
+        if on_results:
+            results = on_results(cursor_result.results)
 
         headers = {}
         headers['Link'] = ', '.join([
