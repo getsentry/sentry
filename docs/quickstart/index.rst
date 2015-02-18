@@ -364,6 +364,17 @@ folder and you're good to go.
   stderr_logfile syslog
 
 
+Removing Old Data
+-----------------
+
+One of the most important things you're going to need to be aware of is storage costs. You'll want to setup a cron job that runs to automatically trim stale data. This won't guarantee space is reclaimed (i.e. by SQL), but it will try to minimize the footprint. This task is designed to run under various environments so it doesn't delete things in the most optimal way possible, but as long as you run it routinely (i.e. daily) you should be fine.
+
+.. code-block:: bash
+
+  $ crontab -e
+  * 3 * * * sentry cleanup --days=30
+
+
 Additional Utilities
 --------------------
 
@@ -394,7 +405,9 @@ and GitHub. Enabling this is as simple as setting up an application with the res
 couple values in your ``sentry.conf.py`` file.
 
 By default, users will be able to both signup (create a new account) as well as associate an existing account. If you
-want to disable account creation, simply set the following value::
+want to disable account creation, simply set the following value:
+
+.. code-block:: python
 
   SOCIAL_AUTH_CREATE_USERS = False
 
@@ -442,5 +455,3 @@ First pop open your ``sentry.conf.py``, and add the following to the **very top*
 Now you'll have access to all of the default settings (Django and Sentry) to modify at your own will.
 
 We recommend going over all of the defaults in the generated settings file, and familiarizing yourself with how the system is setup.
-
-Finally one of the most important things you're going to need to be aware of is storage costs. You'll want to setup a cron job that runs ``sentry cleanup --days=X`` to automatically trim stale data. This won't guarantee space is reclaimed (i.e. by SQL), but it will try to minimize the footprint. This task is designed to run under various environments so it doesn't delete things in the most optimal way possible, but as long as you run it routinely (i.e. daily) you should be fine.
