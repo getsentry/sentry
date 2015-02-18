@@ -475,3 +475,5 @@ First pop open your ``sentry.conf.py``, and add the following to the **very top*
 Now you'll have access to all of the default settings (Django and Sentry) to modify at your own will.
 
 We recommend going over all of the defaults in the generated settings file, and familiarizing yourself with how the system is setup.
+
+Finally one of the most important things you're going to need to be aware of is storage costs. You'll want to setup a cron job that runs ``sentry cleanup --days=X`` to automatically trim stale data. This won't guarantee space is reclaimed (i.e. by SQL), but it will try to minimize the footprint. This task is designed to run under various environments so it doesn't delete things in the most optimal way possible, but as long as you run it routinely (i.e. daily) you should be fine.
