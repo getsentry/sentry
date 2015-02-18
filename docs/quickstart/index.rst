@@ -1,18 +1,21 @@
 Quickstart
 ==========
 
-Some basic prerequisites which you'll need in order to run Sentry:
-
-* A UNIX-based operating system
-* Python 2.7
-* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev, libz-dev
-* A real database (PostgreSQL is preferred, MySQL also works)
-* Redis
-* Nginx (with RealIP, i.e. nginx-full)
-* A dedicated domain to host Sentry on (i.e. sentry.yourcompany.com)
-
 This guide will step you through setting up a Python-based virtualenv, installing the required packages,
 and configuring the basic web service.
+
+Dependencies
+------------
+
+Some basic prerequisites which you'll need in order to run Sentry:
+
+* A UNIX-based operating system. We test on Ubuntu.
+* Python 2.7
+* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev, libz-dev
+* A real database (PostgreSQL is preferred, MySQL also works with caveats)
+* Redis
+* Nginx (with RealIP, i.e. nginx-full)
+* A dedicated domain to host Sentry on (i.e. sentry.yourcompany.com).
 
 Hardware
 --------
