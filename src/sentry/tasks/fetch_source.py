@@ -280,6 +280,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     sourcemap_capable = set()
     source_code = {}
     sourcemap_idxs = {}
+    fetch_errors = {}
 
     for f in frames:
         pending_file_list.add(f.abs_path)
@@ -293,6 +294,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
         done_file_list.add(filename)
 
         if idx > max_fetches:
+            fetch_errors[filename] = 'Too many remote sources'
             logger.warn('Not fetching remote source %r due to max resource fetches', filename)
             continue
 
@@ -301,11 +303,13 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
         result = fetch_url(filename, project=project)
 
         if result == BAD_SOURCE:
+            fetch_errors[filename] = 'File was unreachable or invalid'
             logger.debug('Bad source file %r', filename)
             continue
 
         # If we didn't have a colno, a sourcemap wont do us any good
         if filename not in sourcemap_capable:
+            fetch_errors[filename] = 'No column information available (required for sourcemap)'
             logger.debug('Not capable of sourcemap: %r', filename)
             source_code[filename] = (result.body.splitlines(), None, None)
             continue
@@ -333,6 +337,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
         # pull down sourcemap
         index = fetch_sourcemap(sourcemap, project=project)
         if not index:
+            fetch_errors[sourcemap_url] = 'Sourcemap was not parseable'
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
@@ -352,11 +357,20 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
     state = None
     has_changes = False
     for frame in frames:
+        frame.errors = []
+        if frame.abs_path in fetch_errors:
+            frame.errors.append(fetch_errors[frame.abs_path])
+            has_changes = True
+
         try:
             source, sourcemap_url, sourcemap_key = source_code[frame.abs_path]
         except KeyError:
             # we must've failed pulling down the source
             continue
+
+        if sourcemap_url in fetch_errors:
+            frame.errors.append(fetch_errors[sourcemap_url])
+            has_changes = True
 
         # may have had a failure pulling down the sourcemap previously
         if sourcemap_key in sourcemap_idxs and frame.colno is not None:
@@ -371,6 +385,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
                 frame.data = {
                     'sourcemap': sourcemap_url,
                 }
+                frame.errors.append('Failed to map %r', abs_path.encode('utf-8'))
                 logger.debug('Failed mapping path %r', abs_path)
             else:
                 # Store original data in annotation
