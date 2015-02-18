@@ -398,30 +398,6 @@ want to disable account creation, simply set the following value::
 
   SOCIAL_AUTH_CREATE_USERS = False
 
-Twitter
-~~~~~~~
-
-Register an application at http://twitter.com/apps/new. Take the values given on the page, and configure
-the following:
-
-.. code-block:: python
-
-  TWITTER_CONSUMER_KEY = ''
-  TWITTER_CONSUMER_SECRET = ''
-
-.. note:: It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
-
-Facebook
-~~~~~~~~
-
-Register an application at http://developers.facebook.com/setup/. You'll also need to make sure you select the "Website
-with Facebook Login" and fill in the Site URL field (just use the website's URL you're install Sentry on). Take the
-values given on the page, and configure the following:
-
-.. code-block:: python
-
-  FACEBOOK_APP_ID = ''
-  FACEBOOK_API_SECRET = ''
 
 Google
 ~~~~~~
@@ -433,6 +409,7 @@ the following:
 
   GOOGLE_OAUTH2_CLIENT_ID = ''
   GOOGLE_OAUTH2_CLIENT_SECRET = ''
+
 
 GitHub
 ~~~~~~
@@ -448,16 +425,6 @@ the following:
 For more information on configuring social authentication services, consult the `documentation on django-social-auth
 <https://github.com/omab/django-social-auth/>`_.
 
-Trello
-~~~~~~
-
-Generate an application key at https://trello.com/1/appKey/generate. Take the values given on the page, and configure
-the following:
-
-.. code-block:: python
-
-  TRELLO_API_KEY = ''
-  TRELLO_API_SECRET = ''
 
 What's Next?
 ------------
