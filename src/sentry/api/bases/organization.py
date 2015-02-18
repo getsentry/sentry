@@ -17,6 +17,8 @@ class OrganizationPermission(ScopedPermission):
     def has_object_permission(self, request, view, organization):
         if request.auth:
             return request.auth.organization_id == organization.organization_id
+        if request.user.is_superuser:
+            return True
         return organization.has_access(request.user, self.access_map[request.method])
 
 

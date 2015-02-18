@@ -17,6 +17,8 @@ class ProjectPermission(ScopedPermission):
     def has_object_permission(self, request, view, project):
         if request.auth:
             return request.auth.organization_id == project.organization_id
+        if request.user.is_superuser:
+            return True
         return project.has_access(request.user, self.access_map[request.method])
 
 

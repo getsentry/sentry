@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+
 from datetime import datetime, timedelta
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -127,7 +129,7 @@ class Endpoint(APIView):
         return Response(results, headers=headers)
 
 
-class BaseStatsEndpoint(Endpoint):
+class StatsMixin(object):
     def _parse_args(self, request):
         resolution = request.GET.get('resolution')
         if resolution:
