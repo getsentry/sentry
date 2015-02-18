@@ -4,18 +4,19 @@ from __future__ import absolute_import
 
 from mock import patch
 
-from sentry.tasks.fetch_source import (
-    UrlResult, expand_javascript_source, discover_sourcemap,
-    fetch_sourcemap, fetch_url, generate_module, BAD_SOURCE, trim_line)
-from sentry.utils.sourcemaps import (SourceMap, SourceMapIndex)
+from sentry.lang.javascript.processor import (
+    BAD_SOURCE, discover_sourcemap, fetch_sourcemap, fetch_url, generate_module,
+    SourceProcessor, trim_line, UrlResult
+)
+from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
 from sentry.testutils import TestCase
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
 
 class FetchUrlTest(TestCase):
-    @patch('sentry.tasks.fetch_source.safe_urlopen')
-    @patch('sentry.tasks.fetch_source.safe_urlread')
+    @patch('sentry.lang.javascript.processor.safe_urlopen')
+    @patch('sentry.lang.javascript.processor.safe_urlread')
     def test_simple(self, safe_urlread, safe_urlopen):
         safe_urlopen.return_value.headers = (('content-type', 'application/json'),)
         safe_urlread.return_value = u'foo bar'
@@ -38,8 +39,8 @@ class FetchUrlTest(TestCase):
 
         assert result == result2
 
-    @patch('sentry.tasks.fetch_source.safe_urlopen')
-    @patch('sentry.tasks.fetch_source.safe_urlread')
+    @patch('sentry.lang.javascript.processor.safe_urlopen')
+    @patch('sentry.lang.javascript.processor.safe_urlread')
     def test_with_token(self, safe_urlread, safe_urlopen):
         self.project.update_option('sentry:token', 'foobar')
         self.project.update_option('sentry:origins', ['*'])
@@ -65,8 +66,8 @@ class FetchUrlTest(TestCase):
 
         assert result == result2
 
-    @patch('sentry.tasks.fetch_source.safe_urlopen')
-    @patch('sentry.tasks.fetch_source.safe_urlread')
+    @patch('sentry.lang.javascript.processor.safe_urlopen')
+    @patch('sentry.lang.javascript.processor.safe_urlread')
     def test_connection_failure(self, safe_urlread, safe_urlopen):
         safe_urlopen.side_effect = Exception()
 
@@ -86,8 +87,8 @@ class FetchUrlTest(TestCase):
 
         assert result == BAD_SOURCE
 
-    @patch('sentry.tasks.fetch_source.safe_urlopen')
-    @patch('sentry.tasks.fetch_source.safe_urlread')
+    @patch('sentry.lang.javascript.processor.safe_urlopen')
+    @patch('sentry.lang.javascript.processor.safe_urlread')
     def test_read_failure(self, safe_urlread, safe_urlopen):
         safe_urlopen.return_value.headers = (('content-type', 'application/json'),)
         safe_urlread.side_effect = Exception()
@@ -138,11 +139,15 @@ class DiscoverSourcemapTest(TestCase):
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
 
-class ExpandJavascriptSourceTest(TestCase):
+class SourceProcessorTest(TestCase):
+    def process(self, data):
+        processor = SourceProcessor()
+        return processor.process(data)
+
     @patch('sentry.models.Event.update')
-    @patch('sentry.tasks.fetch_source.fetch_url')
-    @patch('sentry.tasks.fetch_source.fetch_sourcemap')
-    @patch('sentry.tasks.fetch_source.discover_sourcemap')
+    @patch('sentry.lang.javascript.processor.fetch_url')
+    @patch('sentry.lang.javascript.processor.fetch_sourcemap')
+    @patch('sentry.lang.javascript.processor.discover_sourcemap')
     def test_simple(self, discover_sourcemap, fetch_sourcemap, fetch_url, update):
         data = {
             'project': self.project.id,
@@ -171,7 +176,7 @@ class ExpandJavascriptSourceTest(TestCase):
         fetch_sourcemap.return_value = None
         fetch_url.return_value.body = '\n'.join('hello world')
 
-        expand_javascript_source(data)
+        self.process(data)
 
         fetch_url.assert_called_once_with(
             'http://example.com/foo.js', project=self.project)
@@ -188,8 +193,8 @@ class ExpandJavascriptSourceTest(TestCase):
         assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
 
     @patch('sentry.models.Event.update')
-    @patch('sentry.tasks.fetch_source.fetch_url')
-    @patch('sentry.tasks.fetch_source.discover_sourcemap')
+    @patch('sentry.lang.javascript.processor.fetch_url')
+    @patch('sentry.lang.javascript.processor.discover_sourcemap')
     def test_inlined_sources(self, discover_sourcemap, fetch_url, update):
         data = {
             'project': self.project.id,
@@ -212,7 +217,7 @@ class ExpandJavascriptSourceTest(TestCase):
         fetch_url.return_value.url = 'http://example.com/test.min.js'
         fetch_url.return_value.body = '\n'.join('<generated source>')
 
-        expand_javascript_source(data)
+        self.process(data)
         fetch_url.assert_called_once_with(
             'http://example.com/test.min.js', project=self.project)
 
