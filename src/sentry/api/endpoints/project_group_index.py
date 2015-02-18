@@ -8,8 +8,7 @@ from rest_framework.response import Response
 
 from sentry.app import search
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.constants import (
     DEFAULT_SORT_OPTION, STATUS_CHOICES
@@ -37,6 +36,8 @@ class GroupSerializer(serializers.Serializer):
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
     doc_section = DocSection.EVENTS
 
+    permission_classes = (ProjectEventPermission,)
+
     # bookmarks=0/1
     # status=<x>
     # <tag>=<value>
@@ -54,8 +55,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         Any standard Sentry structured search query can be passed via the
         ``query`` parameter.
         """
-        assert_perm(project, request.user, request.auth)
-
         query_kwargs = {
             'project': project,
         }
@@ -163,8 +162,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         If any ids are out of scope this operation will succeed without any data
         mutation.
         """
-        assert_perm(project, request.user, request.auth)
-
         group_ids = request.GET.getlist('id')
         if group_ids:
             group_list = Group.objects.filter(project=project, id__in=group_ids)
@@ -301,8 +298,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         If any ids are out of scope this operation will succeed without any data
         mutation
         """
-        assert_perm(project, request.user, request.auth)
-
         group_ids = request.GET.getlist('id')
         if group_ids:
             group_list = Group.objects.filter(project=project, id__in=group_ids)

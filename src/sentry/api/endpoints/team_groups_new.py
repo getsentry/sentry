@@ -5,7 +5,6 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.bases.team import TeamEndpoint
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.models import Group, GroupStatus, Project
 
@@ -19,8 +18,6 @@ class TeamGroupsNewEndpoint(TeamEndpoint):
         cutoff date, and then sort those by score, returning the highest scoring
         groups first.
         """
-        assert_perm(team, request.user, request.auth)
-
         minutes = int(request.REQUEST.get('minutes', 15))
         limit = min(100, int(request.REQUEST.get('limit', 10)))
 
