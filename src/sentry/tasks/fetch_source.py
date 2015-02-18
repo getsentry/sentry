@@ -385,7 +385,7 @@ def expand_javascript_source(data, max_fetches=MAX_RESOURCE_FETCHES, **kwargs):
                 frame.data = {
                     'sourcemap': sourcemap_url,
                 }
-                frame.errors.append('Failed to map %r', abs_path.encode('utf-8'))
+                frame.errors.append('Failed to map %r' % abs_path.encode('utf-8'))
                 logger.debug('Failed mapping path %r', abs_path)
             else:
                 # Store original data in annotation
