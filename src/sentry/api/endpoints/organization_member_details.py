@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.permissions import assert_perm
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
     OrganizationMemberType
@@ -26,8 +25,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         return True
 
     def delete(self, request, organization, member_id):
-        assert_perm(organization, request.user, request.auth)
-
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:

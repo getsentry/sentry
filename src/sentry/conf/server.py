@@ -501,6 +501,9 @@ LOGGING = {
 
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    'DEFAULT_PERMISSION_CLASSES': (
+        'sentry.api.permissions.NoPermission',
+    )
 }
 
 # django-recaptcha

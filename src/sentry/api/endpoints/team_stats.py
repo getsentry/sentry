@@ -5,13 +5,15 @@ from six.moves import range
 
 from sentry.app import tsdb
 from sentry.api.base import BaseStatsEndpoint, DocSection
+from sentry.api.bases.team import TeamPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import assert_perm
 from sentry.models import Team, Project
 
 
 class TeamStatsEndpoint(BaseStatsEndpoint):
     doc_section = DocSection.TEAMS
+
+    permission_classes = (TeamPermission,)
 
     def get(self, request, organization_slug, team_slug):
         """
@@ -43,7 +45,7 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        assert_perm(team, request.user, request.auth)
+        self.check_object_permissions(request, team)
 
         projects = Project.objects.get_for_user(
             team=team,

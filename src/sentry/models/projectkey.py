@@ -57,6 +57,16 @@ class ProjectKey(Model):
         'secret_key',
     ))
 
+    # support legacy project keys in API
+    scopes = (
+        'project:read',
+        'project:write',
+        'project:delete',
+        'event:read',
+        'event:write',
+        'event:delete',
+    )
+
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_projectkey'
