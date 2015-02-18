@@ -4,18 +4,15 @@ from rest_framework.response import Response
 from six.moves import range
 
 from sentry.app import tsdb
-from sentry.api.base import BaseStatsEndpoint, DocSection
-from sentry.api.bases.team import TeamPermission
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Team, Project
+from sentry.api.base import DocSection, StatsMixin
+from sentry.api.bases.team import TeamEndpoint
+from sentry.models import Project
 
 
-class TeamStatsEndpoint(BaseStatsEndpoint):
+class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
     doc_section = DocSection.TEAMS
 
-    permission_classes = (TeamPermission,)
-
-    def get(self, request, organization_slug, team_slug):
+    def get(self, request, team):
         """
         Retrieve event counts for a team
 
@@ -37,16 +34,6 @@ class TeamStatsEndpoint(BaseStatsEndpoint):
         **Note:** resolution should not be used unless you're familiar with Sentry
         internals as it's restricted to pre-defined values.
         """
-        try:
-            team = Team.objects.get(
-                organization__slug=organization_slug,
-                slug=team_slug,
-            )
-        except Team.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        self.check_object_permissions(request, team)
-
         projects = Project.objects.get_for_user(
             team=team,
             user=request.user,

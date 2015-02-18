@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection, Endpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.base import DocSection
+from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Event, Group
+from sentry.models import Event
 
 
-class GroupEventsEndpoint(Endpoint):
+class GroupEventsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
-    def get(self, request, group_id):
+    def get(self, request, group):
         """
         List an aggregate's available samples
 
@@ -18,11 +18,6 @@ class GroupEventsEndpoint(Endpoint):
             {method} {path}
 
         """
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
 
         events = Event.objects.filter(
             group=group

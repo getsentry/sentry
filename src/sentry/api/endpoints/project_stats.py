@@ -3,18 +3,14 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.app import tsdb
-from sentry.api.base import BaseStatsEndpoint, DocSection
-from sentry.api.bases.project import ProjectPermission
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Project
+from sentry.api.base import DocSection, StatsMixin
+from sentry.api.bases.project import ProjectEndpoint
 
 
-class ProjectStatsEndpoint(BaseStatsEndpoint):
+class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
     doc_section = DocSection.PROJECTS
 
-    permission_classes = (ProjectPermission,)
-
-    def get(self, request, project_id):
+    def get(self, request, project):
         """
         Retrieve event counts for a project
 
@@ -36,15 +32,6 @@ class ProjectStatsEndpoint(BaseStatsEndpoint):
         **Note:** resolution should not be used unless you're familiar with Sentry
         internals as it's restricted to pre-defined values.
         """
-        try:
-            project = Project.objects.get_from_cache(
-                id=project_id,
-            )
-        except Project.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        self.check_object_permissions(request, project)
-
         data = tsdb.get_range(
             model=tsdb.models.project,
             keys=[project.id],
