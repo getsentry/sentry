@@ -101,7 +101,7 @@ class RiakNodeStorage(NodeStorage):
                     if attempt_num == self.max_retries:
                         six.reraise(type(err), err)
                     elif _is_retryable(err):
-                        id_list.append(obj.key)
+                        id_list.append(obj[2])
                     else:
                         six.reraise(type(err), err)
                 else:
