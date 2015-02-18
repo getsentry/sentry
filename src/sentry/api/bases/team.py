@@ -8,9 +8,9 @@ from sentry.models import Team
 
 class TeamPermission(ScopedPermission):
     scope_map = {
-        'GET': ['team:read'],
-        'POST': ['team:write'],
-        'PUT': ['team:write'],
+        'GET': ['team:read', 'team:write', 'team:delete'],
+        'POST': ['team:write', 'team:delete'],
+        'PUT': ['team:write', 'team:delete'],
         'DELETE': ['team:delete'],
     }
 

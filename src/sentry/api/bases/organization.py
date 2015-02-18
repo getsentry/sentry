@@ -8,9 +8,9 @@ from sentry.models import Organization
 
 class OrganizationPermission(ScopedPermission):
     scope_map = {
-        'GET': ['org:read'],
-        'POST': ['org:write'],
-        'PUT': ['org:write'],
+        'GET': ['org:read', 'org:write', 'org:delete'],
+        'POST': ['org:write', 'org:delete'],
+        'PUT': ['org:write', 'org:delete'],
         'DELETE': ['org:delete'],
     }
 
