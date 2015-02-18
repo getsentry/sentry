@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+
 from datetime import datetime, timedelta
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -14,8 +16,9 @@ from rest_framework.views import APIView
 from sentry.app import tsdb
 from sentry.utils.cursors import Cursor
 
-from .authentication import KeyAuthentication
+from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
 from .paginator import Paginator
+from .permissions import NoPermission
 
 
 ONE_MINUTE = 60
@@ -35,9 +38,14 @@ class DocSection(Enum):
 
 
 class Endpoint(APIView):
-    authentication_classes = (KeyAuthentication, SessionAuthentication)
+    authentication_classes = (
+        ApiKeyAuthentication,
+        ProjectKeyAuthentication,
+        SessionAuthentication
+    )
     renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
+    permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):
         querystring = u'&'.join(
@@ -121,7 +129,7 @@ class Endpoint(APIView):
         return Response(results, headers=headers)
 
 
-class BaseStatsEndpoint(Endpoint):
+class StatsMixin(object):
     def _parse_args(self, request):
         resolution = request.GET.get('resolution')
         if resolution:

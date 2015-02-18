@@ -4,9 +4,9 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import DocSection
+from sentry.api.bases.group import GroupEndpoint
 from sentry.api.fields import UserField
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import STATUS_CHOICES
 from sentry.db.models.query import create_or_update
@@ -25,7 +25,7 @@ class GroupSerializer(serializers.Serializer):
     assignedTo = UserField()
 
 
-class GroupDetailsEndpoint(Endpoint):
+class GroupDetailsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
     def _get_activity(self, request, group, num=7):
@@ -63,7 +63,7 @@ class GroupDetailsEndpoint(Endpoint):
         ], key=lambda ls: ls[1], reverse=True)
         return [s[0] for s in seen_by]
 
-    def get(self, request, group_id):
+    def get(self, request, group):
         """
         Retrieve an aggregate
 
@@ -72,12 +72,6 @@ class GroupDetailsEndpoint(Endpoint):
             {method} {path}
 
         """
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
-
         data = serialize(group, request.user)
 
         # TODO: these probably should be another endpoint
@@ -107,7 +101,7 @@ class GroupDetailsEndpoint(Endpoint):
 
         return Response(data)
 
-    def put(self, request, group_id):
+    def put(self, request, group):
         """
         Update an aggregate
 
@@ -126,13 +120,6 @@ class GroupDetailsEndpoint(Endpoint):
         - assignedTo: user
 
         """
-
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
-
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -248,7 +235,7 @@ class GroupDetailsEndpoint(Endpoint):
 
         return Response(serialize(group, request.user))
 
-    def delete(self, request, group_id):
+    def delete(self, request, group):
         """
         Delete an aggregate
 
@@ -257,12 +244,6 @@ class GroupDetailsEndpoint(Endpoint):
             {method} {path}
         """
         from sentry.tasks.deletion import delete_group
-
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
 
         delete_group.delay(object_id=group.id)
 

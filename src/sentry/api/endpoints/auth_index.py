@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.contrib.auth import login, logout
 from rest_framework.response import Response
 
+from sentry.api import client
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import DocSection, Endpoint
 
@@ -17,6 +18,8 @@ class AuthIndexEndpoint(Endpoint):
     """
 
     authentication_classes = [QuietBasicAuthentication]
+
+    permission_classes = ()
 
     doc_section = DocSection.ACCOUNTS
 
@@ -35,11 +38,7 @@ class AuthIndexEndpoint(Endpoint):
         # Must use the real request object that Django knows about
         login(request._request, request.user)
 
-        # TODO: make internal request to UserDetailsEndpoint
-        from sentry.api.endpoints.user_details import UserDetailsEndpoint
-        endpoint = UserDetailsEndpoint()
-        response = endpoint.get(request, user_id=request.user.id)
-        return response
+        return client.get('/users/me/', request.user, request.auth)
 
     def delete(self, request, *args, **kwargs):
         """

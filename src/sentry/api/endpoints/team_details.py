@@ -6,11 +6,8 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Team, TeamStatus
-)
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 
 
@@ -38,8 +35,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
             {method} {path}
 
         """
-        assert_perm(team, request.user, request.auth)
-
         return Response(serialize(team, request.user))
 
     @sudo_required
@@ -55,8 +50,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
             }}
 
         """
-        assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
-
         serializer = TeamSerializer(team, data=request.DATA, partial=True)
         if serializer.is_valid():
             team = serializer.save()
@@ -87,8 +80,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
         However once deletion has begun the state of a project changes and will
         be hidden from most public views.
         """
-        assert_perm(team, request.user, request.auth, access=OrganizationMemberType.ADMIN)
-
         updated = Team.objects.filter(
             id=team.id,
             status=TeamStatus.VISIBLE,

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.models import Release
 
@@ -19,8 +18,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        assert_perm(project, request.user, request.auth)
-
         queryset = Release.objects.filter(
             project=project,
         ).order_by('-date_added')
