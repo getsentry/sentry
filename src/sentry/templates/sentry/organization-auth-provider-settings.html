@@ -1,0 +1,29 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load i18n %}
+
+{% block org_auth_settings_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>{{ provider_name }} Authentication</h2>
+  </div>
+
+  <div class="row">
+    <div class="span9">
+      <form method="POST">
+        {% csrf_token %}
+
+        <hr>
+
+        <h3>Disable {{ provider_name }} Authentication</h3>
+
+        <button class="btn btn-danger pull-right" name="op"
+                value="disable" style="margin-left: 20px">Disable {{ provider_name }} Auth</button>
+
+        <p>Your organization will no longer being able to authenticate with their existing accounts. This will prevent any existing users from logging in unless they have access outside of SSO.</p>
+
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -22,6 +22,11 @@ class AuthOrganizationLoginView(BaseView):
         if auth_provider is None:
             return self.redirect(reverse('sentry-login'))
 
-        helper = AuthHelper(request, organization, auth_provider)
-        helper.reset_pipeline()
+        helper = AuthHelper(
+            request=request,
+            organization=organization,
+            auth_provider=auth_provider,
+            flow=AuthHelper.FLOW_LOGIN,
+        )
+        helper.init_pipeline()
         return helper.next_step()
