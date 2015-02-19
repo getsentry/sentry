@@ -7,7 +7,6 @@ sentry.utils.http
 """
 from __future__ import absolute_import
 
-import re
 import sentry
 import socket
 import requests
@@ -15,68 +14,64 @@ import requests
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from ipaddr import IPNetwork
+from requests.adapters import HTTPAdapter
 from urlparse import urlparse
 
-CHARSET_RE = re.compile(r'charset=(\S+)')
-
-DEFAULT_ENCODING = 'utf-8'
-
-DEFAULT_HEADERS = ()
-
-DEFAULT_USER_AGENT = 'sentry/%s' % sentry.VERSION
+USER_AGENT = 'sentry/%s' % sentry.VERSION
 
 DISALLOWED_IPS = set((IPNetwork(i) for i in settings.SENTRY_DISALLOWED_IPS))
 
 
-def is_valid_url(url):
-    """
-    Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
-    """
-    parsed = urlparse(url)
-    if not parsed.hostname:
-        return False
-
-    try:
-        ip_address = socket.gethostbyname(parsed.hostname)
-    except socket.gaierror:
-        return False
-
-    ip_network = IPNetwork(ip_address)
-    for addr in DISALLOWED_IPS:
-        if ip_network in addr:
+class BlacklistAdapter(HTTPAdapter):
+    def is_allowed_url(self, url):
+        """
+        Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
+        """
+        parsed = urlparse(url)
+        if not parsed.hostname:
             return False
 
-    return True
+        try:
+            ip_address = socket.gethostbyname(parsed.hostname)
+        except socket.gaierror:
+            return False
+
+        ip_network = IPNetwork(ip_address)
+        for addr in DISALLOWED_IPS:
+            if ip_network in addr:
+                return False
+
+        return True
+
+    def send(self, request, *args, **kwargs):
+        if not self.is_allowed_url(request.url):
+            raise SuspiciousOperation('%s matches the URL blacklist' % (request.url,))
+        return super(BlacklistAdapter, self).send(request, *args, **kwargs)
 
 
-def safe_urlopen(url, data=None, headers=DEFAULT_HEADERS,
-                 user_agent=DEFAULT_USER_AGENT, allow_redirects=False,
+def build_session():
+    session = requests.Session()
+    session.headers.update({'User-Agent': USER_AGENT})
+    session.mount('https://', BlacklistAdapter())
+    session.mount('http://', BlacklistAdapter())
+    return session
+
+
+def safe_urlopen(url, data=None, headers=None, allow_redirects=False,
                  timeout=30):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
     """
-    if not is_valid_url(url):
-        raise SuspiciousOperation('%s matches the URL blacklist' % (url,))
 
-    all_headers = {header[0]: header[1] for header in headers}
-    all_headers.update({'User-Agent': user_agent})
-
-    return requests.get(url, headers=all_headers, data=data, stream=True,
-                        allow_redirects=allow_redirects, timeout=timeout)
-
-
-def safe_urlread(request):
-    body = request.raw.read()
-
-    content_type = request.headers.get('content-type')
-    if content_type is None:
-        # If there is no content_type header at all, quickly assume default utf-8 encoding
-        encoding = DEFAULT_ENCODING
+    session = build_session()
+    if data:
+        method = session.post
     else:
-        try:
-            encoding = CHARSET_RE.search(content_type).group(1)
-        except AttributeError:
-            encoding = DEFAULT_ENCODING
+        method = session.get
+    return method(url, headers=headers, data=data, stream=True,
+                  allow_redirects=allow_redirects, timeout=timeout)
 
-    return body.decode(encoding).rstrip('\n')
+
+def safe_urlread(response):
+    return response.content
