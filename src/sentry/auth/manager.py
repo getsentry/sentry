@@ -12,8 +12,11 @@ class ProviderManager(object):
     def __iter__(self):
         return self.__values.iteritems()
 
-    def get(self, key):
-        return self.__values.get(key)
+    def get(self, key, **kwargs):
+        return self.__values.get(key)(key=key, **kwargs)
+
+    def exists(self, key):
+        return key in self.__values
 
     def register(self, key, cls):
         self.__values[key] = cls

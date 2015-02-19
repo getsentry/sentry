@@ -26,5 +26,35 @@ class Provider(object):
         """
         raise NotImplementedError
 
-    def get_identity(self, state):
+    def get_setup_pipeline(self):
+        """
+        Return a list of AuthView instances representing the initial setup
+        pipeline for this provider.
+
+        Defaults to the defined authentication pipeline.
+        """
+        return self.get_auth_pipeline()
+
+    def build_config(self, state):
+        """
+        Return a mapping containing provider configuration.
+
+        - ``state`` is the resulting data captured by the pipeline
+        """
+        raise NotImplementedError
+
+    def build_identity(self, state):
+        """
+        Return a mapping containing the identity information.
+
+        - ``state`` is the resulting data captured by the pipeline
+
+        >>> {
+        >>>     "id": "foo@example.com",
+        >>>     "email": "foo@example.com",
+        >>>     "name": "Foo Bar",
+        >>> }
+
+        The ``email`` and ``id`` keys are required, ``name`` is optional.
+        """
         raise NotImplementedError

@@ -24,4 +24,4 @@ class AuthProvider(Model):
     def get_provider(self):
         from sentry.auth import manager
 
-        return manager.get(self.provider)
+        return manager.get(self.provider, **self.config)

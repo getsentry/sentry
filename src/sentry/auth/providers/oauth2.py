@@ -8,7 +8,7 @@ from uuid import uuid4
 from sentry.auth import Provider, AuthView
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
-from sentry.utils.http import absolute_uri, safe_urlencode
+from sentry.utils.http import absolute_uri
 
 ERR_INVALID_STATE = 'An error occurred while validating your request.'
 
@@ -87,11 +87,11 @@ class OAuth2Callback(AuthView):
 
     def exchange_token(self, request, helper, code):
         # TODO: this needs the auth yet
-        params = safe_urlencode(self.get_token_params(
+        data = self.get_token_params(
             code=code,
             redirect_uri=absolute_uri(helper.get_redirect_url()),
-        ))
-        req = safe_urlopen(self.access_token_url, data=params)
+        )
+        req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
 
         return json.loads(body)
