@@ -7,7 +7,10 @@ from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model
 )
 
-from .organizationmember import OrganizationMemberType
+from .organizationmember import OrganizationMember
+
+
+_organizationemmber_type_field = OrganizationMember._meta.get_field('type')
 
 
 class AuthProvider(Model):
@@ -19,8 +22,10 @@ class AuthProvider(Model):
     sync_time = BoundedPositiveIntegerField(null=True)
     last_sync = models.DateTimeField(null=True)
 
-    # TODO(dcramer): Make this and other member settings configurable
-    default_role = OrganizationMemberType.MEMBER
+    default_role = BoundedPositiveIntegerField(
+        choices=_organizationemmber_type_field.choices,
+        default=_organizationemmber_type_field.default
+    )
 
     class Meta:
         app_label = 'sentry'
