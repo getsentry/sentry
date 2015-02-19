@@ -57,7 +57,7 @@ def build_session():
     return session
 
 
-def safe_urlopen(url, data=None, headers=None, allow_redirects=False,
+def safe_urlopen(url, params=None, data=None, headers=None, allow_redirects=False,
                  timeout=30):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
@@ -69,7 +69,7 @@ def safe_urlopen(url, data=None, headers=None, allow_redirects=False,
         method = session.post
     else:
         method = session.get
-    return method(url, headers=headers, data=data, stream=True,
+    return method(url, headers=headers, params=params, data=data, stream=True,
                   allow_redirects=allow_redirects, timeout=timeout)
 
 
