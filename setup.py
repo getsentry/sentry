@@ -58,6 +58,7 @@ tests_require = [
     'pytest-cov>=1.4',
     'pytest-timeout',
     'python-coveralls',
+    'responses',
     'riak',
 ]
 
@@ -96,6 +97,7 @@ install_requires = [
     'python-memcached>=1.53,<2.0.0',
     'raven>=5.0.0',
     'redis>=2.7.0,<2.11.0',
+    'requests[security]>=2.4.3,<2.5.0',
     'simplejson>=3.1.0,<3.4.0',
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
