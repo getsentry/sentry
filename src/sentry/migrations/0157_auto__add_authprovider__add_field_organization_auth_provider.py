@@ -77,6 +77,16 @@ class Migration(SchemaMigration):
             'group': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Group']"}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'})
         },
+        'sentry.apikey': {
+            'Meta': {'object_name': 'ApiKey'},
+            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '32'}),
+            'label': ('django.db.models.fields.CharField', [], {'default': "'Default'", 'max_length': '64', 'blank': 'True'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'key_set'", 'to': "orm['sentry.Organization']"}),
+            'scopes': ('django.db.models.fields.BigIntegerField', [], {'default': 'None'}),
+            'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'db_index': 'True'})
+        },
         'sentry.auditlogentry': {
             'Meta': {'object_name': 'AuditLogEntry'},
             'actor': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'audit_actors'", 'to': "orm['sentry.User']"}),
@@ -131,9 +141,10 @@ class Migration(SchemaMigration):
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"})
         },
         'sentry.file': {
-            'Meta': {'object_name': 'File'},
+            'Meta': {'unique_together': "(('name', 'checksum'),)", 'object_name': 'File'},
+            'checksum': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'path': ('django.db.models.fields.TextField', [], {'null': 'True'}),
             'size': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'}),
             'storage': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True'}),
@@ -198,6 +209,7 @@ class Migration(SchemaMigration):
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'group': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Group']"}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'last_active': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'rule': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Rule']"}),
             'status': ('django.db.models.fields.PositiveSmallIntegerField', [], {'default': '0'})
@@ -304,6 +316,7 @@ class Migration(SchemaMigration):
             'public_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
             'roles': ('django.db.models.fields.BigIntegerField', [], {'default': '1'}),
             'secret_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
+            'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True'}),
             'user_added': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'keys_added_set'", 'null': 'True', 'to': "orm['sentry.User']"})
         },
@@ -335,6 +348,7 @@ class Migration(SchemaMigration):
             'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'label': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'}),
             'values_seen': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'})
         },
         'sentry.tagvalue': {
