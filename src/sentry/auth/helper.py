@@ -9,7 +9,9 @@ from django.contrib.auth import login
 from django.core.urlresolvers import reverse
 from hashlib import md5
 
-from sentry.models import AuthIdentity, AuthProvider, Organization, User
+from sentry.models import (
+    AuthIdentity, AuthProvider, Organization, OrganizationMember, User
+)
 from sentry.utils.auth import get_login_redirect
 
 from . import manager
@@ -138,10 +140,12 @@ class AuthHelper(object):
         return response
 
     def _finish_login_pipeline(self, identity):
+        auth_provider = self.auth_provider
+
         with transaction.atomic():
             try:
                 auth_identity = AuthIdentity.objects.get(
-                    auth_provider=self.auth_provider,
+                    auth_provider=auth_provider,
                     ident=identity['id'],
                 )
             except AuthIdentity.DoesNotExist:
@@ -152,9 +156,16 @@ class AuthHelper(object):
                 )
 
                 AuthIdentity.objects.create(
-                    auth_provider=self.auth_provider,
+                    auth_provider=auth_provider,
                     user=user,
                     ident=identity['id'],
+                )
+
+                OrganizationMember.objects.create(
+                    has_global_access=True,
+                    organization=self.organization,
+                    type=auth_provider.default_role,
+                    user=user,
                 )
             else:
                 if auth_identity.data != identity.get('data', {}):
