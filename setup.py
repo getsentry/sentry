@@ -103,6 +103,10 @@ install_requires = [
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.3.5',
     'urllib3>=1.7.1,<1.8.0',
+    'ndg-httpsclient>=0.3.2',
+    'pyOpenSSL>=0.14',
+    'pyasn1>=0.1.7',
+    'requests>=2.4.3,<2.5.0',
 ]
 
 postgres_requires = [
