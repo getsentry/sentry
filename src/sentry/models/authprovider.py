@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, GzippedDictField, Model
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model
 )
 
 
@@ -12,7 +12,7 @@ class AuthProvider(Model):
     provider = models.CharField(max_length=128)
     config = GzippedDictField()
 
-    created_by = models.ForeignKey('sentry.User')
+    created_by = FlexibleForeignKey('sentry.User', null=True, on_delete=models.SET_NULL)
     date_added = models.DateTimeField(default=timezone.now)
     sync_time = BoundedPositiveIntegerField(null=True)
     last_sync = models.DateTimeField(null=True)
