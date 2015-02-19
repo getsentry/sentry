@@ -13,6 +13,8 @@ from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
+from .endpoints.helppage_details import HelpPageDetailsEndpoint
+from .endpoints.helppage_index import HelpPageIndexEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
@@ -134,6 +136,14 @@ urlpatterns = patterns(
     url(r'^events/(?P<event_id>\d+)/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'),
+
+    # Help Pages
+    url(r'^helppages/$',
+        HelpPageIndexEndpoint.as_view(),
+        name='sentry-api-0-helppage-index'),
+    url(r'^helppages/(?P<page_id>\d+)/$',
+        HelpPageDetailsEndpoint.as_view(),
+        name='sentry-api-0-helppage-details'),
 
     url(r'^$',
         IndexEndpoint.as_view(),
