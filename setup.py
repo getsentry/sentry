@@ -50,6 +50,7 @@ dev_requires = [
 ]
 
 tests_require = [
+    'blist',  # used by cassandra
     'casscache',
     'cqlsh',
     'elasticsearch',
@@ -68,13 +69,13 @@ install_requires = [
     'Django>=1.6.0,<1.7',
     'django-bitfield>=1.7.0,<1.8.0',
     'django-celery>=3.0.11,<3.1.0',
-    'django-crispy-forms>=1.2.3,<1.3.0',
+    'django-crispy-forms>=1.4.0,<1.5.0',
     'django-paging>=0.2.5,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-recaptcha>=1.0.0,<1.1.0',
     'django-social-auth>=0.7.28,<0.8.0',
     'django-statsd-mozilla>=0.3.8.0,<0.3.9.0',
-    'django-sudo>=1.1.0,<1.2.0',
+    'django-sudo>=1.1.3,<1.2.0',
     'django-templatetag-sugar>=0.1.0',
     'djangorestframework>=2.3.8,<2.4.0',
     'email-reply-parser>=0.2.0,<0.3.0',
@@ -83,6 +84,7 @@ install_requires = [
     'gunicorn>=0.17.2,<0.18.0',
     'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
+    'lxml>=3.4.1',
     'mock>=0.8.0',
     'nydus>=0.10.7,<0.11.0',
     'markdown>=2.4.1,<2.5.0',
@@ -145,7 +147,7 @@ class BuildStatic(Command):
 
 setup(
     name='sentry',
-    version='7.2.0.dev0',
+    version='7.3.0.dev0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',

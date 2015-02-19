@@ -28,9 +28,9 @@ class HelpPlatformBaseView(BaseView):
     def get_key(self, project, user):
         try:
             key = ProjectKey.objects.filter(user=None, project=project)[0]
-        except ProjectKey.DoesNotExist:
+        except IndexError:
             try:
-                key = ProjectKey.objects.get(user=user, project=project)
+                key = ProjectKey.objects.filter(user=user, project=project)[0]
             except IndexError:
                 key = None
 

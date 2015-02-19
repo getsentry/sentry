@@ -1,23 +1,51 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.db import connections
+from django.db.models import Sum
+from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.permissions import assert_perm
-from sentry.models import Group, GroupTagValue, GroupTagKey, TagKey
+from sentry.api.bases.group import GroupEndpoint
+from sentry.models import GroupTagValue, GroupTagKey, TagKey
+from sentry.utils import db
 
 
-class GroupTagsEndpoint(Endpoint):
-    def get(self, request, group_id):
-        group = Group.objects.get(
-            id=group_id,
-        )
+class GroupTagsEndpoint(GroupEndpoint):
+    def _get_value_count(self, group_id, key):
+        if db.is_postgres():
+            # This doesnt guarantee percentage is accurate, but it does ensure
+            # that the query has a maximum cost
+            cursor = connections['default'].cursor()
+            cursor.execute("""
+                SELECT SUM(t)
+                FROM (
+                    SELECT times_seen as t
+                    FROM sentry_messagefiltervalue
+                    WHERE group_id = %s
+                    AND key = %s
+                    AND last_seen > NOW() - INTERVAL '7 days'
+                    LIMIT 10000
+                ) as a
+            """, [group_id, key])
+            return cursor.fetchone()[0] or 0
 
-        assert_perm(group, request.user, request.auth)
+        cutoff = timezone.now() - timedelta(days=7)
+        return GroupTagValue.objects.filter(
+            group=group_id,
+            key=key,
+            last_seen__gte=cutoff,
+        ).aggregate(t=Sum('times_seen'))['t']
 
-        def percent(total, this):
-            return int(this / total * 100)
+    def _get_top_values(self, group_id, key, num=5):
+        cutoff = timezone.now() - timedelta(days=7)
+        return GroupTagValue.objects.filter(
+            group=group_id,
+            key=key,
+            last_seen__gte=cutoff,
+        )[:num]
 
+    def get(self, request, group):
         tag_keys = TagKey.objects.filter(
             project=group.project,
             key__in=GroupTagKey.objects.filter(
@@ -28,18 +56,14 @@ class GroupTagsEndpoint(Endpoint):
         # O(N) db access
         data = []
         for tag_key in tag_keys:
-            queryset = GroupTagValue.objects.filter(
-                group=group,
-                key=tag_key.key,
-            )
-
-            total_values = queryset.count()
-            top_values = queryset.order_by('-times_seen')[:5]
+            total_values = self._get_value_count(group.id, tag_key.key)
+            top_values = self._get_top_values(group.id, tag_key.key)
 
             data.append({
                 'id': tag_key.id,
                 'key': tag_key.key,
                 'name': tag_key.get_label(),
+                'uniqueValues': tag_key.values_seen,
                 'totalValues': total_values,
                 'topValues': [
                     {

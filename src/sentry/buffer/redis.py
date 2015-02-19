@@ -87,15 +87,26 @@ class RedisBuffer(Buffer):
         pipe.execute()
 
     def process_pending(self):
-        for conn in self.conn.hosts.itervalues():
-            keys = conn.zrange(self.pending_key, 0, -1)
-            if not keys:
-                continue
-            for key in keys:
-                process_incr.apply_async(kwargs={
-                    'key': key,
-                })
-            conn.zrem(self.pending_key, *keys)
+        lock_key = self._make_lock_key(self.pending_key)
+        # prevent a stampede due to celerybeat + periodic task
+        if not self.conn.setnx(lock_key, '1'):
+            return
+        self.conn.expire(lock_key, 60)
+
+        try:
+            for conn in self.conn.hosts.itervalues():
+                keys = conn.zrange(self.pending_key, 0, -1)
+                if not keys:
+                    continue
+                for key in keys:
+                    process_incr.apply_async(kwargs={
+                        'key': key,
+                    })
+                pipe = conn.pipeline()
+                pipe.zrem(self.pending_key, *keys)
+                pipe.execute()
+        finally:
+            self.conn.delete(lock_key)
 
     def process(self, key):
         lock_key = self._make_lock_key(key)

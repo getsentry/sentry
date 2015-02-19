@@ -13,7 +13,8 @@ class TeamGroupsNewTest(APITestCase):
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-team-groups-new', kwargs={
-            'team_id': self.team.id
+            'organization_slug': self.team.organization.slug,
+            'team_slug': self.team.slug
         })
         response = self.client.get(url, format='json')
         assert response.status_code == 200

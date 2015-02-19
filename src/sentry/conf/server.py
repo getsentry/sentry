@@ -20,6 +20,7 @@ import socket
 import sys
 import urlparse
 
+gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
 
@@ -54,11 +55,10 @@ DATABASES = {
         'HOST': '',
         'PORT': '',
         'AUTOCOMMIT': True,
+        'ATOMIC_REQUESTS': False,
     }
 }
 
-ATOMIC_REQUESTS = False
-AUTOCOMMIT = True
 
 if 'DATABASE_URL' in os.environ:
     url = urlparse.urlparse(os.environ['DATABASE_URL'])
@@ -94,6 +94,82 @@ TIME_ZONE = 'UTC'
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
+
+LANGUAGES = (
+    ('af', gettext_noop('Afrikaans')),
+    ('ar', gettext_noop('Arabic')),
+    ('az', gettext_noop('Azerbaijani')),
+    ('bg', gettext_noop('Bulgarian')),
+    ('be', gettext_noop('Belarusian')),
+    ('bn', gettext_noop('Bengali')),
+    ('br', gettext_noop('Breton')),
+    ('bs', gettext_noop('Bosnian')),
+    ('ca', gettext_noop('Catalan')),
+    ('cs', gettext_noop('Czech')),
+    ('cy', gettext_noop('Welsh')),
+    ('da', gettext_noop('Danish')),
+    ('de', gettext_noop('German')),
+    ('el', gettext_noop('Greek')),
+    ('en', gettext_noop('English')),
+    ('eo', gettext_noop('Esperanto')),
+    ('es', gettext_noop('Spanish')),
+    ('et', gettext_noop('Estonian')),
+    ('eu', gettext_noop('Basque')),
+    ('fa', gettext_noop('Persian')),
+    ('fi', gettext_noop('Finnish')),
+    ('fr', gettext_noop('French')),
+    ('ga', gettext_noop('Irish')),
+    ('gl', gettext_noop('Galician')),
+    ('he', gettext_noop('Hebrew')),
+    ('hi', gettext_noop('Hindi')),
+    ('hr', gettext_noop('Croatian')),
+    ('hu', gettext_noop('Hungarian')),
+    ('ia', gettext_noop('Interlingua')),
+    ('id', gettext_noop('Indonesian')),
+    ('is', gettext_noop('Icelandic')),
+    ('it', gettext_noop('Italian')),
+    ('ja', gettext_noop('Japanese')),
+    ('ka', gettext_noop('Georgian')),
+    ('kk', gettext_noop('Kazakh')),
+    ('km', gettext_noop('Khmer')),
+    ('kn', gettext_noop('Kannada')),
+    ('ko', gettext_noop('Korean')),
+    ('lb', gettext_noop('Luxembourgish')),
+    ('lt', gettext_noop('Lithuanian')),
+    ('lv', gettext_noop('Latvian')),
+    ('mk', gettext_noop('Macedonian')),
+    ('ml', gettext_noop('Malayalam')),
+    ('mn', gettext_noop('Mongolian')),
+    ('my', gettext_noop('Burmese')),
+    ('nb', gettext_noop('Norwegian Bokmal')),
+    ('ne', gettext_noop('Nepali')),
+    ('nl', gettext_noop('Dutch')),
+    ('nn', gettext_noop('Norwegian Nynorsk')),
+    ('os', gettext_noop('Ossetic')),
+    ('pa', gettext_noop('Punjabi')),
+    ('pl', gettext_noop('Polish')),
+    ('pt', gettext_noop('Portuguese')),
+    ('pt-br', gettext_noop('Brazilian Portuguese')),
+    ('ro', gettext_noop('Romanian')),
+    ('ru', gettext_noop('Russian')),
+    ('sk', gettext_noop('Slovak')),
+    ('sl', gettext_noop('Slovenian')),
+    ('sq', gettext_noop('Albanian')),
+    ('sr', gettext_noop('Serbian')),
+    ('sv-se', gettext_noop('Swedish')),
+    ('sw', gettext_noop('Swahili')),
+    ('ta', gettext_noop('Tamil')),
+    ('te', gettext_noop('Telugu')),
+    ('th', gettext_noop('Thai')),
+    ('tr', gettext_noop('Turkish')),
+    ('tt', gettext_noop('Tatar')),
+    ('udm', gettext_noop('Udmurt')),
+    ('uk', gettext_noop('Ukrainian')),
+    ('ur', gettext_noop('Urdu')),
+    ('vi', gettext_noop('Vietnamese')),
+    ('zh-cn', gettext_noop('Simplified Chinese')),
+    ('zh-cn', gettext_noop('Traditional Chinese')),
+)
 
 SITE_ID = 1
 
@@ -169,6 +245,7 @@ INSTALLED_APPS = (
     'sentry',
     'sentry.nodestore',
     'sentry.search',
+    'sentry.lang.javascript',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
@@ -242,6 +319,8 @@ TRELLO_API_SECRET = ''
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
 
+MAILGUN_API_KEY = ''
+
 SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.get_username',
     'social_auth.backends.pipeline.social.social_auth_user',
@@ -295,7 +374,6 @@ CELERY_IMPORTS = (
     'sentry.tasks.cleanup',
     'sentry.tasks.deletion',
     'sentry.tasks.email',
-    'sentry.tasks.fetch_source',
     'sentry.tasks.index',
     'sentry.tasks.merge',
     'sentry.tasks.store',
@@ -400,6 +478,10 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'sentry.rules': {
+            'handlers': ['console'],
+            'propagate': False,
+        },
         'static_compiler': {
             'level': 'INFO',
         },
@@ -419,6 +501,9 @@ LOGGING = {
 
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    'DEFAULT_PERMISSION_CLASSES': (
+        'sentry.api.permissions.NoPermission',
+    )
 }
 
 # django-recaptcha
@@ -433,12 +518,6 @@ STATSD_CLIENT = 'django_statsd.clients.null'
 # Sentry and Raven configuration
 
 SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
-
-# Is this an on-premise install? (should things be generally more open)
-SENTRY_PUBLIC = False
-
-# Default project ID for recording internal exceptions
-SENTRY_PROJECT = 1
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
@@ -581,6 +660,14 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+# rollups must be ordered from highest granularity to lowest
+SENTRY_TSDB_ROLLUPS = (
+    # (time in seconds, samples to keep)
+    (10, 30),  # 5 minute at 10 seconds
+    (3600, 24 * 7),  # 7 days at 1 hour
+)
+
+
 # File storage
 SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
 SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
@@ -601,9 +688,12 @@ SENTRY_ENABLE_EXPLORE_USERS = True
 # size in characters
 SENTRY_MAX_VARIABLE_SIZE = 512
 
-# Prevent varabiesl within extra context from exceeding this size in
+# Prevent variables within extra context from exceeding this size in
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
+
+# For changing the amount of data seen in Http Response Body part.
+SENTRY_MAX_HTTP_BODY_SIZE = 2048
 
 # For various attributes we don't limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of

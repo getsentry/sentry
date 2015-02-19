@@ -4,14 +4,15 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import DocSection
+from sentry.api.bases.group import GroupEndpoint
 from sentry.api.fields import UserField
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.constants import STATUS_CHOICES
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
+    GroupTagValue
 )
 
 
@@ -20,10 +21,11 @@ class GroupSerializer(serializers.Serializer):
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
     isBookmarked = serializers.BooleanField()
+    hasSeen = serializers.BooleanField()
     assignedTo = UserField()
 
 
-class GroupDetailsEndpoint(Endpoint):
+class GroupDetailsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
     def _get_activity(self, request, group, num=7):
@@ -61,7 +63,7 @@ class GroupDetailsEndpoint(Endpoint):
         ], key=lambda ls: ls[1], reverse=True)
         return [s[0] for s in seen_by]
 
-    def get(self, request, group_id):
+    def get(self, request, group):
         """
         Retrieve an aggregate
 
@@ -70,26 +72,36 @@ class GroupDetailsEndpoint(Endpoint):
             {method} {path}
 
         """
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
-
         data = serialize(group, request.user)
 
         # TODO: these probably should be another endpoint
         activity = self._get_activity(request, group, num=7)
         seen_by = self._get_seen_by(request, group)
 
+        # find first seen release
+        try:
+            first_release = GroupTagValue.objects.filter(
+                group=group,
+                key='sentry:release',
+            ).order_by('first_seen')[0]
+        except IndexError:
+            first_release = None
+        else:
+            first_release = {
+                'version': first_release.value,
+                # TODO(dcramer): this should look it up in Release
+                'dateCreated': first_release.first_seen,
+            }
+
         data.update({
+            'firstRelease': first_release,
             'activity': serialize(activity, request.user),
             'seenBy': serialize(seen_by, request.user),
         })
 
         return Response(data)
 
-    def put(self, request, group_id):
+    def put(self, request, group):
         """
         Update an aggregate
 
@@ -103,17 +115,11 @@ class GroupDetailsEndpoint(Endpoint):
         Attributes:
 
         - status: resolved, unresolved, muted
+        - hasSeen: true, false
         - isBookmarked: true, false
         - assignedTo: user
 
         """
-
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
-
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -147,6 +153,22 @@ class GroupDetailsEndpoint(Endpoint):
         elif result.get('status'):
             group.status = STATUS_CHOICES[result['status']]
             group.save()
+
+        if result.get('hasSeen'):
+            instance, created = create_or_update(
+                GroupSeen,
+                group=group,
+                user=request.user,
+                project=group.project,
+                defaults={
+                    'last_seen': timezone.now(),
+                }
+            )
+        elif result.get('hasSeen') is False:
+            GroupSeen.objects.filter(
+                group=group,
+                user=request.user,
+            ).delete()
 
         if result.get('isBookmarked'):
             GroupBookmark.objects.get_or_create(
@@ -186,8 +208,7 @@ class GroupDetailsEndpoint(Endpoint):
                     affected = True
 
                 if affected:
-                    create_or_update(
-                        Activity,
+                    activity = Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.ASSIGNED,
@@ -196,10 +217,7 @@ class GroupDetailsEndpoint(Endpoint):
                             'assignee': result['assignedTo'].id,
                         }
                     )
-
-                    if request.user != assignee.user:
-                        # TODO(dcramer): send email
-                        pass
+                    activity.send_notification()
 
             else:
                 affected = GroupAssignee.objects.filter(
@@ -207,17 +225,17 @@ class GroupDetailsEndpoint(Endpoint):
                 ).delete()
 
                 if affected:
-                    create_or_update(
-                        Activity,
+                    activity = Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.UNASSIGNED,
                         user=request.user,
                     )
+                    activity.send_notification()
 
         return Response(serialize(group, request.user))
 
-    def delete(self, request, group_id):
+    def delete(self, request, group):
         """
         Delete an aggregate
 
@@ -226,12 +244,6 @@ class GroupDetailsEndpoint(Endpoint):
             {method} {path}
         """
         from sentry.tasks.deletion import delete_group
-
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
 
         delete_group.delay(object_id=group.id)
 

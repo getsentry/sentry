@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from django import forms
 from pytz import utc
 
+from django.utils import timezone
 from sentry.rules.conditions.base import EventCondition
 
 
@@ -56,6 +57,12 @@ class EventFrequencyCondition(EventCondition):
             return False
 
         if not (interval and value):
+            return False
+
+        now = timezone.now()
+
+        # XXX(dcramer): hardcode 30 minute frequency until rules support choices
+        if state.rule_last_active and state.rule_last_active > (now - timedelta(minutes=30)):
             return False
 
         current_value = self.get_rate(event, interval)

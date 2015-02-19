@@ -26,17 +26,25 @@ def safe_execute(func, *args, **kwargs):
                 result = func(*args, **kwargs)
         else:
             result = func(*args, **kwargs)
-    except Exception, e:
+    except Exception as exc:
         if hasattr(func, 'im_class'):
             cls = func.im_class
         else:
             cls = func.__class__
+
+        func_name = getattr(func, '__name__', str(func))
+        cls_name = cls.__name__
+
         logger = logging.getLogger('sentry.errors')
-        logger.error('Error processing %r on %r: %s', func.__name__, cls.__name__, e, extra={
-            'func_module': cls.__module__,
-            'func_args': args,
-            'func_kwargs': kwargs,
-        }, exc_info=True)
+        logger.error(
+            'Error processing %r on %r: %s', func_name, cls_name, exc,
+            extra={
+                'func_module': cls.__module__,
+                'func_args': args,
+                'func_kwargs': kwargs,
+            },
+            exc_info=True,
+        )
     else:
         return result
 

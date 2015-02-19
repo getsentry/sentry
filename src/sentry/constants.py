@@ -23,6 +23,9 @@ def get_all_languages():
     for path in os.listdir(os.path.join(MODULE_ROOT, 'locale')):
         if path.startswith('.'):
             continue
+        if '_' in path:
+            pre, post = path.split('_', 1)
+            path = '{}-{}'.format(pre, post.lower())
         results.append(path)
     return results
 
@@ -146,7 +149,8 @@ MAX_CULPRIT_LENGTH = 200
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
-    'organizations', 'teams', 'projects', 'help',
+    'accept', 'organizations', 'teams', 'projects', 'help',
+    'docs', 'logout', '404', '500', '_static',
 )
 
 RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS

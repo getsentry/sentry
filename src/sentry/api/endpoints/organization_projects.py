@@ -2,20 +2,24 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.base import DocSection
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Organization, Project, Team
+from sentry.models import Project, Team
 
 
-class OrganizationProjectsEndpoint(Endpoint):
-    def get(self, request, organization_slug):
-        organization = Organization.objects.get_from_cache(
-            slug=organization_slug,
-        )
+class OrganizationProjectsEndpoint(OrganizationEndpoint):
+    doc_section = DocSection.ORGANIZATIONS
 
-        assert_perm(organization, request.user, request.auth)
+    def get(self, request, organization):
+        """
+        List an organization's projects
 
+        Return a list of projects bound to a organization.
+
+            {method} {path}
+
+        """
         team_list = Team.objects.get_for_user(
             organization=organization,
             user=request.user,

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
@@ -25,9 +27,5 @@ class GroupEventsLatestTest(APITestCase):
         })
         response = self.client.get(url, format='json')
 
-        assert response.status_code == 302, response.content
-        assert response['Location'] == 'http://testserver{0}'.format(
-            reverse('sentry-api-0-event-details', kwargs={
-                'event_id': event_2.id,
-            })
-        )
+        assert response.status_code == 200
+        assert response.data['id'] == str(event_2.id)

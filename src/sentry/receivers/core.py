@@ -17,6 +17,7 @@ from sentry.models import (
     Alert
 )
 from sentry.signals import buffer_incr_complete, regression_signal
+from sentry.utils import db
 from sentry.utils.safe import safe_execute
 
 PROJECT_SEQUENCE_FIX = """
@@ -102,8 +103,8 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
     # HACK: manually update the ID after insert due to Postgres
     # sequence issues. Seriously, fuck everything about this.
-    connection = connections[project._state.db]
-    if connection.settings_dict['ENGINE'].endswith('psycopg2'):
+    if db.is_postgres(project._state.db):
+        connection = connections[project._state.db]
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)
 
@@ -138,6 +139,7 @@ def create_keys_for_project(instance, created, **kwargs):
     if not ProjectKey.objects.filter(project=instance, user__isnull=True).exists():
         ProjectKey.objects.create(
             project=instance,
+            label='Default',
         )
 
 
