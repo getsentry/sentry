@@ -424,6 +424,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 3600,
         },
     },
+    'send-beacon': {
+        'task': 'sentry.tasks.send_beacon',
+        'schedule': timedelta(hours=1),
+        'options': {
+            'expires': 3600,
+        },
+    },
     'flush-buffers': {
         'task': 'sentry.tasks.process_buffer.process_pending',
         'schedule': timedelta(seconds=10),
@@ -534,6 +541,12 @@ SENTRY_IGNORE_EXCEPTIONS = (
 
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 SENTRY_URL_PREFIX = ''
+
+# Should we send the beacon to the upstream server?
+SENTRY_BEACON = True
+
+# The administrative contact for this installation
+SENTRY_ADMIN_EMAIL = ''
 
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
