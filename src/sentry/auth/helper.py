@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.contrib.auth import login
@@ -159,7 +160,10 @@ class AuthHelper(object):
                 if auth_identity.data != identity.get('data', {}):
                     auth_identity.update(data=identity['data'])
 
-        login(self.request, auth_identity.user)
+        user = auth_identity.user
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        login(self.request, user)
 
         return HttpResponseRedirect(get_login_redirect(self.request))
 
