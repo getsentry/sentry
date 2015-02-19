@@ -27,9 +27,8 @@
               <li><a href="{% url 'sentry-help' %}">Docs</a></li>
               {% endblock %}
             </ul>
-            <div class="alert alert-info">
-              Please excuse our dust. This documentation is actively being overhauled.
-            </div>
+            {% block post_breadcrumbs %}
+            {% endblock %}
             {% block main %}
               <h3>Sentry Documentation</h3>
               <p>Welcome to the Sentry Docs. Reading through the guides and reference here will give you a complete understanding of how Sentry works and how to get the most out of it. We recommend that you read through the Guides first, then on to the client installation instructions for your specific platform.</p>

@@ -18,7 +18,7 @@
     <table class="table table-bordered table-striped">
         <colgroup>
             <col/>
-            <col width="100px"/>
+            <col width="200px"/>
         </colgroup>
         <thead>
             <tr>
@@ -41,13 +41,24 @@
                         {% endif %}
                     </td>
                     <td style="text-align:center; vertical-align:middle;">
+                        {% if key.can_edit %}
+                            {% if key.is_active %}
+                                <form method="POST" action="{% url 'sentry-disable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <input type="submit" class="btn btn-primary btn-small" value="{% trans "Disable" %}">
+                                </form>
+                            {% else %}
+                                <form method="POST" action="{% url 'sentry-enable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <input type="submit" class="btn btn-primary btn-small" value="{% trans "Enable" %}">
+                                </form>
+                            {% endif %}
+                        {% endif %}
                         {% if key.can_remove %}
                             <form method="POST" action="{% url 'sentry-remove-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
                                 {% csrf_token %}
                                 <input type="submit" class="btn btn-danger btn-small" value="{% trans "Revoke" %}">
                             </form>
-                        {% else %}
-                            &mdash;
                         {% endif %}
                     </td>
                 </tr>

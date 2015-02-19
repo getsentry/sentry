@@ -22,9 +22,7 @@ CHARSET_RE = re.compile(r'charset=(\S+)')
 
 DEFAULT_ENCODING = 'utf-8'
 
-DEFAULT_HEADERS = (
-    ('Accept-Encoding', 'gzip'),
-)
+DEFAULT_HEADERS = ()
 
 DEFAULT_USER_AGENT = 'sentry/%s' % sentry.VERSION
 
@@ -71,6 +69,7 @@ def safe_urlopen(url, data=None, headers=DEFAULT_HEADERS,
 
     req = urllib2.Request(url, data)
     req.add_header('User-Agent', user_agent)
+    req.add_header('Accept-Encoding', 'gzip')
     for key, value in headers:
         req.add_header(key, value)
 
@@ -83,16 +82,20 @@ def safe_urlopen(url, data=None, headers=DEFAULT_HEADERS,
     return opener.open(req, timeout=timeout)
 
 
-def safe_urlread(request):
-    body = request.read()
+def safe_urlread(response):
+    body = response.read()
 
-    if request.headers.get('content-encoding') == 'gzip':
+    if 'content-encoding' in response.headers:
+        # Make sure we only handle gzip Content-Encoding
+        content_encoding = response.headers['content-encoding']
+        assert content_encoding == 'gzip', content_encoding
+
         # Content doesn't *have* to respect the Accept-Encoding header
         # and may send gzipped data regardless.
         # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
         body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
 
-    content_type = request.headers.get('content-type')
+    content_type = response.headers.get('content-type')
     if content_type is None:
         # If there is no content_type header at all, quickly assume default utf-8 encoding
         encoding = DEFAULT_ENCODING

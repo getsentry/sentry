@@ -73,9 +73,9 @@ class MailPlugin(NotificationPlugin):
     def on_alert(self, alert):
         project = alert.project
         subject = '[{0} {1}] ALERT: {2}'.format(
-            project.team.name.encode('utf-8'),
-            project.name.encode('utf-8'),
-            alert.message.encode('utf-8'),
+            project.team.name,
+            project.name,
+            alert.message,
         )
         template = 'sentry/emails/alert.txt'
         html_template = 'sentry/emails/alert.html'
@@ -153,13 +153,12 @@ class MailPlugin(NotificationPlugin):
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
 
-        rule = notification.rule
-        if rule:
+        rules = []
+        for rule in notification.rules:
             rule_link = reverse('sentry-edit-project-rule', args=[
                 group.organization.slug, project.slug, rule.id
             ])
-        else:
-            rule_link = None
+            rules.append((rule.label, rule_link))
 
         context = {
             'group': group,
@@ -167,8 +166,7 @@ class MailPlugin(NotificationPlugin):
             'tags': event.get_tags(),
             'link': link,
             'interfaces': interface_list,
-            'rule': rule,
-            'rule_link': rule_link,
+            'rules': rules,
         }
 
         headers = {

@@ -21,11 +21,6 @@ from sentry.web.frontend import (
     admin, users, explore, explore_code,
 )
 
-from sentry.web.frontend.help_index import HelpIndexView
-from sentry.web.frontend.help_page import HelpPageView
-from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
-from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
-
 import sentry.web.frontend.projects.general
 import sentry.web.frontend.projects.keys
 import sentry.web.frontend.projects.notifications
@@ -43,6 +38,11 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.home import HomeView
+from sentry.web.frontend.help_index import HelpIndexView
+from sentry.web.frontend.help_page import HelpPageView
+from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
+from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
+from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_home import OrganizationHomeView
@@ -99,6 +99,8 @@ urlpatterns += patterns('',
 
     # API
     url(r'^api/0/', include('sentry.api.urls')),
+    url(r'^api/hooks/mailgun/inbound/', MailgunInboundWebhookView.as_view(),
+        name='sentry-mailgun-inbound-hook'),
 
     # Auth
     url(r'^auth/login/$', AuthLoginView.as_view(),
@@ -198,6 +200,12 @@ urlpatterns += patterns('',
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/(?P<key_id>\d+)/remove/$',
         sentry.web.frontend.projects.keys.remove_project_key,
         name='sentry-remove-project-key'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/(?P<key_id>\d+)/disable/$',
+        sentry.web.frontend.projects.keys.disable_project_key,
+        name='sentry-disable-project-key'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/(?P<key_id>\d+)/enable/$',
+        sentry.web.frontend.projects.keys.enable_project_key,
+        name='sentry-enable-project-key'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/$',
         sentry.web.frontend.projects.plugins.manage_plugins,

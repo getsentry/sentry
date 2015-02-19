@@ -40,6 +40,8 @@ If you're using supervisord, you can easily implement emperor mode and uWSGI you
 	killasgroup=true
 	environment=SENTRY_CONF="/srv/www/getsentry.com/current/getsentry/settings.py"
 	directory=/srv/www/getsentry.com/current/
+	stdout_logfile syslog
+	stderr_logfile syslog
 
 Once you're running multiple processes, you'll of course need to also configure something like Nginx to load balance to them:
 
@@ -76,18 +78,18 @@ Once you're running multiple processes, you'll of course need to also configure 
 
           # keepalive + raven.js is a disaster
           keepalive_timeout 0;
-          
+
           # use very aggressive timeouts
           proxy_read_timeout 5s;
           proxy_send_timeout 5s;
           send_timeout 5s;
           resolver_timeout 5s;
           client_body_timeout 5s;
-          
+
           # buffer larger messages
           client_max_body_size 150k;
           client_body_buffer_size 150k;
-  
+
 	  location / {
 	    uwsgi_pass    internal;
 
@@ -108,7 +110,7 @@ Celery
 
 Celery can be difficult to tune. Your goal is to maximize the CPU usage without running out of memory. If you have JavaScript clients this becomes more difficult, as currently the sourcemap and context scraping can buffer large amounts of memory depending on your configurations and the size of your source files.
 
-On a completely anecdotal note, you can take the same approach that you might take with improving the webserver: spam more processes. We again look to supervisord for managing this for us:
+On a completely anecdotal note, you can take the same approach that you might take with improving the webserver: spawn more processes. We again look to supervisord for managing this for us:
 
 ::
 

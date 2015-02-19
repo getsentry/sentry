@@ -178,12 +178,14 @@ class ChangePasswordRecoverForm(forms.Form):
 class NotificationSettingsForm(forms.Form):
     alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
     subscribe_by_default = forms.ChoiceField(
+        label=_('Alerts'),
         choices=(
             ('1', _('Automatically subscribe to notifications for new projects')),
             ('0', _('Do not subscribe to notifications for new projects')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
     subscribe_notes = forms.ChoiceField(
+        label=_('Notes'),
         choices=(
             ('1', _('Get notified about new notes')),
             ('0', _('Do not subscribe to note notifications')),

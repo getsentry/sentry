@@ -7,6 +7,7 @@ from django.core.validators import URLValidator
 from django.http import HttpResponseRedirect
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
+from uuid import uuid1
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
@@ -15,12 +16,13 @@ from sentry.permissions import can_remove_project, can_set_public_projects
 from sentry.plugins import plugins
 from sentry.web.forms.fields import CustomTypedChoiceField, RangeField
 from sentry.web.frontend.base import ProjectView
+from sentry.utils.http import parse_uri_match
 
 
 BLANK_CHOICE = [("", "")]
 
 # Special case origins that don't fit the normal regex pattern, but are valid
-WHITELIST_ORIGINS = ('*', 'localhost')
+WHITELIST_ORIGINS = ('*')
 
 
 class OriginsField(forms.CharField):
@@ -45,18 +47,9 @@ class OriginsField(forms.CharField):
         if value in WHITELIST_ORIGINS:
             return True
 
-        if '://' in value:
-            # URLValidator will raise a forms.ValidationError itself
-            self._url_validator(value)
-            return True
-
+        bits = parse_uri_match(value)
         # ports are not supported on matching expressions (yet)
-        if ':' in value:
-            return False
-
-        # no .com's
-        parts = filter(bool, value.split('.'))
-        if len(parts) < 2:
+        if ':' in bits.domain:
             return False
 
         return True
@@ -72,6 +65,8 @@ class EditProjectForm(forms.ModelForm):
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
+    token = forms.CharField(label=_('Security token'), required=True,
+        help_text=_('Outbound requests matching Allowed Domains will have the header "X-Sentry-Token: {token}" appended.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
         required=False, min_value=0, max_value=168, step_value=1)
     scrub_data = forms.BooleanField(
@@ -89,9 +84,10 @@ class EditProjectForm(forms.ModelForm):
         fields = ('name', 'platform', 'public', 'team', 'slug')
         model = Project
 
-    def __init__(self, request, team_list, data, instance, *args, **kwargs):
+    def __init__(self, request, organization, team_list, data, instance, *args, **kwargs):
         super(EditProjectForm, self).__init__(data=data, instance=instance, *args, **kwargs)
 
+        self.organization = organization
         self.team_list = team_list
 
         if not can_set_public_projects(request.user):
@@ -138,6 +134,18 @@ class EditProjectForm(forms.ModelForm):
 
         raise forms.ValidationError('Unable to find chosen team')
 
+    def clean_slug(self):
+        slug = self.cleaned_data.get('slug')
+        if not slug:
+            return
+        exists_qs = Project.objects.filter(
+            slug=slug,
+            organization=self.organization
+        ).exclude(id=self.instance.id)
+        if exists_qs.exists():
+            raise forms.ValidationError('Another project is already using that slug')
+        return slug
+
 
 class ProjectSettingsView(ProjectView):
     required_access = OrganizationMemberType.ADMIN
@@ -175,19 +183,29 @@ class ProjectSettingsView(ProjectView):
             access=OrganizationMemberType.ADMIN,
         )
 
-        return EditProjectForm(request, team_list, request.POST or None, instance=project, initial={
-            'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
-            'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-            'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
-            'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
-        })
+        # TODO(dcramer): this update should happen within a lock
+        security_token = project.get_option('sentry:token', None)
+        if security_token is None:
+            security_token = uuid1().hex
+            project.update_option('sentry:token', security_token)
+
+        return EditProjectForm(
+            request, organization, team_list, request.POST or None,
+            instance=project, initial={
+                'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
+                'token': security_token,
+                'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+                'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+                'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
+            },
+        )
 
     def handle(self, request, organization, team, project):
         form = self.get_form(request, project)
 
         if form.is_valid():
             project = form.save()
-            for opt in ('origins', 'resolve_age', 'scrub_data', 'scrub_ip_address'):
+            for opt in ('origins', 'resolve_age', 'scrub_data', 'scrub_ip_address', 'token'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))

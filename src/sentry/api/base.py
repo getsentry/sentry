@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+
 from datetime import datetime, timedelta
 from django.utils.http import urlquote
+from django.views.decorators.csrf import csrf_exempt
 from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
@@ -10,11 +13,12 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry.tsdb.base import ROLLUPS
+from sentry.app import tsdb
 from sentry.utils.cursors import Cursor
 
-from .authentication import KeyAuthentication
+from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
 from .paginator import Paginator
+from .permissions import NoPermission
 
 
 ONE_MINUTE = 60
@@ -27,16 +31,21 @@ LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"'
 class DocSection(Enum):
     ACCOUNTS = 'Accounts'
     EVENTS = 'Events'
-    RELEASES = 'Releases'
     ORGANIZATIONS = 'Organizations'
     PROJECTS = 'Projects'
-    # TEAMS = 'Teams'
+    RELEASES = 'Releases'
+    TEAMS = 'Teams'
 
 
 class Endpoint(APIView):
-    authentication_classes = (KeyAuthentication, SessionAuthentication)
+    authentication_classes = (
+        ApiKeyAuthentication,
+        ProjectKeyAuthentication,
+        SessionAuthentication
+    )
     renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
+    permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):
         querystring = u'&'.join(
@@ -57,7 +66,45 @@ class Endpoint(APIView):
             has_results='true' if bool(cursor) else 'false',
         )
 
-    def paginate(self, request, on_results=lambda x: x, **kwargs):
+    def convert_args(self, request, *args, **kwargs):
+        return (args, kwargs)
+
+    @csrf_exempt
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Identical to rest framework's dispatch except we add the ability
+        to convert arguments (for common URL params).
+        """
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers  # deprecate?
+
+        try:
+            self.initial(request, *args, **kwargs)
+
+            # Get the appropriate handler method
+            if request.method.lower() in self.http_method_names:
+                handler = getattr(self, request.method.lower(),
+                                  self.http_method_not_allowed)
+
+                (args, kwargs) = self.convert_args(request, *args, **kwargs)
+                self.args = args
+                self.kwargs = kwargs
+            else:
+                handler = self.http_method_not_allowed
+
+            response = handler(request, *args, **kwargs)
+
+        except Exception as exc:
+            response = self.handle_exception(exc)
+
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
+
+    def paginate(self, request, on_results=None, paginator_cls=Paginator,
+                 **kwargs):
         per_page = int(request.GET.get('per_page', 100))
         input_cursor = request.GET.get('cursor')
         if input_cursor:
@@ -65,14 +112,15 @@ class Endpoint(APIView):
 
         assert per_page <= 100
 
-        paginator = Paginator(**kwargs)
+        paginator = paginator_cls(**kwargs)
         cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,
         )
 
         # map results based on callback
-        results = on_results(cursor_result.results)
+        if on_results:
+            results = on_results(cursor_result.results)
 
         headers = {}
         headers['Link'] = ', '.join([
@@ -83,13 +131,13 @@ class Endpoint(APIView):
         return Response(results, headers=headers)
 
 
-class BaseStatsEndpoint(Endpoint):
+class StatsMixin(object):
     def _parse_args(self, request):
         resolution = request.GET.get('resolution')
         if resolution:
             resolution = self._parse_resolution(resolution)
 
-            assert any(r for r in ROLLUPS if r[0] == resolution)
+            assert any(r for r in tsdb.rollups if r[0] == resolution)
 
         end = request.GET.get('until')
         if end:

@@ -2,15 +2,14 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember,
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
     OrganizationMemberType
 )
 
 
-class OrganizationMemberDetailsEndpoint(Endpoint):
+class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     def _is_only_owner(self, member):
         if member.type != OrganizationMemberType.OWNER:
             return False
@@ -18,22 +17,14 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
         queryset = OrganizationMember.objects.filter(
             organization=member.organization_id,
             type=OrganizationMemberType.OWNER,
+            user__isnull=False,
         ).exclude(id=member.id)
         if queryset.exists():
             return False
 
         return True
 
-    def delete(self, request, organization_slug, member_id):
-        try:
-            organization = Organization.objects.get_from_cache(
-                slug=organization_slug,
-            )
-        except Organization.DoesNotExist:
-            return Response(status=404)
-
-        assert_perm(organization, request.user, request.auth)
-
+    def delete(self, request, organization, member_id):
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:
@@ -60,7 +51,9 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
             # TODO(dcramer): while we still maintain an owner field on
             # organization we need to ensure it transfers
             organization.owner = OrganizationMember.objects.filter(
+                organization=om.organization,
                 type=OrganizationMemberType.OWNER,
+                user__isnull=False,
             ).exclude(id=om.id)[0].user
             organization.save()
 
