@@ -58,6 +58,7 @@ tests_require = [
     'pytest-cov>=1.4',
     'pytest-timeout',
     'python-coveralls',
+    'responses',
     'riak',
 ]
 
