@@ -13,7 +13,7 @@ class Migration(SchemaMigration):
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('provider', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('config', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
-            ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.User'])),
+            ('created_by', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], null=True, on_delete=models.SET_NULL)),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
             ('sync_time', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True)),
             ('last_sync', self.gf('django.db.models.fields.DateTimeField')(null=True)),
@@ -102,7 +102,7 @@ class Migration(SchemaMigration):
         'sentry.authprovider': {
             'Meta': {'object_name': 'AuthProvider'},
             'config': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
-            'created_by': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.User']"}),
+            'created_by': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True', 'on_delete': 'models.SET_NULL'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'last_sync': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
