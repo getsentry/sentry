@@ -34,7 +34,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 return self.handle_existing_provider(request, organization)
 
         context = {
-            'provider_list': manager,
+            'provider_list': [(k, v.name) for k, v in manager],
         }
 
         return self.respond('sentry/organization-auth-settings.html', context)

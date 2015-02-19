@@ -52,6 +52,8 @@ class FetchUser(AuthView):
 
 
 class GoogleOAuth2Provider(OAuth2Provider):
+    name = 'Google'
+
     def __init__(self, domain=None, **config):
         self.domain = domain
         super(GoogleOAuth2Provider, self).__init__(**config)
