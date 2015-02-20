@@ -33,9 +33,6 @@ class TeamPermission(ScopedPermission):
         except OrganizationMember.DoesNotExist:
             return False
 
-        print('here')
-        print(om.scopes)
-
         allowed_scopes = set(self.scope_map[request.method])
         current_scopes = om.scopes
         return any(s in allowed_scopes for s in current_scopes)
