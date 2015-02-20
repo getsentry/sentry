@@ -23,7 +23,7 @@ BEACON_URL = 'https://www.getsentry.com/remote/beacon/'
 logger = logging.getLogger('beacon')
 
 
-@instrumented_task(name='sentry.tasks.beacon', queue='update')
+@instrumented_task(name='sentry.tasks.send_beacon', queue='update')
 def send_beacon():
     """
     Send a Beacon to a remote server operated by the Sentry team.
