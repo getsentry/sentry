@@ -324,8 +324,10 @@ class SourceProcessor(object):
             exception['stacktrace'] = stacktrace.to_json()
 
     def ensure_module_names(self, frames):
+        # TODO(dcramer): this doesn't really fit well with generic URLs so we
+        # whitelist it to http/https
         for frame in frames:
-            if not frame.module:
+            if not frame.module and frame.abs_path.startswith(('http:', 'https:')):
                 frame.module = generate_module(frame.abs_path)
 
     def expand_frames(self, frames):
