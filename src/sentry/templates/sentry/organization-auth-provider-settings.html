@@ -14,6 +14,12 @@
       <form method="POST">
         {% csrf_token %}
 
+        <h3>Login URL</h3>
+
+        <p>While Sentry will try to be clever about directing members to the appropriate login form, you're safest just to hit up your organization-specific login when visiting the app:</p>
+
+        <p class="clippy"><a href="{{ login_url }}">{{ login_url }}</a></p>
+
         <hr>
 
         <h3>Disable {{ provider_name }} Authentication</h3>
