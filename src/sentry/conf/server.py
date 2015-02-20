@@ -581,10 +581,7 @@ SENTRY_MAX_SAMPLE_TIME = 10000
 # Web Service
 SENTRY_WEB_HOST = 'localhost'
 SENTRY_WEB_PORT = 9000
-SENTRY_WEB_OPTIONS = {
-    'workers': 3,
-    'limit_request_line': 0,  # required for raven-js
-}
+SENTRY_WEB_OPTIONS = {}
 
 # UDP Service
 SENTRY_UDP_HOST = 'localhost'
