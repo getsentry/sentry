@@ -27,6 +27,7 @@ Users Guide
    throttling/index
    tsdb/index
    inbound-mail/index
+   beacon
    performance/index
    cli/index
    client/index
