@@ -53,6 +53,15 @@ SENTRY_USE_BIG_INTS = True
 # If you're expecting any kind of real traffic on Sentry, we highly recommend
 # configuring the CACHES and Redis settings
 
+#############
+## General ##
+#############
+
+# The administrative email for this installation.
+# Note: This will be reported back to getsentry.com as the point of contact. See
+# the beacon documentation for more information.
+SENTRY_ADMIN_EMAIL = 'your.name@example.com'
+
 ###########
 ## Redis ##
 ###########
@@ -327,6 +336,13 @@ def apply_legacy_settings(config):
         warnings.warn('SENTRY_USE_QUEUE is deprecated. Please use CELERY_ALWAYS_EAGER instead. '
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
+
+    if not settings.SENTRY_ADMIN_EMAIL:
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! SENTRY_ADMIN_EMAIL is not configured !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
 
     if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
         # Maybe also point to a piece of documentation for more information?
