@@ -1,6 +1,7 @@
 Version 7.3.0
 -------------
 
+- The SENTRY_ADMIN_EMAIL setting now exists, and should be the technical contact for the install.
 - Fixed an issue that would cause job fanout in deletions.
 - Notifications are now sent when someone assigns you to an event.
 - Release objects are now created automatically.
