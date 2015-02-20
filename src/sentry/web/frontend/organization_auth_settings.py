@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
+
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.models import OrganizationMemberType
+from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
 
@@ -15,6 +18,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         provider = auth_provider.get_provider()
 
         context = {
+            'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
             'auth_provider': auth_provider,
             'provider_name': provider.name,
         }
