@@ -60,7 +60,6 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-statsd <https://github.com/dreadatour/sentry-statsd>`_
 * `sentry-top <https://github.com/getsentry/sentry-top>`_
 * `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
-* `sentry-webhooks <https://github.com/getsentry/sentry-webhooks>`_
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
 * `sentry-xmpp <https://github.com/chroto/sentry-xmpp>`_
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_
