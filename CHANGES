@@ -1,3 +1,9 @@
+Version 7.3.1
+-------------
+
+- Updated Gunicorn version and default configuration.
+- Fixed periodic task for beacon.
+
 Version 7.3.0
 -------------
 
