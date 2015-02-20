@@ -353,14 +353,15 @@ class SourceProcessor(object):
                 state = find_source(sourcemap_idx, frame.lineno, frame.colno)
                 abs_path = urljoin(sourcemap_url, state.src)
                 logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                source = cache.get(abs_path)
-                if not source:
+                uncompressed_source = cache.get(abs_path)
+                if not uncompressed_source:
                     frame.data = {
                         'sourcemap': sourcemap_url,
                     }
                     frame.errors.append('Failed to map %r' % abs_path.encode('utf-8'))
                     logger.debug('Failed mapping path %r', abs_path)
                 else:
+                    source = uncompressed_source
                     # Store original data in annotation
                     frame.data = {
                         'orig_lineno': frame.lineno,
