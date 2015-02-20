@@ -1,3 +1,22 @@
+Version 7.3.0
+-------------
+
+- Fixed an issue that would cause job fanout in deletions.
+- Notifications are now sent when someone assigns you to an event.
+- Release objects are now created automatically.
+- Changed team-based API endpoints to use slugs.
+- New API endpoints:
+  - Help page list
+  - Help page details
+  - Group tag values
+  - Project tag values
+- Moved JavaScript sourcemap processing into language extension.
+  - Sourcemap processing errors are now annotated into the frame.
+- Refactored API to be scope-based permissions.
+- Added backend support for organization API keys.
+- Moved sentry_webhooks into builtins.
+- Added reporting Beacon (see docs).
+
 Version 7.2.0
 -------------
 
