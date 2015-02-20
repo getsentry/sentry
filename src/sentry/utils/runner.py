@@ -60,7 +60,9 @@ SENTRY_USE_BIG_INTS = True
 # The administrative email for this installation.
 # Note: This will be reported back to getsentry.com as the point of contact. See
 # the beacon documentation for more information.
-SENTRY_ADMIN_EMAIL = 'your.name@example.com'
+
+# SENTRY_ADMIN_EMAIL = 'your.name@example.com'
+SENTRY_ADMIN_EMAIL = ''
 
 ###########
 ## Redis ##
