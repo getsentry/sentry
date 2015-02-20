@@ -12,7 +12,7 @@ class AuthOrganizationLoginView(BaseView):
 
     def handle(self, request, organization_slug):
         try:
-            organization = Organization.objects.get_from_cache(
+            organization = Organization.objects.get(
                 slug=organization_slug
             )
         except Organization.DoesNotExist:
@@ -22,11 +22,22 @@ class AuthOrganizationLoginView(BaseView):
         if auth_provider is None:
             return self.redirect(reverse('sentry-login'))
 
-        helper = AuthHelper(
-            request=request,
-            organization=organization,
-            auth_provider=auth_provider,
-            flow=AuthHelper.FLOW_LOGIN,
-        )
-        helper.init_pipeline()
-        return helper.next_step()
+        if request.method == 'POST':
+            helper = AuthHelper(
+                request=request,
+                organization=organization,
+                auth_provider=auth_provider,
+                flow=AuthHelper.FLOW_LOGIN,
+            )
+            helper.init_pipeline()
+            return helper.next_step()
+
+        provider = auth_provider.get_provider()
+
+        context = {
+            'organization': organization,
+            'provider_key': provider.key,
+            'provider_name': provider.name,
+        }
+
+        return self.respond('sentry/organization-login.html', context)

@@ -1,0 +1,24 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="row">
+      <div class="span5">
+        <form class="form-stacked" action="" method="post">
+          {% csrf_token %}
+
+          <fieldset>
+              <legend>{{ organization.name }} Login</legend>
+          </fieldset>
+
+          <button type="submit" class="btn btn-default btn-primary btn-login-{{ provider_key }}">Login with {{ provider_name }}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}
