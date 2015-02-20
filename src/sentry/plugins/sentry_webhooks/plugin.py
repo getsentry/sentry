@@ -75,6 +75,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             url=url,
             json=payload,
             timeout=self.timeout,
+            verify_ssl=False,
             user_agent=self.user_agent,
         )
 
