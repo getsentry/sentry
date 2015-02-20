@@ -22,29 +22,30 @@ USER_AGENT = 'sentry/%s' % sentry.VERSION
 DISALLOWED_IPS = set((IPNetwork(i) for i in settings.SENTRY_DISALLOWED_IPS))
 
 
+def is_valid_url(url):
+    """
+    Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
+    """
+    parsed = urlparse(url)
+    if not parsed.hostname:
+        return False
+
+    try:
+        ip_address = socket.gethostbyname(parsed.hostname)
+    except socket.gaierror:
+        return False
+
+    ip_network = IPNetwork(ip_address)
+    for addr in DISALLOWED_IPS:
+        if ip_network in addr:
+            return False
+
+    return True
+
+
 class BlacklistAdapter(HTTPAdapter):
-    def is_allowed_url(self, url):
-        """
-        Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
-        """
-        parsed = urlparse(url)
-        if not parsed.hostname:
-            return False
-
-        try:
-            ip_address = socket.gethostbyname(parsed.hostname)
-        except socket.gaierror:
-            return False
-
-        ip_network = IPNetwork(ip_address)
-        for addr in DISALLOWED_IPS:
-            if ip_network in addr:
-                return False
-
-        return True
-
     def send(self, request, *args, **kwargs):
-        if not self.is_allowed_url(request.url):
+        if not is_valid_url(request.url):
             raise SuspiciousOperation('%s matches the URL blacklist' % (request.url,))
         return super(BlacklistAdapter, self).send(request, *args, **kwargs)
 
