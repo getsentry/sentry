@@ -174,6 +174,7 @@ def fetch_url(url, project=None):
             request = safe_urlopen(
                 url,
                 allow_redirects=True,
+                verify_ssl=False,
                 headers=headers,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
