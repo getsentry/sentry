@@ -370,6 +370,7 @@ CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
+    'sentry.tasks.beacon',
     'sentry.tasks.check_alerts',
     'sentry.tasks.check_update',
     'sentry.tasks.cleanup',
