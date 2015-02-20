@@ -68,7 +68,7 @@ def send_beacon():
 
     # TODO(dcramer): relay the response 'notices' as admin broadcasts
     try:
-        request = safe_urlopen(BEACON_URL, json=payload)
+        request = safe_urlopen(BEACON_URL, json=payload, timeout=5)
         response = safe_urlread(request)
     except Exception:
         logger.warning('Failed sending beacon', exc_info=True)
