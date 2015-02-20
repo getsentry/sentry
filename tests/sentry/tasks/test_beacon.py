@@ -37,5 +37,5 @@ class SendBeaconTest(TestCase):
                 'teams': 2,
             },
             'admin_email': 'foo@example.com',
-        })
+        }, timeout=5)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
