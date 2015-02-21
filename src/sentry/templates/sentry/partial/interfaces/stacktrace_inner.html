@@ -77,12 +77,6 @@
                 {% endif %}
             </p>
 
-            {% if frame.errors %}
-              <div class="alert alert-error" style="margin: 10px 0">
-                There was an error with this frame.
-              </div>
-            {% endif %}
-
             {% if frame.context or frame.vars %}
                 <div class="commands">
                     <a href="javascript:void(0)" onclick="$('.frame-{{ stack_id }}-{{ forloop.counter0 }}').toggleClass('expanded')" title="{% trans "Toggle Context" %}" rel="tooltip" class="tip">{% if frame.vars %}<i class="icon-info-sign"></i> {% endif %}{% if frame.context %}<i class="icon-tasks"></i> {% endif %}</a>
@@ -91,6 +85,11 @@
 
             {% if frame.context %}
                 <ol start="{{ frame.start_lineno }}" class="context">
+                  {% if frame.errors %}
+                    <li class="expandable error">
+                      There was an error with this frame.
+                    </li>
+                  {% endif %}
                 {% for num, line in frame.context %}
                     <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ stack_id }}-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line }}</li>
                 {% endfor %}
