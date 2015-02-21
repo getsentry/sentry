@@ -31,6 +31,10 @@
                                 <dd>{{ frame.orig_function|default_if_none:"n/a" }}</dd>
                                 <dt>{% trans "Sourcemap" %}</dt>
                                 <dd><a href='{{ frame.sourcemap_url }}'>{{ frame.sourcemap }}</a></dd>
+                                {% if frame.errors %}
+                                  <dt>Error</dt>
+                                  <dd>There was an error with this frame.</dd>
+                                {% endif %}
                             </dl>">?</a>
                     {% elif frame.abs_path and frame.abs_path != filename %}
                         <a class="annotation trigger-popover"
@@ -72,6 +76,12 @@
                     <span class="tag-app">(application)</span>
                 {% endif %}
             </p>
+
+            {% if frame.errors %}
+              <div class="alert alert-error" style="margin: 10px 0">
+                There was an error with this frame.
+              </div>
+            {% endif %}
 
             {% if frame.context or frame.vars %}
                 <div class="commands">
