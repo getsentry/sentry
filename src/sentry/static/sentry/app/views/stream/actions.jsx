@@ -179,7 +179,8 @@ var SortOptions = React.createClass({
     return (
       <DropdownLink
           key="sort"
-          className="btn-sm"
+          className="btn btn-sm"
+          btnGroup={true}
           title={dropdownTitle}>
         {this.getMenuItem('priority', 'Priority', sortBy === 'priority')}
         {this.getMenuItem('date', 'Last Seen', sortBy === 'date')}
