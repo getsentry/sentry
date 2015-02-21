@@ -341,6 +341,7 @@ var StreamActions = React.createClass({
 
             <DropdownLink
               key="actions"
+              btnGroup={true}
               caret={false}
               disabled={!this.state.anySelected}
               className="btn btn-sm btn-default hidden-xs action-more"

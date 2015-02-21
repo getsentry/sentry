@@ -32,8 +32,13 @@ var DropdownLink = React.createClass({
       "disabled": this.props.disabled,
     });
 
+    var topLevelClasses = classSet({
+      "dropdown" : true,
+      "btn-group": this.props.btnGroup,
+    });
+
     return (
-      <span className="dropdown">
+      <span className={joinClasses(this.props.topLevelClasses, topLevelClasses)}>
         <a className={joinClasses(this.props.className, className)} ref="toggle"
            data-toggle="dropdown">
           {this.props.title}
