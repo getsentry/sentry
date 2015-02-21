@@ -3,7 +3,7 @@
 
 <ul class="traceback">
     {% for frame in frames %}
-        <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ stack_id }}-{{ forloop.counter0 }}">
+        <li class="frame{% if not frame.in_app %} system-frame{% endif %}{% if frame.errors %} frame-errors{% endif %} frame-{{ stack_id }}-{{ forloop.counter0 }}">
             <p>
                 {% if frame.filename %}
                     <code>{{ frame.filename }}</code>
