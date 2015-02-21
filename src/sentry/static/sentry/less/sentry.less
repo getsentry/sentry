@@ -506,9 +506,31 @@ header {
   }
 
   .user-nav {
-    top: -8px;
+    position: relative;
+    top: -7px;
+    .list-unstyled();
+
+    > li {
+      float: left;
+      font-size: 15px;
+      margin-left: 20px;
+
+      a {
+        display: block;
+        padding: 6px 0;
+      }
+
+      .icon {
+        opacity: .4;
+        margin-right: 6px;
+        position: relative;
+        top: 2px;
+      }
+    }
 
     .dropdown-toggle {
+      padding: 0;
+
       img {
         .square(30px);
         border-radius: 2px;
@@ -519,67 +541,25 @@ header {
       }
     }
     .dropdown-menu {
-      color: #fff;
-      background: @grayDark;
+      color: @gray-dark;
       left: auto;
-      right: -20px;
+      right: -12px;
       top: 44px;
       border-radius: 2px;
-      width: 240px;
+      width: 160px;
       margin: 0;
-      // border: 1px solid darken(@grayDark, 10);
-      border: none;
-      box-shadow: none;
       padding: 0;
-
-      &:after {
-        width: 0;
-        height: 0;
-        border-left: 12px solid transparent;
-        border-right: 12px solid transparent;
-        border-bottom: 12px solid @grayDark;
-        content: "";
-        display: block;
-        position: absolute;
-        top: -10px;
-        right: 15px;
-      }
 
       ul {
         .list-unstyled();
         margin: 0;
       }
 
-      .user-global {
-        text-align: center;
-        padding: 20px 0;
-
-        li {
-          display: inline-block;
-          margin-right: 10px;
-
-          &:last-child {
-            margin: 0;
-          }
-        }
-
-        .icon {
-          opacity: .5;
-          margin-right: 5px;
-        }
-        .icon-book, .icon-comments {
-          top: 2px;
-        }
-        .icon-settings {
-          top: 1px;
-        }
-      }
-
       .user-account {
         li {
           a {
             padding: 15px 20px;
-            border-top: 1px solid rgba(0,0,0, .25);
+            border-top: 1px solid rgba(0,0,0, .1);
             display: block;
             &:hover {
               background: @blue;
@@ -587,14 +567,18 @@ header {
               border-top-color: transparent;
             }
           }
+
+          &:first-child a {
+            border-top: 0;
+          }
         }
       }
 
       a {
-        color: #B5B9BD;
+        // color: #B5B9BD;
 
         &:hover {
-          color: #fff;
+          // color: #fff;
           background: none;
         }
       }
