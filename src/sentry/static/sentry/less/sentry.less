@@ -18,6 +18,8 @@
 @iconSpritePath:          "../vendor/bootstrap/img/glyphicons-halflings.png";
 @iconWhiteSpritePath:     "../vendor/bootstrap/img/glyphicons-halflings-white.png";
 
+@red: #ff2e46;
+
 
 /* =============================  Global  ============================== */
 
@@ -1636,6 +1638,18 @@ ol.context-line {
   > li {
     > span {
       float: right;
+    }
+  }
+}
+
+.frame-errors {
+  ol.context {
+    > li {
+      background: lighten(@red, 38);
+
+      &.active {
+        background: lighten(@red, 30);
+      }
     }
   }
 }
