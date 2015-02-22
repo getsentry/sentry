@@ -58,7 +58,7 @@ function buildCssCompileTask(name, fileList) {
     gulp.src(fileList)
     .pipe(gp_cached('css-' + name))
     .pipe(gp_less({
-        paths: [vendorFile("bootstrap/less")]
+        paths: ['node_modules/bootstrap/less']
     }))
     .pipe(gp_concat(name))
     .pipe(gulp.dest(distPath))
