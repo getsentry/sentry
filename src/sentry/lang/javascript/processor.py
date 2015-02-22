@@ -416,7 +416,7 @@ class SourceProcessor(object):
             done_file_list.add(filename)
 
             if idx > self.max_fetches:
-                cache.add_error(filename, 'Not fetching due to too many remote sources')
+                cache.add_error(filename, 'Not fetching context due to too many remote sources')
                 continue
 
             # TODO: respect cache-control/max-age headers to some extent
@@ -431,13 +431,13 @@ class SourceProcessor(object):
             cache.add(filename, result.body.splitlines())
             cache.alias(result.url, filename)
 
-            # If we didn't have a colno, a sourcemap wont do us any good
-            if filename not in sourcemap_capable:
-                cache.add_error(filename, 'No column information available')
-                continue
-
             sourcemap_url = discover_sourcemap(result)
             if not sourcemap_url:
+                continue
+
+            # If we didn't have a colno, a sourcemap wont do us any good
+            if filename not in sourcemap_capable:
+                cache.add_error(filename, 'No column information available (cant expand sourcemap)')
                 continue
 
             logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
