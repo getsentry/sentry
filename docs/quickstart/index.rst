@@ -11,7 +11,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 
 * A UNIX-based operating system. We test on Ubuntu.
 * Python 2.7
-* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev, libz-dev, libffi-dev
+* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev, libz-dev, libffi-dev, libssl-dev
 * A real database (PostgreSQL is preferred, MySQL also works with caveats)
 * Redis
 * Nginx (with RealIP, i.e. nginx-full)
