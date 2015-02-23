@@ -116,9 +116,25 @@ header {
     padding: 0;
     margin-bottom: 0;
     font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    margin-right: 140px;
+    position: relative;
+
+    &:after {
+      content: "";
+      display: block;
+      position: absolute;
+      z-index: 100;
+      right: 0;
+      top: -5px;
+      bottom: -5px;
+      width: 30px;
+
+      #gradient > .horizontal(rgba(255,255,255, 0), rgba(255,255,255, 1));
+    }
 
     li {
-      float: left;
       position: relative;
       font-weight: 500;
 
