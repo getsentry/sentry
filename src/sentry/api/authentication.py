@@ -16,12 +16,12 @@ class QuietBasicAuthentication(BasicAuthentication):
 class ApiKeyAuthentication(QuietBasicAuthentication):
     def authenticate_credentials(self, userid, password):
         if password:
-            raise AuthenticationFailed('A password should not be specified')
+            return
 
         try:
             key = ApiKey.objects.get_from_cache(key=userid)
         except ApiKey.DoesNotExist:
-            raise AuthenticationFailed('Invalid api key')
+            return None
 
         if not key.is_active:
             raise AuthenticationFailed('Key is disabled')
@@ -34,10 +34,10 @@ class ProjectKeyAuthentication(QuietBasicAuthentication):
         try:
             pk = ProjectKey.objects.get_from_cache(public_key=userid)
         except ProjectKey.DoesNotExist:
-            raise AuthenticationFailed('Invalid api key')
+            return None
 
         if not constant_time_compare(pk.secret_key, password):
-            raise AuthenticationFailed('Invalid api key')
+            return None
 
         if not pk.is_active:
             raise AuthenticationFailed('Key is disabled')
