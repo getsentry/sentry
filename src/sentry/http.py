@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import sentry
 import socket
 import requests
+import warnings
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
@@ -60,11 +61,13 @@ def build_session():
 
 def safe_urlopen(url, method=None, params=None, data=None, json=None,
                  headers=None, allow_redirects=False, timeout=30,
-                 verify_ssl=True):
+                 verify_ssl=True, user_agent=None):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
     """
+    if user_agent is not None:
+        warnings.warn('user_agent is no longer used with safe_urlopen')
 
     session = build_session()
 
