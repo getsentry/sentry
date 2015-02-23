@@ -183,13 +183,10 @@ class AuthHelper(object):
         config = self.provider.build_config(state)
         with transaction.atomic():
             self.auth_provider = AuthProvider.objects.create(
+                organization=self.organization,
                 provider=self.provider.key,
                 config=config,
-                created_by=self.request.user,
             )
-
-            assert not self.organization.auth_provider
-            self.organization.update(auth_provider=self.auth_provider)
 
             AuthIdentity.objects.create_or_update(
                 user=self.request.user,
