@@ -57,7 +57,7 @@ class BaseTestCase(Fixtures, Exam):
     def assertRequiresAuthentication(self, path, method='GET'):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
+        assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
 
     @before
     def setup_session(self):
