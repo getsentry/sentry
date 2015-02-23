@@ -34,7 +34,7 @@ var Gravatar = React.createClass({
 
   render() {
     return (
-      <img src={this.buildGravatarUrl()} />
+      <img src={this.buildGravatarUrl()} className="avatar"/>
     );
   }
 });
