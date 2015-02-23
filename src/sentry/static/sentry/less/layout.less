@@ -1,0 +1,564 @@
+html {
+  overflow-y: scroll;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: @font-family-base;
+  font-size: 14px;
+  line-height: 20px;
+  color: #343C45;
+  -webkit-font-smoothing: antialiased;
+  .transition(.1s padding ease-in-out);
+  overflow-x: hidden;
+  background: #fbfbfc;
+  padding-left: @sidebar-width;
+}
+
+/**
+* body.hide-sidebar
+* ============================================================================
+*/
+
+body.hide-sidebar {
+  padding-left: 0;
+
+  .app-sidebar {
+    display: none;
+  }
+
+  .container {
+    max-width: 960px;
+  }
+}
+
+/**
+* body.account
+* ============================================================================
+*/
+
+body.account {
+  .container {
+    max-width: 660px !important;
+  }
+}
+
+/**
+* body.rightbar
+* ============================================================================
+*/
+
+body.show-rightbar {
+  background: #fbfbfc url(../images/dashboard/sidebar-bg.png) top right repeat-y;
+  background-size: 220px 2px;
+
+  #content {
+    position: relative;
+    padding-right: 220px;
+  }
+
+  .rightbar {
+    display: block
+  }
+}
+
+/**
+* Container / Content
+* ============================================================================
+*/
+
+.container {
+  position: relative;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+#content {
+  padding-top: 20px;
+  margin-bottom: 20px;
+
+  img {
+    max-width: 100%;
+  }
+}
+
+.app .container {
+  width: auto !important;
+}
+
+/**
+* Header
+* ============================================================================
+*/
+
+header {
+  background: #fff;
+  color: @gray;
+  padding: 0 0 0;
+  border-bottom: 1px solid #E6E7E9;
+  position: relative;
+  height: 66px;
+  padding: 25px 0 0;
+  line-height: 1;
+
+  .logo-logged-in {
+    position: relative;
+    padding-left: 34px;
+    .icon-sentry-logo {
+      position: absolute;
+      left: 0;
+    }
+  }
+
+  .breadcrumb {
+    background: none;
+    padding: 0;
+    margin-bottom: 0;
+    font-size: 18px;
+
+    li {
+      float: left;
+      position: relative;
+      font-weight: 500;
+
+      &+li {
+        padding-left: 23px;
+
+        &:before {
+          position: absolute;
+          left: 9px;
+          padding: 0;
+        }
+      }
+
+      &.truncate {
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &:last-child {
+        a {
+          color: @gray-light;
+        }
+      }
+      &:first-child:last-child {
+        a {
+          color: @gray-dark;
+        }
+      }
+
+      &:nth-child(3) {
+        font-weight: 400;
+      }
+    }
+
+    .icon-settings {
+      font-size: 15px;
+      color: rgba(79, 87, 96, 0.30);
+      margin-left: 2px;
+      position: relative;
+      top: 1px;
+    }
+
+    em {
+      color: #B5B9BD;
+      font-style: normal;
+    }
+  }
+
+  a {
+    color: @gray;
+    &:hover, &:active, &:focus {
+      color: darken(@gray, 10);
+      text-decoration: none;
+    }
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .icon-sentry-logo-full, .icon-sentry-logo {
+    font-size: 24px;
+  }
+
+  .user-avatar {
+    width: 22px;
+    border-radius: 3px;
+    position: relative;
+    top: -2px;
+  }
+
+  [class^="icon-"], [class*=" icon-"] {
+    position: relative;
+    top: 0px;
+  }
+
+  .user-nav {
+    position: relative;
+    top: -7px;
+    .list-unstyled();
+
+    > li {
+      float: left;
+      font-size: 15px;
+      margin-left: 20px;
+
+      a {
+        display: block;
+        padding: 6px 0;
+      }
+
+      .icon {
+        opacity: .4;
+        margin-right: 6px;
+        position: relative;
+        top: 2px;
+      }
+    }
+
+    .dropdown-toggle {
+      padding: 0;
+
+      img {
+        .square(30px);
+        border-radius: 2px;
+      }
+
+      .icon-arrow-down {
+        top: 4px;
+      }
+    }
+    .dropdown-menu {
+      color: @gray-dark;
+      left: auto;
+      right: -12px;
+      top: 44px;
+      border-radius: 2px;
+      width: 160px;
+      margin: 0;
+      padding: 0;
+
+      ul {
+        .list-unstyled();
+        margin: 0;
+      }
+
+      .user-account {
+        li {
+          a {
+            padding: 15px;
+            border-top: 1px solid rgba(0,0,0, .1);
+            display: block;
+            &:hover {
+              background: @blue;
+              color: #fff;
+              border-top-color: transparent;
+            }
+          }
+
+          &:first-child a {
+            border-top: 0;
+          }
+        }
+      }
+
+      a {
+        // color: #B5B9BD;
+
+        &:hover {
+          color: #fff;
+          background: none;
+        }
+      }
+    }
+  }
+}
+
+header + .messages-container {
+  margin-top: -30px;
+  margin-bottom: 30px;
+}
+
+/**
+* Rightbar
+* ============================================================================
+*/
+
+.rightbar {
+  display: none;
+  position: absolute;
+  width: 220px;
+  right: 0px;
+  top: -1px;
+
+  .nav-stacked {
+    li, li+li {
+      margin: 0;
+    }
+    a {
+      font-weight: 500;
+      font-size: 15px;
+      background: none;
+      border-radius: 0;
+      padding: 15px 20px;
+      color: @gray-dark;
+
+      &:hover {
+        background: rgba(0,0,0, .05);
+      }
+    }
+
+    li.active a {
+      font-weight: 600;
+      background: @blue;
+    }
+  }
+}
+
+/**
+* App Sidebar
+* ============================================================================
+*/
+
+.app-sidebar {
+  background: #343C45;
+  color: #fff;
+  width: @sidebar-width;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  padding: 0 20px 44px;
+  color: #fff;
+  overflow: auto;
+  .transition(.1s left ease-in-out);
+
+  a {
+    color: #fff;
+
+    &.divider {
+      padding-left: 10px;
+    }
+  }
+
+  .icon-settings {
+    opacity: .5;
+    font-size: 14px;
+    color: #ACB9C5;
+  }
+
+  h6 {
+    margin: 15px 0;
+    opacity: .5;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ACB9C5;
+
+    a {
+      color: #ACB9C5;
+    }
+
+    .icon-settings {
+      opacity: 1;
+    }
+  }
+
+  ul {
+    margin-bottom: 15px;
+  }
+
+  li.active {
+    position: relative;
+    &:before {
+      width: 6px;
+      height: 6px;
+      background: @blue;
+      border-radius: 6px;
+      content: "";
+      display: block;
+      position: absolute;
+      left: -13px;
+      top: 6px;
+    }
+  }
+
+  .icon {
+    opacity: .5;
+    margin-right: 10px;
+    position: relative;
+    top: 1px;
+    color: #ACB9C5;
+  }
+
+  .team-filter {
+    .form-control {
+      border: none;
+      box-shadow: 0;
+      padding: 4px 10px;
+      background: #fff;
+    }
+  }
+
+  h6, .truncate li strong a, .username {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+
+/**
+* Reset Grid
+* ============================================================================
+*/
+
+.row {
+  margin-left: -10px;
+  margin-right: -10px;
+}
+
+.col-xs-1, .col-sm-1, .col-md-1, .col-lg-1, .col-xs-2, .col-sm-2, .col-md-2, .col-lg-2, .col-xs-3, .col-sm-3, .col-md-3, .col-lg-3, .col-xs-4, .col-sm-4, .col-md-4, .col-lg-4, .col-xs-5, .col-sm-5, .col-md-5, .col-lg-5, .col-xs-6, .col-sm-6, .col-md-6, .col-lg-6, .col-xs-7, .col-sm-7, .col-md-7, .col-lg-7, .col-xs-8, .col-sm-8, .col-md-8, .col-lg-8, .col-xs-9, .col-sm-9, .col-md-9, .col-lg-9, .col-xs-10, .col-sm-10, .col-md-10, .col-lg-10, .col-xs-11, .col-sm-11, .col-md-11, .col-lg-11, .col-xs-12, .col-sm-12, .col-md-12, .col-lg-12 {
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+
+/**
+* Footer
+* ============================================================================
+*/
+
+footer {
+  line-height: 30px;
+  text-align: center;
+  color: #B5B9BD;
+  font-weight: 500;
+  border-top: 1px solid #f1f2f3;
+  margin-top: 20px;
+  padding-top: 22px;
+
+  a {
+    color: #B5B9BD;
+    &:hover {
+      color: darken(#B5B9BD, 10);
+    }
+  }
+
+  .icon-sentry-logo {
+    color: #D1D3D6;
+    font-size: 28px;
+    width: 32px;
+    margin: 0 auto;
+    display: block;
+  }
+}
+
+/**
+* Windowed
+* ============================================================================
+*/
+
+.windowed-small {
+  background: #fbfbfc;
+  padding-top: 100px;
+  .container {
+    max-width: 600px !important;
+    width: auto !important;
+    margin: 0 auto;
+  }
+  footer {
+    display: none;
+  }
+}
+
+/**
+* Print
+* ============================================================================
+*/
+
+@media print {
+    body {
+        color: @black;
+    }
+    header {
+        display: none;
+    }
+    .sidebar, .toolbar {
+      display: none;
+    }
+    .content {
+      padding: 0 !important;
+    }
+    #CModal, footer { display: none; }
+}
+
+/**
+* Responsive small screens
+* ============================================================================
+*/
+@media(max-width:767px) {
+  body {
+    overflow-x: hidden;
+    zoom: .85;
+  }
+
+  header {
+    padding: 15px 0 13px;
+
+    .icon-sentry-logo {
+      font-size: 16px;
+      padding-top: 3px;
+    }
+
+    .dropdown, .project-dropdown {
+      position: static;
+      padding-top: 3px;
+
+      .team-name {
+        font-size: 14px;
+      }
+
+      .dropdown-menu {
+        width: auto;
+        left: 0;
+        right: 0;
+        top: 40px;
+        border-radius: 0;
+        max-height: 9999px;
+        overflow-x: hidden;
+
+        ul li {
+          width: 100%;
+          font-size: 16px;
+          margin: 0;
+
+          a {
+            padding: 10px 20px;
+            left: 0;
+            margin-left: -20px;
+            margin-right: -20px;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+* Responsive large screens
+* ============================================================================
+*/
+
+@media(min-width: 1720px) {
+  body {
+    zoom: 150%;
+  }
+}

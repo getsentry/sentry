@@ -1,0 +1,125 @@
+/**
+ * Links
+ * ============================================================================
+ */
+
+a {
+  color: @linkColor;
+  text-decoration: none;
+  .transition(color linear .2s);
+  cursor: pointer;
+
+  &:hover {
+    color: @linkColorHover;
+    text-decoration: none;
+  }
+}
+
+/**
+ * Text
+ * ============================================================================
+ */
+
+p {
+  margin: 0 0 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+h1 {
+  font-size: 36px;
+}
+
+h2 {
+  font-size: 30px;
+}
+
+h3 {
+  font-size: 26px;
+}
+
+h4 {
+  font-size: 22px;
+}
+
+h5 {
+  font-size: 18px;
+}
+
+h6 {
+  font-size: 14px;
+}
+
+ul, ol {
+  margin: 0 0 20px;
+}
+
+small {
+  font-size: 0.9em;
+}
+
+th, dt, strong {
+  font-weight: 600;
+}
+
+label {
+  font-weight: 500;
+}
+
+/**
+ * Alignment
+ * ============================================================================
+ */
+
+.align-left {
+  text-align: left;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-right {
+  text-align: right;
+}
+
+/**
+ * Icons
+ * ============================================================================
+ */
+
+.icon-arrow-down, .icon-arrow-right, .icon-arrow-left {
+  font-size: 16px !important;
+  position: relative;
+  top: 3px;
+}
+
+/**
+* Code
+* ============================================================================
+*/
+
+pre, code, kbd, sample {
+  font-family: @font-family-code;
+}
+
+pre, code {
+  span {
+    display: inline-block;
+  }
+}
+
+pre {
+  border: 0;
+  word-break: normal;
+}
+
+code {
+  border: 0;
+  background-color: #f1f2f3;
+  color: @gray;
+}
