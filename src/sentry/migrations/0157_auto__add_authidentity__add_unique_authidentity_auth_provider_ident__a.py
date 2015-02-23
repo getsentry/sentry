@@ -8,15 +8,43 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'AuthProvider.default_role'
-        db.add_column('sentry_authprovider', 'default_role',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=50),
-                      keep_default=False)
+        # Adding model 'AuthIdentity'
+        db.create_table('sentry_authidentity', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
+            ('auth_provider', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.AuthProvider'])),
+            ('ident', self.gf('django.db.models.fields.CharField')(max_length=128)),
+            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+        ))
+        db.send_create_signal('sentry', ['AuthIdentity'])
+
+        # Adding unique constraint on 'AuthIdentity', fields ['auth_provider', 'ident']
+        db.create_unique('sentry_authidentity', ['auth_provider_id', 'ident'])
+
+        # Adding model 'AuthProvider'
+        db.create_table('sentry_authprovider', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('organization', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Organization'], unique=True)),
+            ('provider', self.gf('django.db.models.fields.CharField')(max_length=128)),
+            ('config', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('sync_time', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True)),
+            ('last_sync', self.gf('django.db.models.fields.DateTimeField')(null=True)),
+            ('default_role', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=50)),
+        ))
+        db.send_create_signal('sentry', ['AuthProvider'])
 
 
     def backwards(self, orm):
-        # Deleting field 'AuthProvider.default_role'
-        db.delete_column('sentry_authprovider', 'default_role')
+        # Removing unique constraint on 'AuthIdentity', fields ['auth_provider', 'ident']
+        db.delete_unique('sentry_authidentity', ['auth_provider_id', 'ident'])
+
+        # Deleting model 'AuthIdentity'
+        db.delete_table('sentry_authidentity')
+
+        # Deleting model 'AuthProvider'
+        db.delete_table('sentry_authprovider')
 
 
     models = {
@@ -96,11 +124,11 @@ class Migration(SchemaMigration):
         'sentry.authprovider': {
             'Meta': {'object_name': 'AuthProvider'},
             'config': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
-            'created_by': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True', 'on_delete': 'models.SET_NULL'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'default_role': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '50'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'last_sync': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
+            'organization': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Organization']", 'unique': 'True'}),
             'provider': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'sync_time': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'})
         },
@@ -262,7 +290,6 @@ class Migration(SchemaMigration):
         },
         'sentry.organization': {
             'Meta': {'object_name': 'Organization'},
-            'auth_provider': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.AuthProvider']", 'null': 'True', 'blank': 'True'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'members': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'org_memberships'", 'symmetrical': 'False', 'through': "orm['sentry.OrganizationMember']", 'to': "orm['sentry.User']"}),
