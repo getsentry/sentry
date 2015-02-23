@@ -1,0 +1,146 @@
+/**
+* Layout
+* ============================================================================
+*/
+
+.organization {
+  .sidebar {
+    float: right;
+  }
+
+  .box-header {
+    .pull-right {
+      margin-top: -2px;
+      .icon-settings {
+        position: relative;
+        top: 1px;
+        margin-right: 2px;
+        opacity: .3;
+      }
+    }
+
+    a {
+      color: inherit;
+    }
+  }
+
+  .teams {
+    position: relative;
+    overflow: hidden;
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: inline-block;
+      width: 142px;
+      margin-right: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 26px;
+      font-size: 16px;
+    }
+  }
+}
+
+/**
+* Team list
+* ============================================================================
+*/
+
+.team-index {
+
+  h2 {
+    font-size: 26px;
+    margin: 0 0 28px;
+    letter-spacing: -0.25px;
+  }
+
+  .team-list {
+    list-style: none;
+    padding-left: 0;
+
+    h3 a {
+      color: @gray;
+    }
+
+    .box-content {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loading {
+      display: none;
+    }
+
+    .chart {
+      display: block;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      top: 10px;
+      opacity: .75;
+    }
+
+    ul {
+      position: relative;
+
+      overflow: hidden;
+      padding-left: 0;
+      list-style: circle;
+      margin-left: -2%;
+      margin-bottom: 0;
+
+      > li {
+        float: left;
+        width: 23%;
+        margin-left: 2%;
+        margin-bottom: 8px;
+
+        a {
+          display: block;
+          font-size: 17px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+  }
+
+  // Team settings
+
+  .team-settings {
+    .nav-tabs {
+      margin-bottom: 30px;
+    }
+
+    .box-content.with-padding {
+      padding-bottom: 15px;
+    }
+  }
+
+  .team-settings-toggle {
+    position: relative;
+    top: 2px;
+    margin-left: 4px;
+    opacity: .50;
+    .transition(.2s opacity);
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  .team-settings {
+    display: none;
+  }
+
+  .settings-open {
+    .team-settings-toggle {
+      opacity: 1;
+    }
+  }
+}
