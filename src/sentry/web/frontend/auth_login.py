@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function
 
 from django.contrib.auth import login
-from django.conf import settings
 
+from sentry import features
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils.auth import get_auth_providers, get_login_redirect
@@ -34,8 +34,8 @@ class AuthLoginView(BaseView):
         context = {
             'form': form,
             'next': request.session.get('_next'),
-            'CAN_REGISTER': settings.SENTRY_ALLOW_REGISTRATION or request.session.get('can_register'),
+            'CAN_REGISTER': features.has('auth:register') or request.session.get('can_register'),
             'AUTH_PROVIDERS': get_auth_providers(),
-            'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
+            'SOCIAL_AUTH_CREATE_USERS': features.has('social-auth:register'),
         }
         return self.respond('sentry/login.html', context)

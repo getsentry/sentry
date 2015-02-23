@@ -409,7 +409,9 @@ want to disable account creation, simply set the following value:
 
 .. code-block:: python
 
-  SOCIAL_AUTH_CREATE_USERS = False
+  SENTRY_FEATURES = {
+    'social-auth:register': False,
+  }
 
 
 Google
