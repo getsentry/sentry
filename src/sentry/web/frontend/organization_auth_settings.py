@@ -13,9 +13,22 @@ class OrganizationAuthSettingsView(OrganizationView):
     required_access = OrganizationMemberType.OWNER
 
     def handle_existing_provider(self, request, organization):
-        # at this point the provider may or may not be fully configured
+        # TODO(dcramer): providers need to be able to extend this page. There
+        # should always be a disable + login info blurb but each provider may
+        # want to add additional behaviors
+
         auth_provider = organization.auth_provider
         provider = auth_provider.get_provider()
+
+        if request.method == 'POST':
+            op = request.POST.get('op')
+            if op == 'disable':
+                organization.update(auth_provider=None)
+                auth_provider.delete()
+
+                next_uri = reverse('sentry-organization-auth-settings',
+                                   args=[organization.slug])
+                return self.redirect(next_uri)
 
         context = {
             'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
