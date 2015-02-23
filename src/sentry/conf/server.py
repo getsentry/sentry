@@ -250,6 +250,7 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
     'sentry.plugins.sentry_useragents',
+    'sentry.plugins.sentry_webhooks',
     'social_auth',
     'south',
     'sudo',
@@ -369,6 +370,7 @@ CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
+    'sentry.tasks.beacon',
     'sentry.tasks.check_alerts',
     'sentry.tasks.check_update',
     'sentry.tasks.cleanup',
@@ -419,6 +421,13 @@ CELERYBEAT_SCHEDULE = {
     },
     'check-version': {
         'task': 'sentry.tasks.check_update',
+        'schedule': timedelta(hours=1),
+        'options': {
+            'expires': 3600,
+        },
+    },
+    'send-beacon': {
+        'task': 'sentry.tasks.send_beacon',
         'schedule': timedelta(hours=1),
         'options': {
             'expires': 3600,
@@ -535,6 +544,12 @@ SENTRY_IGNORE_EXCEPTIONS = (
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 SENTRY_URL_PREFIX = ''
 
+# Should we send the beacon to the upstream server?
+SENTRY_BEACON = True
+
+# The administrative contact for this installation
+SENTRY_ADMIN_EMAIL = ''
+
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
 
@@ -567,10 +582,7 @@ SENTRY_MAX_SAMPLE_TIME = 10000
 # Web Service
 SENTRY_WEB_HOST = 'localhost'
 SENTRY_WEB_PORT = 9000
-SENTRY_WEB_OPTIONS = {
-    'workers': 3,
-    'limit_request_line': 0,  # required for raven-js
-}
+SENTRY_WEB_OPTIONS = {}
 
 # UDP Service
 SENTRY_UDP_HOST = 'localhost'
