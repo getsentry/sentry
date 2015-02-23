@@ -66,7 +66,7 @@ var AssigneeSelector = React.createClass({
                   disabled={!loading}
                   onSelect={this.assignTo.bind(this, item)} >
           <Gravatar email={item.email} className="avatar"
-                    size={24} />
+                    size={48} />
           {item.name || item.email}
         </MenuItem>
       );
@@ -83,7 +83,7 @@ var AssigneeSelector = React.createClass({
             onClose={this.onDropdownClose}
             title={group.assignedTo ?
               <Gravatar email={group.assignedTo.email} className="avatar"
-                        size={24} />
+                        size={48} />
               :
               <span className="icon-user" />
             }>
