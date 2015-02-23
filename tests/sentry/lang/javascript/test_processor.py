@@ -25,7 +25,7 @@ class FetchUrlTest(TestCase):
 
         safe_urlopen.assert_called_once_with(
             'http://example.com', allow_redirects=True, timeout=5,
-            headers=[])
+            headers=[], verify_ssl=False)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
         assert result.url == 'http://example.com'
@@ -52,7 +52,7 @@ class FetchUrlTest(TestCase):
 
         safe_urlopen.assert_called_once_with(
             'http://example.com', allow_redirects=True, timeout=5,
-            headers=[('X-Sentry-Token', 'foobar')])
+            headers=[('X-Sentry-Token', 'foobar')], verify_ssl=False)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
         assert result.url == 'http://example.com'
@@ -75,7 +75,7 @@ class FetchUrlTest(TestCase):
 
         safe_urlopen.assert_called_once_with(
             'http://example.com', allow_redirects=True, timeout=5,
-            headers=[])
+            headers=[], verify_ssl=False)
         assert not safe_urlread.mock_calls
 
         assert result == BAD_SOURCE
@@ -97,7 +97,7 @@ class FetchUrlTest(TestCase):
 
         safe_urlopen.assert_called_once_with(
             'http://example.com', allow_redirects=True, timeout=5,
-            headers=[])
+            headers=[], verify_ssl=False)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
         assert result == BAD_SOURCE

@@ -1,3 +1,34 @@
+Version 7.3.2
+-------------
+
+- Fixed missing beacon task import.
+
+Version 7.3.1
+-------------
+
+- Updated Gunicorn version and default configuration.
+- Fixed periodic task for beacon.
+
+Version 7.3.0
+-------------
+
+- The SENTRY_ADMIN_EMAIL setting now exists, and should be the technical contact for the install.
+- Fixed an issue that would cause job fanout in deletions.
+- Notifications are now sent when someone assigns you to an event.
+- Release objects are now created automatically.
+- Changed team-based API endpoints to use slugs.
+- New API endpoints:
+  - Help page list
+  - Help page details
+  - Group tag values
+  - Project tag values
+- Moved JavaScript sourcemap processing into language extension.
+  - Sourcemap processing errors are now annotated into the frame.
+- Refactored API to be scope-based permissions.
+- Added backend support for organization API keys.
+- Moved sentry_webhooks into builtins.
+- Added reporting Beacon (see docs).
+
 Version 7.2.0
 -------------
 

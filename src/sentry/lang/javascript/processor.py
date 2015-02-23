@@ -174,6 +174,7 @@ def fetch_url(url, project=None):
             request = safe_urlopen(
                 url,
                 allow_redirects=True,
+                verify_ssl=False,
                 headers=headers,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
@@ -324,8 +325,10 @@ class SourceProcessor(object):
             exception['stacktrace'] = stacktrace.to_json()
 
     def ensure_module_names(self, frames):
+        # TODO(dcramer): this doesn't really fit well with generic URLs so we
+        # whitelist it to http/https
         for frame in frames:
-            if not frame.module:
+            if not frame.module and frame.abs_path.startswith(('http:', 'https:')):
                 frame.module = generate_module(frame.abs_path)
 
     def expand_frames(self, frames):
@@ -353,14 +356,15 @@ class SourceProcessor(object):
                 state = find_source(sourcemap_idx, frame.lineno, frame.colno)
                 abs_path = urljoin(sourcemap_url, state.src)
                 logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                source = cache.get(abs_path)
-                if not source:
+                uncompressed_source = cache.get(abs_path)
+                if not uncompressed_source:
                     frame.data = {
                         'sourcemap': sourcemap_url,
                     }
                     frame.errors.append('Failed to map %r' % abs_path.encode('utf-8'))
                     logger.debug('Failed mapping path %r', abs_path)
                 else:
+                    source = uncompressed_source
                     # Store original data in annotation
                     frame.data = {
                         'orig_lineno': frame.lineno,
@@ -412,7 +416,7 @@ class SourceProcessor(object):
             done_file_list.add(filename)
 
             if idx > self.max_fetches:
-                cache.add_error(filename, 'Not fetching due to too many remote sources')
+                cache.add_error(filename, 'Not fetching context due to too many remote sources')
                 continue
 
             # TODO: respect cache-control/max-age headers to some extent
@@ -427,13 +431,13 @@ class SourceProcessor(object):
             cache.add(filename, result.body.splitlines())
             cache.alias(result.url, filename)
 
-            # If we didn't have a colno, a sourcemap wont do us any good
-            if filename not in sourcemap_capable:
-                cache.add_error(filename, 'No column information available')
-                continue
-
             sourcemap_url = discover_sourcemap(result)
             if not sourcemap_url:
+                continue
+
+            # If we didn't have a colno, a sourcemap wont do us any good
+            if filename not in sourcemap_capable:
+                cache.add_error(filename, 'No column information available (cant expand sourcemap)')
                 continue
 
             logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)

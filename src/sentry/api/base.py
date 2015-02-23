@@ -27,6 +27,12 @@ ONE_DAY = ONE_HOUR * 24
 
 LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"'
 
+DEFAULT_AUTHENTICATION = (
+    ApiKeyAuthentication,
+    ProjectKeyAuthentication,
+    SessionAuthentication
+)
+
 
 class DocSection(Enum):
     ACCOUNTS = 'Accounts'
@@ -38,11 +44,7 @@ class DocSection(Enum):
 
 
 class Endpoint(APIView):
-    authentication_classes = (
-        ApiKeyAuthentication,
-        ProjectKeyAuthentication,
-        SessionAuthentication
-    )
+    authentication_classes = DEFAULT_AUTHENTICATION
     renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
     permission_classes = (NoPermission,)
