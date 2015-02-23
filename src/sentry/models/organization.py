@@ -82,7 +82,6 @@ class Organization(Model):
         (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), default=OrganizationStatus.VISIBLE)
     date_added = models.DateTimeField(default=timezone.now)
-    auth_provider = models.ForeignKey('sentry.AuthProvider', null=True, blank=True)
     members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.OrganizationMember', related_name='org_memberships')
 
     objects = OrganizationManager(cache_fields=(
@@ -116,5 +115,4 @@ class Organization(Model):
             'slug': self.slug,
             'name': self.name,
             'status': self.status,
-            'auth_provider': self.auth_provider_id,
         }

@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 from django.core.urlresolvers import reverse
 
 from sentry.auth.helper import AuthHelper
-from sentry.models import Organization
+from sentry.models import AuthProvider, Organization
 from sentry.web.frontend.base import BaseView
 
 
@@ -18,8 +18,11 @@ class AuthOrganizationLoginView(BaseView):
         except Organization.DoesNotExist:
             return self.redirect(reverse('sentry-login'))
 
-        auth_provider = organization.auth_provider
-        if auth_provider is None:
+        try:
+            auth_provider = AuthProvider.objects.get(
+                organization=organization
+            )
+        except AuthProvider.DoesNotExist:
             return self.redirect(reverse('sentry-login'))
 
         if request.method == 'POST':
