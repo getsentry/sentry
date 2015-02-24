@@ -455,8 +455,13 @@ class EventManager(object):
                 'time_spent_count': 1,
             })
 
+        if not is_new:
+            is_regression = self._process_existing_aggregate(group, event, kwargs)
+        else:
+            is_regression = False
+
         # Determine if we've sampled enough data to store this event
-        if is_new:
+        if is_new or is_regression:
             is_sample = False
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
@@ -464,11 +469,6 @@ class EventManager(object):
             is_sample = False
         else:
             is_sample = True
-
-        if not is_new:
-            is_regression = self._process_existing_aggregate(group, event, kwargs)
-        else:
-            is_regression = False
 
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
