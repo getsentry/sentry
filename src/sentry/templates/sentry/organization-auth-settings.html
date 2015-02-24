@@ -12,7 +12,7 @@
 
   <h3>Choose a provider</h3>
 
-  {% if not provider_list %}
+  {% if provider_list %}
     <form method="POST">
       {% csrf_token %}
       <ul class="simple-list">
