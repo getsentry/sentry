@@ -33,7 +33,7 @@ from sentry.rules import EventState
 from sentry.utils import json
 
 from .fixtures import Fixtures
-from .helpers import get_auth_header
+from .helpers import Feature, get_auth_header
 
 
 def create_redis_conn():
@@ -67,6 +67,13 @@ class BaseTestCase(Fixtures, Exam):
         session.save()
 
         self.session = session
+
+    def feature(self, name, active=True):
+        """
+        >>> with self.feature('feature:name')
+        >>>     # ...
+        """
+        return Feature(name, active)
 
     def save_session(self):
         self.session.save()
