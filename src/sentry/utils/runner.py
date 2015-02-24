@@ -363,10 +363,6 @@ def apply_legacy_settings(config):
         if urlbits.hostname:
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
-    if not settings.SERVER_EMAIL and hasattr(settings, 'SENTRY_SERVER_EMAIL'):
-        warnings.warn('SENTRY_SERVER_EMAIL is deprecated. Use SERVER_EMAIL instead.', DeprecationWarning)
-        settings.SERVER_EMAIL = settings.SENTRY_SERVER_EMAIL
-
     if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
         warnings.warn('SENTRY_ALLOW_REGISTRATION is deprecated. Use SENTRY_FEATURES instead.', DeprecationWarning)
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
