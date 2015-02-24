@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db.models import Q
 from functools import wraps
 
+from sentry import features
 from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
@@ -69,23 +70,6 @@ def is_project_admin(user, project):
 
 @cached_for_request
 @requires_login
-def can_create_organizations(user):
-    """
-    Returns a boolean describing whether a user has the ability to
-    create new organizations.
-    """
-    if user.is_superuser:
-        return True
-
-    result = plugins.first('has_perm', user, 'add_organization')
-    if result is False:
-        return result
-
-    return True
-
-
-@cached_for_request
-@requires_login
 def can_create_teams(user, organization):
     """
     Returns a boolean describing whether a user has the ability to
@@ -97,11 +81,7 @@ def can_create_teams(user, organization):
     if not is_organization_admin(user, organization):
         return False
 
-    result = plugins.first('has_perm', user, 'add_team', organization)
-    if result is False:
-        return result
-
-    return True
+    return features.has('teams:create', organization, actor=user)
 
 
 @cached_for_request

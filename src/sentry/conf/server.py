@@ -334,8 +334,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.misc.save_status_to_session',
 )
 
-SOCIAL_AUTH_CREATE_USERS = True
-
 INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
 # Auth engines and the settings required for them to be listed
@@ -525,6 +523,13 @@ SENTRY_FRONTEND_PROJECT = None
 
 SENTRY_CACHE_BACKEND = 'default'
 
+SENTRY_FEATURES = {
+    'auth:register': True,
+    'social-auth:register': True,
+    'organizations:create': True,
+    'teams:create': True,
+}
+
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
 )
@@ -608,11 +613,6 @@ SENTRY_INTERFACES = {
 # Should users without superuser permissions be allowed to
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
-
-# Should users be allowed to register an account? If this is disabled
-# accounts can only be created when someone is invited or added
-# manually.
-SENTRY_ALLOW_REGISTRATION = True
 
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 SENTRY_ALLOW_ORIGIN = None

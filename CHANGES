@@ -1,3 +1,13 @@
+Version 7.4.0
+-------------
+
+- A new features subsystem was added, and many optional features are now run through it.
+- The 'add_organization' permission is no longer used.
+- The 'add_team' permission is no longer used.
+- SENTRY_ALLOW_REGISTRATION is deprecated in favor of SENTRY_FEATURES['auth:register'].
+- SOCIAL_AUTH_CREATE_USERS is deprecated in favor of SENTRY_FEATURES['social-auth:register'].
+- SENTRY_SERVER_EMAIL is no longer used.
+
 Version 7.3.2
 -------------
 

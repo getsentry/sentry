@@ -363,9 +363,13 @@ def apply_legacy_settings(config):
         if urlbits.hostname:
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
-    if not settings.SERVER_EMAIL and hasattr(settings, 'SENTRY_SERVER_EMAIL'):
-        warnings.warn('SENTRY_SERVER_EMAIL is deprecated. Please use SERVER_EMAIL instead.', DeprecationWarning)
-        settings.SERVER_EMAIL = settings.SENTRY_SERVER_EMAIL
+    if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
+        warnings.warn('SENTRY_ALLOW_REGISTRATION is deprecated. Use SENTRY_FEATURES instead.', DeprecationWarning)
+        settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
+
+    if hasattr(settings, 'SOCIAL_AUTH_CREATE_USERS'):
+        warnings.warn('SOCIAL_AUTH_CREATE_USERS is deprecated. Use SENTRY_FEATURES instead.', DeprecationWarning)
+        settings.SENTRY_FEATURES['social-auth:register'] = settings.SOCIAL_AUTH_CREATE_USERS
 
 
 def skip_migration_if_applied(settings, app_name, table_name,
