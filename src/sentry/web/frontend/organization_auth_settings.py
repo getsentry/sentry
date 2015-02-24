@@ -11,6 +11,7 @@ from sentry.auth.helper import AuthHelper
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMemberType
 )
+from sentry.plugins import Response
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
@@ -46,6 +47,12 @@ class OrganizationAuthSettingsView(OrganizationView):
         response = view(request, organization, auth_provider)
         if isinstance(response, HttpResponse):
             return response
+        elif isinstance(response, Response):
+            response = response.render(request, {
+                'auth_provider': auth_provider,
+                'organization': organization,
+                'provider': provider,
+            })
 
         context = {
             'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
