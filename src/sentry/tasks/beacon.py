@@ -8,6 +8,7 @@ sentry.tasks.beacon
 
 from __future__ import absolute_import, print_function
 
+import json
 import logging
 import sentry
 
@@ -73,3 +74,7 @@ def send_beacon():
     except Exception:
         logger.warning('Failed sending beacon', exc_info=True)
         return
+
+    data = json.loads(response)
+    if 'version' in data:
+        options.set('sentry:latest_version', data['version']['stable'])

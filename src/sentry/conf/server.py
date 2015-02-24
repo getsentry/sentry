@@ -372,7 +372,6 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
     'sentry.tasks.beacon',
     'sentry.tasks.check_alerts',
-    'sentry.tasks.check_update',
     'sentry.tasks.cleanup',
     'sentry.tasks.deletion',
     'sentry.tasks.email',
@@ -418,13 +417,6 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60,
             'queue': 'alerts',
         }
-    },
-    'check-version': {
-        'task': 'sentry.tasks.check_update',
-        'schedule': timedelta(hours=1),
-        'options': {
-            'expires': 3600,
-        },
     },
     'send-beacon': {
         'task': 'sentry.tasks.send_beacon',
