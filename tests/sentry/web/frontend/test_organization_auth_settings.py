@@ -41,4 +41,4 @@ class OrganizationAuthSettingsTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/organization-auth-settings.html')
 
         assert resp.context['organization'] == organization
-        assert 'provider_list' in resp.context['provider_list']
+        assert 'provider_list' in resp.context
