@@ -5,19 +5,25 @@
 {% block org_auth_settings_nav %}active{% endblock %}
 
 {% block inner %}
-  <div class="page-header">
+<div class="sso">
+  <div class="page-header border-bottom">
     <h2>Authentication</h2>
   </div>
 
+  <h3>Choose a provider</h3>
+
   <form method="POST">
     {% csrf_token %}
-    <ul>
+    <ul class="simple-list">
       {% for provider_key, provider_name in provider_list %}
         <li>
-          <button type="submit" name="provider" value="{{ provider_key }}"
-                  class="btn btn-default">{{ provider_name }}</button>
+          <div class="provider-logo {{ provider_name | lower }}"></div>
+          <button type="submit" name="provider" value="{{ provider_key }}" class="btn btn-default pull-right">Configure</button>
+          <h4>{{ provider_name }}</h4>
+          <p>Enable your organization to sign in with {{ provider_name }}.</p>
         </li>
       {% endfor %}
     </ul>
   </form>
+</div>
 {% endblock %}

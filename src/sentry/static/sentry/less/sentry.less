@@ -1819,6 +1819,11 @@ section.body .page-header:first-child {
   h2 {
     font-weight: normal;
   }
+
+  &.border-bottom {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #E9ECEF;
+  }
 }
 
 .modal {
@@ -3303,5 +3308,51 @@ pre {
     display: block;
     font-weight: 500;
     color: @gray;
+  }
+}
+
+.simple-list {
+  padding: 0;
+  list-style-type: none;
+  margin: 0;
+
+  li {
+    padding: 0 0 20px;
+    margin: 0 0 20px;
+    list-style-type: none;
+  }
+}
+
+.sso {
+  h3 {
+    margin: 0 0 20px;
+  }
+
+  h4 {
+    margin: 0 0 4px;
+  }
+
+  .simple-list {
+    max-width: 650px;
+  }
+
+  li {
+    position: relative;
+    padding: 0 0 0 60px;
+
+    .provider-logo {
+      position: absolute;
+      left: 0;
+      .square(48px);
+      border-radius: 4px;
+      background: #f1f2f3;
+    }
+  }
+
+  .provider-logo {
+    &.google {
+      background: url(../images/auth-providers/google.png);
+      background-size: cover;
+    }
   }
 }
