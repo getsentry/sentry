@@ -70,17 +70,17 @@ def get_hashes_for_event(event):
 
 
 if not settings.SENTRY_SAMPLE_DATA:
-    def should_sample(group, event):
+    def should_sample(current_datetime, last_seen, times_seen):
         return False
 else:
-    def should_sample(group, event):
-        silence_timedelta = event.datetime - group.last_seen
+    def should_sample(current_datetime, last_seen, times_seen):
+        silence_timedelta = current_datetime - last_seen
         silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
-        if group.times_seen % count_limit(group.times_seen) == 0:
+        if times_seen % count_limit(times_seen) == 0:
             return False
 
-        if group.times_seen % time_limit(silence):
+        if times_seen % time_limit(silence):
             return False
 
         return True
@@ -455,6 +455,10 @@ class EventManager(object):
                 'time_spent_count': 1,
             })
 
+        # XXX(dcramer): it's important this gets called **before** the aggregate
+        # is processed as otherwise values like last_seen will get mutated
+        can_sample = should_sample(event.datetime, group.last_seen, group.times_seen)
+
         if not is_new:
             is_regression = self._process_existing_aggregate(group, event, kwargs)
         else:
@@ -463,9 +467,7 @@ class EventManager(object):
         # Determine if we've sampled enough data to store this event
         if is_new or is_regression:
             is_sample = False
-        # XXX(dcramer): it's important this gets called **before** the aggregate
-        # is processed as otherwise values like last_seen will get mutated
-        elif not should_sample(group, event):
+        elif can_sample:
             is_sample = False
         else:
             is_sample = True
