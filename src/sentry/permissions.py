@@ -69,23 +69,6 @@ def is_project_admin(user, project):
 
 @cached_for_request
 @requires_login
-def can_create_organizations(user):
-    """
-    Returns a boolean describing whether a user has the ability to
-    create new organizations.
-    """
-    if user.is_superuser:
-        return True
-
-    result = plugins.first('has_perm', user, 'add_organization')
-    if result is False:
-        return result
-
-    return True
-
-
-@cached_for_request
-@requires_login
 def can_create_teams(user, organization):
     """
     Returns a boolean describing whether a user has the ability to
