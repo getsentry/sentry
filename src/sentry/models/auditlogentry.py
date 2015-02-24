@@ -44,6 +44,10 @@ class AuditLogEntryEvent(object):
     PROJECTKEY_ENABLE = 53
     PROJECTKEY_DISABLE = 53
 
+    SSO_ENABLE = 60
+    SSO_DISABLE = 61
+    SSO_EDIT = 62
+
 
 class AuditLogEntry(Model):
     organization = FlexibleForeignKey('sentry.Organization')
@@ -79,6 +83,10 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.PROJECTKEY_REMOVE, 'projectkey.remove'),
         (AuditLogEntryEvent.PROJECTKEY_ENABLE, 'projectkey.enable'),
         (AuditLogEntryEvent.PROJECTKEY_DISABLE, 'projectkey.disable'),
+
+        (AuditLogEntryEvent.SSO_ENABLE, 'sso.enable'),
+        (AuditLogEntryEvent.SSO_DISABLE, 'sso.disable'),
+        (AuditLogEntryEvent.SSO_EDIT, 'sso.edit'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -94,6 +102,8 @@ class AuditLogEntry(Model):
         if self.event == AuditLogEntryEvent.MEMBER_INVITE:
             return 'invited member %s' % (self.data['email'],)
         elif self.event == AuditLogEntryEvent.MEMBER_ADD:
+            if self.target_user == self.actor:
+                return 'joined the organization'
             return 'added member %s' % (self.target_user.get_display_name(),)
         elif self.event == AuditLogEntryEvent.MEMBER_ACCEPT:
             return 'accepted the membership invite'
@@ -131,5 +141,12 @@ class AuditLogEntry(Model):
             return 'enabled project key %s' % (self.data['public_key'],)
         elif self.event == AuditLogEntryEvent.PROJECTKEY_DISABLE:
             return 'disabled project key %s' % (self.data['public_key'],)
+
+        elif self.event == AuditLogEntryEvent.SSO_ENABLE:
+            return 'enabled sso (%s)' % (self.data['provider'],)
+        elif self.event == AuditLogEntryEvent.SSO_DISABLE:
+            return 'enabled sso (%s)' % (self.data['provider'],)
+        elif self.event == AuditLogEntryEvent.SSO_EDIT:
+            return 'edited sso settings'
 
         return ''

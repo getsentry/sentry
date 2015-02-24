@@ -11,7 +11,8 @@ from django.http import HttpResponseRedirect
 from hashlib import md5
 
 from sentry.models import (
-    AuthIdentity, AuthProvider, Organization, OrganizationMember, User
+    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
+    OrganizationMember, User
 )
 from sentry.utils.auth import get_login_redirect
 
@@ -140,37 +141,47 @@ class AuthHelper(object):
 
         return response
 
+    @transaction.atomic
     def _finish_login_pipeline(self, identity):
         auth_provider = self.auth_provider
 
-        with transaction.atomic():
-            try:
-                auth_identity = AuthIdentity.objects.get(
-                    auth_provider=auth_provider,
-                    ident=identity['id'],
-                )
-            except AuthIdentity.DoesNotExist:
-                user = User.objects.create(
-                    email=identity['email'],
-                    first_name=identity.get('name'),
-                    is_managed=True,
-                )
+        try:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider=auth_provider,
+                ident=identity['id'],
+            )
+        except AuthIdentity.DoesNotExist:
+            user = User.objects.create(
+                email=identity['email'],
+                first_name=identity.get('name'),
+                is_managed=True,
+            )
 
-                AuthIdentity.objects.create(
-                    auth_provider=auth_provider,
-                    user=user,
-                    ident=identity['id'],
-                )
+            AuthIdentity.objects.create(
+                auth_provider=auth_provider,
+                user=user,
+                ident=identity['id'],
+            )
 
-                OrganizationMember.objects.create(
-                    has_global_access=True,
-                    organization=self.organization,
-                    type=auth_provider.default_role,
-                    user=user,
-                )
-            else:
-                if auth_identity.data != identity.get('data', {}):
-                    auth_identity.update(data=identity['data'])
+            om = OrganizationMember.objects.create(
+                has_global_access=True,
+                organization=self.organization,
+                type=auth_provider.default_role,
+                user=user,
+            )
+
+            AuditLogEntry.objects.create(
+                organization=self.organization,
+                actor=user,
+                ip_address=self.request.META['REMOTE_ADDR'],
+                target_object=om.id,
+                target_user=om.user,
+                event=AuditLogEntryEvent.MEMBER_ADD,
+                data=om.get_audit_log_data(),
+            )
+        else:
+            if auth_identity.data != identity.get('data', {}):
+                auth_identity.update(data=identity['data'])
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -179,24 +190,35 @@ class AuthHelper(object):
 
         return HttpResponseRedirect(get_login_redirect(self.request))
 
+    @transaction.atomic
     def _finish_setup_pipeline(self, identity):
-        state = self.request.session['auth']['state']
+        request = self.request
+        state = request.session['auth']['state']
         config = self.provider.build_config(state)
-        with transaction.atomic():
-            self.auth_provider = AuthProvider.objects.create(
-                organization=self.organization,
-                provider=self.provider.key,
-                config=config,
-            )
 
-            AuthIdentity.objects.create_or_update(
-                user=self.request.user,
-                ident=identity['id'],
-                auth_provider=self.auth_provider,
-                defaults={
-                    'data': identity.get('data', {}),
-                },
-            )
+        self.auth_provider = AuthProvider.objects.create(
+            organization=self.organization,
+            provider=self.provider.key,
+            config=config,
+        )
+
+        AuthIdentity.objects.create_or_update(
+            user=request.user,
+            ident=identity['id'],
+            auth_provider=self.auth_provider,
+            defaults={
+                'data': identity.get('data', {}),
+            },
+        )
+
+        AuditLogEntry.objects.create(
+            organization=self.organization,
+            actor=request.user,
+            ip_address=request.META['REMOTE_ADDR'],
+            target_object=self.auth_provider.id,
+            event=AuditLogEntryEvent.SSO_ENABLE,
+            data=self.auth_provider.get_audit_log_data(),
+        )
 
         next_uri = reverse('sentry-organization-auth-settings', args=[
             self.organization.slug,
