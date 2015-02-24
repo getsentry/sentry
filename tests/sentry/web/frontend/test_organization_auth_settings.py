@@ -42,17 +42,3 @@ class OrganizationAuthSettingsTest(TestCase):
 
         assert resp.context['organization'] == organization
         assert 'provider_list' in resp.context['provider_list']
-
-    def test_can_start_auth_flow(self):
-        organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
-
-        path = reverse('sentry-organization-auth-settings', args=[organization.slug])
-
-        self.login_as(self.user)
-
-        with self.feature('organizations:sso'):
-            resp = self.client.post(path, {'provider': 'google'})
-
-        assert resp.status_code == 302
