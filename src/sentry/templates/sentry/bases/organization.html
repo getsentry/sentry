@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_features %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
@@ -54,11 +55,13 @@
         {% trans "Members" %}
       </a>
     </li>
+    {% feature organizations:sso organization %}
     <li class="{% block org_auth_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
         {% trans "Auth" %}
       </a>
     </li>
+    {% endfeature %}
     <li class="{% block org_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-settings' organization.slug %}">
         {% trans "Settings" %}

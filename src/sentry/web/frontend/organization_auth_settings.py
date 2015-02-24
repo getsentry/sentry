@@ -1,13 +1,18 @@
 from __future__ import absolute_import
 
+from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 
+from sentry import features
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.models import AuthProvider, OrganizationMemberType
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
+
+
+ERR_NO_SSO = 'The SSO feature is not enabled for this organization.'
 
 
 class OrganizationAuthSettingsView(OrganizationView):
@@ -50,6 +55,10 @@ class OrganizationAuthSettingsView(OrganizationView):
         return helper.next_step()
 
     def handle(self, request, organization):
+        if not features.has('organizations:sso', organization, actor=request.user):
+            messages.error(request, ERR_NO_SSO)
+            return HttpResponseRedirect(reverse('sentry-organization-home', args=[organization.slug]))
+
         try:
             auth_provider = AuthProvider.objects.get(
                 organization=organization,
