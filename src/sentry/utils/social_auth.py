@@ -7,10 +7,10 @@ sentry.utils.social_auth
 """
 from __future__ import absolute_import
 
-from django.conf import settings
-
 from social_auth.backends.pipeline.user import create_user
 from social_auth.exceptions import SocialAuthBaseException
+
+from sentry import features
 
 
 class AuthNotAllowed(SocialAuthBaseException):
@@ -22,7 +22,7 @@ def create_user_if_enabled(*args, **kwargs):
     A pipeline step for django-social-auth
     Create user. Depends on get_username pipeline.
     """
-    if not settings.SOCIAL_AUTH_CREATE_USERS and not kwargs.get('user'):
+    if not features.has('social-auth:register') and not kwargs.get('user'):
         raise AuthNotAllowed('You must create an account before associating an identity.')
 
     backend = kwargs.pop('backend')
