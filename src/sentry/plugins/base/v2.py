@@ -295,10 +295,16 @@ class IPlugin2(local):
         """
         Return a list of callables to check for feature status.
 
-        >>> def get_feature_hooks(self, **kwargs):
-        >>>     def no_features(feature, actor):
+        >>> from sentry.features import FeatureHandler
+        >>>
+        >>> class NoRegistration(FeatureHandler):
+        >>>     features = set(['auth:register'])
+        >>>
+        >>>     def has(self, feature, actor):
         >>>         return False
-        >>>     return [no_features]
+
+        >>> def get_feature_hooks(self, **kwargs):
+        >>>     return [NoRegistration()]
         """
         return []
 
