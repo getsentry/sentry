@@ -3,10 +3,11 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
+from django.core.urlresolvers import reverse
+from django.contrib import messages
+from django.contrib.auth import login
 from django.db import transaction
 from django.http import HttpResponseRedirect
-from django.contrib.auth import login
-from django.core.urlresolvers import reverse
 from hashlib import md5
 
 from sentry.models import (
@@ -203,8 +204,17 @@ class AuthHelper(object):
         return HttpResponseRedirect(next_uri)
 
     def error(self, message):
-        # TODO
-        raise Exception(message)
+        session = self.request.session['auth']
+        if session['flow'] == self.FLOW_LOGIN:
+            # create identity and authenticate the user
+            redirect_uri = reverse('sentry-auth-organization', args=[self.organization.slug])
+
+        elif session['flow'] == self.FLOW_SETUP_PROVIDER:
+            redirect_uri = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
+
+        messages.error(self.request, 'Authentication error: {}'.format(message))
+
+        return HttpResponseRedirect(redirect_uri)
 
     def bind_state(self, key, value):
         self.request.session['auth']['state'][key] = value
