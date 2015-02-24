@@ -18,6 +18,7 @@ class SendBeaconTest(TestCase):
 
         safe_urlread.return_value = json.dumps({
             'notices': [],
+            'version': {'stable': '1.0.0'},
         })
 
         with self.settings(SENTRY_ADMIN_EMAIL='foo@example.com'):
@@ -39,3 +40,5 @@ class SendBeaconTest(TestCase):
             'admin_email': 'foo@example.com',
         }, timeout=5)
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
+
+        assert options.get('sentry:latest_version') == '1.0.0'
