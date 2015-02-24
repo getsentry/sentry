@@ -18,7 +18,7 @@ class Feature(object):
         return None
 
 
-class OrganizationFeature(object):
+class OrganizationFeature(Feature):
     def __init__(self, name, organization):
         self.name = name
         self.organization = organization
