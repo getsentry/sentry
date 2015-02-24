@@ -1,4 +1,5 @@
 {% load i18n %}
+{% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_permissions %}
 {% get_sentry_version %}
@@ -122,9 +123,9 @@
                                             <span class="caret"></span>
                                           </a>
                                           <ul class="dropdown-menu">
-                                            {% if request.user|can_create_organizations %}
+                                            {% feature organizations:create %}
                                               <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>{% trans "Organizations" %}</h6></li>
-                                            {% endif %}
+                                            {% endfeature %}
                                             {% for o in request.user|list_organizations %}
                                                 <li{% if o == organization %} class="active"{% endif %}>
                                                     <a href="{% url 'sentry-organization-home' o.slug %}">{{ o.name }}</a>

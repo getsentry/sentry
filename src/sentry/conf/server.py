@@ -334,8 +334,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.misc.save_status_to_session',
 )
 
-SOCIAL_AUTH_CREATE_USERS = True
-
 INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
 # Auth engines and the settings required for them to be listed
@@ -524,6 +522,12 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 SENTRY_FRONTEND_PROJECT = None
 
 SENTRY_CACHE_BACKEND = 'default'
+
+SENTRY_FEATURES = {
+    'auth:register': True,
+    'social-auth:register': True,
+    'organizations:create': True,
+}
 
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
