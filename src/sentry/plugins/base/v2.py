@@ -291,6 +291,17 @@ class IPlugin2(local):
         """
         return []
 
+    def get_feature_hooks(self, **kwargs):
+        """
+        Return a list of callables to check for feature status.
+
+        >>> def get_feature_hooks(self, **kwargs):
+        >>>     def no_features(feature, actor):
+        >>>         return False
+        >>>     return [no_features]
+        """
+        return []
+
 
 class Plugin2(IPlugin2):
     """
