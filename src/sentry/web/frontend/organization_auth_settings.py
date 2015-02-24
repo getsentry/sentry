@@ -2,12 +2,15 @@ from __future__ import absolute_import
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 
 from sentry import features
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, OrganizationMemberType
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMemberType
+)
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
@@ -24,6 +27,15 @@ class OrganizationAuthSettingsView(OrganizationView):
         if request.method == 'POST':
             op = request.POST.get('op')
             if op == 'disable':
+                AuditLogEntry.objects.create(
+                    organization=organization,
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    target_object=auth_provider.id,
+                    event=AuditLogEntryEvent.SSO_DISABLE,
+                    data=auth_provider.get_audit_log_data(),
+                )
+
                 auth_provider.delete()
 
                 next_uri = reverse('sentry-organization-auth-settings',
@@ -54,6 +66,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         helper.init_pipeline()
         return helper.next_step()
 
+    @transaction.atomic
     def handle(self, request, organization):
         if not features.has('organizations:sso', organization, actor=request.user):
             messages.error(request, ERR_NO_SSO)

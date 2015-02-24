@@ -35,3 +35,10 @@ class AuthProvider(Model):
         from sentry.auth import manager
 
         return manager.get(self.provider, **self.config)
+
+    def get_audit_log_data(self):
+        return {
+            'provider': self.provider,
+            'config': self.config,
+            'default_Role': self.default_role,
+        }
