@@ -2,6 +2,8 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from .view import ConfigureView
+
 
 class Provider(object):
     """
@@ -15,9 +17,8 @@ class Provider(object):
         self.config = config
         self.logger = logging.getLogger('sentry.auth.%s' % (key,))
 
-    def get_config_form(self, request):
-        # return FormClass(request.POST or None)
-        raise NotImplementedError
+    def get_configure_view(self):
+        return ConfigureView.as_view()
 
     def get_auth_pipeline(self):
         """

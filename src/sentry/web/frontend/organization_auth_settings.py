@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.http import HttpResponse
 
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
@@ -13,9 +14,8 @@ class OrganizationAuthSettingsView(OrganizationView):
     required_access = OrganizationMemberType.OWNER
 
     def handle_existing_provider(self, request, organization, auth_provider):
-        # TODO(dcramer): providers need to be able to extend this page. There
-        # should always be a disable + login info blurb but each provider may
-        # want to add additional behaviors
+        provider = auth_provider.get_provider()
+
         if request.method == 'POST':
             op = request.POST.get('op')
             if op == 'disable':
@@ -25,12 +25,16 @@ class OrganizationAuthSettingsView(OrganizationView):
                                    args=[organization.slug])
                 return self.redirect(next_uri)
 
-        provider = auth_provider.get_provider()
+        view = provider.get_configure_view()
+        response = view(request, organization, auth_provider)
+        if isinstance(response, HttpResponse):
+            return response
 
         context = {
             'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
             'auth_provider': auth_provider,
             'provider_name': provider.name,
+            'content': response,
         }
 
         return self.respond('sentry/organization-auth-provider-settings.html', context)
