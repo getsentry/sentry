@@ -527,7 +527,7 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'social-auth:register': True,
     'organizations:create': True,
-    'organizations:sso': True,
+    'organizations:sso': False,
     'teams:create': True,
 }
 
