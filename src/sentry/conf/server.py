@@ -534,6 +534,7 @@ SENTRY_CACHE_BACKEND = 'default'
 SENTRY_FEATURES = {
     'auth:register': True,
     'social-auth:register': True,
+    'organizations:create': True,
 }
 
 SENTRY_FILTERS = (
