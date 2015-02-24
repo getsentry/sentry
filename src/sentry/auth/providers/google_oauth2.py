@@ -25,6 +25,8 @@ USER_DETAILS_ENDPOINT = 'https://www.googleapis.com/plus/v1/people/me'
 
 ERR_INVALID_DOMAIN = 'The domain for your Google account is not allowed to authenticate with this provider.'
 
+ERR_NO_DOMAIN = 'You must authenticate via a Google Apps account.'
+
 
 class FetchUser(AuthView):
     def __init__(self, domain=None, *args, **kwargs):
@@ -43,7 +45,11 @@ class FetchUser(AuthView):
         body = safe_urlread(req)
         data = json.loads(body)
 
-        if self.domain and self.domain != data.get('domain'):
+        if not data.get('domain'):
+            return helper.error(ERR_NO_DOMAIN)
+
+        # a domain may not yet be configured as this could be the setup flow
+        if self.domain and self.domain != data['domain']:
             return helper.error(ERR_INVALID_DOMAIN)
 
         helper.bind_state('user', data)

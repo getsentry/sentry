@@ -20,6 +20,12 @@
 
         <p class="clippy" data-text="{{ login_url }}"><a href="{{ login_url }}">{{ login_url }}</a></p>
 
+        {% if content %}
+          <hr>
+
+          {{ content }}
+        {% endif %}
+
         <hr>
 
         <h3>Disable {{ provider_name }} Authentication</h3>
