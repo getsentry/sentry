@@ -614,11 +614,6 @@ SENTRY_INTERFACES = {
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
 
-# Should users be allowed to register an account? If this is disabled
-# accounts can only be created when someone is invited or added
-# manually.
-SENTRY_ALLOW_REGISTRATION = True
-
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 SENTRY_ALLOW_ORIGIN = None
 
