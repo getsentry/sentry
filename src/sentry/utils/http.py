@@ -145,7 +145,7 @@ def is_valid_origin(origin, project=None):
             if parsed.hostname.endswith(bits.domain[1:]) or parsed.hostname == bits.domain[2:]:
                 return True
             continue
-        elif bits.domain not in ('*', parsed.hostname):
+        elif bits.domain not in ('*', parsed.hostname, parsed.netloc):
             continue
 
         # path supports exact, any, and suffix match (with or without *)
