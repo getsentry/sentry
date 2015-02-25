@@ -37,7 +37,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for member, team_list in member_list %}
+      {% for member, team_list, needs_sso in member_list %}
         <tr>
           <td style="vertical-align: top">
             <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
@@ -46,13 +46,15 @@
             <strong><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
               {{ member.get_display_name }}
             </a></strong>
-            {% if member.is_pending %}
-              <small>&mdash; Invited</small>
-            {% endif %}
-            {% comment %}
             <br />
-            Not connected &middot; <a href="#">Resend SSO Invitation</a>
-            {% endcomment %}
+            {% if needs_sso or member.is_pending %}
+              {% if needs_sso %}
+                Pending SSO link
+              {% else %}
+                Invited
+              {% endif %}
+              &middot; <a href="javascript:void(0)" class="resend-invite" data-member-id="{{ member.id }}">Resend Invitation</a>
+            {% endif %}
           </td>
           <td>{{ member.get_email }}</td>
           <td>{{ member.get_type_display }}</td>
@@ -103,7 +105,25 @@
         $this.parents('tr').remove();
       },
       error: function() {
-        alert('There was an error while trying to remove the team member.');
+        alert('There was an error while trying to remove the member.');
+      }
+    });
+  });
+
+  $('.resend-invite').click(function(){
+    var $this = $(this);
+    $.ajax({
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
+      data: JSON.stringify({
+        reinvite: 1,
+      }),
+      contentType: 'application/json',
+      method: 'PUT',
+      success: function() {
+        $this.replaceWith('<span>Sent!</span>');
+      },
+      error: function() {
+        alert('There was an error while trying to reinvite the member.');
       }
     });
   });

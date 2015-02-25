@@ -57,6 +57,6 @@ class OrganizationMembersTest(TestCase):
         member_list = sorted(resp.context['member_list'], key=lambda x: x[0].id)
 
         assert member_list == [
-            (owner_om, []),
-            (member_om, [team_2]),
+            (owner_om, [], False),
+            (member_om, [team_2], False),
         ]

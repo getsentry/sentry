@@ -33,6 +33,7 @@ __all__ = ('urlpatterns',)
 
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
 from sentry.web.frontend.access_group_migration import AccessGroupMigrationView
+from sentry.web.frontend.auth_link_identity import AuthLinkIdentityView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
@@ -103,12 +104,16 @@ urlpatterns += patterns('',
         name='sentry-mailgun-inbound-hook'),
 
     # Auth
+    url(r'^auth/link/(?P<organization_slug>[^/]+)/(?P<token>\w+)/$', AuthLinkIdentityView.as_view(),
+        name='sentry-auth-link-identity'),
     url(r'^auth/login/$', AuthLoginView.as_view(),
         name='sentry-login'),
-    url(r'^auth/sso/$', AuthProviderLoginView.as_view(),
-        name='sentry-auth-sso'),
     url(r'^auth/login/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
         name='sentry-auth-organization'),
+    url(r'^auth/sso/$', AuthProviderLoginView.as_view(),
+        name='sentry-auth-sso'),
+
+
     url(r'^auth/logout/$', AuthLogoutView.as_view(),
         name='sentry-logout'),
 

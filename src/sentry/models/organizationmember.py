@@ -121,6 +121,30 @@ class OrganizationMember(Model):
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
 
+    def send_sso_link_email(self):
+        from sentry.utils.email import MessageBuilder
+
+        context = {
+            'email': self.email,
+            'organization_name': self.organization.name,
+            'url': absolute_uri(reverse('sentry-auth-link-identity', kwargs={
+                'organization_slug': self.organization.slug,
+                'token': self.token,
+            })),
+        }
+
+        msg = MessageBuilder(
+            subject='Action Required for %s' % (self.organization.name,),
+            template='sentry/emails/auth-link-identity.txt',
+            context=context,
+        )
+
+        try:
+            msg.send([self.email])
+        except Exception as e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
+
     def get_display_name(self):
         if self.user_id:
             return self.user.get_display_name()

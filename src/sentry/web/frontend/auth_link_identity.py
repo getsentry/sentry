@@ -11,7 +11,7 @@ from sentry.web.frontend.base import BaseView
 ERR_INVITE_INVALID = _('The invite link you followed is not valid.')
 
 
-class AuthLinkIdentity(BaseView):
+class AuthLinkIdentityView(BaseView):
     # TODO(dcramer): ideally we could show a login form here if they were auth'd
     # as an invalid account
     def handle(self, request, organization_slug, token):
