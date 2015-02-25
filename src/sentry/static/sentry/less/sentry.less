@@ -3352,27 +3352,27 @@ pre {
       background: #f1f2f3;
     }
   }
+}
 
-  .provider-logo {
-    &.google {
-      background: url(../images/auth-providers/google.png);
-      background-size: cover;
-    }
+.provider-logo {
+  &.google {
+    background: url(../images/auth-providers/google.png);
+    background-size: cover;
+  }
 
-    &.github {
-      background: url(../images/auth-providers/github.jpg);
-      background-size: cover;
-    }
+  &.github {
+    background: url(../images/auth-providers/github.jpg);
+    background-size: cover;
+  }
 
-    &.onelogin {
-      background: url(../images/auth-providers/onelogin.png);
-      background-size: cover;
-    }
+  &.onelogin {
+    background: url(../images/auth-providers/onelogin.png);
+    background-size: cover;
+  }
 
-    &.okta {
-      background: url(../images/auth-providers/okta.png);
-      background-size: cover;
-    }
+  &.okta {
+    background: url(../images/auth-providers/okta.png);
+    background-size: cover;
   }
 }
 
@@ -3392,5 +3392,18 @@ pre {
   .org-avatar {
     .square(54px);
     border-radius: 54px;
+  }
+
+  .btn-default {
+    border: 1px solid lighten(@grayLight, 22);
+    box-shadow: 0 1px 1px rgba(0,0,0, .1);
+  }
+
+  .provider-logo {
+    display: inline-block;
+    .square(16px);
+    vertical-align: text-top;
+    margin-right: 6px;
+    border-radius: 3px;
   }
 }
