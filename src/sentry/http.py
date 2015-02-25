@@ -18,7 +18,9 @@ from ipaddr import IPNetwork
 from requests.adapters import HTTPAdapter
 from urlparse import urlparse
 
-USER_AGENT = 'sentry/%s' % sentry.VERSION
+USER_AGENT = 'sentry/{version} (https://getsentry.com)'.format(
+    version=sentry.VERSION,
+)
 
 DISALLOWED_IPS = set((IPNetwork(i) for i in settings.SENTRY_DISALLOWED_IPS))
 
