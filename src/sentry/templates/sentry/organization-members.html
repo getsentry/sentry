@@ -39,16 +39,20 @@
     <tbody>
       {% for member, team_list in member_list %}
         <tr>
-          <td>
+          <td style="vertical-align: top">
             <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
           </td>
           <td>
-            <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+            <strong><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
               {{ member.get_display_name }}
-            </a>
+            </a></strong>
             {% if member.is_pending %}
               <small>&mdash; Invited</small>
             {% endif %}
+            {% comment %}
+            <br />
+            Not connected &middot; <a href="#">Resend SSO Invitation</a>
+            {% endcomment %}
           </td>
           <td>{{ member.get_email }}</td>
           <td>{{ member.get_type_display }}</td>
