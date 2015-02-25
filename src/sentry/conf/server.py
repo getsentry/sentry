@@ -513,6 +513,7 @@ RECAPTCHA_PRIVATE_KEY = None
 # django-statsd
 
 STATSD_CLIENT = 'django_statsd.clients.null'
+SENTRY_METRICS_PREFIX = ''
 
 # Sentry and Raven configuration
 

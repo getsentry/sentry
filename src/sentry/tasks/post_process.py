@@ -13,12 +13,32 @@ import logging
 from django.conf import settings
 from hashlib import md5
 
+from sentry.constants import PLATFORM_LIST, PLATFORM_ROOTS
 from sentry.plugins import plugins
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
 rules_logger = logging.getLogger('sentry.errors')
+
+
+def _capture_stats(event, is_new):
+    group = event.group
+    platform = group.platform or group.project.platform
+    if not platform:
+        return
+    platform = PLATFORM_ROOTS.get(platform, platform)
+    if platform not in PLATFORM_LIST:
+        return
+
+    if is_new:
+        metrics.incr('events.unique', 1)
+
+    metrics.incr('events.processed', 1)
+    metrics.incr('events.processed.{platform}'.format(
+        platform=platform), 1)
+    metrics.timing('events.size.data', len(unicode(event.data)))
 
 
 @instrumented_task(
@@ -31,6 +51,8 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     from sentry.rules.processor import RuleProcessor
 
     project = Project.objects.get_from_cache(id=event.group.project_id)
+
+    _capture_stats(event, is_new)
 
     if settings.SENTRY_ENABLE_EXPLORE_CODE:
         record_affected_code.delay(event=event)
