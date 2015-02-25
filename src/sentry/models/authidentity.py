@@ -11,9 +11,16 @@ class AuthIdentity(Model):
     auth_provider = FlexibleForeignKey('sentry.AuthProvider')
     ident = models.CharField(max_length=128)
     data = GzippedDictField()
+    last_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_authidentity'
-        unique_together = (('auth_provider', 'ident'),)
+        unique_together = (('auth_provider', 'ident'), ('auth_provider', 'user'))
+
+    def get_audit_log_data(self):
+        return {
+            'user_id': self.user_id,
+            'data': self.data,
+        }

@@ -10,6 +10,8 @@ from sentry.models import (
 )
 from sentry.web.frontend.base import BaseView
 
+ERR_INVITE_INVALID = _('The invite link you followed is not valid.')
+
 
 class AcceptInviteForm(forms.Form):
     pass
@@ -31,7 +33,7 @@ class AcceptOrganizationInviteView(BaseView):
         except OrganizationMember.DoesNotExist:
             messages.add_message(
                 request, messages.ERROR,
-                _('The invite link you followed is no longer valid.')
+                ERR_INVITE_INVALID,
             )
 
             return self.redirect(reverse('sentry'))
@@ -39,7 +41,7 @@ class AcceptOrganizationInviteView(BaseView):
         if not om.is_pending:
             messages.add_message(
                 request, messages.ERROR,
-                _('The invite link you followed is no longer valid.')
+                ERR_INVITE_INVALID,
             )
 
             return self.redirect(reverse('sentry'))
@@ -47,7 +49,7 @@ class AcceptOrganizationInviteView(BaseView):
         if om.token != token:
             messages.add_message(
                 request, messages.ERROR,
-                _('The invite link you followed is no longer valid.')
+                ERR_INVITE_INVALID,
             )
             return self.redirect(reverse('sentry'))
 

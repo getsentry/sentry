@@ -13,7 +13,7 @@ class AuthView(BaseView):
     auth_required = False
     sudo_required = False
 
-    def dispatch(self, request, provider):
+    def dispatch(self, request, helper):
         """
         Returns an ``HttpResponse``.
         """

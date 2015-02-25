@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -50,6 +51,9 @@ class OrganizationMember(Model):
         (OrganizationMemberType.ADMIN, _('Admin')),
         (OrganizationMemberType.OWNER, _('Owner')),
     ), default=OrganizationMemberType.MEMBER)
+    flags = BitField(flags=(
+        ('sso:linked', 'sso:linked'),
+    ), default=0)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
     teams = models.ManyToManyField('sentry.Team', blank=True)
@@ -72,10 +76,8 @@ class OrganizationMember(Model):
 
     @property
     def token(self):
-        assert self.email
-
         checksum = md5()
-        for x in (str(self.organization_id), self.email, settings.SECRET_KEY):
+        for x in (str(self.organization_id), self.get_email(), settings.SECRET_KEY):
             checksum.update(x)
         return checksum.hexdigest()
 

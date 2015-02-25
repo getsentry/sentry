@@ -8,8 +8,10 @@ sentry.testutils.cases
 
 from __future__ import absolute_import
 
-__all__ = ('TestCase', 'TransactionTestCase', 'APITestCase', 'RuleTestCase',
-           'PermissionTestCase', 'PluginTestCase')
+__all__ = (
+    'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase',
+    'RuleTestCase', 'PermissionTestCase', 'PluginTestCase'
+)
 
 import base64
 import os.path
@@ -26,6 +28,8 @@ from exam import before, Exam
 from nydus.db import create_cluster
 from rest_framework.test import APITestCase as BaseAPITestCase
 
+from sentry import auth
+from sentry.auth.providers.dummy import DummyProvider
 from sentry.constants import MODULE_ROOT
 from sentry.models import GroupMeta, OrganizationMemberType, ProjectOption
 from sentry.plugins import plugins
@@ -33,7 +37,7 @@ from sentry.rules import EventState
 from sentry.utils import json
 
 from .fixtures import Fixtures
-from .helpers import Feature, get_auth_header
+from .helpers import AuthProvider, Feature, get_auth_header
 
 
 def create_redis_conn():
@@ -74,6 +78,13 @@ class BaseTestCase(Fixtures, Exam):
         >>>     # ...
         """
         return Feature(name, active)
+
+    def auth_provider(self, name, cls):
+        """
+        >>> with self.auth_provider('name', Provider)
+        >>>     # ...
+        """
+        return AuthProvider(name, cls)
 
     def save_session(self):
         self.session.save()
@@ -180,6 +191,16 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
     pass
+
+
+class AuthProviderTestCase(TestCase):
+    provider = DummyProvider
+    provider_name = 'dummy'
+
+    def setUp(self):
+        super(AuthProviderTestCase, self).setUp()
+        auth.register(self.provider_name, self.provider)
+        self.addCleanup(auth.unregister, self.provider_name, self.provider)
 
 
 class RuleTestCase(TestCase):

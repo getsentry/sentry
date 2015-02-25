@@ -8,6 +8,8 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 
 from sentry.models import (
@@ -18,6 +20,12 @@ from sentry.utils.auth import get_login_redirect
 
 from . import manager
 
+OK_LINK_IDENTITY = _('You have successully linked your account your SSO provider.')
+
+ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
+
+ERR_NOT_AUTHED = _('You must be authenticated to link accounts.')
+
 
 class AuthHelper(object):
     """
@@ -26,8 +34,12 @@ class AuthHelper(object):
     Designed to link provider and views as well as manage the state and
     pipeline.
     """
+    # logging in or registering
     FLOW_LOGIN = 1
+    # configuring the provider
     FLOW_SETUP_PROVIDER = 2
+    # linking an identity to an existing account
+    FLOW_LINK_IDENTITY = 3
 
     @classmethod
     def get_for_request(cls, request):
@@ -72,7 +84,7 @@ class AuthHelper(object):
             raise NotImplementedError
 
         self.provider = provider
-        if flow == self.FLOW_LOGIN:
+        if flow in (self.FLOW_LOGIN, self.FLOW_LINK_IDENTITY):
             self.pipeline = provider.get_auth_pipeline()
         elif flow == self.FLOW_SETUP_PROVIDER:
             self.pipeline = provider.get_setup_pipeline()
@@ -94,6 +106,7 @@ class AuthHelper(object):
 
     def init_pipeline(self):
         session = {
+            'uid': self.request.user.id if self.request.user.is_authenticated() else None,
             'ap': self.auth_provider.id if self.auth_provider else None,
             'p': self.provider.key,
             'org': self.organization.id,
@@ -135,6 +148,9 @@ class AuthHelper(object):
             response = self._finish_login_pipeline(identity)
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
             response = self._finish_setup_pipeline(identity)
+        elif session['flow'] == self.FLOW_LINK_IDENTITY:
+            # create identity and authenticate the user
+            response = self._finish_link_pipeline(identity)
 
         del self.request.session['auth']
         self.request.session.is_modified = True
@@ -168,6 +184,7 @@ class AuthHelper(object):
                 organization=self.organization,
                 type=auth_provider.default_role,
                 user=user,
+                flags=getattr(OrganizationMember.flags, 'sso:linked'),
             )
 
             AuditLogEntry.objects.create(
@@ -180,8 +197,10 @@ class AuthHelper(object):
                 data=om.get_audit_log_data(),
             )
         else:
-            if auth_identity.data != identity.get('data', {}):
-                auth_identity.update(data=identity['data'])
+            auth_identity.update(
+                data=identity['data'],
+                last_verified=timezone.now(),
+            )
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -193,6 +212,12 @@ class AuthHelper(object):
     @transaction.atomic
     def _finish_setup_pipeline(self, identity):
         request = self.request
+        if not request.user.is_authenticated():
+            return self.error(ERR_NOT_AUTHED)
+
+        if request.user.id != request.session['auth']['uid']:
+            return self.error(ERR_UID_MISMATCH)
+
         state = request.session['auth']['state']
         config = self.provider.build_config(state)
 
@@ -208,6 +233,7 @@ class AuthHelper(object):
             auth_provider=self.auth_provider,
             defaults={
                 'data': identity.get('data', {}),
+                'last_verified': timezone.now(),
             },
         )
 
@@ -225,6 +251,57 @@ class AuthHelper(object):
         ])
         return HttpResponseRedirect(next_uri)
 
+    @transaction.atomic
+    def _finish_link_pipeline(self, identity):
+        request = self.request
+        if not request.user.is_authenticated():
+            return self.error(ERR_NOT_AUTHED)
+
+        if request.user.id != request.session['auth']['uid']:
+            return self.error(ERR_UID_MISMATCH)
+
+        state = request.session['auth']['state']
+
+        try:
+            om = OrganizationMember.objects.get(
+                user=request.user,
+                organization=self.organization,
+            )
+        except OrganizationMember.DoesNotExist:
+            return self.error(ERR_UID_MISMATCH)
+
+        # TODO(dcramer): handle case when another user exists w/ this identity
+        auth_identity = AuthIdentity.objects.create(
+            user=request.user,
+            ident=identity['id'],
+            auth_provider=self.auth_provider,
+            defaults={
+                'data': identity.get('data', {}),
+            },
+        )
+
+        setattr(om.flags, 'sso:linked', True)
+        om.save()
+
+        AuditLogEntry.objects.create(
+            organization=self.organization,
+            actor=request.user,
+            ip_address=request.META['REMOTE_ADDR'],
+            target_object=auth_identity.id,
+            event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+            data=auth_identity.get_audit_log_data(),
+        )
+
+        messages.add_message(
+            self.request, messages.SUCCESS,
+            OK_LINK_IDENTITY,
+        )
+
+        next_uri = reverse('sentry-organization-home', args=[
+            self.organization.slug,
+        ])
+        return HttpResponseRedirect(next_uri)
+
     def error(self, message):
         session = self.request.session['auth']
         if session['flow'] == self.FLOW_LOGIN:
@@ -234,7 +311,10 @@ class AuthHelper(object):
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
             redirect_uri = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
 
-        messages.error(self.request, 'Authentication error: {}'.format(message))
+        messages.add_message(
+            self.request, messages.ERROR,
+            'Authentication error: {}'.format(message),
+        )
 
         return HttpResponseRedirect(redirect_uri)
 
