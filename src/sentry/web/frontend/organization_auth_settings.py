@@ -3,41 +3,64 @@ from __future__ import absolute_import
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db import transaction
+from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
+from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMemberType
+    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember,
+    OrganizationMemberType
 )
 from sentry.plugins import Response
+from sentry.utils import db
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import OrganizationView
 
+ERR_NO_SSO = _('The SSO feature is not enabled for this organization.')
 
-ERR_NO_SSO = 'The SSO feature is not enabled for this organization.'
+OK_PROVIDER_DISABLED = _('SSO authentication has been disabled.')
 
 
 class OrganizationAuthSettingsView(OrganizationView):
     required_access = OrganizationMemberType.OWNER
 
+    def _disable_provider(self, request, organization, auth_provider):
+        AuditLogEntry.objects.create(
+            organization=organization,
+            actor=request.user,
+            ip_address=request.META['REMOTE_ADDR'],
+            target_object=auth_provider.id,
+            event=AuditLogEntryEvent.SSO_DISABLE,
+            data=auth_provider.get_audit_log_data(),
+        )
+
+        if db.is_sqlite():
+            for om in OrganizationMember.objects.filter(organization=organization):
+                setattr(om.flags, 'sso:linked', False)
+                om.save()
+        else:
+            OrganizationMember.objects.filter(
+                organization=organization,
+            ).update(
+                flags=F('flags').bitand(~getattr(OrganizationMember.flags, 'sso:linked')),
+            )
+
+        auth_provider.delete()
+
     def handle_existing_provider(self, request, organization, auth_provider):
         provider = auth_provider.get_provider()
-
         if request.method == 'POST':
             op = request.POST.get('op')
             if op == 'disable':
-                AuditLogEntry.objects.create(
-                    organization=organization,
-                    actor=request.user,
-                    ip_address=request.META['REMOTE_ADDR'],
-                    target_object=auth_provider.id,
-                    event=AuditLogEntryEvent.SSO_DISABLE,
-                    data=auth_provider.get_audit_log_data(),
-                )
+                self._disable_provider(request, organization, auth_provider)
 
-                auth_provider.delete()
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    OK_PROVIDER_DISABLED,
+                )
 
                 next_uri = reverse('sentry-organization-auth-settings',
                                    args=[organization.slug])
@@ -76,7 +99,10 @@ class OrganizationAuthSettingsView(OrganizationView):
     @transaction.atomic
     def handle(self, request, organization):
         if not features.has('organizations:sso', organization, actor=request.user):
-            messages.error(request, ERR_NO_SSO)
+            messages.add_message(
+                request, messages.ERROR,
+                ERR_NO_SSO,
+            )
             return HttpResponseRedirect(reverse('sentry-organization-home', args=[organization.slug]))
 
         try:
