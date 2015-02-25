@@ -48,6 +48,8 @@ class AuditLogEntryEvent(object):
     SSO_DISABLE = 61
     SSO_EDIT = 62
 
+    SSO_IDENTITY_LINK = 63
+
 
 class AuditLogEntry(Model):
     organization = FlexibleForeignKey('sentry.Organization')
@@ -87,6 +89,8 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.SSO_ENABLE, 'sso.enable'),
         (AuditLogEntryEvent.SSO_DISABLE, 'sso.disable'),
         (AuditLogEntryEvent.SSO_EDIT, 'sso.edit'),
+
+        (AuditLogEntryEvent.SSO_IDENTITY_LINK, 'sso-identity.link'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -148,5 +152,8 @@ class AuditLogEntry(Model):
             return 'enabled sso (%s)' % (self.data['provider'],)
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
             return 'edited sso settings'
+
+        elif self.event == AuditLogEntryEvent.SSO_IDENTITY_LINK:
+            return 'linked their account to a new identity'
 
         return ''

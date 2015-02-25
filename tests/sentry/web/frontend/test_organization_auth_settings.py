@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.testutils import TestCase, PermissionTestCase
+from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 
 
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
@@ -23,7 +23,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             self.assert_org_owner_can_access(self.path)
 
 
-class OrganizationAuthSettingsTest(TestCase):
+class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
         team = self.create_team(organization=organization)
@@ -41,4 +41,19 @@ class OrganizationAuthSettingsTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/organization-auth-settings.html')
 
         assert resp.context['organization'] == organization
-        assert 'provider_list' in resp.context
+        assert 'dummy' in [k for k, v in resp.context['provider_list']]
+
+    def test_can_start_auth_flow(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team = self.create_team(organization=organization)
+        project = self.create_project(team=team)
+
+        path = reverse('sentry-organization-auth-settings', args=[organization.slug])
+
+        self.login_as(self.user)
+
+        with self.feature('organizations:sso'):
+            resp = self.client.post(path, {'provider': 'dummy'})
+
+        assert resp.status_code == 200
+        assert resp.content == self.provider.TEMPLATE
