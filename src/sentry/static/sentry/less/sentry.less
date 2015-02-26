@@ -11,14 +11,15 @@
 @gray: #465262;
 @navbarInverseLinkBackgroundActive: #333;
 
-@linkColor: #4593DE;
+@linkColor: @blue;
 
-@linkColorHover: darken(#1783c8, 10%);
+@linkColorHover: darken(@blue, 10%);
 
 @iconSpritePath:          "../vendor/bootstrap/img/glyphicons-halflings.png";
 @iconWhiteSpritePath:     "../vendor/bootstrap/img/glyphicons-halflings-white.png";
 
 @red: #ff2e46;
+@blue: #2e9fff;
 
 
 /* =============================  Global  ============================== */
@@ -603,7 +604,7 @@ h3 {
       }
 
       .nav .active a:hover {
-        background: #56AFE8;
+        background: @blue;
         color: #fff;
       }
     }
@@ -785,7 +786,7 @@ h3 {
         font-size: 11px;
       }
       li.active a {
-        background-color: #56AFE8;
+        background-color: @blue;
       }
     }
 
@@ -2030,7 +2031,7 @@ img.avatar32 {
         &.active > a {
           .transition(none);
           color: @white;
-          background-color: #56AFE8;
+          background-color: @blue;
         }
 
         > ul.dropdown-menu {
@@ -2086,7 +2087,7 @@ img.avatar32 {
       }
       .active a {
         color: #fff;
-        background: #56AFE8;
+        background: @blue;
       }
     }
   }
@@ -2266,16 +2267,16 @@ img.avatar32 {
   }
 
   &.btn-primary {
-    background: #56AFE8;
+    background: @blue;
     color: #fff;
-    border-color: #589ac3;
+    border-color: darken(@blue, 4);
     &:hover {
-      background: darken(#56AFE8, 3);
-      border-color: darken(#589ac3, 5);
+      background: darken(@blue, 3);
+      border-color: darken(@blue, 8);
     }
 
     &.disabled, &[disabled] {
-      background: #56AFE8;
+      background: @blue;
     }
 
     .caret {
@@ -2323,7 +2324,7 @@ table.table td .select2-container {
 }
 
 .navbar-inverse .nav .active > a, .navbar-inverse .nav .active > a:hover, .navbar-inverse .nav .active > a:focus {
-  background: #56AFE8;
+  background: @blue;
 }
 
 .nav-list > li > a, .nav-list > li > a:hover, .nav-list > li.active > a, .nav-list > li.active > a:hover {
@@ -2356,7 +2357,7 @@ table.table td .select2-container {
   }
 
   li.active a, li.active a:hover {
-    background: #56AFE8;
+    background: @blue;
     color: #fff;
   }
 
