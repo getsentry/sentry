@@ -58,6 +58,7 @@ tests_require = [
     'pytest-cov>=1.4',
     'pytest-timeout',
     'python-coveralls',
+    'responses',
     'riak',
 ]
 
@@ -81,7 +82,7 @@ install_requires = [
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<0.10.0',
     'exam>=0.5.1',
-    'gunicorn>=0.17.2,<0.18.0',
+    'gunicorn>=19.2.1,<20.0.0',
     'ipaddr>=2.1.11,<2.2.0',
     'logan>=0.5.8.2,<0.6.0',
     'lxml>=3.4.1',
@@ -96,6 +97,7 @@ install_requires = [
     'python-memcached>=1.53,<2.0.0',
     'raven>=5.0.0',
     'redis>=2.7.0,<2.11.0',
+    'requests[security]>=2.5.1,<2.6.0',
     'simplejson>=3.1.0,<3.4.0',
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
@@ -147,7 +149,7 @@ class BuildStatic(Command):
 
 setup(
     name='sentry',
-    version='7.3.0.dev0',
+    version='7.4.0.dev0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',

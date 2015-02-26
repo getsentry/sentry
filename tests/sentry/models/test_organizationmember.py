@@ -8,7 +8,7 @@ from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 
 
-class PendingOrganizationMemberTest(TestCase):
+class OrganizationMemberTest(TestCase):
     def test_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email='foo@example.com')
         with self.settings(SECRET_KEY='a'):
@@ -20,6 +20,18 @@ class PendingOrganizationMemberTest(TestCase):
             assert member.token == 'df41d9dfd4ba25d745321e654e15b5d0'
 
     def test_send_invite_email(self):
+        organization = self.create_organization()
+        member = OrganizationMember(id=1, organization=organization, email='foo@example.com')
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+            member.send_invite_email()
+
+            assert len(mail.outbox) == 1
+
+            msg = mail.outbox[0]
+
+            assert msg.to == ['foo@example.com']
+
+    def test_send_sso_link_email(self):
         organization = self.create_organization()
         member = OrganizationMember(id=1, organization=organization, email='foo@example.com')
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):

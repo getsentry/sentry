@@ -13,6 +13,9 @@ class OrganizationMemberSerializer(Serializer):
             'email': obj.email or obj.user.email,
             'access': obj.get_type_display(),
             'pending': obj.is_pending,
+            'flags': {
+                'sso:linked': getattr(obj.flags, 'sso:linked'),
+            },
             'dateCreated': obj.date_added,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
         }

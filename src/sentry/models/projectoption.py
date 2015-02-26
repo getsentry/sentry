@@ -33,6 +33,7 @@ class ProjectOptionManager(BaseManager):
         self.__cache = {}
 
     def _make_key(self, instance_id):
+        assert instance_id
         return '%s:%s' % (self.model._meta.db_table, instance_id)
 
     def get_value_bulk(self, instances, key):

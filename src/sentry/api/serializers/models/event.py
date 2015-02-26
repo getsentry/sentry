@@ -49,6 +49,7 @@ class EventSerializer(Serializer):
             'entries': attrs['entries'],
             'message': obj.message,
             'user': attrs['user'],
+            'context': obj.data.get('extra', {}),
             'tags': obj.get_tags(),
             'platform': obj.platform,
             'dateCreated': obj.datetime,

@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -50,6 +51,9 @@ class OrganizationMember(Model):
         (OrganizationMemberType.ADMIN, _('Admin')),
         (OrganizationMemberType.OWNER, _('Owner')),
     ), default=OrganizationMemberType.MEMBER)
+    flags = BitField(flags=(
+        ('sso:linked', 'sso:linked'),
+    ), default=0)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
     teams = models.ManyToManyField('sentry.Team', blank=True)
@@ -72,12 +76,26 @@ class OrganizationMember(Model):
 
     @property
     def token(self):
-        assert self.email
-
         checksum = md5()
-        for x in (str(self.organization_id), self.email, settings.SECRET_KEY):
+        for x in (str(self.organization_id), self.get_email(), settings.SECRET_KEY):
             checksum.update(x)
         return checksum.hexdigest()
+
+    @property
+    def scopes(self):
+        scopes = []
+        if self.type <= OrganizationMemberType.MEMBER:
+            scopes.extend(['event:read', 'org:read', 'project:read', 'team:read'])
+        if self.type <= OrganizationMemberType.ADMIN:
+            scopes.extend(['event:write', 'project:write', 'team:write'])
+        if self.type <= OrganizationMemberType.OWNER:
+            scopes.extend(['event:delete', 'project:delete', 'team:delete'])
+        if self.has_global_access:
+            if self.type <= OrganizationMemberType.ADMIN:
+                scopes.extend(['org:write'])
+            if self.type <= OrganizationMemberType.OWNER:
+                scopes.extend(['org:delete'])
+        return scopes
 
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder
@@ -98,7 +116,31 @@ class OrganizationMember(Model):
         )
 
         try:
-            msg.send([self.email])
+            msg.send([self.get_email()])
+        except Exception as e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
+
+    def send_sso_link_email(self):
+        from sentry.utils.email import MessageBuilder
+
+        context = {
+            'email': self.email,
+            'organization_name': self.organization.name,
+            'url': absolute_uri(reverse('sentry-auth-link-identity', kwargs={
+                'organization_slug': self.organization.slug,
+                'token': self.token,
+            })),
+        }
+
+        msg = MessageBuilder(
+            subject='Action Required for %s' % (self.organization.name,),
+            template='sentry/emails/auth-link-identity.txt',
+            context=context,
+        )
+
+        try:
+            msg.send([self.get_email()])
         except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)

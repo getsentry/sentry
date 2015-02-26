@@ -177,6 +177,7 @@ class Frame(Interface):
             'post_context': data.get('post_context'),
             'vars': context_locals,
             'data': extra_data,
+            'errors': data.get('errors'),
         }
 
         if data.get('lineno') is not None:
@@ -271,6 +272,7 @@ class Frame(Interface):
             'colno': self.colno,
             'context': context,
             'context_line': self.context_line,
+            'errors': self.errors or [],
             'in_app': self.in_app,
             'is_url': self.is_url(),
         }

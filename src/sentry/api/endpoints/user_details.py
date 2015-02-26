@@ -3,9 +3,8 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
 from sentry.models import User
 
@@ -18,28 +17,14 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('name', 'email')
 
 
-class UserDetailsEndpoint(Endpoint):
-    def get(self, request, user_id):
-        if user_id == 'me':
-            user_id = request.user.id
-
-        user = User.objects.get(id=user_id)
-
-        assert_perm(user, request.user, request.auth)
-
+class UserDetailsEndpoint(UserEndpoint):
+    def get(self, request, user):
         data = serialize(user, request.user)
 
         return Response(data)
 
     @sudo_required
-    def put(self, request, user_id):
-        if user_id == 'me':
-            user_id = request.user.id
-
-        user = User.objects.get(id=user_id)
-
-        assert_perm(user, request.user, request.auth)
-
+    def put(self, request, user):
         serializer = UserSerializer(user, data=request.DATA, partial=True)
 
         if serializer.is_valid():

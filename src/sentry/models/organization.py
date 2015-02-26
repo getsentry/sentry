@@ -61,6 +61,11 @@ class OrganizationManager(BaseManager):
                     has_global_access=True,
                 )
 
+            qs = qs.filter(
+                models.Q(organization__authprovider__isnull=True) |
+                models.Q(flags=getattr(OrganizationMember.flags, 'sso:linked'))
+            )
+
             for om in qs:
                 org = om.organization
                 org.member_type = om.type
@@ -102,6 +107,13 @@ class Organization(Model):
         if not self.slug:
             slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
         super(Organization, self).save(*args, **kwargs)
+
+    def has_access(self, user, access=None):
+        queryset = self.member_set.filter(user=user)
+        if access is not None:
+            queryset = queryset.filter(type__lte=access)
+
+        return queryset.exists()
 
     def get_audit_log_data(self):
         return {

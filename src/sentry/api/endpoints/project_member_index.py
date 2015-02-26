@@ -3,21 +3,13 @@ from __future__ import absolute_import
 from django.db.models import Q
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Project, User
+from sentry.models import User
 
 
-class ProjectMemberIndexEndpoint(Endpoint):
-    def get(self, request, organization_slug, project_slug):
-        project = Project.objects.get(
-            organization__slug=organization_slug,
-            slug=project_slug,
-        )
-
-        assert_perm(project, request.user, request.auth)
-
+class ProjectMemberIndexEndpoint(ProjectEndpoint):
+    def get(self, request, project):
         member_list = sorted(set(User.objects.filter(
             sentry_orgmember_set__organization=project.organization,
         ).filter(

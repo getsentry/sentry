@@ -1,13 +1,17 @@
 from __future__ import absolute_import
 
+from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.permissions import assert_perm
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
+    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember,
     OrganizationMemberType
 )
+
+
+class OrganizationMemberSerializer(serializers.Serializer):
+    reinvite = serializers.BooleanField()
 
 
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
@@ -25,9 +29,37 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         return True
 
-    def delete(self, request, organization, member_id):
-        assert_perm(organization, request.user, request.auth)
+    def put(self, request, organization, member_id):
+        try:
+            om = OrganizationMember.objects.filter(
+                organization=organization,
+                id=member_id,
+            ).select_related('user').get()
+        except OrganizationMember.DoesNotExist:
+            return Response(status=404)
 
+        serializer = OrganizationMemberSerializer(data=request.DATA, partial=True)
+        if not serializer.is_valid():
+            return Response(status=400)
+
+        has_sso = AuthProvider.objects.filter(
+            organization=organization,
+        ).exists()
+
+        result = serializer.object
+        # XXX(dcramer): if/when this expands beyond reinvite we need to check
+        # access level
+        if result.get('reinvite'):
+            if om.is_pending:
+                om.send_invite_email()
+            elif has_sso and not getattr(om.flags, 'sso:linked'):
+                om.send_sso_link_email()
+            else:
+                # TODO(dcramer): proper error message
+                return Response(status=400)
+        return Response(status=204)
+
+    def delete(self, request, organization, member_id):
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:

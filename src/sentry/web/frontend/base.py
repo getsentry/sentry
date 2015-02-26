@@ -137,7 +137,12 @@ class BaseView(View, OrganizationMixin):
     def dispatch(self, request, *args, **kwargs):
         if self.auth_required and not request.user.is_authenticated():
             request.session['_next'] = request.get_full_path()
-            return self.redirect(get_login_url())
+            if 'organization_slug' in kwargs:
+                redirect_to = reverse('sentry-auth-organization',
+                                      args=[kwargs['organization_slug']])
+            else:
+                redirect_to = get_login_url()
+            return self.redirect(redirect_to)
 
         if self.sudo_required and not request.is_sudo():
             return redirect_to_sudo(request.get_full_path())
