@@ -55,13 +55,15 @@
         {% trans "Members" %}
       </a>
     </li>
-    {% feature organizations:sso organization %}
-    <li class="{% block org_auth_settings_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
-        {% trans "Auth" %}
-      </a>
-    </li>
-    {% endfeature %}
+    {% if ACCESS.is_owner %}
+      {% feature organizations:sso organization %}
+      <li class="{% block org_auth_settings_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
+          {% trans "Auth" %}
+        </a>
+      </li>
+      {% endfeature %}
+    {% endif %}
     <li class="{% block org_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-settings' organization.slug %}">
         {% trans "Settings" %}
