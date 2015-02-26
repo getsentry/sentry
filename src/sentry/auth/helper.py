@@ -22,6 +22,8 @@ from . import manager
 
 OK_LINK_IDENTITY = _('You have successully linked your account your SSO provider.')
 
+OK_SETUP_SSO = _('SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
+
 ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
 
 ERR_NOT_AUTHED = _('You must be authenticated to link accounts.')
@@ -255,6 +257,18 @@ class AuthHelper(object):
             target_object=self.auth_provider.id,
             event=AuditLogEntryEvent.SSO_ENABLE,
             data=self.auth_provider.get_audit_log_data(),
+        )
+
+        member_list = OrganizationMember.objects.filter(
+            organization=self.organization,
+            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+        )
+        for member in member_list:
+            member.send_sso_link_email()
+
+        messages.add_message(
+            self.request, messages.SUCCESS,
+            OK_SETUP_SSO,
         )
 
         next_uri = reverse('sentry-organization-auth-settings', args=[
