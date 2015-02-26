@@ -149,7 +149,7 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SSO_ENABLE:
             return 'enabled sso (%s)' % (self.data['provider'],)
         elif self.event == AuditLogEntryEvent.SSO_DISABLE:
-            return 'enabled sso (%s)' % (self.data['provider'],)
+            return 'disabled sso (%s)' % (self.data['provider'],)
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
             return 'edited sso settings'
 
