@@ -286,9 +286,7 @@ class AuthHelper(object):
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
-            defaults={
-                'data': identity.get('data', {}),
-            },
+            data=identity.get('data', {}),
         )
 
         setattr(om.flags, 'sso:linked', True)
