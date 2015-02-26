@@ -58,6 +58,7 @@ class SentryHTTPServer(Service):
         options.setdefault('errorlog', '-')
         options.setdefault('loglevel', 'info')
         options.setdefault('limit_request_line', 0)
+        options['preload'] = False
 
         if workers:
             options['workers'] = workers
