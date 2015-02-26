@@ -2393,6 +2393,7 @@ table.table td .select2-container {
 table.table {
   th {
     vertical-align: top;
+    font-weight: 500;
   }
   td {
     vertical-align: middle;
@@ -2466,6 +2467,38 @@ table.vars {
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(even) th {
     background-color: #fff;
+  }
+}
+
+table.table-bordered {
+  border: 1px solid #e1e2e3;
+
+  th, td {
+    padding: 15px 20px;
+  }
+
+  td {
+    border-top: 1px solid #e1e2e3;
+  }
+}
+
+table.simple-list {
+  margin: 0 0 20px;
+  
+  td, th {
+    font-size: 16px;
+  }
+
+  .user-info {
+    padding-left: 70px;
+    position: relative;
+
+    .avatar {
+      .square(40px);
+      position: absolute;
+      left: 20px;
+      top: 16px;
+    }
   }
 }
 
