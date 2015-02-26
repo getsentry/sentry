@@ -17,16 +17,18 @@
 
   <br>
 
-  <table class="table simple-list table-bordered">
+  <table class="table simple-list table-bordered member-list">
     <colgroup>
-      <col width="35%"/>
       <col width="30%"/>
-      <col width="30%"/>
+      <col width="25%" />
+      <col width="20%"/>
+      <col width="20%"/>
       <col width="5%"/>
     </colgroup>
     <thead>
       <tr>
         <th>Member</th>
+        <th>&nbsp;</th>
         <th>Type</th>
         <th>Teams</th>
         <th>&nbsp;</th>
@@ -43,13 +45,15 @@
             <br />
             <small>{{ member.get_email }}</small>
             <br />
+          </td>
+          <td class="status">
             {% if needs_sso or member.is_pending %}
               {% if needs_sso %}
-                <span class="label">Pending SSO link</span>
+                <strong>Missing SSO Link</strong>
               {% else %}
-                <span class="label">Invited</span>
+                <strong>Invited</strong>
               {% endif %}
-              &middot; <a href="javascript:void(0)" class="resend-invite" data-member-id="{{ member.id }}">Resend Invitation</a>
+              <small><a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a></small>
             {% endif %}
           </td>
           <td>{{ member.get_type_display }}</td>
