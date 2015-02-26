@@ -23,6 +23,8 @@ ERR_NO_SSO = _('The SSO feature is not enabled for this organization.')
 
 OK_PROVIDER_DISABLED = _('SSO authentication has been disabled.')
 
+OK_REMINDERS_SENT = _('A reminder email has been sent to members who have not yet linked their accounts.')
+
 
 class OrganizationAuthSettingsView(OrganizationView):
     required_access = OrganizationMemberType.OWNER
@@ -50,6 +52,14 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         auth_provider.delete()
 
+    def _reinvite_members(self, request, organization):
+        member_list = OrganizationMember.objects.filter(
+            organization=organization,
+            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+        )
+        for member in member_list:
+            member.send_sso_link_email()
+
     def handle_existing_provider(self, request, organization, auth_provider):
         provider = auth_provider.get_provider()
         if request.method == 'POST':
@@ -60,6 +70,17 @@ class OrganizationAuthSettingsView(OrganizationView):
                 messages.add_message(
                     request, messages.SUCCESS,
                     OK_PROVIDER_DISABLED,
+                )
+
+                next_uri = reverse('sentry-organization-auth-settings',
+                                   args=[organization.slug])
+                return self.redirect(next_uri)
+            elif op == 'reinvite':
+                self._reinvite_members(request, organization)
+
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    OK_REMINDERS_SENT,
                 )
 
                 next_uri = reverse('sentry-organization-auth-settings',
@@ -77,7 +98,13 @@ class OrganizationAuthSettingsView(OrganizationView):
                 'provider': provider,
             })
 
+        pending_links_count = OrganizationMember.objects.filter(
+            organization=organization,
+            flags=getattr(OrganizationMember.flags, 'sso:linked'),
+        ).count()
+
         context = {
+            'pending_links_count': pending_links_count,
             'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
             'auth_provider': auth_provider,
             'provider_name': provider.name,
