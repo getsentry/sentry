@@ -127,6 +127,17 @@ class OrganizationMixin(object):
 
         return project
 
+    def get_access(self, user, organization):
+        if user.is_superuser:
+            access = Access(is_global=True, type=OrganizationMemberType.OWNER)
+        else:
+            om = OrganizationMember.objects.get(
+                user=user, organization=organization
+            )
+            access = Access(is_global=om.has_global_access, type=om.type)
+
+        return access
+
 
 class BaseView(View, OrganizationMixin):
     auth_required = True
@@ -206,17 +217,7 @@ class OrganizationView(BaseView):
         context = super(OrganizationView, self).get_context_data(request)
         context['organization'] = organization
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
-
-        if request.user.is_superuser:
-            access = Access(is_global=True, type=OrganizationMemberType.OWNER)
-        else:
-            om = OrganizationMember.objects.get(
-                user=request.user, organization=organization
-            )
-            access = Access(is_global=om.has_global_access, type=om.type)
-
-        context['ACCESS'] = access
-
+        context['ACCESS'] = self.get_access(request.user, organization)
         return context
 
     def has_permission(self, request, organization, *args, **kwargs):
@@ -255,6 +256,7 @@ class TeamView(BaseView):
         context['organization'] = organization
         context['team'] = team
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
+        context['ACCESS'] = self.get_access(request.user, organization)
         return context
 
     def has_permission(self, request, organization, team, *args, **kwargs):
@@ -301,6 +303,7 @@ class ProjectView(BaseView):
         context['project'] = project
         context['team'] = team
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
+        context['ACCESS'] = self.get_access(request.user, organization)
         return context
 
     def has_permission(self, request, organization, team, project, *args, **kwargs):
