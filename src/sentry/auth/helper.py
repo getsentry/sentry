@@ -221,6 +221,14 @@ class AuthHelper(object):
         state = request.session['auth']['state']
         config = self.provider.build_config(state)
 
+        try:
+            om = OrganizationMember.objects.get(
+                user=request.user,
+                organization=self.organization,
+            )
+        except OrganizationMember.DoesNotExist:
+            return self.error(ERR_UID_MISMATCH)
+
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization,
             provider=self.provider.key,
@@ -236,6 +244,9 @@ class AuthHelper(object):
                 'last_verified': timezone.now(),
             },
         )
+
+        setattr(om.flags, 'sso:linked', True)
+        om.save()
 
         AuditLogEntry.objects.create(
             organization=self.organization,
@@ -275,9 +286,7 @@ class AuthHelper(object):
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
-            defaults={
-                'data': identity.get('data', {}),
-            },
+            data=identity.get('data', {}),
         )
 
         setattr(om.flags, 'sso:linked', True)
