@@ -116,7 +116,7 @@ class OrganizationMember(Model):
         )
 
         try:
-            msg.send([self.email])
+            msg.send([self.get_email()])
         except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
@@ -140,7 +140,7 @@ class OrganizationMember(Model):
         )
 
         try:
-            msg.send([self.email])
+            msg.send([self.get_email()])
         except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)

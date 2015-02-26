@@ -40,7 +40,7 @@ class OrganizationMembersView(OrganizationView):
 
         member_list = []
         for om in queryset:
-            needs_sso = bool(auth_provider and getattr(om.flags, 'sso:linked'))
+            needs_sso = bool(auth_provider and not getattr(om.flags, 'sso:linked'))
             member_list.append((om, team_map[om.id], needs_sso))
 
         # if the member is not the only owner we allow them to leave the org
