@@ -204,6 +204,13 @@ class AuthHelper(object):
                 last_verified=timezone.now(),
             )
 
+            om = OrganizationMember.objects.get(
+                user=auth_identity.user,
+                organization=self.organization,
+            )
+            setattr(om.flags, 'sso:linked', True)
+            om.save()
+
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
