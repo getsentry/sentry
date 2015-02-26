@@ -22,9 +22,9 @@
     <table class="table simple-list table-bordered">
       <colgroup>
         <col width="30%">
-        <col width="20%"/>
-        <col width="20%"/>
-        <col width="20%"/>
+        <col width="18%"/>
+        <col width="18%"/>
+        <col width="24%"/>
       </colgroup>
       <thead>
       <tr>
@@ -44,7 +44,7 @@
             </td>
             <td>{{ entry.get_event_display }}</td>
             <td>{{ entry.ip_address }}</td>
-            <td style="text-align:right">
+            <td>
               <span class="pretty-date" title="{{ entry.datetime|date:"c" }}Z">{{ entry.datetime|timesince }}</span>
             </td>
           </tr>
