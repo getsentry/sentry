@@ -136,6 +136,7 @@ class OrganizationMember(Model):
         msg = MessageBuilder(
             subject='Action Required for %s' % (self.organization.name,),
             template='sentry/emails/auth-link-identity.txt',
+            html_template='sentry/emails/auth-link-identity.html',
             context=context,
         )
 
