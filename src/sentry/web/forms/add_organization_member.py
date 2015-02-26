@@ -22,16 +22,14 @@ class AddOrganizationMemberForm(forms.ModelForm):
         om.organization = organization
         om.type = OrganizationMemberType.MEMBER
 
-        sid = transaction.savepoint(using='default')
-        try:
-            om.save()
-        except IntegrityError:
-            transaction.savepoint_rollback(sid, using='default')
-            return OrganizationMember.objects.get(
-                user=om.user,
-                organization=organization,
-            ), False
-        transaction.savepoint_commit(sid, using='default')
+        with transaction.atomic():
+            try:
+                om.save()
+            except IntegrityError:
+                return OrganizationMember.objects.get(
+                    user=om.user,
+                    organization=organization,
+                ), False
 
         AuditLogEntry.objects.create(
             organization=organization,

@@ -4,7 +4,6 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import assert_perm
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, TagKey, TagKeyStatus
 )
@@ -26,8 +25,6 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
             )
         except TagKey.DoesNotExist:
             raise ResourceDoesNotExist
-
-        assert_perm(tagkey, request.user, request.auth)
 
         updated = TagKey.objects.filter(
             id=tagkey.id,

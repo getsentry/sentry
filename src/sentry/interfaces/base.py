@@ -68,8 +68,10 @@ class Interface(object):
     def to_json(self):
         # eliminate empty values for serialization to compress the keyspace
         # and save (seriously) ridiculous amounts of bytes
+        # XXX(dcramer): its important that we keep zero values here, but empty
+        # lists and strings get discarded as we've deemed them not important
         return dict(
-            (k, v) for k, v in self._data.iteritems() if v
+            (k, v) for k, v in self._data.iteritems() if (v == 0 or v)
         )
 
     def get_path(self):

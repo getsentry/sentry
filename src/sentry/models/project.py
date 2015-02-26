@@ -200,20 +200,15 @@ class Project(Model):
         from sentry.models import OrganizationMember
 
         return OrganizationMember.objects.filter(
-            Q(teams=self.team) | Q(has_global_access=True),
+            (Q(teams=self.team) | Q(has_global_access=True)),
+            (Q(organization__authprovider__isnull=True) |
+             Q(flags=getattr(OrganizationMember.flags, 'sso:linked'))),
             user__is_active=True,
             organization=self.organization,
         )
 
     def has_access(self, user, access=None):
-        from sentry.models import OrganizationMember
-
-        queryset = OrganizationMember.objects.filter(
-            Q(teams=self.team) | Q(has_global_access=True),
-            user__is_active=True,
-            user=user,
-            organization=self.organization,
-        )
+        queryset = self.member_set.filter(user=user)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 

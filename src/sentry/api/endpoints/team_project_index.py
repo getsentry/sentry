@@ -5,9 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN
 from sentry.models import Project
 from sentry.permissions import can_create_projects
 
@@ -30,8 +28,6 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             {method} {path}
 
         """
-        assert_perm(team, request.user, request.auth)
-
         results = list(Project.objects.get_for_user(team=team, user=request.user))
 
         return Response(serialize(results, request.user))
@@ -48,8 +44,6 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             }}
 
         """
-        assert_perm(team, request.user, request.auth, access=MEMBER_ADMIN)
-
         if not can_create_projects(user=request.user, team=team):
             return Response(status=403)
 

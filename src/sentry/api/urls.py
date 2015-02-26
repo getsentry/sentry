@@ -12,6 +12,9 @@ from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
+from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
+from .endpoints.helppage_details import HelpPageDetailsEndpoint
+from .endpoints.helppage_index import HelpPageIndexEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
@@ -23,6 +26,7 @@ from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
+from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
@@ -100,6 +104,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/tags/(?P<key>[^/]+)/$',
         ProjectTagKeyDetailsEndpoint.as_view(),
         name='sentry-api-0-project-tagkey-details'),
+    url(r'^projects/(?P<project_id>\d+)/tags/(?P<key>[^/]+)/values/$',
+        ProjectTagKeyValuesEndpoint.as_view(),
+        name='sentry-api-0-project-tagkey-values'),
 
     # Releases
     url(r'^releases/(?P<release_id>\d+)/$',
@@ -125,11 +132,22 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'),
+    url(r'^groups/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/values/$',
+        GroupTagKeyValuesEndpoint.as_view(),
+        name='sentry-api-0-group-tagkey-values'),
 
     # Events
     url(r'^events/(?P<event_id>\d+)/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'),
+
+    # Help Pages
+    url(r'^helppages/$',
+        HelpPageIndexEndpoint.as_view(),
+        name='sentry-api-0-helppage-index'),
+    url(r'^helppages/(?P<page_id>\d+)/$',
+        HelpPageDetailsEndpoint.as_view(),
+        name='sentry-api-0-helppage-details'),
 
     url(r'^$',
         IndexEndpoint.as_view(),

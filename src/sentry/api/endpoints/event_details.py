@@ -3,13 +3,15 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection, Endpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.bases.group import GroupPermission
 from sentry.api.serializers import serialize
 from sentry.models import Event
 
 
 class EventDetailsEndpoint(Endpoint):
     doc_section = DocSection.EVENTS
+
+    permission_classes = (GroupPermission,)
 
     def get(self, request, event_id):
         """
@@ -24,7 +26,7 @@ class EventDetailsEndpoint(Endpoint):
             id=event_id
         )
 
-        assert_perm(event, request.user, request.auth)
+        self.check_object_permissions(request, event.group)
 
         Event.objects.bind_nodes([event], 'data')
 

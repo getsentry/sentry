@@ -9,7 +9,9 @@ from __future__ import absolute_import
 
 import math
 
+from datetime import datetime
 from django.db import connections
+from django.utils import timezone
 
 from sentry.utils.cursors import build_cursor, Cursor
 
@@ -29,6 +31,9 @@ class Paginator(object):
         if self.desc:
             return math.ceil(value)
         return math.floor(value)
+
+    def _value_from_cursor(self, cursor):
+        return cursor.value
 
     def _get_results_from_qs(self, value, is_prev):
         results = self.queryset
@@ -85,7 +90,12 @@ class Paginator(object):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
-        queryset = self._get_results_from_qs(cursor.value, cursor.is_prev)
+        if cursor.value:
+            cursor_value = self._value_from_cursor(cursor)
+        else:
+            cursor_value = 0
+
+        queryset = self._get_results_from_qs(cursor_value, cursor.is_prev)
 
         # this effectively gets us the before post, and the current (after) post
         # every time
@@ -105,3 +115,16 @@ class Paginator(object):
             cursor=cursor,
             key=self._get_item_key,
         )
+
+
+class DateTimePaginator(Paginator):
+    def _get_item_key(self, item):
+        value = getattr(item, self.key)
+        print(value)
+        value = int(value.strftime('%s'))
+        if self.desc:
+            return math.ceil(value)
+        return math.floor(value)
+
+    def _value_from_cursor(self, cursor):
+        return datetime.fromtimestamp(cursor.value).replace(tzinfo=timezone.utc)

@@ -13,29 +13,46 @@
 
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
 
-  <table class="table member-list">
+  <br>
+
+  <table class="table simple-list table-bordered member-list">
+    <colgroup>
+      <col width="30%"/>
+      <col width="25%" />
+      <col width="20%"/>
+      <col width="20%"/>
+      <col width="5%"/>
+    </colgroup>
     <thead>
       <tr>
         <th>Member</th>
-        <th>Type</th>
+        <th>&nbsp;</th>
+        <th>Role</th>
         <th>Teams</th>
         <th class="squash">&nbsp;</th>
       </tr>
     </thead>
     <tbody>
-      {% for member, team_list in member_list %}
+      {% for member, team_list, needs_sso in member_list %}
         <tr>
-          <td class="table-user-info">
-            <img class="avatar" src="{% gravatar_url member.get_email size 72 %}">
-            <h5>
-              <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
-                {{ member.get_display_name }}
-              </a>
-              {% if member.is_pending %}
-              <small>&mdash; Invited</small>
+          <td class="user-info">
+            <img class="avatar" src="{% gravatar_url member.get_email size 80 %}">
+            <strong><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+              {{ member.get_display_name }}
+            </a></strong>
+            <br />
+            <small>{{ member.get_email }}</small>
+            <br />
+          </td>
+          <td class="status">
+            {% if needs_sso or member.is_pending %}
+              {% if needs_sso %}
+                <strong>Missing SSO Link</strong>
+              {% else %}
+                <strong>Invited</strong>
               {% endif %}
-            </h5>
-            {{ member.get_email }}
+              <small><a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a></small>
+            {% endif %}
           </td>
           <td>{{ member.get_type_display }}</td>
           <td>
@@ -83,7 +100,25 @@
         $this.parents('tr').remove();
       },
       error: function() {
-        alert('There was an error while trying to remove the team member.');
+        alert('There was an error while trying to remove the member.');
+      }
+    });
+  });
+
+  $('.resend-invite').click(function(){
+    var $this = $(this);
+    $.ajax({
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
+      data: JSON.stringify({
+        reinvite: 1,
+      }),
+      contentType: 'application/json',
+      method: 'PUT',
+      success: function() {
+        $this.replaceWith('<span>Sent!</span>');
+      },
+      error: function() {
+        alert('There was an error while trying to reinvite the member.');
       }
     });
   });

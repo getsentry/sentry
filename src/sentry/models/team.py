@@ -170,8 +170,12 @@ class Team(Model):
 
     @property
     def member_set(self):
+        from sentry.models import OrganizationMember
+
         return self.organization.member_set.filter(
-            Q(teams=self) | Q(has_global_access=True),
+            (Q(teams=self) | Q(has_global_access=True)),
+            (Q(organization__authprovider__isnull=True) |
+             Q(flags=getattr(OrganizationMember.flags, 'sso:linked'))),
             user__is_active=True,
         )
 

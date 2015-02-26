@@ -40,7 +40,7 @@ class TeamUpdateTest(APITestCase):
 
 class TeamDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.team_details.delete_team')
-    def test_as_admin(self, delete_team):
+    def test_as_owner(self, delete_team):
         org = self.create_organization()
         team = self.create_team(organization=org)
         project = self.create_project(team=team)  # NOQA
@@ -50,7 +50,7 @@ class TeamDeleteTest(APITestCase):
         org.member_set.create(
             user=user,
             has_global_access=True,
-            type=OrganizationMemberType.ADMIN,
+            type=OrganizationMemberType.OWNER,
         )
 
         self.login_as(user)
@@ -74,7 +74,7 @@ class TeamDeleteTest(APITestCase):
             countdown=60 * 5,
         )
 
-    def test_as_member(self):
+    def test_as_admin(self):
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org)
         project = self.create_project(team=team)  # NOQA
@@ -85,7 +85,7 @@ class TeamDeleteTest(APITestCase):
             organization=org,
             user=user,
             defaults={
-                'type': OrganizationMemberType.MEMBER,
+                'type': OrganizationMemberType.ADMIN,
             }
         )
 

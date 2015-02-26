@@ -20,6 +20,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from sudo.decorators import sudo_required
 
+from sentry import features
 from sentry.models import (
     LostPasswordHash, Organization, Project, Team, UserOption
 )
@@ -68,7 +69,7 @@ def register(request):
     return render_to_response('sentry/register.html', {
         'form': form,
         'AUTH_PROVIDERS': get_auth_providers(),
-        'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
+        'SOCIAL_AUTH_CREATE_USERS': features.has('social-auth:register'),
     }, request)
 
 
