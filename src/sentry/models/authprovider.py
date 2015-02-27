@@ -26,6 +26,8 @@ class AuthProvider(Model):
         choices=_organizationemmber_type_field.choices,
         default=_organizationemmber_type_field.default
     )
+    default_global_access = models.BooleanField(default=True)
+    default_teams = models.ManyToManyField('sentry.Team', blank=True)
 
     class Meta:
         app_label = 'sentry'
