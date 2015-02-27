@@ -129,7 +129,6 @@ class OrganizationMember(Model):
             'organization_name': self.organization.name,
             'url': absolute_uri(reverse('sentry-auth-link-identity', kwargs={
                 'organization_slug': self.organization.slug,
-                'token': self.token,
             })),
         }
 

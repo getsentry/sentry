@@ -170,17 +170,19 @@ class Team(Model):
 
     @property
     def member_set(self):
-        from sentry.models import OrganizationMember
-
         return self.organization.member_set.filter(
-            (Q(teams=self) | Q(has_global_access=True)),
-            (Q(organization__authprovider__isnull=True) |
-             Q(flags=getattr(OrganizationMember.flags, 'sso:linked'))),
+            Q(teams=self) | Q(has_global_access=True),
             user__is_active=True,
         )
 
     def has_access(self, user, access=None):
-        queryset = self.member_set.filter(user=user)
+        from sentry.models import OrganizationMember
+
+        queryset = self.member_set.filter(
+            (Q(organization__authprovider__isnull=True) |
+             Q(flags=getattr(OrganizationMember.flags, 'sso:linked'))),
+            user=user,
+        )
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
