@@ -44,3 +44,8 @@ class AuthProvider(Model):
             'config': self.config,
             'default_Role': self.default_role,
         }
+
+    def member_is_valid(self, member):
+        if not getattr(member.flags, 'sso:linked'):
+            return False
+        return True
