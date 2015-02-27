@@ -370,6 +370,7 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
     'sentry.tasks.beacon',
     'sentry.tasks.check_alerts',
+    'sentry.tasks.check_auth',
     'sentry.tasks.cleanup',
     'sentry.tasks.deletion',
     'sentry.tasks.email',
@@ -383,6 +384,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
+    Queue('auth', routing_key='auth'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('sourcemaps', routing_key='sourcemaps'),
     Queue('search', routing_key='search'),
@@ -408,6 +410,14 @@ create_partitioned_queues('triggers')
 
 
 CELERYBEAT_SCHEDULE = {
+    'check-auth': {
+        'task': 'sentry.tasks.check_auth',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+            'queue': 'auth',
+        }
+    },
     'check-alerts': {
         'task': 'sentry.tasks.check_alerts',
         'schedule': timedelta(minutes=1),
