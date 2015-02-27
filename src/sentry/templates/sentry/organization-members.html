@@ -53,7 +53,7 @@
               {% else %}
                 <strong>Invited</strong>
               {% endif %}
-              <small><a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a></small>
+              <a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a>
             {% endif %}
           </td>
           <td>{{ member.get_type_display }}</td>
@@ -111,6 +111,7 @@
 
   $('.resend-invite').click(function(){
     var $this = $(this);
+    $this.replaceWith('<span class="icon-spinner spin"></span>');
     $.ajax({
       url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
       data: JSON.stringify({
