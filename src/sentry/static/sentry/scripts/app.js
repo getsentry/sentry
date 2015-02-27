@@ -282,7 +282,7 @@
                             $.each(data.values, function(_, item){
                                 var tagValue = item.value,
                                     timesSeen = item.count,
-                                    tagLabel = item.label || item.value,
+                                    tagLabel = app.utils.escape(item.label || item.value),
                                     percent = parseInt(timesSeen / total * 100, 10),
                                     url = app.config.urlPrefix + '/' + app.config.organizationId + '/' + app.config.projectId + '/';
 
