@@ -3,6 +3,10 @@ var React = require("react");
 var moment = require("moment");
 
 var TimeSince = React.createClass({
+  propTypes: {
+    date: React.PropTypes.any.isRequired
+  },
+
   componentDidMount: function() {
     var delay = 2600;
 
