@@ -110,19 +110,23 @@
   });
 
   $('.resend-invite').click(function(){
-    var $this = $(this);
-    $this.replaceWith('<span class="icon-spinner spin"></span>');
+    var $link = $(this);
+    var $loader = $('<span class="icon-spinner spin"></span>');
+
+    $link.replaceWith($loader);
+
     $.ajax({
-      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $link.data('member-id') + '/',
       data: JSON.stringify({
         reinvite: 1,
       }),
       contentType: 'application/json',
       method: 'PUT',
       success: function() {
-        $this.replaceWith('<span>Sent!</span>');
+        $loader.replaceWith('<span>Sent!</span>');
       },
       error: function() {
+        $loader.replaceWith($link);
         alert('There was an error while trying to reinvite the member.');
       }
     });
