@@ -168,11 +168,12 @@ def plugin_config(plugin, project, request):
             try:
                 test_results = plugin.test_configuration(project)
             except Exception as exc:
+                logging.exception('Plugin(%s) raised an error during test', plugin_key)
                 if hasattr(exc, 'read') and callable(exc.read):
                     test_results = '%s\n%s' % (exc, exc.read())
                 else:
                     test_results = exc
-            if test_results is None:
+            if not test_results:
                 test_results = 'No errors returned'
         else:
             for field, value in form.cleaned_data.iteritems():
