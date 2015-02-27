@@ -330,7 +330,12 @@ class OrganizationView(BaseView):
         return True
 
     def handle_permission_required(self, request, organization, *args, **kwargs):
-        if organization and self.valid_sso_required and not request.access.is_sso_valid:
+        needs_link = (
+            organization and request.user.is_authenticated()
+            and self.valid_sso_required and not request.access.is_sso_valid
+        )
+
+        if needs_link:
             messages.add_message(
                 request, messages.ERROR,
                 ERR_MISSING_SSO_LINK,
