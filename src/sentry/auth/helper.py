@@ -182,12 +182,16 @@ class AuthHelper(object):
             )
 
             om = OrganizationMember.objects.create(
-                has_global_access=True,
                 organization=self.organization,
                 type=auth_provider.default_role,
+                has_global_access=auth_provider.default_global_access,
                 user=user,
                 flags=getattr(OrganizationMember.flags, 'sso:linked'),
             )
+
+            default_teams = auth_provider.default_teams.all()
+            for team in default_teams:
+                om.teams.add(team)
 
             AuditLogEntry.objects.create(
                 organization=self.organization,
