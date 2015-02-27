@@ -104,7 +104,7 @@ urlpatterns += patterns('',
         name='sentry-mailgun-inbound-hook'),
 
     # Auth
-    url(r'^auth/link/(?P<organization_slug>[^/]+)/(?P<token>\w+)/$', AuthLinkIdentityView.as_view(),
+    url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthLinkIdentityView.as_view(),
         name='sentry-auth-link-identity'),
     url(r'^auth/login/$', AuthLoginView.as_view(),
         name='sentry-login'),
