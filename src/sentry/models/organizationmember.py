@@ -53,6 +53,7 @@ class OrganizationMember(Model):
     ), default=OrganizationMemberType.MEMBER)
     flags = BitField(flags=(
         ('sso:linked', 'sso:linked'),
+        ('sso:invalid', 'sso:invalid'),
     ), default=0)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)

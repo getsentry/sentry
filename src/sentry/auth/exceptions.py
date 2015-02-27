@@ -5,3 +5,7 @@ __all__ = ['ProviderNotRegistered']
 
 class ProviderNotRegistered(Exception):
     pass
+
+
+class IdentityNotValid(Exception):
+    pass

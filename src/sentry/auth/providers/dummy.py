@@ -22,3 +22,6 @@ class DummyProvider(Provider):
 
     def build_identity(self, state):
         return state['email']
+
+    def refresh_identity(self, auth_identity):
+        pass
