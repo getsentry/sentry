@@ -2,10 +2,9 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
+from jsonfield import JSONField
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField, GzippedDictField, Model
-)
+from sentry.db.models import BoundedPositiveIntegerField, Model
 
 from .organizationmember import OrganizationMember
 
@@ -16,7 +15,7 @@ _organizationemmber_type_field = OrganizationMember._meta.get_field('type')
 class AuthProvider(Model):
     organization = models.ForeignKey('sentry.Organization', unique=True)
     provider = models.CharField(max_length=128)
-    config = GzippedDictField()
+    config = JSONField()
 
     date_added = models.DateTimeField(default=timezone.now)
     sync_time = BoundedPositiveIntegerField(null=True)
