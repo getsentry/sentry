@@ -54,7 +54,11 @@ class OAuth2Login(AuthView):
             redirect_uri=absolute_uri(helper.get_redirect_url()),
         )
 
-        redirect_uri = self.get_authorize_url() + '?' + urlencode(params)
+        redirect_uri = self.get_authorize_url()
+        if '?' in redirect_uri:
+            redirect_uri = '{}&{}'.format(redirect_uri, urlencode(params))
+        else:
+            redirect_uri = '{}?{}'.format(redirect_uri, urlencode(params))
 
         helper.bind_state('state', state)
 
