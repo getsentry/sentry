@@ -53,7 +53,7 @@ def has_access(access_or_func=None, organization=None, access=None):
                     return HttpResponse(status=401)
 
                 if 'organization_slug' in kwargs:
-                    redirect_uri = reverse('sentry-organization-home',
+                    redirect_uri = reverse('sentry-auth-organization',
                                            args=[kwargs['organization_slug']])
                 else:
                     redirect_uri = get_login_url()
@@ -228,7 +228,7 @@ def login_required(func):
         if not request.user.is_authenticated():
             request.session['_next'] = request.get_full_path()
             if 'organization_slug' in kwargs:
-                redirect_uri = reverse('sentry-organization-home',
+                redirect_uri = reverse('sentry-auth-organization',
                                        args=[kwargs['organization_slug']])
             else:
                 redirect_uri = get_login_url()
