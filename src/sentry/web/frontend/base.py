@@ -224,11 +224,11 @@ class BaseView(View, OrganizationMixin):
 
     @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
-        if self.is_auth_required(request):
-            return self.handle_auth_required(request)
+        if self.is_auth_required(request, *args, **kwargs):
+            return self.handle_auth_required(request, *args, **kwargs)
 
-        if self.is_sudo_required(request):
-            return self.handle_sudo_required(request)
+        if self.is_sudo_required(request, *args, **kwargs):
+            return self.handle_sudo_required(request, *args, **kwargs)
 
         args, kwargs = self.convert_args(request, *args, **kwargs)
 
