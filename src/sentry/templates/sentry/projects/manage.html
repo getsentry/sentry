@@ -48,7 +48,7 @@
             </fieldset>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-                {% if ACCESS.is_owner %}
+                {% if ACCESS.project_delete %}
                     {% if not project.is_internal_project %}
                         <a href="{% url 'sentry-remove-project' project.organization.slug project.slug %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
                     {% else %}

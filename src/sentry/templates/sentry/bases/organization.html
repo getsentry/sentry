@@ -13,17 +13,17 @@
     <section id="page-header" class="toolbar">
       <div class="pull-right">
         {% block actions %}
-        {% if ACCESS.is_admin %}
-          {% if ACCESS.is_global %}
-            <a href="{% url 'sentry-create-team' organization.slug %}"
-               class="btn btn-small btn-primary">{% trans "New Team" %}</a>
-          {% endif %}
+        {% if ACCESS.org_write %}
+          <a href="{% url 'sentry-create-team' organization.slug %}"
+             class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+        {% endif %}
+        {% if ACCESS.team_write %}
           <a href="{% url 'sentry-create-project' organization.slug %}"
              class="btn btn-small btn-primary">{% trans "New Project" %}</a>
-          {% if ACCESS.is_global %}
-            <a href="{% url 'sentry-create-organization-member' organization.slug %}"
-               class="btn btn-small btn-primary">{% trans "New Member" %}</a>
-          {% endif %}
+        {% endif %}
+        {% if ACCESS.org_write %}
+          <a href="{% url 'sentry-create-organization-member' organization.slug %}"
+             class="btn btn-small btn-primary">{% trans "New Member" %}</a>
         {% endif %}
         {% endblock %}
       </div>
@@ -39,7 +39,7 @@
         {% trans "Teams" %}
       </a>
     </li>
-    {% if ACCESS.is_global and ACCESS.is_admin %}
+    {% if ACCESS.org_read %}
     <li class="{% block org_stats_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-stats' organization.slug %}">
         {% trans "Stats" %}
@@ -55,7 +55,7 @@
         {% trans "Members" %}
       </a>
     </li>
-    {% if ACCESS.is_owner %}
+    {% if ACCESS.org_write %}
       {% feature organizations:sso organization %}
       <li class="{% block org_auth_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
