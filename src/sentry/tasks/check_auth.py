@@ -35,11 +35,11 @@ def check_auth(**kwargs):
     now = timezone.now()
     cutoff = now - timedelta(seconds=AUTH_CHECK_INTERVAL)
     identity_list = list(AuthIdentity.objects.filter(
-        last_verified__lte=cutoff,
+        last_synced__lte=cutoff,
     ))
     AuthIdentity.objects.filter(
         id__in=[i.id for i in identity_list],
-    ).update(last_verified=now)
+    ).update(last_synced=now)
     for identity in identity_list:
         check_auth_identity.apply_async(
             kwargs={'auth_identity_id': identity.id},
@@ -88,4 +88,8 @@ def check_auth_identity(auth_identity_id, **kwargs):
     setattr(om.flags, 'sso:invalid', not is_valid)
     om.update(flags=om.flags)
 
-    auth_identity.update(last_verified=timezone.now())
+    now = timezone.now()
+    auth_identity.update(
+        last_verified=now,
+        last_synced=now,
+    )
