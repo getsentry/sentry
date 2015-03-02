@@ -61,11 +61,6 @@ class OrganizationManager(BaseManager):
                     has_global_access=True,
                 )
 
-            qs = qs.filter(
-                models.Q(organization__authprovider__isnull=True) |
-                models.Q(flags=getattr(OrganizationMember.flags, 'sso:linked'))
-            )
-
             for om in qs:
                 org = om.organization
                 org.member_type = om.type

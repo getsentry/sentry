@@ -17,8 +17,8 @@ from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 from sentry.models import (
-    AuditLogEntry, Broadcast, HelpPage, Organization, OrganizationMember,
-    Project, Team, User
+    AuthProvider, AuditLogEntry, Broadcast, HelpPage, Organization,
+    OrganizationMember, Project, Team, User
 )
 
 csrf_protect_m = method_decorator(csrf_protect)
@@ -65,6 +65,15 @@ class OrganizationAdmin(admin.ModelAdmin):
     inlines = (OrganizationMemberInline, OrganizationTeamInline)
 
 admin.site.register(Organization, OrganizationAdmin)
+
+
+class AuthProviderAdmin(admin.ModelAdmin):
+    list_display = ('organization', 'provider', 'date_added')
+    search_fields = ('organization',)
+    raw_id_fields = ('organization', 'default_teams')
+    list_filter = ('provider',)
+
+admin.site.register(AuthProvider, AuthProviderAdmin)
 
 
 class TeamProjectInline(admin.TabularInline):

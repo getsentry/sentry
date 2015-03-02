@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
-from sentry.models import Organization, OrganizationMember
+from sentry.models import AuthProvider, Organization, OrganizationMember
 
 
 class OrganizationPermission(ScopedPermission):
@@ -29,6 +29,18 @@ class OrganizationPermission(ScopedPermission):
             )
         except OrganizationMember.DoesNotExist:
             return False
+
+        try:
+            auth_provider = AuthProvider.objects.get(organization=organization)
+        except AuthProvider.DoesNotExist:
+            pass
+        else:
+            # TODO(dcramer): we might simply want to change their scopes to
+            # something like 'org:read' since we'd still want them to know
+            # they're part of the org. Alternatively we introduce yet another
+            # scope that suggests extremely limited read.
+            if not auth_provider.member_is_valid(om):
+                return False
 
         allowed_scopes = set(self.scope_map[request.method])
         current_scopes = om.scopes

@@ -2,16 +2,18 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
+from jsonfield import JSONField
 
-from sentry.db.models import FlexibleForeignKey, GzippedDictField, Model
+from sentry.db.models import FlexibleForeignKey, Model
 
 
 class AuthIdentity(Model):
     user = FlexibleForeignKey('sentry.User')
     auth_provider = FlexibleForeignKey('sentry.AuthProvider')
     ident = models.CharField(max_length=128)
-    data = GzippedDictField()
+    data = JSONField()
     last_verified = models.DateTimeField(default=timezone.now)
+    last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

@@ -7,6 +7,8 @@ sentry.models.team
 """
 from __future__ import absolute_import, print_function
 
+import warnings
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -170,21 +172,37 @@ class Team(Model):
 
     @property
     def member_set(self):
-        from sentry.models import OrganizationMember
-
         return self.organization.member_set.filter(
-            (Q(teams=self) | Q(has_global_access=True)),
-            (Q(organization__authprovider__isnull=True) |
-             Q(flags=getattr(OrganizationMember.flags, 'sso:linked'))),
+            Q(teams=self) | Q(has_global_access=True),
             user__is_active=True,
         )
 
     def has_access(self, user, access=None):
-        queryset = self.member_set.filter(user=user)
+        from sentry.models import AuthProvider, OrganizationMember
+
+        warnings.warn('Team.has_access is deprecated.', DeprecationWarning)
+
+        # TODO(dcramer): ideally this abstraction would use
+        # AuthProvider.member_is_valid
+        queryset = self.member_set.filter(
+            user=user,
+        )
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
-        return queryset.exists()
+        try:
+            member = queryset.get()
+        except OrganizationMember.DoesNotExist:
+            return False
+
+        try:
+            auth_provider = AuthProvider.objects.get(
+                organization=self.organization_id,
+            )
+        except AuthProvider.DoesNotExist:
+            return True
+
+        return auth_provider.member_is_valid()
 
     def get_audit_log_data(self):
         return {

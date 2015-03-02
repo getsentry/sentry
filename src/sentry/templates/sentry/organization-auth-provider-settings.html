@@ -20,6 +20,18 @@
 
         <pre class="clippy" data-text="{{ login_url }}"><a href="{{ login_url }}">{{ login_url }}</a></pre>
 
+        {% if pending_links_count %}
+          <hr>
+
+          <h3>Unlinked Members</h3>
+
+          <button class="btn btn-primary pull-right" name="op"
+                  value="reinvite" style="margin-left: 20px">Send Reminders</button>
+
+          <p>There are currently {{ pending_links_count }} member(s) who have not yet linked their account with {{ provider_name }}. Until this is done they will be unable to access the organization.</p>
+
+        {% endif %}
+
         {% if content %}
           <hr>
 
