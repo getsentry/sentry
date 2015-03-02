@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
@@ -26,3 +27,17 @@ class AuthIdentity(Model):
             'user_id': self.user_id,
             'data': self.data,
         }
+
+    # TODO(dcramer): we'd like to abstract this so there's a central Role object
+    # and it doesnt require two composite db objects to talk to each other
+    def is_valid(self, member):
+        if getattr(member.flags, 'sso:invalid'):
+            return False
+        if not getattr(member.flags, 'sso:linked'):
+            return False
+
+        if not self.last_verified:
+            return False
+        if self.last_verified < timezone.now() - timedelta(hours=24):
+            return False
+        return True
