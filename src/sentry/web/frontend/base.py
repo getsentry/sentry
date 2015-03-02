@@ -221,10 +221,13 @@ class OrganizationView(BaseView):
         context['organization'] = organization
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
         context['ACCESS'] = {
+            'team_read': request.access.has_scope('team:read'),
             'team_write': request.access.has_scope('team:write'),
             'team_delete': request.access.has_scope('team:delete'),
+            'org_read': request.access.has_scope('org:read'),
             'org_write': request.access.has_scope('org:write'),
             'org_delete': request.access.has_scope('org:delete'),
+            'project_read': request.access.has_scope('project:read'),
             'project_write': request.access.has_scope('project:write'),
             'project_delete': request.access.has_scope('project:delete'),
         }
