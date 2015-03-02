@@ -105,7 +105,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         pending_links_count = OrganizationMember.objects.filter(
             organization=organization,
-            flags=getattr(OrganizationMember.flags, 'sso:linked'),
+            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
         ).count()
 
         context = {
