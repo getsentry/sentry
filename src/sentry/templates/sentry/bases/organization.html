@@ -55,7 +55,8 @@
         {% trans "Members" %}
       </a>
     </li>
-    {% if ACCESS.org_write %}
+    {% endif %}
+    {% if ACCESS.org_delete %}
       {% feature organizations:sso organization %}
       <li class="{% block org_auth_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
@@ -64,6 +65,7 @@
       </li>
       {% endfeature %}
     {% endif %}
+    {% if ACCESS.org_write %}
     <li class="{% block org_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-settings' organization.slug %}">
         {% trans "Settings" %}
