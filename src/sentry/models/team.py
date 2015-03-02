@@ -178,12 +178,10 @@ class Team(Model):
         )
 
     def has_access(self, user, access=None):
-        from sentry.models import AuthProvider, OrganizationMember
+        from sentry.models import AuthIdentity, OrganizationMember
 
         warnings.warn('Team.has_access is deprecated.', DeprecationWarning)
 
-        # TODO(dcramer): ideally this abstraction would use
-        # AuthProvider.member_is_valid
         queryset = self.member_set.filter(
             user=user,
         )
@@ -196,13 +194,13 @@ class Team(Model):
             return False
 
         try:
-            auth_provider = AuthProvider.objects.get(
-                organization=self.organization_id,
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider__organization=self.organization_id,
             )
-        except AuthProvider.DoesNotExist:
+        except AuthIdentity.DoesNotExist:
             return True
 
-        return auth_provider.member_is_valid(member)
+        return auth_identity.is_valid(member)
 
     def get_audit_log_data(self):
         return {

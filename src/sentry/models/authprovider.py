@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function
 
-from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
@@ -44,14 +43,3 @@ class AuthProvider(Model):
             'config': self.config,
             'default_Role': self.default_role,
         }
-
-    def member_is_valid(self, member):
-        if getattr(member.flags, 'sso:invalid'):
-            return False
-        if not getattr(member.flags, 'sso:linked'):
-            return False
-        if not member.last_verified:
-            return False
-        if member.last_verified < timezone.now() - timedelta(hours=24):
-            return False
-        return True

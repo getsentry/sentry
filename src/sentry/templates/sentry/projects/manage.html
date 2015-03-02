@@ -40,6 +40,7 @@
                     {{ form.scrub_ip_address|as_crispy_field }}
                   {% if form.public %}
                     {{ form.public|as_crispy_field }}
+<<<<<<< HEAD
                   {% endif %}
                 </div>
             </div>
@@ -64,10 +65,10 @@
                 <h3>{% trans "Remove Project" %}</h3>
               </div>
               <div class="box-content with-padding">
-                {% if project.is_internal_project %}
-                    <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
-                {% elif not ACCESS.is_owner %}
+                {% if not ACCESS.project_delete %}
                     <p>{% trans "You do not have the required permission to remove this project." %}</p>
+                {% elif project.is_internal_project %}
+                    <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
                 {% else %}
                     <p class="clearfix">
                       <a href="{% url 'sentry-remove-project' project.organization.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Remove Project" %}</a>
