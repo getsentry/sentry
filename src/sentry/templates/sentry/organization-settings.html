@@ -26,7 +26,7 @@
       {% endfor %}
     </fieldset>
 
-    {% if ACCESS.is_owner and ACCESS.is_global %}
+    {% if ACCESS.org_delete %}
       <div class="form-group">
         <div class="pull-right" style="margin-top: 2px">
           <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>

@@ -20,7 +20,7 @@
         {% trans "Teams" %}
       </a>
     </li>
-    {% if ACCESS.is_global and ACCESS.is_admin %}
+    {% if ACCESS.org_read %}
     <li class="{% block org_stats_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-stats' organization.slug %}">
         {% trans "Stats" %}
@@ -36,7 +36,7 @@
         {% trans "Members" %}
       </a>
     </li>
-    {% if ACCESS.is_owner %}
+    {% if ACCESS.org_write %}
       {% feature organizations:sso organization %}
       <li class="{% block org_auth_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
