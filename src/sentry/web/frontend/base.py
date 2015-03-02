@@ -13,7 +13,7 @@ from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
 from sentry.models import (
-    AuthProvider, Organization, OrganizationMember, OrganizationMemberType,
+    AuthIdentity, Organization, OrganizationMember, OrganizationMemberType,
     OrganizationStatus, Project, Team
 )
 from sentry.web.helpers import get_login_url, render_to_response
@@ -104,13 +104,13 @@ class Access(object):
             teams = member.teams.all()
 
         try:
-            auth_provider = AuthProvider.objects.get(
-                organization=member.organization_id,
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider__organization=member.organization_id,
             )
-        except AuthProvider.DoesNotExist:
+        except AuthIdentity.DoesNotExist:
             is_sso_valid = True
         else:
-            is_sso_valid = auth_provider.member_is_valid(member)
+            is_sso_valid = auth_identity.is_valid(member)
 
         return cls(
             is_global=member.has_global_access,
