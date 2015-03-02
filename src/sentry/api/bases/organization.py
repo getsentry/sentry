@@ -32,7 +32,7 @@ class OrganizationPermission(ScopedPermission):
 
         try:
             auth_identity = AuthIdentity.objects.get(
-                auth_provider__organization=self.organization_id,
+                auth_provider__organization=organization.id,
             )
         except AuthIdentity.DoesNotExist:
             pass
