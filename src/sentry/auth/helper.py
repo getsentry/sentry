@@ -203,15 +203,18 @@ class AuthHelper(object):
                 data=om.get_audit_log_data(),
             )
         else:
+            now = timezone.now()
             auth_identity.update(
                 data=identity['data'],
-                last_verified=timezone.now(),
+                last_verified=now,
+                last_synced=now,
             )
 
             om = OrganizationMember.objects.get(
                 user=auth_identity.user,
                 organization=self.organization,
             )
+            setattr(om.flags, 'sso:invalid', False)
             setattr(om.flags, 'sso:linked', True)
             om.save()
 
@@ -248,16 +251,19 @@ class AuthHelper(object):
             config=config,
         )
 
+        now = timezone.now()
         AuthIdentity.objects.create_or_update(
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
             defaults={
                 'data': identity.get('data', {}),
-                'last_verified': timezone.now(),
+                'last_verified': now,
+                'last_synced': now,
             },
         )
 
+        setattr(om.flags, 'sso:invalid', False)
         setattr(om.flags, 'sso:linked', True)
         om.save()
 
@@ -314,6 +320,7 @@ class AuthHelper(object):
             data=identity.get('data', {}),
         )
 
+        setattr(om.flags, 'sso:invalid', False)
         setattr(om.flags, 'sso:linked', True)
         om.save()
 

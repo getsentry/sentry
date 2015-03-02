@@ -42,12 +42,17 @@ class OrganizationAuthSettingsView(OrganizationView):
         if db.is_sqlite():
             for om in OrganizationMember.objects.filter(organization=organization):
                 setattr(om.flags, 'sso:linked', False)
+                setattr(om.flags, 'sso:invalid', False)
                 om.save()
         else:
             OrganizationMember.objects.filter(
                 organization=organization,
             ).update(
-                flags=F('flags').bitand(~getattr(OrganizationMember.flags, 'sso:linked')),
+                flags=F('flags').bitand(
+                    ~getattr(OrganizationMember.flags, 'sso:linked'),
+                ).bitand(
+                    ~getattr(OrganizationMember.flags, 'sso:invalid'),
+                ),
             )
 
         auth_provider.delete()

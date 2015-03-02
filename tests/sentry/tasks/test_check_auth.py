@@ -31,13 +31,14 @@ class CheckAuthTest(TestCase):
         ai = AuthIdentity.objects.create(
             auth_provider=auth_provider,
             user=user,
-            last_verified=timezone.now() - timedelta(days=1),
+            last_synced=timezone.now() - timedelta(days=1),
         )
 
         check_auth()
 
         updated_ai = AuthIdentity.objects.get(id=ai.id)
-        assert updated_ai.last_verified != ai.last_verified
+        assert updated_ai.last_synced != ai.last_synced
+        assert updated_ai.last_verified == ai.last_verified
 
         mock_check_auth_identity.apply_async.assert_called_once_with(
             kwargs={'auth_identity_id': ai.id},
@@ -78,4 +79,5 @@ class CheckAuthIdentityTest(TestCase):
         assert getattr(om.flags, 'sso:invalid')
 
         updated_ai = AuthIdentity.objects.get(id=ai.id)
+        assert updated_ai.last_synced != ai.last_synced
         assert updated_ai.last_verified != ai.last_verified

@@ -13,6 +13,7 @@ class AuthIdentity(Model):
     ident = models.CharField(max_length=128)
     data = JSONField()
     last_verified = models.DateTimeField(default=timezone.now)
+    last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
