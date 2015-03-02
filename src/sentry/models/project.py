@@ -228,7 +228,7 @@ class Project(Model):
         except AuthProvider.DoesNotExist:
             return True
 
-        return auth_provider.member_is_valid()
+        return auth_provider.member_is_valid(member)
 
     def get_audit_log_data(self):
         return {
