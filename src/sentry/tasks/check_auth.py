@@ -16,6 +16,7 @@ from django.utils import timezone
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthIdentity, OrganizationMember
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 
 
 logger = logging.getLogger('auth')
@@ -59,11 +60,13 @@ def check_auth_identity(auth_identity_id, **kwargs):
     try:
         provider.refresh_identity(auth_identity)
     except IdentityNotValid:
+        metrics.incr('auth.identities.invalidated', 1)
         is_linked = False
         is_valid = False
     except Exception:
         # to ensure security we count any kind of error as an invalidation
         # event
+        metrics.incr('auth.identities.refresh_error', 1)
         logger.exception('AuthIdentity(id=%s) returned an error during validation', auth_identity_id)
         is_linked = True
         is_valid = False
