@@ -22,6 +22,8 @@ from . import manager
 
 OK_LINK_IDENTITY = _('You have successully linked your account your SSO provider.')
 
+OK_SETUP_SSO = _('SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
+
 ERR_UID_MISMATCH = _('There was an error encountered during authentication.')
 
 ERR_NOT_AUTHED = _('You must be authenticated to link accounts.')
@@ -180,12 +182,16 @@ class AuthHelper(object):
             )
 
             om = OrganizationMember.objects.create(
-                has_global_access=True,
                 organization=self.organization,
                 type=auth_provider.default_role,
+                has_global_access=auth_provider.default_global_access,
                 user=user,
                 flags=getattr(OrganizationMember.flags, 'sso:linked'),
             )
+
+            default_teams = auth_provider.default_teams.all()
+            for team in default_teams:
+                om.teams.add(team)
 
             AuditLogEntry.objects.create(
                 organization=self.organization,
@@ -197,10 +203,20 @@ class AuthHelper(object):
                 data=om.get_audit_log_data(),
             )
         else:
+            now = timezone.now()
             auth_identity.update(
                 data=identity['data'],
-                last_verified=timezone.now(),
+                last_verified=now,
+                last_synced=now,
             )
+
+            om = OrganizationMember.objects.get(
+                user=auth_identity.user,
+                organization=self.organization,
+            )
+            setattr(om.flags, 'sso:invalid', False)
+            setattr(om.flags, 'sso:linked', True)
+            om.save()
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -235,16 +251,19 @@ class AuthHelper(object):
             config=config,
         )
 
+        now = timezone.now()
         AuthIdentity.objects.create_or_update(
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
             defaults={
                 'data': identity.get('data', {}),
-                'last_verified': timezone.now(),
+                'last_verified': now,
+                'last_synced': now,
             },
         )
 
+        setattr(om.flags, 'sso:invalid', False)
         setattr(om.flags, 'sso:linked', True)
         om.save()
 
@@ -255,6 +274,18 @@ class AuthHelper(object):
             target_object=self.auth_provider.id,
             event=AuditLogEntryEvent.SSO_ENABLE,
             data=self.auth_provider.get_audit_log_data(),
+        )
+
+        member_list = OrganizationMember.objects.filter(
+            organization=self.organization,
+            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+        )
+        for member in member_list:
+            member.send_sso_link_email()
+
+        messages.add_message(
+            self.request, messages.SUCCESS,
+            OK_SETUP_SSO,
         )
 
         next_uri = reverse('sentry-organization-auth-settings', args=[
@@ -289,6 +320,7 @@ class AuthHelper(object):
             data=identity.get('data', {}),
         )
 
+        setattr(om.flags, 'sso:invalid', False)
         setattr(om.flags, 'sso:linked', True)
         om.save()
 

@@ -8,13 +8,13 @@ from sentry.auth.helper import AuthHelper
 from sentry.models import AuthProvider, Organization, OrganizationMember
 from sentry.web.frontend.base import BaseView
 
-ERR_INVITE_INVALID = _('The invite link you followed is not valid.')
+ERR_LINK_INVALID = _('Either you are not a member of the given organization or it does not exist.')
 
 
 class AuthLinkIdentityView(BaseView):
     # TODO(dcramer): ideally we could show a login form here if they were auth'd
     # as an invalid account
-    def handle(self, request, organization_slug, token):
+    def handle(self, request, organization_slug):
         try:
             organization = Organization.objects.get(
                 slug=organization_slug
@@ -22,7 +22,7 @@ class AuthLinkIdentityView(BaseView):
         except Organization.DoesNotExist:
             messages.add_message(
                 request, messages.ERROR,
-                ERR_INVITE_INVALID,
+                ERR_LINK_INVALID,
             )
             return self.redirect(reverse('sentry'))
 
@@ -34,17 +34,9 @@ class AuthLinkIdentityView(BaseView):
         except OrganizationMember.DoesNotExist():
             messages.add_message(
                 request, messages.ERROR,
-                ERR_INVITE_INVALID,
+                ERR_LINK_INVALID,
             )
             return self.redirect(reverse('sentry'))
-
-        if om.token != token:
-            messages.add_message(
-                request, messages.ERROR,
-                ERR_INVITE_INVALID,
-            )
-            return self.redirect(reverse('sentry-organization-home',
-                                         args=[organization.slug]))
 
         try:
             auth_provider = AuthProvider.objects.get(
@@ -53,7 +45,7 @@ class AuthLinkIdentityView(BaseView):
         except AuthProvider.DoesNotExist:
             messages.add_message(
                 request, messages.ERROR,
-                ERR_INVITE_INVALID,
+                ERR_LINK_INVALID,
             )
             return self.redirect(reverse('sentry-organization-home',
                                          args=[organization.slug]))

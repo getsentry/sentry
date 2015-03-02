@@ -64,14 +64,16 @@
                 <h3>{% trans "Remove Project" %}</h3>
               </div>
               <div class="box-content with-padding">
-                {% if not project.is_internal_project %}
+                {% if project.is_internal_project %}
+                    <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
+                {% elif not ACCESS.is_owner %}
+                    <p>{% trans "You do not have the required permission to remove this project." %}</p>
+                {% else %}
                     <p class="clearfix">
                       <a href="{% url 'sentry-remove-project' project.organization.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Remove Project" %}</a>
                       Remove the <strong>{{ project.slug }}</strong> project from <strong>{{ project.team.slug }}</strong>. </br>
                       Careful, this action cannot be undone.
                     </p>
-                {% else %}
-                    <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
                 {% endif %}
               </div>
             </div>

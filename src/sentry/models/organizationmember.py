@@ -53,6 +53,7 @@ class OrganizationMember(Model):
     ), default=OrganizationMemberType.MEMBER)
     flags = BitField(flags=(
         ('sso:linked', 'sso:linked'),
+        ('sso:invalid', 'sso:invalid'),
     ), default=0)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
@@ -129,13 +130,13 @@ class OrganizationMember(Model):
             'organization_name': self.organization.name,
             'url': absolute_uri(reverse('sentry-auth-link-identity', kwargs={
                 'organization_slug': self.organization.slug,
-                'token': self.token,
             })),
         }
 
         msg = MessageBuilder(
             subject='Action Required for %s' % (self.organization.name,),
             template='sentry/emails/auth-link-identity.txt',
+            html_template='sentry/emails/auth-link-identity.html',
             context=context,
         )
 

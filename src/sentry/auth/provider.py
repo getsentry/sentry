@@ -59,3 +59,14 @@ class Provider(object):
         The ``email`` and ``id`` keys are required, ``name`` is optional.
         """
         raise NotImplementedError
+
+    def refresh_identity(self, auth_identity):
+        """
+        Updates the AuthIdentity with any changes from upstream. The primary
+        example of a change would be signalling this identity is no longer
+        valid.
+
+        If the identity is no longer valid an ``IdentityNotValid`` error should
+        be raised.
+        """
+        raise NotImplementedError

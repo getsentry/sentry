@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function
 
+from datetime import timedelta
 from django.db import models
 from django.utils import timezone
+from jsonfield import JSONField
 
-from sentry.db.models import (
-    BoundedPositiveIntegerField, GzippedDictField, Model
-)
+from sentry.db.models import BoundedPositiveIntegerField, Model
 
 from .organizationmember import OrganizationMember
 
@@ -16,7 +16,7 @@ _organizationemmber_type_field = OrganizationMember._meta.get_field('type')
 class AuthProvider(Model):
     organization = models.ForeignKey('sentry.Organization', unique=True)
     provider = models.CharField(max_length=128)
-    config = GzippedDictField()
+    config = JSONField()
 
     date_added = models.DateTimeField(default=timezone.now)
     sync_time = BoundedPositiveIntegerField(null=True)
@@ -26,6 +26,8 @@ class AuthProvider(Model):
         choices=_organizationemmber_type_field.choices,
         default=_organizationemmber_type_field.default
     )
+    default_global_access = models.BooleanField(default=True)
+    default_teams = models.ManyToManyField('sentry.Team', blank=True)
 
     class Meta:
         app_label = 'sentry'
@@ -42,3 +44,14 @@ class AuthProvider(Model):
             'config': self.config,
             'default_Role': self.default_role,
         }
+
+    def member_is_valid(self, member):
+        if getattr(member.flags, 'sso:invalid'):
+            return False
+        if not getattr(member.flags, 'sso:linked'):
+            return False
+        if not member.last_verified:
+            return False
+        if member.last_verified < timezone.now() - timedelta(hours=24):
+            return False
+        return True

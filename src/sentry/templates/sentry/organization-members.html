@@ -51,7 +51,7 @@
               {% else %}
                 <strong>Invited</strong>
               {% endif %}
-              <small><a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a></small>
+              <a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a>
             {% endif %}
           </td>
           <td>{{ member.get_type_display }}</td>
@@ -106,18 +106,23 @@
   });
 
   $('.resend-invite').click(function(){
-    var $this = $(this);
+    var $link = $(this);
+    var $loader = $('<span class="icon-spinner spin"></span>');
+
+    $link.replaceWith($loader);
+
     $.ajax({
-      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $link.data('member-id') + '/',
       data: JSON.stringify({
         reinvite: 1,
       }),
       contentType: 'application/json',
       method: 'PUT',
       success: function() {
-        $this.replaceWith('<span>Sent!</span>');
+        $loader.replaceWith('<span>Sent!</span>');
       },
       error: function() {
+        $loader.replaceWith($link);
         alert('There was an error while trying to reinvite the member.');
       }
     });

@@ -47,6 +47,8 @@
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
       {% if can_remove_team %}
           <a href="{% url 'sentry-remove-team' organization.slug team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
+      {% else %}
+          <a class="btn btn-danger disabled tip" title="{% trans "You do not have the required permission to remove this team." %}">{% trans "Remove Team" %}</a>
       {% endif %}
     </fieldset>
   </form>
