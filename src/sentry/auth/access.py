@@ -37,7 +37,7 @@ class BaseAccess(object):
             return False
         if self.is_global:
             return True
-        return team in self._teams
+        return team in self.teams
 
 
 class Access(BaseAccess):
