@@ -4,12 +4,9 @@ from __future__ import absolute_import
 
 import json
 
-from datetime import timedelta
 from django.core.urlresolvers import reverse
-from django.utils import timezone
 from exam import fixture
 
-from sentry.models import GroupSeen, Group
 from sentry.testutils import TestCase
 
 
@@ -26,15 +23,7 @@ class GroupDetailsTest(TestCase):
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        assert resp.context['group'] == self.group
-        assert resp.context['project'] == self.project
-        assert resp.context['team'] == self.team
-        assert resp.context['organization'] == self.organization
-
-        # ensure we've marked the group as seen
-        assert GroupSeen.objects.filter(
-            group=self.group, user=self.user).exists()
+        self.assertTemplateUsed(resp, 'sentry/bases/react.html')
 
 
 class GroupListTest(TestCase):
@@ -45,35 +34,11 @@ class GroupListTest(TestCase):
             'project_id': self.project.slug,
         })
 
-    def setUp(self):
-        super(GroupListTest, self).setUp()
-        later = timezone.now()
-        now = later - timedelta(hours=1)
-        past = now - timedelta(hours=1)
-
-        self.group1 = Group.objects.create(
-            project=self.project,
-            checksum='a' * 32,
-            last_seen=now,
-            first_seen=now,
-            times_seen=5,
-        )
-        self.group2 = Group.objects.create(
-            project=self.project,
-            checksum='b' * 32,
-            last_seen=later,
-            first_seen=past,
-            times_seen=50,
-        )
-
     def test_does_render(self):
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/bases/react.html')
-        assert resp.context['project'] == self.project
-        assert resp.context['team'] == self.team
-        assert resp.context['organization'] == self.organization
 
 
 class GroupEventListTest(TestCase):
@@ -86,23 +51,10 @@ class GroupEventListTest(TestCase):
         })
 
     def test_does_render(self):
-        event = self.create_event(
-            event_id='a' * 32, datetime=timezone.now() - timedelta(minutes=1))
-        event2 = self.create_event(
-            event_id='b' * 32, datetime=timezone.now())
-
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
-        assert resp.context['project'] == self.project
-        assert resp.context['team'] == self.team
-        assert resp.context['group'] == self.group
-        assert resp.context['organization'] == self.organization
-        event_list = resp.context['event_list']
-        assert len(event_list) == 2
-        assert event_list[0] == event2
-        assert event_list[1] == event
+        self.assertTemplateUsed(resp, 'sentry/bases/react.html')
 
 
 class GroupTagListTest(TestCase):
@@ -118,12 +70,7 @@ class GroupTagListTest(TestCase):
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
-        assert 'tag_list' in resp.context
-        assert resp.context['project'] == self.project
-        assert resp.context['team'] == self.team
-        assert resp.context['group'] == self.group
-        assert resp.context['organization'] == self.organization
+        self.assertTemplateUsed(resp, 'sentry/bases/react.html')
 
 
 class GroupEventDetailsTest(TestCase):
@@ -140,12 +87,7 @@ class GroupEventDetailsTest(TestCase):
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        assert resp.context['project'] == self.project
-        assert resp.context['team'] == self.team
-        assert resp.context['group'] == self.group
-        assert resp.context['event'] == self.event
-        assert resp.context['organization'] == self.organization
+        self.assertTemplateUsed(resp, 'sentry/bases/react.html')
 
 
 class GroupEventJsonTest(TestCase):

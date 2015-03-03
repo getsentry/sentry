@@ -13,23 +13,20 @@ from __future__ import absolute_import, division
 
 from django.core.urlresolvers import reverse
 from django.http import (
-    Http404, HttpResponse, HttpResponsePermanentRedirect, HttpResponseRedirect
+    Http404, HttpResponse, HttpResponseRedirect
 )
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.auth import access
 from sentry.constants import MEMBER_USER
-from sentry.db.models import create_or_update
 from sentry.models import (
-    Project, Group, GroupMeta, Event, Activity, TagKey, GroupSeen
+    Project, Group, GroupMeta, Event
 )
 from sentry.plugins import plugins
 from sentry.utils import json
-from sentry.web.decorators import has_access, has_group_access, login_required
-from sentry.web.forms import NewNoteForm
-from sentry.web.helpers import render_to_response, group_is_public
+from sentry.web.decorators import has_access, login_required
+from sentry.web.helpers import render_to_response
 
 
 def render_with_group_context(group, template, context, request=None,
@@ -117,200 +114,6 @@ def wall_display(request, organization, team):
         'team': team,
         'organization': team.organization,
         'project_list': project_list,
-    }, request)
-
-
-def group(request, organization_slug, project_id, group_id, event_id=None):
-    # TODO(dcramer): remove in 7.1 release
-    # Handle redirects from team_slug/project_slug to org_slug/project_slug
-    try:
-        group = Group.objects.get(id=group_id)
-    except Group.DoesNotExist:
-        raise Http404
-
-    if group.project.slug != project_id:
-        raise Http404
-
-    if group.organization.slug == organization_slug:
-        return group_details(
-            request=request,
-            organization_slug=organization_slug,
-            project_id=project_id,
-            group_id=group_id,
-            event_id=event_id,
-        )
-
-    if group.team.slug == organization_slug:
-        if event_id:
-            url = reverse(
-                'sentry-group-event',
-                args=[group.organization.slug, project_id, group_id, event_id],
-            )
-        else:
-            url = reverse(
-                'sentry-group',
-                args=[group.organization.slug, project_id, group_id],
-            )
-        return HttpResponsePermanentRedirect(url)
-
-    raise Http404
-
-
-@has_group_access(allow_public=True)
-def group_details(request, organization, project, group, event_id=None):
-    # It's possible that a message would not be created under certain
-    # circumstances (such as a post_save signal failing)
-    if event_id:
-        event = get_object_or_404(group.event_set, id=event_id)
-    else:
-        event = group.get_latest_event() or Event()
-
-    Event.objects.bind_nodes([event], 'data')
-    GroupMeta.objects.populate_cache([group])
-
-    # bind params to group in case they get hit
-    event.group = group
-    event.project = project
-
-    if request.POST.get('o') == 'note' and request.user.is_authenticated():
-        add_note_form = NewNoteForm(request.POST)
-        if add_note_form.is_valid():
-            add_note_form.save(event, request.user)
-            return HttpResponseRedirect(request.path)
-    else:
-        add_note_form = NewNoteForm()
-
-    if request.user.is_authenticated() and project.has_access(request.user):
-        # update that the user has seen this group
-        create_or_update(
-            GroupSeen,
-            group=group,
-            user=request.user,
-            project=project,
-            defaults={
-                'last_seen': timezone.now(),
-            }
-        )
-
-    activity_qs = Activity.objects.filter(
-        group=group,
-    ).order_by('-datetime').select_related('user')
-
-    # filter out dupe activity items
-    activity_items = set()
-    activity = []
-    for item in activity_qs[:20]:
-        sig = (item.event_id, item.type, item.ident, item.user_id)
-        # TODO: we could just generate a signature (hash(text)) for notes
-        # so there's no special casing
-        if item.type == Activity.NOTE:
-            activity.append(item)
-        elif sig not in activity_items:
-            activity_items.add(sig)
-            activity.append(item)
-
-    activity.append(Activity(
-        project=project, group=group, type=Activity.FIRST_SEEN,
-        datetime=group.first_seen))
-
-    # trim to latest 5
-    activity = activity[:7]
-
-    seen_by = sorted(filter(lambda ls: ls[0] != request.user and ls[0].email, [
-        (gs.user, gs.last_seen)
-        for gs in GroupSeen.objects.filter(
-            group=group
-        ).select_related('user')
-    ]), key=lambda ls: ls[1], reverse=True)
-    seen_by_extra = len(seen_by) - 5
-    if seen_by_extra < 0:
-        seen_by_extra = 0
-    seen_by_faces = seen_by[:5]
-
-    context = {
-        'add_note_form': add_note_form,
-        'page': 'details',
-        'activity': activity,
-        'seen_by': seen_by,
-        'seen_by_faces': seen_by_faces,
-        'seen_by_extra': seen_by_extra,
-    }
-
-    is_public = group_is_public(group, request.user)
-
-    if is_public:
-        template = 'sentry/groups/public_details.html'
-        context['PROJECT_LIST'] = [project]
-    else:
-        template = 'sentry/groups/details.html'
-
-    return render_with_group_context(
-        group, template, context, request,
-        event=event, is_public=is_public)
-
-
-@has_group_access
-def group_tag_list(request, organization, project, group):
-    def percent(total, this):
-        return int(this / total * 100)
-
-    GroupMeta.objects.populate_cache([group])
-
-    queryset = TagKey.objects.filter(
-        project=project,
-        key__in=[t['key'] for t in group.get_tags()],
-    )
-
-    # O(N) db access
-    tag_list = []
-    for tag_key in queryset:
-        tag_list.append((tag_key, [
-            (value, times_seen, percent(group.times_seen, times_seen))
-            for (value, times_seen, first_seen, last_seen)
-            in group.get_unique_tags(tag_key.key)[:5]
-        ], group.get_unique_tags(tag_key.key).count()))
-
-    return render_with_group_context(group, 'sentry/groups/tag_list.html', {
-        'page': 'tag_list',
-        'tag_list': tag_list,
-    }, request)
-
-
-@has_group_access
-def group_tag_details(request, organization, project, group, tag_name):
-    GroupMeta.objects.populate_cache([group])
-
-    sort = request.GET.get('sort')
-    if sort == 'date':
-        order_by = '-last_seen'
-    elif sort == 'new':
-        order_by = '-first_seen'
-    else:
-        order_by = '-times_seen'
-
-    return render_with_group_context(group, 'sentry/plugins/bases/tag/index.html', {
-        'title': tag_name.replace('_', ' ').title(),
-        'tag_name': tag_name,
-        'unique_tags': group.get_unique_tags(tag_name, order_by=order_by),
-        'page': 'tag_details',
-    }, request)
-
-
-@has_group_access
-def group_event_list(request, organization, project, group):
-    # TODO: we need the event data to bind after we limit
-    event_list = group.event_set.all().order_by('-datetime')[:100]
-
-    for event in event_list:
-        event.project = project
-        event.group = group
-
-    GroupMeta.objects.populate_cache([group])
-    Event.objects.bind_nodes(event_list, 'data')
-
-    return render_with_group_context(group, 'sentry/groups/event_list.html', {
-        'event_list': event_list,
-        'page': 'event_list',
     }, request)
 
 
