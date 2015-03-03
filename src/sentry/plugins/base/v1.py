@@ -14,6 +14,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from threading import local
 
+from sentry.auth import access
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 
@@ -209,7 +210,6 @@ class IPlugin(local, PluggableViewMixin):
 
     def get_view_response(self, request, group):
         from sentry.models import Event
-        from sentry.permissions import can_admin_group, can_remove_group
 
         self.selected = request.path == self.get_url(group)
 
@@ -230,13 +230,15 @@ class IPlugin(local, PluggableViewMixin):
         event = group.get_latest_event() or Event()
         event.group = group
 
+        request.access = access.for_user(request.user, group.organization)
+
         return response.respond(request, {
             'plugin': self,
             'project': group.project,
             'group': group,
             'event': event,
-            'can_admin_event': can_admin_group(request.user, group),
-            'can_remove_event': can_remove_group(request.user, group),
+            'can_admin_event': request.access.has_scope('event:write'),
+            'can_remove_event': request.access.has_scope('event:delete'),
         })
 
     def view(self, request, group, **kwargs):
