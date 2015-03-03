@@ -34,7 +34,7 @@ class SentryInternalClient(DjangoClient):
         from sentry.event_manager import EventManager
 
         if not can_record_current_event():
-            pass
+            return
 
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
