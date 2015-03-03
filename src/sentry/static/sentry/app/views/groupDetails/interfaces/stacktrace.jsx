@@ -11,6 +11,7 @@ var StacktraceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
+    type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired
   },
 
@@ -23,7 +24,7 @@ var StacktraceInterface = React.createClass({
       <GroupEventDataSection
           group={group}
           event={evt}
-          type="stacktrace"
+          type={this.props.type}
           title="Stacktrace">
         <StacktraceContent data={data} />
       </GroupEventDataSection>
