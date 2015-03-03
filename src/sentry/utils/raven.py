@@ -31,6 +31,7 @@ class SentryInternalClient(DjangoClient):
 
     def capture(self, **kwargs):
         if not can_record_current_event():
+            self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
             return
         return super(SentryInternalClient, self).capture(**kwargs)
 
