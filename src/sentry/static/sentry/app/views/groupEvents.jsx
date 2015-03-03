@@ -8,6 +8,7 @@ var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
+var TimeSince = require("../components/timeSince");
 
 var GroupEvents = React.createClass({
   mixins: [GroupState],
@@ -67,17 +68,22 @@ var GroupEvents = React.createClass({
           <td>
             <Link to="groupEventDetails"
                   params={linkParams}>{event.message}</Link>
+            <br />
+            <small className="tagList">{event.tags.map((tag) => {
+              return <span>{tag[0]} = {tag[1]}</span>;
+            })}</small>
+          </td>
+          <td>
+            <TimeSince date={event.dateCreated} />
           </td>
         </tr>
       );
     });
 
     return (
-      <div>
-        <table>
-          {children}
-        </table>
-      </div>
+      <table className="table">
+        {children}
+      </table>
     );
   }
 });
