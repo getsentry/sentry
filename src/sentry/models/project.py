@@ -225,6 +225,7 @@ class Project(Model):
         try:
             auth_identity = AuthIdentity.objects.get(
                 auth_provider__organization=self.organization_id,
+                user=member.user_id,
             )
         except AuthIdentity.DoesNotExist:
             return True

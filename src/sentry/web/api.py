@@ -54,7 +54,6 @@ from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
 
-error_logger = logging.getLogger('sentry.errors')
 logger = logging.getLogger('sentry.api')
 
 # Transparent 1x1 gif
