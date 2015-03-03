@@ -29,11 +29,11 @@ class SentryInternalClient(DjangoClient):
             return False
         return settings.SENTRY_PROJECT is not None
 
-    def capture(self, **kwargs):
+    def capture(self, *args, **kwargs):
         if not can_record_current_event():
             self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
             return
-        return super(SentryInternalClient, self).capture(**kwargs)
+        return super(SentryInternalClient, self).capture(*args, **kwargs)
 
     def send(self, **kwargs):
         from sentry.coreapi import insert_data_to_database
