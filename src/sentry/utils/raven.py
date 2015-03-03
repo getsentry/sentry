@@ -19,8 +19,8 @@ def can_record_current_event():
     """
     for _, filename, _, _, _, _ in inspect.stack():
         if filename.endswith(UNSAFE_FILES):
-            return True
-    return False
+            return False
+    return True
 
 
 class SentryInternalClient(DjangoClient):
@@ -46,6 +46,7 @@ class SentryInternalClient(DjangoClient):
             data = manager.normalize()
             insert_data_to_database(data)
         except Exception as e:
+            print('fail')
             if self.raise_send_errors:
                 raise
             self.error_logger.error(
