@@ -39,6 +39,9 @@ class BaseAccess(object):
             return True
         return team in self.teams
 
+    def to_django_context(self):
+        return {s.replace(':', '_'): self.has_scope(s) for s in SCOPES}
+
 
 class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access

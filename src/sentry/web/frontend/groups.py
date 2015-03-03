@@ -23,6 +23,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from sentry import app
+from sentry.auth import access
 from sentry.constants import (
     SORT_OPTIONS, MEMBER_USER, DEFAULT_SORT_OPTION, EVENTS_PER_PAGE
 )
@@ -30,9 +31,7 @@ from sentry.db.models import create_or_update
 from sentry.models import (
     Project, Group, GroupMeta, Event, Activity, EventMapping, TagKey, GroupSeen
 )
-from sentry.permissions import (
-    can_admin_group, can_remove_group, can_create_projects
-)
+from sentry.permissions import can_create_projects
 from sentry.plugins import plugins
 from sentry.search.utils import parse_query
 from sentry.utils import json
@@ -140,9 +139,15 @@ def render_with_group_context(group, template, context, request=None,
         'organization': group.project.organization,
         'project': group.project,
         'group': group,
-        'can_admin_event': can_admin_group(request.user, group),
-        'can_remove_event': can_remove_group(request.user, group),
     })
+
+    if request:
+        context['ACCESS'] = access.from_user(
+            user=request.user,
+            organization=group.organization,
+        ).to_django_context()
+    else:
+        context['ACCESS'] = access.DEFAULT.to_django_context()
 
     if event:
         if event.id:
