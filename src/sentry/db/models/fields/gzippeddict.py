@@ -19,7 +19,7 @@ from sentry.utils.strings import decompress, compress
 
 __all__ = ('GzippedDictField',)
 
-logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry')
 
 
 class GzippedDictField(models.TextField):

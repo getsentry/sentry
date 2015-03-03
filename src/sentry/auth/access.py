@@ -37,7 +37,10 @@ class BaseAccess(object):
             return False
         if self.is_global:
             return True
-        return team in self._teams
+        return team in self.teams
+
+    def to_django_context(self):
+        return {s.replace(':', '_'): self.has_scope(s) for s in SCOPES}
 
 
 class Access(BaseAccess):
@@ -95,6 +98,7 @@ def from_member(member):
         try:
             auth_identity = AuthIdentity.objects.get(
                 auth_provider=auth_provider,
+                user=member.user_id,
             )
         except AuthIdentity.DoesNotExist:
             sso_is_valid = False

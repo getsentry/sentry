@@ -21,7 +21,7 @@ from sentry.api.serializers.base import serialize
 from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Project, Team, ProjectOption
 
-logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry')
 
 
 def group_is_public(group, user):

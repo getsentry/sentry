@@ -220,14 +220,7 @@ class OrganizationView(BaseView):
         context = super(OrganizationView, self).get_context_data(request)
         context['organization'] = organization
         context['TEAM_LIST'] = self.get_team_list(request.user, organization)
-        context['ACCESS'] = {
-            'team_write': request.access.has_scope('team:write'),
-            'team_delete': request.access.has_scope('team:delete'),
-            'org_write': request.access.has_scope('org:write'),
-            'org_delete': request.access.has_scope('org:delete'),
-            'project_write': request.access.has_scope('project:write'),
-            'project_delete': request.access.has_scope('project:delete'),
-        }
+        context['ACCESS'] = request.access.to_django_context()
         return context
 
     def has_permission(self, request, organization, *args, **kwargs):
