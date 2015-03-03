@@ -29,12 +29,14 @@ class SentryInternalClient(DjangoClient):
             return False
         return settings.SENTRY_PROJECT is not None
 
+    def capture(self, **kwargs):
+        if not can_record_current_event():
+            return
+        return super(SentryInternalClient, self).capture(**kwargs)
+
     def send(self, **kwargs):
         from sentry.coreapi import insert_data_to_database
         from sentry.event_manager import EventManager
-
-        if not can_record_current_event():
-            return
 
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
