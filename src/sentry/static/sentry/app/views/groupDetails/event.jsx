@@ -34,10 +34,11 @@ var GroupEvent = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
-  // TODO(dcramer): figure out how we make this extensible
+  // TODO(dcramer): make this extensible
   interfaces: {
     exception: require("./interfaces/exception"),
-    request: require("./interfaces/request")
+    request: require("./interfaces/request"),
+    stacktrace: require("./interfaces/stacktrace")
   },
 
   render(){
