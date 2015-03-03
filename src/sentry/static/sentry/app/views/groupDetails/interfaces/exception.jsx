@@ -11,6 +11,7 @@ var ExceptionInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
+    type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired
   },
 
@@ -38,7 +39,7 @@ var ExceptionInterface = React.createClass({
       <GroupEventDataSection
           group={group}
           event={evt}
-          type="exception"
+          type={this.props.type}
           title="Exception">
         {children}
       </GroupEventDataSection>

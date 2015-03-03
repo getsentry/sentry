@@ -9,6 +9,7 @@ var RequestInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
+    type: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired
   },
 
@@ -29,7 +30,7 @@ var RequestInterface = React.createClass({
       <GroupEventDataSection
           group={group}
           event={evt}
-          type="request"
+          type={this.props.type}
           title="Request">
         <table className="table table-striped vars">
           <colgroup>
