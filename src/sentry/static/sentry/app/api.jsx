@@ -84,10 +84,7 @@ class Client {
         GroupActions.updateSuccess(id, params.itemIds, response);
       },
       error: (error) => {
-        if (params.failSilently) {
-          return;
-        }
-        GroupActions.updateError(id, params.itemIds, error);
+        GroupActions.updateError(id, params.itemIds, error, params.failSilently);
       }
     });
   }
