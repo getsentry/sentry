@@ -81,6 +81,7 @@ var Frame = React.createClass({
       );
     }
     // TODO(dcramer): implement popover annotations
+    // TODO(dcramer): implement local vars
     return (
       <li className={className}>
         <p>{title}</p>
@@ -102,9 +103,29 @@ var ExceptionInterface = React.createClass({
     var evt = this.props.event;
     var data = this.props.data;
 
+    // TODO(dcramer): implement exceptions omitted
     var children = data.values.map((exc, excIdx) => {
-      var frames = exc.stacktrace.frames.map((frame, frameIdx) => {
-        return <Frame key={frameIdx} data={frame} />;
+      var frames = [];
+
+      var firstFrameOmitted, lastFrameOmitted;
+      if (exc.stacktrace.frames_omitted) {
+        firstFrameOmitted = exc.stacktrace.frames_omitted[0];
+        lastFrameOmitted = exc.stacktrace.frames_omitted[1];
+      } else {
+        firstFrameOmitted = null;
+        lastFrameOmitted = null;
+      }
+
+      exc.stacktrace.frames.forEach((frame, frameIdx) => {
+        frames.push(<Frame key={frameIdx} data={frame} />);
+        if (frameIdx === firstFrameOmitted) {
+          frames.push((
+            <li className="frames-omitted" key="omitted">
+              Frames {firstFrameOmitted} until {lastFrameOmitted} were omitted and not available.
+            </li>
+          ));
+        }
+
       });
 
       return (
