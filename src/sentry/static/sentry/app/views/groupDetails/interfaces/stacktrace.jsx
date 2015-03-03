@@ -7,7 +7,7 @@ var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
 var StacktraceContent = require("./stacktraceContent");
 
-var ExceptionInterface = React.createClass({
+var StacktraceInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
@@ -19,31 +19,16 @@ var ExceptionInterface = React.createClass({
     var evt = this.props.event;
     var data = this.props.data;
 
-    // TODO(dcramer): implement exceptions omitted
-    var children = data.values.map((exc, excIdx) => {
-      return (
-        <div key={excIdx}>
-          <h3>
-            <span>{exc.type}</span>
-          </h3>
-          {exc.value &&
-            <pre>{exc.value}</pre>
-          }
-          <StacktraceContent data={exc.stacktrace} />
-        </div>
-      );
-    });
-
     return (
       <GroupEventDataSection
           group={group}
           event={evt}
-          type="exception"
-          title="Exception">
-        {children}
+          type="stacktrace"
+          title="Stacktrace">
+        <StacktraceContent data={data} />
       </GroupEventDataSection>
     );
   }
 });
 
-module.exports = ExceptionInterface;
+module.exports = StacktraceInterface;
