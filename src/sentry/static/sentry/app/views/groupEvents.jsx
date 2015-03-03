@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var {Link} = require("react-router");
 
 var api = require("../api");
 var GroupState = require("../mixins/groupState");
@@ -9,11 +10,11 @@ var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
 var GroupEvents = React.createClass({
-  mixins: [GroupState,],
+  mixins: [GroupState],
 
   getInitialState() {
     return {
-      eventList: null,
+      eventList: [],
       loading: true,
       error: false
     };
@@ -53,17 +54,23 @@ var GroupEvents = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var children = [];
+    var children = this.state.eventList.map((event, eventIdx) => {
+      var linkParams = {
+        orgId: this.getOrganization().slug,
+        projectId: this.getProject().slug,
+        groupId: this.getGroup().id,
+        eventId: event.id
+      };
 
-    if (this.state.eventList) {
-      children = this.state.eventList.map((event, eventIdx) => {
-        return (
-          <tr key={eventIdx}>
-            <td>{event.message}</td>
-          </tr>
-        );
-      });
-    }
+      return (
+        <tr key={eventIdx}>
+          <td>
+            <Link to="groupEventDetails"
+                  params={linkParams}>{event.message}</Link>
+          </td>
+        </tr>
+      );
+    });
 
     return (
       <div>
