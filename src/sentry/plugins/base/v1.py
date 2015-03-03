@@ -230,7 +230,7 @@ class IPlugin(local, PluggableViewMixin):
         event = group.get_latest_event() or Event()
         event.group = group
 
-        request.access = access.for_user(request.user, group.organization)
+        request.access = access.from_user(request.user, group.organization)
 
         return response.respond(request, {
             'plugin': self,
