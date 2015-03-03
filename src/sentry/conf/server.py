@@ -462,8 +462,14 @@ LOGGING = {
         },
         'sentry': {
             'level': 'ERROR',
+            'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         }
+    },
+    'filters': {
+        'sentry:internal': {
+            '()': 'sentry.utils.raven.SentryInternalFilter',
+        },
     },
     'formatters': {
         'simple': {

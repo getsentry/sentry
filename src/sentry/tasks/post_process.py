@@ -20,7 +20,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
-rules_logger = logging.getLogger('sentry.errors')
+rules_logger = logging.getLogger('sentry')
 
 
 def _capture_stats(event, is_new):
