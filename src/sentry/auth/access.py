@@ -95,6 +95,7 @@ def from_member(member):
         try:
             auth_identity = AuthIdentity.objects.get(
                 auth_provider=auth_provider,
+                user=member.user_id,
             )
         except AuthIdentity.DoesNotExist:
             sso_is_valid = False
