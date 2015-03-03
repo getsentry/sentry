@@ -105,6 +105,7 @@ gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
 // TODO(dcramer): this is causing issues, use webpack --watch for now
 gulp.task("watch:webpack", function(callback){
   var config = require('./webpack.config.js');
+  config.debug = true;
   webpack(config).watch(200, function(err, stats) {
     if(err) throw new gutil.PluginError("webpack", err);
     gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
