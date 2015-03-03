@@ -104,7 +104,7 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/tags/(?P<key>[^/]+)/$',
         ProjectTagKeyDetailsEndpoint.as_view(),
         name='sentry-api-0-project-tagkey-details'),
-    url(r'^projects/(?P<project_id>\d+)/tags/(?P<key>[^/]+)/values/$',
+    url(r'^projects/(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/tags/(?P<key>[^/]+)/values/$',
         ProjectTagKeyValuesEndpoint.as_view(),
         name='sentry-api-0-project-tagkey-values'),
 
