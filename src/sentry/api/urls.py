@@ -12,6 +12,7 @@ from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
+from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.helppage_details import HelpPageDetailsEndpoint
 from .endpoints.helppage_index import HelpPageIndexEndpoint
@@ -128,6 +129,9 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'),
+    url(r'^groups/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/$',
+        GroupTagKeyDetailsEndpoint.as_view(),
+        name='sentry-api-0-group-tagkey-details'),
     url(r'^groups/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/values/$',
         GroupTagKeyValuesEndpoint.as_view(),
         name='sentry-api-0-group-tagkey-values'),
