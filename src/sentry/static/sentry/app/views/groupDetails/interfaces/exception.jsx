@@ -56,12 +56,35 @@ var Frame = React.createClass({
       }
     }
 
+    var context = '';
+    if (this.isDefined(data.context)) {
+      context = (
+        <ol start={data.start_lineno} className="context">
+        {this.isDefined(data.errors) &&
+          <li className="expandable error"
+              key="errors">{data.errors.join(", ")}</li>
+        }
+        {data.pre_context.map((lineNo, line) => {
+          return <li className="expandable" key={lineNo}>{line}</li>;
+        })}
+        <li className="active expandable" key="active">{data.context_line}</li>
+        {data.post_context.map((lineNo, line) => {
+          return <li className="expandable" key={lineNo}>{line}</li>;
+        })}
+        </ol>
+      );
+    } else if (this.isDefined(data.context_line)) {
+      context = (
+        <ol start={data.lineno} className="context">
+          <li className="active">{data.context_line}</li>
+        </ol>
+      );
+    }
     // TODO(dcramer): implement popover annotations
     return (
       <li className={className}>
-        <p>
-          {title}
-        </p>
+        <p>{title}</p>
+        {context}
       </li>
     );
   }
