@@ -19,13 +19,7 @@ var OrganizationDetails = React.createClass({
     Router.State
   ],
 
-  getInitialState() {
-    return {
-      loading: false,
-      error: false,
-      organization: null
-    };
-  },
+  crumbReservations: 1,
 
   childContextTypes: {
     organization: PropTypes.Organization
@@ -34,6 +28,14 @@ var OrganizationDetails = React.createClass({
   getChildContext() {
     return {
       organization: this.state.organization
+    };
+  },
+
+  getInitialState() {
+    return {
+      loading: false,
+      error: false,
+      organization: null
     };
   },
 

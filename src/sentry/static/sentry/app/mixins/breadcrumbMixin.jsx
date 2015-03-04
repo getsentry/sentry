@@ -42,24 +42,26 @@ module.exports = {
 
   componentWillMount() {
     this.crumbs = [];
-    this.crumbs.forEach((node) => {
-      BreadcrumbStore.push(this.breadcrumbFromNode(node));
-    });
+    for (var i = 0; i < (this.crumbReservations || 0); i++) {
+      this.crumbs.push(BreadcrumbStore.reserve());
+    }
   },
 
   componentWillUnmount() {
-    this.crumbs.forEach(() => {
-      BreadcrumbStore.pop();
+    this.crumbs.forEach((idx) => {
+      BreadcrumbStore.pop(idx);
     });
   },
 
   setBreadcrumbs(nodes) {
-    this.crumbs.forEach(() => {
-      BreadcrumbStore.pop();
-    });
-    this.crumbs = nodes;
-    this.crumbs.forEach((node) => {
-      BreadcrumbStore.push(this.breadcrumbFromNode(node));
+    if (this.crumbs.length !== nodes.length) {
+      throw new Error('You must reserve crumbs before setting them.');
+    }
+    nodes.forEach((node, nodeIdx) => {
+      BreadcrumbStore.update(
+        this.crumbs[nodeIdx],
+        this.breadcrumbFromNode(node)
+      );
     });
   }
 };

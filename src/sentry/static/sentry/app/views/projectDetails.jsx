@@ -21,13 +21,7 @@ var ProjectDetails = React.createClass({
     Router.State
   ],
 
-  getInitialState() {
-    return {
-      memberList: [],
-      project: null,
-      team: null
-    };
-  },
+  crumbReservations: 2,
 
   childContextTypes: {
     organization: PropTypes.Organization,
@@ -43,6 +37,13 @@ var ProjectDetails = React.createClass({
     };
   },
 
+  getInitialState() {
+    return {
+      memberList: [],
+      project: null,
+      team: null
+    };
+  },
   componentWillMount() {
     this.fetchData();
   },

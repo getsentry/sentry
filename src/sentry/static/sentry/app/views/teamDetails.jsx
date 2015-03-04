@@ -19,11 +19,7 @@ var TeamDetails = React.createClass({
     Router.State
   ],
 
-  getInitialState() {
-    return {
-      team: null
-    };
-  },
+  crumbReservations: 1,
 
   childContextTypes: {
     organization: PropTypes.Organization,
@@ -34,6 +30,12 @@ var TeamDetails = React.createClass({
     return {
       organization: this.getOrganization(),
       team: this.state.team
+    };
+  },
+
+  getInitialState() {
+    return {
+      team: null
     };
   },
 
