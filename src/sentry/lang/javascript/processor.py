@@ -8,6 +8,7 @@ import re
 import base64
 
 from django.conf import settings
+from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException
@@ -232,6 +233,11 @@ def fetch_url(url, project=None, release=None):
                 headers=headers,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
+        except SuspiciousOperation as exc:
+            cache.set(domain_key, 1, 300)
+            logger.warning('Disabling sources to %s for %ss', domain, 300,
+                           exc_info=True)
+            raise CannotFetchSource(unicode(exc))
         except RequestException as exc:
             cache.set(domain_key, 1, 300)
             logger.warning('Disabling sources to %s for %ss', domain, 300,
