@@ -46,6 +46,15 @@ CLEAN_MODULE_RE = re.compile(r"""^
 # fetched
 MAX_RESOURCE_FETCHES = 100
 
+# TODO(dcramer): we want to change these to be constants so they are easier
+# to translate/link again
+ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to previous failures.'
+ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
+ERR_HTTP_CODE = 'Received HTTP {status_code} response'
+ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
+ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable'
+ERR_TOO_MANY_REMOTE_SOURCES = 'Not fetching context due to too many remote sources'
+
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
 logger = logging.getLogger(__name__)
@@ -205,7 +214,7 @@ def fetch_url(url, project=None, release=None):
         domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
         domain_result = cache.get(domain_key)
         if domain_result:
-            raise DomainBlacklisted
+            raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED)
 
         headers = {}
         if project and is_valid_origin(url, project=project):
@@ -227,13 +236,17 @@ def fetch_url(url, project=None, release=None):
             cache.set(domain_key, 1, 300)
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
-            raise CannotFetchSource('A {} error was hit while fetching the source'.format(type(exc)))
+            raise CannotFetchSource(ERR_GENERIC_FETCH_FAILURE.format(
+                type=type(exc),
+            ))
 
         if response.status_code != 200:
             cache.set(domain_key, 1, 300)
             logger.warning('Disabling sources to %s for %ss (due to HTTP %s)',
                           domain, 300, response.status_code)
-            raise CannotFetchSource('Received HTTP {} response'.format(response.status_code))
+            raise CannotFetchSource(ERR_HTTP_CODE.format(
+                status_code=response.status_code,
+            ))
 
         result = (dict(response.headers), response.content)
         cache.set(cache_key, result, 60)
@@ -257,7 +270,7 @@ def fetch_sourcemap(url, project=None, release=None):
     try:
         return sourcemap_to_index(body)
     except (JSONDecodeError, ValueError):
-        raise UnparseableSourcemap('Sourcemap was not parseable')
+        raise UnparseableSourcemap(ERR_SOURCEMAP_UNPARSEABLE)
 
 
 def is_data_uri(url):
@@ -462,7 +475,7 @@ class SourceProcessor(object):
             done_file_list.add(filename)
 
             if idx > self.max_fetches:
-                cache.add_error(filename, 'Not fetching context due to too many remote sources')
+                cache.add_error(filename, ERR_TOO_MANY_REMOTE_SOURCES)
                 continue
 
             # TODO: respect cache-control/max-age headers to some extent
@@ -482,7 +495,7 @@ class SourceProcessor(object):
 
             # If we didn't have a colno, a sourcemap wont do us any good
             if filename not in sourcemap_capable:
-                cache.add_error(filename, 'No column information available (cant expand sourcemap)')
+                cache.add_error(filename, ERR_NO_COLUMN)
                 continue
 
             logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
