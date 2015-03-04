@@ -63,6 +63,10 @@ class CannotFetchSource(BadSource):
     pass
 
 
+class UnparseableSourcemap(BadSource):
+    pass
+
+
 def trim_line(line, column=0):
     """
     Trims a line down to a goal of 140 characters, with a little
@@ -250,7 +254,10 @@ def fetch_sourcemap(url, project=None, release=None):
     if body.startswith(")]}'"):
         body = body.split('\n', 1)[1]
 
-    return sourcemap_to_index(body)
+    try:
+        return sourcemap_to_index(body)
+    except (JSONDecodeError, ValueError):
+        raise UnparseableSourcemap('Sourcemap was not parseable')
 
 
 def is_data_uri(url):
@@ -493,9 +500,6 @@ class SourceProcessor(object):
                 )
             except BadSource as exc:
                 cache.add_error(filename, unicode(exc))
-                continue
-            except (JSONDecodeError, ValueError):
-                cache.add_error(filename, 'Sourcemap was not parseable')
                 continue
 
             sourcemaps.add(sourcemap_url, sourcemap_idx)
