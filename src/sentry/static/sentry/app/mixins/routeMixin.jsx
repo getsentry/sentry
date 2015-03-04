@@ -1,7 +1,5 @@
 /*** @jsx React.DOM */
 
-var PropTypes = require("../proptypes");
-
 var RouteMixin = {
   getInitialState() {
     return {
