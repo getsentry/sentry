@@ -33,7 +33,7 @@
                                 <dd><a href='{{ frame.sourcemap_url }}'>{{ frame.sourcemap }}</a></dd>
                                 {% if frame.errors %}
                                   <dt>Error</dt>
-                                  <dd>There was an error with this frame.</dd>
+                                  <dd>{% for error in frame.errors %}{{ error }}<br />{% endfor %}</dd>
                                 {% endif %}
                             </dl>">?</a>
                     {% elif frame.abs_path and frame.abs_path != filename %}
@@ -87,7 +87,7 @@
                 <ol start="{{ frame.start_lineno }}" class="context">
                   {% if frame.errors %}
                     <li class="expandable error">
-                      There was an error with this frame.
+                      {% for error in frame.errors %}{{ error }}<br />{% endfor %}
                     </li>
                   {% endif %}
                 {% for num, line in frame.context %}
