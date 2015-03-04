@@ -19,6 +19,7 @@ from .endpoints.helppage_index import HelpPageIndexEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
+from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
@@ -57,6 +58,9 @@ urlpatterns = patterns(
         name='sentry-api-0-user-details'),
 
     # Organizations
+    url(r'^organizations/$',
+        OrganizationIndexEndpoint.as_view(),
+        name='sentry-api-0-organizations'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/$',
         OrganizationDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-details'),
