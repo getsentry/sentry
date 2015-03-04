@@ -86,11 +86,14 @@ class OrganizationMember(Model):
     def scopes(self):
         scopes = []
         if self.type <= OrganizationMemberType.MEMBER:
-            scopes.extend(['event:read', 'org:read', 'project:read', 'team:read'])
+            scopes.extend([
+                'event:read', 'event:write', 'event:delete',
+                'org:read', 'project:read', 'team:read',
+            ])
         if self.type <= OrganizationMemberType.ADMIN:
-            scopes.extend(['event:write', 'project:write', 'team:write'])
+            scopes.extend(['project:write', 'team:write'])
         if self.type <= OrganizationMemberType.OWNER:
-            scopes.extend(['event:delete', 'project:delete', 'team:delete'])
+            scopes.extend(['project:delete', 'team:delete'])
         if self.has_global_access:
             if self.type <= OrganizationMemberType.ADMIN:
                 scopes.extend(['org:write'])
