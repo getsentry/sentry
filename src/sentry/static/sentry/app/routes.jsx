@@ -5,6 +5,7 @@ var Router = require("react-router");
 var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
+var App = require("./views/app");
 var GroupDetails = require("./views/groupDetails");
 var GroupEvents = require("./views/groupEvents");
 var GroupTags = require("./views/groupTags");
@@ -16,19 +17,6 @@ var PropTypes = require("./proptypes");
 var Stream = require("./views/stream");
 var TeamDashboard = require("./views/teamDashboard");
 var TeamDetails = require("./views/teamDetails");
-
-var App = React.createClass({
-  propTypes: {
-    isAuthenticated: React.PropTypes.bool.isRequired,
-    user: PropTypes.User
-  },
-
-  render: function () {
-    return (
-      <Router.RouteHandler />
-    );
-  }
-});
 
 var routes = (
   <Route name="app" path="/" handler={App}>

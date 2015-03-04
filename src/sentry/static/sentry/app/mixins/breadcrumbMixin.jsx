@@ -41,7 +41,7 @@ module.exports = {
   },
 
   componentWillMount() {
-    this.crumbs = this.getInitialBreadcrumbs();
+    this.crumbs = [];
     this.crumbs.forEach((node) => {
       BreadcrumbStore.push(this.breadcrumbFromNode(node));
     });
@@ -61,9 +61,5 @@ module.exports = {
     this.crumbs.forEach((node) => {
       BreadcrumbStore.push(this.breadcrumbFromNode(node));
     });
-  },
-
-  getInitialBreadcrumbs() {
-    return [];
   }
 };

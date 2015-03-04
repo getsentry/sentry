@@ -8,19 +8,22 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var MemberListStore = require("../stores/memberListStore");
 var LoadingIndicator = require("../components/loadingIndicator");
+var OrganizationState = require("../mixins/organizationState");
+var RouteMixin = require("../mixins/routeMixin");
 var PropTypes = require("../proptypes");
 
 var ProjectDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
     Reflux.connect(MemberListStore, "memberList"),
+    OrganizationState,
+    RouteMixin,
     Router.State
   ],
 
   getInitialState() {
     return {
       memberList: [],
-      organization: null,
       project: null,
       team: null
     };
@@ -34,13 +37,22 @@ var ProjectDetails = React.createClass({
 
   getChildContext() {
     return {
-      organization: this.state.organization,
+      organization: this.getOrganization(),
       project: this.state.project,
       team: this.state.team
     };
   },
 
   componentWillMount() {
+    this.fetchData();
+  },
+
+  routeDidChange(nextProps) {
+    this.fetchData();
+  },
+
+  fetchData() {
+    // TODO(dcramer): we could read some of this info from contexts
     api.request(this.getMemberListEndpoint(), {
       success: (data) => {
         MemberListStore.loadInitialData(data);
@@ -50,7 +62,6 @@ var ProjectDetails = React.createClass({
     api.request(this.getProjectDetailsEndpoint(), {
       success: (data) => {
         this.setState({
-          organization: data.organization,
           project: data,
           team: data.team
         });
