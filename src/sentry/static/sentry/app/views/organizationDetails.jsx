@@ -10,56 +10,53 @@ var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 var OrganizationState = require("../mixins/organizationState");
 
-var TeamDetails = React.createClass({
+var OrganizationDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
-    OrganizationState,
     Router.State
   ],
 
   getInitialState() {
     return {
-      team: null
+      organization: null
     };
   },
 
   childContextTypes: {
-    organization: PropTypes.Organization,
-    team: PropTypes.Team
+    organization: PropTypes.Organization
   },
 
   getChildContext() {
     return {
-      organization: this.getOrganization(),
-      team: this.state.team
+      organization: this.state.organization
     };
   },
 
   componentWillMount() {
-    api.request(this.getTeamDetailsEndpoint(), {
+    api.request(this.getOrganizationDetailsEndpoint(), {
       success: (data) => {
         this.setState({
-          team: data
+          organization: data
         });
 
         this.setBreadcrumbs([
-          {name: data.name, to: 'teamDetails'}
+          {name: data.name, to: 'organizationDetails'}
         ]);
       }
     });
   },
 
-  getTeamDetailsEndpoint() {
+  getOrganizationDetailsEndpoint() {
     var params = this.getParams();
-    return '/teams/' + params.orgId + '/' + params.teamId + '/';
+    return '/organizations/' + params.orgId + '/';
   },
 
   render() {
-    if (!this.state.team) {
+    if (!this.state.organization) {
       return <LoadingIndicator />;
     }
     return <Router.RouteHandler />;
   }
 });
 
-module.exports = TeamDetails;
+module.exports = OrganizationDetails;
