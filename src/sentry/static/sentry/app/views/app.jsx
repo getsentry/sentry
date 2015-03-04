@@ -4,7 +4,7 @@ var React = require("react");
 
 var api = require("../api");
 var Alerts = require("../components/alerts");
-var PropTypes = require("../propTypes");
+var PropTypes = require("../proptypes");
 
 var App = React.createClass({
   propTypes: {

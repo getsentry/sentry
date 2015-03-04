@@ -15,6 +15,7 @@ var TeamDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
     OrganizationState,
+    RouteMixin,
     Router.State
   ],
 
@@ -40,7 +41,7 @@ var TeamDetails = React.createClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps(nextProps) {
+  routeDidChange(nextProps) {
     this.fetchData();
   },
 

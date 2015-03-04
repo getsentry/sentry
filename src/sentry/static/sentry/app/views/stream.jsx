@@ -67,6 +67,7 @@ StreamPoller.prototype.poll = function() {
 var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupListStore, "onAggListChange"),
+    RouteMixin,
     Router.Navigation,
     Router.State,
   ],
@@ -98,12 +99,15 @@ var Stream = React.createClass({
   },
 
   componentWillMount() {
-    console.log('here');
     this._poller = new StreamPoller({
       success: this.handleRealtimePoll,
       endpoint: this.getGroupListEndpoint()
     });
 
+    this.fetchData();
+  },
+
+  routeDidChange() {
     this.fetchData();
   },
 
