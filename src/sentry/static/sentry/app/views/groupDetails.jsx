@@ -22,6 +22,8 @@ var GroupDetails = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
+  crumbReservations: 1,
+
   childContextTypes: {
     group: PropTypes.Group,
   },
