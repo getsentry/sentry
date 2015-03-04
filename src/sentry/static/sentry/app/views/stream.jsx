@@ -214,7 +214,6 @@ var Stream = React.createClass({
           </ul>
         )}
         <StreamPagination
-          groupList={this.state.groupList}
           pageLinks={this.state.pageLinks} />
       </div>
     );
