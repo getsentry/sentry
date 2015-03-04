@@ -46,7 +46,6 @@ class SentryInternalClient(DjangoClient):
             data = manager.normalize()
             insert_data_to_database(data)
         except Exception as e:
-            print('fail')
             if self.raise_send_errors:
                 raise
             self.error_logger.error(
