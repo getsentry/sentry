@@ -2,23 +2,19 @@
 var React = require("react");
 var Router = require("react-router");
 
-var utils = require("../../utils");
+var utils = require("../utils");
 
-var StreamPagination = React.createClass({
-  mixins: [Router.Navigation, Router.State],
-
+var Pagination = React.createClass({
   propTypes: {
-    pageLinks: React.PropTypes.string.isRequired
+    onPage: React.PropTypes.func.isRequired,
+    pageLinks: React.PropTypes.string.isRequired,
   },
 
   onPage(cursor) {
-    var queryParams = this.getQuery();
-    queryParams.cursor = cursor;
-
-    this.transitionTo('stream', this.getParams(), queryParams);
+    this.props.onPage(cursor);
   },
 
-  render: function(){
+  render(){
     if (!this.props.pageLinks) {
       return <div />;
     }
@@ -54,4 +50,4 @@ var StreamPagination = React.createClass({
   }
 });
 
-module.exports = StreamPagination;
+module.exports = Pagination;
