@@ -5,6 +5,23 @@ var BreadcrumbStore = require("../stores/breadcrumbStore");
 var React = require("react");
 
 module.exports = {
+  /*
+   * A mixin which should be used by components which want to append to the
+   * breadcrumbs on a page.
+   *
+   * {
+   *   mixins: [BreadcrumbMixin],
+   *   // the number of crumbs you will manage
+   *   crumbReservations: 1,
+   *   // set the crumbs synchronously on mount, or async
+   *   componentWillMount() {
+   *     this.setBreadcrumbs([
+   *       {name: data.name, to: 'teamDetails', params: {}}
+   *     ]);
+   *   }
+   * }
+   */
+
   // Require both Router.State and Router.Navigation contexts
   // We do this to avoid potentially duplicating mixins
   contextTypes: {
