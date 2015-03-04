@@ -4,10 +4,10 @@ var React = require("react");
 var Router = require("react-router");
 
 var api = require("../api");
-var GroupEventsPagination = require("./groupEvents/pagination");
 var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
+var Pagination = require("../components/pagination");
 var PropTypes = require("../proptypes");
 var TimeSince = require("../components/timeSince");
 
@@ -54,6 +54,13 @@ var GroupEvents = React.createClass({
     });
   },
 
+  onPage(cursor) {
+    var queryParams = this.getQuery();
+    queryParams.cursor = cursor;
+
+    this.transitionTo('groupEvents', this.getParams(), queryParams);
+  },
+
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -92,7 +99,7 @@ var GroupEvents = React.createClass({
           {children}
         </table>
 
-        <GroupEventsPagination pageLinks={this.state.pageLinks} />
+        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
   }
