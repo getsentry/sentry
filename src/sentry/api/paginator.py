@@ -120,7 +120,6 @@ class Paginator(object):
 class DateTimePaginator(Paginator):
     def _get_item_key(self, item):
         value = getattr(item, self.key)
-        print(value)
         value = int(value.strftime('%s'))
         if self.desc:
             return math.ceil(value)
