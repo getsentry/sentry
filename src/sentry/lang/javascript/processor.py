@@ -55,6 +55,7 @@ ERR_HTTP_CODE = 'Received HTTP {status_code} response'
 ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
 ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable'
 ERR_TOO_MANY_REMOTE_SOURCES = 'Not fetching context due to too many remote sources'
+ERR_UNKNOWN_INTERNAL_ERROR = 'An unknown internal error occurred while attempting to fetch the source'
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -245,6 +246,12 @@ def fetch_url(url, project=None, release=None):
             raise CannotFetchSource(ERR_GENERIC_FETCH_FAILURE.format(
                 type=type(exc),
             ))
+        except Exception as exc:
+            cache.set(domain_key, 1, 300)
+            logger.exception(unicode(exc))
+            logger.warning('Disabling sources to %s for %ss', domain, 300,
+                           exc_info=True)
+            raise CannotFetchSource(ERR_UNKNOWN_INTERNAL_ERROR)
 
         if response.status_code != 200:
             cache.set(domain_key, 1, 300)
