@@ -53,12 +53,6 @@ var ProjectDetails = React.createClass({
 
   fetchData() {
     // TODO(dcramer): we could read some of this info from contexts
-    api.request(this.getMemberListEndpoint(), {
-      success: (data) => {
-        MemberListStore.loadInitialData(data);
-      }
-    });
-
     api.request(this.getProjectDetailsEndpoint(), {
       success: (data) => {
         this.setState({
