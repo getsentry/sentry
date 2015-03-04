@@ -1,9 +1,10 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var {Link} = require("react-router");
+var Router = require("react-router");
 
 var api = require("../api");
+var GroupEventsPagination = require("./groupEvents/pagination");
 var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
@@ -11,13 +12,14 @@ var PropTypes = require("../proptypes");
 var TimeSince = require("../components/timeSince");
 
 var GroupEvents = React.createClass({
-  mixins: [GroupState],
+  mixins: [GroupState, Router.Navigation, Router.State],
 
   getInitialState() {
     return {
       eventList: [],
       loading: true,
-      error: false
+      error: false,
+      pageLinks: '',
     };
   },
 
@@ -26,17 +28,21 @@ var GroupEvents = React.createClass({
   },
 
   fetchData() {
+    var queryParams = this.getQuery();
+    var querystring = $.param(queryParams);
+
     this.setState({
       loading: true,
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/events/', {
-      success: (data) => {
+    api.request('/groups/' + this.getGroup().id + '/events/?' + querystring, {
+      success: (data, _, jqXHR) => {
         this.setState({
           eventList: data,
           error: false,
-          loading: false
+          loading: false,
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: (error) => {
@@ -66,11 +72,11 @@ var GroupEvents = React.createClass({
       return (
         <tr key={eventIdx}>
           <td>
-            <Link to="groupEventDetails"
-                  params={linkParams}>{event.message}</Link>
+            <Router.Link to="groupEventDetails"
+                  params={linkParams}>{event.message}</Router.Link>
             <br />
-            <small className="tagList">{event.tags.map((tag) => {
-              return <span>{tag[0]} = {tag[1]}</span>;
+            <small className="tagList">{event.tags.map((tag, tagIdx) => {
+              return <span key={tagIdx}>{tag[0]} = {tag[1]}</span>;
             })}</small>
           </td>
           <td>
@@ -81,9 +87,13 @@ var GroupEvents = React.createClass({
     });
 
     return (
-      <table className="table">
-        {children}
-      </table>
+      <div>
+        <table className="table">
+          {children}
+        </table>
+
+        <GroupEventsPagination pageLinks={this.state.pageLinks} />
+      </div>
     );
   }
 });

@@ -4,21 +4,21 @@ var Router = require("react-router");
 
 var utils = require("../../utils");
 
-var StreamPagination = React.createClass({
+var GroupEventsPagination = React.createClass({
   mixins: [Router.Navigation, Router.State],
 
   propTypes: {
-    pageLinks: React.PropTypes.string.isRequired
+    pageLinks: React.PropTypes.string.isRequired,
   },
 
   onPage(cursor) {
     var queryParams = this.getQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('stream', this.getParams(), queryParams);
+    this.transitionTo('groupEvents', this.getParams(), queryParams);
   },
 
-  render: function(){
+  render(){
     if (!this.props.pageLinks) {
       return <div />;
     }
@@ -54,4 +54,4 @@ var StreamPagination = React.createClass({
   }
 });
 
-module.exports = StreamPagination;
+module.exports = GroupEventsPagination;
