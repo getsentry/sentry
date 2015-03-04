@@ -21,7 +21,8 @@ from django.utils.crypto import constant_time_compare
 from django.utils.encoding import smart_str
 from gzip import GzipFile
 
-from sentry.app import cache, env
+from sentry.app import env
+from sentry.cache import default_cache
 from sentry.constants import (
     DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH)
@@ -415,5 +416,5 @@ def ensure_has_ip(data, ip_address):
 
 def insert_data_to_database(data):
     cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
-    cache.set(cache_key, data, timeout=3600)
+    default_cache.set(cache_key, data, timeout=3600)
     preprocess_event.delay(cache_key=cache_key)
