@@ -1,5 +1,6 @@
 /*** @jsx React.DOM */
 
+var $ = require("jquery");
 var React = require("react");
 var Router = require("react-router");
 
@@ -8,17 +9,19 @@ var Count = require("../components/count");
 var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
+var Pagination = require("../components/pagination");
 var PropTypes = require("../proptypes");
 
 var GroupTagValues = React.createClass({
-  mixins: [GroupState, Router.State],
+  mixins: [GroupState, Router.Navigation, Router.State],
 
   getInitialState() {
     return {
       tagKey: null,
       tagValueList: null,
       loading: true,
-      error: false
+      error: false,
+      pageLinks: ''
     };
   },
 
@@ -28,6 +31,8 @@ var GroupTagValues = React.createClass({
 
   fetchData() {
     var params = this.getParams();
+    var queryParams = this.getQuery();
+    var querystring = $.param(queryParams);
 
     this.setState({
       loading: true,
@@ -49,11 +54,12 @@ var GroupTagValues = React.createClass({
       }
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/' + this.getParams().tagKey + '/values/', {
-      success: (data) => {
+    api.request('/groups/' + this.getGroup().id + '/tags/' + this.getParams().tagKey + '/values/?' + querystring, {
+      success: (data, _, jqXHR) => {
         this.setState({
           tagValueList: data,
-          loading: this.state.tagKey === null
+          loading: this.state.tagKey === null,
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: (error) => {
@@ -63,6 +69,13 @@ var GroupTagValues = React.createClass({
         });
       }
     });
+  },
+
+  onPage(cursor) {
+    var queryParams = this.getQuery();
+    queryParams.cursor = cursor;
+
+    this.transitionTo('groupTagValues', this.getParams(), queryParams);
   },
 
   render() {
@@ -99,6 +112,8 @@ var GroupTagValues = React.createClass({
           <ul className="list-unstyled">
             {children}
           </ul>
+
+          <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
         </div>
       </div>
     );
