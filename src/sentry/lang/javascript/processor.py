@@ -234,23 +234,18 @@ def fetch_url(url, project=None, release=None):
                 headers=headers,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
-        except SuspiciousOperation as exc:
-            cache.set(domain_key, 1, 300)
-            logger.warning('Disabling sources to %s for %ss', domain, 300,
-                           exc_info=True)
-            raise CannotFetchSource(unicode(exc))
-        except RequestException as exc:
-            cache.set(domain_key, 1, 300)
-            logger.warning('Disabling sources to %s for %ss', domain, 300,
-                           exc_info=True)
-            raise CannotFetchSource(ERR_GENERIC_FETCH_FAILURE.format(
-                type=type(exc),
-            ))
         except Exception as exc:
             cache.set(domain_key, 1, 300)
-            logger.exception(unicode(exc))
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
+            if isinstance(exc, SuspiciousOperation):
+                raise CannotFetchSource(unicode(exc))
+            elif isinstance(exc, RequestException):
+                raise CannotFetchSource(ERR_GENERIC_FETCH_FAILURE.format(
+                    type=type(exc),
+                ))
+
+            logger.exception(unicode(exc))
             raise CannotFetchSource(ERR_UNKNOWN_INTERNAL_ERROR)
 
         if response.status_code != 200:
