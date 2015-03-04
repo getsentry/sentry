@@ -8,6 +8,7 @@ sentry.tasks.store
 
 from __future__ import absolute_import
 
+from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
 
@@ -16,11 +17,10 @@ from sentry.utils.safe import safe_execute
     name='sentry.tasks.store.preprocess_event',
     queue='events')
 def preprocess_event(cache_key=None, data=None, **kwargs):
-    from sentry.app import cache
     from sentry.plugins import plugins
 
     if cache_key:
-        data = cache.get(cache_key)
+        data = default_cache.get(cache_key)
 
     logger = preprocess_event.get_logger()
 
@@ -42,7 +42,7 @@ def preprocess_event(cache_key=None, data=None, **kwargs):
     assert data['project'] == project, 'Project cannot be mutated by preprocessor'
 
     if has_changed and cache_key:
-        cache.set(cache_key, data, 3600)
+        default_cache.set(cache_key, data, 3600)
 
     if cache_key:
         data = None
@@ -56,11 +56,10 @@ def save_event(cache_key=None, data=None, **kwargs):
     """
     Saves an event to the database.
     """
-    from sentry.app import cache
     from sentry.event_manager import EventManager
 
     if cache_key:
-        data = cache.get(cache_key)
+        data = default_cache.get(cache_key)
 
     if data is None:
         return
@@ -72,4 +71,4 @@ def save_event(cache_key=None, data=None, **kwargs):
         manager.save(project)
     finally:
         if cache_key:
-            cache.delete(cache_key)
+            default_cache.delete(cache_key)
