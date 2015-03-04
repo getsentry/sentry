@@ -2,10 +2,13 @@
 
 from __future__ import absolute_import
 
-from mock import patch
+import pytest
+import responses
+
+from requests.exceptions import RequestException
 
 from sentry.lang.javascript.processor import (
-    BAD_SOURCE, discover_sourcemap, fetch_sourcemap, fetch_url, generate_module,
+    BadSource, discover_sourcemap, fetch_sourcemap, fetch_url, generate_module,
     trim_line, UrlResult
 )
 from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
@@ -15,99 +18,57 @@ base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2V
 
 
 class FetchUrlTest(TestCase):
-    @patch('sentry.lang.javascript.processor.safe_urlopen')
-    @patch('sentry.lang.javascript.processor.safe_urlread')
-    def test_simple(self, safe_urlread, safe_urlopen):
-        safe_urlopen.return_value.headers = (('content-type', 'application/json'),)
-        safe_urlread.return_value = u'foo bar'
+    @responses.activate
+    def test_simple(self):
+        responses.add(responses.GET, 'http://example.com', body='foo bar',
+                      content_type='application/json')
 
         result = fetch_url('http://example.com')
 
-        safe_urlopen.assert_called_once_with(
-            'http://example.com', allow_redirects=True, timeout=5,
-            headers=[], verify_ssl=False)
-        safe_urlread.assert_called_once_with(safe_urlopen.return_value)
+        assert len(responses.calls) == 1
 
         assert result.url == 'http://example.com'
-        assert result.body == u'foo bar'
-        assert result.headers == {'content-type': 'application/json'}
+        assert result.body == 'foo bar'
+        assert result.headers == {'Content-Type': 'application/json'}
 
         # ensure we use the cached result
         result2 = fetch_url('http://example.com')
 
-        safe_urlopen.assert_called_once()
+        assert len(responses.calls) == 1
 
         assert result == result2
 
-    @patch('sentry.lang.javascript.processor.safe_urlopen')
-    @patch('sentry.lang.javascript.processor.safe_urlread')
-    def test_with_token(self, safe_urlread, safe_urlopen):
+    @responses.activate
+    def test_with_token(self):
+        responses.add(responses.GET, 'http://example.com', body='foo bar',
+                      content_type='application/json')
+
         self.project.update_option('sentry:token', 'foobar')
         self.project.update_option('sentry:origins', ['*'])
 
-        safe_urlopen.return_value.headers = (('content-type', 'application/json'),)
-        safe_urlread.return_value = u'foo bar'
-
         result = fetch_url('http://example.com', project=self.project)
 
-        safe_urlopen.assert_called_once_with(
-            'http://example.com', allow_redirects=True, timeout=5,
-            headers=[('X-Sentry-Token', 'foobar')], verify_ssl=False)
-        safe_urlread.assert_called_once_with(safe_urlopen.return_value)
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.headers['X-Sentry-Token'] == 'foobar'
 
         assert result.url == 'http://example.com'
-        assert result.body == u'foo bar'
-        assert result.headers == {'content-type': 'application/json'}
+        assert result.body == 'foo bar'
+        assert result.headers == {'Content-Type': 'application/json'}
 
-        # ensure we use the cached result
-        result2 = fetch_url('http://example.com')
+    @responses.activate
+    def test_connection_failure(self):
+        responses.add(responses.GET, 'http://example.com', body=RequestException())
 
-        safe_urlopen.assert_called_once()
+        with pytest.raises(BadSource):
+            result = fetch_url('http://example.com')
 
-        assert result == result2
-
-    @patch('sentry.lang.javascript.processor.safe_urlopen')
-    @patch('sentry.lang.javascript.processor.safe_urlread')
-    def test_connection_failure(self, safe_urlread, safe_urlopen):
-        safe_urlopen.side_effect = Exception()
-
-        result = fetch_url('http://example.com')
-
-        safe_urlopen.assert_called_once_with(
-            'http://example.com', allow_redirects=True, timeout=5,
-            headers=[], verify_ssl=False)
-        assert not safe_urlread.mock_calls
-
-        assert result == BAD_SOURCE
+        assert len(responses.calls) == 1
 
         # ensure we use the cached domain-wide failure for the second call
-        result = fetch_url('http://example.com/foo/bar')
+        with pytest.raises(BadSource):
+            result = fetch_url('http://example.com/foo/bar')
 
-        safe_urlopen.assert_called_once()
-
-        assert result == BAD_SOURCE
-
-    @patch('sentry.lang.javascript.processor.safe_urlopen')
-    @patch('sentry.lang.javascript.processor.safe_urlread')
-    def test_read_failure(self, safe_urlread, safe_urlopen):
-        safe_urlopen.return_value.headers = (('content-type', 'application/json'),)
-        safe_urlread.side_effect = Exception()
-
-        result = fetch_url('http://example.com')
-
-        safe_urlopen.assert_called_once_with(
-            'http://example.com', allow_redirects=True, timeout=5,
-            headers=[], verify_ssl=False)
-        safe_urlread.assert_called_once_with(safe_urlopen.return_value)
-
-        assert result == BAD_SOURCE
-
-        # ensure we use the cached failure for the second call
-        result = fetch_url('http://example.com')
-
-        safe_urlopen.assert_called_once()
-
-        assert result == BAD_SOURCE
+        assert len(responses.calls) == 1
 
 
 class DiscoverSourcemapTest(TestCase):
