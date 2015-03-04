@@ -10,12 +10,12 @@ import base64
 from django.conf import settings
 from collections import namedtuple
 from os.path import splitext
+from requests.exceptions import RequestException
 from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
-from urllib2 import HTTPError
 
+from sentry import http
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.http import safe_urlopen, safe_urlread
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import Project, Release, ReleaseFile
 from sentry.utils.cache import cache
@@ -26,7 +26,6 @@ from .cache import SourceCache, SourceMapCache
 from .sourcemaps import sourcemap_to_index, find_source
 
 
-BAD_SOURCE = -1
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
@@ -50,6 +49,18 @@ MAX_RESOURCE_FETCHES = 100
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
 logger = logging.getLogger(__name__)
+
+
+class BadSource(Exception):
+    pass
+
+
+class DomainBlacklisted(BadSource):
+    pass
+
+
+class CannotFetchSource(BadSource):
+    pass
 
 
 def trim_line(line, column=0):
@@ -190,43 +201,38 @@ def fetch_url(url, project=None, release=None):
         domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
         domain_result = cache.get(domain_key)
         if domain_result:
-            return BAD_SOURCE
+            raise DomainBlacklisted
 
-        headers = []
+        headers = {}
         if project and is_valid_origin(url, project=project):
             token = project.get_option('sentry:token')
             if token:
-                headers.append(('X-Sentry-Token', token))
+                headers['X-Sentry-Token'] = token
+
+        http_session = http.build_session()
 
         try:
-            request = safe_urlopen(
+            response = http_session.get(
                 url,
                 allow_redirects=True,
-                verify_ssl=False,
+                verify=False,
                 headers=headers,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
-        except HTTPError:
-            result = BAD_SOURCE
-        except Exception:
-            # it's likely we've failed due to a timeout, dns, etc so let's
-            # ensure we can't cascade the failure by pinning this for 5 minutes
+        except RequestException as exc:
             cache.set(domain_key, 1, 300)
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
-            return BAD_SOURCE
-        else:
-            try:
-                body = safe_urlread(request)
-            except Exception:
-                result = BAD_SOURCE
-            else:
-                result = (dict(request.headers), body)
+            raise CannotFetchSource('A {} error was hit while fetching the source'.format(type(exc)))
 
+        if response.status_code != 200:
+            cache.set(domain_key, 1, 300)
+            logger.warning('Disabling sources to %s for %ss (due to HTTP %s)',
+                          domain, 300, response.status_code)
+            raise CannotFetchSource('Received HTTP {} response'.format(response.status_code))
+
+        result = (dict(response.headers), response.content)
         cache.set(cache_key, result, 60)
-
-    if result == BAD_SOURCE:
-        return result
 
     return UrlResult(url, *result)
 
@@ -236,9 +242,6 @@ def fetch_sourcemap(url, project=None, release=None):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
         result = fetch_url(url, project=project, release=release)
-        if result == BAD_SOURCE:
-            return
-
         body = result.body
 
     # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
@@ -246,12 +249,8 @@ def fetch_sourcemap(url, project=None, release=None):
     # If the file starts with that string, ignore the entire first line.
     if body.startswith(")]}'"):
         body = body.split('\n', 1)[1]
-    try:
-        index = sourcemap_to_index(body)
-    except (JSONDecodeError, ValueError):
-        return
-    else:
-        return index
+
+    return sourcemap_to_index(body)
 
 
 def is_data_uri(url):
@@ -461,11 +460,10 @@ class SourceProcessor(object):
 
             # TODO: respect cache-control/max-age headers to some extent
             logger.debug('Fetching remote source %r', filename)
-            result = fetch_url(filename, project=project, release=release)
-
-            if result == BAD_SOURCE:
-                # TODO(dcramer): we want better errors here
-                cache.add_error(filename, 'File was unreachable or invalid')
+            try:
+                result = fetch_url(filename, project=project, release=release)
+            except BadSource as exc:
+                cache.add_error(filename, unicode(exc))
                 continue
 
             cache.add(filename, result.body.splitlines())
@@ -487,12 +485,16 @@ class SourceProcessor(object):
                 continue
 
             # pull down sourcemap
-            sourcemap_idx = fetch_sourcemap(
-                sourcemap_url,
-                project=project,
-                release=release,
-            )
-            if not sourcemap_idx:
+            try:
+                sourcemap_idx = fetch_sourcemap(
+                    sourcemap_url,
+                    project=project,
+                    release=release,
+                )
+            except BadSource as exc:
+                cache.add_error(filename, unicode(exc))
+                continue
+            except (JSONDecodeError, ValueError):
                 cache.add_error(filename, 'Sourcemap was not parseable')
                 continue
 
