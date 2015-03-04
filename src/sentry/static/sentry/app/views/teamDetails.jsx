@@ -7,8 +7,9 @@ var Router = require("react-router");
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
-var PropTypes = require("../proptypes");
 var OrganizationState = require("../mixins/organizationState");
+var PropTypes = require("../proptypes");
+var RouteMixin = require("../mixins/routeMixin");
 
 var TeamDetails = React.createClass({
   mixins: [
@@ -36,6 +37,21 @@ var TeamDetails = React.createClass({
   },
 
   componentWillMount() {
+    this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.fetchData();
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state.team === null || nextState.team === null) {
+      return true;
+    }
+    return this.state.team.id !== nextState.team.id;
+  },
+
+  fetchData() {
     api.request(this.getTeamDetailsEndpoint(), {
       success: (data) => {
         this.setState({

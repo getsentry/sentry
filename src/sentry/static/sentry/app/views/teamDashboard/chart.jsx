@@ -22,7 +22,9 @@ var TeamChart = React.createClass({
   getStatsEndpoint() {
     var org = this.getOrganization();
     var team = this.getTeam();
-    return "/teams/" + org.slug + "/" + team.slug + "/stats/";
+    if (org && team) {
+      return "/teams/" + org.slug + "/" + team.slug + "/stats/";
+    }
   },
 
   componentWillMount() {
@@ -30,7 +32,12 @@ var TeamChart = React.createClass({
   },
 
   fetchData() {
-    api.request(this.getStatsEndpoint(), {
+    var endpoint = this.getStatsEndpoint();
+    if (!endpoint) {
+      return;
+    }
+
+    api.request(endpoint, {
       query: {
         since: (new Date().getTime() / 1000) - (3600 * 24 * 7)
       },

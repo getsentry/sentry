@@ -4,7 +4,7 @@ var PropTypes = require("../proptypes");
 
 var OrganizationState = {
   contextTypes: {
-    organization: PropTypes.Organization.isRequired,
+    organization: PropTypes.Organization,
   },
 
   getOrganization() {

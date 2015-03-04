@@ -8,7 +8,10 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
+var OrganizationHeader = require("../components/organizationHeader");
 var OrganizationState = require("../mixins/organizationState");
+var OrganizationSidebar = require("../components/organizationSidebar");
+var RouteMixin = require("../mixins/routeMixin");
 
 var OrganizationDetails = React.createClass({
   mixins: [
@@ -18,6 +21,8 @@ var OrganizationDetails = React.createClass({
 
   getInitialState() {
     return {
+      loading: false,
+      error: false,
       organization: null
     };
   },
@@ -33,10 +38,19 @@ var OrganizationDetails = React.createClass({
   },
 
   componentWillMount() {
+    this.fetchData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.fetchData();
+  },
+
+  fetchData() {
     api.request(this.getOrganizationDetailsEndpoint(), {
       success: (data) => {
         this.setState({
-          organization: data
+          organization: data,
+          loading: false
         });
 
         this.setBreadcrumbs([
@@ -52,10 +66,22 @@ var OrganizationDetails = React.createClass({
   },
 
   render() {
-    if (!this.state.organization) {
+    if (this.state.loading) {
       return <LoadingIndicator />;
     }
-    return <Router.RouteHandler />;
+    return (
+      <div>
+        <OrganizationSidebar />
+        <div className="app">
+          <OrganizationHeader />
+          <div className="container">
+            <div className="content">
+              <Router.RouteHandler />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 });
 
