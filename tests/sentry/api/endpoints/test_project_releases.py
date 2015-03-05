@@ -7,7 +7,7 @@ from sentry.models import Release
 from sentry.testutils import APITestCase
 
 
-class ProjectReleasesTest(APITestCase):
+class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -39,3 +39,25 @@ class ProjectReleasesTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]['id'] == str(release2.id)
         assert response.data[1]['id'] == str(release1.id)
+
+
+class ProjectReleaseCreateTest(APITestCase):
+    def test_simple(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team(owner=self.user)
+        project = self.create_project(team=team, name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'project_id': project.id,
+        })
+        response = self.client.post(url, data={
+            'version': 'abcdef',
+        })
+
+        assert response.status_code == 201, response.content
+        assert response.data['id']
+
+        release = Release.objects.get(id=response.data['id'])
+        assert release.version == 'abcdef'
+        assert release.project == project
