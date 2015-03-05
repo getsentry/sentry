@@ -22,13 +22,11 @@ var TeamDetails = React.createClass({
   crumbReservations: 1,
 
   childContextTypes: {
-    organization: PropTypes.Organization,
     team: PropTypes.Team
   },
 
   getChildContext() {
     return {
-      organization: this.getOrganization(),
       team: this.state.team
     };
   },
@@ -50,22 +48,26 @@ var TeamDetails = React.createClass({
   },
 
   fetchData() {
-    api.request(this.getTeamDetailsEndpoint(), {
-      success: (data) => {
-        this.setState({
-          team: data
-        });
+    var org = this.getOrganization();
+    if (!org) {
+      return;
+    }
 
-        this.setBreadcrumbs([
-          {name: data.name, to: 'teamDetails'}
-        ]);
-      }
+    var teamSlug = this.getParams().teamId;
+    var team = org.teams.filter((team) => {
+      return team.slug === teamSlug;
+    })[0];
+
+    this.setState({
+      team: team,
+      loading: false,
+      error: typeof team !== "undefined"
     });
-  },
-
-  getTeamDetailsEndpoint() {
-    var params = this.getParams();
-    return '/teams/' + params.orgId + '/' + params.teamId + '/';
+    if (typeof team !== "undefined") {
+      this.setBreadcrumbs([
+        {name: team.name, to: "teamDetails"}
+      ]);
+    }
   },
 
   render() {
