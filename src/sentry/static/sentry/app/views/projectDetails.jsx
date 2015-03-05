@@ -44,13 +44,18 @@ var ProjectDetails = React.createClass({
       team: null
     };
   },
+
   componentWillMount() {
     this.fetchData();
   },
 
-  routeDidChange(nextProps) {
-    this.fetchData();
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.projectId != this.getParams().projectId ||
+        nextParams.orgId != this.getParams().orgId) {
+      this.fetchData();
+    }
   },
+
 
   fetchData() {
     // TODO(dcramer): we could read some of this info from contexts

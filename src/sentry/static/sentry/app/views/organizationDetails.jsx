@@ -16,6 +16,7 @@ var RouteMixin = require("../mixins/routeMixin");
 var OrganizationDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
+    RouteMixin,
     Router.State
   ],
 
@@ -43,8 +44,10 @@ var OrganizationDetails = React.createClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps(nextProps) {
-    this.fetchData();
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.orgId != this.getParams().orgId) {
+      this.fetchData();
+    }
   },
 
   fetchData() {

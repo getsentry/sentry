@@ -43,15 +43,10 @@ var TeamDetails = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(nextProps) {
-    this.fetchData();
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    if (this.state.team === null || nextState.team === null) {
-      return true;
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.teamId != this.getParams().teamId) {
+      this.fetchData();
     }
-    return this.state.team.id !== nextState.team.id;
   },
 
   fetchData() {
