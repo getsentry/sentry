@@ -1,9 +1,16 @@
 from __future__ import absolute_import
 
+from rest_framework import serializers
+from rest_framework.response import Response
+
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Release
+
+
+class ReleaseSerializer(serializers.Serializer):
+    version = serializers.CharField(max_length=200, required=True)
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
@@ -28,3 +35,28 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             order_by='-id',
             on_results=lambda x: serialize(x, request.user),
         )
+
+    def post(self, request, project):
+        """
+        Create a new release
+
+        Create a new release for the given project.
+
+            {method} {path}
+            {{
+                "version": "abcdef"
+            }}
+
+        """
+        serializer = ReleaseSerializer(data=request.DATA)
+
+        if serializer.is_valid():
+            result = serializer.object
+
+            release = Release.objects.create(
+                version=result['version'],
+                project=project,
+            )
+
+            return Response(serialize(release, request.user), status=201)
+        return Response(serializer.errors, status=400)
