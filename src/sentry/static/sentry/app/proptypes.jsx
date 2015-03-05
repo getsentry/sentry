@@ -17,6 +17,9 @@ var PropTypes = {
   Project: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
   }),
+  TagKey: React.PropTypes.shape({
+    key: React.PropTypes.string.isRequired
+  }),
   Team: React.PropTypes.shape({
     id: React.PropTypes.string.isRequired
   }),

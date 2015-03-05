@@ -1,13 +1,10 @@
 Sentry
 ======
 
-Sentry is a realtime event logging and aggregation platform. At its core it
-specializes in monitoring errors and extracting all the information needed
-to do a proper post-mortem without any of the hassle of the standard user
-feedback loop.
+Sentry is a modern error logging and aggregation platform.
 
 It's important to note that Sentry should not be thought of as a log stream,
-but as an event aggregator. It fits somewhere in-between a simple metrics
+but as an aggregator. It fits somewhere in-between a simple metrics
 solution (such as `Graphite <http://graphite.wikidot.com/>`_) and a full-on
 log stream aggregator (like `Logstash <http://logstash.net/>`_).
 
@@ -27,6 +24,7 @@ Users Guide
    throttling/index
    tsdb/index
    inbound-mail/index
+   beacon
    performance/index
    cli/index
    client/index

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+
 from datetime import datetime, timedelta
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -14,30 +16,38 @@ from rest_framework.views import APIView
 from sentry.app import tsdb
 from sentry.utils.cursors import Cursor
 
-from .authentication import KeyAuthentication
+from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
 from .paginator import Paginator
+from .permissions import NoPermission
 
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"'
+LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+
+DEFAULT_AUTHENTICATION = (
+    ApiKeyAuthentication,
+    ProjectKeyAuthentication,
+    SessionAuthentication
+)
 
 
 class DocSection(Enum):
     ACCOUNTS = 'Accounts'
     EVENTS = 'Events'
-    RELEASES = 'Releases'
     ORGANIZATIONS = 'Organizations'
     PROJECTS = 'Projects'
+    RELEASES = 'Releases'
     TEAMS = 'Teams'
 
 
 class Endpoint(APIView):
-    authentication_classes = (KeyAuthentication, SessionAuthentication)
+    authentication_classes = DEFAULT_AUTHENTICATION
     renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
+    permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):
         querystring = u'&'.join(
@@ -95,7 +105,8 @@ class Endpoint(APIView):
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
 
-    def paginate(self, request, on_results=lambda x: x, **kwargs):
+    def paginate(self, request, on_results=None, paginator_cls=Paginator,
+                 **kwargs):
         per_page = int(request.GET.get('per_page', 100))
         input_cursor = request.GET.get('cursor')
         if input_cursor:
@@ -103,14 +114,15 @@ class Endpoint(APIView):
 
         assert per_page <= 100
 
-        paginator = Paginator(**kwargs)
+        paginator = paginator_cls(**kwargs)
         cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,
         )
 
         # map results based on callback
-        results = on_results(cursor_result.results)
+        if on_results:
+            results = on_results(cursor_result.results)
 
         headers = {}
         headers['Link'] = ', '.join([
@@ -121,7 +133,7 @@ class Endpoint(APIView):
         return Response(results, headers=headers)
 
 
-class BaseStatsEndpoint(Endpoint):
+class StatsMixin(object):
     def _parse_args(self, request):
         resolution = request.GET.get('resolution')
         if resolution:

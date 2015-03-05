@@ -40,7 +40,7 @@ var GroupActivity = React.createClass({
       var label = ACTIVITY_ACTION_STRINGS[item.type];
 
       return (
-        <li className="activity-item">
+        <li className="activity-item" key={itemIdx}>
           {avatar}
           <TimeSince date={item.dateCreated} />
           <strong>{authorName}</strong> {label}

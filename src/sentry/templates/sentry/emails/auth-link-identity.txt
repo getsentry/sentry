@@ -1,0 +1,6 @@
+SSO has been configured for the {{ organization_name }} organization.
+
+We'll need you to link your existing account with the SSO provider by visiting the following url:
+
+    {{ url }}
+

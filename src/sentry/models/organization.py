@@ -103,6 +103,13 @@ class Organization(Model):
             slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
         super(Organization, self).save(*args, **kwargs)
 
+    def has_access(self, user, access=None):
+        queryset = self.member_set.filter(user=user)
+        if access is not None:
+            queryset = queryset.filter(type__lte=access)
+
+        return queryset.exists()
+
     def get_audit_log_data(self):
         return {
             'slug': self.slug,

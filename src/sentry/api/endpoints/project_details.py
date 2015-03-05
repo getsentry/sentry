@@ -6,9 +6,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Project, ProjectStatus
 )
@@ -33,8 +31,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        assert_perm(project, request.user, request.auth)
-
         data = serialize(project, request.user)
         data['options'] = {
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', None) or []),
@@ -63,8 +59,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             }}
 
         """
-        assert_perm(project, request.user, request.auth, access=MEMBER_ADMIN)
-
         serializer = ProjectSerializer(project, data=request.DATA, partial=True)
 
         if serializer.is_valid():

@@ -9,11 +9,11 @@ var GroupActions = require("../actions/groupActions");
 var GroupListStore = require("../stores/groupStore");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
+var Pagination = require("../components/pagination");
 var RouteMixin = require("../mixins/routeMixin");
 var StreamGroup = require('./stream/group');
 var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
-var StreamPagination = require('./stream/pagination');
 var utils = require("../utils");
 
 // TODO(dcramer): the poller/collection needs to actually unshift/pop
@@ -67,8 +67,9 @@ StreamPoller.prototype.poll = function() {
 var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupListStore, "onAggListChange"),
+    RouteMixin,
+    Router.Navigation,
     Router.State,
-    RouteMixin
   ],
 
   propTypes: {
@@ -106,7 +107,7 @@ var Stream = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(nextProps) {
+  routeDidChange() {
     this.fetchData();
   },
 
@@ -161,21 +162,32 @@ var Stream = React.createClass({
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
   },
+
   handleRealtimeChange(event) {
     this.setState({
       realtimeActive: !this.state.realtimeActive
     });
   },
+
   handleSelectStatsPeriod(period) {
     this.setState({
       statsPeriod: period
     });
   },
+
   handleRealtimePoll(data) {
     this.setState({
       groupList: this.state.groupList.unshift(data)
     });
   },
+
+  onPage(cursor) {
+    var queryParams = this.getQuery();
+    queryParams.cursor = cursor;
+
+    this.transitionTo('stream', this.getParams(), queryParams);
+  },
+
   render() {
     var groupNodes = this.state.groupList.map((node) => {
       return <StreamGroup
@@ -213,9 +225,8 @@ var Stream = React.createClass({
             {groupNodes}
           </ul>
         )}
-        <StreamPagination
-          groupList={this.state.groupList}
-          pageLinks={this.state.pageLinks} />
+
+        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
   }

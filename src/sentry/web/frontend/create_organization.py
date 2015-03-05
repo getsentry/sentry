@@ -5,10 +5,10 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Organization
 )
-from sentry.permissions import can_create_organizations
 from sentry.web.frontend.base import BaseView
 
 
@@ -26,9 +26,7 @@ class CreateOrganizationView(BaseView):
         return NewOrganizationForm(request.POST or None)
 
     def has_permission(self, request):
-        if not can_create_organizations(request.user):
-            return False
-        return True
+        return features.has('organizations:create', actor=request.user)
 
     def handle(self, request):
         form = self.get_form(request)

@@ -1,15 +1,21 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Router = require("react-router");
 
 var api = require("../../api");
 var BarChart = require("../../components/barChart");
 var LoadingError = require("../../components/loadingError");
 var LoadingIndicator = require("../../components/loadingIndicator");
+var RouteMixin = require("../../mixins/routeMixin");
 var TeamState = require("../../mixins/teamState");
 
 var TeamChart = React.createClass({
-  mixins: [TeamState],
+  mixins: [
+    RouteMixin,
+    Router.State,
+    TeamState,
+  ],
 
   getInitialState() {
     return {
@@ -22,15 +28,33 @@ var TeamChart = React.createClass({
   getStatsEndpoint() {
     var org = this.getOrganization();
     var team = this.getTeam();
-    return "/teams/" + org.slug + "/" + team.slug + "/stats/";
+    if (org && team) {
+      return "/teams/" + org.slug + "/" + team.slug + "/stats/";
+    }
   },
 
   componentWillMount() {
     this.fetchData();
   },
 
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.teamId != this.getParams().teamId) {
+      this.fetchData();
+    }
+  },
+
   fetchData() {
-    api.request(this.getStatsEndpoint(), {
+    var endpoint = this.getStatsEndpoint();
+    if (!endpoint) {
+      return;
+    }
+
+    this.setState({
+      error: false,
+      loading: true
+    });
+
+    api.request(endpoint, {
       query: {
         since: (new Date().getTime() / 1000) - (3600 * 24 * 7)
       },

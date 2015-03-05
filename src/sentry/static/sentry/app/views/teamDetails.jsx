@@ -7,14 +7,29 @@ var Router = require("react-router");
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
+var OrganizationState = require("../mixins/organizationState");
 var PropTypes = require("../proptypes");
-var TeamState = require("../mixins/teamState");
+var RouteMixin = require("../mixins/routeMixin");
 
-var TeamDashboard = React.createClass({
+var TeamDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
+    OrganizationState,
+    RouteMixin,
     Router.State
   ],
+
+  crumbReservations: 1,
+
+  childContextTypes: {
+    team: PropTypes.Team
+  },
+
+  getChildContext() {
+    return {
+      team: this.state.team
+    };
+  },
 
   getInitialState() {
     return {
@@ -22,36 +37,37 @@ var TeamDashboard = React.createClass({
     };
   },
 
-  childContextTypes: {
-    organization: PropTypes.Organization,
-    team: PropTypes.Team
-  },
-
-  getChildContext() {
-    return {
-      organization: this.state.organization,
-      team: this.state.team
-    };
-  },
-
   componentWillMount() {
-    api.request(this.getTeamDetailsEndpoint(), {
-      success: (data) => {
-        this.setState({
-          organization: data.organization,
-          team: data
-        });
-
-        this.setBreadcrumbs([
-          {name: data.name, to: 'teamDetails'}
-        ]);
-      }
-    });
+    this.fetchData();
   },
 
-  getTeamDetailsEndpoint() {
-    var params = this.getParams();
-    return '/teams/' + params.orgId + '/' + params.teamId + '/';
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.teamId != this.getParams().teamId) {
+      this.fetchData();
+    }
+  },
+
+  fetchData() {
+    var org = this.getOrganization();
+    if (!org) {
+      return;
+    }
+
+    var teamSlug = this.getParams().teamId;
+    var team = org.teams.filter((team) => {
+      return team.slug === teamSlug;
+    })[0];
+
+    this.setState({
+      team: team,
+      loading: false,
+      error: typeof team !== "undefined"
+    });
+    if (typeof team !== "undefined") {
+      this.setBreadcrumbs([
+        {name: team.name, to: "teamDetails"}
+      ]);
+    }
   },
 
   render() {
@@ -62,4 +78,4 @@ var TeamDashboard = React.createClass({
   }
 });
 
-module.exports = TeamDashboard;
+module.exports = TeamDetails;

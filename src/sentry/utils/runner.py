@@ -53,6 +53,17 @@ SENTRY_USE_BIG_INTS = True
 # If you're expecting any kind of real traffic on Sentry, we highly recommend
 # configuring the CACHES and Redis settings
 
+#############
+## General ##
+#############
+
+# The administrative email for this installation.
+# Note: This will be reported back to getsentry.com as the point of contact. See
+# the beacon documentation for more information.
+
+# SENTRY_ADMIN_EMAIL = 'your.name@example.com'
+SENTRY_ADMIN_EMAIL = ''
+
 ###########
 ## Redis ##
 ###########
@@ -155,16 +166,14 @@ SENTRY_FILESTORE_OPTIONS = {
 SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
 
 # If you're using a reverse proxy, you should enable the X-Forwarded-Proto
-# and X-Forwarded-Host headers, and uncomment the following settings
+# header and uncomment the following settings
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-# USE_X_FORWARDED_HOST = True
 
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {
-    'workers': 3,  # the number of gunicorn workers
-    'limit_request_line': 0,  # required for raven-js
-    'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
+    # 'workers': 3,  # the number of gunicorn workers
+    # 'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
 }
 
 #################
@@ -328,6 +337,13 @@ def apply_legacy_settings(config):
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
+    if not settings.SENTRY_ADMIN_EMAIL:
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! SENTRY_ADMIN_EMAIL is not configured !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
+
     if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:
         # Maybe also point to a piece of documentation for more information?
         # This directly coincides with users getting the awkward
@@ -347,9 +363,13 @@ def apply_legacy_settings(config):
         if urlbits.hostname:
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
-    if not settings.SERVER_EMAIL and hasattr(settings, 'SENTRY_SERVER_EMAIL'):
-        warnings.warn('SENTRY_SERVER_EMAIL is deprecated. Please use SERVER_EMAIL instead.', DeprecationWarning)
-        settings.SERVER_EMAIL = settings.SENTRY_SERVER_EMAIL
+    if hasattr(settings, 'SENTRY_ALLOW_REGISTRATION'):
+        warnings.warn('SENTRY_ALLOW_REGISTRATION is deprecated. Use SENTRY_FEATURES instead.', DeprecationWarning)
+        settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
+
+    if hasattr(settings, 'SOCIAL_AUTH_CREATE_USERS'):
+        warnings.warn('SOCIAL_AUTH_CREATE_USERS is deprecated. Use SENTRY_FEATURES instead.', DeprecationWarning)
+        settings.SENTRY_FEATURES['social-auth:register'] = settings.SOCIAL_AUTH_CREATE_USERS
 
 
 def skip_migration_if_applied(settings, app_name, table_name,

@@ -21,7 +21,7 @@ from sentry.api.serializers.base import serialize
 from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Project, Team, ProjectOption
 
-logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry')
 
 
 def group_is_public(group, user):
@@ -196,8 +196,9 @@ def plugin_config(plugin, project, request):
                 if hasattr(exc, 'read') and callable(exc.read):
                     test_results = '%s\n%s' % (exc, exc.read())
                 else:
-                    test_results = exc
-            if test_results is None:
+                    logging.exception('Plugin(%s) raised an error during test', plugin_key)
+                    test_results = 'There was an internal error with the Plugin'
+            if not test_results:
                 test_results = 'No errors returned'
         else:
             for field, value in form.cleaned_data.iteritems():

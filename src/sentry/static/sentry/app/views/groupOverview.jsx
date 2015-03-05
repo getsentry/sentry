@@ -53,15 +53,6 @@ var GroupOverview = React.createClass({
     this.fetchData();
   },
 
-  componentDidMount() {
-    api.bulkUpdate({
-      orgId: this.getOrganization().slug,
-      projectId: this.getProject().slug,
-      itemIds: [this.getGroup().id],
-      data: {hasSeen: true}
-    });
-  },
-
   routeDidChange(prevPath) {
     this.fetchData();
   },
@@ -84,6 +75,14 @@ var GroupOverview = React.createClass({
           event: data,
           error: false,
           loading: false
+        });
+
+        api.bulkUpdate({
+          orgId: this.getOrganization().slug,
+          projectId: this.getProject().slug,
+          itemIds: [this.getGroup().id],
+          failSilently: true,
+          data: {hasSeen: true}
         });
       },
       error: () => {

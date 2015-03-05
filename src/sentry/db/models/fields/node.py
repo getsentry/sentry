@@ -25,7 +25,7 @@ from .gzippeddict import GzippedDictField
 
 __all__ = ('NodeField',)
 
-logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry')
 
 
 class NodeData(collections.MutableMapping):

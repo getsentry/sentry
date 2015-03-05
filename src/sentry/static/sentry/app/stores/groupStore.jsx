@@ -193,12 +193,14 @@ var GroupListStore = Reflux.createStore({
     this.trigger();
   },
 
-  onUpdateError(changeId, itemIds, error) {
+  onUpdateError(changeId, itemIds, error, failSilently) {
     this.pendingChanges.remove(changeId);
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'update');
     });
-    AlertActions.addAlert(ERR_UPDATE, 'error');
+    if (failSilently) {
+      AlertActions.addAlert(ERR_UPDATE, 'error');
+    }
     this.trigger();
   },
 

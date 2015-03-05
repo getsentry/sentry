@@ -5,11 +5,8 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Team
-)
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team
 from sentry.permissions import can_create_teams
 
 
@@ -30,8 +27,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             {method} {path}
 
         """
-        assert_perm(organization, request.user, request.auth)
-
         if request.auth:
             teams = [request.auth.project.team]
             if teams[0].organization != organization:
@@ -55,8 +50,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             }}
 
         """
-        assert_perm(organization, request.user, request.auth, OrganizationMemberType.ADMIN)
-
         if not can_create_teams(request.user, organization):
             return Response(status=403)
 

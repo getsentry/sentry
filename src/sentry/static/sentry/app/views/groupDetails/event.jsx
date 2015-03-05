@@ -34,34 +34,41 @@ var GroupEvent = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
-  // TODO(dcramer): figure out how we make this extensible
+  // TODO(dcramer): make this extensible
   interfaces: {
     exception: require("./interfaces/exception"),
-    request: require("./interfaces/request")
+    request: require("./interfaces/request"),
+    stacktrace: require("./interfaces/stacktrace")
   },
 
   render(){
     var group = this.getGroup();
     var evt = this.props.event;
 
-    var entries = [];
-    evt.entries.forEach((entry, entryIdx) => {
+    var entries = evt.entries.map((entry, entryIdx) => {
       try {
         var Component = this.interfaces[entry.type];
         if (!Component) {
           throw new Error('Unregistered interface: ' + entry.type);
 
         }
-        entries.push(
-          <Component
-              key={"entry-" + entryIdx}
-              group={group}
-              event={evt}
-              data={entry.data} />
-        );
+        return <Component
+                  key={"entry-" + entryIdx}
+                  group={group}
+                  event={evt}
+                  type={entry.type}
+                  data={entry.data} />;
       } catch (ex) {
         // TODO(dcramer): this should log to Sentry
-        console.error(ex);
+        return (
+          <GroupEventDataSection
+              group={group}
+              event={evt}
+              type={entry.type}
+              title={entry.type}>
+            <p>There was an error rendering this data.</p>
+          </GroupEventDataSection>
+        );
       }
     });
 
