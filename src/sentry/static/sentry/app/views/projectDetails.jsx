@@ -80,6 +80,12 @@ var ProjectDetails = React.createClass({
     });
 
     if (typeof activeProject !== "undefined") {
+      api.request(this.getMemberListEndpoint(), {
+        success: (data) => {
+          MemberListStore.loadInitialData(data);
+        }
+      });
+
       this.setBreadcrumbs([
         {name: activeTeam.name, to: "teamDetails", params: {
           orgId: org.slug,
