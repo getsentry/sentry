@@ -3,6 +3,7 @@
 var React = require("react");
 
 var AppState = require("../mixins/appState");
+var ListLink = require("./listLink");
 var OrganizationState = require("../mixins/organizationState");
 
 var OrganizationSelector = React.createClass({
@@ -71,15 +72,12 @@ var OrganizationSidebar = React.createClass({
                       projectId: project.slug
                     };
                     return (
-                      <li key={project.slug}>
-                        <strong>
-                          <Router.Link
-                              to="projectDetails"
-                              params={routeParams}>
-                            {project.name}
-                          </Router.Link>
-                        </strong>
-                      </li>
+                      <ListLink
+                          to="projectDetails"
+                          params={routeParams}
+                          key={project.slug}>
+                        {project.name}
+                      </ListLink>
                     );
                   })}
                 </ul>
