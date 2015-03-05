@@ -93,8 +93,10 @@ var EventList = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange() {
-    this.fetchData();
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.teamId != this.getParams().teamId) {
+      this.fetchData();
+    }
   },
 
   componentDidUpdate(_, prevState) {
