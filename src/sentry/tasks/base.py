@@ -8,18 +8,19 @@ sentry.tasks.base
 from __future__ import absolute_import
 
 from celery.task import current, task
-from django_statsd.clients import statsd
 from functools import wraps
+
+from sentry.utils import metrics
 
 
 def instrumented_task(name, stat_suffix=None, **kwargs):
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            statsd_key = 'jobs.duration.{name}'.format(name=name)
+            key = 'jobs.duration.{name}'.format(name=name)
             if stat_suffix:
-                statsd_key += '.{key}'.format(key=stat_suffix(*args, **kwargs))
-            with statsd.timer(statsd_key):
+                key += '.{key}'.format(key=stat_suffix(*args, **kwargs))
+            with metrics.timer(key):
                 result = func(*args, **kwargs)
             return result
         return task(name=name, **kwargs)(_wrapped)

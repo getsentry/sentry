@@ -14,7 +14,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from threading import local
 
+from sentry.auth import access
 from sentry.plugins.base.response import Response
+from sentry.plugins.base.view import PluggableViewMixin
 
 
 class PluginMount(type):
@@ -29,7 +31,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin(local):
+class IPlugin(local, PluggableViewMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -174,28 +176,6 @@ class IPlugin(local):
     def get_form_initial(self, project=None):
         return {}
 
-    # Response methods
-
-    def redirect(self, url):
-        """
-        Returns a redirect response type.
-        """
-        return HttpResponseRedirect(url)
-
-    def render(self, template, context=None):
-        """
-        Given a template name, and an optional context (dictionary), returns a
-        ready-to-render response.
-
-        Default context includes the plugin instance.
-
-        >>> plugin.render('template.html', {'hello': 'world'})
-        """
-        if context is None:
-            context = {}
-        context['plugin'] = self
-        return Response(template, context)
-
     # The following methods are specific to web requests
 
     def get_title(self):
@@ -230,7 +210,6 @@ class IPlugin(local):
 
     def get_view_response(self, request, group):
         from sentry.models import Event
-        from sentry.permissions import can_admin_group, can_remove_group
 
         self.selected = request.path == self.get_url(group)
 
@@ -251,13 +230,15 @@ class IPlugin(local):
         event = group.get_latest_event() or Event()
         event.group = group
 
+        request.access = access.for_user(request.user, group.organization)
+
         return response.respond(request, {
             'plugin': self,
             'project': group.project,
             'group': group,
             'event': event,
-            'can_admin_event': can_admin_group(request.user, group),
-            'can_remove_event': can_remove_group(request.user, group),
+            'can_admin_event': request.access.has_scope('event:write'),
+            'can_remove_event': request.access.has_scope('event:delete'),
         })
 
     def view(self, request, group, **kwargs):

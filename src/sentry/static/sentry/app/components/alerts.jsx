@@ -8,13 +8,13 @@ var AlertStore = require('../stores/alertStore');
 var Alerts = React.createClass({
   mixins: [Reflux.connect(AlertStore, "alerts")],
 
-  getInitialState: function() {
+  getInitialState() {
       return {
           alerts: []
       };
   },
 
-  render: function() {
+  render() {
     return (
       <div {...this.props}>
         {this.state.alerts.map(function(alert, key) {
@@ -24,6 +24,5 @@ var Alerts = React.createClass({
     );
   }
 });
-
 
 module.exports = Alerts;

@@ -245,10 +245,12 @@ INSTALLED_APPS = (
     'sentry',
     'sentry.nodestore',
     'sentry.search',
+    'sentry.lang.javascript',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
     'sentry.plugins.sentry_useragents',
+    'sentry.plugins.sentry_webhooks',
     'social_auth',
     'south',
     'sudo',
@@ -277,7 +279,7 @@ try:
     from django.core.urlresolvers import reverse_lazy
 except ImportError:
     LOGIN_REDIRECT_URL = '/login-redirect/'
-    LOGIN_URL = '/login/'
+    LOGIN_URL = '/auth/login/'
 else:
     LOGIN_REDIRECT_URL = reverse_lazy('sentry-login-redirect')
     LOGIN_URL = reverse_lazy('sentry-login')
@@ -332,8 +334,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.misc.save_status_to_session',
 )
 
-SOCIAL_AUTH_CREATE_USERS = True
-
 INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
 # Auth engines and the settings required for them to be listed
@@ -368,12 +368,12 @@ CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
+    'sentry.tasks.beacon',
     'sentry.tasks.check_alerts',
-    'sentry.tasks.check_update',
+    'sentry.tasks.check_auth',
     'sentry.tasks.cleanup',
     'sentry.tasks.deletion',
     'sentry.tasks.email',
-    'sentry.tasks.fetch_source',
     'sentry.tasks.index',
     'sentry.tasks.merge',
     'sentry.tasks.store',
@@ -384,6 +384,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
+    Queue('auth', routing_key='auth'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('sourcemaps', routing_key='sourcemaps'),
     Queue('search', routing_key='search'),
@@ -409,6 +410,14 @@ create_partitioned_queues('triggers')
 
 
 CELERYBEAT_SCHEDULE = {
+    'check-auth': {
+        'task': 'sentry.tasks.check_auth',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+            'queue': 'auth',
+        }
+    },
     'check-alerts': {
         'task': 'sentry.tasks.check_alerts',
         'schedule': timedelta(minutes=1),
@@ -417,8 +426,8 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'alerts',
         }
     },
-    'check-version': {
-        'task': 'sentry.tasks.check_update',
+    'send-beacon': {
+        'task': 'sentry.tasks.send_beacon',
         'schedule': timedelta(hours=1),
         'options': {
             'expires': 3600,
@@ -453,8 +462,14 @@ LOGGING = {
         },
         'sentry': {
             'level': 'ERROR',
+            'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         }
+    },
+    'filters': {
+        'sentry:internal': {
+            '()': 'sentry.utils.raven.SentryInternalFilter',
+        },
     },
     'formatters': {
         'simple': {
@@ -501,6 +516,9 @@ LOGGING = {
 
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    'DEFAULT_PERMISSION_CLASSES': (
+        'sentry.api.permissions.NoPermission',
+    )
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
@@ -513,6 +531,7 @@ RECAPTCHA_PRIVATE_KEY = None
 # django-statsd
 
 STATSD_CLIENT = 'django_statsd.clients.null'
+SENTRY_METRICS_PREFIX = ''
 
 # Sentry and Raven configuration
 
@@ -523,12 +542,26 @@ SENTRY_FRONTEND_PROJECT = None
 
 SENTRY_CACHE_BACKEND = 'default'
 
+SENTRY_FEATURES = {
+    'auth:register': True,
+    'social-auth:register': True,
+    'organizations:create': True,
+    'organizations:sso': False,
+    'teams:create': True,
+}
+
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
 )
 
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 SENTRY_URL_PREFIX = ''
+
+# Should we send the beacon to the upstream server?
+SENTRY_BEACON = True
+
+# The administrative contact for this installation
+SENTRY_ADMIN_EMAIL = ''
 
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
@@ -562,10 +595,7 @@ SENTRY_MAX_SAMPLE_TIME = 10000
 # Web Service
 SENTRY_WEB_HOST = 'localhost'
 SENTRY_WEB_PORT = 9000
-SENTRY_WEB_OPTIONS = {
-    'workers': 3,
-    'limit_request_line': 0,  # required for raven-js
-}
+SENTRY_WEB_OPTIONS = {}
 
 # UDP Service
 SENTRY_UDP_HOST = 'localhost'
@@ -599,11 +629,6 @@ SENTRY_INTERFACES = {
 # Should users without superuser permissions be allowed to
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
-
-# Should users be allowed to register an account? If this is disabled
-# accounts can only be created when someone is invited or added
-# manually.
-SENTRY_ALLOW_REGISTRATION = True
 
 # Can users be invited to organizations?
 SENTRY_ENABLE_INVITES = True
@@ -686,6 +711,9 @@ SENTRY_MAX_VARIABLE_SIZE = 512
 # Prevent variables within extra context from exceeding this size in
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
+
+# For changing the amount of data seen in Http Response Body part.
+SENTRY_MAX_HTTP_BODY_SIZE = 2048
 
 # For various attributes we don't limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of

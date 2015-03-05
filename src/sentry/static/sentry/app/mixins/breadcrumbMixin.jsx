@@ -5,6 +5,23 @@ var BreadcrumbStore = require("../stores/breadcrumbStore");
 var React = require("react");
 
 module.exports = {
+  /*
+   * A mixin which should be used by components which want to append to the
+   * breadcrumbs on a page.
+   *
+   * {
+   *   mixins: [BreadcrumbMixin],
+   *   // the number of crumbs you will manage
+   *   crumbReservations: 1,
+   *   // set the crumbs synchronously on mount, or async
+   *   componentWillMount() {
+   *     this.setBreadcrumbs([
+   *       {name: data.name, to: 'teamDetails', params: {}}
+   *     ]);
+   *   }
+   * }
+   */
+
   // Require both Router.State and Router.Navigation contexts
   // We do this to avoid potentially duplicating mixins
   contextTypes: {
@@ -41,29 +58,27 @@ module.exports = {
   },
 
   componentWillMount() {
-    this.crumbs = this.getInitialBreadcrumbs();
-    this.crumbs.forEach((node) => {
-      BreadcrumbStore.push(this.breadcrumbFromNode(node));
-    });
+    this.crumbs = [];
+    for (var i = 0; i < (this.crumbReservations || 0); i++) {
+      this.crumbs.push(BreadcrumbStore.reserve());
+    }
   },
 
   componentWillUnmount() {
-    this.crumbs.forEach(() => {
-      BreadcrumbStore.pop();
+    this.crumbs.forEach((idx) => {
+      BreadcrumbStore.pop(idx);
     });
   },
 
   setBreadcrumbs(nodes) {
-    this.crumbs.forEach(() => {
-      BreadcrumbStore.pop();
+    if (this.crumbs.length !== nodes.length) {
+      throw new Error('You must reserve crumbs before setting them.');
+    }
+    nodes.forEach((node, nodeIdx) => {
+      BreadcrumbStore.update(
+        this.crumbs[nodeIdx],
+        this.breadcrumbFromNode(node)
+      );
     });
-    this.crumbs = nodes;
-    this.crumbs.forEach((node) => {
-      BreadcrumbStore.push(this.breadcrumbFromNode(node));
-    });
-  },
-
-  getInitialBreadcrumbs() {
-    return [];
   }
 };

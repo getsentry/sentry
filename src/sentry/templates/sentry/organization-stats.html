@@ -11,7 +11,7 @@
 {% block inner %}
   <h3>Stats</h3>
 
-  <p>The chart below reflects events the system has received across your entire organization.</p>
+  <p>The chart below reflects events the system has received across your entire organization. Events are broken down into two categories: Accepted and Rejected. Rejected events are entries that the system threw away due to quotas being hit.</p>
 
   <div id="chart" class="chart" data-api-url="">
     <div class="sparkline">
@@ -23,7 +23,7 @@
   <h3>Events by Project</h3>
 
   <div id="project_data">
-    <table class="table table-striped project-list">
+    <table class="table table-bordered simple-list table-striped project-list">
       <thead>
         <tr>
           <th>Project</th>

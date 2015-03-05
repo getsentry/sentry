@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var {Link} = require("react-router");
 
 var api = require("../api");
 var Count = require("../components/count");
@@ -71,13 +72,20 @@ var GroupTags = React.createClass({
           );
         });
 
+        var routeParams = {
+          orgId: this.getOrganization().slug,
+          projectId: this.getProject().slug,
+          groupId: this.getGroup().id,
+          tagKey: tag.key
+        };
+
         return (
           <div className="col-md-6" key={tagIdx}>
             <div className="box">
               <div className="box-content with-padding">
                 <div className="page-header">
                   <span className="pull-right">
-                    <a href="">More Details</a>
+                    <Link to="groupTagValues" params={routeParams}>More Details</Link>
                   </span>
                   <h5>{tag.name} <small><Count value={tag.totalValues} /></small></h5>
                 </div>

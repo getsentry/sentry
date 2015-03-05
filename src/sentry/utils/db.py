@@ -29,13 +29,14 @@ def is_mysql(alias='default'):
     return 'mysql' in engine
 
 
-def is_sqlite(alias='sqlite'):
+def is_sqlite(alias='default'):
     engine = get_db_engine(alias)
+    return 'sqlite' in engine
 
 
 def has_charts(db):
     engine = get_db_engine(db)
-    if engine.startswith('sqlite'):
+    if is_sqlite(db):
         return False
     return True
 

@@ -51,7 +51,13 @@ def has_access(access_or_func=None, organization=None, access=None):
                 request.session['_next'] = request.get_full_path()
                 if request.is_ajax():
                     return HttpResponse(status=401)
-                return HttpResponseRedirect(get_login_url())
+
+                if 'organization_slug' in kwargs:
+                    redirect_uri = reverse('sentry-auth-organization',
+                                           args=[kwargs['organization_slug']])
+                else:
+                    redirect_uri = get_login_url()
+                return HttpResponseRedirect(redirect_uri)
 
             has_org = 'organization_slug' in kwargs
             has_team = 'team_slug' in kwargs
@@ -221,7 +227,12 @@ def login_required(func):
     def wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated():
             request.session['_next'] = request.get_full_path()
-            return HttpResponseRedirect(get_login_url())
+            if 'organization_slug' in kwargs:
+                redirect_uri = reverse('sentry-auth-organization',
+                                       args=[kwargs['organization_slug']])
+            else:
+                redirect_uri = get_login_url()
+            return HttpResponseRedirect(redirect_uri)
         return func(request, *args, **kwargs)
     return wrapped
 
@@ -229,10 +240,7 @@ def login_required(func):
 def requires_admin(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
-        if not request.user.is_authenticated():
-            request.session['_next'] = request.get_full_path()
-            return HttpResponseRedirect(get_login_url())
         if not request.user.is_staff:
             return render_to_response('sentry/missing_permissions.html', status=400)
         return func(request, *args, **kwargs)
-    return wrapped
+    return login_required(wrapped)

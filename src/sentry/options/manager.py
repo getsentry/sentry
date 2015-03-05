@@ -45,7 +45,7 @@ class OptionsManager(object):
     """
     cache = cache
 
-    logger = logging.getLogger('sentry.errors')
+    logger = logging.getLogger('sentry')
 
     # we generally want to always persist
     ttl = None

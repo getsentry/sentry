@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db.models import Q
 from functools import wraps
 
+from sentry import features
 from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
@@ -69,23 +70,6 @@ def is_project_admin(user, project):
 
 @cached_for_request
 @requires_login
-def can_create_organizations(user):
-    """
-    Returns a boolean describing whether a user has the ability to
-    create new organizations.
-    """
-    if user.is_superuser:
-        return True
-
-    result = plugins.first('has_perm', user, 'add_organization')
-    if result is False:
-        return result
-
-    return True
-
-
-@cached_for_request
-@requires_login
 def can_create_teams(user, organization):
     """
     Returns a boolean describing whether a user has the ability to
@@ -97,11 +81,7 @@ def can_create_teams(user, organization):
     if not is_organization_admin(user, organization):
         return False
 
-    result = plugins.first('has_perm', user, 'add_team', organization)
-    if result is False:
-        return result
-
-    return True
+    return features.has('teams:create', organization, actor=user)
 
 
 @cached_for_request
@@ -233,33 +213,6 @@ def can_remove_project(user, project):
         return False
 
     return True
-
-
-@requires_login
-def can_admin_group(user, group, is_remove=False):
-    if user.is_superuser:
-        return True
-
-    if not group.project.has_access(user, OrganizationMemberType.MEMBER):
-        return False
-
-    # The "remove_event" permission was added after "admin_event".
-    # First check the new "remove_event" permission, then fall back
-    # to the "admin_event" permission.
-    if is_remove:
-        result = plugins.first('has_perm', user, 'remove_event', group)
-        if result is False:
-            return False
-
-    result = plugins.first('has_perm', user, 'admin_event', group)
-    if result is False:
-        return False
-
-    return True
-
-
-def can_remove_group(user, group):
-    return can_admin_group(user, group, is_remove=True)
 
 
 @requires_login

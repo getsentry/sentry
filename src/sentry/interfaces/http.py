@@ -11,6 +11,7 @@ from __future__ import absolute_import
 __all__ = ('Http',)
 
 from Cookie import SmartCookie
+from django.conf import settings
 from django.utils.translation import ugettext as _
 from pipes import quote
 from urllib import urlencode
@@ -132,7 +133,7 @@ class Http(Interface):
         elif isinstance(body, dict):
             body = trim_dict(body)
         elif body:
-            body = trim(body, 2048)
+            body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
             if headers.get('Content-Type') == cls.FORM_TYPE and '=' in body:
                 body = dict(parse_qsl(body))
 

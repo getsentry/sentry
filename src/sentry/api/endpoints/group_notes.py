@@ -6,10 +6,10 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, Endpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.base import DocSection
+from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Group, Activity
+from sentry.models import Activity
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -17,16 +17,10 @@ class NewNoteForm(forms.Form):
     text = forms.CharField()
 
 
-class GroupNotesEndpoint(Endpoint):
+class GroupNotesEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
-    def get(self, request, group_id):
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
-
+    def get(self, request, group):
         notes = Activity.objects.filter(
             group=group,
             type=Activity.NOTE,
@@ -40,13 +34,7 @@ class GroupNotesEndpoint(Endpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
-    def post(self, request, group_id):
-        group = Group.objects.get(
-            id=group_id,
-        )
-
-        assert_perm(group, request.user, request.auth)
-
+    def post(self, request, group):
         form = NewNoteForm(request.DATA)
         if not form.is_valid():
             return Response('{"error": "form"}', status=status.HTTP_400_BAD_REQUEST)

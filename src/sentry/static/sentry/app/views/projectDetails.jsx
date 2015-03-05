@@ -8,67 +8,92 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var MemberListStore = require("../stores/memberListStore");
 var LoadingIndicator = require("../components/loadingIndicator");
+var OrganizationState = require("../mixins/organizationState");
+var RouteMixin = require("../mixins/routeMixin");
 var PropTypes = require("../proptypes");
 
 var ProjectDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
     Reflux.connect(MemberListStore, "memberList"),
+    OrganizationState,
+    RouteMixin,
     Router.State
   ],
 
-  getInitialState() {
-    return {
-      memberList: [],
-      organization: null,
-      project: null,
-      team: null
-    };
-  },
+  crumbReservations: 2,
 
   childContextTypes: {
-    organization: PropTypes.Organization,
     project: PropTypes.Project,
     team: PropTypes.Team
   },
 
   getChildContext() {
     return {
-      organization: this.state.organization,
       project: this.state.project,
       team: this.state.team
     };
   },
 
-  componentWillMount() {
-    api.request(this.getMemberListEndpoint(), {
-      success: (data) => {
-        MemberListStore.loadInitialData(data);
-      }
-    });
-
-    api.request(this.getProjectDetailsEndpoint(), {
-      success: (data) => {
-        this.setState({
-          organization: data.organization,
-          project: data,
-          team: data.team
-        });
-
-        this.setBreadcrumbs([
-          {name: data.team.name, to: 'teamDetails', params: {
-            orgId: this.getParams().orgId,
-            teamId: data.team.slug
-          }},
-          {name: data.name, to: 'projectDetails'}
-        ]);
-      }
-    });
+  getInitialState() {
+    return {
+      memberList: [],
+      project: null,
+      team: null
+    };
   },
 
-  getProjectDetailsEndpoint() {
-    var params = this.getParams();
-    return '/projects/' + params.orgId + '/' + params.projectId + '/';
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.projectId != this.getParams().projectId ||
+        nextParams.orgId != this.getParams().orgId) {
+      this.fetchData();
+    }
+  },
+
+  fetchData() {
+    var org = this.getOrganization();
+    if (!org) {
+      return;
+    }
+
+    var projectSlug = this.getParams().projectId;
+    var activeProject;
+    var activeTeam;
+    org.teams.forEach((team) => {
+      team.projects.forEach((project) => {
+        if (project.slug == projectSlug) {
+          activeProject = project;
+          activeTeam = team;
+        }
+      });
+    });
+
+    this.setState({
+      team: activeTeam,
+      project: activeProject,
+      loading: false,
+      error: typeof activeProject !== "undefined"
+    });
+
+    if (typeof activeProject !== "undefined") {
+      api.request(this.getMemberListEndpoint(), {
+        success: (data) => {
+          MemberListStore.loadInitialData(data);
+        }
+      });
+
+      this.setBreadcrumbs([
+        {name: activeTeam.name, to: "teamDetails", params: {
+          orgId: org.slug,
+          teamId: activeTeam.slug
+        }},
+        {name: activeProject.name, to: "projectDetails"}
+      ]);
+    }
   },
 
   getMemberListEndpoint() {

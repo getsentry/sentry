@@ -3,16 +3,15 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.app import tsdb
-from sentry.api.base import BaseStatsEndpoint, DocSection
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import assert_perm
-from sentry.models import Organization, Project, Team
+from sentry.api.base import DocSection, StatsMixin
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.models import Project, Team
 
 
-class OrganizationStatsEndpoint(BaseStatsEndpoint):
+class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
     doc_section = DocSection.ORGANIZATIONS
 
-    def get(self, request, organization_slug):
+    def get(self, request, organization):
         """
         Retrieve event counts for an organization
 
@@ -35,15 +34,6 @@ class OrganizationStatsEndpoint(BaseStatsEndpoint):
         **Note:** resolution should not be used unless you're familiar with Sentry
         internals as it's restricted to pre-defined values.
         """
-        try:
-            organization = Organization.objects.get_from_cache(
-                slug=organization_slug,
-            )
-        except Organization.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        assert_perm(organization, request.user, request.auth)
-
         group = request.GET.get('group')
         if not group:
             keys = [organization.id]

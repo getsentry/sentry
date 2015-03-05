@@ -7,9 +7,10 @@ var api = require("../../api");
 var Count = require("../../components/count");
 var LoadingError = require("../../components/loadingError");
 var LoadingIndicator = require("../../components/loadingIndicator");
+var PropTypes = require("../../proptypes");
+var RouteMixin = require("../../mixins/routeMixin");
 var TimeSince = require("../../components/timeSince");
 var TeamState = require("../../mixins/teamState");
-var PropTypes = require("../../proptypes");
 
 var EventNode = React.createClass({
   mixins: [TeamState],
@@ -69,6 +70,11 @@ var EventNode = React.createClass({
 });
 
 var EventList = React.createClass({
+  mixins: [
+    RouteMixin,
+    Router.State
+  ],
+
   propTypes: {
     title: React.PropTypes.string.isRequired,
     endpoint: React.PropTypes.string.isRequired
@@ -85,6 +91,12 @@ var EventList = React.createClass({
 
   componentWillMount() {
     this.fetchData();
+  },
+
+  routeDidChange(nextPath, nextParams) {
+    if (nextParams.teamId != this.getParams().teamId) {
+      this.fetchData();
+    }
   },
 
   componentDidUpdate(_, prevState) {

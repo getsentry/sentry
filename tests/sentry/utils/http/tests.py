@@ -127,6 +127,14 @@ class IsValidOriginTestCase(TestCase):
         result = self.isValidOrigin('http://example.com:80', ['example.com'])
         self.assertEquals(result, True)
 
+    def test_base_domain_matches_domain_with_explicit_port(self):
+        result = self.isValidOrigin('http://example.com:80', ['example.com:80'])
+        assert result is True
+
+    def test_base_domain_does_not_match_domain_with_invalid_port(self):
+        result = self.isValidOrigin('http://example.com:80', ['example.com:443'])
+        assert result is False
+
     def test_base_domain_does_not_match_subdomain(self):
         result = self.isValidOrigin('http://example.com', ['foo.example.com'])
         self.assertEquals(result, False)

@@ -2,17 +2,7 @@
 
 {% load sentry_api %}
 
-{% block breadcrumb_outer %}
-  <div id="blk_breadcrumb"></div>
-  <script>
-  $(function(){
-    React.render(React.createFactory(Breadcrumbs)({
-    }), document.getElementById('blk_breadcrumb'));
-  });
-  </script>
-{% endblock %}
-
-{% block content %}
+{% block body %}
   <div id="blk_router"></div>
   <script>
   $(function(){

@@ -8,6 +8,7 @@ sentry.models.project
 from __future__ import absolute_import, print_function
 
 import logging
+import warnings
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -206,18 +207,30 @@ class Project(Model):
         )
 
     def has_access(self, user, access=None):
-        from sentry.models import OrganizationMember
+        from sentry.models import AuthIdentity, OrganizationMember
 
-        queryset = OrganizationMember.objects.filter(
-            Q(teams=self.team) | Q(has_global_access=True),
-            user__is_active=True,
-            user=user,
-            organization=self.organization,
-        )
+        warnings.warn('Project.has_access is deprecated.', DeprecationWarning)
+
+        queryset = self.member_set.filter(
+            user=user)
+
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
-        return queryset.exists()
+        try:
+            member = queryset.get()
+        except OrganizationMember.DoesNotExist:
+            return False
+
+        try:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider__organization=self.organization_id,
+                user=member.user_id,
+            )
+        except AuthIdentity.DoesNotExist:
+            return True
+
+        return auth_identity.is_valid(member)
 
     def get_audit_log_data(self):
         return {

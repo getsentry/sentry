@@ -1,9 +1,7 @@
 Sentry
 ======
 
-Sentry is a realtime event logging and aggregation platform. It specializes
-in monitoring errors and extracting all the information needed to do a proper
-post-mortem without any of the hassle of the standard user feedback loop.
+Sentry is a modern error logging and aggregation platform.
 
 Screenshots
 -----------
@@ -17,7 +15,7 @@ Screenshots
 Sentry is a Server
 ------------------
 
-The Sentry package, at its core, is just a simple server and web UI. It will
+The Sentry package fundamentally is just a simple server and web UI. It will
 handle authenticating clients (such as `Raven <https://github.com/getsentry/raven-python>`_)
 and all of the logic behind storage and aggregation.
 

@@ -1,21 +1,26 @@
 /*** @jsx React.DOM */
 
+var $ = require("jquery");
 var React = require("react");
+var Router = require("react-router");
 
 var api = require("../api");
 var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
+var Pagination = require("../components/pagination");
 var PropTypes = require("../proptypes");
+var TimeSince = require("../components/timeSince");
 
 var GroupEvents = React.createClass({
-  mixins: [GroupState,],
+  mixins: [GroupState, Router.Navigation, Router.State],
 
   getInitialState() {
     return {
-      eventList: null,
+      eventList: [],
       loading: true,
-      error: false
+      error: false,
+      pageLinks: '',
     };
   },
 
@@ -24,17 +29,21 @@ var GroupEvents = React.createClass({
   },
 
   fetchData() {
+    var queryParams = this.getQuery();
+    var querystring = $.param(queryParams);
+
     this.setState({
       loading: true,
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/events/', {
-      success: (data) => {
+    api.request('/groups/' + this.getGroup().id + '/events/?' + querystring, {
+      success: (data, _, jqXHR) => {
         this.setState({
           eventList: data,
           error: false,
-          loading: false
+          loading: false,
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: (error) => {
@@ -46,6 +55,13 @@ var GroupEvents = React.createClass({
     });
   },
 
+  onPage(cursor) {
+    var queryParams = this.getQuery();
+    queryParams.cursor = cursor;
+
+    this.transitionTo('groupEvents', this.getParams(), queryParams);
+  },
+
   render() {
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -53,23 +69,38 @@ var GroupEvents = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    var children = [];
+    var children = this.state.eventList.map((event, eventIdx) => {
+      var linkParams = {
+        orgId: this.getOrganization().slug,
+        projectId: this.getProject().slug,
+        groupId: this.getGroup().id,
+        eventId: event.id
+      };
 
-    if (this.state.eventList) {
-      children = this.state.eventList.map((event, eventIdx) => {
-        return (
-          <tr key={eventIdx}>
-            <td>{event.message}</td>
-          </tr>
-        );
-      });
-    }
+      return (
+        <tr key={eventIdx}>
+          <td>
+            <Router.Link to="groupEventDetails"
+                  params={linkParams}>{event.message}</Router.Link>
+            <br />
+            <small className="tagList">{event.tags.map((tag, tagIdx) => {
+              return <span key={tagIdx}>{tag[0]} = {tag[1]}</span>;
+            })}</small>
+          </td>
+          <td>
+            <TimeSince date={event.dateCreated} />
+          </td>
+        </tr>
+      );
+    });
 
     return (
       <div>
-        <table>
+        <table className="table">
           {children}
         </table>
+
+        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
   }

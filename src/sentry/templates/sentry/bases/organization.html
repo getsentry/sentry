@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_features %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
@@ -19,15 +20,10 @@
         {% trans "Teams" %}
       </a>
     </li>
-    {% if ACCESS.is_global and ACCESS.is_admin %}
+    {% if ACCESS.org_read %}
     <li class="{% block org_stats_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-stats' organization.slug %}">
         {% trans "Stats" %}
-      </a>
-    </li>
-    <li class="{% block org_members_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-members' organization.slug %}">
-        {% trans "Members" %}
       </a>
     </li>
     <li class="{% block org_auditlog_nav %}{% endblock %}">
@@ -35,6 +31,22 @@
         {% trans "Audit Log" %}
       </a>
     </li>
+    <li class="{% block org_members_nav %}{% endblock %}">
+      <a href="{% url 'sentry-organization-members' organization.slug %}">
+        {% trans "Members" %}
+      </a>
+    </li>
+    {% endif %}
+    {% if ACCESS.org_delete %}
+      {% feature organizations:sso organization %}
+      <li class="{% block org_auth_settings_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
+          {% trans "Auth" %}
+        </a>
+      </li>
+      {% endfeature %}
+    {% endif %}
+    {% if ACCESS.org_write %}
     <li class="{% block org_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-settings' organization.slug %}">
         {% trans "Settings" %}

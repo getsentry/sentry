@@ -47,54 +47,54 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} {% if not request.user.is_authenticated %}hide-sidebar{% endif %}" ng-app="sentry">
-      {% if request.user.is_authenticated %}
-      <div class="app-sidebar">
-        {% if organization %}
-        <div class="org-selector dropdown">
-          <a href="{% url 'sentry-organization-home' organization.slug %}" class="active-org">{{ organization.name }}</a>
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="$(this).parent('.dropdown').toggleClass('open');"><span class="icon-arrow-down"></span></a>
-          {% if list_organizations|length > 1 %}
-            <div class="dropdown-menu">
-              <ul class="orgs">
-                {% for o in request.user|list_organizations %}
-                  {% if o.id != organization.id %}
-                  <li>
-                    <a href="{% url 'sentry-organization-home' o.slug %}">
-                        {{ o.name }}
-                    </a>
-                  </li>
-                  {% endif %}
-                {% endfor %}
-              </ul>
-            </div>
+    <body class="{% block wrapperclass %}{% endblock %} {% if not request.user.is_authenticated %}hide-sidebar{% endif %}">
+      {% block body %}
+        {% if request.user.is_authenticated %}
+        <div class="app-sidebar">
+          {% if organization %}
+          <div class="org-selector dropdown">
+            <a href="{% url 'sentry-organization-home' organization.slug %}" class="active-org">{{ organization.name }}</a>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="$(this).parent('.dropdown').toggleClass('open');"><span class="icon-arrow-down"></span></a>
+            {% if list_organizations|length > 1 %}
+              <div class="dropdown-menu">
+                <ul class="orgs">
+                  {% for o in request.user|list_organizations %}
+                    {% if o.id != organization.id %}
+                    <li>
+                      <a href="{% url 'sentry-organization-home' o.slug %}">
+                          {{ o.name }}
+                      </a>
+                    </li>
+                    {% endif %}
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+          </div>
           {% endif %}
+          {% block app-sidebar %}{% endblock %}
+          <div class="teams">
+            {% if TEAM_LIST %}
+                {% for t, p_list in TEAM_LIST %}
+                  <div class="team">
+                      <h6>
+                        <a class="pull-right" href="{% url 'sentry-manage-team' t.organization.slug t.slug %}"><span class="icon-settings"></span></a>
+                        <a href="{% url 'sentry-team-dashboard' t.organization.slug t.slug %}">{{ t.name }}</a>
+                      </h6>
+                      <ul class="project-list list-unstyled truncate">
+                          {% for p in p_list %}
+                              <li{% if p.id == project.id %} class="active"{% endif %}>
+                                  <strong><a href="{% url 'sentry-stream' t.organization.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a></strong>
+                              </li>
+                          {% endfor %}
+                      </ul>
+                  </div>
+                {% endfor %}
+            {% endif %}
+          </div>
         </div>
         {% endif %}
-        {% block app-sidebar %}{% endblock %}
-        <div class="teams">
-          {% if TEAM_LIST %}
-              {% for t, p_list in TEAM_LIST %}
-                <div class="team">
-                    <h6>
-                      <a class="pull-right" href="{% url 'sentry-manage-team' t.organization.slug t.slug %}"><span class="icon-settings"></span></a>
-                      <a href="{% url 'sentry-team-dashboard' t.organization.slug t.slug %}">{{ t.name }}</a>
-                    </h6>
-                    <ul class="project-list list-unstyled truncate">
-                        {% for p in p_list %}
-                            <li{% if p.id == project.id %} class="active"{% endif %}>
-                                <strong><a href="{% url 'sentry-stream' t.organization.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a></strong>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-              {% endfor %}
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-      <div class="app">
-        {% block body %}
+        <div class="app">
           {% block header %}
             <header>
                 <div class="container">

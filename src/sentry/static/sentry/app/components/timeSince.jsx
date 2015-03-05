@@ -3,25 +3,29 @@ var React = require("react");
 var moment = require("moment");
 
 var TimeSince = React.createClass({
-  componentDidMount: function() {
+  propTypes: {
+    date: React.PropTypes.any.isRequired
+  },
+
+  componentDidMount() {
     var delay = 2600;
 
     this.ticker = setInterval(this.ensureValidity, delay);
   },
 
-  componentWillUnmount: function() {
+  componentWillUnmount() {
     if (this.ticker) {
       clearInterval(this.ticker);
       this.ticker = null;
     }
   },
 
-  ensureValidity: function() {
+  ensureValidity() {
     // TODO(dcramer): this should ensure we actually *need* to update the value
     this.forceUpdate();
   },
 
-  render: function() {
+  render() {
     var date = this.props.date;
 
     if (typeof date === "string" || typeof date === "number") {

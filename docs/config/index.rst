@@ -19,7 +19,7 @@ Authentication
 --------------
 
 
-.. data:: SENTRY_ALLOW_REGISTRATION
+.. data:: SENTRY_FEATURES['auth:register']
     :noindex:
 
     Should Sentry allow users to create new accounts?
@@ -28,7 +28,7 @@ Authentication
 
     ::
 
-        SENTRY_ALLOW_REGISTRATION = False
+        SENTRY_FEATURES['auth:register'] = True
 
 .. data:: SENTRY_PUBLIC
     :noindex:
