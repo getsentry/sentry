@@ -24,14 +24,12 @@ var ProjectDetails = React.createClass({
   crumbReservations: 2,
 
   childContextTypes: {
-    organization: PropTypes.Organization,
     project: PropTypes.Project,
     team: PropTypes.Team
   },
 
   getChildContext() {
     return {
-      organization: this.getOrganization(),
       project: this.state.project,
       team: this.state.team
     };
@@ -56,30 +54,40 @@ var ProjectDetails = React.createClass({
     }
   },
 
-
   fetchData() {
-    // TODO(dcramer): we could read some of this info from contexts
-    api.request(this.getProjectDetailsEndpoint(), {
-      success: (data) => {
-        this.setState({
-          project: data,
-          team: data.team
-        });
+    var org = this.getOrganization();
+    if (!org) {
+      return;
+    }
 
-        this.setBreadcrumbs([
-          {name: data.team.name, to: 'teamDetails', params: {
-            orgId: this.getParams().orgId,
-            teamId: data.team.slug
-          }},
-          {name: data.name, to: 'projectDetails'}
-        ]);
-      }
+    var projectSlug = this.getParams().projectId;
+    var activeProject;
+    var activeTeam;
+    org.teams.forEach((team) => {
+      team.projects.forEach((project) => {
+        if (project.slug == projectSlug) {
+          activeProject = project;
+          activeTeam = team;
+        }
+      });
     });
-  },
 
-  getProjectDetailsEndpoint() {
-    var params = this.getParams();
-    return '/projects/' + params.orgId + '/' + params.projectId + '/';
+    this.setState({
+      team: activeTeam,
+      project: activeProject,
+      loading: false,
+      error: typeof activeProject !== "undefined"
+    });
+
+    if (typeof activeProject !== "undefined") {
+      this.setBreadcrumbs([
+        {name: activeTeam.name, to: "teamDetails", params: {
+          orgId: org.slug,
+          teamId: activeTeam.slug
+        }},
+        {name: activeProject.name, to: "projectDetails"}
+      ]);
+    }
   },
 
   getMemberListEndpoint() {

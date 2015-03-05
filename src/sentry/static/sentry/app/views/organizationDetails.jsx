@@ -51,6 +51,11 @@ var OrganizationDetails = React.createClass({
   },
 
   fetchData() {
+    this.setState({
+      loading: true,
+      error: false
+    });
+
     api.request(this.getOrganizationDetailsEndpoint(), {
       success: (data) => {
         this.setState({
