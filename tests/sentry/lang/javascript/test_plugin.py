@@ -177,7 +177,7 @@ class JavascriptIntegrationTest(TestCase):
 
         f1 = File(
             name='file.min.js',
-            type='source',
+            type='release.file',
             headers={'Content-Type': 'application/json'},
         )
         f1.putfile(open(get_fixture_path(f1.name), 'rb'))
@@ -190,7 +190,7 @@ class JavascriptIntegrationTest(TestCase):
 
         f2 = File(
             name='file1.js',
-            type='source',
+            type='release.file',
             headers={'Content-Type': 'application/json'},
         )
         f2.putfile(open(get_fixture_path(f2.name), 'rb'))
@@ -203,7 +203,7 @@ class JavascriptIntegrationTest(TestCase):
 
         f3 = File(
             name='file2.js',
-            type='source',
+            type='release.file',
             headers={'Content-Type': 'application/json'},
         )
         f3.putfile(open(get_fixture_path(f3.name), 'rb'))
@@ -216,7 +216,7 @@ class JavascriptIntegrationTest(TestCase):
 
         f4 = File(
             name='file.sourcemap.js',
-            type='source',
+            type='release.file',
             headers={'Content-Type': 'application/json'},
         )
         f4.putfile(open(get_fixture_path(f4.name), 'rb'))

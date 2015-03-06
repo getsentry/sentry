@@ -22,7 +22,7 @@ class ReleaseFilesListTest(APITestCase):
             file=File.objects.create(
                 path='http://example.com',
                 name='application.js',
-                type='source',
+                type='release.file',
             ),
             name='http://example.com/application.js'
         )

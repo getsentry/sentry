@@ -79,9 +79,11 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         full_name = request.DATA.get('name', fileobj.name)
         name = full_name.rsplit('/', 1)[-1]
 
+        # TODO(dcramer): File's are unique on (name, checksum) so we need to
+        # ensure that this file does not already exist for other purposes
         file = File(
             name=name,
-            type='source',
+            type='release.file',
             headers={
                 'Content-Type': fileobj.content_type,
             }
