@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Release
+from sentry.models import Release, ReleaseFile
 
 
 class ReleaseDetailsEndpoint(ProjectEndpoint):
@@ -26,3 +26,30 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         )
 
         return Response(serialize(release, request.user))
+
+    def delete(self, request, project, version):
+        """
+        Delete a file
+
+        Permanently remove a file from a release.
+
+            {method} {path}
+
+        This will also remove the physical file from storage.
+        """
+        # TODO(dcramer): this needs to happen in the queue as it could be a long
+        # and expensive operation
+        release = Release.objects.get(
+            project=project,
+            version=version,
+        )
+
+        file_list = ReleaseFile.objects.filter(
+            release=release,
+        ).select_related('file')
+        for releasefile in file_list:
+            releasefile.file.delete()
+            releasefile.delete()
+        release.delete()
+
+        return Response(status=204)
