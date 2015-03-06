@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -90,11 +91,16 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         )
         file.putfile(fileobj)
 
-        releasefile = ReleaseFile.objects.create(
-            project=release.project,
-            release=release,
-            file=file,
-            name=full_name,
-        )
+        try:
+            with transaction.atomic():
+                releasefile = ReleaseFile.objects.create(
+                    project=release.project,
+                    release=release,
+                    file=file,
+                    name=full_name,
+                )
+        except IntegrityError:
+            file.delete()
+            return Response(status=409)
 
         return Response(serialize(releasefile, request.user), status=201)
