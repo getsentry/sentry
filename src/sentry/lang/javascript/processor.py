@@ -53,6 +53,7 @@ ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to pre
 ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
 ERR_HTTP_CODE = 'Received HTTP {status_code} response'
 ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
+ERR_MISSING_SOURCE = 'Source was not found: {filename}'
 ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable'
 ERR_TOO_MANY_REMOTE_SOURCES = 'Not fetching context due to too many remote sources'
 ERR_UNKNOWN_INTERNAL_ERROR = 'An unknown internal error occurred while attempting to fetch the source'
@@ -428,8 +429,13 @@ class SourceProcessor(object):
                     frame.data = {
                         'sourcemap': sourcemap_url,
                     }
-                    frame.errors.append('Failed to map %r' % abs_path.encode('utf-8'))
-                    logger.debug('Failed mapping path %r', abs_path)
+                    errors = cache.get_errors(abs_path)
+                    if errors:
+                        frame.errors.extend(errors)
+                    else:
+                        frame.errors.append(ERR_MISSING_SOURCE.format(
+                            filenamename=abs_path.encode('utf-8'),
+                        ))
                 else:
                     source = uncompressed_source
                     # Store original data in annotation
