@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 __all__ = ['DocSection', 'Endpoint', 'StatsMixin']
 
+import logging
+
 from datetime import datetime, timedelta
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -70,6 +72,13 @@ class Endpoint(APIView):
 
     def convert_args(self, request, *args, **kwargs):
         return (args, kwargs)
+
+    def handle_exception(self, exc):
+        try:
+            return super(Endpoint, self).handle_exception(exc)
+        except Exception as exc:
+            logging.exception(unicode(exc))
+            return Response({'detail': 'Internal Error'}, status=500)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
