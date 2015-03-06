@@ -33,7 +33,6 @@ class File(Model):
     headers = JSONField()
 
     class Meta:
-        unique_together = (('name', 'checksum'),)
         app_label = 'sentry'
         db_table = 'sentry_file'
 
