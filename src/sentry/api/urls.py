@@ -30,6 +30,7 @@ from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
+from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -117,6 +118,9 @@ urlpatterns = patterns(
     url(r'^releases/(?P<release_id>\d+)/$',
         ReleaseDetailsEndpoint.as_view(),
         name='sentry-api-0-release-details'),
+    url(r'^releases/(?P<release_id>\d+)/files/$',
+        ReleaseFilesEndpoint.as_view(),
+        name='sentry-api-0-release-files'),
 
     # Groups
     url(r'^groups/(?P<group_id>\d+)/$',
