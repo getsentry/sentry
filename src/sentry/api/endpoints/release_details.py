@@ -15,7 +15,7 @@ class ReleaseDetailsEndpoint(Endpoint):
 
     def get(self, request, release_id):
         """
-        Retrieve an release
+        Retrieve a release
 
         Return details on an individual release.
 
