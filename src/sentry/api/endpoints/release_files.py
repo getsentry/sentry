@@ -4,8 +4,8 @@ from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, Endpoint
-from sentry.api.bases.project import ProjectPermission
+from sentry.api.base import DocSection
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File, Release, ReleaseFile
 
@@ -23,13 +23,12 @@ class ConditionalContentNegotiation(DefaultContentNegotiation):
         )
 
 
-class ReleaseFilesEndpoint(Endpoint):
+class ReleaseFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
 
     content_negotiation_class = ConditionalContentNegotiation
-    permission_classes = (ProjectPermission,)
 
-    def get(self, request, release_id):
+    def get(self, request, project, version):
         """
         List a release's files
 
@@ -38,9 +37,10 @@ class ReleaseFilesEndpoint(Endpoint):
             {method} {path}
 
         """
-        release = Release.objects.get(id=release_id)
-
-        self.check_object_permissions(request, release.project)
+        release = Release.objects.get(
+            project=project,
+            version=version,
+        )
 
         file_list = list(ReleaseFile.objects.filter(
             release=release,
@@ -48,7 +48,7 @@ class ReleaseFilesEndpoint(Endpoint):
 
         return Response(serialize(file_list, request.user))
 
-    def post(self, request, release_id):
+    def post(self, request, project, version):
         """
         Upload a new file
 
@@ -66,9 +66,10 @@ class ReleaseFilesEndpoint(Endpoint):
         file will be referenced as. For example, in the case of JavaScript you
         might specify the full web URI.
         """
-        release = Release.objects.get(id=release_id)
-
-        self.check_object_permissions(request, release.project)
+        release = Release.objects.get(
+            project=project,
+            version=version,
+        )
 
         if 'file' not in request.FILES:
             return Response(status=400)
