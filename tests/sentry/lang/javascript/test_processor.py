@@ -29,7 +29,7 @@ class FetchUrlTest(TestCase):
 
         assert result.url == 'http://example.com'
         assert result.body == 'foo bar'
-        assert result.headers == {'Content-Type': 'application/json'}
+        assert result.headers == {'content-type': 'application/json'}
 
         # ensure we use the cached result
         result2 = fetch_url('http://example.com')
