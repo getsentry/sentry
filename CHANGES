@@ -7,6 +7,20 @@ Version 7.4.0
 - SENTRY_ALLOW_REGISTRATION is deprecated in favor of SENTRY_FEATURES['auth:register'].
 - SOCIAL_AUTH_CREATE_USERS is deprecated in favor of SENTRY_FEATURES['social-auth:register'].
 - SENTRY_SERVER_EMAIL is no longer used.
+- Added first pass API at storing javascript artifacts via release APIs.
+- Improved error reporting for JavaScript source/sourcemap errors.
+- Improved configuration handling on sentry.cache.
+- Added various release API endpoints.
+- Added various organization API endpoints.
+- Added various tag API endpoints.
+- Sourcemaps will now always treat sourceRoot as a path.
+- Changed many permissions to use new sentry.access abstractions which are now
+  scoped based, shared with the API scopes.
+- Initial first pass at the SSO subsystem.
+- The Sentry internal client will now aggressively prevent recursive errors, but allow more
+  internal errors to be recorded to itself.
+- An XSS vulnerability with tag values not being escaped (on the group details page) has been resolved.
+
 
 Version 7.3.2
 -------------
