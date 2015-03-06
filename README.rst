@@ -3,14 +3,6 @@ Sentry
 
 Sentry is a modern error logging and aggregation platform.
 
-Screenshots
------------
-
-.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/group_list.png
-
-.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/event.png
-
-.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/dashboard.png
 
 Sentry is a Server
 ------------------
@@ -22,6 +14,7 @@ and all of the logic behind storage and aggregation.
 That said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
+
 
 Resources
 ---------
@@ -35,3 +28,16 @@ Resources
 
 The `in-development version <http://github.com/getsentry/sentry/tarball/master#egg=sentry-dev>`_
 of Sentry can be installed with ``pip install sentry==dev`` or ``easy_install sentry==dev``.
+
+
+
+Screenshots
+-----------
+
+These screenshots may be slightly outdated, but should give you a feel for what Sentry presents.
+
+.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/group_list.png
+
+.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/event.png
+
+.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/dashboard.png
