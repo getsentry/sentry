@@ -29,13 +29,12 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
     def delete(self, request, project, version):
         """
-        Delete a file
+        Delete a release
 
-        Permanently remove a file from a release.
+        Permanently remove a release and all of its files.
 
             {method} {path}
 
-        This will also remove the physical file from storage.
         """
         # TODO(dcramer): this needs to happen in the queue as it could be a long
         # and expensive operation
