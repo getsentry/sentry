@@ -10,7 +10,7 @@ from sentry.models import Release
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.CharField(max_length=200, required=True)
+    version = serializers.SlugField(max_length=200, required=True)
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
