@@ -37,8 +37,8 @@ class ProjectReleaseListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]['id'] == str(release2.id)
-        assert response.data[1]['id'] == str(release1.id)
+        assert response.data[0]['version'] == release2.version
+        assert response.data[1]['version'] == release1.version
 
 
 class ProjectReleaseCreateTest(APITestCase):
@@ -56,8 +56,9 @@ class ProjectReleaseCreateTest(APITestCase):
         })
 
         assert response.status_code == 201, response.content
-        assert response.data['id']
+        assert response.data['version']
 
-        release = Release.objects.get(id=response.data['id'])
-        assert release.version == 'abcdef'
-        assert release.project == project
+        assert Release.objects.filter(
+            project=project,
+            version=response.data['version'],
+        ).exists()

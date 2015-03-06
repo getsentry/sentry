@@ -17,9 +17,10 @@ class ReleaseDetailsTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-release-details', kwargs={
-            'release_id': release.id,
+            'project_id': project.id,
+            'version': release.version,
         })
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(release.id)
+        assert response.data['version'] == release.version

@@ -5,17 +5,17 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Release
+from sentry.models import Release, ReleaseFile
 
 
-class ReleaseDetailsEndpoint(ProjectEndpoint):
+class ReleaseFileDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
 
-    def get(self, request, project, version):
+    def get(self, request, project, version, file_id):
         """
-        Retrieve a release
+        Retrieve a file
 
-        Return details on an individual release.
+        Return details on an individual file within a release.
 
             {method} {path}
 
@@ -24,5 +24,9 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
             project=project,
             version=version,
         )
+        releasefile = ReleaseFile.objects.get(
+            release=release,
+            id=file_id,
+        )
 
-        return Response(serialize(release, request.user))
+        return Response(serialize(releasefile, request.user))

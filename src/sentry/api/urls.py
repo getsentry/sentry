@@ -31,6 +31,7 @@ from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
+from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -104,6 +105,15 @@ urlpatterns = patterns(
     url(r'^projects/(?P<project_id>\d+)/releases/$',
         ProjectReleasesEndpoint.as_view(),
         name='sentry-api-0-project-releases'),
+    url(r'^projects/(?P<project_id>\d+)/releases/(?P<version>[^/]+)/$',
+        ReleaseDetailsEndpoint.as_view(),
+        name='sentry-api-0-release-details'),
+    url(r'^projects/(?P<project_id>\d+)/releases/(?P<version>[^/]+)/files/$',
+        ReleaseFilesEndpoint.as_view(),
+        name='sentry-api-0-release-files'),
+    url(r'^projects/(?P<project_id>\d+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$',
+        ReleaseFileDetailsEndpoint.as_view(),
+        name='sentry-api-0-release-file-details'),
     url(r'^projects/(?P<project_id>\d+)/stats/$',
         ProjectStatsEndpoint.as_view(),
         name='sentry-api-0-project-stats'),
@@ -113,14 +123,6 @@ urlpatterns = patterns(
     url(r'^projects/(?P<project_id>\d+)/tags/(?P<key>[^/]+)/values/$',
         ProjectTagKeyValuesEndpoint.as_view(),
         name='sentry-api-0-project-tagkey-values'),
-
-    # Releases
-    url(r'^releases/(?P<release_id>\d+)/$',
-        ReleaseDetailsEndpoint.as_view(),
-        name='sentry-api-0-release-details'),
-    url(r'^releases/(?P<release_id>\d+)/files/$',
-        ReleaseFilesEndpoint.as_view(),
-        name='sentry-api-0-release-files'),
 
     # Groups
     url(r'^groups/(?P<group_id>\d+)/$',
