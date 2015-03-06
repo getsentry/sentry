@@ -260,7 +260,10 @@ def fetch_url(url, project=None, release=None):
                 status_code=response.status_code,
             ))
 
-        result = (dict(response.headers), response.content)
+        result = (
+            {k.lower(): v for k, v in response.headers.items()},
+            response.content
+        )
         cache.set(cache_key, result, 60)
 
     return UrlResult(url, *result)
