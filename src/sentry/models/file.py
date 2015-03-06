@@ -82,9 +82,12 @@ class File(Model):
         self.storage = settings.SENTRY_FILESTORE
         self.storage_options = settings.SENTRY_FILESTORE_OPTIONS
 
+        size = 0
         checksum = sha1('')
         for chunk in fileobj:
+            size += len(chunk)
             checksum.update(chunk)
+        self.size = size
         self.checksum = checksum.hexdigest()
 
         storage = self.get_storage()
