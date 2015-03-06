@@ -209,6 +209,9 @@ def fetch_url(url, project=None, release=None):
     if release:
         result = fetch_release_file(url, release)
     else:
+        result = None
+
+    if result is None:
         result = cache.get(cache_key)
 
     if result is None:
