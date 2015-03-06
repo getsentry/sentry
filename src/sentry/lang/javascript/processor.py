@@ -434,7 +434,7 @@ class SourceProcessor(object):
                         frame.errors.extend(errors)
                     else:
                         frame.errors.append(ERR_MISSING_SOURCE.format(
-                            filenamename=abs_path.encode('utf-8'),
+                            filename=abs_path.encode('utf-8'),
                         ))
                 else:
                     source = uncompressed_source
