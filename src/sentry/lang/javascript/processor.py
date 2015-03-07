@@ -203,7 +203,7 @@ def fetch_url(url, project=None, release=None):
 
     Attempts to fetch from the cache.
     """
-    cache_key = 'source:%s' % (
+    cache_key = 'source:cache:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
 
     if release:
@@ -217,7 +217,9 @@ def fetch_url(url, project=None, release=None):
     if result is None:
         # lock down domains that are problematic
         domain = urlparse(url).netloc
-        domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
+        domain_key = 'source:blacklist:%s' % (
+            hashlib.md5(domain.encode('utf-8')).hexdigest(),
+        )
         domain_result = cache.get(domain_key)
         if domain_result:
             raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED)
