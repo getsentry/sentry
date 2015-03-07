@@ -182,6 +182,7 @@ class Event(Model):
         data['checksum'] = self.checksum
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
+        data['tags'] = self.get_tags()
         for k, v in sorted(self.data.iteritems()):
             data[k] = v
         return data
