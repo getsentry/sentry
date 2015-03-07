@@ -174,7 +174,7 @@ class Event(Model):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
         data['id'] = self.event_id
-        data['project'] = self.project_id,
+        data['project'] = self.project_id
         data['culprit'] = self.group.culprit
         data['message'] = self.message
         data['checksum'] = self.checksum
