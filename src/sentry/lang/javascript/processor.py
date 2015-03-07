@@ -178,8 +178,12 @@ def fetch_release_file(filename, release):
         release.version,
         hashlib.sha1(filename.encode('utf-8')).hexdigest(),
     )
+    logger.debug('Checking cache for release artfiact %r (release_id=%s)',
+                 filename, release.id)
     result = cache.get(cache_key)
     if result is None:
+        logger.debug('Checking database for release artifact %r (release_id=%s)',
+                     filename, release.id)
         ident = ReleaseFile.get_ident(filename)
         try:
             releasefile = ReleaseFile.objects.filter(
@@ -187,8 +191,12 @@ def fetch_release_file(filename, release):
                 ident=ident,
             ).select_related('file').get()
         except ReleaseFile.DoesNotExist:
+            logger.debug('Release artifact %r not found in database (release_id=%s)',
+                         filename, release.id)
             return None
 
+        logger.debug('Found release artifact %r (id=%s, release_id=%s)',
+                     filename, releasefile.id, release.id)
         with releasefile.file.getfile() as fp:
             body = fp.read()
         result = (releasefile.file.headers, body)
@@ -212,6 +220,7 @@ def fetch_url(url, project=None, release=None):
         result = None
 
     if result is None:
+        logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
 
     if result is None:
@@ -232,8 +241,9 @@ def fetch_url(url, project=None, release=None):
             if token:
                 headers['X-Sentry-Token'] = token
 
-        http_session = http.build_session()
+        logger.debug('Fetching %r from the internet', url)
 
+        http_session = http.build_session()
         try:
             response = http_session.get(
                 url,

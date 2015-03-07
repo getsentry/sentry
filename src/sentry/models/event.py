@@ -174,10 +174,10 @@ class Event(Model):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
         data['id'] = self.event_id
+        data['project'] = self.project_id,
         data['culprit'] = self.group.culprit
         data['message'] = self.message
         data['checksum'] = self.checksum
-        data['project'] = self.project.slug
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         for k, v in sorted(self.data.iteritems()):
