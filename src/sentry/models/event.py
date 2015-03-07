@@ -176,6 +176,7 @@ class Event(Model):
         data['id'] = self.event_id
         data['project'] = self.project_id
         data['release'] = self.get_tag('sentry:release')
+        data['platform'] = self.platform,
         data['culprit'] = self.group.culprit
         data['message'] = self.message
         data['checksum'] = self.checksum
