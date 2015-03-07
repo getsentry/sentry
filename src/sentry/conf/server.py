@@ -292,6 +292,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.github.GithubBackend',
     'social_auth.backends.contrib.bitbucket.BitbucketBackend',
     'social_auth.backends.contrib.trello.TrelloBackend',
+    'social_auth.backends.steam.SteamBackend',
     'sentry.utils.auth.EmailAuthBackend',
 )
 
@@ -344,6 +345,7 @@ AUTH_PROVIDERS = {
     'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
+    'steam': ('STEAM_API_KEY'),
 }
 
 import random

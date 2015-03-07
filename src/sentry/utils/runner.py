@@ -230,6 +230,9 @@ TRELLO_API_SECRET = ''
 # https://confluence.atlassian.com/display/BITBUCKET/OAuth+Consumers
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
+
+# http://steamcommunity.com/dev/apikey
+STEAM_API_KEY = ''
 """
 
 
