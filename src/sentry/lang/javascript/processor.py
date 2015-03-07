@@ -49,7 +49,7 @@ MAX_RESOURCE_FETCHES = 100
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
-ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to previous failures.'
+ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to previous failures:\n{reason}.'
 ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
 ERR_HTTP_CODE = 'Received HTTP {status_code} response'
 ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
@@ -222,7 +222,9 @@ def fetch_url(url, project=None, release=None):
         )
         domain_result = cache.get(domain_key)
         if domain_result:
-            raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED)
+            raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED.format(
+                reason=domain_result,
+            ))
 
         headers = {}
         if project and is_valid_origin(url, project=project):
@@ -241,26 +243,29 @@ def fetch_url(url, project=None, release=None):
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
         except Exception as exc:
-            cache.set(domain_key, 1, 300)
+            if isinstance(exc, SuspiciousOperation):
+                error = unicode(exc)
+            elif isinstance(exc, RequestException):
+                error = ERR_GENERIC_FETCH_FAILURE.format(
+                    type=type(exc),
+                )
+            else:
+                error = ERR_UNKNOWN_INTERNAL_ERROR
+
+            cache.set(domain_key, error or '', 300)
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
-            if isinstance(exc, SuspiciousOperation):
-                raise CannotFetchSource(unicode(exc))
-            elif isinstance(exc, RequestException):
-                raise CannotFetchSource(ERR_GENERIC_FETCH_FAILURE.format(
-                    type=type(exc),
-                ))
-
             logger.exception(unicode(exc))
-            raise CannotFetchSource(ERR_UNKNOWN_INTERNAL_ERROR)
+            raise CannotFetchSource(error)
 
         if response.status_code != 200:
-            cache.set(domain_key, 1, 300)
+            error = ERR_HTTP_CODE.format(
+                status_code=response.status_code,
+            )
+            cache.set(domain_key, error, 300)
             logger.warning('Disabling sources to %s for %ss (due to HTTP %s)',
                           domain, 300, response.status_code)
-            raise CannotFetchSource(ERR_HTTP_CODE.format(
-                status_code=response.status_code,
-            ))
+            raise CannotFetchSource(error)
 
         result = (
             {k.lower(): v for k, v in response.headers.items()},
