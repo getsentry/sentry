@@ -352,6 +352,18 @@ class SourceProcessor(object):
             ])
         return frames
 
+    def get_release(self, data):
+        if not data.get('release'):
+            return
+
+        try:
+            return Release.objects.get(
+                project=data['project'],
+                version=data['release'],
+            )
+        except Release.DoesNotExist:
+            return
+
     def process(self, data):
         stacktraces = self.get_stacktraces(data)
         if not stacktraces:
@@ -367,16 +379,7 @@ class SourceProcessor(object):
             id=data['project'],
         )
 
-        if data.get('release'):
-            try:
-                release = Release.objects.get(
-                    project=project.id,
-                    version=data['release'],
-                )
-            except Release.DoesNotExist:
-                release = None
-        else:
-            release = None
+        release = self.get_release(data)
 
         # all of these methods assume mutation on the original
         # objects rather than re-creation
