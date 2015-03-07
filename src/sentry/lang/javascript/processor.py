@@ -199,7 +199,7 @@ def fetch_release_file(filename, release):
                      filename, releasefile.id, release.id)
         with releasefile.file.getfile() as fp:
             body = fp.read()
-        result = (releasefile.file.headers, body)
+        result = (releasefile.file.headers, body, 200)
         cache.set(cache_key, result, 60)
 
     return result
@@ -211,7 +211,7 @@ def fetch_url(url, project=None, release=None):
 
     Attempts to fetch from the cache.
     """
-    cache_key = 'source:cache:%s' % (
+    cache_key = 'source:cache:v2:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
 
     if release:
@@ -253,6 +253,7 @@ def fetch_url(url, project=None, release=None):
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
         except Exception as exc:
+            logger.debug('Unable to fetch %r', url, exc_info=True)
             if isinstance(exc, SuspiciousOperation):
                 error = unicode(exc)
             elif isinstance(exc, RequestException):
@@ -260,30 +261,31 @@ def fetch_url(url, project=None, release=None):
                     type=type(exc),
                 )
             else:
+                logger.exception(unicode(exc))
                 error = ERR_UNKNOWN_INTERNAL_ERROR
 
+            # TODO(dcramer): we want to be less aggressive on disabling domains
             cache.set(domain_key, error or '', 300)
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
-            logger.exception(unicode(exc))
-            raise CannotFetchSource(error)
-
-        if response.status_code != 200:
-            error = ERR_HTTP_CODE.format(
-                status_code=response.status_code,
-            )
-            cache.set(domain_key, error, 300)
-            logger.warning('Disabling sources to %s for %ss (due to HTTP %s)',
-                          domain, 300, response.status_code)
             raise CannotFetchSource(error)
 
         result = (
             {k.lower(): v for k, v in response.headers.items()},
-            response.content
+            response.content,
+            response.status_code,
         )
         cache.set(cache_key, result, 60)
 
-    return UrlResult(url, *result)
+    if result[2] != 200:
+        logger.debug('HTTP %s when fetching %r', response.status_code, url,
+                     exc_info=True)
+        error = ERR_HTTP_CODE.format(
+            status_code=response.status_code,
+        )
+        raise CannotFetchSource(error)
+
+    return UrlResult(url, result[0], result[1])
 
 
 def fetch_sourcemap(url, project=None, release=None):
