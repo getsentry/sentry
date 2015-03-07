@@ -83,7 +83,6 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        print call_data
         assert not call_data['sentry.interfaces.User'].get('ip_address')
         assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
 
