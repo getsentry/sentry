@@ -281,7 +281,7 @@ def fetch_url(url, project=None, release=None):
         logger.debug('HTTP %s when fetching %r', result[2], url,
                      exc_info=True)
         error = ERR_HTTP_CODE.format(
-            status_code=response.status_code,
+            status_code=result[2],
         )
         raise CannotFetchSource(error)
 
