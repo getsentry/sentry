@@ -278,7 +278,7 @@ def fetch_url(url, project=None, release=None):
         cache.set(cache_key, result, 60)
 
     if result[2] != 200:
-        logger.debug('HTTP %s when fetching %r', response.status_code, url,
+        logger.debug('HTTP %s when fetching %r', result[2], url,
                      exc_info=True)
         error = ERR_HTTP_CODE.format(
             status_code=response.status_code,
