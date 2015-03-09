@@ -61,11 +61,12 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
     ).delete()
 
     # TODO: we should move this into individual backends
-    log.info("Removing old Node values")
-    try:
-        app.nodestore.cleanup(ts)
-    except NotImplementedError:
-        log.warning("Node backend does not support cleanup operation")
+    if not project:
+        log.info("Removing old Node values")
+        try:
+            app.nodestore.cleanup(ts)
+        except NotImplementedError:
+            log.warning("Node backend does not support cleanup operation")
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
