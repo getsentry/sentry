@@ -115,6 +115,9 @@ def trim_line(line, column=0):
 
 
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
+    if not source:
+        return [], '', []
+
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
     if lineno > 0:
