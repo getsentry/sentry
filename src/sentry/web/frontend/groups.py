@@ -39,7 +39,7 @@ def render_with_group_context(group, template, context, request=None,
         'selectedGroup': serialize(group, request.user),
     })
 
-    if request:
+    if request and request.user.is_authenticated():
         context['ACCESS'] = access.from_user(
             user=request.user,
             organization=group.organization,
@@ -114,6 +114,10 @@ def wall_display(request, organization, team):
         'team': team,
         'organization': team.organization,
         'project_list': project_list,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 

@@ -71,6 +71,10 @@ def parse_sourcemap(smap):
     lines = mappings.split(';')
 
     if sourceRoot:
+        # turn /foo/bar into /foo/bar/ so urljoin doesnt strip the last path
+        if not sourceRoot.endswith('/'):
+            sourceRoot = sourceRoot + '/'
+
         sources = [
             urljoin(sourceRoot, src)
             for src in sources
@@ -113,14 +117,18 @@ def sourcemap_to_index(sourcemap):
     key_list = []
     src_list = set()
     content = None
-    root = smap.get('sourceRoot')
+    sourceRoot = smap.get('sourceRoot')
+
+    # turn /foo/bar into /foo/bar/ so urljoin doesnt strip the last path
+    if sourceRoot and not sourceRoot.endswith('/'):
+        sourceRoot = sourceRoot + '/'
 
     if 'sourcesContent' in smap:
         content = {}
         for idx, source in enumerate(smap['sources']):
             # Apply the root to the source before shoving into the index
             # so we can look it up correctly later
-            source = urljoin(root, source)
+            source = urljoin(sourceRoot, source)
             if smap['sourcesContent'][idx]:
                 content[source] = smap['sourcesContent'][idx].splitlines()
             else:

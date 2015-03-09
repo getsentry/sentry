@@ -6,6 +6,8 @@ import logging
 from django.conf import settings
 from raven.contrib.django.client import DjangoClient
 
+from . import metrics
+
 UNSAFE_FILES = (
     'sentry/event_manager.py',
     'sentry/tasks/process_buffer.py',
@@ -31,6 +33,7 @@ class SentryInternalClient(DjangoClient):
 
     def capture(self, *args, **kwargs):
         if not can_record_current_event():
+            metrics.incr('internal.uncaptured.events')
             self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
             return
         return super(SentryInternalClient, self).capture(*args, **kwargs)
@@ -46,7 +49,6 @@ class SentryInternalClient(DjangoClient):
             data = manager.normalize()
             insert_data_to_database(data)
         except Exception as e:
-            print('fail')
             if self.raise_send_errors:
                 raise
             self.error_logger.error(
@@ -56,4 +58,5 @@ class SentryInternalClient(DjangoClient):
 
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
+        metrics.incr('internal.uncaptured.logs')
         return not can_record_current_event()

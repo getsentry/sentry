@@ -13,7 +13,7 @@
         <li class="active">
             <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
-        {% if request.user|can_manage_project:project %}
+        {% if ACCESS.project_write %}
             <li>
                 <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}" title="{% trans "Project Settings" %}">
                     <span class="icon-settings"></span>

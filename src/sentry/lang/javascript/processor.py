@@ -8,16 +8,17 @@ import re
 import base64
 
 from django.conf import settings
+from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
 from os.path import splitext
+from requests.exceptions import RequestException
 from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
-from urllib2 import HTTPError
 
+from sentry import http
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.http import safe_urlopen, safe_urlread
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import Project
+from sentry.models import Project, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
@@ -26,7 +27,6 @@ from .cache import SourceCache, SourceMapCache
 from .sourcemaps import sourcemap_to_index, find_source
 
 
-BAD_SOURCE = -1
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
@@ -47,9 +47,36 @@ CLEAN_MODULE_RE = re.compile(r"""^
 # fetched
 MAX_RESOURCE_FETCHES = 100
 
+# TODO(dcramer): we want to change these to be constants so they are easier
+# to translate/link again
+ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to previous failures:\n{reason}.'
+ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
+ERR_HTTP_CODE = 'Received HTTP {status_code} response'
+ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
+ERR_MISSING_SOURCE = 'Source was not found: {filename}'
+ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable'
+ERR_TOO_MANY_REMOTE_SOURCES = 'Not fetching context due to too many remote sources'
+ERR_UNKNOWN_INTERNAL_ERROR = 'An unknown internal error occurred while attempting to fetch the source'
+
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
 logger = logging.getLogger(__name__)
+
+
+class BadSource(Exception):
+    pass
+
+
+class DomainBlacklisted(BadSource):
+    pass
+
+
+class CannotFetchSource(BadSource):
+    pass
+
+
+class UnparseableSourcemap(BadSource):
+    pass
 
 
 def trim_line(line, column=0):
@@ -88,6 +115,9 @@ def trim_line(line, column=0):
 
 
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
+    if not source:
+        return [], '', []
+
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
     if lineno > 0:
@@ -146,71 +176,126 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_url(url, project=None):
+def fetch_release_file(filename, release):
+    cache_key = 'release:%s:%s' % (
+        release.version,
+        hashlib.sha1(filename.encode('utf-8')).hexdigest(),
+    )
+    logger.debug('Checking cache for release artfiact %r (release_id=%s)',
+                 filename, release.id)
+    result = cache.get(cache_key)
+    if result is None:
+        logger.debug('Checking database for release artifact %r (release_id=%s)',
+                     filename, release.id)
+        ident = ReleaseFile.get_ident(filename)
+        try:
+            releasefile = ReleaseFile.objects.filter(
+                release=release,
+                ident=ident,
+            ).select_related('file').get()
+        except ReleaseFile.DoesNotExist:
+            logger.debug('Release artifact %r not found in database (release_id=%s)',
+                         filename, release.id)
+            return None
+
+        logger.debug('Found release artifact %r (id=%s, release_id=%s)',
+                     filename, releasefile.id, release.id)
+        with releasefile.file.getfile() as fp:
+            body = fp.read()
+        result = (releasefile.file.headers, body, 200)
+        cache.set(cache_key, result, 60)
+
+    return result
+
+
+def fetch_url(url, project=None, release=None):
     """
     Pull down a URL, returning a UrlResult object.
 
     Attempts to fetch from the cache.
     """
-
-    cache_key = 'source:%s' % (
+    cache_key = 'source:cache:v2:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
-    result = cache.get(cache_key)
+
+    if release:
+        result = fetch_release_file(url, release)
+    else:
+        result = None
+
+    if result is None:
+        logger.debug('Checking cache for url %r', url)
+        result = cache.get(cache_key)
+
     if result is None:
         # lock down domains that are problematic
         domain = urlparse(url).netloc
-        domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
+        domain_key = 'source:blacklist:%s' % (
+            hashlib.md5(domain.encode('utf-8')).hexdigest(),
+        )
         domain_result = cache.get(domain_key)
         if domain_result:
-            return BAD_SOURCE
+            raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED.format(
+                reason=domain_result,
+            ))
 
-        headers = []
+        headers = {}
         if project and is_valid_origin(url, project=project):
             token = project.get_option('sentry:token')
             if token:
-                headers.append(('X-Sentry-Token', token))
+                headers['X-Sentry-Token'] = token
 
+        logger.debug('Fetching %r from the internet', url)
+
+        http_session = http.build_session()
         try:
-            request = safe_urlopen(
+            response = http_session.get(
                 url,
                 allow_redirects=True,
-                verify_ssl=False,
+                verify=False,
                 headers=headers,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
-        except HTTPError:
-            result = BAD_SOURCE
-        except Exception:
-            # it's likely we've failed due to a timeout, dns, etc so let's
-            # ensure we can't cascade the failure by pinning this for 5 minutes
-            cache.set(domain_key, 1, 300)
+        except Exception as exc:
+            logger.debug('Unable to fetch %r', url, exc_info=True)
+            if isinstance(exc, SuspiciousOperation):
+                error = unicode(exc)
+            elif isinstance(exc, RequestException):
+                error = ERR_GENERIC_FETCH_FAILURE.format(
+                    type=type(exc),
+                )
+            else:
+                logger.exception(unicode(exc))
+                error = ERR_UNKNOWN_INTERNAL_ERROR
+
+            # TODO(dcramer): we want to be less aggressive on disabling domains
+            cache.set(domain_key, error or '', 300)
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
-            return BAD_SOURCE
-        else:
-            try:
-                body = safe_urlread(request)
-            except Exception:
-                result = BAD_SOURCE
-            else:
-                result = (dict(request.headers), body)
+            raise CannotFetchSource(error)
 
+        result = (
+            {k.lower(): v for k, v in response.headers.items()},
+            response.content,
+            response.status_code,
+        )
         cache.set(cache_key, result, 60)
 
-    if result == BAD_SOURCE:
-        return result
+    if result[2] != 200:
+        logger.debug('HTTP %s when fetching %r', result[2], url,
+                     exc_info=True)
+        error = ERR_HTTP_CODE.format(
+            status_code=result[2],
+        )
+        raise CannotFetchSource(error)
 
-    return UrlResult(url, *result)
+    return UrlResult(url, result[0], result[1])
 
 
-def fetch_sourcemap(url, project=None):
+def fetch_sourcemap(url, project=None, release=None):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
-        result = fetch_url(url, project=project)
-        if result == BAD_SOURCE:
-            return
-
+        result = fetch_url(url, project=project, release=release)
         body = result.body
 
     # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
@@ -218,12 +303,11 @@ def fetch_sourcemap(url, project=None):
     # If the file starts with that string, ignore the entire first line.
     if body.startswith(")]}'"):
         body = body.split('\n', 1)[1]
+
     try:
-        index = sourcemap_to_index(body)
+        return sourcemap_to_index(body)
     except (JSONDecodeError, ValueError):
-        return
-    else:
-        return index
+        raise UnparseableSourcemap(ERR_SOURCEMAP_UNPARSEABLE)
 
 
 def is_data_uri(url):
@@ -290,6 +374,18 @@ class SourceProcessor(object):
             ])
         return frames
 
+    def get_release(self, data):
+        if not data.get('release'):
+            return
+
+        try:
+            return Release.objects.get(
+                project=data['project'],
+                version=data['release'],
+            )
+        except Release.DoesNotExist:
+            return
+
     def process(self, data):
         stacktraces = self.get_stacktraces(data)
         if not stacktraces:
@@ -305,9 +401,11 @@ class SourceProcessor(object):
             id=data['project'],
         )
 
+        release = self.get_release(data)
+
         # all of these methods assume mutation on the original
         # objects rather than re-creation
-        self.populate_source_cache(project, frames)
+        self.populate_source_cache(project, frames, release)
         self.expand_frames(frames)
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
@@ -348,6 +446,7 @@ class SourceProcessor(object):
 
             source = cache.get(frame.abs_path)
             if source is None:
+                logger.info('No source found for %s', frame.abs_path)
                 continue
 
             sourcemap_url, sourcemap_idx = sourcemaps.get_link(frame.abs_path)
@@ -355,38 +454,44 @@ class SourceProcessor(object):
                 last_state = state
                 state = find_source(sourcemap_idx, frame.lineno, frame.colno)
                 abs_path = urljoin(sourcemap_url, state.src)
-                logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                uncompressed_source = cache.get(abs_path)
-                if not uncompressed_source:
-                    frame.data = {
-                        'sourcemap': sourcemap_url,
-                    }
-                    frame.errors.append('Failed to map %r' % abs_path.encode('utf-8'))
-                    logger.debug('Failed mapping path %r', abs_path)
-                else:
-                    source = uncompressed_source
-                    # Store original data in annotation
-                    frame.data = {
-                        'orig_lineno': frame.lineno,
-                        'orig_colno': frame.colno,
-                        'orig_function': frame.function,
-                        'orig_abs_path': frame.abs_path,
-                        'orig_filename': frame.filename,
-                        'sourcemap': sourcemap_url,
-                    }
 
-                    # SourceMap's return zero-indexed lineno's
-                    frame.lineno = state.src_line + 1
-                    frame.colno = state.src_col
-                    # The offending function is always the previous function in the stack
-                    # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                    if last_state:
-                        frame.function = last_state.name or frame.function
+                logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
+                source = cache.get(abs_path)
+                if not source:
+                    frame.data = {
+                        'sourcemap': sourcemap_url,
+                    }
+                    errors = cache.get_errors(abs_path)
+                    if errors:
+                        frame.errors.extend(errors)
                     else:
-                        frame.function = state.name or frame.function
-                    frame.abs_path = abs_path
-                    frame.filename = state.src
-                    frame.module = generate_module(state.src)
+                        frame.errors.append(ERR_MISSING_SOURCE.format(
+                            filename=abs_path.encode('utf-8'),
+                        ))
+
+                # Store original data in annotation
+                frame.data = {
+                    'orig_lineno': frame.lineno,
+                    'orig_colno': frame.colno,
+                    'orig_function': frame.function,
+                    'orig_abs_path': frame.abs_path,
+                    'orig_filename': frame.filename,
+                    'sourcemap': sourcemap_url,
+                }
+
+                # SourceMap's return zero-indexed lineno's
+                frame.lineno = state.src_line + 1
+                frame.colno = state.src_col
+                # The offending function is always the previous function in the stack
+                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                if last_state:
+                    frame.function = last_state.name or frame.function
+                else:
+                    frame.function = state.name or frame.function
+                frame.abs_path = abs_path
+                frame.filename = state.src
+                frame.module = generate_module(state.src)
+
             elif sourcemap_url:
                 frame.data = {
                     'sourcemap': sourcemap_url,
@@ -396,7 +501,7 @@ class SourceProcessor(object):
             frame.pre_context, frame.context_line, frame.post_context = get_source_context(
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
 
-    def populate_source_cache(self, project, frames):
+    def populate_source_cache(self, project, frames, release):
         pending_file_list = set()
         done_file_list = set()
         sourcemap_capable = set()
@@ -416,16 +521,15 @@ class SourceProcessor(object):
             done_file_list.add(filename)
 
             if idx > self.max_fetches:
-                cache.add_error(filename, 'Not fetching context due to too many remote sources')
+                cache.add_error(filename, ERR_TOO_MANY_REMOTE_SOURCES)
                 continue
 
             # TODO: respect cache-control/max-age headers to some extent
             logger.debug('Fetching remote source %r', filename)
-            result = fetch_url(filename, project=project)
-
-            if result == BAD_SOURCE:
-                # TODO(dcramer): we want better errors here
-                cache.add_error(filename, 'File was unreachable or invalid')
+            try:
+                result = fetch_url(filename, project=project, release=release)
+            except BadSource as exc:
+                cache.add_error(filename, unicode(exc))
                 continue
 
             cache.add(filename, result.body.splitlines())
@@ -437,7 +541,7 @@ class SourceProcessor(object):
 
             # If we didn't have a colno, a sourcemap wont do us any good
             if filename not in sourcemap_capable:
-                cache.add_error(filename, 'No column information available (cant expand sourcemap)')
+                cache.add_error(filename, ERR_NO_COLUMN)
                 continue
 
             logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
@@ -447,9 +551,14 @@ class SourceProcessor(object):
                 continue
 
             # pull down sourcemap
-            sourcemap_idx = fetch_sourcemap(sourcemap_url, project=project)
-            if not sourcemap_idx:
-                cache.add_error(filename, 'Sourcemap was not parseable')
+            try:
+                sourcemap_idx = fetch_sourcemap(
+                    sourcemap_url,
+                    project=project,
+                    release=release,
+                )
+            except BadSource as exc:
+                cache.add_error(filename, unicode(exc))
                 continue
 
             sourcemaps.add(sourcemap_url, sourcemap_idx)

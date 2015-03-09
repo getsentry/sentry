@@ -12,6 +12,14 @@ AJAX requests do not seem to work properly
   It's likely you have not correctly configured **SENTRY_URL_PREFIX**, so
   you're hitting CORS issues. . See :doc:`../config/index` for more information.
 
+The client reports success (200 OK) but I don't see events
+  Something is misconfigured. A 200 OK from the API means "I have validated and enqueued this event", so
+  the first thing you should check is your workers.
+
+Counts on events aren't increasing
+  Counts are incremented in bulk asyncrhonously utilizing the buffer and queue subsystems. Check your configuration on those.
+
+
 How do I
 --------
 
