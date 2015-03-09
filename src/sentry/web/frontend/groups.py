@@ -141,7 +141,7 @@ def render_with_group_context(group, template, context, request=None,
         'group': group,
     })
 
-    if request:
+    if request and request.user.is_authenticated():
         context['ACCESS'] = access.from_user(
             user=request.user,
             organization=group.organization,
