@@ -63,8 +63,8 @@ Below is a sample production ready configuration for Nginx with Sentry:
         client_body_timeout 5s;
 
         # buffer larger messages
-        client_max_body_size 150k;
-        client_body_buffer_size 150k;
+        client_max_body_size 5m;
+        client_body_buffer_size 100k;
 
         location / {
           proxy_pass        http://localhost:9000;
@@ -105,6 +105,9 @@ Create a uWSGI configuration which references the Sentry configuration:
     ; allow longer headers for raven.js if applicable
     ; default: 4096
     buffer-size = 32768
+
+    ; allow large file uploads
+    limit-post = 5242880
 
     ; various other explicit defaults
     post-buffering = 65536

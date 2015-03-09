@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django import template
 from django.conf import settings
 
-from sentry.app import cache
+from sentry.cache import default_cache
 from sentry.models import ProjectKey
 
 
@@ -25,12 +25,12 @@ def public_dsn():
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
     cache_key = 'dsn:%s' % (project_id,)
 
-    result = cache.get(cache_key)
+    result = default_cache.get(cache_key)
     if result is None:
         key = _get_project_key(project_id)
         if key:
             result = key.dsn_public
         else:
             result = ''
-        cache.set(cache_key, result, 60)
+        default_cache.set(cache_key, result, 60)
     return result

@@ -9,6 +9,7 @@ Contains views for the "Explore" section of Sentry.
 """
 from __future__ import absolute_import, division
 
+from sentry.auth import access
 from sentry.models import TagKey, TagValue, Group
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
@@ -46,6 +47,10 @@ def tag_list(request, organization, project):
         'team': project.team,
         'organization': organization,
         'tag_list': tag_list,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 
@@ -76,6 +81,10 @@ def tag_value_list(request, organization, project, key):
         'sort_label': SORT_OPTIONS[sort],
         'tag_key': tag_key,
         'tag_values': tag_values_qs,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=project.organization,
+        ).to_django_context(),
     }, request)
 
 
@@ -100,4 +109,8 @@ def tag_value_details(request, organization, project, key, value_id):
         'tag_key': tag_key,
         'tag_value': tag_value,
         'event_list': event_list,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)

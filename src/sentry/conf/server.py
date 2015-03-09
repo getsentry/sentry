@@ -647,7 +647,9 @@ SENTRY_BUFFER = 'sentry.buffer.Buffer'
 SENTRY_BUFFER_OPTIONS = {}
 
 # Cache backend
-SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
+# XXX: We explicitly require the cache to be configured as its not optional
+# and causes serious confusion with the default django cache
+SENTRY_CACHE = None
 SENTRY_CACHE_OPTIONS = {}
 
 # Quota backend
