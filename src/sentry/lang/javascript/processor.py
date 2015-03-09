@@ -451,9 +451,10 @@ class SourceProcessor(object):
                 last_state = state
                 state = find_source(sourcemap_idx, frame.lineno, frame.colno)
                 abs_path = urljoin(sourcemap_url, state.src)
+
                 logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                uncompressed_source = cache.get(abs_path)
-                if not uncompressed_source:
+                source = cache.get(abs_path)
+                if not source:
                     frame.data = {
                         'sourcemap': sourcemap_url,
                     }
@@ -464,30 +465,30 @@ class SourceProcessor(object):
                         frame.errors.append(ERR_MISSING_SOURCE.format(
                             filename=abs_path.encode('utf-8'),
                         ))
-                else:
-                    source = uncompressed_source
-                    # Store original data in annotation
-                    frame.data = {
-                        'orig_lineno': frame.lineno,
-                        'orig_colno': frame.colno,
-                        'orig_function': frame.function,
-                        'orig_abs_path': frame.abs_path,
-                        'orig_filename': frame.filename,
-                        'sourcemap': sourcemap_url,
-                    }
 
-                    # SourceMap's return zero-indexed lineno's
-                    frame.lineno = state.src_line + 1
-                    frame.colno = state.src_col
-                    # The offending function is always the previous function in the stack
-                    # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                    if last_state:
-                        frame.function = last_state.name or frame.function
-                    else:
-                        frame.function = state.name or frame.function
-                    frame.abs_path = abs_path
-                    frame.filename = state.src
-                    frame.module = generate_module(state.src)
+                # Store original data in annotation
+                frame.data = {
+                    'orig_lineno': frame.lineno,
+                    'orig_colno': frame.colno,
+                    'orig_function': frame.function,
+                    'orig_abs_path': frame.abs_path,
+                    'orig_filename': frame.filename,
+                    'sourcemap': sourcemap_url,
+                }
+
+                # SourceMap's return zero-indexed lineno's
+                frame.lineno = state.src_line + 1
+                frame.colno = state.src_col
+                # The offending function is always the previous function in the stack
+                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                if last_state:
+                    frame.function = last_state.name or frame.function
+                else:
+                    frame.function = state.name or frame.function
+                frame.abs_path = abs_path
+                frame.filename = state.src
+                frame.module = generate_module(state.src)
+
             elif sourcemap_url:
                 frame.data = {
                     'sourcemap': sourcemap_url,
