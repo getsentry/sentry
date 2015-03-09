@@ -216,26 +216,31 @@
                     var $this = $(this);
                     var $content = $('<form class="share-form"></form>');
                     var $urlel = $('<code class="clippy">' + $this.data('share-url') + '</code>');
+                    var isChecked = $this.data('public');
+
                     $urlel.clippy({
                         clippy_path: app.config.clippyPath,
                         keep_text: true
                     });
                     $content.append($urlel);
-                    $content.append($('<label class="checkbox"><input type="checkbox"> Allow anonymous users to view this event.</label>'));
+                    $content.append($('<label class="checkbox">' +
+                        '<input type="checkbox"' + (isChecked ? ' checked="checked"' : '') + '/>' +
+                        'Allow anonymous users to view this event.' +
+                    '</label>'));
 
-                    $content.find('input[type=checkbox]').change(function(){
+                    var $checkbox = $content.find('input[type=checkbox]').change(function(){
                         var url = $this.data($(this).is(':checked') ? 'public-url' : 'private-url');
                         $.ajax({
                             url: url,
                             type: 'post',
                             success: function(group){
-                                $this.data('public', group.isPublic ? 'true' : 'false');
+                                $this.data('public', group.isPublic);
                             },
                             error: function(){
                                 window.alert('There was an error changing the public status');
                             }
                         });
-                    }).prop('checked', $this.data('public') == 'true');
+                    });
 
                     return $content;
                 }
