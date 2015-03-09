@@ -235,7 +235,7 @@
                                 window.alert('There was an error changing the public status');
                             }
                         });
-                    }).attr('checked', $this.data('public') == 'true');
+                    }).prop('checked', $this.data('public') == 'true');
 
                     return $content;
                 }
