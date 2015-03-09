@@ -287,13 +287,15 @@ else:
 AUTHENTICATION_BACKENDS = (
     'social_auth.backends.twitter.TwitterBackend',
     'social_auth.backends.facebook.FacebookBackend',
-    # TODO: migrate to GoogleOAuth2Backend
-    'social_auth.backends.google.GoogleBackend',
+    'social_auth.backends.google.GoogleOAuth2Backend',
     'social_auth.backends.contrib.github.GithubBackend',
     'social_auth.backends.contrib.bitbucket.BitbucketBackend',
     'social_auth.backends.contrib.trello.TrelloBackend',
     'sentry.utils.auth.EmailAuthBackend',
 )
+
+# URL should be: https://[domainname]/account/settings/social/complete/google-oauth2/
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # redirect_uri for OAuth2 should be https://
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
@@ -341,7 +343,7 @@ AUTH_PROVIDERS = {
     'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
     'facebook': ('FACEBOOK_APP_ID', 'FACEBOOK_API_SECRET'),
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
-    'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
+    'google-auth2': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
 }
