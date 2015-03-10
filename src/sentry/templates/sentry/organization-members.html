@@ -105,7 +105,7 @@
       },
       error: function(xhr) {
         if (xhr.responseJSON) {
-          alert('Unable to remove team member: ' + xhr.responseJSON.detail);
+          alert('Unable to remove member: ' + xhr.responseJSON.detail);
         } else {
           alert('There was an error while trying to remove the member.');
         }
