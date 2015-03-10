@@ -45,7 +45,6 @@ from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
-from sentry.web.frontend.organization_home import OrganizationHomeView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_member_settings import OrganizationMemberSettingsView
 from sentry.web.frontend.organization_stats import OrganizationStatsView
@@ -154,7 +153,7 @@ urlpatterns += patterns('',
         name='sentry-help-platform'),
 
     # Organizations
-    url(r'^(?P<organization_slug>[\w_-]+)/$', OrganizationHomeView.as_view(),
+    url(r'^(?P<organization_slug>[\w_-]+)/$', ReactPageView.as_view(),
         name='sentry-organization-home'),
     url(r'^organizations/new/$', CreateOrganizationView.as_view(),
         name='sentry-create-organization'),
