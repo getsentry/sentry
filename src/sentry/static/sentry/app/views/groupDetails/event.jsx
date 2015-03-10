@@ -18,10 +18,14 @@ var UserWidget = React.createClass({
     var user = this.props.data;
 
     return (
-      <div>
+      <div className="user-widget">
+        <div className="pull-right"><Gravatar email={user.email} size={"84px"} /></div>
         <h6>User</h6>
         <p><strong>{user.email}</strong></p>
-        <Gravatar email={user.email} />
+        <div className="btn-group">
+          <a href="#" className="btn btn-xs btn-default">Message User</a>
+          <a href="#" className="btn btn-xs btn-default">Message All</a>
+        </div>
       </div>
     );
   }
@@ -89,15 +93,15 @@ var GroupEvent = React.createClass({
               title="Additional Data" />
         </div>
         <div className="col-md-3 event-stats">
+          {evt.user &&
+            <UserWidget data={evt.user} />
+          }
+
           <h6>Sample ID</h6>
           <p><strong>{evt.eventID}</strong></p>
 
           <h6>Time</h6>
           <p><strong>{evt.dateCreated}</strong></p>
-
-          {evt.user &&
-            <UserWidget data={evt.user} />
-          }
         </div>
       </div>
     );
