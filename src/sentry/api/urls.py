@@ -17,6 +17,7 @@ from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.helppage_details import HelpPageDetailsEndpoint
 from .endpoints.helppage_index import HelpPageIndexEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
@@ -95,32 +96,37 @@ urlpatterns = patterns(
         TeamStatsEndpoint.as_view(),
         name='sentry-api-0-team-stats'),
 
+    # Handles redirecting project_id => org_slug/project_slug
+    # TODO(dcramer): remove this after a reasonable period of time
+    url(r'^projects/(?P<project_id>\d+)/(?P<path>(?:groups|releases|stats|tags)/.+)?',
+        LegacyProjectRedirectEndpoint.as_view()),
+
     # Projects
-    url(r'^projects/(?P<project_id>\d+)/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
         ProjectDetailsEndpoint.as_view(),
         name='sentry-api-0-project-details'),
-    url(r'^projects/(?P<project_id>\d+)/groups/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/groups/$',
         ProjectGroupIndexEndpoint.as_view(),
         name='sentry-api-0-project-group-index'),
-    url(r'^projects/(?P<project_id>\d+)/releases/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$',
         ProjectReleasesEndpoint.as_view(),
         name='sentry-api-0-project-releases'),
-    url(r'^projects/(?P<project_id>\d+)/releases/(?P<version>[^/]+)/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
         ReleaseDetailsEndpoint.as_view(),
         name='sentry-api-0-release-details'),
-    url(r'^projects/(?P<project_id>\d+)/releases/(?P<version>[^/]+)/files/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',
         ReleaseFilesEndpoint.as_view(),
         name='sentry-api-0-release-files'),
-    url(r'^projects/(?P<project_id>\d+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$',
         ReleaseFileDetailsEndpoint.as_view(),
         name='sentry-api-0-release-file-details'),
-    url(r'^projects/(?P<project_id>\d+)/stats/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$',
         ProjectStatsEndpoint.as_view(),
         name='sentry-api-0-project-stats'),
-    url(r'^projects/(?P<project_id>\d+)/tags/(?P<key>[^/]+)/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/tags/(?P<key>[^/]+)/$',
         ProjectTagKeyDetailsEndpoint.as_view(),
         name='sentry-api-0-project-tagkey-details'),
-    url(r'^projects/(?P<project_id>\d+)/tags/(?P<key>[^/]+)/values/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/tags/(?P<key>[^/]+)/values/$',
         ProjectTagKeyValuesEndpoint.as_view(),
         name='sentry-api-0-project-tagkey-values'),
 

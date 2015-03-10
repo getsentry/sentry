@@ -31,7 +31,8 @@ class ProjectReleaseListTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-project-releases', kwargs={
-            'project_id': project1.id,
+            'organization_slug': project1.organization.slug,
+            'project_slug': project1.slug,
         })
         response = self.client.get(url, format='json')
 
@@ -49,7 +50,8 @@ class ProjectReleaseCreateTest(APITestCase):
         project = self.create_project(team=team, name='foo')
 
         url = reverse('sentry-api-0-project-releases', kwargs={
-            'project_id': project.id,
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
         })
         response = self.client.post(url, data={
             'version': 'abcdef',

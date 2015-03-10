@@ -51,10 +51,11 @@ class ProjectEventPermission(ProjectPermission):
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def convert_args(self, request, project_id, *args, **kwargs):
+    def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
         try:
             project = Project.objects.get_from_cache(
-                id=project_id,
+                organization__slug=organization_slug,
+                slug=project_slug,
             )
         except Project.DoesNotExist:
             raise ResourceDoesNotExist

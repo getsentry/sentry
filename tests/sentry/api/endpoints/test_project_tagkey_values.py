@@ -15,7 +15,8 @@ class ProjectTagKeyValuesTest(APITestCase):
         self.login_as(user=self.user)
 
         url = reverse('sentry-api-0-project-tagkey-values', kwargs={
-            'project_id': project.id,
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
             'key': tagkey.key,
         })
 
