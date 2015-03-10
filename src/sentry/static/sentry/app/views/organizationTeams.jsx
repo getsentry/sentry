@@ -2,6 +2,7 @@
 
 var React = require("react");
 
+var OrganizationHomeSidebar = require("../components/organizationHomeSidebar");
 var OrganizationState = require("../mixins/organizationState");
 
 var OrganizationTeams = React.createClass({
@@ -21,6 +22,7 @@ var OrganizationTeams = React.createClass({
 
     return (
       <div>
+        <OrganizationHomeSidebar />
         <h3>Teams</h3>
         {org.teams.map((team, teamIdx) => {
           var teamRouteParams = {

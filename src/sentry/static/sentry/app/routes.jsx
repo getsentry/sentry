@@ -12,6 +12,7 @@ var GroupTags = require("./views/groupTags");
 var GroupTagValues = require("./views/groupTagValues");
 var GroupOverview = require("./views/groupOverview");
 var OrganizationDetails = require("./views/organizationDetails");
+var OrganizationMembers = require("./views/organizationMembers");
 var OrganizationTeams = require("./views/organizationTeams");
 var ProjectDetails = require("./views/projectDetails");
 var PropTypes = require("./proptypes");
@@ -23,6 +24,7 @@ var routes = (
   <Route name="app" path="/" handler={App}>
     <Route name="organizationDetails" path="/:orgId/" handler={OrganizationDetails}>
       <DefaultRoute name="organizationTeams" handler={OrganizationTeams} />
+      <Route name="organizationMembers" path="members/" handler={OrganizationMembers} />
       <Route name="teamDetails" path="teams/:teamId/" handler={TeamDetails}>
         <DefaultRoute name="teamDashboard" handler={TeamDashboard} />
       </Route>
