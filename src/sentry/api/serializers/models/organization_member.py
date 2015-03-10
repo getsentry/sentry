@@ -11,7 +11,7 @@ class OrganizationMemberSerializer(Serializer):
         d = {
             'id': str(obj.id),
             'email': obj.email or obj.user.email,
-            'access': obj.get_type_display(),
+            'roleName': obj.get_type_display(),
             'pending': obj.is_pending,
             'flags': {
                 'sso:linked': getattr(obj.flags, 'sso:linked'),
