@@ -103,8 +103,12 @@
       success: function() {
         $this.parents('tr').remove();
       },
-      error: function() {
-        alert('There was an error while trying to remove the member.');
+      error: function(xhr) {
+        if (xhr.responseJSON) {
+          alert('Unable to remove team member: ' + xhr.responseJSON.detail);
+        } else {
+          alert('There was an error while trying to remove the member.');
+        }
       }
     });
   });
