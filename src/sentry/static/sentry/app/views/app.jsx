@@ -6,6 +6,25 @@ var api = require("../api");
 var Alerts = require("../components/alerts");
 var PropTypes = require("../proptypes");
 
+var UserNav = React.createClass({
+
+  render() {
+    return (
+      <div className="user-nav dropdown">
+        <img src="https://github.com/dcramer.png" className="avatar" />
+        <div className="user-details">
+          <span className="user-name">David Cramer</span>
+          <ul>
+            <li><a href="#">Docs</a></li>
+            <li><a href="#">Account</a></li>
+            <li><a href="#">Sign out</a></li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+});
+
 var App = React.createClass({
   propTypes: {
     isAuthenticated: React.PropTypes.bool.isRequired,
@@ -52,6 +71,7 @@ var App = React.createClass({
       <div>
         <Alerts className="messages-container affix" />
         <Router.RouteHandler />
+        <UserNav />
       </div>
     );
   }

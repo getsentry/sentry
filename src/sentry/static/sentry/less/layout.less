@@ -271,8 +271,8 @@ header + .messages-container {
   position: fixed;
   top: 0;
   left: 0;
-  bottom: 0;
-  padding: 0 20px 44px;
+  bottom: 60px;
+  padding: 0 20px 104px;
   color: #fff;
   overflow: auto;
   .transition(.1s left ease-in-out);
@@ -348,6 +348,59 @@ header + .messages-container {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+}
+
+/**
+* User
+* ============================================================================
+*/
+
+.user-nav {
+  color: #fff;
+  position: fixed;
+  left: 0;
+  width: @sidebar-width;
+  bottom: 0;
+  padding: 10px;
+  background: @grayDark;
+  border-top: 1px solid rgba(0,0,0, .1);
+
+  a {
+    color: #C3C5C8;
+
+    &:hover {
+      color: #fff;
+    }
+  }
+
+  .avatar {
+    position: absolute;
+    .square(36px);
+    left: 10px;
+    top: 10px;
+  }
+
+  .user-name {
+    font-weight: 500;
+  }
+
+  .user-details {
+    padding-left: 45px;
+
+    ul {
+      font-size: 12px;
+      .list-unstyled();
+
+      li {
+        float: left;
+        margin-right: 6px;
+
+        &:last-child {
+          margin: 0;
+        }
+      }
+    }
   }
 }
 
