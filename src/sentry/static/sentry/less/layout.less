@@ -349,6 +349,23 @@ header + .messages-container {
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+
+  // Scrollbar
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+      background: #252A31;
+  }
+
+  &::-webkit-scrollbar-thumb {
+      border-radius: 2px;
+      background: @grayDark;
+      border: 1px solid #252A31;
+  }
+
 }
 
 /**
