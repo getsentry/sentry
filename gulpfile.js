@@ -1,7 +1,6 @@
 "use strict";
 
 var gulp = require("gulp"),
-    gp_cached = require("gulp-cached"),
     gp_clean = require("gulp-clean"),
     gp_concat = require("gulp-concat"),
     gp_less = require("gulp-less"),
@@ -55,7 +54,6 @@ function vendorFile(name) {
 function buildCssCompileTask(name, fileList) {
   return function(){
     gulp.src(fileList)
-    .pipe(gp_cached('css-' + name))
     .pipe(gp_less({
         paths: ['node_modules/bootstrap/less']
     }))
