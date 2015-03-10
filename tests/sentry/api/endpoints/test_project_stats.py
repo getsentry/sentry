@@ -17,7 +17,8 @@ class ProjectStatsTest(APITestCase):
         tsdb.incr(tsdb.models.project, project2.id, count=5)
 
         url = reverse('sentry-api-0-project-stats', kwargs={
-            'project_id': project1.id,
+            'organization_slug': project1.organization.slug,
+            'project_slug': project1.slug,
         })
         response = self.client.get(url, format='json')
 

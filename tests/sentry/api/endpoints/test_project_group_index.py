@@ -15,7 +15,9 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
-            'project_id': self.project.id})
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
         response = self.client.get(url + '?limit=1', format='json')
         assert response.status_code == 200
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -39,7 +41,9 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
-            'project_id': self.project.id})
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
         response = self.client.put(url + '?status=unresolved', data={
             'status': 'resolved',
         }, format='json')
@@ -77,7 +81,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
             }),
             group1=group1,
             group2=group2,
@@ -117,7 +122,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
             }),
             group1=group1,
             group2=group2,
@@ -155,7 +161,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id,
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
             }),
             group1=group1,
             group2=group2,
@@ -191,7 +198,8 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id,
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
             }),
             group1=group1,
             group2=group2,
@@ -214,7 +222,8 @@ class GroupDeleteTest(APITestCase):
     def test_global_is_forbidden(self):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
-            'project_id': self.project.id,
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
         })
         response = self.client.delete(url, data={
             'status': 'resolved',
@@ -232,7 +241,8 @@ class GroupDeleteTest(APITestCase):
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=reverse('sentry-api-0-project-group-index', kwargs={
-                'project_id': self.project.id
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
             }),
             group1=group1,
             group2=group2,

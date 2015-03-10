@@ -28,7 +28,8 @@ class ReleaseFilesListTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-release-files', kwargs={
-            'project_id': project.id,
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
             'version': release.version,
         })
 
@@ -51,7 +52,8 @@ class ReleaseFileCreateTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-release-files', kwargs={
-            'project_id': project.id,
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
             'version': release.version,
         })
 
