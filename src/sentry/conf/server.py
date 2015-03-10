@@ -296,6 +296,7 @@ AUTHENTICATION_BACKENDS = (
 
 # URL should be: https://[domainname]/account/settings/social/complete/google-oauth2/
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True  # redirect_uri for OAuth2 should be https://
+SOCIAL_AUTH_SESSION_EXPIRATION = False  # don't use Google's short-lived token to determine session length
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
