@@ -14,7 +14,7 @@ class ProjectDetailsTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-details', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug
+            'project_slug': project.slug,
         })
         response = self.client.get(url)
         assert response.status_code == 200
@@ -27,7 +27,7 @@ class ProjectUpdateTest(APITestCase):
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-details', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug
+            'project_slug': project.slug,
         })
         resp = self.client.put(url, data={
             'name': 'hello world',
@@ -71,7 +71,7 @@ class ProjectDeleteTest(APITestCase):
 
         url = reverse('sentry-api-0-project-details', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug
+            'project_slug': project.slug,
         })
 
         with self.settings(SENTRY_PROJECT=0):
@@ -92,7 +92,7 @@ class ProjectDeleteTest(APITestCase):
 
         url = reverse('sentry-api-0-project-details', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug
+            'project_slug': project.slug,
         })
 
         with self.settings(SENTRY_PROJECT=project.id):
