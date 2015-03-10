@@ -36,6 +36,8 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 
 
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
+    permission_classes = [RelaxedOrganizationPermission]
+
     def _is_only_owner(self, member):
         if member.type != OrganizationMemberType.OWNER:
             return False
