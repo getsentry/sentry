@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember,
@@ -19,6 +21,18 @@ ERR_UNINVITABLE = 'You cannot send an invitation to a user who is already a full
 
 class OrganizationMemberSerializer(serializers.Serializer):
     reinvite = serializers.BooleanField()
+
+
+class RelaxedOrganizationPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:delete'],
+        'POST': ['org:write', 'org:delete'],
+        'PUT': ['org:write', 'org:delete'],
+
+        # DELETE checks for role comparison as you can either remove a member
+        # with a lower access role, or yourself, without having the req. scope
+        'DELETE': ['org:read', 'org:write', 'org:delete'],
+    }
 
 
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
