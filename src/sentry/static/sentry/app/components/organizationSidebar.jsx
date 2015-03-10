@@ -43,7 +43,6 @@ var UserNav = React.createClass({
         <div className="user-details">
           <span className="user-name">David Cramer</span>
           <ul>
-            <li><a href="#">Docs</a></li>
             <li><a href="#">Account</a></li>
             <li><a href="#">Sign out</a></li>
           </ul>

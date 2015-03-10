@@ -10,6 +10,7 @@ var PropTypes = require("../proptypes");
 var OrganizationHeader = require("../components/organizationHeader");
 var OrganizationState = require("../mixins/organizationState");
 var OrganizationSidebar = require("../components/organizationSidebar");
+var OrganizationFooter = require("../components/organizationFooter");
 var RouteMixin = require("../mixins/routeMixin");
 
 var OrganizationDetails = React.createClass({
@@ -88,6 +89,7 @@ var OrganizationDetails = React.createClass({
               <Router.RouteHandler />
             </div>
           </div>
+          <OrganizationFooter />
         </div>
       </div>
     );
