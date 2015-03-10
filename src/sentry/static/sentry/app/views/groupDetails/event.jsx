@@ -98,7 +98,7 @@ var GroupEvent = React.createClass({
           }
 
           <h6>Sample ID</h6>
-          <p><strong>{evt.eventID}</strong></p>
+          <p><strong className="truncate">{evt.eventID}</strong></p>
 
           <h6>Time</h6>
           <p><strong>{evt.dateCreated}</strong></p>
