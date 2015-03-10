@@ -45,45 +45,47 @@ var OrganizationSidebar = React.createClass({
     }
 
     return (
-      <div className="app-sidebar">
+      <div>
         <OrganizationSelector />
-        <div className="teams">
-          {activeOrg.teams.map((team, teamIdx) => {
-            var routeParams = {
-              orgId: activeOrg.slug,
-              teamId: team.slug
-            };
-            return (
-              <div className="team" key={team.slug}>
-                <h6>
-                  <a className="pull-right" href="">
-                    <span className="icon-settings" />
-                  </a>
-                  <Router.Link
-                      to="teamDetails"
-                      params={routeParams}>
-                    {team.name}
-                  </Router.Link>
-                </h6>
-                <ul className="project-list list-unstyled truncate">
-                  {team.projects.map((project) => {
-                    var routeParams = {
-                      orgId: activeOrg.slug,
-                      projectId: project.slug
-                    };
-                    return (
-                      <ListLink
-                          to="projectDetails"
-                          params={routeParams}
-                          key={project.slug}>
-                        {project.name}
-                      </ListLink>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })}
+        <div className="app-sidebar">
+          <div className="teams">
+            {activeOrg.teams.map((team, teamIdx) => {
+              var routeParams = {
+                orgId: activeOrg.slug,
+                teamId: team.slug
+              };
+              return (
+                <div className="team" key={team.slug}>
+                  <h6>
+                    <a className="pull-right" href="">
+                      <span className="icon-settings" />
+                    </a>
+                    <Router.Link
+                        to="teamDetails"
+                        params={routeParams}>
+                      {team.name}
+                    </Router.Link>
+                  </h6>
+                  <ul className="project-list list-unstyled truncate">
+                    {team.projects.map((project) => {
+                      var routeParams = {
+                        orgId: activeOrg.slug,
+                        projectId: project.slug
+                      };
+                      return (
+                        <ListLink
+                            to="projectDetails"
+                            params={routeParams}
+                            key={project.slug}>
+                          {project.name}
+                        </ListLink>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );

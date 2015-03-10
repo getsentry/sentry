@@ -359,11 +359,20 @@ table.integrations {
 */
 
 .org-selector {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: @sidebar-width;
+  background: @grayDark;
   border-bottom: 1px solid rgba(36, 39, 43, .5);
   padding: 0;
-  margin: 0 -20px 5px;
+  margin: 0 0 5px;
   height: 66px;
-  position: relative;
+  z-index: 10;
+
+  a {
+    color: #fff;
+  }
 
   .active-org {
     font-size: 18px;
@@ -406,6 +415,59 @@ table.integrations {
         &:hover {
           background: @blue;
           color: #fff;
+        }
+      }
+    }
+  }
+}
+
+/**
+* User Nav
+* ============================================================================
+*/
+
+.user-nav {
+  color: #fff;
+  position: fixed;
+  left: 0;
+  width: @sidebar-width;
+  bottom: 0;
+  padding: 10px;
+  background: @grayDark;
+  border-top: 1px solid rgba(0,0,0, .1);
+
+  a {
+    color: #C3C5C8;
+
+    &:hover {
+      color: #fff;
+    }
+  }
+
+  .avatar {
+    position: absolute;
+    .square(36px);
+    left: 10px;
+    top: 10px;
+  }
+
+  .user-name {
+    font-weight: 500;
+  }
+
+  .user-details {
+    padding-left: 45px;
+
+    ul {
+      font-size: 12px;
+      .list-unstyled();
+
+      li {
+        float: left;
+        margin-right: 6px;
+
+        &:last-child {
+          margin: 0;
         }
       }
     }
