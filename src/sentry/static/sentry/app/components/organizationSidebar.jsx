@@ -34,6 +34,25 @@ var OrganizationSelector = React.createClass({
   }
 });
 
+var UserNav = React.createClass({
+
+  render() {
+    return (
+      <div className="user-nav dropdown">
+        <img src="https://github.com/dcramer.png" className="avatar" />
+        <div className="user-details">
+          <span className="user-name">David Cramer</span>
+          <ul>
+            <li><a href="#">Docs</a></li>
+            <li><a href="#">Account</a></li>
+            <li><a href="#">Sign out</a></li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+});
+
 var OrganizationSidebar = React.createClass({
   mixins: [AppState, OrganizationState],
 
@@ -87,6 +106,7 @@ var OrganizationSidebar = React.createClass({
             })}
           </div>
         </div>
+        <UserNav />
       </div>
     );
   }
