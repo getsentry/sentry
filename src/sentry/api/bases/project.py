@@ -53,7 +53,7 @@ class ProjectEndpoint(Endpoint):
 
     def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
         try:
-            project = Project.objects.get(
+            project = Project.objects.get_from_cache(
                 organization__slug=organization_slug,
                 slug=project_slug,
             )
