@@ -93,6 +93,22 @@
             {% endif %}
           </div>
         </div>
+        {% block account_nav %}
+          <div class="user-nav">
+            <img src="{% gravatar_url user.email size 72 %}" class="avatar">
+            <div class="user-details">
+              <span class="user-name">{{ request.user.username }}</span>
+              <ul>
+                <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
+                <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
+              </ul>
+            </div>
+          </div>
+        {% endblock%}
+        {% else %}
+          <div class="user-nav">
+            <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
+          </div>
         {% endif %}
         <div class="app">
           {% block header %}
@@ -107,36 +123,6 @@
                   {% endblock %}
                   <div class="pull-right">
                       {% block header_action %}
-                          {% if request.user.is_authenticated %}
-                            {% block account_nav %}
-                            <ul class="user-nav">
-                              <li><strong><a href="{% url 'sentry-help' %}"><span class="icon icon-book"></span>{% trans "Docs" %}</a></strong></li>
-                              {% block support_link %}{% endblock %}
-                              <li>
-                                <div class="dropdown anchor-right">
-                                  <a href="#" class="dropdown-toggle" onclick="$(this).parent('.dropdown').toggleClass('open');">
-                                    <img src="{% gravatar_url user.email size 72 %}">
-                                    <span class="icon-arrow-down"></span>
-                                  </a>
-                                  <div class="dropdown-menu">
-                                    <ul class="user-account">
-                                      <li><strong><a href="https://kiwiirc.com/client/irc.freenode.net/#sentry" target="_blank"><span class="icon icon-comments"></span>Chat</a></strong></li>
-                                      {% if request.user.is_staff %}
-                                      <li><strong><a href="{% url 'sentry-admin-status' %}"><span class="icon icon-settings"></span>{% trans "Admin" %}</a></strong></li>
-                                      {% endif %}
-                                      <li><strong><a href="{% url 'sentry-account-settings' %}"><span class="icon icon-settings"></span>{% trans "Account" %}</a></strong></li>
-                                      <li><strong><a href="{% url 'sentry-logout' %}"><span class="icon icon-arrow-right"></span>{% trans "Sign out" %}</a></strong></li>
-                                    </ul>
-                                  </div>
-                              </div>
-                              </li>
-                            </ul>
-                            {% endblock%}
-                          {% else %}
-                            <div class="user-nav">
-                              <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
-                            </div>
-                          {% endif %}
                       {% endblock %}
                   </div>
                   {% if request.user.is_authenticated %}
@@ -210,7 +196,14 @@
             <footer>
               <div class="container">
                 {% block footer %}
-                  <a href="https://github.com/getsentry/sentry" class="pull-right">{% trans "Contribute" %}</a>
+                  <div class="pull-right">
+                    {% if request.user.is_staff %}
+                      <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
+                    {% endif %}
+                    {% block support_link %}{% endblock %}
+                    <a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a>
+                    <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
+                  </div>
                   <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
                   <span class="icon-sentry-logo"></span>
                 {% endblock %}
