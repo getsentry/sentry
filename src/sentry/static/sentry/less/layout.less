@@ -103,9 +103,10 @@ header {
     margin-bottom: 0;
     font-size: 18px;
     white-space: nowrap;
-    overflow: hidden;
     margin-right: 140px;
     position: relative;
+
+    .clearfix;
 
     &:after {
       content: "";
@@ -188,6 +189,12 @@ header {
 
   .icon-sentry-logo-full, .icon-sentry-logo {
     font-size: 24px;
+    position: relative;
+    top: 0;
+  }
+
+  .icon-sentry-logo-full {
+    top: -4px;
   }
 
   .nav-tabs {
@@ -269,12 +276,11 @@ header + .messages-container {
   color: #fff;
   width: @sidebar-width;
   position: fixed;
-  top: 65px;
+  top: 0;
   left: 0;
-  bottom: 60px;
-  padding: 0 20px 104px;
+  bottom: 0;
   color: #fff;
-  overflow: auto;
+
   .transition(.1s left ease-in-out);
 
   a {
@@ -350,22 +356,31 @@ header + .messages-container {
     text-overflow: ellipsis;
   }
 
-  // Scrollbar
+  .app-sidebar-content {
+    position: fixed;
+    left: 0;
+    top: 66px;
+    bottom: 60px;
+    padding: 0 20px 20px;
+    width: @sidebar-width;
+    overflow: auto;
 
-  &::-webkit-scrollbar {
-    width: 10px;
+    // Scrollbar
+
+    &::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #252A31;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 2px;
+        background: @grayDark;
+        border: 1px solid #252A31;
+    }
   }
-
-  &::-webkit-scrollbar-track {
-      background: #252A31;
-  }
-
-  &::-webkit-scrollbar-thumb {
-      border-radius: 2px;
-      background: @grayDark;
-      border: 1px solid #252A31;
-  }
-
 }
 
 /**

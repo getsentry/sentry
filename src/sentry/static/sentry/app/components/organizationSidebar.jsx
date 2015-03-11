@@ -63,9 +63,9 @@ var OrganizationSidebar = React.createClass({
     }
 
     return (
-      <div>
+      <div className="app-sidebar">
         <OrganizationSelector />
-        <div className="app-sidebar">
+        <div className="app-sidebar-content">
           <div className="teams">
             {activeOrg.teams.map((team, teamIdx) => {
               var routeParams = {

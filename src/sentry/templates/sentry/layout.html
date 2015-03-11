@@ -47,8 +47,9 @@
         {% endblock %}
     </head>
 
-    <body class="{% block wrapperclass %}{% endblock %} {% if not request.user.is_authenticated %}hide-sidebar{% endif %}">
+    <body class="{% block wrapperclass %}{% endblock %}">
       {% block body %}
+        <div class="app-sidebar">
         {% if request.user.is_authenticated %}
         {% if organization %}
           <div class="org-selector dropdown">
@@ -71,7 +72,8 @@
             {% endif %}
           </div>
           {% endif %}
-        <div class="app-sidebar">
+        {% endif %}
+        <div class="app-sidebar-content">
           {% block app-sidebar %}{% endblock %}
           <div class="teams">
             {% if TEAM_LIST %}
@@ -93,6 +95,7 @@
             {% endif %}
           </div>
         </div>
+        {% if request.user.is_authenticated %}
         {% block account_nav %}
           <div class="user-nav">
             <img src="{% gravatar_url user.email size 72 %}" class="avatar">
@@ -104,12 +107,9 @@
               </ul>
             </div>
           </div>
-        {% endblock%}
-        {% else %}
-          <div class="user-nav">
-            <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
-          </div>
+        {% endblock %}
         {% endif %}
+        </div>
         <div class="app">
           {% block header %}
             <header>
@@ -123,6 +123,9 @@
                   {% endblock %}
                   <div class="pull-right">
                       {% block header_action %}
+                        {% if not request.user.is_authenticated %}
+                        <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
+                        {% endif %}
                       {% endblock %}
                   </div>
                   {% if request.user.is_authenticated %}
