@@ -4,7 +4,9 @@ from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.db.models import BoundedPositiveIntegerField, Model
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model
+)
 
 from .organizationmember import OrganizationMember
 
@@ -13,7 +15,7 @@ _organizationemmber_type_field = OrganizationMember._meta.get_field('type')
 
 
 class AuthProvider(Model):
-    organization = models.ForeignKey('sentry.Organization', unique=True)
+    organization = FlexibleForeignKey('sentry.Organization', unique=True)
     provider = models.CharField(max_length=128)
     config = JSONField()
 

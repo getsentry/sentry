@@ -25,7 +25,7 @@ class Migration(SchemaMigration):
         # Adding model 'AuthProvider'
         db.create_table('sentry_authprovider', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Organization'], unique=True)),
+            ('organization', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], unique=True)),
             ('provider', self.gf('django.db.models.fields.CharField')(max_length=128)),
             ('config', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
             ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
@@ -128,7 +128,7 @@ class Migration(SchemaMigration):
             'default_role': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '50'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'last_sync': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'organization': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Organization']", 'unique': 'True'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']", 'unique': 'True'}),
             'provider': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'sync_time': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'})
         },
