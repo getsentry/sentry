@@ -28,6 +28,9 @@ class AuthProvider(Model):
         default=_organizationemmber_type_field.default
     )
     default_global_access = models.BooleanField(default=True)
+    # TODO(dcramer): ManyToMany has the same issue as ForeignKey and we need
+    # to either write our own which works w/ BigAuto or switch this to use
+    # through.
     default_teams = models.ManyToManyField('sentry.Team', blank=True)
 
     class Meta:
