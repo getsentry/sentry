@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 from datetime import timedelta
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
@@ -9,7 +10,7 @@ from sentry.db.models import FlexibleForeignKey, Model
 
 
 class AuthIdentity(Model):
-    user = FlexibleForeignKey('sentry.User')
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     auth_provider = FlexibleForeignKey('sentry.AuthProvider')
     ident = models.CharField(max_length=128)
     data = JSONField()
