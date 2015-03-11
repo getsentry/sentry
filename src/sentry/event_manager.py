@@ -21,8 +21,10 @@ from uuid import uuid4
 
 from sentry.app import buffer, tsdb
 from sentry.constants import (
-    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
+    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH,
+    MAX_TAG_VALUE_LENGTH
 )
+from sentry.interfaces.base import get_interface
 from sentry.models import (
     Event, EventMapping, Group, GroupHash, GroupStatus, Project
 )
@@ -140,8 +142,6 @@ class EventManager(object):
         # First we pull out our top-level (non-data attr) kwargs
         data = self.data
 
-        data['version'] = self.version
-
         if not isinstance(data.get('level'), (six.string_types, int)):
             data['level'] = logging.ERROR
         elif data['level'] not in LOG_LEVELS:
@@ -212,6 +212,26 @@ class EventManager(object):
 
         trim_dict(
             data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
+
+        # TODO(dcramer): more of validate data needs stuffed into the manager
+        for key in data.keys():
+            if key in CLIENT_RESERVED_ATTRS:
+                continue
+
+            value = data.pop(key)
+
+            try:
+                interface = get_interface(key)()
+            except ValueError:
+                continue
+
+            try:
+                inst = interface.to_python(value)
+                data[inst.get_path()] = inst.to_json()
+            except Exception:
+                pass
+
+        data['version'] = self.version
 
         # TODO(dcramer): find a better place for this logic
         exception = data.get('sentry.interfaces.Exception')
