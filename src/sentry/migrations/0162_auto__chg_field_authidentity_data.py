@@ -101,7 +101,7 @@ class Migration(SchemaMigration):
             'default_teams': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['sentry.Team']", 'symmetrical': 'False', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'last_sync': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'organization': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Organization']", 'unique': 'True'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']", 'unique': 'True'}),
             'provider': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'sync_time': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'})
         },
