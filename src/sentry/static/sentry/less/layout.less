@@ -19,8 +19,8 @@ body {
 body.hide-sidebar {
   padding-left: 0;
 
-  .app-sidebar {
-    display: none;
+  .app-sidebar, .app-sidebar-content, .org-selector, .user-nav {
+    left: -@sidebar-width;
   }
 
   .container {
@@ -364,6 +364,7 @@ header + .messages-container {
     padding: 0 20px 20px;
     width: @sidebar-width;
     overflow: auto;
+    .transition(.1s left ease-in-out);
 
     // Scrollbar
 
