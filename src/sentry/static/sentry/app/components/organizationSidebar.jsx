@@ -38,7 +38,7 @@ var UserNav = React.createClass({
 
   render() {
     return (
-      <div className="user-nav dropdown">
+      <div className="user-nav">
         <img src="https://github.com/dcramer.png" className="avatar" />
         <div className="user-details">
           <span className="user-name">David Cramer</span>
