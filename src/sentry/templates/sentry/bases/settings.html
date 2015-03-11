@@ -4,18 +4,3 @@
 {% load sentry_permissions %}
 
 {% block title %}{{ project.name }} Settings | {{ block.super }}{% endblock %}
-
-{% block page_header %}
-    {{ block.super }}
-    <ul class="nav nav-tabs project-nav">
-        <li>
-            <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{% trans "Stream" %}</a>
-        </li>
-        <li>
-            <a href="{% url 'sentry-explore' project.organization.slug project.slug %}">{% trans "Explore" %}</a>
-        </li>
-        <li class="active">
-            <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}"><span class="icon-settings"></span> {% trans "Project Settings" %}</a>
-        </li>
-    </ul>
-{% endblock %}

@@ -6,7 +6,7 @@
 
 {% block title %}{% trans "Manage API Keys" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block content %}
     <div class="page-header">
         {% if can_add_key %}
             <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
