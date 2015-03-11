@@ -1,3 +1,9 @@
+Version 7.4.1
+-------------
+
+- Correct an issue with AuthProvider's migrations on MySQL.
+
+
 Version 7.4.0
 -------------
 
