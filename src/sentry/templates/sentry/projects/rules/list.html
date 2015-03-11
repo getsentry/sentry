@@ -2,7 +2,7 @@
 
 {% load i18n %}
 
-{% block inner %}
+{% block content %}
     <div class="page-header">
         <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "New Rule" %}</a>
         <h3>{% trans "Rules" %}</h3>

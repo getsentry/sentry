@@ -1,8 +1,3 @@
-html {
-  overflow-y: scroll;
-  height: 100%;
-}
-
 body {
   margin: 0;
   font-family: @font-family-base;
@@ -233,7 +228,7 @@ header + .messages-container {
   position: absolute;
   width: 220px;
   right: 0px;
-  top: -1px;
+  top: -11px;
 
   .nav-stacked {
     li, li+li {
@@ -256,6 +251,11 @@ header + .messages-container {
       font-weight: 600;
       background: @blue;
     }
+  }
+
+  h6 {
+    color: darken(@gray-light, 10);
+    margin: 15px 20px;
   }
 }
 
