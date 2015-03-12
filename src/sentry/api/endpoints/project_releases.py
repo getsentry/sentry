@@ -10,7 +10,7 @@ from sentry.models import Release
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.SlugField(max_length=200, required=True)
+    version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=200, required=True)
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
