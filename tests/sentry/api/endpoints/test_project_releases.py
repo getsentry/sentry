@@ -54,7 +54,7 @@ class ProjectReleaseCreateTest(APITestCase):
             'project_slug': project.slug,
         })
         response = self.client.post(url, data={
-            'version': 'abcdef',
+            'version': '1.2.1',
         })
 
         assert response.status_code == 201, response.content
