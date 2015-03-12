@@ -7,7 +7,7 @@ from sentry.web.frontend.base import OrganizationView
 
 
 class OrganizationStatsView(OrganizationView):
-    required_access = OrganizationMemberType.ADMIN
+    required_access = OrganizationMemberType.MEMBER
 
     def get(self, request, organization):
         return self.respond('sentry/organization-stats.html')
