@@ -1,3 +1,9 @@
+Version 7.4.2
+-------------
+
+- Corrected invalid reference to SENTRY_ALLOW_REGISTRATION.
+
+
 Version 7.4.1
 -------------
 
