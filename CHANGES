@@ -1,3 +1,9 @@
+Version 7.5.0
+-------------
+
+- Corrected various issues involving sampled data. Things should now sample according to actual MATH.
+
+
 Version 7.4.2
 -------------
 
