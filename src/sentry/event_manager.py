@@ -80,7 +80,7 @@ else:
         if times_seen % count_limit(times_seen) == 0:
             return False
 
-        if times_seen % time_limit(silence):
+        if times_seen % time_limit(silence) == 0:
             return False
 
         return True
