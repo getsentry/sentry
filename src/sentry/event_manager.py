@@ -467,10 +467,8 @@ class EventManager(object):
         # Determine if we've sampled enough data to store this event
         if is_new or is_regression:
             is_sample = False
-        elif can_sample:
-            is_sample = False
         else:
-            is_sample = True
+            is_sample = can_sample
 
         tsdb.incr_multi([
             (tsdb.models.group, group.id),
