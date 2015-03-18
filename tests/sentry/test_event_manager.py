@@ -223,11 +223,12 @@ class GetHashesFromEventTest(TestCase):
                     'url': 'http://example.com'
                 },
             },
+            platform='python',
             message='Foo bar',
         )
         checksums = get_hashes_for_event(event)
         assert len(checksums) == 1
         checksum = checksums[0]
-        stack_comp_hash.assert_called_once_with()
+        stack_comp_hash.assert_called_once_with('python')
         assert not http_comp_hash.called
         assert checksum == '3858f62230ac3c915f300c664312c63f'
