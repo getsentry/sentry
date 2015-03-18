@@ -2,6 +2,7 @@ Version 7.5.0
 -------------
 
 - Corrected various issues involving sampled data. Things should now sample according to actual MATH.
+- Interface.compute_hashes() now receives the platform of the event.
 
 
 Version 7.4.2

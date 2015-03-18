@@ -445,7 +445,7 @@ class Stacktrace(Interface):
     def has_app_frames(self):
         return any(f.in_app is not None for f in self.frames)
 
-    def compute_hashes(self):
+    def compute_hashes(self, platform):
         system_hash = self.get_hash(system_frames=True)
         if not system_hash:
             return []

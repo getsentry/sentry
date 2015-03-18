@@ -84,7 +84,7 @@ class Interface(object):
     def get_hash(self):
         return []
 
-    def compute_hashes(self):
+    def compute_hashes(self, platform):
         result = self.get_hash()
         if not result:
             return []

@@ -64,7 +64,7 @@ def md5_from_hash(hash_bits):
 def get_hashes_for_event(event):
     interfaces = event.interfaces
     for interface in interfaces.itervalues():
-        result = interface.compute_hashes()
+        result = interface.compute_hashes(event.platform)
         if not result:
             continue
         return map(md5_from_hash, result)

@@ -124,7 +124,7 @@ class StacktraceTest(TestCase):
             'filename': 'bar.py',
             'in_app': None,
         }]))
-        result = interface.compute_hashes()
+        result = interface.compute_hashes('python')
         assert result == [['foo.py', 1, 'bar.py', 1], ['foo.py', 1]]
 
     def test_get_hash_with_only_required_vars(self):
