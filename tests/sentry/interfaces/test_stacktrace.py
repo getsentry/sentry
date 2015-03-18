@@ -166,6 +166,28 @@ class StacktraceTest(TestCase):
             '<% if @hotels.size > 0 %>',
         ])
 
+    def test_get_hash_ignores_java8_lambda_module(self):
+        interface = Frame.to_python({
+            'module': 'foo.bar.Baz$$Lambda$40/1673859467',
+            'function': 'call',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            '<module>',
+            'call',
+        ])
+
+    def test_get_hash_ignores_java8_lambda_function(self):
+        interface = Frame.to_python({
+            'module': 'foo.bar.Baz',
+            'function': 'lambda$work$1',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'foo.bar.Baz',
+            '<function>',
+        ])
+
     def test_get_hash_sanitizes_erb_templates(self):
         # This is Ruby specific
         interface = Frame.to_python({
