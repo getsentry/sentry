@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 
 from sentry.app import tsdb
 from sentry.utils.cursors import Cursor
+from sentry.utils.http import is_valid_origin
 
 from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
 from .paginator import Paginator
@@ -113,6 +114,30 @@ class Endpoint(APIView):
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super(Endpoint, self).finalize_response(
+            request, response, *args, **kwargs
+        )
+
+        self.add_cors_headers(request, response)
+
+        return response
+
+    def add_cors_headers(self, request, response):
+        if not request.auth:
+            return
+
+        origin = request.META.get('HTTP_ORIGIN')
+        if not origin:
+            return
+
+        allowed_origins = request.auth.get_allowed_origins()
+        if is_valid_origin(origin, allowed=allowed_origins):
+            response['Access-Control-Allow-Origin'] = origin
+            response['Access-Control-Allow-Methods'] = ', '.join(self.http_method_names)
+
+        return
 
     def paginate(self, request, on_results=None, paginator_cls=Paginator,
                  **kwargs):
