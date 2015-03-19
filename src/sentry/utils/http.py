@@ -96,7 +96,7 @@ def parse_uri_match(value):
     return ParsedUriMatch(scheme, domain, path)
 
 
-def is_valid_origin(origin, project=None):
+def is_valid_origin(origin, project=None, allowed=None):
     """
     Given an ``origin`` which matches a base URI (e.g. http://example.com)
     determine if a valid origin is present in the project settings.
@@ -108,7 +108,8 @@ def is_valid_origin(origin, project=None):
     - *.domain.com: matches domain.com and all subdomains, on any port
     - domain.com: matches domain.com on any port
     """
-    allowed = get_origins(project)
+    if allowed is None:
+        allowed = get_origins(project)
     if '*' in allowed:
         return True
 

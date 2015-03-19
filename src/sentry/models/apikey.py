@@ -1,8 +1,8 @@
 """
-sentry.models.projectkey
-~~~~~~~~~~~~~~~~~~~~~~~~
+sentry.models.apikey
+~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2015 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import, print_function
@@ -50,6 +50,7 @@ class ApiKey(Model):
         (ApiKeyStatus.INACTIVE, _('Inactive')),
     ), db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
+    allowed_origins = models.TextField(blank=True, null=True)
 
     objects = BaseManager(cache_fields=(
         'key',
@@ -76,6 +77,9 @@ class ApiKey(Model):
         if not self.key:
             self.key = ApiKey.generate_api_key()
         super(ApiKey, self).save(*args, **kwargs)
+
+    def get_allowed_origins(self):
+        return filter(bool, self.allowed_origins.split('\n'))
 
     def get_audit_log_data(self):
         return {
