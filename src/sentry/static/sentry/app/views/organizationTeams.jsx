@@ -21,7 +21,7 @@ var OrganizationTeams = React.createClass({
     }
 
     return (
-      <div>
+      <div className="team-list">
         <OrganizationHomeSidebar />
         <h3>Teams</h3>
         {org.teams.map((team, teamIdx) => {
@@ -30,10 +30,10 @@ var OrganizationTeams = React.createClass({
             teamId: team.slug
           };
           return (
-            <div class="box" key={team.slug}>
-              <div class="box-header">
-                <div class="pull-right actions">
-                  <a href="#"><span class="icon-settings"></span> Team Settings</a>
+            <div className="box" key={team.slug}>
+              <div className="box-header">
+                <div className="pull-right actions">
+                  <a href="#"><span className="icon-settings"></span> Team Settings</a>
                 </div>
                 <h3>
                   <Router.Link
@@ -41,8 +41,8 @@ var OrganizationTeams = React.createClass({
                     params={teamRouteParams}>{team.name}</Router.Link>
                 </h3>
               </div>
-              <div class="box-content with-padding">
-                <ul class="projects">
+              <div className="box-content with-padding">
+                <ul className="projects">
                   {team.projects.map((project) => {
                     // <p>There are no projects in this team. Would you like to <a href="#">create a project</a>?</p>
                     var projectRouteParams = {
