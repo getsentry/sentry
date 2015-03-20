@@ -52,15 +52,17 @@ class SensitiveDataFilter(object):
             self.fields = DEFAULT_SCRUBBED_FIELDS
 
     def apply(self, data):
-        if 'stacktrace' in data:
-            self.filter_stacktrace(data['stacktrace'])
+        # TODO(dcramer): move this into each interface
+        if 'sentry.interfaces.Stacktrace' in data:
+            self.filter_stacktrace(data['sentry.interfaces.Stacktrace'])
 
-        if 'exception' in data:
-            if 'stacktrace' in data['exception']:
-                self.filter_stacktrace(data['exception']['stacktrace'])
+        if 'sentry.interfaces.Exception' in data:
+            for exc in data['sentry.interfaces.Exception']['values']:
+                if 'stacktrace' in exc:
+                    self.filter_stacktrace(exc['stacktrace'])
 
-        if 'request' in data:
-            self.filter_http(data['request'])
+        if 'sentry.interfaces.Http' in data:
+            self.filter_http(data['sentry.interfaces.Http'])
 
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])
