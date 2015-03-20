@@ -223,3 +223,12 @@ CLIENT_RESERVED_ATTRS = (
     'platform',
     'release',
 )
+
+DEFAULT_SCRUBBED_FIELDS = (
+    'password',
+    'secret',
+    'passwd',
+    'authorization',
+    'api_key',
+    'apikey',
+)

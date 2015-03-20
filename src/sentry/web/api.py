@@ -380,7 +380,7 @@ class StoreView(APIView):
 
         if project.get_option('sentry:scrub_data', True):
             # We filter data immediately before it ever gets into the queue
-            inst = SensitiveDataFilter(project.get_option('sentry:sensitive_fields', []))
+            inst = SensitiveDataFilter(project.get_option('sentry:sensitive_fields', None))
             inst.apply(data)
 
         if scrub_ip_address:

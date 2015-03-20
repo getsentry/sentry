@@ -536,6 +536,14 @@
 
             app.utils.makeSearchableUsersInput('form input[name=owner]');
 
+            $("input[name='scrub_data']").change(function(){
+                if ($(this).is(':checked')) {
+                    $("#div_id_sensitive_fields").show();
+                } else {
+                    $("#div_id_sensitive_fields").hide();
+                }
+            }).change();
+
             $("input[type=range]").each(_.bind(function loop(n, el){
                 var $el = $(el),
                     min = parseInt($el.attr('min'), 10),
