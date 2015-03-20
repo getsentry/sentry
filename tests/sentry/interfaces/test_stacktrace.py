@@ -124,7 +124,7 @@ class StacktraceTest(TestCase):
             'filename': 'bar.py',
             'in_app': None,
         }]))
-        result = interface.compute_hashes()
+        result = interface.compute_hashes('python')
         assert result == [['foo.py', 1, 'bar.py', 1], ['foo.py', 1]]
 
     def test_get_hash_with_only_required_vars(self):
@@ -164,6 +164,28 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, [
             '<version>/app/views/foo.html.erb',
             '<% if @hotels.size > 0 %>',
+        ])
+
+    def test_get_hash_ignores_java8_lambda_module(self):
+        interface = Frame.to_python({
+            'module': 'foo.bar.Baz$$Lambda$40/1673859467',
+            'function': 'call',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            '<module>',
+            'call',
+        ])
+
+    def test_get_hash_ignores_java8_lambda_function(self):
+        interface = Frame.to_python({
+            'module': 'foo.bar.Baz',
+            'function': 'lambda$work$1',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'foo.bar.Baz',
+            '<function>',
         ])
 
     def test_get_hash_sanitizes_erb_templates(self):

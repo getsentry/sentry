@@ -204,3 +204,31 @@ SENTRY_RULES = (
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
+
+CLIENT_RESERVED_ATTRS = (
+    'project',
+    'event_id',
+    'message',
+    'checksum',
+    'culprit',
+    'level',
+    'time_spent',
+    'logger',
+    'server_name',
+    'site',
+    'timestamp',
+    'extra',
+    'modules',
+    'tags',
+    'platform',
+    'release',
+)
+
+DEFAULT_SCRUBBED_FIELDS = (
+    'password',
+    'secret',
+    'passwd',
+    'authorization',
+    'api_key',
+    'apikey',
+)

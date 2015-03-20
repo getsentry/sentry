@@ -41,7 +41,7 @@ from sentry.utils.safe import safe_execute
 def register(request):
     from django.conf import settings
 
-    if not (settings.SENTRY_ALLOW_REGISTRATION or request.session.get('can_register')):
+    if not (features.has('auth:register') or request.session.get('can_register')):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = RegistrationForm(request.POST or None,

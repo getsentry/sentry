@@ -20,7 +20,7 @@ USE_GEVENT = os.environ.get('USE_GEVENT') == '1'
 KEY_LENGTH = 40
 
 CONFIG_TEMPLATE = """
-# This file is just Python, with a touch of Django which means you
+# This file is just Python, with a touch of Django which means
 # you can inherit and tweak settings to your hearts content.
 from sentry.conf.server import *
 

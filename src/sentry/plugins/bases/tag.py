@@ -34,6 +34,4 @@ class TagPlugin(Plugin):
         ]
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
-        # legacy compatibility for older plugins
-        if not hasattr(Plugin, 'get_tags'):
-            Group.objects.add_tags(group, self.get_tags(event))
+        Group.objects.add_tags(group, self.get_tags(event))

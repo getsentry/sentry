@@ -24,8 +24,9 @@ from gzip import GzipFile
 from sentry.app import env
 from sentry.cache import default_cache
 from sentry.constants import (
-    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH)
+    CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
+    MAX_TAG_KEY_LENGTH
+)
 from sentry.exceptions import InvalidTimestamp
 from sentry.interfaces.base import get_interface
 from sentry.models import Project, ProjectKey
@@ -39,25 +40,6 @@ from sentry.utils.strings import decompress
 logger = logging.getLogger('sentry.coreapi')
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
-
-RESERVED_FIELDS = (
-    'project',
-    'event_id',
-    'message',
-    'checksum',
-    'culprit',
-    'level',
-    'time_spent',
-    'logger',
-    'server_name',
-    'site',
-    'timestamp',
-    'extra',
-    'modules',
-    'tags',
-    'platform',
-    'release',
-)
 
 
 class APIError(Exception):
@@ -339,7 +321,7 @@ def validate_data(project, data, client=None):
         data['tags'] = tags
 
     for k in data.keys():
-        if k in RESERVED_FIELDS:
+        if k in CLIENT_RESERVED_ATTRS:
             continue
 
         value = data.pop(k)

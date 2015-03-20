@@ -72,7 +72,7 @@
     }
 
     $.ajax({
-      url: '/api/0/projects/{{ project.id }}/tags/' + keyName + '/',
+      url: '/api/0/projects/{{ organization.slug }}/{{ project.slug }}/tags/' + keyName + '/',
       method: 'DELETE',
     });
     $('.tag-list tr').each(function(_, el){

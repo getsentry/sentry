@@ -8,14 +8,16 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding field 'ApiKey.allowed_origins'
+        db.add_column('sentry_apikey', 'allowed_origins',
+                      self.gf('django.db.models.fields.TextField')(null=True, blank=True),
+                      keep_default=False)
 
-        # Changing field 'AuthIdentity.data'
-        db.alter_column('sentry_authidentity', 'data', self.gf('jsonfield.fields.JSONField')())
 
     def backwards(self, orm):
+        # Deleting field 'ApiKey.allowed_origins'
+        db.delete_column('sentry_apikey', 'allowed_origins')
 
-        # Changing field 'AuthIdentity.data'
-        db.alter_column('sentry_authidentity', 'data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')())
 
     models = {
         'sentry.accessgroup': {
@@ -62,6 +64,7 @@ class Migration(SchemaMigration):
         },
         'sentry.apikey': {
             'Meta': {'object_name': 'ApiKey'},
+            'allowed_origins': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '32'}),
@@ -89,6 +92,7 @@ class Migration(SchemaMigration):
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'ident': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
+            'last_synced': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'last_verified': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
@@ -137,14 +141,15 @@ class Migration(SchemaMigration):
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"})
         },
         'sentry.file': {
-            'Meta': {'unique_together': "(('name', 'checksum'),)", 'object_name': 'File'},
-            'checksum': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
+            'Meta': {'object_name': 'File'},
+            'checksum': ('django.db.models.fields.CharField', [], {'max_length': '40', 'null': 'True'}),
+            'headers': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'path': ('django.db.models.fields.TextField', [], {'null': 'True'}),
             'size': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'}),
             'storage': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True'}),
-            'storage_options': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
+            'storage_options': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
             'timestamp': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
             'type': ('django.db.models.fields.CharField', [], {'max_length': '64'})
         },
@@ -330,6 +335,15 @@ class Migration(SchemaMigration):
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'version': ('django.db.models.fields.CharField', [], {'max_length': '64'})
         },
+        'sentry.releasefile': {
+            'Meta': {'unique_together': "(('release', 'ident'),)", 'object_name': 'ReleaseFile'},
+            'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']"}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'ident': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
+            'name': ('django.db.models.fields.TextField', [], {}),
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']"})
+        },
         'sentry.rule': {
             'Meta': {'object_name': 'Rule'},
             'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
@@ -381,7 +395,7 @@ class Migration(SchemaMigration):
             'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'is_managed': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),

@@ -577,6 +577,7 @@ SENTRY_SAMPLE_DATA = True
 
 # The following values control the sampling rates
 SENTRY_SAMPLE_RATES = (
+    # up until N events, store 1 in M
     (50, 1),
     (1000, 2),
     (10000, 10),
