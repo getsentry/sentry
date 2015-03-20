@@ -130,7 +130,7 @@ class EditProjectForm(forms.ModelForm):
         if not value:
             return
 
-        return filter(bool, (v.strip() for v in value.split('\n')))
+        return filter(bool, (v.lower().strip() for v in value.split('\n')))
 
     def clean_team(self):
         value = self.cleaned_data.get('team')
