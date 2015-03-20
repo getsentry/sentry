@@ -48,13 +48,17 @@ body.show-rightbar {
   background: #fbfbfc url(../images/dashboard/sidebar-bg.png) top right repeat-y;
   background-size: 220px 2px;
 
-  #content {
+  .content {
     position: relative;
     padding-right: 220px;
   }
 
   .rightbar {
     display: block
+  }
+
+  footer {
+    margin-right: 220px;
   }
 }
 
@@ -234,7 +238,7 @@ header + .messages-container {
   display: none;
   position: absolute;
   width: 220px;
-  right: 0px;
+  right: -20px;
   top: -11px;
 
   .nav-stacked {
