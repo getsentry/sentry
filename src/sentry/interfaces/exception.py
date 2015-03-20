@@ -193,7 +193,7 @@ class Exception(Interface):
     def get_path(self):
         return 'sentry.interfaces.Exception'
 
-    def compute_hashes(self):
+    def compute_hashes(self, platform):
         system_hash = self.get_hash(system_frames=True)
         if not system_hash:
             return []

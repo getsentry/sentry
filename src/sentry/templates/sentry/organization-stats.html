@@ -211,7 +211,7 @@
         var projectLabel = app.utils.escape(project.team.name) + ' / ' + app.utils.escape(project.name);
 
         $('<tr>' +
-            '<td><a href="/{{ organization.slug }}/' + project.slug + '/">' + projectLabel + '</a></td>' +
+            '<td><a href="' + app.config.urlPrefix + '/{{ organization.slug }}/' + project.slug + '/">' + projectLabel + '</a></td>' +
             '<td>' + app.utils.formatNumber(item.accepted) + '<br><small>' + getPercent(item.accepted, orgTotal.accepted) + '</small></td>' +
             '<td>' + app.utils.formatNumber(item.rejected) + '<br><small>' + getPercent(item.rejected, orgTotal.rejected) + '</small></td>' +
             '<td>' + app.utils.formatNumber(item.received) + '<br><small>' + getPercent(item.received, orgTotal.received) + '</small></td>' +

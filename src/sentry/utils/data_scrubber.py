@@ -10,6 +10,8 @@ from __future__ import absolute_import
 import re
 import six
 
+from sentry.constants import DEFAULT_SCRUBBED_FIELDS
+
 
 def varmap(func, var, context=None, name=None):
     """
@@ -41,13 +43,13 @@ class SensitiveDataFilter(object):
     and API keys in frames, http, and basic extra data.
     """
     MASK = '*' * 8
-    DEFAULT_FIELDS = frozenset([
-        'password', 'secret', 'passwd', 'authorization', 'api_key', 'apikey'
-    ])
     VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
 
-    def __init__(self, additional_fields=[]):
-        self.fields = frozenset(self.DEFAULT_FIELDS | set(additional_fields))
+    def __init__(self, fields=None):
+        if fields:
+            self.fields = DEFAULT_SCRUBBED_FIELDS + tuple(fields)
+        else:
+            self.fields = DEFAULT_SCRUBBED_FIELDS
 
     def apply(self, data):
         if 'stacktrace' in data:

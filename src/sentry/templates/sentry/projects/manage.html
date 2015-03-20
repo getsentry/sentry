@@ -35,6 +35,7 @@
       <div class="box-content with-padding">
         {{ form.resolve_age|as_crispy_field }}
         {{ form.scrub_data|as_crispy_field }}
+        {{ form.sensitive_fields|as_crispy_field }}
         {{ form.scrub_ip_address|as_crispy_field }}
         {% if form.public %}
         {{ form.public|as_crispy_field }}
