@@ -41,7 +41,7 @@ CLEAN_MODULE_RE = re.compile(r"""^
     [a-f0-9]{32}|      # md5
     [a-f0-9]{40}       # sha1
 )/)+|
-(?:-[a-f0-9]{32,40}$)  # Ending in a commitish
+(?:[-\.][a-f0-9]{7,8,32,40}$)  # Ending in a commitish
 """, re.X | re.I)
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
