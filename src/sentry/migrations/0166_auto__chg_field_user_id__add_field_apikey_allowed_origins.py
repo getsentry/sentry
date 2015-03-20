@@ -8,9 +8,6 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-
-        # Changing field 'User.id'
-        db.alter_column('auth_user', 'id', self.gf('sentry.db.models.fields.bounded.BoundedAutoField')(primary_key=True))
         # Adding field 'ApiKey.allowed_origins'
         db.add_column('sentry_apikey', 'allowed_origins',
                       self.gf('django.db.models.fields.TextField')(null=True, blank=True),
@@ -18,9 +15,6 @@ class Migration(SchemaMigration):
 
 
     def backwards(self, orm):
-
-        # Changing field 'User.id'
-        db.alter_column('auth_user', 'id', self.gf('django.db.models.fields.AutoField')(primary_key=True))
         # Deleting field 'ApiKey.allowed_origins'
         db.delete_column('sentry_apikey', 'allowed_origins')
 
