@@ -127,7 +127,7 @@ var GroupOverview = React.createClass({
     return (
       <div>
         <div className="row group-overview">
-          <div className="col-md-6">
+          <div className="col-md-6 bordered-column">
             <GroupChart statsPeriod={this.props.statsPeriod} />
             <div className="row group-stats">
               <div className="col-md-6">
