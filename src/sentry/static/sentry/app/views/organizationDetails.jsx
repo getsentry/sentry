@@ -82,8 +82,8 @@ var OrganizationDetails = React.createClass({
       <div>
         <OrganizationSidebar />
         <div className="app">
-          <Router.RouteHandler />
-          <Footer />
+          <Router.RouteHandler {...this.props} />
+          <Footer version={this.props.version} mediaUrl={this.props.urlPrefix} />
         </div>
       </div>
     );

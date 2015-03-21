@@ -120,7 +120,8 @@ var ProjectDetails = React.createClass({
           <div className="content">
             <Router.RouteHandler
                 memberList={this.state.memberList}
-                setProjectNavSection={this.setProjectNavSection} />
+                setProjectNavSection={this.setProjectNavSection}
+                {...this.props} />
           </div>
         </div>
       </div>
