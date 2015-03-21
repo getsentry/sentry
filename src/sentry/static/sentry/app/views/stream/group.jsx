@@ -63,7 +63,7 @@ var StreamGroup = React.createClass({
       userCount = data.tags["sentry:user"].count;
     }
 
-    var className = "group row animated fadeInDown";
+    var className = "group row";
     if (data.isBookmarked) {
       className += " isBookmarked";
     }
