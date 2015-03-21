@@ -8,6 +8,7 @@ var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var Gravatar = require("../components/gravatar");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
+var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
 var RouteMixin = require("../mixins/routeMixin");
 
@@ -78,7 +79,7 @@ var OrganizationMembers = React.createClass({
     }
 
     return (
-      <div>
+      <OrganizationHomeContainer>
         <h3>Members</h3>
         <p>Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).</p>
         <br />
@@ -128,7 +129,7 @@ var OrganizationMembers = React.createClass({
             })}
           </tbody>
         </table>
-      </div>
+      </OrganizationHomeContainer>
     );
   }
 });
