@@ -81,7 +81,7 @@ var TeamDetails = React.createClass({
         <OrganizationHeader />
         <div className="container">
           <div className="content">
-            <Router.RouteHandler {...this.props} />
+            <Router.RouteHandler />
           </div>
         </div>
       </div>

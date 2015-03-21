@@ -4,12 +4,12 @@ var React = require("react");
 
 var api = require("../api");
 var Alerts = require("../components/alerts");
+var ConfigStore = require("../stores/configStore");
 var PropTypes = require("../proptypes");
 
 var App = React.createClass({
   propTypes: {
-    isAuthenticated: React.PropTypes.bool.isRequired,
-    user: PropTypes.User
+    config: React.PropTypes.object.isRequired
   },
 
   childContextTypes: {
@@ -31,6 +31,8 @@ var App = React.createClass({
   },
 
   componentWillMount() {
+    ConfigStore.loadInitialData(this.props.config);
+
     api.request('/organizations/', {
       success: (data) => {
         this.setState({
@@ -51,7 +53,7 @@ var App = React.createClass({
     return (
       <div>
         <Alerts className="messages-container affix" />
-        <Router.RouteHandler {...this.props} />
+        <Router.RouteHandler />
       </div>
     );
   }
