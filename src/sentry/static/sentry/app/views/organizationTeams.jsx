@@ -2,7 +2,7 @@
 
 var React = require("react");
 
-var OrganizationHomeSidebar = require("../components/organizationHomeSidebar");
+var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
 
 var OrganizationTeams = React.createClass({
@@ -21,51 +21,52 @@ var OrganizationTeams = React.createClass({
     }
 
     return (
-      <div className="team-list">
-        <OrganizationHomeSidebar />
-        <h3>Teams</h3>
-        {org.teams.map((team, teamIdx) => {
-          var teamRouteParams = {
-            orgId: org.slug,
-            teamId: team.slug
-          };
-          return (
-            <div className="box" key={team.slug}>
-              <div className="box-header">
-                <div className="pull-right actions">
-                  <a href="#"><span className="icon-settings"></span> Team Settings</a>
+      <OrganizationHomeContainer>
+        <div className="team-list">
+          <h3>Teams</h3>
+          {org.teams.map((team, teamIdx) => {
+            var teamRouteParams = {
+              orgId: org.slug,
+              teamId: team.slug
+            };
+            return (
+              <div className="box" key={team.slug}>
+                <div className="box-header">
+                  <div className="pull-right actions">
+                    <a href="#"><span className="icon-settings"></span> Team Settings</a>
+                  </div>
+                  <h3>
+                    <Router.Link
+                      to="teamDetails"
+                      params={teamRouteParams}>{team.name}</Router.Link>
+                  </h3>
                 </div>
-                <h3>
-                  <Router.Link
-                    to="teamDetails"
-                    params={teamRouteParams}>{team.name}</Router.Link>
-                </h3>
-              </div>
-              <div className="box-content with-padding">
-                <ul className="projects">
-                  {team.projects.map((project) => {
-                    // <p>There are no projects in this team. Would you like to <a href="#">create a project</a>?</p>
-                    var projectRouteParams = {
-                      orgId: org.slug,
-                      projectId: project.slug
-                    };
+                <div className="box-content with-padding">
+                  <ul className="projects">
+                    {team.projects.map((project) => {
+                      // <p>There are no projects in this team. Would you like to <a href="#">create a project</a>?</p>
+                      var projectRouteParams = {
+                        orgId: org.slug,
+                        projectId: project.slug
+                      };
 
-                    return (
-                      <li key={project.slug}>
-                        <Router.Link
-                            to="projectDetails"
-                            params={projectRouteParams}>
-                          {project.name}
-                        </Router.Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+                      return (
+                        <li key={project.slug}>
+                          <Router.Link
+                              to="projectDetails"
+                              params={projectRouteParams}>
+                            {project.name}
+                          </Router.Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </OrganizationHomeContainer>
     );
   }
 });
