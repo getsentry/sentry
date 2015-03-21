@@ -3,8 +3,11 @@
 var React = require("react");
 
 var AppState = require("../mixins/appState");
+var ConfigStore = require("../stores/configStore");
+var Gravatar = require("./gravatar");
 var ListLink = require("./listLink");
 var OrganizationState = require("../mixins/organizationState");
+var PropTypes = require("../proptypes");
 
 var OrganizationSelector = React.createClass({
   mixins: [AppState, OrganizationState],
@@ -35,16 +38,22 @@ var OrganizationSelector = React.createClass({
 });
 
 var UserNav = React.createClass({
+  propTypes: {
+    user: PropTypes.User.isRequired
+  },
 
   render() {
+    var user = this.props.user;
+    var urlPrefix = ConfigStore.get('urlPrefix');
+
     return (
       <div className="user-nav">
-        <img src="https://github.com/dcramer.png" className="avatar" />
+        <Gravatar email={user.email} className="avatar" />
         <div className="user-details">
-          <span className="user-name">David Cramer</span>
+          <span className="user-name">{user.name || user.email}</span>
           <ul>
-            <li><a href="#">Account</a></li>
-            <li><a href="#">Sign out</a></li>
+            <li><a href={urlPrefix + '/account/settings/'}>Account</a></li>
+            <li><a href={urlPrefix + '/auth/logout/'}>Sign out</a></li>
           </ul>
         </div>
       </div>
@@ -61,6 +70,8 @@ var OrganizationSidebar = React.createClass({
       // TODO(dcramer): handle this case better
       return <div />;
     }
+
+    var user = ConfigStore.get('user');
 
     return (
       <div className="app-sidebar">
@@ -105,7 +116,9 @@ var OrganizationSidebar = React.createClass({
             })}
           </div>
         </div>
-        <UserNav />
+        {user &&
+          <UserNav user={user} />
+        }
       </div>
     );
   }
