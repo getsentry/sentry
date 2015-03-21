@@ -4,6 +4,7 @@ var React = require("react");
 var Router = require("react-router");
 
 var Breadcrumbs = require("./breadcrumbs");
+var ConfigStore = require("../stores/configStore");
 
 var DateRangePicker = React.createClass({
   render() {
@@ -24,6 +25,7 @@ var OrganizationHeader = React.createClass({
   render() {
     var routeParams = this.getParams();
     var navSection = this.props.activeSection;
+    var urlPrefix = ConfigStore.get('urlPrefix');
 
     return (
       <header>
@@ -36,7 +38,7 @@ var OrganizationHeader = React.createClass({
                 </Router.Link>
               </li>
               <li className={navSection == 'settings' ? 'active': ''}>
-                <a href={'/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
+                <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
                   Settings
                 </a>
               </li>
