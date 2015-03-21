@@ -5,6 +5,7 @@ var React = require("react");
 var api = require("../api");
 var Alerts = require("../components/alerts");
 var ConfigStore = require("../stores/configStore");
+var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
 var App = React.createClass({
@@ -50,6 +51,10 @@ var App = React.createClass({
   },
 
   render() {
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
+
     return (
       <div>
         <Alerts className="messages-container affix" />
