@@ -73,7 +73,8 @@ var Stream = React.createClass({
   ],
 
   propTypes: {
-    memberList: React.PropTypes.instanceOf(Array).isRequired
+    memberList: React.PropTypes.instanceOf(Array).isRequired,
+    setProjectNavSection: React.PropTypes.func.isRequired
   },
 
   onAggListChange() {
@@ -99,6 +100,8 @@ var Stream = React.createClass({
   },
 
   componentWillMount() {
+    this.props.setProjectNavSection('stream');
+
     this._poller = new StreamPoller({
       success: this.handleRealtimePoll,
       endpoint: this.getGroupListEndpoint()

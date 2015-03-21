@@ -8,6 +8,7 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var MemberListStore = require("../stores/memberListStore");
 var LoadingIndicator = require("../components/loadingIndicator");
+var ProjectHeader = require("../components/projectHeader");
 var OrganizationState = require("../mixins/organizationState");
 var RouteMixin = require("../mixins/routeMixin");
 var PropTypes = require("../proptypes");
@@ -39,7 +40,8 @@ var ProjectDetails = React.createClass({
     return {
       memberList: [],
       project: null,
-      team: null
+      team: null,
+      projectNavSection: null
     };
   },
 
@@ -101,13 +103,27 @@ var ProjectDetails = React.createClass({
     return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
   },
 
+  setProjectNavSection(section) {
+    this.setState({
+      projectNavSection: section
+    });
+  },
+
   render() {
     if (!this.state.project) {
       return <LoadingIndicator />;
     }
     return (
-      <Router.RouteHandler
-          memberList={this.state.memberList} />
+      <div>
+        <ProjectHeader activeSection={this.state.projectNavSection} />
+        <div className="container">
+          <div className="content">
+            <Router.RouteHandler
+                memberList={this.state.memberList}
+                setProjectNavSection={this.setProjectNavSection} />
+          </div>
+        </div>
+      </div>
     );
   }
 });

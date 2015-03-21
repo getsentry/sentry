@@ -7,10 +7,9 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
-var OrganizationHeader = require("../components/organizationHeader");
 var OrganizationState = require("../mixins/organizationState");
 var OrganizationSidebar = require("../components/organizationSidebar");
-var OrganizationFooter = require("../components/organizationFooter");
+var Footer = require("../components/footer");
 var RouteMixin = require("../mixins/routeMixin");
 
 var OrganizationDetails = React.createClass({
@@ -83,13 +82,8 @@ var OrganizationDetails = React.createClass({
       <div>
         <OrganizationSidebar />
         <div className="app">
-          <OrganizationHeader />
-          <div className="container">
-            <div className="content">
-              <Router.RouteHandler />
-            </div>
-          </div>
-          <OrganizationFooter />
+          <Router.RouteHandler />
+          <Footer />
         </div>
       </div>
     );

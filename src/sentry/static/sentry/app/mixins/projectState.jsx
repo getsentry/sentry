@@ -7,7 +7,7 @@ var ProjectState = {
   mixins: [TeamState],
 
   contextTypes: {
-    project: PropTypes.Project.isRequired,
+    project: PropTypes.Project,
   },
 
   getProject() {
