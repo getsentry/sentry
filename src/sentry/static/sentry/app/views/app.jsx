@@ -51,7 +51,7 @@ var App = React.createClass({
     return (
       <div>
         <Alerts className="messages-container affix" />
-        <Router.RouteHandler />
+        <Router.RouteHandler {...this.props} />
       </div>
     );
   }
