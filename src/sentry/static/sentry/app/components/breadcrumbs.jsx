@@ -12,7 +12,7 @@ var Breadcrumbs = React.createClass({
 
   getInitialState() {
       return {
-          nodes: []
+          nodes: BreadcrumbStore.getNodes()
       };
   },
 
