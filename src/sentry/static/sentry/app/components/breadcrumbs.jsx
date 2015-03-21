@@ -11,9 +11,9 @@ var Breadcrumbs = React.createClass({
   ],
 
   getInitialState() {
-      return {
-          nodes: BreadcrumbStore.getNodes()
-      };
+    return {
+      nodes: BreadcrumbStore.getNodes()
+    };
   },
 
   onBreadcrumbChange() {
