@@ -19,7 +19,7 @@ var UserWidget = React.createClass({
 
     return (
       <div className="user-widget">
-        <div className="pull-right"><Gravatar email={user.email} size={"84px"} /></div>
+        <div className="pull-right"><Gravatar email={user.email} size={84} /></div>
         <h6>User</h6>
         <p><strong>{user.email}</strong></p>
         <div className="btn-group">
