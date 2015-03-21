@@ -7,6 +7,7 @@ var Router = require("react-router");
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
+var OrganizationHeader = require("../components/organizationHeader");
 var OrganizationState = require("../mixins/organizationState");
 var PropTypes = require("../proptypes");
 var RouteMixin = require("../mixins/routeMixin");
@@ -74,7 +75,17 @@ var TeamDetails = React.createClass({
     if (!this.state.team) {
       return <LoadingIndicator />;
     }
-    return <Router.RouteHandler />;
+
+    return (
+      <div>
+        <OrganizationHeader />
+        <div className="container">
+          <div className="content">
+            <Router.RouteHandler />
+          </div>
+        </div>
+      </div>
+    );
   }
 });
 

@@ -19,7 +19,8 @@ var GroupDetails = React.createClass({
   ],
 
   propTypes: {
-    memberList: React.PropTypes.instanceOf(Array).isRequired
+    memberList: React.PropTypes.instanceOf(Array).isRequired,
+    setProjectNavSection: React.PropTypes.func.isRequired
   },
 
   crumbReservations: 1,
@@ -42,6 +43,8 @@ var GroupDetails = React.createClass({
   },
 
   componentWillMount() {
+    this.props.setProjectNavSection('stream');
+
     api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
         GroupListStore.loadInitialData([data]);
