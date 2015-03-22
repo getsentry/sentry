@@ -372,7 +372,7 @@ One of the most important things you're going to need to be aware of is storage 
 .. code-block:: bash
 
   $ crontab -e
-  * 3 * * * sentry cleanup --days=30
+  0 3 * * * sentry cleanup --days=30
 
 
 Additional Utilities
