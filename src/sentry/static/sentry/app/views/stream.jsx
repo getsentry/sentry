@@ -85,14 +85,12 @@ var Stream = React.createClass({
 
   getInitialState() {
     return {
-      groupList: new utils.Collection([], {
-        limit: 50
-      }),
+      groupList: [],
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
       statsPeriod: '24h',
-      realtimeActive: false,
+      realtimeActive: true,
       pageLinks: '',
       loading: true,
       error: false
@@ -179,9 +177,7 @@ var Stream = React.createClass({
   },
 
   handleRealtimePoll(data) {
-    this.setState({
-      groupList: this.state.groupList.unshift(data)
-    });
+    // TODO
   },
 
   onPage(cursor) {
