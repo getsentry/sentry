@@ -32,27 +32,29 @@ var RequestInterface = React.createClass({
       headers.push(<dd key={'dd-' + key }>{data.headers[key]}</dd>);
     }
 
+    // lol
+    var parsedUrl = document.createElement("a");
+    parsedUrl.href = fullUrl;
+
+    var title = (
+      <h3>
+        {parsedUrl.hostname}<br />
+        <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
+      </h3>
+    );
+
     return (
       <GroupEventDataSection
           group={group}
           event={evt}
           type={this.props.type}
-          title="Request">
+          wrapTitle={false}
+          title={title}>
         <table className="table vars">
           <colgroup>
             <col style={{width: "130"}} />
           </colgroup>
           <tbody>
-            <tr>
-              <th>URL:</th>
-              <td><a href={fullUrl}>{data.url}</a></td>
-            </tr>
-            {data.method &&
-              <tr>
-                  <th>Method</th>
-                  <td>{data.method}</td>
-              </tr>
-            }
             {data.query_string &&
               <tr>
                 <th>Query:</th>
@@ -85,26 +87,24 @@ var RequestInterface = React.createClass({
                 </td>
               </tr>
             }
-            {headers &&
-              <tr>
-                <th>Headers:</th>
-                <td className="values">
-                  <dl>
-                    {headers}
-                  </dl>
-                </td>
-              </tr>
-            }
-            {data.env &&
-              <tr>
-                <th>Environment:</th>
-                <td className="values">
-                  <pre>{JSON.stringify(data.env, null, 2)}</pre>
-                </td>
-              </tr>
-            }
           </tbody>
         </table>
+          {headers &&
+            <div>
+              <h4>Headers</h4>
+              <dl>
+                {headers}
+              </dl>
+            </div>
+          }
+          {data.env &&
+            <tr>
+              <th>Environment:</th>
+              <td className="values">
+                <pre>{JSON.stringify(data.env, null, 2)}</pre>
+              </td>
+            </tr>
+          }
       </GroupEventDataSection>
     );
   }
