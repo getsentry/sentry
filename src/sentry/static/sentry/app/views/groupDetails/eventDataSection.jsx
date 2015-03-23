@@ -12,7 +12,7 @@ var GroupEventDataSection = React.createClass({
     wrapTitle: React.PropTypes.bool
   },
 
-  getDefaultProp() {
+  getDefaultProps() {
     return {
       wrapTitle: true
     };
