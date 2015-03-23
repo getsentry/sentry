@@ -487,6 +487,10 @@ ol.context {
   border-radius: 3px;
   padding-left: 0;
 
+  .vars {
+    display: none;
+  }
+
   > li {
     padding-left: 20px;
     font-family: @font-family-code;
@@ -521,7 +525,7 @@ ol.context {
   }
 
   &.expanded {
-    .frame-vars {
+    .vars {
       display: block;
     }
 
@@ -533,8 +537,7 @@ ol.context {
   }
 }
 
-.frame-vars {
-  display: none;
+dl.vars {
   padding-top: 20px;
 
   dt, dd {

@@ -25,7 +25,7 @@ var FrameVariables = React.createClass({
       ));
     }
 
-    return <dl className="frame-vars expandable">{children}</dl>;
+    return <dl className="vars expandable">{children}</dl>;
   }
 });
 
