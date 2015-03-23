@@ -67,6 +67,16 @@ module.exports = {
     return arr;
   },
 
+  objectIsEmpty(obj) {
+    for (var prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+
   nl2br(str) {
     return str.replace(/\r?\n/, '<br />');
   },
