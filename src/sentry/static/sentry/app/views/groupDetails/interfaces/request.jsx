@@ -32,9 +32,9 @@ var RequestInterface = React.createClass({
           event={evt}
           type={this.props.type}
           title="Request">
-        <table className="table table-striped vars">
+        <table className="table vars">
           <colgroup>
-            <col style={{width: "130px;"}} />
+            <col style={{width: "130"}} />
           </colgroup>
           <tbody>
             <tr>
