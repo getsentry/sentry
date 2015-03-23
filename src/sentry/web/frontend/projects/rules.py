@@ -86,9 +86,35 @@ class RuleFormValidator(object):
         return not bool(self.errors)
 
 
+def _generate_rule_label(project, rule, data):
+    rule_cls = rules.get(data['id'])
+    if rule_cls is None:
+        return
+
+    rule_inst = rule_cls(project, data=data, rule=rule)
+    return rule_inst.render_label()
+
+
 @has_access(MEMBER_ADMIN)
 def list_rules(request, organization, project):
-    rule_list = Rule.objects.filter(project=project)
+    rule_list = []
+    for rule in Rule.objects.filter(project=project):
+        conditions = []
+        for data in rule.data['conditions']:
+            conditions.append(_generate_rule_label(project, rule, data))
+        conditions = filter(bool, conditions)
+
+        actions = []
+        for data in rule.data['actions']:
+            actions.append(_generate_rule_label(project, rule, data))
+        actions = filter(bool, actions)
+
+        rule_list.append({
+            'id': rule.id,
+            'label': rule.label,
+            'actions': actions,
+            'conditions': conditions,
+        })
 
     context = csrf(request)
     context.update({
