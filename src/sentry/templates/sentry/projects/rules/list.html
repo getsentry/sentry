@@ -19,7 +19,19 @@
                 {% for rule in rule_list %}
                     <tr>
                         <td>
-                            <a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}">{{ rule.label }}</a>
+                            <strong><a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}">{{ rule.label }}</a></strong><br />
+                            {% if rule.conditions %}
+                                <div><small><strong>When</strong></small></div>
+                                {% for condition in rule.conditions %}
+                                    <code>{{ condition }}</code><br />
+                                {% endfor %}
+                            {% endif %}
+                            {% if rule.actions %}
+                                <div><small><strong>Do</strong></small></div>
+                                {% for action in rule.actions %}
+                                    <code>{{ action }}</code><br />
+                                {% endfor %}
+                            {% endif %}
                         </td>
                         <td>
                             <a href="{% url 'sentry-remove-project-rule' project.organization.slug project.slug rule.id %}"
