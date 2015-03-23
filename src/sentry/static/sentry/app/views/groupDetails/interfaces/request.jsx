@@ -26,6 +26,12 @@ var RequestInterface = React.createClass({
       fullUrl = fullUrl + '#' + data.fragment;
     }
 
+    var headers = [];
+    for (var key in data.headers) {
+      headers.push(<dt key={'dt-' + key }>{key}</dt>);
+      headers.push(<dd key={'dd-' + key }>{data.headers[key]}</dd>);
+    }
+
     return (
       <GroupEventDataSection
           group={group}
@@ -79,11 +85,13 @@ var RequestInterface = React.createClass({
                 </td>
               </tr>
             }
-            {data.headers &&
+            {headers &&
               <tr>
                 <th>Headers:</th>
                 <td className="values">
-                  <pre>{JSON.stringify(data.headers, null, 2)}</pre>
+                  <dl>
+                    {headers}
+                  </dl>
                 </td>
               </tr>
             }
