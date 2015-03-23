@@ -522,6 +522,12 @@ ol.context {
   li.closed {
     border-radius: 4px;
   }
+
+  &.expanded {
+    > li.active {
+      background-color: darken(#f1f2f3, 7);
+    }
+  }
 }
 
 ol.context-line {
