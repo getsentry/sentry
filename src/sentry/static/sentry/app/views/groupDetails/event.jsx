@@ -58,7 +58,9 @@ var GroupEventExtraData = React.createClass({
           event={this.props.event}
           type="extra"
           title="Additional Data">
-        {children}
+        <dl className="vars">
+          {children}
+        </dl>
       </GroupEventDataSection>
     );
   }
