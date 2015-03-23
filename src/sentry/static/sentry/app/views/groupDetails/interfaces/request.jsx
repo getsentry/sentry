@@ -29,7 +29,7 @@ var RequestInterface = React.createClass({
     var headers = [];
     for (var key in data.headers) {
       headers.push(<dt key={'dt-' + key }>{key}</dt>);
-      headers.push(<dd key={'dd-' + key }>{data.headers[key]}</dd>);
+      headers.push(<dd key={'dd-' + key }><pre>{data.headers[key]}</pre></dd>);
     }
 
     // lol
@@ -38,8 +38,8 @@ var RequestInterface = React.createClass({
 
     var title = (
       <h3>
-        {parsedUrl.hostname}<br />
         <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
+        <div className="pull-right">{parsedUrl.hostname}</div>
       </h3>
     );
 
@@ -90,9 +90,15 @@ var RequestInterface = React.createClass({
           </tbody>
         </table>
           {headers &&
-            <div>
-              <h4>Headers</h4>
-              <dl>
+            <div className="box-collapsible">
+              <div className="section-toggle">
+                <div className="pull-right">
+                  <span className="icon-arrow-up"></span>
+                  <span className="icon-arrow-down"></span>
+                </div>
+                <h5>Headers</h5>
+              </div>
+              <dl className="vars">
                 {headers}
               </dl>
             </div>

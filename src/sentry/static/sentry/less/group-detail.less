@@ -538,7 +538,7 @@ ol.context {
 }
 
 dl.vars {
-  padding-top: 20px;
+  margin-top: 20px;
 
   dt, dd {
     margin-bottom: 10px;
@@ -619,6 +619,55 @@ div.commands {
     span {
       font-size: 9px;
       margin-right: 5px;
+    }
+  }
+}
+
+// Request
+
+.box-collapsible {
+  margin-left: -20px;
+  margin-right: -20px;
+  padding-left: 20px;
+  padding: 15px 20px;
+  border-top: 1px solid #f1f2f3;
+
+
+
+  .icon-arrow-up {
+    display: none;
+  }
+
+  .icon-arrow-down {
+    display: block;
+  }
+
+  .section-toggle {
+    margin: -20px;
+    padding: 20px;
+
+    .pull-right {
+      padding-top: 3px;
+    }
+
+    .clearfix;
+    cursor: pointer;
+
+    h5 {
+      margin: 0;
+    }
+  }
+
+  &.collapsed {
+    .icon-arrow-up {
+      display: block;
+    }
+    .icon-arrow-down {
+      display: none;
+    }
+
+    .vars {
+      display: none;
     }
   }
 }
