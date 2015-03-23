@@ -58,7 +58,7 @@ class User(Interface):
         kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
 
-    def to_json(self):
+    def get_api_context(self):
         return {
             'id': self.id,
             'email': self.email,

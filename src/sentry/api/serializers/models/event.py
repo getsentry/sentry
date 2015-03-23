@@ -15,7 +15,7 @@ class EventSerializer(Serializer):
                 continue
 
             entry = {
-                'data': interface.to_json(),
+                'data': interface.get_api_context(),
                 'type': interface.get_alias(),
             }
             interface_list.append((interface, entry))
