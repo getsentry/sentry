@@ -7,8 +7,15 @@ var GroupEventDataSection = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
-    title: React.PropTypes.string.isRequired,
-    type: React.PropTypes.string.isRequired
+    title: React.PropTypes.any.isRequired,
+    type: React.PropTypes.string.isRequired,
+    wrapTitle: React.PropTypes.bool
+  },
+
+  getDefaultProp() {
+    return {
+      wrapTitle: true
+    };
   },
 
   render: function() {
@@ -16,7 +23,11 @@ var GroupEventDataSection = React.createClass({
       <div className="box">
         <a name={this.props.type} />
         <div className="box-header">
+          {this.props.wrapTitle ?
             <h3>{this.props.title}</h3>
+          :
+            <div>{this.props.title}</div>
+          }
         </div>
         <div className="box-content with-padding">
           {this.props.children}
