@@ -48,19 +48,24 @@ class EventManagerTest(TransactionTestCase):
         assert EventMapping.objects.filter(
             group=event.group, event_id=event_id).exists()
 
-    @patch('sentry.models.GroupManager.add_tags')
-    def test_tags_as_list(self, add_tags):
+    def test_tags_as_list(self):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
         data = manager.normalize()
 
         assert data['tags'] == [('foo', 'bar')]
 
-    @patch('sentry.models.GroupManager.add_tags')
-    def test_tags_as_dict(self, add_tags):
+    def test_tags_as_dict(self):
         manager = EventManager(self.make_event(tags={'foo': 'bar'}))
         data = manager.normalize()
 
         assert data['tags'] == [('foo', 'bar')]
+
+    def test_interface_is_relabeled(self):
+        manager = EventManager(self.make_event(user={'id': '1'}))
+        data = manager.normalize()
+
+        assert data['sentry.interfaces.User'] == {'id': '1'}
+        assert 'user' not in data
 
     def test_platform_is_saved(self):
         manager = EventManager(self.make_event(platform='python'))
