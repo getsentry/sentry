@@ -398,10 +398,6 @@
   border: 1px solid #fff;
   margin: -6px -6px 0 -6px;
 
-  &.system-frame {
-    color: #999;
-  }
-
   p {
     font-size: 12px;
     margin-bottom: 4px;
@@ -524,9 +520,34 @@ ol.context {
   }
 
   &.expanded {
-    > li.active {
-      background-color: darken(#f1f2f3, 7);
+    .frame-vars {
+      display: block;
     }
+
+    > li.active {
+      background-color: @blue;
+      color: #fff;
+    }
+  }
+}
+
+.frame-vars {
+  display: none;
+  padding-top: 20px;
+
+  dt, dd {
+    margin-bottom: 10px;
+  }
+
+  dt {
+    padding-top: 10px;
+    width: 130px;
+    float: left;
+    font-weight: normal;
+  }
+
+  pre {
+    background: #f6f7f8;
   }
 }
 
