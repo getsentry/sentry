@@ -212,6 +212,7 @@ class Frame(Interface):
             'colNo': self.colno,
             'inApp': self.in_app,
             'errors': self.errors,
+            'vars': self.vars,
 
         }
 
