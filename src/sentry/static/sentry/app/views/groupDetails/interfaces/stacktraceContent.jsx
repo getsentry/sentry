@@ -11,6 +11,12 @@ var Frame = React.createClass({
     data: React.PropTypes.object.isRequired
   },
 
+  getInitialState() {
+    return {
+      isExpanded: false
+    };
+  },
+
   isDefined(item) {
     return typeof item !== "undefined" && item !== null;
   },
@@ -20,6 +26,12 @@ var Frame = React.createClass({
       return false;
     }
     return filename.indexOf('http:') !== -1 || filename.indexOf('https:') !== -1;
+  },
+
+  toggleContext() {
+    this.setState({
+      isExpanded: !this.state.isExpanded
+    });
   },
 
   render() {
@@ -35,8 +47,8 @@ var Frame = React.createClass({
 
     if (this.isDefined(data.filename || data.module)) {
       title.push(<code>{data.filename || data.module}</code>);
-      if (this.isUrl(data.abs_path)) {
-        title.push(<a href={data.abs_path} className="icon-share" />);
+      if (this.isUrl(data.absPath)) {
+        title.push(<a href={data.absPath} className="icon-share" />);
       }
       if (this.isDefined(data.function)) {
         title.push(<span> in </span>);
@@ -47,36 +59,38 @@ var Frame = React.createClass({
         title.push(<code>{data.function}</code>);
     }
 
-    if (this.isDefined(data.lineno)) {
+    if (this.isDefined(data.lineNo)) {
       title.push(<span> at line </span>);
-      if (this.isDefined(data.colno)) {
-        title.push(<code>{data.lineno}:{data.colno}</code>);
+      if (this.isDefined(data.colNo)) {
+        title.push(<code>{data.lineNo}:{data.colNo}</code>);
       } else {
-        title.push(<code>{data.lineno}</code>);
+        title.push(<code>{data.lineNo}</code>);
       }
+    }
+
+    var outerClassName = "context";
+    if (this.state.isExpanded) {
+      outerClassName += " expanded";
     }
 
     var context = '';
     if (this.isDefined(data.context)) {
+      var startLineNo = data.context[0][0];
       context = (
-        <ol start={data.start_lineno} className="context">
+        <ol start={startLineNo} className={outerClassName}
+            onClick={this.toggleContext}>
         {this.isDefined(data.errors) &&
           <li className="expandable error"
               key="errors">{data.errors.join(", ")}</li>
         }
-        {data.pre_context.map((lineNo, line) => {
-          return <li className="expandable" key={lineNo}>{line}</li>;
+        {data.context.map((line) => {
+          var className = "expandable";
+          if (line[0] === data.lineNo) {
+            className += " active";
+          }
+
+          return <li className={className} key={line[0]}>{line[1]}</li>;
         })}
-        <li className="active expandable" key="active">{data.context_line}</li>
-        {data.post_context.map((lineNo, line) => {
-          return <li className="expandable" key={lineNo}>{line}</li>;
-        })}
-        </ol>
-      );
-    } else if (this.isDefined(data.context_line)) {
-      context = (
-        <ol start={data.lineno} className="context">
-          <li className="active">{data.context_line}</li>
         </ol>
       );
     }
@@ -102,8 +116,8 @@ var StacktraceContent = React.createClass({
     var firstFrameOmitted, lastFrameOmitted;
 
     if (data.frames_omitted) {
-      firstFrameOmitted = data.frames_omitted[0];
-      lastFrameOmitted = data.frames_omitted[1];
+      firstFrameOmitted = data.framesOmitted[0];
+      lastFrameOmitted = data.framesOmitted[1];
     } else {
       firstFrameOmitted = null;
       lastFrameOmitted = null;
