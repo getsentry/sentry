@@ -65,6 +65,7 @@ def create_or_update(model, using=None, **kwargs):
 
     objects = model.objects.using(using)
 
+    # TODO(dcramer): support _id shortcut on filter kwargs
     affected = objects.filter(**kwargs).update(**defaults)
     if affected:
         return affected, False

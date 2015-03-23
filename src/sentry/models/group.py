@@ -51,7 +51,7 @@ class GroupManager(BaseManager):
     def add_tags(self, group, tags):
         from sentry.models import TagValue, GroupTagValue
 
-        project = group.project
+        project_id = group.project_id
         date = group.last_seen
 
         tsdb_keys = []
@@ -71,7 +71,7 @@ class GroupManager(BaseManager):
             buffer.incr(TagValue, {
                 'times_seen': 1,
             }, {
-                'project': project,
+                'project_id': project_id,
                 'key': key,
                 'value': value,
             }, {
@@ -82,8 +82,8 @@ class GroupManager(BaseManager):
             buffer.incr(GroupTagValue, {
                 'times_seen': 1,
             }, {
-                'group': group,
-                'project': project,
+                'group_id': group.id,
+                'project_id': project_id,
                 'key': key,
                 'value': value,
             }, {

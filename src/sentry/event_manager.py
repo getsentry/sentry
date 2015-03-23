@@ -346,7 +346,6 @@ class EventManager(object):
 
         event.group = group
 
-        # Rounded down to the nearest interval
         safe_execute(Group.objects.add_tags, group, tags,
                      _with_transaction=False)
 
