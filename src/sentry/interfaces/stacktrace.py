@@ -195,7 +195,7 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def to_json(self):
+    def get_api_context(self):
         return {
             'filename': self.filename,
             'absPath': self.abs_path,
@@ -454,10 +454,16 @@ class Stacktrace(Interface):
 
         return cls(**kwargs)
 
-    def to_json(self):
+    def get_api_context(self):
         return {
             'frames': [f.to_json() for f in self.frames],
             'framesOmitted': self.frames_omitted,
+        }
+
+    def to_json(self):
+        return {
+            'frames': [f.to_json() for f in self.frames],
+            'frames_omitted': self.frames_omitted,
         }
 
     def get_path(self):
