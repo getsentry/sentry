@@ -195,6 +195,26 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
+    def to_json(self):
+        return {
+            'filename': self.filename,
+            'absPath': self.abs_path,
+            'module': self.module,
+            'function': self.function,
+            'context': get_context(
+                lineno=self.lineno,
+                context_line=self.context_line,
+                pre_context=self.pre_context,
+                post_context=self.post_context,
+                filename=self.filename or self.module,
+            ),
+            'lineNo': self.lineno,
+            'colNo': self.colno,
+            'inApp': self.in_app,
+            'errors': self.errors,
+
+        }
+
     def is_url(self):
         if not self.abs_path:
             return False
@@ -436,7 +456,7 @@ class Stacktrace(Interface):
     def to_json(self):
         return {
             'frames': [f.to_json() for f in self.frames],
-            'frames_omitted': self.frames_omitted,
+            'framesOmitted': self.frames_omitted,
         }
 
     def get_path(self):
