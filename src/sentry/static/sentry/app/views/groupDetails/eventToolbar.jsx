@@ -56,6 +56,14 @@ var GroupEventToolbar  = React.createClass({
       );
     });
 
+    if (!utils.objectIsEmpty(evt.context)) {
+      entryLinks.push((
+        <li key="extra">
+          <a href="#extra">Extra</a>
+        </li>
+      ));
+    }
+
     return (
       <div className="event-toolbar">
         <div className="pull-right">

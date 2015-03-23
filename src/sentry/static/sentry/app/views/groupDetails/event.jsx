@@ -8,6 +8,7 @@ var GroupEventTags = require("./eventTags");
 var GroupState = require("../../mixins/groupState");
 var Gravatar = require("../../components/gravatar");
 var PropTypes = require("../../proptypes");
+var utils = require("../../utils");
 
 var UserWidget = React.createClass({
   propTypes: {
@@ -27,6 +28,38 @@ var UserWidget = React.createClass({
           <a href="#" className="btn btn-xs btn-default">Message All</a>
         </div>
       </div>
+    );
+  }
+});
+
+var GroupEventExtraData = React.createClass({
+  mixins: [GroupState],
+
+  propTypes: {
+    group: PropTypes.Group.isRequired,
+    event: PropTypes.Event.isRequired
+  },
+
+  render() {
+    var children = [];
+    var context = this.props.event.context;
+    for (var key in context) {
+      children.push(<dt key={'dt-' + key}>{key}</dt>);
+      children.push((
+        <dd key={'dd-' + key}>
+          <pre>{JSON.stringify(context[key], null, 2)}</pre>
+        </dd>
+      ));
+    }
+
+    return (
+      <GroupEventDataSection
+          group={this.props.group}
+          event={this.props.event}
+          type="extra"
+          title="Additional Data">
+        {children}
+      </GroupEventDataSection>
     );
   }
 });
@@ -86,11 +119,11 @@ var GroupEvent = React.createClass({
               group={group}
               event={evt} />
           {entries}
-          <GroupEventDataSection
-              group={group}
-              event={evt}
-              type="extra"
-              title="Additional Data" />
+          {!utils.objectIsEmpty(evt.context) &&
+            <GroupEventExtraData
+                group={group}
+                event={evt} />
+          }
         </div>
         <div className="col-md-3 event-stats">
           {evt.user &&
