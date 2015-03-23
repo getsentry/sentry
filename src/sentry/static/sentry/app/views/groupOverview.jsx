@@ -138,7 +138,7 @@ var GroupOverview = React.createClass({
               </div>
               <div className="col-md-6">
                 <h6>In release</h6>
-                <h3>{firstRelease}</h3>
+                <h3 className="truncate">{firstRelease}</h3>
                 <h6>Status</h6>
                 <h3>{group.status}</h3>
               </div>
