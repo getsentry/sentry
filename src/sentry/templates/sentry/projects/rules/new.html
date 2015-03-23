@@ -5,6 +5,12 @@
 {% load sentry_helpers %}
 
 {% block inner %}
+    <style>
+    .rule-form input[type=text] {
+        width: auto;
+    }
+    </style>
+
     <div class="page-header">
         <h2>
             {% if rule.id %}
@@ -16,7 +22,7 @@
         </h2>
     </div>
     <div id="new-rule-form">
-        <form method="POST" action="">
+        <form method="POST" action="" class="rule-form">
             {% csrf_token %}
 
             {% if not form_is_valid %}
