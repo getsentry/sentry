@@ -74,7 +74,7 @@ class SensitiveDataFilter(object):
         if isinstance(value, six.string_types) and self.VALUES_RE.search(value):
             return self.MASK
 
-        if not key:  # key can be a NoneType
+        if not isinstance(key, basestring):
             return value
 
         key = key.lower()
