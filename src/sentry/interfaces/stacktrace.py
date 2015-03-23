@@ -456,7 +456,7 @@ class Stacktrace(Interface):
 
     def get_api_context(self):
         return {
-            'frames': [f.to_json() for f in self.frames],
+            'frames': [f.get_api_context() for f in self.frames],
             'framesOmitted': self.frames_omitted,
         }
 
