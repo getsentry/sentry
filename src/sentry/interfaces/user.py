@@ -58,6 +58,15 @@ class User(Interface):
         kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
 
+    def to_json(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'username': self.username,
+            'ipAddress': self.ip_address,
+            'data': self.data,
+        }
+
     def get_path(self):
         return 'sentry.interfaces.User'
 
