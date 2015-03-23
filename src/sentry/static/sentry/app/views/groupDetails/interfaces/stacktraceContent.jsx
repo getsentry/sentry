@@ -6,6 +6,29 @@ var classSet = require("react/lib/cx");
 var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
 
+var FrameVariables = React.createClass({
+  propTypes: {
+    data: React.PropTypes.object.isRequired
+  },
+
+  render() {
+    var children = [];
+    var data = this.props.data;
+
+    for (var key in data) {
+      var value = data[key];
+      children.push(<dt key={'dt-' + key}>{key}</dt>);
+      children.push((
+        <dd key={'dd-' + key}>
+          <pre>{JSON.stringify(value, null, 2)}</pre>
+        </dd>
+      ));
+    }
+
+    return <dl className="vars expandable">{children}</dl>;
+  }
+});
+
 var Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
@@ -91,6 +114,9 @@ var Frame = React.createClass({
 
           return <li className={className} key={line[0]}>{line[1]}</li>;
         })}
+        {this.isDefined(data.vars) &&
+          <FrameVariables data={data.vars} key="vars" />
+        }
         </ol>
       );
     }
