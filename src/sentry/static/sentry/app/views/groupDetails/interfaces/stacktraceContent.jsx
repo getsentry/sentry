@@ -69,25 +69,25 @@ var Frame = React.createClass({
     var title = [];
 
     if (this.isDefined(data.filename || data.module)) {
-      title.push(<code>{data.filename || data.module}</code>);
+      title.push(<code key="filename">{data.filename || data.module}</code>);
       if (this.isUrl(data.absPath)) {
-        title.push(<a href={data.absPath} className="icon-share" />);
+        title.push(<a href={data.absPath} className="icon-share" key="share" />);
       }
       if (this.isDefined(data.function)) {
-        title.push(<span> in </span>);
+        title.push(<span key="in"> in </span>);
       }
     }
 
     if (this.isDefined(data.function)) {
-        title.push(<code>{data.function}</code>);
+        title.push(<code key="function">{data.function}</code>);
     }
 
     if (this.isDefined(data.lineNo)) {
-      title.push(<span> at line </span>);
+      title.push(<span key="at"> at line </span>);
       if (this.isDefined(data.colNo)) {
-        title.push(<code>{data.lineNo}:{data.colNo}</code>);
+        title.push(<code key="line">{data.lineNo}:{data.colNo}</code>);
       } else {
-        title.push(<code>{data.lineNo}</code>);
+        title.push(<code key="line">{data.lineNo}</code>);
       }
     }
 
