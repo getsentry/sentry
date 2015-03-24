@@ -224,9 +224,13 @@ header {
   }
 }
 
-header + .messages-container {
-  margin-top: -30px;
-  margin-bottom: 30px;
+.messages-container {
+  position: fixed;
+  bottom: 0;
+  left: 20 + @sidebar-width;
+  right: 20px;
+  z-index: 1000;
+  margin: 0;
 }
 
 /**
