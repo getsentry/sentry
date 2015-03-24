@@ -150,7 +150,7 @@ class BuildStatic(Command):
 
 setup(
     name='sentry',
-    version='7.4.2',
+    version='7.4.3',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',
