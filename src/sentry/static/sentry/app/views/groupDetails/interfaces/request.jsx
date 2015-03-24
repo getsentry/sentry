@@ -4,6 +4,70 @@ var React = require("react");
 
 var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
+var utils = require("../../../utils");
+
+var CollapsableBox = React.createClass({
+  propTypes: {
+    title: React.PropTypes.string.isRequired,
+    defaultCollapsed: React.PropTypes.bool
+  },
+
+  getDefaultProps() {
+    return {
+      defaultCollapsed: false
+    };
+  },
+
+  getInitialState() {
+    return {
+      collapsed: this.props.defaultCollapsed
+    };
+  },
+
+  toggle() {
+    this.setState({
+      collapsed: !this.state.collapsed
+    });
+  },
+
+  render() {
+    var className = "box-collapsible";
+    if (this.state.collapsed) {
+      className += " collapsed";
+    }
+
+    return (
+      <div className={className}>
+        <div className="section-toggle">
+          <div className="pull-right">
+            <a onClick={this.toggle}>
+              <span className="icon-arrow-up"></span>
+              <span className="icon-arrow-down"></span>
+            </a>
+          </div>
+          <h5>{this.props.title}</h5>
+        </div>
+        {this.props.children}
+      </div>
+    );
+  }
+});
+
+var DefinitionList = React.createClass({
+  propTypes: {
+    data: React.PropTypes.object.isRequired
+  },
+
+  render() {
+    var children = [];
+    var data = this.props.data;
+    for (var key in data) {
+      children.push(<dt key={'dt-' + key }>{key}</dt>);
+      children.push(<dd key={'dd-' + key }><pre>{data[key]}</pre></dd>);
+    }
+    return <dl className="vars">{children}</dl>;
+  }
+});
 
 var RequestInterface = React.createClass({
   propTypes: {
@@ -50,67 +114,38 @@ var RequestInterface = React.createClass({
           type={this.props.type}
           wrapTitle={false}
           title={title}>
-        <table className="table vars">
-          <colgroup>
-            <col style={{width: "130"}} />
-          </colgroup>
-          <tbody>
-            {data.query_string &&
-              <tr>
-                <th>Query:</th>
-                <td className="values">
-                  <pre>{data.query_string}</pre>
-                </td>
-              </tr>
-            }
-            {data.fragment &&
-              <tr>
-                <th>Fragment:</th>
-                <td className="values">
-                  <pre>{data.fragment}</pre>
-                </td>
-              </tr>
-            }
-            {data.data &&
-              <tr>
-                <th>Body:</th>
-                <td className="values">
-                  <pre>{JSON.stringify(data.body, null, 2)}</pre>
-                </td>
-              </tr>
-            }
-            {data.cookies &&
-              <tr>
-                <th>Cookies:</th>
-                <td className="values">
-                  <pre>{JSON.stringify(data.cookies, null, 2)}</pre>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-          {headers &&
-            <div className="box-collapsible">
-              <div className="section-toggle">
-                <div className="pull-right">
-                  <span className="icon-arrow-up"></span>
-                  <span className="icon-arrow-down"></span>
-                </div>
-                <h5>Headers</h5>
-              </div>
-              <dl className="vars">
-                {headers}
-              </dl>
-            </div>
-          }
-          {data.env &&
-            <tr>
-              <th>Environment:</th>
-              <td className="values">
-                <pre>{JSON.stringify(data.env, null, 2)}</pre>
-              </td>
-            </tr>
-          }
+        {data.query_string &&
+          <CollapsableBox title="Query String">
+            <pre>{data.query_string}</pre>
+          </CollapsableBox>
+        }
+        {data.fragment &&
+          <CollapsableBox title="Fragment">
+            <pre>{data.fragment}</pre>
+          </CollapsableBox>
+        }
+        {data.data &&
+          <CollapsableBox title="Body">
+            <pre>{data.data}</pre>
+          </CollapsableBox>
+        }
+        {data.cookies &&
+          <CollapsableBox title="Cookies" defaultCollapsed>
+            <pre>{JSON.stringify(data.cookies, null, 2)}</pre>
+          </CollapsableBox>
+        }
+        {!utils.objectIsEmpty(data.headers) &&
+          <CollapsableBox title="Headers">
+            <DefinitionList data={data.headers} />
+          </CollapsableBox>
+        }
+        {!utils.objectIsEmpty(data.env) &&
+          <CollapsableBox title="Environment" defaultCollapsed>
+            <dl className="vars">
+              <DefinitionList data={data.env} />
+            </dl>
+          </CollapsableBox>
+        }
       </GroupEventDataSection>
     );
   }
