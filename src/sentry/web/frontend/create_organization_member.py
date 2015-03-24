@@ -7,8 +7,9 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import OrganizationMemberType
-from sentry.permissions import can_add_organization_member
+from sentry.permissions import can_add_organization_member, Permissions
 from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.generic import missing_perm
 from sentry.web.forms.invite_organization_member import InviteOrganizationMemberForm
 from sentry.web.forms.add_organization_member import AddOrganizationMemberForm
 
@@ -30,7 +31,7 @@ class CreateOrganizationMemberView(OrganizationView):
 
     def handle(self, request, organization):
         if not can_add_organization_member(request.user, organization):
-            return HttpResponseRedirect(reverse('sentry'))
+            return missing_perm(request, Permissions.ADD_MEMBER)
 
         form = self.get_form(request)
         if form.is_valid():
