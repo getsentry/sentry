@@ -31,7 +31,7 @@ class CreateOrganizationMemberView(OrganizationView):
 
     def handle(self, request, organization):
         if not can_add_organization_member(request.user, organization):
-            return missing_perm(request, Permissions.ADD_MEMBER)
+            return missing_perm(request, Permissions.ADD_MEMBER, organization=organization)
 
         form = self.get_form(request)
         if form.is_valid():
