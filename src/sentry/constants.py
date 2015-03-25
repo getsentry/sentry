@@ -163,7 +163,7 @@ LOG_LEVELS = {
     logging.FATAL: 'fatal',
 }
 DEFAULT_LOG_LEVEL = 'error'
-DEFAULT_LOGGER_NAME = 'root'
+DEFAULT_LOGGER_NAME = ''
 
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
