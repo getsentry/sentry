@@ -26,28 +26,6 @@ module.exports = {
     return vars;
   },
 
-  parseLinkHeader(header) {
-    if (header === null) {
-      return {};
-    }
-
-    var header_vals = header.split(','),
-        links = {};
-
-    header_vals.forEach((val) => {
-      var match = /<([^>]+)>; rel="([^"]+)"(?:; results="([^"]+)")?(?:; cursor="([^"]+)")?/g.exec(val);
-      var hasResults = (match[3] === 'true' ? true : (match[3] === 'false' ? false : null));
-
-      links[match[2]] = {
-        href: match[1],
-        results: hasResults,
-        cursor: match[4]
-      };
-    });
-
-    return links;
-  },
-
   sortArray(arr, score_fn) {
     arr.sort((a, b) => {
       var a_score = score_fn(a),
@@ -96,6 +74,10 @@ module.exports = {
     });
   },
 
+  parseLinkHeader: require('./utils/parseLinkHeader'),
+
   Collection: require('./utils/collection'),
-  PendingChangeQueue: require('./utils/pendingChangeQueue')
+  PendingChangeQueue: require('./utils/pendingChangeQueue'),
+  StreamManager: require('./utils/streamManager'),
+  StreamPoller: require('./utils/streamPoller')
 };

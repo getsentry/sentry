@@ -1,49 +1,60 @@
 /*** @jsx React.DOM */
 
-var syncUpdates = function(sm) {
-  if (sm.limit && sm.length > sm.limit) {
-    // TODO(dcramer): this needs to remove items from GroupListStore
-    sm.splice(sm.limit, sm.length - sm.limit);
-  }
-};
-
-
 class StreamManager {
   // TODO(dcramer): this should listen to changes on GroupListStore and remove
   // items that are removed there
-  constructor(options) {
-    this.idList = [];
-
+  constructor(store, options) {
     if (typeof options === "undefined") {
       options = {};
     }
 
+    this.idList = [];
+    this.store = store;
     this.limit = options.limit || 1000;
     this.length = 0;
 
     return this;
   }
 
-  push(itemIds) {
-    if (!itemIds instanceof Array) {
-      itemIds = [itemIds];
+  trim() {
+    for (var i = this.limit; i < this.length; i++) {
+      this.store.remove(this.idList[i]);
     }
+    this.idList.splice(this.limit, this.length - this.limit);
+  }
 
-    itemIds.forEach((id) => {
-      // this needs to update the item in the global store, and ensure its
-      // position in our local array
-      var existing = GroupListStore.getItem(id);
-      if (existing) {
-        $.extend(true, existing, item);
-        item = existing;
-      } else {
-        GroupListStore.add(id);
+  push(items) {
+    if (!items instanceof Array) {
+      items = [items];
+    }
+    items.forEach((item) => {
+      var idx = this.idList.indexOf(item.id);
+      if (idx !== -1) {
+        this.idList.splice(idx, idx + 1);
       }
-      this.idList.push(id);
       this.length += 1;
+      this.idList.push(item.id);
     });
-    syncUpdates(this);
+    this.trim();
+    this.store.add(items);
     return this;
+  }
+
+  getAllItems() {
+    var items = this.store.getAllItems();
+    var itemsById = {};
+    items.forEach((item) => {
+      itemsById[item.id] = item;
+    });
+
+    var ordered = [];
+    this.idList.forEach((itemId) => {
+      if (itemsById[itemId]) {
+        ordered.push(itemsById[itemId]);
+      }
+    });
+
+    return ordered;
   }
 
   unshift(items) {
