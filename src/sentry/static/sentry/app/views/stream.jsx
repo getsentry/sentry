@@ -16,54 +16,6 @@ var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
 var utils = require("../utils");
 
-// TODO(dcramer): the poller/collection needs to actually unshift/pop
-// items from the GroupListStore to ensure it doesnt grow in memory
-var StreamPoller = function(options){
-  this.options = options;
-  this._timeoutId = null;
-  this._active = true;
-  this._delay = 3000;
-  this._pollingEndpoint = options.endpoint;
-};
-StreamPoller.prototype.enable = function(){
-  this._active = true;
-  if (!this._timeoutId) {
-    this._timeoutId = window.setTimeout(this.poll.bind(this), this._delay);
-  }
-};
-StreamPoller.prototype.disable = function(){
-  this._active = false;
-  if (this._timeoutId) {
-    window.clearTimeout(this._timeoutId);
-    this._timeoutId = null;
-  }
-};
-StreamPoller.prototype.poll = function() {
-  api.request(this._pollingEndpoint, {
-    success: (data, _, jqXHR) => {
-      // cancel in progress operation if disabled
-      if (!this._active) {
-        return;
-      }
-
-      // if theres no data, nothing changes
-      if (!data.length) {
-        return;
-      }
-
-      var links = utils.parseLinkHeader(jqXHR.getResponseHeader('Link'));
-      this._pollingEndpoint = links.previous.href;
-
-      this.options.success(data);
-    },
-    complete: () => {
-      if (this._active) {
-        this._timeoutId = window.setTimeout(this.poll.bind(this), this._delay);
-      }
-    }
-  });
-};
-
 var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupListStore, "onAggListChange"),
@@ -75,12 +27,6 @@ var Stream = React.createClass({
   propTypes: {
     memberList: React.PropTypes.instanceOf(Array).isRequired,
     setProjectNavSection: React.PropTypes.func.isRequired
-  },
-
-  onAggListChange() {
-    this.setState({
-      groupList: GroupListStore.getAllItems()
-    });
   },
 
   getInitialState() {
@@ -100,10 +46,12 @@ var Stream = React.createClass({
   componentWillMount() {
     this.props.setProjectNavSection('stream');
 
-    this._poller = new StreamPoller({
-      success: this.handleRealtimePoll,
+    this._streamManager = new utils.StreamManager(GroupListStore);
+    this._poller = new utils.StreamPoller({
+      success: this.onRealtimePoll,
       endpoint: this.getGroupListEndpoint()
     });
+    this._poller.enable();
 
     this.fetchData();
   },
@@ -127,6 +75,8 @@ var Stream = React.createClass({
   },
 
   fetchData() {
+    GroupListStore.loadInitialData([]);
+
     this.setState({
       loading: true,
       error: false
@@ -134,7 +84,7 @@ var Stream = React.createClass({
 
     api.request(this.getGroupListEndpoint(), {
       success: (data, _, jqXHR) => {
-        GroupListStore.loadInitialData(data);
+        this._streamManager.push(data);
 
         this.setState({
           error: false,
@@ -176,8 +126,14 @@ var Stream = React.createClass({
     });
   },
 
-  handleRealtimePoll(data) {
-    // TODO
+  onRealtimePoll(data) {
+    this._streamManager.unshift(data);
+  },
+
+  onAggListChange() {
+    this.setState({
+      groupList: this._streamManager.getAllItems()
+    });
   },
 
   onPage(cursor) {

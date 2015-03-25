@@ -1,5 +1,6 @@
 /** @jsx React.DOM */
 
+var jQuery = require("jquery");
 var Reflux = require("reflux");
 
 var AlertActions = require("../actions/alertActions");
@@ -40,6 +41,42 @@ var GroupListStore = Reflux.createStore({
     items.forEach(item => {
       this.items.push(item);
     });
+    this.trigger();
+  },
+
+  add(items) {
+    if (!items instanceof Array) {
+      items = [items];
+    }
+
+    var itemsById = {};
+    items.forEach((item) => {
+      itemsById[item.id] = item;
+    });
+
+    for (var i = 0, item; (item = this.items[i]); i++) {
+      if (itemsById[item.id]) {
+        itemsById[item.id] = null;
+        jQuery.extend(true, this.items[i], itemsById[item.id]);
+        return;
+      }
+    }
+
+    for (item in itemsById) {
+      this.items.push(itemsById[item]);
+    }
+
+    this.trigger();
+  },
+
+  remove(itemId) {
+    for (var i = 0; i < this.items.length; i++) {
+      if (this.items[i].id === itemId) {
+        this.items.splice(i, i + 1);
+        return;
+      }
+    }
+
     this.trigger();
   },
 

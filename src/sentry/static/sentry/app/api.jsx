@@ -30,7 +30,12 @@ class Client {
       data = JSON.stringify(data);
     }
 
-    var fullUrl = this.baseUrl + path;
+    var fullUrl;
+    if (path.indexOf(this.baseUrl) === -1) {
+      fullUrl = this.baseUrl + path;
+    } else {
+      fullUrl = path;
+    }
     if (query) {
       if (fullUrl.indexOf('?') !== -1) {
         fullUrl += '&' + query;
