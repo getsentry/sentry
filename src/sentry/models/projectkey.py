@@ -57,6 +57,16 @@ class ProjectKey(Model):
         'secret_key',
     ))
 
+    # support legacy project keys in API
+    scopes = (
+        'project:read',
+        'project:write',
+        'project:delete',
+        'event:read',
+        'event:write',
+        'event:delete',
+    )
+
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_projectkey'
@@ -105,6 +115,10 @@ class ProjectKey(Model):
     @property
     def dsn_public(self):
         return self.get_dsn(public=True)
+
+    def get_allowed_origins(self):
+        from sentry.utils.http import get_origins
+        return get_origins(self.project)
 
     def get_audit_log_data(self):
         return {

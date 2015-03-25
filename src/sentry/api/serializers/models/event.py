@@ -9,9 +9,11 @@ class EventSerializer(Serializer):
     def _get_entries(self, event, user):
         # XXX(dcramer): These are called entries for future-proofing
         interface_list = []
-        for interface in event.interfaces.itervalues():
+        for key, interface in event.interfaces.iteritems():
+            if key == 'user':
+                continue
             entry = {
-                'data': interface.to_json(),
+                'data': interface.get_api_context(),
                 'type': interface.get_alias(),
             }
             interface_list.append((interface, entry))
@@ -24,8 +26,15 @@ class EventSerializer(Serializer):
 
         results = {}
         for item in item_list:
+            user_interface = item.interfaces.get('sentry.interfaces.User')
+            if user_interface:
+                user_data = user_interface.to_json()
+            else:
+                user_data = None
+
             results[item] = {
-                'entries': self._get_entries(item, user)
+                'entries': self._get_entries(item, user),
+                'user': user_data,
             }
         return results
 
@@ -35,6 +44,9 @@ class EventSerializer(Serializer):
             'eventID': str(obj.event_id),
             'entries': attrs['entries'],
             'message': obj.message,
+            'user': attrs['user'],
+            'context': obj.data.get('extra', {}),
+            'tags': obj.get_tags(),
             'platform': obj.platform,
             'dateCreated': obj.datetime,
             'timeSpent': obj.time_spent,

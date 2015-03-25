@@ -23,6 +23,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from sentry import app
+from sentry.auth import access
 from sentry.constants import (
     SORT_OPTIONS, MEMBER_USER, DEFAULT_SORT_OPTION, EVENTS_PER_PAGE
 )
@@ -30,9 +31,7 @@ from sentry.db.models import create_or_update
 from sentry.models import (
     Project, Group, GroupMeta, Event, Activity, EventMapping, TagKey, GroupSeen
 )
-from sentry.permissions import (
-    can_admin_group, can_remove_group, can_create_projects
-)
+from sentry.permissions import can_create_projects
 from sentry.plugins import plugins
 from sentry.search.utils import parse_query
 from sentry.utils import json
@@ -140,20 +139,34 @@ def render_with_group_context(group, template, context, request=None,
         'organization': group.project.organization,
         'project': group.project,
         'group': group,
-        'can_admin_event': can_admin_group(request.user, group),
-        'can_remove_event': can_remove_group(request.user, group),
     })
+
+    if request and request.user.is_authenticated():
+        context['ACCESS'] = access.from_user(
+            user=request.user,
+            organization=group.organization,
+        ).to_django_context()
+    else:
+        context['ACCESS'] = access.DEFAULT.to_django_context()
 
     if event:
         if event.id:
+            # TODO(dcramer): we dont want to actually use gt/lt here as it should
+            # be inclusive. However, that would need to ensure we have some kind
+            # of way to know which event was the previous (an offset), or to add
+            # a third sort key (which is not yet indexed)
             base_qs = group.event_set.exclude(id=event.id)
             try:
-                next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
+                next_event = base_qs.filter(
+                    datetime__gt=event.datetime,
+                ).order_by('datetime')[0:1].get()
             except Event.DoesNotExist:
                 next_event = None
 
             try:
-                prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
+                prev_event = base_qs.filter(
+                    datetime__lt=event.datetime,
+                ).order_by('-datetime')[0:1].get()
             except Event.DoesNotExist:
                 prev_event = None
         else:
@@ -207,6 +220,10 @@ def dashboard(request, organization, team):
         'organization': team.organization,
         'team': team,
         'project_list': project_list,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 
@@ -222,6 +239,10 @@ def wall_display(request, organization, team):
         'team': team,
         'organization': team.organization,
         'project_list': project_list,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 
@@ -280,6 +301,10 @@ def group_list(request, organization, project):
         'cursorless_query_string': cursorless_query_string,
         'sort_label': sort_label,
         'SORT_OPTIONS': SORT_OPTIONS,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 

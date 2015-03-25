@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 from sentry.plugins import plugins
 from sentry.rules.actions.base import EventAction
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 
@@ -38,4 +39,5 @@ class NotifyEventAction(EventAction):
             if not safe_execute(plugin.should_notify, group=group, event=event):
                 continue
 
+            metrics.incr('notifications.sent.{}'.format(plugin.slug))
             yield self.future(plugin.rule_notify)

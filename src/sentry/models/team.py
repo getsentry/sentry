@@ -7,6 +7,8 @@ sentry.models.team
 """
 from __future__ import absolute_import, print_function
 
+import warnings
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -176,11 +178,30 @@ class Team(Model):
         )
 
     def has_access(self, user, access=None):
-        queryset = self.member_set.filter(user=user)
+        from sentry.models import AuthIdentity, OrganizationMember
+
+        warnings.warn('Team.has_access is deprecated.', DeprecationWarning)
+
+        queryset = self.member_set.filter(
+            user=user,
+        )
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
-        return queryset.exists()
+        try:
+            member = queryset.get()
+        except OrganizationMember.DoesNotExist:
+            return False
+
+        try:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider__organization=self.organization_id,
+                user=member.user_id,
+            )
+        except AuthIdentity.DoesNotExist:
+            return True
+
+        return auth_identity.is_valid(member)
 
     def get_audit_log_data(self):
         return {

@@ -23,6 +23,9 @@ def get_all_languages():
     for path in os.listdir(os.path.join(MODULE_ROOT, 'locale')):
         if path.startswith('.'):
             continue
+        if '_' in path:
+            pre, post = path.split('_', 1)
+            path = '{}-{}'.format(pre, post.lower())
         results.append(path)
     return results
 
@@ -160,7 +163,7 @@ LOG_LEVELS = {
     logging.FATAL: 'fatal',
 }
 DEFAULT_LOG_LEVEL = 'error'
-DEFAULT_LOGGER_NAME = 'root'
+DEFAULT_LOGGER_NAME = ''
 
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
@@ -201,3 +204,31 @@ SENTRY_RULES = (
 
 # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
 HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
+
+CLIENT_RESERVED_ATTRS = (
+    'project',
+    'event_id',
+    'message',
+    'checksum',
+    'culprit',
+    'level',
+    'time_spent',
+    'logger',
+    'server_name',
+    'site',
+    'timestamp',
+    'extra',
+    'modules',
+    'tags',
+    'platform',
+    'release',
+)
+
+DEFAULT_SCRUBBED_FIELDS = (
+    'password',
+    'secret',
+    'passwd',
+    'authorization',
+    'api_key',
+    'apikey',
+)

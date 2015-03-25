@@ -15,6 +15,7 @@
                                 "",
                                 "        renderMemberInContainer: function(member){"
                             ],
+                            "errors": ["This is an example error"],
                             "vars": {},
                             "module": null,
                             "filename": "../../sentry/scripts/views.js",

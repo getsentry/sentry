@@ -2,6 +2,9 @@
 
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.utils import timezone
+
 from sentry.nodestore.django.models import Node
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from sentry.testutils import TestCase
@@ -96,3 +99,28 @@ class DjangoNodeStorageTest(TestCase):
 
         self.ns.delete_multi([node.id])
         assert not Node.objects.filter(id=node.id).exists()
+
+    def test_cleanup(self):
+        now = timezone.now()
+        cutoff = now - timedelta(days=1)
+
+        node = Node.objects.create(
+            id='d2502ebbd7df41ceba8d3275595cac33',
+            timestamp=now,
+            data={
+                'foo': 'bar',
+            }
+        )
+
+        node2 = Node.objects.create(
+            id='d2502ebbd7df41ceba8d3275595cac34',
+            timestamp=cutoff,
+            data={
+                'foo': 'bar',
+            }
+        )
+
+        self.ns.cleanup(cutoff)
+
+        assert Node.objects.filter(id=node.id).exists()
+        assert not Node.objects.filter(id=node2.id).exists()

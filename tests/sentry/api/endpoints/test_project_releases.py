@@ -7,7 +7,7 @@ from sentry.models import Release
 from sentry.testutils import APITestCase
 
 
-class ProjectReleasesTest(APITestCase):
+class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
@@ -31,11 +31,36 @@ class ProjectReleasesTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-project-releases', kwargs={
-            'project_id': project1.id,
+            'organization_slug': project1.organization.slug,
+            'project_slug': project1.slug,
         })
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]['id'] == str(release2.id)
-        assert response.data[1]['id'] == str(release1.id)
+        assert response.data[0]['version'] == release2.version
+        assert response.data[1]['version'] == release1.version
+
+
+class ProjectReleaseCreateTest(APITestCase):
+    def test_simple(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team(owner=self.user)
+        project = self.create_project(team=team, name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+        })
+
+        assert response.status_code == 201, response.content
+        assert response.data['version']
+
+        assert Release.objects.filter(
+            project=project,
+            version=response.data['version'],
+        ).exists()

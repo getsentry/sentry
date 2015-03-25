@@ -1,18 +1,21 @@
 Quickstart
 ==========
 
-Some basic prerequisites which you'll need in order to run Sentry:
-
-* A UNIX-based operating system
-* Python 2.7
-* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev
-* A real database (PostgreSQL is preferred, MySQL also works)
-* Redis
-* Nginx (with RealIP, i.e. nginx-full)
-* A dedicated domain to host Sentry on (i.e. sentry.yourcompany.com)
-
 This guide will step you through setting up a Python-based virtualenv, installing the required packages,
 and configuring the basic web service.
+
+Dependencies
+------------
+
+Some basic prerequisites which you'll need in order to run Sentry:
+
+* A UNIX-based operating system. We test on Ubuntu.
+* Python 2.7
+* python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev, libz-dev, libffi-dev, libssl-dev
+* A real database (PostgreSQL is preferred, MySQL also works with caveats)
+* Redis
+* Nginx (with RealIP, i.e. nginx-full)
+* A dedicated domain to host Sentry on (i.e. sentry.yourcompany.com).
 
 Hardware
 --------
@@ -135,9 +138,16 @@ is not a fully supported database and should not be used in production**.
 
     # ~/.sentry/sentry.conf.py
 
+    # for more information on DATABASES, see the Django configuration at:
+    # https://docs.djangoproject.com/en/1.6/ref/databases/
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',  # We suggest PostgreSQL for optimal performance
+            # We suggest PostgreSQL for optimal performance
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+
+            # Alternatively you can use MySQL
+            'ENGINE': 'django.db.backends.mysql',
+
             'NAME': 'sentry',
             'USER': 'postgres',
             'PASSWORD': '',
@@ -215,6 +225,9 @@ the first time you'll need to make sure you've created the database:
     # If you're using Postgres, and kept the database ``NAME`` as ``sentry``
     $ createdb -E utf-8 sentry
 
+    # alternatively if you're using MySQL, ensure you've created the database:
+    $ mysql -e 'create database sentry'
+
 Once done, you can create the initial schema using the ``upgrade`` command:
 
 .. code-block:: python
@@ -257,11 +270,17 @@ Starting the Workers
 --------------------
 
 A large amount of Sentry's work is typically done via it's workers. While Sentry will seemingly work without
-using a queue, you'll quickly hit limitations. Once you've configured the queue, you'll also need to run
-workers. Generally, this is as simple as running "celery" from the Sentry CLI.
+using a queue you will not actually see anything show up in Sentry.  Once you've configured the queue, you'll
+also need to run workers. Generally, this is as simple as running "celery" from the Sentry CLI.
+
+So do not forget to run the workers!
+
 ::
 
   sentry --config=/etc/sentry.conf.py celery worker -B
+
+Technically there is a way to run sentry without the queues by setting ``CELERY_ALWAYS_EAGER`` to `True`
+but this is heavily discouraged and not supported.
 
 .. note:: `Celery <http://celeryproject.org/>`_ is an open source task framework for Python.
 
@@ -332,6 +351,8 @@ folder and you're good to go.
   autostart=true
   autorestart=true
   redirect_stderr=true
+  stdout_logfile syslog
+  stderr_logfile syslog
 
   [program:sentry-worker]
   directory=/www/sentry/
@@ -339,6 +360,19 @@ folder and you're good to go.
   autostart=true
   autorestart=true
   redirect_stderr=true
+  stdout_logfile syslog
+  stderr_logfile syslog
+
+
+Removing Old Data
+-----------------
+
+One of the most important things you're going to need to be aware of is storage costs. You'll want to setup a cron job that runs to automatically trim stale data. This won't guarantee space is reclaimed (i.e. by SQL), but it will try to minimize the footprint. This task is designed to run under various environments so it doesn't delete things in the most optimal way possible, but as long as you run it routinely (i.e. daily) you should be fine.
+
+.. code-block:: bash
+
+  $ crontab -e
+  0 3 * * * sentry cleanup --days=30
 
 
 Additional Utilities
@@ -362,43 +396,23 @@ Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install dja
 slightly better).
 
 
-Enabling Social Auth
---------------------
+Enabling Third Party Auth
+-------------------------
 
 Most of the time it doesn't really matter **how** someone authenticates to the service, so much as it that they do. In
-these cases, Sentry provides tight integrated with several large social services, including: Twitter, Facebook, Google,
+these cases, Sentry provides integrating with several common services, including: Google
 and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a
 couple values in your ``sentry.conf.py`` file.
 
 By default, users will be able to both signup (create a new account) as well as associate an existing account. If you
-want to disable account creation, simply set the following value::
-
-  SOCIAL_AUTH_CREATE_USERS = False
-
-Twitter
-~~~~~~~
-
-Register an application at http://twitter.com/apps/new. Take the values given on the page, and configure
-the following:
+want to disable account creation, simply set the following value:
 
 .. code-block:: python
 
-  TWITTER_CONSUMER_KEY = ''
-  TWITTER_CONSUMER_SECRET = ''
+  SENTRY_FEATURES = {
+    'social-auth:register': False,
+  }
 
-.. note:: It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
-
-Facebook
-~~~~~~~~
-
-Register an application at http://developers.facebook.com/setup/. You'll also need to make sure you select the "Website
-with Facebook Login" and fill in the Site URL field (just use the website's URL you're install Sentry on). Take the
-values given on the page, and configure the following:
-
-.. code-block:: python
-
-  FACEBOOK_APP_ID = ''
-  FACEBOOK_API_SECRET = ''
 
 Google
 ~~~~~~
@@ -410,6 +424,7 @@ the following:
 
   GOOGLE_OAUTH2_CLIENT_ID = ''
   GOOGLE_OAUTH2_CLIENT_SECRET = ''
+
 
 GitHub
 ~~~~~~
@@ -425,16 +440,6 @@ the following:
 For more information on configuring social authentication services, consult the `documentation on django-social-auth
 <https://github.com/omab/django-social-auth/>`_.
 
-Trello
-~~~~~~
-
-Generate an application key at https://trello.com/1/appKey/generate. Take the values given on the page, and configure
-the following:
-
-.. code-block:: python
-
-  TRELLO_API_KEY = ''
-  TRELLO_API_SECRET = ''
 
 What's Next?
 ------------

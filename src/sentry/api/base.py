@@ -1,7 +1,12 @@
 from __future__ import absolute_import
 
+__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+
+import logging
+
 from datetime import datetime, timedelta
 from django.utils.http import urlquote
+from django.views.decorators.csrf import csrf_exempt
 from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
@@ -12,31 +17,40 @@ from rest_framework.views import APIView
 
 from sentry.app import tsdb
 from sentry.utils.cursors import Cursor
+from sentry.utils.http import is_valid_origin
 
-from .authentication import KeyAuthentication
+from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
 from .paginator import Paginator
+from .permissions import NoPermission
 
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"'
+LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+
+DEFAULT_AUTHENTICATION = (
+    ApiKeyAuthentication,
+    ProjectKeyAuthentication,
+    SessionAuthentication
+)
 
 
 class DocSection(Enum):
     ACCOUNTS = 'Accounts'
     EVENTS = 'Events'
-    RELEASES = 'Releases'
     ORGANIZATIONS = 'Organizations'
     PROJECTS = 'Projects'
-    # TEAMS = 'Teams'
+    RELEASES = 'Releases'
+    TEAMS = 'Teams'
 
 
 class Endpoint(APIView):
-    authentication_classes = (KeyAuthentication, SessionAuthentication)
+    authentication_classes = DEFAULT_AUTHENTICATION
     renderer_classes = (JSONRenderer,)
     parser_classes = (JSONParser,)
+    permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):
         querystring = u'&'.join(
@@ -57,7 +71,79 @@ class Endpoint(APIView):
             has_results='true' if bool(cursor) else 'false',
         )
 
-    def paginate(self, request, on_results=lambda x: x, **kwargs):
+    def convert_args(self, request, *args, **kwargs):
+        return (args, kwargs)
+
+    def handle_exception(self, request, exc):
+        try:
+            return super(Endpoint, self).handle_exception(exc)
+        except Exception as exc:
+            logging.exception(unicode(exc), extra={'request': request})
+            context = {'detail': 'Internal Error'}
+            if hasattr(request, 'sentry'):
+                context['errorId'] = request.sentry['id']
+            return Response(context, status=500)
+
+    @csrf_exempt
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Identical to rest framework's dispatch except we add the ability
+        to convert arguments (for common URL params).
+        """
+        self.args = args
+        self.kwargs = kwargs
+        request = self.initialize_request(request, *args, **kwargs)
+        self.request = request
+        self.headers = self.default_response_headers  # deprecate?
+
+        try:
+            self.initial(request, *args, **kwargs)
+
+            # Get the appropriate handler method
+            if request.method.lower() in self.http_method_names:
+                handler = getattr(self, request.method.lower(),
+                                  self.http_method_not_allowed)
+
+                (args, kwargs) = self.convert_args(request, *args, **kwargs)
+                self.args = args
+                self.kwargs = kwargs
+            else:
+                handler = self.http_method_not_allowed
+
+            response = handler(request, *args, **kwargs)
+
+        except Exception as exc:
+            response = self.handle_exception(request, exc)
+
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super(Endpoint, self).finalize_response(
+            request, response, *args, **kwargs
+        )
+
+        self.add_cors_headers(request, response)
+
+        return response
+
+    def add_cors_headers(self, request, response):
+        if not request.auth:
+            return
+
+        origin = request.META.get('HTTP_ORIGIN')
+        if not origin:
+            return
+
+        allowed_origins = request.auth.get_allowed_origins()
+        if is_valid_origin(origin, allowed=allowed_origins):
+            response['Access-Control-Allow-Origin'] = origin
+            response['Access-Control-Allow-Methods'] = ', '.join(self.http_method_names)
+
+        return
+
+    def paginate(self, request, on_results=None, paginator_cls=Paginator,
+                 **kwargs):
         per_page = int(request.GET.get('per_page', 100))
         input_cursor = request.GET.get('cursor')
         if input_cursor:
@@ -65,14 +151,15 @@ class Endpoint(APIView):
 
         assert per_page <= 100
 
-        paginator = Paginator(**kwargs)
+        paginator = paginator_cls(**kwargs)
         cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,
         )
 
         # map results based on callback
-        results = on_results(cursor_result.results)
+        if on_results:
+            results = on_results(cursor_result.results)
 
         headers = {}
         headers['Link'] = ', '.join([
@@ -83,7 +170,7 @@ class Endpoint(APIView):
         return Response(results, headers=headers)
 
 
-class BaseStatsEndpoint(Endpoint):
+class StatsMixin(object):
     def _parse_args(self, request):
         resolution = request.GET.get('resolution')
         if resolution:

@@ -1,0 +1,52 @@
+{% load i18n %}
+{% load sentry_helpers %}
+<table>
+  <tr>
+    {% if user_email %}
+      <td style="width:84px;padding-top:10px;vertical-align:top">
+        <img src="{% gravatar_url user_email size 64 %}">
+      </td>
+    {% endif %}
+    <td>
+      <table>
+        <colgroup>
+          <col style="width:130px;">
+        </colgroup>
+        <tbody>
+          {% if user_id %}
+            <tr>
+              <th>{% trans "ID:" %}</th>
+              <td class="code">{{ user_id }}</td>
+            </tr>
+            {% endif %}
+          {% if user_ip_address %}
+            <tr>
+              <th>{% trans "IP Address:" %}</th>
+              <td class="code">{{ user_ip_address }}</td>
+            </tr>
+          {% endif %}
+          {% if user_username %}
+            <tr>
+              <th>{% trans "Username:" %}</th>
+              <td class="code">{{ user_username }}</td>
+            </tr>
+          {% endif %}
+          {% if user_email %}
+            <tr>
+              <th>{% trans "Email:" %}</th>
+              <td class="code">{{ user_email }}</td>
+            </tr>
+          {% endif %}
+          {% if user_data %}
+            {% for key, value in user_data.iteritems %}
+              <tr>
+                <th>{{ key|titlize }}</th>
+                <td class="code">{{ value }}</td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </td>
+  </tr>
+</table>

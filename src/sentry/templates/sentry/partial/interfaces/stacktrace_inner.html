@@ -3,7 +3,7 @@
 
 <ul class="traceback">
     {% for frame in frames %}
-        <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ stack_id }}-{{ forloop.counter0 }}">
+        <li class="frame{% if not frame.in_app %} system-frame{% endif %}{% if frame.errors %} frame-errors{% endif %} frame-{{ stack_id }}-{{ forloop.counter0 }}">
             <p>
                 {% if frame.filename %}
                     <code>{{ frame.filename }}</code>
@@ -31,6 +31,10 @@
                                 <dd>{{ frame.orig_function|default_if_none:"n/a" }}</dd>
                                 <dt>{% trans "Sourcemap" %}</dt>
                                 <dd><a href='{{ frame.sourcemap_url }}'>{{ frame.sourcemap }}</a></dd>
+                                {% if frame.errors %}
+                                  <dt>Error</dt>
+                                  <dd>{% for error in frame.errors %}{{ error }}<br />{% endfor %}</dd>
+                                {% endif %}
                             </dl>">?</a>
                     {% elif frame.abs_path and frame.abs_path != filename %}
                         <a class="annotation trigger-popover"
@@ -57,6 +61,10 @@
                                     <dt>{% trans "Function" %}</dt>
                                     <dd>{{ frame.function }}</dd>
                                 {% endif %}
+                                {% if frame.errors %}
+                                  <dt>Error</dt>
+                                  <dd>{% for error in frame.errors %}{{ error }}<br />{% endfor %}</dd>
+                                {% endif %}
                             </dl>">?</a>
                     {% endif %}
                 {% elif frame.module %}
@@ -81,6 +89,11 @@
 
             {% if frame.context %}
                 <ol start="{{ frame.start_lineno }}" class="context">
+                  {% if frame.errors %}
+                    <li class="expandable error">
+                      {% for error in frame.errors %}{{ error }}<br />{% endfor %}
+                    </li>
+                  {% endif %}
                 {% for num, line in frame.context %}
                     <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ stack_id }}-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line }}</li>
                 {% endfor %}

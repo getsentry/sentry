@@ -7,9 +7,32 @@ sentry.services.http
 """
 from __future__ import absolute_import, print_function
 
-from django.core.management import call_command
+from gunicorn.app.base import Application
 
 from sentry.services.base import Service
+
+
+class SentryGunicornCommand(Application):
+    def __init__(self, options):
+        self.usage = None
+        self.prog = None
+        self.cfg = None
+        self.config_file = ""
+        self.options = options
+        self.callable = None
+        self.project_path = None
+        self.do_load_config()
+
+    def init(self, *args):
+        cfg = {}
+        for k, v in self.options.items():
+            if k.lower() in self.cfg.settings and v is not None:
+                cfg[k.lower()] = v
+        return cfg
+
+    def load(self):
+        import sentry.wsgi
+        return sentry.wsgi.application
 
 
 class SentryHTTPServer(Service):
@@ -27,11 +50,16 @@ class SentryHTTPServer(Service):
         self.workers = workers
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
-        options['debug'] = debug
         options.setdefault('bind', '%s:%s' % (self.host, self.port))
-        options.setdefault('daemon', False)
         options.setdefault('timeout', 30)
         options.setdefault('proc_name', 'Sentry')
+        options.setdefault('workers', 3)
+        options.setdefault('access_logfile', '-')
+        options.setdefault('errorlog', '-')
+        options.setdefault('loglevel', 'info')
+        options.setdefault('limit_request_line', 0)
+        options['preload'] = False
+
         if workers:
             options['workers'] = workers
 
@@ -44,4 +72,4 @@ class SentryHTTPServer(Service):
         validate_settings(django_settings)
 
     def run(self):
-        call_command('run_gunicorn', **self.options)
+        SentryGunicornCommand(self.options).run()

@@ -1,9 +1,79 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from mock import patch
 
-from sentry.models import OrganizationMember, OrganizationMemberType
+from sentry.models import (
+    AuthProvider, OrganizationMember, OrganizationMemberType
+)
 from sentry.testutils import APITestCase
+
+
+class UpdateOrganizationMemberTest(APITestCase):
+    @patch('sentry.models.OrganizationMember.send_invite_email')
+    def test_reinvite_pending_member(self, mock_send_invite_email):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member_om = OrganizationMember.objects.create(
+            organization=organization,
+            email='foo@example.com',
+            type=OrganizationMemberType.MEMBER,
+            has_global_access=False,
+        )
+
+        path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, member_om.id])
+
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={'reinvite': 1})
+
+        assert resp.status_code == 204
+        mock_send_invite_email.assert_called_once_with()
+
+    @patch('sentry.models.OrganizationMember.send_sso_link_email')
+    def test_reinvite_sso_link(self, mock_send_sso_link_email):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_user('bar@example.com')
+        member_om = OrganizationMember.objects.create(
+            organization=organization,
+            user=member,
+            type=OrganizationMemberType.MEMBER,
+            has_global_access=False,
+        )
+        AuthProvider.objects.create(organization=organization, provider='dummy')
+
+        path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, member_om.id])
+
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={'reinvite': 1})
+
+        assert resp.status_code == 204
+        mock_send_sso_link_email.assert_called_once_with()
+
+    @patch('sentry.models.OrganizationMember.send_sso_link_email')
+    def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_user('bar@example.com')
+        member_om = OrganizationMember.objects.create(
+            organization=organization,
+            user=member,
+            type=OrganizationMemberType.MEMBER,
+            has_global_access=False,
+        )
+
+        path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, member_om.id])
+
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={'reinvite': 1})
+
+        assert resp.status_code == 400
 
 
 class DeleteOrganizationMemberTest(APITestCase):
@@ -34,6 +104,13 @@ class DeleteOrganizationMemberTest(APITestCase):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
+
+        # create a pending member, which shouldn't be counted in the checks
+        OrganizationMember.objects.create(
+            organization=organization,
+            type=OrganizationMemberType.OWNER,
+            email='bar@example.com',
+        )
 
         owner_om = OrganizationMember.objects.get(
             organization=organization,

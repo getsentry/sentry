@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from collections import defaultdict
 
 from sentry.models import (
-    OrganizationMember, OrganizationMemberTeams, OrganizationMemberType
+    AuthProvider, OrganizationMember, OrganizationMemberTeams,
+    OrganizationMemberType
 )
 from sentry.web.frontend.base import OrganizationView
 
@@ -32,17 +33,26 @@ class OrganizationMembersView(OrganizationView):
 
         queryset = sorted(queryset, key=lambda x: x.email or x.user.get_display_name())
 
+        try:
+            auth_provider = AuthProvider.objects.get(organization=organization)
+        except AuthProvider.DoesNotExist:
+            auth_provider = None
+
         member_list = []
         for om in queryset:
-            member_list.append((om, team_map[om.id]))
+            needs_sso = bool(auth_provider and not getattr(om.flags, 'sso:linked'))
+            member_list.append((om, team_map[om.id], needs_sso))
 
         # if the member is not the only owner we allow them to leave the org
         member_can_leave = any(
-            1 for om, _ in member_list
-            if om.type == OrganizationMemberType.OWNER and om.user != request.user
+            1 for om, _, _ in member_list
+            if (om.type == OrganizationMemberType.OWNER
+                and om.user != request.user
+                and om.user is not None)
         )
 
         context = {
+            'org_has_sso': auth_provider is not None,
             'member_list': member_list,
             'authorizing_access': authorizing_access,
             'member_can_leave': member_can_leave,

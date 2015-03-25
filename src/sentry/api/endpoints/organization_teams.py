@@ -3,11 +3,10 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import DocSection
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, Team
-)
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team
 from sentry.permissions import can_create_teams
 
 
@@ -16,12 +15,18 @@ class TeamSerializer(serializers.Serializer):
     slug = serializers.CharField(max_length=200, required=False)
 
 
-class OrganizationTeamsEndpoint(Endpoint):
-    def get(self, request, organization_slug):
-        organization = Organization.objects.get_from_cache(
-            slug=organization_slug,
-        )
+class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    doc_section = DocSection.ORGANIZATIONS
 
+    def get(self, request, organization):
+        """
+        List an organization's teams
+
+        Return a list of teams bound to a organization.
+
+            {method} {path}
+
+        """
         if request.auth:
             teams = [request.auth.project.team]
             if teams[0].organization != organization:
@@ -33,11 +38,18 @@ class OrganizationTeamsEndpoint(Endpoint):
             )
         return Response(serialize(teams, request.user))
 
-    def post(self, request, organization_slug):
-        organization = Organization.objects.get_from_cache(
-            slug=organization_slug,
-        )
+    def post(self, request, organization):
+        """
+        Create a new team
 
+        Create a new team bound to an organization.
+
+            {method} {path}
+            {{
+                "name": "My team"
+            }}
+
+        """
         if not can_create_teams(request.user, organization):
             return Response(status=403)
 

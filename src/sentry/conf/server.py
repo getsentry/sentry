@@ -20,6 +20,7 @@ import socket
 import sys
 import urlparse
 
+gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
 
@@ -93,6 +94,82 @@ TIME_ZONE = 'UTC'
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
+
+LANGUAGES = (
+    ('af', gettext_noop('Afrikaans')),
+    ('ar', gettext_noop('Arabic')),
+    ('az', gettext_noop('Azerbaijani')),
+    ('bg', gettext_noop('Bulgarian')),
+    ('be', gettext_noop('Belarusian')),
+    ('bn', gettext_noop('Bengali')),
+    ('br', gettext_noop('Breton')),
+    ('bs', gettext_noop('Bosnian')),
+    ('ca', gettext_noop('Catalan')),
+    ('cs', gettext_noop('Czech')),
+    ('cy', gettext_noop('Welsh')),
+    ('da', gettext_noop('Danish')),
+    ('de', gettext_noop('German')),
+    ('el', gettext_noop('Greek')),
+    ('en', gettext_noop('English')),
+    ('eo', gettext_noop('Esperanto')),
+    ('es', gettext_noop('Spanish')),
+    ('et', gettext_noop('Estonian')),
+    ('eu', gettext_noop('Basque')),
+    ('fa', gettext_noop('Persian')),
+    ('fi', gettext_noop('Finnish')),
+    ('fr', gettext_noop('French')),
+    ('ga', gettext_noop('Irish')),
+    ('gl', gettext_noop('Galician')),
+    ('he', gettext_noop('Hebrew')),
+    ('hi', gettext_noop('Hindi')),
+    ('hr', gettext_noop('Croatian')),
+    ('hu', gettext_noop('Hungarian')),
+    ('ia', gettext_noop('Interlingua')),
+    ('id', gettext_noop('Indonesian')),
+    ('is', gettext_noop('Icelandic')),
+    ('it', gettext_noop('Italian')),
+    ('ja', gettext_noop('Japanese')),
+    ('ka', gettext_noop('Georgian')),
+    ('kk', gettext_noop('Kazakh')),
+    ('km', gettext_noop('Khmer')),
+    ('kn', gettext_noop('Kannada')),
+    ('ko', gettext_noop('Korean')),
+    ('lb', gettext_noop('Luxembourgish')),
+    ('lt', gettext_noop('Lithuanian')),
+    ('lv', gettext_noop('Latvian')),
+    ('mk', gettext_noop('Macedonian')),
+    ('ml', gettext_noop('Malayalam')),
+    ('mn', gettext_noop('Mongolian')),
+    ('my', gettext_noop('Burmese')),
+    ('nb', gettext_noop('Norwegian Bokmal')),
+    ('ne', gettext_noop('Nepali')),
+    ('nl', gettext_noop('Dutch')),
+    ('nn', gettext_noop('Norwegian Nynorsk')),
+    ('os', gettext_noop('Ossetic')),
+    ('pa', gettext_noop('Punjabi')),
+    ('pl', gettext_noop('Polish')),
+    ('pt', gettext_noop('Portuguese')),
+    ('pt-br', gettext_noop('Brazilian Portuguese')),
+    ('ro', gettext_noop('Romanian')),
+    ('ru', gettext_noop('Russian')),
+    ('sk', gettext_noop('Slovak')),
+    ('sl', gettext_noop('Slovenian')),
+    ('sq', gettext_noop('Albanian')),
+    ('sr', gettext_noop('Serbian')),
+    ('sv-se', gettext_noop('Swedish')),
+    ('sw', gettext_noop('Swahili')),
+    ('ta', gettext_noop('Tamil')),
+    ('te', gettext_noop('Telugu')),
+    ('th', gettext_noop('Thai')),
+    ('tr', gettext_noop('Turkish')),
+    ('tt', gettext_noop('Tatar')),
+    ('udm', gettext_noop('Udmurt')),
+    ('uk', gettext_noop('Ukrainian')),
+    ('ur', gettext_noop('Urdu')),
+    ('vi', gettext_noop('Vietnamese')),
+    ('zh-cn', gettext_noop('Simplified Chinese')),
+    ('zh-cn', gettext_noop('Traditional Chinese')),
+)
 
 SITE_ID = 1
 
@@ -168,10 +245,12 @@ INSTALLED_APPS = (
     'sentry',
     'sentry.nodestore',
     'sentry.search',
+    'sentry.lang.javascript',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
     'sentry.plugins.sentry_useragents',
+    'sentry.plugins.sentry_webhooks',
     'social_auth',
     'south',
     'sudo',
@@ -200,7 +279,7 @@ try:
     from django.core.urlresolvers import reverse_lazy
 except ImportError:
     LOGIN_REDIRECT_URL = '/login-redirect/'
-    LOGIN_URL = '/login/'
+    LOGIN_URL = '/auth/login/'
 else:
     LOGIN_REDIRECT_URL = reverse_lazy('sentry-login-redirect')
     LOGIN_URL = reverse_lazy('sentry-login')
@@ -255,8 +334,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.misc.save_status_to_session',
 )
 
-SOCIAL_AUTH_CREATE_USERS = True
-
 INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
 # Auth engines and the settings required for them to be listed
@@ -291,12 +368,12 @@ CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
+    'sentry.tasks.beacon',
     'sentry.tasks.check_alerts',
-    'sentry.tasks.check_update',
+    'sentry.tasks.check_auth',
     'sentry.tasks.cleanup',
     'sentry.tasks.deletion',
     'sentry.tasks.email',
-    'sentry.tasks.fetch_source',
     'sentry.tasks.index',
     'sentry.tasks.merge',
     'sentry.tasks.store',
@@ -307,6 +384,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
+    Queue('auth', routing_key='auth'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('sourcemaps', routing_key='sourcemaps'),
     Queue('search', routing_key='search'),
@@ -332,6 +410,14 @@ create_partitioned_queues('triggers')
 
 
 CELERYBEAT_SCHEDULE = {
+    'check-auth': {
+        'task': 'sentry.tasks.check_auth',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+            'queue': 'auth',
+        }
+    },
     'check-alerts': {
         'task': 'sentry.tasks.check_alerts',
         'schedule': timedelta(minutes=1),
@@ -340,8 +426,8 @@ CELERYBEAT_SCHEDULE = {
             'queue': 'alerts',
         }
     },
-    'check-version': {
-        'task': 'sentry.tasks.check_update',
+    'send-beacon': {
+        'task': 'sentry.tasks.send_beacon',
         'schedule': timedelta(hours=1),
         'options': {
             'expires': 3600,
@@ -376,8 +462,14 @@ LOGGING = {
         },
         'sentry': {
             'level': 'ERROR',
+            'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         }
+    },
+    'filters': {
+        'sentry:internal': {
+            '()': 'sentry.utils.raven.SentryInternalFilter',
+        },
     },
     'formatters': {
         'simple': {
@@ -424,6 +516,9 @@ LOGGING = {
 
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    'DEFAULT_PERMISSION_CLASSES': (
+        'sentry.api.permissions.NoPermission',
+    )
 }
 
 # django-recaptcha
@@ -434,6 +529,7 @@ RECAPTCHA_PRIVATE_KEY = None
 # django-statsd
 
 STATSD_CLIENT = 'django_statsd.clients.null'
+SENTRY_METRICS_PREFIX = ''
 
 # Sentry and Raven configuration
 
@@ -443,6 +539,14 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 SENTRY_FRONTEND_PROJECT = None
 
 SENTRY_CACHE_BACKEND = 'default'
+
+SENTRY_FEATURES = {
+    'auth:register': True,
+    'social-auth:register': True,
+    'organizations:create': True,
+    'organizations:sso': False,
+    'teams:create': True,
+}
 
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
@@ -454,6 +558,12 @@ SENTRY_IGNORE_EXCEPTIONS = (
 
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 SENTRY_URL_PREFIX = ''
+
+# Should we send the beacon to the upstream server?
+SENTRY_BEACON = True
+
+# The administrative contact for this installation
+SENTRY_ADMIN_EMAIL = ''
 
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
@@ -469,6 +579,7 @@ SENTRY_SAMPLE_DATA = True
 
 # The following values control the sampling rates
 SENTRY_SAMPLE_RATES = (
+    # up until N events, store 1 in M
     (50, 1),
     (1000, 2),
     (10000, 10),
@@ -487,10 +598,7 @@ SENTRY_MAX_SAMPLE_TIME = 10000
 # Web Service
 SENTRY_WEB_HOST = 'localhost'
 SENTRY_WEB_PORT = 9000
-SENTRY_WEB_OPTIONS = {
-    'workers': 3,
-    'limit_request_line': 0,  # required for raven-js
-}
+SENTRY_WEB_OPTIONS = {}
 
 # UDP Service
 SENTRY_UDP_HOST = 'localhost'
@@ -525,11 +633,6 @@ SENTRY_INTERFACES = {
 # make projects public
 SENTRY_ALLOW_PUBLIC_PROJECTS = True
 
-# Should users be allowed to register an account? If this is disabled
-# accounts can only be created when someone is invited or added
-# manually.
-SENTRY_ALLOW_REGISTRATION = True
-
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 SENTRY_ALLOW_ORIGIN = None
 
@@ -547,7 +650,9 @@ SENTRY_BUFFER = 'sentry.buffer.Buffer'
 SENTRY_BUFFER_OPTIONS = {}
 
 # Cache backend
-SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
+# XXX: We explicitly require the cache to be configured as its not optional
+# and causes serious confusion with the default django cache
+SENTRY_CACHE = None
 SENTRY_CACHE_OPTIONS = {}
 
 # Quota backend
@@ -611,6 +716,9 @@ SENTRY_MAX_VARIABLE_SIZE = 512
 # Prevent variables within extra context from exceeding this size in
 # characters
 SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
+
+# For changing the amount of data seen in Http Response Body part.
+SENTRY_MAX_HTTP_BODY_SIZE = 2048
 
 # For various attributes we don't limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of

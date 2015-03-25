@@ -14,14 +14,15 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, Model
+from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
 
 
 class UserManager(BaseManager, UserManager):
     pass
 
 
-class User(Model, AbstractBaseUser):
+class User(BaseModel, AbstractBaseUser):
+    id = BoundedAutoField(primary_key=True)
     username = models.CharField(_('username'), max_length=128, unique=True)
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=30, blank=True)
