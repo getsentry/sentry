@@ -122,7 +122,7 @@
 
     <ul class="nav nav-list">
         <li class="nav-header">{% trans "Actions" %}</li>
-        {% if can_admin_event %}
+        {% if ACCESS.event_write %}
             {% if not group.is_muted %}
                 <li><a href="{% url 'sentry-api-set-group-mute' group.organization.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
             {% elif not group.is_resolved %}
@@ -145,7 +145,7 @@
         href="{% url 'sentry-group-event-json' group.organization.slug project.slug group.id event.id %}"{% else %}
         href="{% url 'sentry-group-event-json' group.organization.slug project.slug group.id 'latest' %}"{% endif %}
         >{% trans "Raw JSON Data" %}</a></li>
-        {% if can_remove_event %}
+        {% if ACCESS.event_delete %}
             <li><a href="{% url 'sentry-api-remove-group' group.organization.slug project.slug group.id %}"
                    onclick="return confirm('{% trans "Are you sure you wish to delete all data for this event?" %}');">{% trans "Remove Event Data" %}</a></li>
         {% endif %}

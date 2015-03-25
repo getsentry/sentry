@@ -1,9 +1,101 @@
+Version 7.5.0
+-------------
+
+- Interface.compute_hashes() now receives the platform of the event.
+- Server-side data scrubbers were incorrectly filtering invalid interface aliases.
+- The sensitive_fields option is now exposed in project settings.
+- The default logger name is now an empty value.
+
+
+Version 7.4.3
+-------------
+
+- Corrected various issues involving sampled data. Things should now sample according to actual MATH.
+
+
+Version 7.4.2
+-------------
+
+- Corrected invalid reference to SENTRY_ALLOW_REGISTRATION.
+
+
+Version 7.4.1
+-------------
+
+- Correct an issue with AuthProvider's migrations on MySQL.
+
+
+Version 7.4.0
+-------------
+
+- A new features subsystem was added, and many optional features are now run through it.
+- The 'add_organization' permission is no longer used.
+- The 'add_team' permission is no longer used.
+- SENTRY_ALLOW_REGISTRATION is deprecated in favor of SENTRY_FEATURES['auth:register'].
+- SOCIAL_AUTH_CREATE_USERS is deprecated in favor of SENTRY_FEATURES['social-auth:register'].
+- SENTRY_SERVER_EMAIL is no longer used.
+- Added first pass API at storing javascript artifacts via release APIs.
+- Improved error reporting for JavaScript source/sourcemap errors.
+- Improved configuration handling on sentry.cache.
+- Added various release API endpoints.
+- Added various organization API endpoints.
+- Added various tag API endpoints.
+- Sourcemaps will now always treat sourceRoot as a path.
+- Changed many permissions to use new sentry.access abstractions which are now
+  scoped based, shared with the API scopes.
+- Initial first pass at the SSO subsystem.
+- The Sentry internal client will now aggressively prevent recursive errors, but allow more
+  internal errors to be recorded to itself.
+- An XSS vulnerability with tag values not being escaped (on the group details page) has been resolved.
+
+
+Version 7.3.2
+-------------
+
+- Fixed missing beacon task import.
+
+Version 7.3.1
+-------------
+
+- Updated Gunicorn version and default configuration.
+- Fixed periodic task for beacon.
+
+Version 7.3.0
+-------------
+
+- The SENTRY_ADMIN_EMAIL setting now exists, and should be the technical contact for the install.
+- Fixed an issue that would cause job fanout in deletions.
+- Notifications are now sent when someone assigns you to an event.
+- Release objects are now created automatically.
+- Changed team-based API endpoints to use slugs.
+- New API endpoints:
+  - Help page list
+  - Help page details
+  - Group tag values
+  - Project tag values
+- Moved JavaScript sourcemap processing into language extension.
+  - Sourcemap processing errors are now annotated into the frame.
+- Refactored API to be scope-based permissions.
+- Added backend support for organization API keys.
+- Moved sentry_webhooks into builtins.
+- Added reporting Beacon (see docs).
+
 Version 7.2.0
 -------------
 
 - A py.test plugin now exists to make extension testing easier.
 - A Mailgun webhook endpoint is now available for incoming email.
-
+- Added security token for JS source expansion.
+- Duct tape workaround for event navigation buttons repeating the same event.
+- Origins now support custom protocols as well as relaxed support on other components.
+- Minor optimizations for deletion tasks and endpoints.
+- Minor optimizations for Redis buffer.
+- Added the ability to enable/disable project keys.
+- Added audit log entries for project keys.
+- Added UI, API, and async task for deleting project tag keys.
+- Various fixes/improvements to regression windows.
+- Rules will no longer execute duplicate actions.
+- EventFrequencyCondition will now fire a maximum of once every 30 minutes.
 
 Version 7.1.4
 -------------

@@ -58,21 +58,41 @@ class User(Interface):
         kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
 
+    def get_api_context(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'username': self.username,
+            'ipAddress': self.ip_address,
+            'data': self.data,
+        }
+
     def get_path(self):
         return 'sentry.interfaces.User'
 
     def get_hash(self):
         return []
 
-    def to_html(self, event, is_public=False, **kwargs):
-        if is_public:
-            return ''
-        return render_to_string('sentry/partial/interfaces/user.html', {
-            'is_public': is_public,
-            'event': event,
+    def get_context(self):
+        return {
             'user_ip_address': self.ip_address,
             'user_id': self.id,
             'user_username': self.username,
             'user_email': self.email,
             'user_data': self.data,
+        }
+
+    def to_html(self, event, is_public=False, **kwargs):
+        if is_public:
+            return ''
+
+        context = self.get_context()
+        context.update({
+            'is_public': is_public,
+            'event': event,
         })
+        return render_to_string('sentry/partial/interfaces/user.html', context)
+
+    def to_email_html(self, event, **kwargs):
+        context = self.get_context()
+        return render_to_string('sentry/partial/interfaces/user_email.html', context)

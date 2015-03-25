@@ -1,16 +1,43 @@
 from __future__ import absolute_import
 
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.permissions import assert_perm
+from sentry.api.bases.organization import (
+    OrganizationEndpoint, OrganizationPermission
+)
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember,
+    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember,
     OrganizationMemberType
 )
 
+ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'
 
-class OrganizationMemberDetailsEndpoint(Endpoint):
+ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization.'
+
+ERR_UNINVITABLE = 'You cannot send an invitation to a user who is already a full member.'
+
+
+class OrganizationMemberSerializer(serializers.Serializer):
+    reinvite = serializers.BooleanField()
+
+
+class RelaxedOrganizationPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:delete'],
+        'POST': ['org:write', 'org:delete'],
+        'PUT': ['org:write', 'org:delete'],
+
+        # DELETE checks for role comparison as you can either remove a member
+        # with a lower access role, or yourself, without having the req. scope
+        'DELETE': ['org:read', 'org:write', 'org:delete'],
+    }
+
+
+class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
+    permission_classes = [RelaxedOrganizationPermission]
+
     def _is_only_owner(self, member):
         if member.type != OrganizationMemberType.OWNER:
             return False
@@ -18,22 +45,44 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
         queryset = OrganizationMember.objects.filter(
             organization=member.organization_id,
             type=OrganizationMemberType.OWNER,
+            user__isnull=False,
         ).exclude(id=member.id)
         if queryset.exists():
             return False
 
         return True
 
-    def delete(self, request, organization_slug, member_id):
+    def put(self, request, organization, member_id):
         try:
-            organization = Organization.objects.get_from_cache(
-                slug=organization_slug,
-            )
-        except Organization.DoesNotExist:
-            return Response(status=404)
+            om = OrganizationMember.objects.filter(
+                organization=organization,
+                id=member_id,
+            ).select_related('user').get()
+        except OrganizationMember.DoesNotExist:
+            raise ResourceDoesNotExist
 
-        assert_perm(organization, request.user, request.auth)
+        serializer = OrganizationMemberSerializer(data=request.DATA, partial=True)
+        if not serializer.is_valid():
+            return Response(status=400)
 
+        has_sso = AuthProvider.objects.filter(
+            organization=organization,
+        ).exists()
+
+        result = serializer.object
+        # XXX(dcramer): if/when this expands beyond reinvite we need to check
+        # access level
+        if result.get('reinvite'):
+            if om.is_pending:
+                om.send_invite_email()
+            elif has_sso and not getattr(om.flags, 'sso:linked'):
+                om.send_sso_link_email()
+            else:
+                # TODO(dcramer): proper error message
+                return Response({'detail': ERR_UNINVITABLE}, status=400)
+        return Response(status=204)
+
+    def delete(self, request, organization, member_id):
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:
@@ -46,13 +95,15 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
             om = OrganizationMember.objects.filter(
                 organization=organization,
                 id=member_id,
-                type__gte=authorizing_access,
             ).select_related('user').get()
         except OrganizationMember.DoesNotExist:
-            return Response(status=404)
+            raise ResourceDoesNotExist
+
+        if om.type < authorizing_access:
+            return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         if self._is_only_owner(om):
-            return Response(status=403)
+            return Response({'detail': ERR_ONLY_OWNER}, status=403)
 
         audit_data = om.get_audit_log_data()
 
@@ -60,7 +111,9 @@ class OrganizationMemberDetailsEndpoint(Endpoint):
             # TODO(dcramer): while we still maintain an owner field on
             # organization we need to ensure it transfers
             organization.owner = OrganizationMember.objects.filter(
+                organization=om.organization,
                 type=OrganizationMemberType.OWNER,
+                user__isnull=False,
             ).exclude(id=om.id)[0].user
             organization.save()
 

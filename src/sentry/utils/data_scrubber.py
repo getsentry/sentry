@@ -10,6 +10,8 @@ from __future__ import absolute_import
 import re
 import six
 
+from sentry.constants import DEFAULT_SCRUBBED_FIELDS
+
 
 def varmap(func, var, context=None, name=None):
     """
@@ -41,21 +43,26 @@ class SensitiveDataFilter(object):
     and API keys in frames, http, and basic extra data.
     """
     MASK = '*' * 8
-    FIELDS = frozenset([
-        'password', 'secret', 'passwd', 'authorization', 'api_key', 'apikey'
-    ])
     VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
 
+    def __init__(self, fields=None):
+        if fields:
+            self.fields = DEFAULT_SCRUBBED_FIELDS + tuple(fields)
+        else:
+            self.fields = DEFAULT_SCRUBBED_FIELDS
+
     def apply(self, data):
-        if 'stacktrace' in data:
-            self.filter_stacktrace(data['stacktrace'])
+        # TODO(dcramer): move this into each interface
+        if 'sentry.interfaces.Stacktrace' in data:
+            self.filter_stacktrace(data['sentry.interfaces.Stacktrace'])
 
-        if 'exception' in data:
-            if 'stacktrace' in data['exception']:
-                self.filter_stacktrace(data['exception']['stacktrace'])
+        if 'sentry.interfaces.Exception' in data:
+            for exc in data['sentry.interfaces.Exception']['values']:
+                if exc.get('stacktrace'):
+                    self.filter_stacktrace(exc['stacktrace'])
 
-        if 'request' in data:
-            self.filter_http(data['request'])
+        if 'sentry.interfaces.Http' in data:
+            self.filter_http(data['sentry.interfaces.Http'])
 
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])
@@ -67,11 +74,11 @@ class SensitiveDataFilter(object):
         if isinstance(value, six.string_types) and self.VALUES_RE.search(value):
             return self.MASK
 
-        if not key:  # key can be a NoneType
+        if not isinstance(key, basestring):
             return value
 
         key = key.lower()
-        for field in self.FIELDS:
+        for field in self.fields:
             if field in key:
                 # store mask as a fixed length for security
                 return self.MASK

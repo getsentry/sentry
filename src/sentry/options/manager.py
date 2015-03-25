@@ -13,7 +13,7 @@ from django.conf import settings
 from django.utils import timezone
 from hashlib import md5
 
-from sentry.app import cache
+from sentry.cache import default_cache
 from sentry.db.models.query import create_or_update
 from sentry.models import Option
 
@@ -43,16 +43,16 @@ class OptionsManager(object):
     - Values must be strings.
     - Empty values are identical to null values which are represented by ''.
     """
-    cache = cache
+    cache = default_cache
 
-    logger = logging.getLogger('sentry.errors')
+    logger = logging.getLogger('sentry')
 
     # we generally want to always persist
     ttl = None
 
     def __init__(self, cache=None, ttl=None, logger=None):
         if cache is not None:
-            self.cache = cache
+            self.cache = default_cache
 
         if ttl is not None:
             self.ttl = ttl

@@ -177,6 +177,7 @@ class Frame(Interface):
             'post_context': data.get('post_context'),
             'vars': context_locals,
             'data': extra_data,
+            'errors': data.get('errors'),
         }
 
         if data.get('lineno') is not None:
@@ -194,6 +195,27 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
+    def get_api_context(self):
+        return {
+            'filename': self.filename,
+            'absPath': self.abs_path,
+            'module': self.module,
+            'function': self.function,
+            'context': get_context(
+                lineno=self.lineno,
+                context_line=self.context_line,
+                pre_context=self.pre_context,
+                post_context=self.post_context,
+                filename=self.filename or self.module,
+            ),
+            'lineNo': self.lineno,
+            'colNo': self.colno,
+            'inApp': self.in_app,
+            'errors': self.errors,
+            'vars': self.vars,
+
+        }
+
     def is_url(self):
         if not self.abs_path:
             return False
@@ -204,6 +226,16 @@ class Frame(Interface):
         # text as it contains an exception value which may may contain dynamic
         # values (see raven-java#125)
         return self.filename.startswith('Caused by: ')
+
+    def is_unhashable_module(self):
+        # TODO(dcramer): this is Java specific
+        return '$$Lambda$' in self.module
+
+    def is_unhashable_function(self):
+        # TODO(dcramer): lambda$ is Java specific
+        # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
+        # queries and JSON data)
+        return self.function.startswith(('lambda$', '[Anonymous'))
 
     def get_hash(self):
         """
@@ -217,7 +249,10 @@ class Frame(Interface):
         """
         output = []
         if self.module:
-            output.append(self.module)
+            if self.is_unhashable_module():
+                output.append('<module>')
+            else:
+                output.append(self.module)
         elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename))
 
@@ -225,9 +260,7 @@ class Frame(Interface):
             can_use_context = False
         elif len(self.context_line) > 120:
             can_use_context = False
-        # XXX: deal with PHP anonymous functions (used for things like SQL
-        # queries and JSON data)
-        elif self.function and self.function.startswith('[Anonymous'):
+        elif self.function and self.is_unhashable_function():
             can_use_context = True
         else:
             can_use_context = True
@@ -241,7 +274,10 @@ class Frame(Interface):
             # bail on recording this frame
             return output
         elif self.function:
-            output.append(remove_function_outliers(self.function))
+            if self.is_unhashable_function():
+                output.append('<function>')
+            else:
+                output.append(remove_function_outliers(self.function))
         elif self.lineno is not None:
             output.append(self.lineno)
         return output
@@ -271,6 +307,7 @@ class Frame(Interface):
             'colno': self.colno,
             'context': context,
             'context_line': self.context_line,
+            'errors': self.errors or [],
             'in_app': self.in_app,
             'is_url': self.is_url(),
         }
@@ -417,6 +454,12 @@ class Stacktrace(Interface):
 
         return cls(**kwargs)
 
+    def get_api_context(self):
+        return {
+            'frames': [f.get_api_context() for f in self.frames],
+            'framesOmitted': self.frames_omitted,
+        }
+
     def to_json(self):
         return {
             'frames': [f.to_json() for f in self.frames],
@@ -429,7 +472,7 @@ class Stacktrace(Interface):
     def has_app_frames(self):
         return any(f.in_app is not None for f in self.frames)
 
-    def compute_hashes(self):
+    def compute_hashes(self, platform):
         system_hash = self.get_hash(system_frames=True)
         if not system_hash:
             return []

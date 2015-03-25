@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_features %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
@@ -12,17 +13,26 @@
     <section id="page-header" class="toolbar">
       <div class="pull-right">
         {% block actions %}
-        {% if ACCESS.is_admin %}
-          {% if ACCESS.is_global %}
-            <a href="{% url 'sentry-create-team' organization.slug %}"
-               class="btn btn-small btn-primary">{% trans "New Team" %}</a>
-          {% endif %}
+        {% if ACCESS.org_write %}
+          <a href="{% url 'sentry-create-team' organization.slug %}"
+             class="btn btn-small btn-primary">{% trans "New Team" %}</a>
+        {% else %}
+          <a class="btn btn-small btn-primary disabled tip"
+             title="You do not have the required permissions for adding teams.">{% trans "New Team" %}</a>
+        {% endif %}
+        {% if ACCESS.team_write %}
           <a href="{% url 'sentry-create-project' organization.slug %}"
              class="btn btn-small btn-primary">{% trans "New Project" %}</a>
-          {% if ACCESS.is_global %}
-            <a href="{% url 'sentry-create-organization-member' organization.slug %}"
-               class="btn btn-small btn-primary">{% trans "New Member" %}</a>
-          {% endif %}
+        {% else %}
+          <a class="btn btn-small btn-primary disabled tip"
+             title="You do not have the required permissions for adding projects.">{% trans "New Project" %}</a>
+        {% endif %}
+        {% if ACCESS.org_write %}
+          <a href="{% url 'sentry-create-organization-member' organization.slug %}"
+             class="btn btn-small btn-primary">{% trans "New Member" %}</a>
+        {% else %}
+          <a class="btn btn-small btn-primary disabled tip"
+             title="You do not have the required permissions for adding members.">{% trans "New Member" %}</a>
         {% endif %}
         {% endblock %}
       </div>
@@ -38,22 +48,37 @@
         {% trans "Teams" %}
       </a>
     </li>
-    {% if ACCESS.is_global and ACCESS.is_admin %}
+    {% if ACCESS.org_read %}
     <li class="{% block org_stats_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-stats' organization.slug %}">
         {% trans "Stats" %}
       </a>
     </li>
-    <li class="{% block org_members_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-members' organization.slug %}">
-        {% trans "Members" %}
-      </a>
-    </li>
+    {% endif %}
+    {% if ACCESS.org_write %}
     <li class="{% block org_auditlog_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
         {% trans "Audit Log" %}
       </a>
     </li>
+    {% endif %}
+    {% if ACCESS.org_read %}
+    <li class="{% block org_members_nav %}{% endblock %}">
+      <a href="{% url 'sentry-organization-members' organization.slug %}">
+        {% trans "Members" %}
+      </a>
+    </li>
+    {% endif %}
+    {% if ACCESS.org_delete %}
+      {% feature organizations:sso organization %}
+      <li class="{% block org_auth_settings_nav %}{% endblock %}">
+        <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
+          {% trans "Auth" %}
+        </a>
+      </li>
+      {% endfeature %}
+    {% endif %}
+    {% if ACCESS.org_write %}
     <li class="{% block org_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-settings' organization.slug %}">
         {% trans "Settings" %}

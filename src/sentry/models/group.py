@@ -19,7 +19,9 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import buffer, tsdb
-from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
+from sentry.constants import (
+    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+)
 from sentry.db.models import (
     BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, Model, GzippedDictField, sane_repr
@@ -51,7 +53,7 @@ class GroupManager(BaseManager):
     def add_tags(self, group, tags):
         from sentry.models import TagValue, GroupTagValue
 
-        project = group.project
+        project_id = group.project_id
         date = group.last_seen
 
         tsdb_keys = []
@@ -71,7 +73,7 @@ class GroupManager(BaseManager):
             buffer.incr(TagValue, {
                 'times_seen': 1,
             }, {
-                'project': project,
+                'project_id': project_id,
                 'key': key,
                 'value': value,
             }, {
@@ -82,8 +84,8 @@ class GroupManager(BaseManager):
             buffer.incr(GroupTagValue, {
                 'times_seen': 1,
             }, {
-                'group': group,
-                'project': project,
+                'group_id': group.id,
+                'project_id': project_id,
                 'key': key,
                 'value': value,
             }, {
@@ -100,7 +102,7 @@ class Group(Model):
     """
     project = FlexibleForeignKey('sentry.Project', null=True)
     logger = models.CharField(
-        max_length=64, blank=True, default='root', db_index=True)
+        max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
         db_index=True)

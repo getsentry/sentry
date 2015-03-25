@@ -21,8 +21,10 @@ from uuid import uuid4
 
 from sentry.app import buffer, tsdb
 from sentry.constants import (
-    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH
+    CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH,
+    MAX_TAG_VALUE_LENGTH
 )
+from sentry.interfaces.base import get_interface
 from sentry.models import (
     Event, EventMapping, Group, GroupHash, GroupStatus, Project
 )
@@ -62,7 +64,7 @@ def md5_from_hash(hash_bits):
 def get_hashes_for_event(event):
     interfaces = event.interfaces
     for interface in interfaces.itervalues():
-        result = interface.compute_hashes()
+        result = interface.compute_hashes(event.platform)
         if not result:
             continue
         return map(md5_from_hash, result)
@@ -70,17 +72,17 @@ def get_hashes_for_event(event):
 
 
 if not settings.SENTRY_SAMPLE_DATA:
-    def should_sample(group, event):
+    def should_sample(current_datetime, last_seen, times_seen):
         return False
 else:
-    def should_sample(group, event):
-        silence_timedelta = event.datetime - group.last_seen
+    def should_sample(current_datetime, last_seen, times_seen):
+        silence_timedelta = current_datetime - last_seen
         silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
-        if group.times_seen % count_limit(group.times_seen) == 0:
+        if times_seen % count_limit(times_seen) == 0:
             return False
 
-        if group.times_seen % time_limit(silence):
+        if times_seen % time_limit(silence) == 0:
             return False
 
         return True
@@ -139,8 +141,6 @@ class EventManager(object):
         # TODO(dcramer): store http.env.REMOTE_ADDR as user.ip
         # First we pull out our top-level (non-data attr) kwargs
         data = self.data
-
-        data['version'] = self.version
 
         if not isinstance(data.get('level'), (six.string_types, int)):
             data['level'] = logging.ERROR
@@ -212,6 +212,26 @@ class EventManager(object):
 
         trim_dict(
             data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
+
+        # TODO(dcramer): more of validate data needs stuffed into the manager
+        for key in data.keys():
+            if key in CLIENT_RESERVED_ATTRS:
+                continue
+
+            value = data.pop(key)
+
+            try:
+                interface = get_interface(key)()
+            except ValueError:
+                continue
+
+            try:
+                inst = interface.to_python(value)
+                data[inst.get_path()] = inst.to_json()
+            except Exception:
+                pass
+
+        data['version'] = self.version
 
         # TODO(dcramer): find a better place for this logic
         exception = data.get('sentry.interfaces.Exception')
@@ -326,7 +346,6 @@ class EventManager(object):
 
         event.group = group
 
-        # Rounded down to the nearest interval
         safe_execute(Group.objects.add_tags, group, tags,
                      _with_transaction=False)
 
@@ -455,20 +474,20 @@ class EventManager(object):
                 'time_spent_count': 1,
             })
 
-        # Determine if we've sampled enough data to store this event
-        if is_new:
-            is_sample = False
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
-        elif not should_sample(group, event):
-            is_sample = False
-        else:
-            is_sample = True
+        can_sample = should_sample(event.datetime, group.last_seen, group.times_seen)
 
         if not is_new:
             is_regression = self._process_existing_aggregate(group, event, kwargs)
         else:
             is_regression = False
+
+        # Determine if we've sampled enough data to store this event
+        if is_new or is_regression:
+            is_sample = False
+        else:
+            is_sample = can_sample
 
         tsdb.incr_multi([
             (tsdb.models.group, group.id),

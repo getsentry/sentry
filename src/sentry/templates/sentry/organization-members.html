@@ -17,40 +17,45 @@
 
   <br>
 
-  <table class="table table-striped member-list">
+  <table class="table simple-list table-bordered member-list">
     <colgroup>
-      <col width="20px"/>
-      <col/>
-      <col width="250px"/>
-      <col width="100px"/>
-      <col width="100px"/>
-      <col width="20px"/>
+      <col width="30%"/>
+      <col width="25%" />
+      <col width="20%"/>
+      <col width="20%"/>
+      <col width="5%"/>
     </colgroup>
     <thead>
       <tr>
-        <th>&nbsp;</th>
         <th>Member</th>
         <th>&nbsp;</th>
-        <th>Type</th>
+        <th>Role</th>
         <th>Teams</th>
         <th>&nbsp;</th>
       </tr>
     </thead>
     <tbody>
-      {% for member, team_list in member_list %}
+      {% for member, team_list, needs_sso in member_list %}
         <tr>
-          <td>
-            <img class="avatar" src="{% gravatar_url member.get_email size 20 %}">
-          </td>
-          <td>
-            <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+          <td class="user-info">
+            <img class="avatar" src="{% gravatar_url member.get_email size 80 %}">
+            <strong><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
               {{ member.get_display_name }}
-            </a>
-            {% if member.is_pending %}
-              <small>&mdash; Invited</small>
+            </a></strong>
+            <br />
+            <small>{{ member.get_email }}</small>
+            <br />
+          </td>
+          <td class="status">
+            {% if needs_sso or member.is_pending %}
+              {% if needs_sso %}
+                <strong>Missing SSO Link</strong>
+              {% else %}
+                <strong>Invited</strong>
+              {% endif %}
+              <a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a>
             {% endif %}
           </td>
-          <td>{{ member.get_email }}</td>
           <td>{{ member.get_type_display }}</td>
           <td>
             {% if member.has_global_access %}
@@ -98,8 +103,35 @@
       success: function() {
         $this.parents('tr').remove();
       },
+      error: function(xhr) {
+        if (xhr.responseJSON) {
+          alert('Unable to remove member: ' + xhr.responseJSON.detail);
+        } else {
+          alert('There was an error while trying to remove the member.');
+        }
+      }
+    });
+  });
+
+  $('.resend-invite').click(function(){
+    var $link = $(this);
+    var $loader = $('<span class="icon-spinner spin"></span>');
+
+    $link.replaceWith($loader);
+
+    $.ajax({
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $link.data('member-id') + '/',
+      data: JSON.stringify({
+        reinvite: 1,
+      }),
+      contentType: 'application/json',
+      method: 'PUT',
+      success: function() {
+        $loader.replaceWith('<span>Sent!</span>');
+      },
       error: function() {
-        alert('There was an error while trying to remove the team member.');
+        $loader.replaceWith($link);
+        alert('There was an error while trying to reinvite the member.');
       }
     });
   });

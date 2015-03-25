@@ -1,23 +1,23 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.permissions import assert_perm
-from sentry.models import Group, GroupTagValue, GroupTagKey, TagKey
+from sentry.api.bases.group import GroupEndpoint
+from sentry.models import GroupTagValue, GroupTagKey, TagKey
 
 
-class GroupTagsEndpoint(Endpoint):
-    def get(self, request, group_id):
-        group = Group.objects.get(
-            id=group_id,
-        )
+class GroupTagsEndpoint(GroupEndpoint):
+    def _get_top_values(self, group_id, key, num=5):
+        cutoff = timezone.now() - timedelta(days=7)
+        return GroupTagValue.objects.filter(
+            group=group_id,
+            key=key,
+            last_seen__gte=cutoff,
+        )[:num]
 
-        assert_perm(group, request.user, request.auth)
-
-        def percent(total, this):
-            return int(this / total * 100)
-
+    def get(self, request, group):
         tag_keys = TagKey.objects.filter(
             project=group.project,
             key__in=GroupTagKey.objects.filter(
@@ -28,18 +28,14 @@ class GroupTagsEndpoint(Endpoint):
         # O(N) db access
         data = []
         for tag_key in tag_keys:
-            queryset = GroupTagValue.objects.filter(
-                group=group,
-                key=tag_key.key,
-            )
-
-            total_values = queryset.count()
-            top_values = queryset.order_by('-times_seen')[:5]
+            total_values = GroupTagValue.get_value_count(group.id, tag_key.key)
+            top_values = self._get_top_values(group.id, tag_key.key)
 
             data.append({
-                'id': tag_key.id,
+                'id': str(tag_key.id),
                 'key': tag_key.key,
                 'name': tag_key.get_label(),
+                'uniqueValues': tag_key.values_seen,
                 'totalValues': total_values,
                 'topValues': [
                     {

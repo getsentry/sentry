@@ -8,7 +8,6 @@ from sentry.models import Release
 class ReleaseSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
-            'id': str(obj.id),
             'version': obj.version,
             'dateCreated': obj.date_added,
         }

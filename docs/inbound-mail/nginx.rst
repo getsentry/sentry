@@ -12,7 +12,8 @@ Add another supervisor config to run the Sentry ``smtp`` service:
     command=/www/sentry/bin/sentry start smtp
     autostart=true
     autorestart=true
-    redirect_stderr=true
+    stdout_logfile syslog
+    stderr_logfile syslog
 
 Configure an Nginx route as an SMTP mail proxy:
 

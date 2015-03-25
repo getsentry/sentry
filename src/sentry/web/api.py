@@ -48,7 +48,7 @@ from sentry.models import (
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.db import get_db_engine
 from sentry.utils.javascript import to_json
@@ -58,7 +58,6 @@ from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
 
-error_logger = logging.getLogger('sentry.errors')
 logger = logging.getLogger('sentry.api')
 
 # Transparent 1x1 gif
@@ -312,6 +311,8 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, data, **kwargs):
+        metrics.incr('events.total', 1)
+
         event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
@@ -327,6 +328,7 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
+            metrics.incr('events.dropped', 1)
             raise APIRateLimited(rate_limit.retry_after)
         else:
             app.tsdb.incr_multi([
@@ -337,6 +339,7 @@ class StoreView(APIView):
         result = plugins.first('has_perm', request.user, 'create_event', project,
                                version=1)
         if result is False:
+            metrics.incr('events.dropped', 1)
             raise APIForbidden('Creation of this event was blocked')
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
@@ -377,7 +380,7 @@ class StoreView(APIView):
 
         if project.get_option('sentry:scrub_data', True):
             # We filter data immediately before it ever gets into the queue
-            inst = SensitiveDataFilter()
+            inst = SensitiveDataFilter(project.get_option('sentry:sensitive_fields', None))
             inst.apply(data)
 
         if scrub_ip_address:

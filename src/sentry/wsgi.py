@@ -15,11 +15,13 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 sys.stdout = sys.stderr
 
-# Configure the application (Logan)
-from sentry.utils.runner import configure
-configure()
-
+# Configure the application (Logan) only if it seemingly isnt already
+# configured
 from django.conf import settings
+if not settings.configured:
+    from sentry.utils.runner import configure
+    configure()
+
 if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH):
     try:
         os.makedirs(settings.SESSION_FILE_PATH)

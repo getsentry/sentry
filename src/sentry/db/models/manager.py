@@ -28,7 +28,7 @@ from .query import create_or_update
 
 __all__ = ('BaseManager',)
 
-logger = logging.getLogger('sentry.errors')
+logger = logging.getLogger('sentry')
 
 
 class ImmutableDict(dict):

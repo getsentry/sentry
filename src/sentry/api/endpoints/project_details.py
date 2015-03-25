@@ -3,15 +3,23 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import DocSection
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.permissions import assert_perm
 from sentry.api.serializers import serialize
-from sentry.constants import MEMBER_ADMIN
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Project, ProjectStatus
 )
 from sentry.tasks.deletion import delete_project
+
+
+def clean_newline_inputs(value):
+    result = []
+    for v in value.split('\n'):
+        v = v.lower().strip()
+        if v:
+            result.append(v)
+    return result
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -20,10 +28,10 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class ProjectDetailsEndpoint(Endpoint):
+class ProjectDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
 
-    def get(self, request, project_id):
+    def get(self, request, project):
         """
         Retrieve a project
 
@@ -32,20 +40,18 @@ class ProjectDetailsEndpoint(Endpoint):
             {method} {path}
 
         """
-        project = Project.objects.get_from_cache(id=project_id)
-
-        assert_perm(project, request.user, request.auth)
-
         data = serialize(project, request.user)
         data['options'] = {
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', None) or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+            'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+            'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
         }
 
         return Response(data)
 
     @sudo_required
-    def put(self, request, project_id):
+    def put(self, request, project):
         """
         Update a project
 
@@ -60,10 +66,6 @@ class ProjectDetailsEndpoint(Endpoint):
             }}
 
         """
-        project = Project.objects.get(id=project_id)
-
-        assert_perm(project, request.user, request.auth, access=MEMBER_ADMIN)
-
         serializer = ProjectSerializer(project, data=request.DATA, partial=True)
 
         if serializer.is_valid():
@@ -71,9 +73,19 @@ class ProjectDetailsEndpoint(Endpoint):
 
             options = request.DATA.get('options', {})
             if 'sentry:origins' in options:
-                project.update_option('sentry:origins', options['sentry:origins'].split('\n'))
+                project.update_option(
+                    'sentry:origins',
+                    clean_newline_inputs(options['sentry:origins'])
+                )
             if 'sentry:resolve_age' in options:
                 project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
+            if 'sentry:scrub_data' in options:
+                project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
+            if 'sentry:sensitive_fields' in options:
+                project.update_option(
+                    'sentry:sensitive_fields',
+                    [s.strip().lower() for s in options['sentry:sensitive_fields']]
+                )
 
             AuditLogEntry.objects.create(
                 organization=project.organization,
@@ -94,7 +106,7 @@ class ProjectDetailsEndpoint(Endpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
-    def delete(self, request, project_id):
+    def delete(self, request, project):
         """
         Delete a project
 
@@ -102,12 +114,10 @@ class ProjectDetailsEndpoint(Endpoint):
 
             {method} {path}
 
-        **Note:** Deletion happens asyncrhonously and therefor is not immediate.
+        **Note:** Deletion happens asynchronously and therefor is not immediate.
         However once deletion has begun the state of a project changes and will
         be hidden from most public views.
         """
-        project = Project.objects.get(id=project_id)
-
         if project.is_internal_project():
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',
                             status=status.HTTP_403_FORBIDDEN)

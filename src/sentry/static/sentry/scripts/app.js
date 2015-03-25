@@ -216,26 +216,31 @@
                     var $this = $(this);
                     var $content = $('<form class="share-form"></form>');
                     var $urlel = $('<code class="clippy">' + $this.data('share-url') + '</code>');
+                    var isChecked = $this.data('public');
+
                     $urlel.clippy({
                         clippy_path: app.config.clippyPath,
                         keep_text: true
                     });
                     $content.append($urlel);
-                    $content.append($('<label class="checkbox"><input type="checkbox"> Allow anonymous users to view this event.</label>'));
+                    $content.append($('<label class="checkbox">' +
+                        '<input type="checkbox"' + (isChecked ? ' checked="checked"' : '') + '/>' +
+                        'Allow anonymous users to view this event.' +
+                    '</label>'));
 
-                    $content.find('input[type=checkbox]').change(function(){
+                    var $checkbox = $content.find('input[type=checkbox]').change(function(){
                         var url = $this.data($(this).is(':checked') ? 'public-url' : 'private-url');
                         $.ajax({
                             url: url,
                             type: 'post',
                             success: function(group){
-                                $this.data('public', group.isPublic ? 'true' : 'false');
+                                $this.data('public', group.isPublic);
                             },
                             error: function(){
                                 window.alert('There was an error changing the public status');
                             }
                         });
-                    }).attr('checked', $this.data('public') == 'true');
+                    });
 
                     return $content;
                 }
@@ -282,7 +287,7 @@
                             $.each(data.values, function(_, item){
                                 var tagValue = item.value,
                                     timesSeen = item.count,
-                                    tagLabel = item.label || item.value,
+                                    tagLabel = app.utils.escape(item.label || item.value),
                                     percent = parseInt(timesSeen / total * 100, 10),
                                     url = app.config.urlPrefix + '/' + app.config.organizationId + '/' + app.config.projectId + '/';
 
@@ -530,6 +535,14 @@
             BasePage.prototype.initialize.apply(this, arguments);
 
             app.utils.makeSearchableUsersInput('form input[name=owner]');
+
+            $("input[name='scrub_data']").change(function(){
+                if ($(this).is(':checked')) {
+                    $("#div_id_sensitive_fields").show();
+                } else {
+                    $("#div_id_sensitive_fields").hide();
+                }
+            }).change();
 
             $("input[type=range]").each(_.bind(function loop(n, el){
                 var $el = $(el),

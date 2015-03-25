@@ -34,8 +34,3 @@ script:
   - make test-js
   - py.test tests
   - make test-cli
-notifications:
-  irc:
-    channels: "irc.freenode.org#sentry"
-    on_success: change
-    on_failure: change
