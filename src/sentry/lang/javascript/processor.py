@@ -178,7 +178,7 @@ def discover_sourcemap(result):
 
 def fetch_release_file(filename, release):
     cache_key = 'release:%s:%s' % (
-        release.version,
+        release.id,
         hashlib.sha1(filename.encode('utf-8')).hexdigest(),
     )
     logger.debug('Checking cache for release artfiact %r (release_id=%s)',
