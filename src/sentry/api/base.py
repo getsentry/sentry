@@ -74,12 +74,15 @@ class Endpoint(APIView):
     def convert_args(self, request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, exc):
+    def handle_exception(self, request, exc):
         try:
             return super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
-            logging.exception(unicode(exc))
-            return Response({'detail': 'Internal Error'}, status=500)
+            logging.exception(unicode(exc), extra={'request': request})
+            context = {'detail': 'Internal Error'}
+            if hasattr(request, 'sentry'):
+                context['errorId'] = request.sentry['id']
+            return Response(context, status=500)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
@@ -110,7 +113,7 @@ class Endpoint(APIView):
             response = handler(request, *args, **kwargs)
 
         except Exception as exc:
-            response = self.handle_exception(exc)
+            response = self.handle_exception(request, exc)
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
