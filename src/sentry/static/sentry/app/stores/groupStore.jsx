@@ -56,14 +56,13 @@ var GroupListStore = Reflux.createStore({
 
     for (var i = 0, item; (item = this.items[i]); i++) {
       if (itemsById[item.id]) {
-        itemsById[item.id] = null;
         jQuery.extend(true, this.items[i], itemsById[item.id]);
-        return;
+        delete itemsById[item.id];
       }
     }
 
-    for (item in itemsById) {
-      this.items.push(itemsById[item]);
+    for (var itemId in itemsById) {
+      this.items.push(itemsById[itemId]);
     }
 
     this.trigger();
