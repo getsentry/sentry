@@ -13,9 +13,7 @@
 
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
 
-  <br>
-
-  <table class="table simple-list table-bordered member-list">
+  <table class="table">
     <colgroup>
       <col width="30%"/>
       <col width="25%" />
@@ -35,13 +33,12 @@
     <tbody>
       {% for member, team_list, needs_sso in member_list %}
         <tr>
-          <td class="user-info">
+          <td class="table-user-info">
             <img class="avatar" src="{% gravatar_url member.get_email size 80 %}">
-            <strong><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+            <h5><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
               {{ member.get_display_name }}
-            </a></strong>
-            <br />
-            <small>{{ member.get_email }}</small>
+            </a></h5>
+            {{ member.get_email }}
             <br />
           </td>
           <td class="status">
