@@ -2,6 +2,7 @@
 
 var React = require("react");
 
+var ConfigStore = require("../stores/configStore");
 var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
 
@@ -10,6 +11,7 @@ var OrganizationTeams = React.createClass({
 
   render() {
     var org = this.getOrganization();
+    var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     if (org.teams.length === 0) {
       return (
@@ -33,7 +35,9 @@ var OrganizationTeams = React.createClass({
               <div className="box" key={team.slug}>
                 <div className="box-header">
                   <div className="pull-right actions">
-                    <a href="#"><span className="icon-settings"></span> Team Settings</a>
+                    <a href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
+                      <span className="icon-settings"></span> Team Settings
+                    </a>
                   </div>
                   <h3>
                     <Router.Link
