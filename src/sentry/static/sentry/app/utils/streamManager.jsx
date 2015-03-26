@@ -30,7 +30,7 @@ class StreamManager {
     items.forEach((item) => {
       var idx = this.idList.indexOf(item.id);
       if (idx !== -1) {
-        this.idList.splice(idx, idx + 1);
+        this.idList.splice(idx, 1);
       }
       this.length += 1;
       this.idList.push(item.id);
@@ -58,7 +58,23 @@ class StreamManager {
   }
 
   unshift(items) {
-    return this.push(items.reverse());
+    if (!items instanceof Array) {
+      items = [items];
+    } else {
+      items = items.reverse();
+    }
+
+    items.forEach((item) => {
+      var idx = this.idList.indexOf(item.id);
+      if (idx !== -1) {
+        this.idList.splice(idx, 1);
+      }
+      this.length += 1;
+      this.idList.unshift(item.id);
+    });
+    this.trim();
+    this.store.add(items);
+    return this;
   }
 }
 
