@@ -11,35 +11,35 @@
 
   <div class="box">
     <div class="box-content with-padding">
-  <form class="form-stacked" action="" method="post">
-    {% csrf_token %}
+      <form class="form-stacked" action="" method="post">
+        {% csrf_token %}
 
-    {% if form.errors %}
-      <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-    {% endif %}
+        {% if form.errors %}
+          <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+        {% endif %}
 
-    {{ form|as_crispy_errors }}
+        {{ form|as_crispy_errors }}
 
-    <fieldset>
-      {% for field in form %}
-        {{ field|as_crispy_field }}
-      {% endfor %}
-    </fieldset>
+        <fieldset>
+          {% for field in form %}
+            {{ field|as_crispy_field }}
+          {% endfor %}
+        </fieldset>
 
-    {% if ACCESS.org_delete %}
-      <div class="form-group">
-        <div class="pull-right" style="margin-top: 2px">
-          <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
-        </div>
-        <h5>Remove Organization</h5>
-        <p class="help-block" style="margin-top: -10px">Removing an organization cannot be undone.</p>
-      </div>
-    {% endif %}
+        {% if ACCESS.org_delete %}
+          <div class="form-group">
+            <div class="pull-right" style="margin-top: 2px">
+              <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
+            </div>
+            <h5>Remove Organization</h5>
+            <p class="help-block" style="margin-top: -10px">Removing an organization cannot be undone.</p>
+          </div>
+        {% endif %}
 
-    <fieldset class="form-actions">
-      <p><button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button></p>
-    </fieldset>
-  </form>
-  <div class="box-content">
+        <fieldset class="form-actions">
+          <p><button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button></p>
+        </fieldset>
+      </form>
+  </div>
 </div>
 {% endblock %}
