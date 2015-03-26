@@ -9,9 +9,18 @@ from sentry.testutils.helpers import parse_link_header
 
 
 class GroupListTest(APITestCase):
-    def test_simple(self):
-        self.create_group(checksum='a' * 32)
-        self.create_group(checksum='b' * 32)
+    def _parse_links(self, header):
+        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
+        links = {}
+        for url, attrs in parse_link_header(header).iteritems():
+            links[attrs['rel']] = attrs
+            attrs['href'] = url
+        return links
+
+    def test_simple_pagination(self):
+        project = self.project
+        group1 = self.create_group(checksum='a' * 32)
+        group2 = self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
@@ -20,14 +29,43 @@ class GroupListTest(APITestCase):
         })
         response = self.client.get(url + '?limit=1', format='json')
         assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(group1.id)
+
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
-        links = {
-            d['rel']: d
-            for d in parse_link_header(response['Link']).values()
-        }
+        links = self._parse_links(response['Link'])
 
         assert links['previous']['results'] == 'false'
         assert links['next']['results'] == 'true'
+
+        print(links['next']['cursor'])
+        response = self.client.get(links['next']['href'], format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(group2.id)
+
+        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
+        links = self._parse_links(response['Link'])
+
+        assert links['previous']['results'] == 'true'
+        assert links['next']['results'] == 'false'
+
+        print(links['previous']['cursor'])
+        response = self.client.get(links['previous']['href'], format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(group1.id)
+
+        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
+        links = self._parse_links(response['Link'])
+
+        assert links['previous']['results'] == 'false'
+        assert links['next']['results'] == 'true'
+
+        print(links['previous']['cursor'])
+        response = self.client.get(links['previous']['href'], format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
 
 class GroupUpdateTest(APITestCase):
