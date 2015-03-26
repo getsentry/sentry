@@ -5,10 +5,12 @@ import itertools
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.auth import access
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationStatus, Team
 )
@@ -67,9 +69,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             team_data['projects'] = [project_map[p.id] for p in project_list]
             teams_context.append(team_data)
 
+        feature_list = []
+        if features.has('organizations:sso', organization, actor=request.user):
+            feature_list.append('organizations:sso')
+
         context = serialize(organization, request.user)
         context['teams'] = teams_context
-
+        context['access'] = access.from_user(request.user, organization).scopes
+        context['features'] = feature_list
         return Response(context)
 
     @sudo_required
