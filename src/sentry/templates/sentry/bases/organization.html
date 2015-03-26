@@ -63,7 +63,7 @@
   {% endblock %}
 {% endblock %}
 
-{% block above_content %}
+{% block content_before %}
 
 {% if request.user|needs_access_group_migration:organization %}
   <div class="alert alert-block alert-info">
