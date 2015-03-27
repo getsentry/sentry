@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from mock import patch
 
 from sentry.models import Group, GroupBookmark, GroupSeen, GroupStatus
@@ -19,8 +20,9 @@ class GroupListTest(APITestCase):
 
     def test_simple_pagination(self):
         project = self.project
-        group1 = self.create_group(checksum='a' * 32)
-        group2 = self.create_group(checksum='b' * 32)
+        now = timezone.now()
+        group1 = self.create_group(checksum='a' * 32, last_seen=now)
+        group2 = self.create_group(checksum='b' * 32, last_seen=now)
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
