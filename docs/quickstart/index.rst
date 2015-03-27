@@ -186,6 +186,8 @@ That said, if you're running a small install you can probably get away with just
             0: {
                 'host': '127.0.0.1',
                 'port': 6379,
+                'timeout': 3,
+                #'password': 'redis auth password'
             }
         }
     }
