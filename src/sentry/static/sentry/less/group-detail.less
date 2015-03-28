@@ -413,6 +413,10 @@
     }
   }
 
+  .in-at {
+    opacity: .7;
+  }
+
   code {
     padding: 0;
     background: #fff;
@@ -506,6 +510,7 @@ ol.context {
     background-color: #f6f7f8;
     min-height: 22px;
     list-style-type: none;
+    border-radius: 3px;
 
     pre {
       color: @grayDark;
@@ -513,11 +518,11 @@ ol.context {
   }
 
   > li:first-child {
-      border-radius: 4px 4px 0 0;
+      border-radius: 3px 3px 0 0;
   }
 
-  > li:last-child {
-      border-radius: 0 0 4px 4px;
+  > li:last-of-type {
+      border-radius: 0 0 3px 3px;
   }
 
   li.closed {
@@ -533,6 +538,7 @@ ol.context {
       background-color: @blue;
       color: #fff;
       list-style-type: inherit;
+      border-radius: 0;
     }
   }
 }
