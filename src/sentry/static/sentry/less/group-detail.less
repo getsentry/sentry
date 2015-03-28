@@ -631,8 +631,13 @@ div.commands {
   margin-right: -20px;
   padding: 20px;
   border-top: 1px solid #f1f2f3;
-  .transition(all .8s ease-in-out);
+  .transition(all .5s ease-in-out);
   max-height: 5000px;
+
+  &:first-child {
+    margin-top: -20px;
+    border: 0;
+  }
 
   .clip-fade {
     display: none;
