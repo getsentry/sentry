@@ -6,48 +6,54 @@ var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
 var utils = require("../../../utils");
 
-var CollapsableBox = React.createClass({
+var ClippedBox = React.createClass({
   propTypes: {
     title: React.PropTypes.string.isRequired,
-    defaultCollapsed: React.PropTypes.bool
+    defaultClipped: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
-      defaultCollapsed: false
+      defaultClipped: false,
+      clipHeight: 200
     };
   },
 
   getInitialState() {
     return {
-      collapsed: this.props.defaultCollapsed
+      clipped: this.props.defaultClipped
     };
   },
 
-  toggle() {
+  componentDidMount() {
+    var renderedHeight = this.getDOMNode().offsetHeight;
+
+    if (renderedHeight > this.props.clipHeight ) {
+      this.setState({
+        clipped: true
+      });
+    }
+  },
+
+  reveal() {
     this.setState({
-      collapsed: !this.state.collapsed
+      clipped: false
     });
   },
 
   render() {
-    var className = "box-collapsible";
-    if (this.state.collapsed) {
-      className += " collapsed";
+    var className = "box-clippable";
+    if (this.state.clipped) {
+      className += " clipped";
     }
 
     return (
       <div className={className}>
-        <div className="section-toggle">
-          <div className="pull-right">
-            <a onClick={this.toggle}>
-              <span className="icon-arrow-up"></span>
-              <span className="icon-arrow-down"></span>
-            </a>
-          </div>
-          <h5>{this.props.title}</h5>
-        </div>
+        <h5>{this.props.title}</h5>
         {this.props.children}
+        <div className="clip-fade">
+          <a onClick={this.reveal} className="show-more btn btn-primary btn-xs">Show more</a>
+        </div>
       </div>
     );
   }
@@ -115,36 +121,36 @@ var RequestInterface = React.createClass({
           wrapTitle={false}
           title={title}>
         {data.query_string &&
-          <CollapsableBox title="Query String">
+          <ClippedBox title="Query String">
             <pre>{data.query_string}</pre>
-          </CollapsableBox>
+          </ClippedBox>
         }
         {data.fragment &&
-          <CollapsableBox title="Fragment">
+          <ClippedBox title="Fragment">
             <pre>{data.fragment}</pre>
-          </CollapsableBox>
+          </ClippedBox>
         }
         {data.data &&
-          <CollapsableBox title="Body">
+          <ClippedBox title="Body">
             <pre>{data.data}</pre>
-          </CollapsableBox>
+          </ClippedBox>
         }
         {data.cookies &&
-          <CollapsableBox title="Cookies" defaultCollapsed>
+          <ClippedBox title="Cookies" defaultCollapsed>
             <pre>{JSON.stringify(data.cookies, null, 2)}</pre>
-          </CollapsableBox>
+          </ClippedBox>
         }
         {!utils.objectIsEmpty(data.headers) &&
-          <CollapsableBox title="Headers">
+          <ClippedBox title="Headers">
             <DefinitionList data={data.headers} />
-          </CollapsableBox>
+          </ClippedBox>
         }
         {!utils.objectIsEmpty(data.env) &&
-          <CollapsableBox title="Environment" defaultCollapsed>
+          <ClippedBox title="Environment" defaultCollapsed>
             <dl className="vars">
               <DefinitionList data={data.env} />
             </dl>
-          </CollapsableBox>
+          </ClippedBox>
         }
       </GroupEventDataSection>
     );

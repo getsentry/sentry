@@ -625,51 +625,36 @@ div.commands {
 
 // Request
 
-.box-collapsible {
+.box-clippable {
+  position: relative;
   margin-left: -20px;
   margin-right: -20px;
-  padding-left: 20px;
-  padding: 15px 20px;
+  padding: 20px;
   border-top: 1px solid #f1f2f3;
+  .transition(all .8s ease-in-out);
+  max-height: 5000px;
 
-
-
-  .icon-arrow-up {
+  .clip-fade {
     display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 40px 0 0;
+    #gradient > .vertical(rgba(255,255,255, .15), rgba(255,255,255, 1));
+    text-align: center;
+    border-bottom: 15px solid #fff;
   }
 
-  .icon-arrow-down {
-    display: block;
-  }
-
-  .section-toggle {
-    margin: -20px;
-    padding: 20px;
-
-    .pull-right {
-      padding-top: 3px;
-    }
-
-    .clearfix;
-    cursor: pointer;
-
-    h5 {
-      margin: 0;
-    }
-  }
-
-  &.collapsed {
-    .icon-arrow-up {
+  &.clipped {
+    .clip-fade {
       display: block;
     }
-    .icon-arrow-down {
-      display: none;
-    }
 
-    .vars {
-      display: none;
-    }
+    max-height: 200px;
+    overflow: hidden;
   }
+
 }
 
 /* message details */
