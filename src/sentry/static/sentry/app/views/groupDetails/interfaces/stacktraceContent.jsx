@@ -74,7 +74,7 @@ var Frame = React.createClass({
         title.push(<a href={data.absPath} className="icon-share" key="share" />);
       }
       if (this.isDefined(data.function)) {
-        title.push(<span key="in"> in </span>);
+        title.push(<span className="in-at" key="in"> in </span>);
       }
     }
 
@@ -83,7 +83,7 @@ var Frame = React.createClass({
     }
 
     if (this.isDefined(data.lineNo)) {
-      title.push(<span key="at"> at line </span>);
+      title.push(<span className="in-at" key="at"> at line </span>);
       if (this.isDefined(data.colNo)) {
         title.push(<code key="line">{data.lineNo}:{data.colNo}</code>);
       } else {
