@@ -136,19 +136,24 @@ def build_cursor(results, key, limit=100, cursor=None):
     if is_prev and num_results:
         prev_value = long(key(results[0]))
 
-        if prev_value == value:
-            prev_offset = offset
+        if num_results > 2:
+            i = 1
+            while i < num_results and prev_value == long(key(results[i])):
+                i += 1
+            i -= 1
         else:
-            prev_offset = 0
+            i = 0
 
-        i = 0
-        while i < num_results and prev_value == long(key(results[i])):
-            i += 1
-        prev_offset += i
+        # if we iterated every result and the offset didn't change, we need
+        # to simply add the current offset to our total results (visible)
+        if prev_value == value:
+            prev_offset = offset + i
+        else:
+            prev_offset = i
     else:
         # previous cursor is easy if we're paginating forward
         prev_value = value
-        prev_offset = max(0, offset - 1)
+        prev_offset = offset
 
     # Truncate the list to our original result size now that we've determined the next page
     results = results[:limit]

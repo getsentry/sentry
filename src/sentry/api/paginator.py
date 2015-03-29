@@ -99,16 +99,15 @@ class Paginator(object):
 
         # this effectively gets us the before post, and the current (after) post
         # every time
-        offset = cursor.offset
         if cursor.is_prev:
-            stop = offset + limit + 2
+            stop = cursor.offset + limit + 2
         else:
-            stop = offset + limit + 1
+            stop = cursor.offset + limit + 1
 
-        results = list(queryset[offset:stop])
+        results = list(queryset[cursor.offset:stop])
 
         if cursor.is_prev:
-            results = results[::-1][1:]
+            results = results[1:][::-1]
 
         return build_cursor(
             results=results,
