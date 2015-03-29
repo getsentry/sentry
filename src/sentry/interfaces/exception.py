@@ -227,17 +227,17 @@ class Exception(Interface):
     def get_context(self, event, is_public=False, **kwargs):
         newest_first = is_newest_frame_first(event)
 
-        system_frames = False
-        app_frames = False
+        system_frames = 0
+        app_frames = 0
         for exc in self.values:
             if not exc.stacktrace:
                 continue
 
             for frame in exc.stacktrace.frames:
                 if frame.in_app:
-                    app_frames = True
+                    app_frames += 1
                 else:
-                    system_frames = True
+                    system_frames += 1
 
                 if (app_frames and system_frames):
                     break
@@ -276,7 +276,7 @@ class Exception(Interface):
 
         return {
             'newest_first': newest_first,
-            'system_frames': has_system_frames,
+            'system_frames': system_frames,
             'exceptions': exceptions,
             'stacktrace': self.get_stacktrace(event, newest_first=newest_first),
             'first_exc_omitted': first_exc_omitted,
