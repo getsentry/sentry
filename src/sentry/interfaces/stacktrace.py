@@ -469,9 +469,6 @@ class Stacktrace(Interface):
     def get_path(self):
         return 'sentry.interfaces.Stacktrace'
 
-    def has_app_frames(self):
-        return any(f.in_app is not None for f in self.frames)
-
     def compute_hashes(self, platform):
         system_hash = self.get_hash(system_frames=True)
         if not system_hash:
@@ -499,7 +496,8 @@ class Stacktrace(Interface):
         return output
 
     def get_context(self, event, is_public=False, newest_first=None,
-                    with_stacktrace=True, **kwargs):
+                    with_stacktrace=True, has_system_frames=None, **kwargs):
+
         system_frames = 0
         frames = []
         for frame in self.frames:
@@ -511,8 +509,11 @@ class Stacktrace(Interface):
         if len(frames) == system_frames:
             system_frames = 0
 
-        # if theres no system frames, pretend they're all part of the app
-        if not system_frames:
+        if has_system_frames is None:
+            has_system_frames = bool(system_frames)
+
+        # if there are no system frames, pretend they're all part of the app
+        if has_system_frames:
             for frame in frames:
                 frame['in_app'] = True
 
@@ -529,7 +530,7 @@ class Stacktrace(Interface):
         context = {
             'is_public': is_public,
             'newest_first': newest_first,
-            'system_frames': system_frames,
+            'system_frames': has_system_frames,
             'event': event,
             'frames': frames,
             'stack_id': 'stacktrace_1',

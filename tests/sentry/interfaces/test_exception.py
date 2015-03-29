@@ -82,6 +82,93 @@ ValueError: hello world
         result = self.interface.to_html(self.event)
         assert result
 
+    def test_context_with_mixed_frames(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+        }, {
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': False,
+            }]},
+        }]))
+
+        event = self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_context(event)
+        assert context['system_frames']
+        assert context['exceptions'][0]['stacktrace']['system_frames']
+        assert context['exceptions'][1]['stacktrace']['system_frames']
+
+    def test_context_with_only_system_frames(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': False,
+            }]},
+        }, {
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': False,
+            }]},
+        }]))
+
+        event = self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_context(event)
+        assert not context['system_frames']
+        assert not context['exceptions'][0]['stacktrace']['system_frames']
+        assert not context['exceptions'][1]['stacktrace']['system_frames']
+
+    def test_context_with_only_app_frames(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+        }, {
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+        }]))
+
+        event = self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_context(event)
+        assert not context['system_frames']
+        assert not context['exceptions'][0]['stacktrace']['system_frames']
+        assert not context['exceptions'][1]['stacktrace']['system_frames']
+
 
 class SingleExceptionTest(TestCase):
     @fixture

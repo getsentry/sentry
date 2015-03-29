@@ -226,10 +226,31 @@ class Exception(Interface):
 
     def get_context(self, event, is_public=False, **kwargs):
         newest_first = is_newest_frame_first(event)
+
+        system_frames = False
+        app_frames = False
+        for exc in self.values:
+            if not exc.stacktrace:
+                continue
+
+            for frame in exc.stacktrace.frames:
+                if frame.in_app:
+                    app_frames = True
+                else:
+                    system_frames = True
+
+                if (app_frames and system_frames):
+                    break
+
+        # if there is a mix of frame styles then we indicate that system frames
+        # are present and should be represented as a split
+        has_system_frames = app_frames and system_frames
+
         context_kwargs = {
             'event': event,
             'is_public': is_public,
             'newest_first': newest_first,
+            'has_system_frames': has_system_frames,
         }
 
         exceptions = []
@@ -255,7 +276,7 @@ class Exception(Interface):
 
         return {
             'newest_first': newest_first,
-            'system_frames': sum(e['stacktrace'].get('system_frames', 0) for e in exceptions),
+            'system_frames': has_system_frames,
             'exceptions': exceptions,
             'stacktrace': self.get_stacktrace(event, newest_first=newest_first),
             'first_exc_omitted': first_exc_omitted,
