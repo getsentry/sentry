@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch
@@ -21,20 +22,25 @@ class GroupListTest(APITestCase):
     def test_simple_pagination(self):
         project = self.project
         now = timezone.now()
-        group1 = self.create_group(checksum='a' * 32, last_seen=now)
-        group2 = self.create_group(checksum='b' * 32, last_seen=now)
+        group1 = self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(seconds=1),
+        )
+        group2 = self.create_group(
+            checksum='b' * 32,
+            last_seen=now,
+        )
 
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-project-group-index', kwargs={
             'organization_slug': self.project.organization.slug,
             'project_slug': self.project.slug,
         })
-        response = self.client.get(url + '?limit=1', format='json')
+        response = self.client.get(url + '?sort_by=date&limit=1', format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group1.id)
+        assert response.data[0]['id'] == str(group2.id)
 
-        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = self._parse_links(response['Link'])
 
         assert links['previous']['results'] == 'false'
@@ -44,9 +50,8 @@ class GroupListTest(APITestCase):
         response = self.client.get(links['next']['href'], format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group2.id)
+        assert response.data[0]['id'] == str(group1.id)
 
-        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = self._parse_links(response['Link'])
 
         assert links['previous']['results'] == 'true'
@@ -56,9 +61,8 @@ class GroupListTest(APITestCase):
         response = self.client.get(links['previous']['href'], format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(group1.id)
+        assert response.data[0]['id'] == str(group2.id)
 
-        # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = self._parse_links(response['Link'])
 
         assert links['previous']['results'] == 'false'
