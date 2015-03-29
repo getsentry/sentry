@@ -276,7 +276,7 @@ class Exception(Interface):
 
         return {
             'newest_first': newest_first,
-            'system_frames': system_frames,
+            'system_frames': system_frames if has_system_frames else 0,
             'exceptions': exceptions,
             'stacktrace': self.get_stacktrace(event, newest_first=newest_first),
             'first_exc_omitted': first_exc_omitted,

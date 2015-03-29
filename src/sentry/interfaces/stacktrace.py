@@ -506,14 +506,15 @@ class Stacktrace(Interface):
             if not frame.in_app:
                 system_frames += 1
 
-        if len(frames) == system_frames:
+        if has_system_frames is None:
+            if len(frames) == system_frames:
+                system_frames = 0
+            has_system_frames = bool(system_frames)
+        elif not has_system_frames:
             system_frames = 0
 
-        if has_system_frames is None:
-            has_system_frames = bool(system_frames)
-
         # if there are no system frames, pretend they're all part of the app
-        if has_system_frames:
+        if not has_system_frames:
             for frame in frames:
                 frame['in_app'] = True
 
@@ -530,7 +531,7 @@ class Stacktrace(Interface):
         context = {
             'is_public': is_public,
             'newest_first': newest_first,
-            'system_frames': has_system_frames,
+            'system_frames': system_frames,
             'event': event,
             'frames': frames,
             'stack_id': 'stacktrace_1',
