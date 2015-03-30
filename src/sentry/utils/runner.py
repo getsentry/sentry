@@ -356,6 +356,14 @@ def apply_legacy_settings(config):
         # Set `ALLOWED_HOSTS` to the catch-all so it works
         settings.ALLOWED_HOSTS = ['*']
 
+    if settings.TIME_ZONE != 'UTC':
+        # non-UTC timezones are not supported
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! TIME_ZONE should be set to UTC !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
+
     # Set ALLOWED_HOSTS if it's not already available
     if not settings.ALLOWED_HOSTS:
         from urlparse import urlparse
