@@ -89,6 +89,7 @@ def recover(request):
         if not password_hash.is_valid():
             password_hash.date_added = timezone.now()
             password_hash.set_hash()
+            password_hash.save()
 
         password_hash.send_recover_mail()
 
