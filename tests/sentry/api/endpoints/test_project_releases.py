@@ -31,7 +31,8 @@ class ProjectReleaseListTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-project-releases', kwargs={
-            'project_id': project1.id,
+            'organization_slug': project1.organization.slug,
+            'project_slug': project1.slug,
         })
         response = self.client.get(url, format='json')
 
@@ -49,10 +50,11 @@ class ProjectReleaseCreateTest(APITestCase):
         project = self.create_project(team=team, name='foo')
 
         url = reverse('sentry-api-0-project-releases', kwargs={
-            'project_id': project.id,
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
         })
         response = self.client.post(url, data={
-            'version': 'abcdef',
+            'version': '1.2.1',
         })
 
         assert response.status_code == 201, response.content
@@ -62,3 +64,22 @@ class ProjectReleaseCreateTest(APITestCase):
             project=project,
             version=response.data['version'],
         ).exists()
+
+    def test_duplicate(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team(owner=self.user)
+        project = self.create_project(team=team, name='foo')
+
+        Release.objects.create(version='1.2.1', project=project)
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+        })
+
+        assert response.status_code == 400, response.content

@@ -41,7 +41,7 @@ from sentry.utils.safe import safe_execute
 def register(request):
     from django.conf import settings
 
-    if not (settings.SENTRY_ALLOW_REGISTRATION or request.session.get('can_register')):
+    if not (features.has('auth:register') or request.session.get('can_register')):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = RegistrationForm(request.POST or None,
@@ -89,6 +89,7 @@ def recover(request):
         if not password_hash.is_valid():
             password_hash.date_added = timezone.now()
             password_hash.set_hash()
+            password_hash.save()
 
         password_hash.send_recover_mail()
 
@@ -189,7 +190,7 @@ def appearance_settings(request):
     form = AppearanceSettingsForm(request.user, request.POST or None, initial={
         'language': options.get('language') or request.LANGUAGE_CODE,
         'stacktrace_order': int(options.get('stacktrace_order', -1) or -1),
-        'timezone': options.get('timezone') or settings.TIME_ZONE,
+        'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
     })
     if form.is_valid():
         form.save()

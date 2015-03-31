@@ -116,6 +116,10 @@ class ProjectKey(Model):
     def dsn_public(self):
         return self.get_dsn(public=True)
 
+    def get_allowed_origins(self):
+        from sentry.utils.http import get_origins
+        return get_origins(self.project)
+
     def get_audit_log_data(self):
         return {
             'label': self.label,

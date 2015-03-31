@@ -3,6 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from sentry.db.models import FlexibleForeignKey
 
 
 class Migration(SchemaMigration):
@@ -17,8 +18,8 @@ class Migration(SchemaMigration):
         m2m_table_name = db.shorten_name('sentry_authprovider_default_teams')
         db.create_table(m2m_table_name, (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('authprovider', models.ForeignKey(orm['sentry.authprovider'], null=False)),
-            ('team', models.ForeignKey(orm['sentry.team'], null=False))
+            ('authprovider', FlexibleForeignKey(orm['sentry.authprovider'], null=False)),
+            ('team', FlexibleForeignKey(orm['sentry.team'], null=False))
         ))
         db.create_unique(m2m_table_name, ['authprovider_id', 'team_id'])
 
@@ -115,7 +116,7 @@ class Migration(SchemaMigration):
             'default_teams': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['sentry.Team']", 'symmetrical': 'False', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'last_sync': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'organization': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Organization']", 'unique': 'True'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']", 'unique': 'True'}),
             'provider': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'sync_time': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'})
         },
@@ -395,7 +396,7 @@ class Migration(SchemaMigration):
             'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'is_managed': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),

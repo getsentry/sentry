@@ -48,19 +48,24 @@ class EventManagerTest(TransactionTestCase):
         assert EventMapping.objects.filter(
             group=event.group, event_id=event_id).exists()
 
-    @patch('sentry.models.GroupManager.add_tags')
-    def test_tags_as_list(self, add_tags):
+    def test_tags_as_list(self):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
         data = manager.normalize()
 
         assert data['tags'] == [('foo', 'bar')]
 
-    @patch('sentry.models.GroupManager.add_tags')
-    def test_tags_as_dict(self, add_tags):
+    def test_tags_as_dict(self):
         manager = EventManager(self.make_event(tags={'foo': 'bar'}))
         data = manager.normalize()
 
         assert data['tags'] == [('foo', 'bar')]
+
+    def test_interface_is_relabeled(self):
+        manager = EventManager(self.make_event(user={'id': '1'}))
+        data = manager.normalize()
+
+        assert data['sentry.interfaces.User'] == {'id': '1'}
+        assert 'user' not in data
 
     def test_platform_is_saved(self):
         manager = EventManager(self.make_event(platform='python'))
@@ -223,11 +228,12 @@ class GetHashesFromEventTest(TestCase):
                     'url': 'http://example.com'
                 },
             },
+            platform='python',
             message='Foo bar',
         )
         checksums = get_hashes_for_event(event)
         assert len(checksums) == 1
         checksum = checksums[0]
-        stack_comp_hash.assert_called_once_with()
+        stack_comp_hash.assert_called_once_with('python')
         assert not http_comp_hash.called
         assert checksum == '3858f62230ac3c915f300c664312c63f'

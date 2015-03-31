@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 
 from sentry.app import tsdb
 from sentry.utils.cursors import Cursor
+from sentry.utils.http import is_valid_origin
 
 from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
 from .paginator import Paginator
@@ -73,12 +74,15 @@ class Endpoint(APIView):
     def convert_args(self, request, *args, **kwargs):
         return (args, kwargs)
 
-    def handle_exception(self, exc):
+    def handle_exception(self, request, exc):
         try:
             return super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
-            logging.exception(unicode(exc))
-            return Response({'detail': 'Internal Error'}, status=500)
+            logging.exception(unicode(exc), extra={'request': request})
+            context = {'detail': 'Internal Error'}
+            if hasattr(request, 'sentry'):
+                context['errorId'] = request.sentry['id']
+            return Response(context, status=500)
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
@@ -109,10 +113,34 @@ class Endpoint(APIView):
             response = handler(request, *args, **kwargs)
 
         except Exception as exc:
-            response = self.handle_exception(exc)
+            response = self.handle_exception(request, exc)
 
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super(Endpoint, self).finalize_response(
+            request, response, *args, **kwargs
+        )
+
+        self.add_cors_headers(request, response)
+
+        return response
+
+    def add_cors_headers(self, request, response):
+        if not request.auth:
+            return
+
+        origin = request.META.get('HTTP_ORIGIN')
+        if not origin:
+            return
+
+        allowed_origins = request.auth.get_allowed_origins()
+        if is_valid_origin(origin, allowed=allowed_origins):
+            response['Access-Control-Allow-Origin'] = origin
+            response['Access-Control-Allow-Methods'] = ', '.join(self.http_method_names)
+
+        return
 
     def paginate(self, request, on_results=None, paginator_cls=Paginator,
                  **kwargs):

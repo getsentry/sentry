@@ -6,7 +6,7 @@
 {% load sentry_stream_filters %}
 
 {% block sidebar %}
-    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-project-stats' project.id %}" data-days="1">
+    <div id="chart" class="chart" data-api-url="{% url 'sentry-api-0-project-stats' project.organization.slug project.slug %}" data-days="1">
         <div class="sparkline">
             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
             <span class="loading">{% trans "Loading historical data..." %}</span>

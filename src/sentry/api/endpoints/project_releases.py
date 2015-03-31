@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -10,7 +11,7 @@ from sentry.models import Release
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.SlugField(max_length=200, required=True)
+    version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=200, required=True)
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
@@ -53,10 +54,16 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            release = Release.objects.create(
-                version=result['version'],
-                project=project,
-            )
+            with transaction.atomic():
+                try:
+                    release = Release.objects.create(
+                        version=result['version'],
+                        project=project,
+                    )
+                except IntegrityError:
+                    return Response({
+                        'detail': 'Release with version already exists'
+                    }, status=400)
 
             return Response(serialize(release, request.user), status=201)
         return Response(serializer.errors, status=400)

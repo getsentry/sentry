@@ -17,7 +17,8 @@ class ReleaseDetailsTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-release-details', kwargs={
-            'project_id': project.id,
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
             'version': release.version,
         })
         response = self.client.get(url)
@@ -47,7 +48,8 @@ class ReleaseDeleteTest(APITestCase):
         )
 
         url = reverse('sentry-api-0-release-details', kwargs={
-            'project_id': project.id,
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
             'version': release.version,
         })
         response = self.client.delete(url)

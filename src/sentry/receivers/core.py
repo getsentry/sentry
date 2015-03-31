@@ -176,10 +176,15 @@ def record_project_tag_count(filters, created, **kwargs):
     if not created:
         return
 
+    # TODO(dcramer): remove in 7.6.x
+    project_id = filters.get('project_id')
+    if not project_id:
+        project_id = filters['project'].id
+
     app.buffer.incr(TagKey, {
         'values_seen': 1,
     }, {
-        'project': filters['project'],
+        'project_id': project_id,
         'key': filters['key'],
     })
 
@@ -191,11 +196,20 @@ def record_group_tag_count(filters, created, **kwargs):
     if not created:
         return
 
+    # TODO(dcramer): remove in 7.6.x
+    project_id = filters.get('project_id')
+    if not project_id:
+        project_id = filters['project'].id
+
+    group_id = filters.get('group_id')
+    if not group_id:
+        group_id = filters['group'].id
+
     app.buffer.incr(GroupTagKey, {
         'values_seen': 1,
     }, {
-        'project': filters['project'],
-        'group': filters['group'],
+        'project_id': project_id,
+        'group_id': group_id,
         'key': filters['key'],
     })
 

@@ -10,7 +10,10 @@ Raven_Autoloader::register();</pre>
 
 <p>{% trans "Create an instance of the client:" %}</p>
 
-<pre>$client = new Raven_Client('{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}');</pre>
+<pre>$client = new Raven_Client('{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}', array(
+    // pass along the version of your application
+	// 'release' => '1.0.0',
+));</pre>
 
 <p>{% trans "Now call out to the raven client to capture events:" %}</p>
 

@@ -74,6 +74,16 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Apply server-side data scrubbing to prevent things like passwords and credit cards from being stored.'),
         required=False
     )
+    sensitive_fields = forms.CharField(
+        label=_('Additional sensitive fields'),
+        help_text=_('Additional field names to match against when scrubbing data. Separate multiple entries with a newline.'),
+        widget=forms.Textarea(attrs={
+            'placeholder': mark_safe(_('e.g. email')),
+            'class': 'span8',
+            'rows': '3',
+        }),
+        required=False,
+    )
     scrub_ip_address = forms.BooleanField(
         label=_('Don\'t store IP Addresses'),
         help_text=_('Prevent IP addresses from being stored for new events.'),
@@ -114,6 +124,13 @@ class EditProjectForm(forms.ModelForm):
             choices.insert(0, (default.id, self.get_team_label(default)))
 
         return choices
+
+    def clean_sensitive_fields(self):
+        value = self.cleaned_data.get('sensitive_fields')
+        if not value:
+            return
+
+        return filter(bool, (v.lower().strip() for v in value.split('\n')))
 
     def clean_team(self):
         value = self.cleaned_data.get('team')
@@ -196,6 +213,7 @@ class ProjectSettingsView(ProjectView):
                 'token': security_token,
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
+                'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
             },
         )
@@ -205,7 +223,8 @@ class ProjectSettingsView(ProjectView):
 
         if form.is_valid():
             project = form.save()
-            for opt in ('origins', 'resolve_age', 'scrub_data', 'scrub_ip_address', 'token'):
+            for opt in ('origins', 'resolve_age', 'scrub_data', 'sensitive_fields',
+                        'scrub_ip_address', 'token'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))

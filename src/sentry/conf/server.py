@@ -82,13 +82,7 @@ if 'DATABASE_URL' in os.environ:
 
 EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
-# Local time zone for this installation. Choices can be found here:
-# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
-# although not all choices may be available on all operating systems.
-# On Unix systems, a value of None will cause Django to use the same
-# timezone as the operating system.
-# If running in a Windows environment this must be set to the same as your
-# system time zone.
+# This should always be UTC.
 TIME_ZONE = 'UTC'
 
 # Language code for this installation. All choices can be found here:
@@ -548,6 +542,10 @@ SENTRY_FEATURES = {
     'teams:create': True,
 }
 
+# Default time zone for localization in the UI.
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+SENTRY_DEFAULT_TIME_ZONE = 'UTC'
+
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
 )
@@ -579,6 +577,7 @@ SENTRY_SAMPLE_DATA = True
 
 # The following values control the sampling rates
 SENTRY_SAMPLE_RATES = (
+    # up until N events, store 1 in M
     (50, 1),
     (1000, 2),
     (10000, 10),
