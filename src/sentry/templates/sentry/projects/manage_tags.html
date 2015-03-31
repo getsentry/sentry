@@ -16,17 +16,17 @@
       {% csrf_token %}
       {{ form|as_crispy_errors }}
 
-      <table class="table table-striped tag-list">
+      <table class="table tag-list">
         <thead>
           <tr>
-            <th>&nbsp;</th>
-            <th style="width:80px;text-align:center">
+            <th>Tags</th>
+            <th style="width:120px;text-align:center">
               Show in<br />
               <abbr class="tip" title="{% blocktrans %}Filters allow you to do limited searching on the stream view based on a tag's value. They are selectable via the sidebar on the stream.{% endblocktrans %}">
                 Filters
               </abbr>
             </th>
-            <th style="width:80px;text-align:center">
+            <th style="width:120px;text-align:center">
               Show in<br />
               <abbr class="tip" title="{% blocktrans %}Annotations display the total number of unique values that have been seen for an event. They are rendered on the stream with each individual event.{% endblocktrans %}">
                 Annotations
@@ -38,7 +38,7 @@
         {% for tag in tag_list %}
           <tr data-tagkey="{{ tag.key }}">
             <td>
-              <h4>{{ tag.get_label }}</h4>
+              <h5 style="margin-bottom: 10px;">{{ tag.get_label }}</h5>
               <small>{{ tag.values_seen|small_count }} unique value(s)</small>
             </td>
             <td style="text-align:center">
@@ -50,8 +50,8 @@
                      {% if tag.key in enabled_annotations %} checked="checked"{% endif %} />
             </td>
             <td>
-              <a href="javascript:void(0)"
-                 onclick="removeTagKey({{ tag.key|to_json }})"><span class="icon icon-remove"></span></a>
+              <a class="btn btn-sm btn-default" href="javascript:void(0)"
+                 onclick="removeTagKey({{ tag.key|to_json }})"><span class="icon icon-trash"></span></a>
             </td>
           </tr>
         {% endfor %}
