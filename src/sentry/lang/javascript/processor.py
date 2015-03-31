@@ -535,7 +535,7 @@ class SourceProcessor(object):
             cache.add(filename, result.body.splitlines())
             cache.alias(result.url, filename)
 
-            sourcemap_url = discover_sourcemap(result)
+            sourcemap_url = self.discover_sourcemap(result)
             if not sourcemap_url:
                 continue
 
@@ -552,7 +552,7 @@ class SourceProcessor(object):
 
             # pull down sourcemap
             try:
-                sourcemap_idx = fetch_sourcemap(
+                sourcemap_idx = self.fetch_sourcemap(
                     sourcemap_url,
                     project=project,
                     release=release,
@@ -572,3 +572,9 @@ class SourceProcessor(object):
                         done_file_list.add(next_filename)
                     else:
                         pending_file_list.add(next_filename)
+
+    def discover_sourcemap(self, result):
+        return discover_sourcemap(result)
+
+    def fetch_sourcemap(self, url, project=None, release=None):
+        return fetch_sourcemap(url, project, release)
