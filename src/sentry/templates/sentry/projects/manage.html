@@ -9,6 +9,17 @@
 
 {% block controller %}ManageProjectCtrl{% endblock %}
 
+{% block header_action %}
+  <ul class="nav nav-tabs nav-tabs-mini">
+    <li>
+      <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">Stream</a>
+    </li>
+    <li class="active">
+      <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">Settings</a>
+    </li>
+  </ul>
+{% endblock %}
+
 {% block content %}
   <h3>{% trans "Project Settings" %}</h3>
   <form class="form-stacked" action="." method="post">
