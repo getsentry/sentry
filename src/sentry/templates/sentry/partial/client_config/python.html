@@ -5,9 +5,20 @@
 {% block inner %}
 	<p>{% trans "Create an instance of the client:" %}</p>
 
-	<pre>from raven import Client
+	<pre>import raven
 
-client = Client('{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}')</pre>
+client = raven.Client(
+    dsn='{% if dsn %}{{ dsn }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}',
+
+    # inform the client which parts of code are yours
+    # include_paths=['my.app']
+    # include_paths=[__name__.split('.', 1)[0]],
+
+    # pass along the version of your application
+    # release='1.0.0'
+    # release=raven.fetch_package_version('my-app')
+    # release=raven.fetch_git_sha(os.path.dirname(__file__)),
+)</pre>
 
 	<p>{% trans "Now call out to the raven client to capture events:" %}</p>
 

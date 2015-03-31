@@ -13,6 +13,15 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_project
 
 
+def clean_newline_inputs(value):
+    result = []
+    for v in value.split('\n'):
+        v = v.lower().strip()
+        if v:
+            result.append(v)
+    return result
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
@@ -64,13 +73,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             options = request.DATA.get('options', {})
             if 'sentry:origins' in options:
-                project.update_option('sentry:origins', options['sentry:origins'].split('\n'))
+                project.update_option(
+                    'sentry:origins',
+                    clean_newline_inputs(options['sentry:origins'])
+                )
             if 'sentry:resolve_age' in options:
                 project.update_option('sentry:resolve_age', int(options['sentry:resolve_age']))
             if 'sentry:scrub_data' in options:
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
             if 'sentry:sensitive_fields' in options:
-                project.update_option('sentry:sensitive_fields', options['sentry:sensitive_fields'])
+                project.update_option(
+                    'sentry:sensitive_fields',
+                    [s.strip().lower() for s in options['sentry:sensitive_fields']]
+                )
 
             AuditLogEntry.objects.create(
                 organization=project.organization,

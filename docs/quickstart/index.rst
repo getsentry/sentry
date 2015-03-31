@@ -186,6 +186,8 @@ That said, if you're running a small install you can probably get away with just
             0: {
                 'host': '127.0.0.1',
                 'port': 6379,
+                'timeout': 3,
+                #'password': 'redis auth password'
             }
         }
     }
@@ -372,7 +374,7 @@ One of the most important things you're going to need to be aware of is storage 
 .. code-block:: bash
 
   $ crontab -e
-  * 3 * * * sentry cleanup --days=30
+  0 3 * * * sentry cleanup --days=30
 
 
 Additional Utilities

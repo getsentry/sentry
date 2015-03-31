@@ -41,7 +41,7 @@ CLEAN_MODULE_RE = re.compile(r"""^
     [a-f0-9]{32}|      # md5
     [a-f0-9]{40}       # sha1
 )/)+|
-(?:-[a-f0-9]{32,40}$)  # Ending in a commitish
+(?:[-\.][a-f0-9]{32,40}$)  # Ending in a commitish
 """, re.X | re.I)
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
@@ -49,7 +49,7 @@ MAX_RESOURCE_FETCHES = 100
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
-ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to previous failures.'
+ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to previous failures:\n{reason}.'
 ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
 ERR_HTTP_CODE = 'Received HTTP {status_code} response'
 ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
@@ -115,6 +115,9 @@ def trim_line(line, column=0):
 
 
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
+    if not source:
+        return [], '', []
+
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
     if lineno > 0:
@@ -175,11 +178,15 @@ def discover_sourcemap(result):
 
 def fetch_release_file(filename, release):
     cache_key = 'release:%s:%s' % (
-        release.version,
+        release.id,
         hashlib.sha1(filename.encode('utf-8')).hexdigest(),
     )
+    logger.debug('Checking cache for release artfiact %r (release_id=%s)',
+                 filename, release.id)
     result = cache.get(cache_key)
     if result is None:
+        logger.debug('Checking database for release artifact %r (release_id=%s)',
+                     filename, release.id)
         ident = ReleaseFile.get_ident(filename)
         try:
             releasefile = ReleaseFile.objects.filter(
@@ -187,11 +194,15 @@ def fetch_release_file(filename, release):
                 ident=ident,
             ).select_related('file').get()
         except ReleaseFile.DoesNotExist:
+            logger.debug('Release artifact %r not found in database (release_id=%s)',
+                         filename, release.id)
             return None
 
+        logger.debug('Found release artifact %r (id=%s, release_id=%s)',
+                     filename, releasefile.id, release.id)
         with releasefile.file.getfile() as fp:
             body = fp.read()
-        result = (releasefile.file.headers, body)
+        result = (releasefile.file.headers, body, 200)
         cache.set(cache_key, result, 60)
 
     return result
@@ -203,7 +214,7 @@ def fetch_url(url, project=None, release=None):
 
     Attempts to fetch from the cache.
     """
-    cache_key = 'source:%s' % (
+    cache_key = 'source:cache:v2:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
 
     if release:
@@ -212,15 +223,20 @@ def fetch_url(url, project=None, release=None):
         result = None
 
     if result is None:
+        logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
 
     if result is None:
         # lock down domains that are problematic
         domain = urlparse(url).netloc
-        domain_key = 'source:%s' % (hashlib.md5(domain.encode('utf-8')).hexdigest(),)
+        domain_key = 'source:blacklist:%s' % (
+            hashlib.md5(domain.encode('utf-8')).hexdigest(),
+        )
         domain_result = cache.get(domain_key)
         if domain_result:
-            raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED)
+            raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED.format(
+                reason=domain_result,
+            ))
 
         headers = {}
         if project and is_valid_origin(url, project=project):
@@ -228,8 +244,9 @@ def fetch_url(url, project=None, release=None):
             if token:
                 headers['X-Sentry-Token'] = token
 
-        http_session = http.build_session()
+        logger.debug('Fetching %r from the internet', url)
 
+        http_session = http.build_session()
         try:
             response = http_session.get(
                 url,
@@ -239,31 +256,39 @@ def fetch_url(url, project=None, release=None):
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
         except Exception as exc:
-            cache.set(domain_key, 1, 300)
+            logger.debug('Unable to fetch %r', url, exc_info=True)
+            if isinstance(exc, SuspiciousOperation):
+                error = unicode(exc)
+            elif isinstance(exc, RequestException):
+                error = ERR_GENERIC_FETCH_FAILURE.format(
+                    type=type(exc),
+                )
+            else:
+                logger.exception(unicode(exc))
+                error = ERR_UNKNOWN_INTERNAL_ERROR
+
+            # TODO(dcramer): we want to be less aggressive on disabling domains
+            cache.set(domain_key, error or '', 300)
             logger.warning('Disabling sources to %s for %ss', domain, 300,
                            exc_info=True)
-            if isinstance(exc, SuspiciousOperation):
-                raise CannotFetchSource(unicode(exc))
-            elif isinstance(exc, RequestException):
-                raise CannotFetchSource(ERR_GENERIC_FETCH_FAILURE.format(
-                    type=type(exc),
-                ))
+            raise CannotFetchSource(error)
 
-            logger.exception(unicode(exc))
-            raise CannotFetchSource(ERR_UNKNOWN_INTERNAL_ERROR)
-
-        if response.status_code != 200:
-            cache.set(domain_key, 1, 300)
-            logger.warning('Disabling sources to %s for %ss (due to HTTP %s)',
-                          domain, 300, response.status_code)
-            raise CannotFetchSource(ERR_HTTP_CODE.format(
-                status_code=response.status_code,
-            ))
-
-        result = (dict(response.headers), response.content)
+        result = (
+            {k.lower(): v for k, v in response.headers.items()},
+            response.content,
+            response.status_code,
+        )
         cache.set(cache_key, result, 60)
 
-    return UrlResult(url, *result)
+    if result[2] != 200:
+        logger.debug('HTTP %s when fetching %r', result[2], url,
+                     exc_info=True)
+        error = ERR_HTTP_CODE.format(
+            status_code=result[2],
+        )
+        raise CannotFetchSource(error)
+
+    return UrlResult(url, result[0], result[1])
 
 
 def fetch_sourcemap(url, project=None, release=None):
@@ -349,6 +374,18 @@ class SourceProcessor(object):
             ])
         return frames
 
+    def get_release(self, data):
+        if not data.get('release'):
+            return
+
+        try:
+            return Release.objects.get(
+                project=data['project'],
+                version=data['release'],
+            )
+        except Release.DoesNotExist:
+            return
+
     def process(self, data):
         stacktraces = self.get_stacktraces(data)
         if not stacktraces:
@@ -364,16 +401,7 @@ class SourceProcessor(object):
             id=data['project'],
         )
 
-        if data.get('release'):
-            try:
-                release = Release.objects.get(
-                    project=project.id,
-                    version=data['release'],
-                )
-            except Release.DoesNotExist:
-                release = None
-        else:
-            release = None
+        release = self.get_release(data)
 
         # all of these methods assume mutation on the original
         # objects rather than re-creation
@@ -426,9 +454,10 @@ class SourceProcessor(object):
                 last_state = state
                 state = find_source(sourcemap_idx, frame.lineno, frame.colno)
                 abs_path = urljoin(sourcemap_url, state.src)
+
                 logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                uncompressed_source = cache.get(abs_path)
-                if not uncompressed_source:
+                source = cache.get(abs_path)
+                if not source:
                     frame.data = {
                         'sourcemap': sourcemap_url,
                     }
@@ -439,30 +468,30 @@ class SourceProcessor(object):
                         frame.errors.append(ERR_MISSING_SOURCE.format(
                             filename=abs_path.encode('utf-8'),
                         ))
-                else:
-                    source = uncompressed_source
-                    # Store original data in annotation
-                    frame.data = {
-                        'orig_lineno': frame.lineno,
-                        'orig_colno': frame.colno,
-                        'orig_function': frame.function,
-                        'orig_abs_path': frame.abs_path,
-                        'orig_filename': frame.filename,
-                        'sourcemap': sourcemap_url,
-                    }
 
-                    # SourceMap's return zero-indexed lineno's
-                    frame.lineno = state.src_line + 1
-                    frame.colno = state.src_col
-                    # The offending function is always the previous function in the stack
-                    # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                    if last_state:
-                        frame.function = last_state.name or frame.function
-                    else:
-                        frame.function = state.name or frame.function
-                    frame.abs_path = abs_path
-                    frame.filename = state.src
-                    frame.module = generate_module(state.src)
+                # Store original data in annotation
+                frame.data = {
+                    'orig_lineno': frame.lineno,
+                    'orig_colno': frame.colno,
+                    'orig_function': frame.function,
+                    'orig_abs_path': frame.abs_path,
+                    'orig_filename': frame.filename,
+                    'sourcemap': sourcemap_url,
+                }
+
+                # SourceMap's return zero-indexed lineno's
+                frame.lineno = state.src_line + 1
+                frame.colno = state.src_col
+                # The offending function is always the previous function in the stack
+                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                if last_state:
+                    frame.function = last_state.name or frame.function
+                else:
+                    frame.function = state.name or frame.function
+                frame.abs_path = abs_path
+                frame.filename = state.src
+                frame.module = generate_module(state.src)
+
             elif sourcemap_url:
                 frame.data = {
                     'sourcemap': sourcemap_url,

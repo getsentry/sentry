@@ -160,7 +160,7 @@ For example, with an included Exception event, a basic JSON body might resemble 
                 "ios_version": "4.0"
             },
             "exception": [{
-                "type": "SyntaxError":
+                "type": "SyntaxError",
                 "value": "Wattttt!",
                 "module": "__builtins__"
             }]

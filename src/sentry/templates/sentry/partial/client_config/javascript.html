@@ -14,6 +14,9 @@
 
 <pre>&lt;script&gt;
 Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong class="dsn">SENTRY_DSN</strong>{% endif %}', {
+	// pass along the version of your application
+	// release: '1.0.0',
+
     // we highly recommend restricting exceptions to a domain in order to filter out clutter
     whitelistUrls: ['example.com/scripts/']
 }).install();

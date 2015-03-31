@@ -20,7 +20,7 @@ USE_GEVENT = os.environ.get('USE_GEVENT')
 KEY_LENGTH = 40
 
 CONFIG_TEMPLATE = """
-# This file is just Python, with a touch of Django which means you
+# This file is just Python, with a touch of Django which means
 # you can inherit and tweak settings to your hearts content.
 from sentry.conf.server import *
 
@@ -355,6 +355,14 @@ def apply_legacy_settings(config):
         print('')
         # Set `ALLOWED_HOSTS` to the catch-all so it works
         settings.ALLOWED_HOSTS = ['*']
+
+    if settings.TIME_ZONE != 'UTC':
+        # non-UTC timezones are not supported
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! TIME_ZONE should be set to UTC !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
 
     # Set ALLOWED_HOSTS if it's not already available
     if not settings.ALLOWED_HOSTS:

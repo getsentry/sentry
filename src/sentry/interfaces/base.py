@@ -65,6 +65,9 @@ class Interface(object):
     def to_python(cls, data):
         return cls(data)
 
+    def get_api_context(self):
+        return self.to_json()
+
     def to_json(self):
         # eliminate empty values for serialization to compress the keyspace
         # and save (seriously) ridiculous amounts of bytes
@@ -84,7 +87,7 @@ class Interface(object):
     def get_hash(self):
         return []
 
-    def compute_hashes(self):
+    def compute_hashes(self, platform):
         result = self.get_hash()
         if not result:
             return []

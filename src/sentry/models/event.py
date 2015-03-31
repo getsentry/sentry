@@ -87,15 +87,15 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        http_data = self.data.get('sentry.interfaces.Http')
-        if http_data and 'env' in http_data:
-            value = http_data['env'].get('REMOTE_ADDR')
-            if value:
-                return value
-
         user_data = self.data.get('sentry.interfaces.User')
         if user_data:
             value = user_data.get('ip_address')
+            if value:
+                return value
+
+        http_data = self.data.get('sentry.interfaces.Http')
+        if http_data and 'env' in http_data:
+            value = http_data['env'].get('REMOTE_ADDR')
             if value:
                 return value
 
@@ -174,12 +174,15 @@ class Event(Model):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
         data['id'] = self.event_id
+        data['project'] = self.project_id
+        data['release'] = self.get_tag('sentry:release')
+        data['platform'] = self.platform
         data['culprit'] = self.group.culprit
         data['message'] = self.message
         data['checksum'] = self.checksum
-        data['project'] = self.project.slug
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
+        data['tags'] = self.get_tags()
         for k, v in sorted(self.data.iteritems()):
             data[k] = v
         return data

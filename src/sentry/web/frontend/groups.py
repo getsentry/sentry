@@ -141,7 +141,7 @@ def render_with_group_context(group, template, context, request=None,
         'group': group,
     })
 
-    if request:
+    if request and request.user.is_authenticated():
         context['ACCESS'] = access.from_user(
             user=request.user,
             organization=group.organization,
@@ -220,6 +220,10 @@ def dashboard(request, organization, team):
         'organization': team.organization,
         'team': team,
         'project_list': project_list,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 
@@ -235,6 +239,10 @@ def wall_display(request, organization, team):
         'team': team,
         'organization': team.organization,
         'project_list': project_list,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 
@@ -293,6 +301,10 @@ def group_list(request, organization, project):
         'cursorless_query_string': cursorless_query_string,
         'sort_label': sort_label,
         'SORT_OPTIONS': SORT_OPTIONS,
+        'ACCESS': access.from_user(
+            user=request.user,
+            organization=organization,
+        ).to_django_context(),
     }, request)
 
 
