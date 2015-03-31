@@ -139,7 +139,6 @@
               {% if project %}
               <li>
                 <a class="project-name" href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
-                <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}"><span class="icon-settings"></span></a>
               </li>
               {% endif %}
               {% else %}
