@@ -16,9 +16,13 @@
   <li>{{ platform_title }}</li>
 {% endblock %}
 
-{% block main %}
-  <h3>{{ platform_title }}</h3>
+{% block content_before %}
+<div class="page-header">
+  <h2>{{ platform_title }}</h2>
+</div>
+{% endblock%}
 
+{% block main %}
   {{ template }}
 
   <div class="well">
