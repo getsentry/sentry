@@ -20,8 +20,13 @@
   <li>{{ page.title }}</li>
 {% endblock%}
 
-{% block main %}
+{% block content_before %}
+  <div class="page-header">
     <h3>{{ page.title }}</h3>
+  </div>
+{% endblock %}
 
+
+{% block main %}
     {{ page.content|markdown }}
 {% endblock %}
