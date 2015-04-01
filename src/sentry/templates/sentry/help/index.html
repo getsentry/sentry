@@ -6,6 +6,20 @@
 
 {% block wrapperclass %}docs{% endblock %}
 
+{% block scripts_bottom %}
+  <script>
+    (function(){
+      if($("#toc").length) {
+        var toc = $("#toc");
+
+        $(".docs .main h4").each(function(i) {
+          $(toc).append('<li><a href="#' + $(this).attr("id") +'">' + $(this).text() +'</a></li>');
+        })
+      }
+    })();
+  </script>
+{% endblock %}
+
 {% block breadcrumb_inner %}
   <li><a href="{% url 'sentry-help' %}">Docs</a></li>
 {% endblock %}
@@ -20,12 +34,7 @@
     <div class="row">
       <div class="col-md-3 sidebar">
         {% block sidebar %}
-        <ul>
-          <li><a href="#">Membership</a></li>
-          <li><a href="#">Billing and Quotas</a></li>
-          <li><a href="#">Stats</a></li>
-          <li><a href="#">Audit Log</a></li>
-        </ul>
+        <ul id="toc"></ul>
         {% endblock %}
       </div>
       <div class="col-md-9 main">
