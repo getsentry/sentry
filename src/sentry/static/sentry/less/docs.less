@@ -1,12 +1,6 @@
 .docs {
   background: #fff !important;
 
-  .app {
-    .content {
-      max-width: 1000px !important;
-    }
-  }
-
   header {
 
     a {
@@ -36,9 +30,94 @@
     }
   }
 
+  .select-project {
+    position: relative;
+    z-index: 150;
+    font-size: 16px;
+
+    .dropdown-menu {
+      color: #000;
+      left: auto;
+      right: -6px;
+      width: 500px;
+      overflow: hidden;
+      padding: 0;
+      max-height: 400px;
+      overflow: auto;
+
+      h6 {
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+
+      ul {
+        margin: 0;
+      }
+
+      .org {
+        h5 {
+          font-size: 16px;
+          border-top: 1px solid #f1f2f3;
+          background: #fafafa;
+          margin: 0;
+          padding: 6px 15px;
+        }
+      }
+
+      .team {
+        padding: 10px 15px 0;
+        border-top: 1px solid #f1f2f3;
+      }
+
+      .projects {
+        .clearfix();
+        box-sizing: border-box;
+
+        li {
+          float: left;
+          margin: 0 0 8px;
+          box-sizing: border-box;
+          width: 33.33%;
+          padding-right: 14px;
+          position: relative;
+
+          &.active {
+            a {
+              background: transparent;
+              position: relative;
+              z-index: 2;
+              color: @gray;
+            }
+
+            &:after {
+              display: block;
+              content: "";
+              position: absolute;
+              top: -2px;
+              left: -6px;
+              bottom: -2px;
+              right: 10px;
+              background: #f1f2f3;
+              z-index: 1;
+              border-radius: 3px;
+            }
+          }
+
+          a {
+            display: block;
+            font-weight: normal;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
+
   .page-header {
     margin: 0;
-    padding: 10px 0;
+    padding: 5px 0 15px;
   }
 
   .content {
@@ -146,9 +225,14 @@
         letter-spacing: -0.25px;
       }
 
+      pre {
+        padding: 15px;
+      }
+
       pre, code {
         background: lighten(#f1f2f3, 3);
         border: 1px solid #e1e4e5;
+        font-size: 15px;
       }
 
       .github {

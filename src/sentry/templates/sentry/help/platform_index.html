@@ -16,32 +16,30 @@
   <li><a href="{% url 'sentry-help-platform-list' %}">{% trans "Clients" %}</a></li>
 {% endblock %}
 
-{% block post_breadcrumbs %}
+{% block header_action %}
   {% if org_results %}
-    <div class="select-project well important" style="margin-bottom: 30px;">
-      {% if selected_project %}
-        You're viewing configuration for <strong>{{ selected_project.name }}</strong>.
-      {% else %}
+    <div class="select-project">
+      {% if not selected_project %}
         Select a project and we'll help you fill in configuration.
       {% endif %}
-      <div class="dropdown pull-right">
+      <div class="dropdown pull-right anchor-right">
         <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
         {% if selected_project %}
-          <span class="project-label">Project:</span> {{ selected_project.name }} <span class="caret"></span>
+          <span class="project-label">Project:</span> <strong>{{ selected_project.name }}</strong> <span class="caret"></span>
         {% else %}
           <span class="project-label">Select Project <span class="caret"></span>
         {% endif %}
         </a>
         <div class="dropdown-menu">
-          <ul class="orgs">
+          <ul class="orgs list-unstyled">
           {% for org, team_results in org_results %}
             <li class="org">
               <h5>{{ org.name }}</h5>
-              <ul class="teams unstyled">
+              <ul class="teams list-unstyled">
               {% for team, project_results in team_results %}
                 <li class="team">
                   <h6>{{ team.name }}</h6>
-                  <ul class="projects unstyled">
+                  <ul class="projects list-unstyled">
                   {% for project in project_results %}
                     <li{% if project == selected_project %} class="active"{% endif %}>
                       <a href="?pid={{ project.id }}">{{ project.name }}</a>
