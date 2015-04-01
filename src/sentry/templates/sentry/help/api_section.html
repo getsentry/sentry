@@ -30,7 +30,7 @@
       {% for method in resource.methods %}
         <section class="api-resource" id="{{ method.anchor }}">
           <div class="api-path">
-            <h4><a href="#{{ method.anchor }}">{{ method.title }}</a></h4>
+            <h4 id="{{ method.anchor }}"><a href="#{{ method.anchor }}">{{ method.title }}</a></h4>
           </div>
           {% if method.doc %}
             {{ method.doc|markdown }}
