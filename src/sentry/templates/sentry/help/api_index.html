@@ -17,7 +17,7 @@
 
 {% block content_before %}
 <div class="page-header">
-  <h2>Web API</h2>
+  <h2>API Overiew</h2>
 </div>
 {% endblock%}
 
@@ -33,11 +33,11 @@
       <li><a href="#pagination">Pagination</a></li>
     </ol>
 
-    <h3>Current Version</h3>
+    <h4 id="current-version">Current Version</h4>
 
     <p>The current version of the API is dubbed <strong>v0</strong> and is considered to be in a draft phase. <strong>While we don't expect public endpoints to add change greatly, keep in mind that the API is still under development.</strong></p>
 
-    <h3>Schema</h3>
+    <h4 id="schema">Schema</h4>
 
     <p>All API requests should be made to the /api/0/ prefix, and will return JSON as the response:</p>
 
@@ -53,7 +53,7 @@
 
   {"version": "0"}</pre>
 
-    <h3 id="http-verbs">HTTP Verbs</h3>
+    <h4 id="http-verbs">HTTP Verbs</h4>
 
     <p>Sentry makes an attempt to stick to appropriate verbs, but we always prioritize usability over correctness.</p>
 
@@ -86,7 +86,7 @@
       </tbody>
     </table>
 
-    <h3 id="parameters">Parameters</h3>
+    <h4 id="parameters">Parameters</h4>
 
     <p>Any parameters not included in the URL should be encoded as JSON with a Content-Type of 'application/json':</p>
 
@@ -100,7 +100,7 @@
     -d '{"status": "resolved"}' \
     -H 'Content-Type: application/json'</pre>
 
-    <h3 id="authentication">Authentication</h3>
+    <h4 id="authentication">Authentication</h4>
 
     <p>API requests are made using project-level API keys. They're passed using HTTP Basic auth where the username is your public key, and the password is your secret key. The API key must also be configured with "Web API access" as a role.</p>
 
@@ -110,7 +110,7 @@
 
     <p>Note: Currently requests are limited to project-scoped endpoints only.</p>
 
-    <h3 id="pagination">Pagination</h3>
+    <h4 id="pagination">Pagination</h4>
 
     <p>Pagination in the API is handled via the Link header standard:</p>
 
