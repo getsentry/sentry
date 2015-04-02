@@ -755,13 +755,14 @@
         },
 
         addInputRow: function(container, prefix, node, options, has_errors) {
+            var num = container.find('tr').length;
+
             prefix = prefix + '[' + num + ']';
             has_errors = has_errors || false;
             options = options || {};
 
             var row = $('<tr></tr>'),
                 remove_btn = $('<button class="btn btn-small">Remove</button>'),
-                num = container.find('tr').length,
                 html = $('<div>' + node.html + '</div>'),
                 id_field = $('<input type="hidden" name="' + prefix + '[id]" value="' + node.id + '">');
 
