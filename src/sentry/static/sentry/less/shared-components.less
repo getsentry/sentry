@@ -336,10 +336,39 @@ table.vars .toggle-expand {
 
 table.integrations {
   td, th {
-    padding: 12px !important;
+    padding: 20px !important;
   }
-  h4 {
-    margin-bottom: 6px;
+
+  td:first-child {
+    position: relative;
+    padding-left: 78px !important;
+  }
+
+  .integration-icon {
+    position: absolute;
+    top: 15px;
+    left: 16px;
+    background: #f1f2f3;
+    .square(48px);
+    border-radius: 2px;
+  }
+
+  h5 {
+    font-size: 16px;
+    margin-bottom: 8px;
+
+    span {
+      color: #BABEC2;
+    }
+  }
+
+  p {
+    color: #979BA0;
+    margin: 0;
+  }
+
+  a {
+    color: #979BA0;
   }
 }
 
@@ -1448,6 +1477,13 @@ legend {
         font-weight: 600;
       }
     }
+  }
+}
+
+.nav-tabs-mini {
+  a {
+    font-size: 14px !important;
+    padding-bottom: 6px !important;
   }
 }
 
