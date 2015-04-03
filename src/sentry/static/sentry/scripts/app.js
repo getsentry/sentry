@@ -703,10 +703,16 @@
             this.condition_sel.select2(select2_options);
 
             this.action_sel.change(_.bind(function(){
-                this.addAction(this.action_sel.val());
+                var val = this.action_sel.val();
+                if (val) {
+                    this.addAction(val);
+                }
             }, this));
             this.condition_sel.change(_.bind(function(){
-                this.addCondition(this.condition_sel.val());
+                var val = this.condition_sel.val();
+                if (val) {
+                    this.addCondition(val);
+                }
             }, this));
 
             this.parseFormData(data.form_data, data.form_errors);
@@ -748,21 +754,45 @@
             }, this));
         },
 
-        addCondition: function(id, options, has_errors) {
-            var node = this.conditions_by_id[id],
-                row = $('<tr></tr>'),
-                remove_btn = $('<button class="btn btn-small">Remove</button>'),
-                num = this.condition_table_body.find('tr').length,
-                html = $('<div>' + node.html + '</div>'),
-                prefix = 'condition[' + num + ']',
-                id_field = $('<input type="hidden" name="' + prefix + '[id]" value="' + node.id + '">');
+        addInputRow: function(container, prefix, node, options, has_errors) {
+            var num = container.find('tr').length;
 
+            prefix = prefix + '[' + num + ']';
             has_errors = has_errors || false;
             options = options || {};
+
+            var row = $('<tr></tr>'),
+                remove_btn = $('<button class="btn btn-small">Remove</button>'),
+                html = $('<div>' + node.html + '</div>'),
+                id_field = $('<input type="hidden" name="' + prefix + '[id]" value="' + node.id + '">');
 
             if (has_errors) {
                 row.addClass('error');
             }
+
+            // we need to update the id of all form elements
+            html.find('input, select, textarea').each(function(_, el){
+                var $el = $(el),
+                    name = $el.attr('name');
+                $el.attr('name', prefix + '[' + name + ']');
+                $el.val(options[name] || '');
+            });
+
+            html.find('input.typeahead').each(function(){
+                var $this = $(this),
+                    options = {
+                        initSelection: function(el, callback) {
+                            var $el = $(el);
+                            callback({id: $el.val(), text: $el.val()});
+                        },
+                        data: $this.data('choices'),
+                        createSearchChoice: function(term) {
+                            return {id: $.trim(term), text: $.trim(term)};
+                        }
+                    };
+
+                $this.select2(options);
+            });
 
             html.find('select').each(function(){
                 var $this = $(this),
@@ -772,79 +802,34 @@
                         minimumResultsForSearch: 10
                     };
 
-                if ($this.attr('data-allowClear')) {
-                    options.allowClear = $this.attr('data-allowClear');
+                if ($this.data('allow-clear')) {
+                    options.allowClear = $this.data('allow-clear');
                 }
 
                 $this.select2(options);
             });
 
-            // we need to update the id of all form elements
-            html.find('input, select, textarea').each(function(_, el){
-                var $el = $(el),
-                    name = $el.attr('name');
-                $el.attr('name', prefix + '[' + name + ']');
-                $el.val(options[name] || '');
-            });
             row.append($('<td></td>').append(html).append(id_field));
             row.append($('<td></td>').append(remove_btn));
-            row.appendTo(this.condition_table_body);
+            row.appendTo(container);
 
             remove_btn.click(function(){
                 row.remove();
                 return false;
             });
+        },
+
+        addCondition: function(id, options, has_errors) {
+            this.addInputRow(this.condition_table_body, 'condition',
+                             this.conditions_by_id[id], options, has_errors);
 
             this.condition_sel.data("select2").clear();
             this.condition_table.show();
         },
 
         addAction: function(id, options, has_errors) {
-            var node = this.actions_by_id[id],
-                row = $('<tr></tr>'),
-                remove_btn = $('<button class="btn btn-small">Remove</button>'),
-                num = this.action_table_body.find('tr').length,
-                html = $('<div>' + node.html + '</div>'),
-                prefix = 'action[' + num + ']',
-                id_field = $('<input type="hidden" name="' + prefix + '[id]" value="' + node.id + '">');
-
-            has_errors = has_errors || false;
-            options = options || {};
-
-            if (has_errors) {
-                row.addClass('error');
-            }
-
-            html.find('select').each(function(){
-                var $this = $(this),
-                    options = {
-                        width: 'element',
-                        allowClear: false,
-                        minimumResultsForSearch: 10
-                    };
-
-                if ($this.attr('data-allowClear')) {
-                    options.allowClear = $this.attr('data-allowClear');
-                }
-
-                $this.select2(options);
-            });
-
-            // we need to update the id of all form elements
-            html.find('input, select, textarea').each(function(_, el){
-                var $el = $(el),
-                    name = $el.attr('name');
-                $el.attr('name', prefix + '[' + name + ']');
-                $el.val(options[name] || '');
-            });
-            row.append($('<td></td>').append(html).append(id_field));
-            row.append($('<td></td>').append(remove_btn));
-            row.appendTo(this.action_table_body);
-
-            remove_btn.click(function(){
-                row.remove();
-                return false;
-            });
+            this.addInputRow(this.action_table_body, 'action',
+                             this.actions_by_id[id], options, has_errors);
 
             this.action_sel.data("select2").clear();
             this.action_table.show();
