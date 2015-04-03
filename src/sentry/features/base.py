@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['Feature', 'OrganizationFeature']
+__all__ = ['Feature', 'OrganizationFeature', 'ProjectFeature']
 
 
 class Feature(object):
@@ -22,3 +22,9 @@ class OrganizationFeature(Feature):
     def __init__(self, name, organization):
         self.name = name
         self.organization = organization
+
+
+class ProjectFeature(Feature):
+    def __init__(self, name, project):
+        self.name = name
+        self.project = project
