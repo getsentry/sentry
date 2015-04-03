@@ -9,6 +9,7 @@ var GroupListStore = require("../stores/groupStore");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 var PropTypes = require("../proptypes");
+var LoadingIndicator = require("../components/loadingIndicator");
 
 var AssigneeSelector = React.createClass({
   mixins: [Reflux.ListenerMixin],
@@ -75,7 +76,7 @@ var AssigneeSelector = React.createClass({
     return (
       <div className={className}>
         {loading ?
-          <span>LOADING</span>
+          <LoadingIndicator mini="true" />
         :
           <DropdownLink
             className="assignee-selector-toggle"
