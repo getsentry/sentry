@@ -31,7 +31,7 @@ var OrganizationHeader = React.createClass({
       <header>
         <div className="container">
           <div className="pull-right">
-            <ul className="nav nav-tabs nav-tabs-mini">
+            <ul className="nav nav-tabs">
               <li className={navSection == 'stream' ? 'active': ''}>
                 <Router.Link to="stream" params={routeParams}>
                   Stream
