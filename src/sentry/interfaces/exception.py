@@ -239,9 +239,6 @@ class Exception(Interface):
                 else:
                     system_frames += 1
 
-                if (app_frames and system_frames):
-                    break
-
         # if there is a mix of frame styles then we indicate that system frames
         # are present and should be represented as a split
         has_system_frames = app_frames and system_frames
