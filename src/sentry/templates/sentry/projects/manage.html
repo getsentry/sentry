@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
@@ -77,9 +78,11 @@
         <li{% if page == 'notifications' %} class="active"{% endif %}>
             <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">{% trans "Notifications" %}</a>
         </li>
+        {% feature projects:quotas project %}
         <li{% if page == 'quotas' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-project-quotas' project.organization.slug project.slug %}">{% trans "Rate Limits" %}</a>
         </li>
+        {% endfeature %}
         <li{% if page == 'rules' %} class="active"{% endif %}>
             <a href="{% url 'sentry-project-rules' project.organization.slug project.slug %}">{% trans "Rules" %}</a>
         </li>
