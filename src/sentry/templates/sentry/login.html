@@ -47,7 +47,7 @@
                 <br>
                 <ul class="auth-options">
                     {% for engine in AUTH_PROVIDERS %}
-                        <li><strong><a href="{% url 'socialauth_begin' engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></strong></li>
+                        <li><a href="{% url 'socialauth_begin' engine %}"class="btn btn-default auth-btn auth-{{ engine }}"><span class="auth-icon"></span>{{ engine|title }}</a></li>
                     {% endfor %}
                 </ul>
             </div>
