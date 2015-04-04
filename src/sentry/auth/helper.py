@@ -175,7 +175,7 @@ class AuthHelper(object):
                 is_managed=True,
             )
 
-            AuthIdentity.objects.create(
+            auth_identity = AuthIdentity.objects.create(
                 auth_provider=auth_provider,
                 user=user,
                 ident=identity['id'],
