@@ -8,8 +8,6 @@ sentry.tasks.check_alerts
 
 from __future__ import absolute_import, division
 
-import logging
-
 from datetime import timedelta
 from django.utils import timezone
 
@@ -17,9 +15,6 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthIdentity, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-
-
-logger = logging.getLogger('auth')
 
 AUTH_CHECK_INTERVAL = 3600
 
@@ -49,10 +44,15 @@ def check_auth(**kwargs):
 
 @instrumented_task(name='sentry.tasks.check_auth_identity', queue='auth')
 def check_auth_identity(auth_identity_id, **kwargs):
+    logger = check_auth_identity.get_logger()
+
     try:
         auth_identity = AuthIdentity.objects.get(id=auth_identity_id)
     except AuthIdentity.DoesNotExist:
-        logger.warning('AuthIdentity(id=%s) does not exist', auth_identity_id)
+        logger.warning(
+            'AuthIdentity(id=%s) does not exist',
+            auth_identity_id,
+        )
         return
 
     auth_provider = auth_identity.auth_provider
@@ -67,7 +67,10 @@ def check_auth_identity(auth_identity_id, **kwargs):
         # to ensure security we count any kind of error as an invalidation
         # event
         metrics.incr('auth.identities.refresh_error', 1)
-        logger.exception('AuthIdentity(id=%s) returned an error during validation', auth_identity_id)
+        logger.exception(
+            'AuthIdentity(id=%s) returned an error during validation',
+            auth_identity_id,
+        )
         is_linked = True
         is_valid = False
     else:
@@ -80,7 +83,10 @@ def check_auth_identity(auth_identity_id, **kwargs):
             organization=auth_provider.organization_id,
         )
     except OrganizationMember.DoesNotExist:
-        logger.warning('Removing invalid AuthIdentity(id=%s) due to no organization access', auth_identity_id)
+        logger.warning(
+            'Removing invalid AuthIdentity(id=%s) due to no organization access',
+            auth_identity_id,
+        )
         auth_identity.delete()
         return
 
