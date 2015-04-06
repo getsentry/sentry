@@ -229,15 +229,34 @@ class Exception(Interface):
 
         system_frames = 0
         app_frames = 0
+        unknown_frames = 0
         for exc in self.values:
             if not exc.stacktrace:
                 continue
 
             for frame in exc.stacktrace.frames:
-                if frame.in_app:
+                if frame.in_app is False:
+                    system_frames += 1
+                elif frame.in_app is True:
                     app_frames += 1
                 else:
-                    system_frames += 1
+                    unknown_frames += 1
+
+        # TODO(dcramer): this should happen in normalize
+        # We need to ensure that implicit values for in_app are handled
+        # appropriately
+        if unknown_frames and (app_frames or system_frames):
+            for exc in self.values:
+                if not exc.stacktrace:
+                    continue
+
+                for frame in exc.stacktrace.frames:
+                    if frame.in_app is None:
+                        frame.in_app = bool(system_frames)
+                        if frame.in_app:
+                            app_frames += 1
+                        else:
+                            system_frames += 1
 
         # if there is a mix of frame styles then we indicate that system frames
         # are present and should be represented as a split
