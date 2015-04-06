@@ -5,7 +5,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 
 from .organizationmember import OrganizationMember
@@ -36,6 +36,8 @@ class AuthProvider(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_authprovider'
+
+    __repr__ = sane_repr('organization_id', 'provider')
 
     def get_provider(self):
         from sentry.auth import manager
