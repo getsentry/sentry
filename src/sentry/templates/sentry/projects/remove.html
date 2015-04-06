@@ -5,10 +5,11 @@
 
 {% block title %}{% trans "Remove Project" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
+{% block content %}
     <section class="body">
         <form action="." method="post">
-            <p class="alert alert-error">{% blocktrans %}WARNING: This operation is permanent and cannot be undone!{% endblocktrans %}</p>
+            <p>Are you sure you wish to remove this project?</p>
+            <p>{% blocktrans %}WARNING: This operation is permanent and cannot be undone!{% endblocktrans %}</p>
             {% csrf_token %}
             {{ form|as_crispy_errors }}
             {% for field in form %}
