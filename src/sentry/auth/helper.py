@@ -313,7 +313,7 @@ class AuthHelper(object):
             return self.error(ERR_UID_MISMATCH)
 
         auth_data = identity.get('data', {})
-        auth_identity, _ = AuthIdentity.objects.get_or_create(
+        auth_identity, auth_is_new = AuthIdentity.objects.get_or_create(
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
@@ -330,19 +330,20 @@ class AuthHelper(object):
         setattr(om.flags, 'sso:linked', True)
         om.save()
 
-        AuditLogEntry.objects.create(
-            organization=self.organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
-            target_object=auth_identity.id,
-            event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
-            data=auth_identity.get_audit_log_data(),
-        )
+        if auth_is_new:
+            AuditLogEntry.objects.create(
+                organization=self.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=auth_identity.id,
+                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                data=auth_identity.get_audit_log_data(),
+            )
 
-        messages.add_message(
-            self.request, messages.SUCCESS,
-            OK_LINK_IDENTITY,
-        )
+            messages.add_message(
+                self.request, messages.SUCCESS,
+                OK_LINK_IDENTITY,
+            )
 
         next_uri = reverse('sentry-organization-home', args=[
             self.organization.slug,
