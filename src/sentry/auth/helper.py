@@ -313,7 +313,7 @@ class AuthHelper(object):
             return self.error(ERR_UID_MISMATCH)
 
         auth_data = identity.get('data', {})
-        auth_identity = AuthIdentity.objects.get_or_create(
+        auth_identity, _ = AuthIdentity.objects.get_or_create(
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
