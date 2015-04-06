@@ -312,13 +312,19 @@ class AuthHelper(object):
         except OrganizationMember.DoesNotExist:
             return self.error(ERR_UID_MISMATCH)
 
-        # TODO(dcramer): handle case when another user exists w/ this identity
-        auth_identity = AuthIdentity.objects.create(
+        auth_data = identity.get('data', {})
+        auth_identity = AuthIdentity.objects.get_or_create(
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
-            data=identity.get('data', {}),
+            defaults={
+                'data': auth_data,
+            }
         )
+
+        if auth_identity.data != auth_data:
+            auth_identity.data = auth_data
+            auth_identity.save()
 
         setattr(om.flags, 'sso:invalid', False)
         setattr(om.flags, 'sso:linked', True)
