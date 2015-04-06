@@ -118,6 +118,11 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
             return 'edited member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
 
+        elif self.event == AuditLogEntryEvent.ORG_ADD:
+            return 'created the organization'
+        elif self.event == AuditLogEntryEvent.ORG_EDIT:
+            return 'edited the organization'
+
         elif self.event == AuditLogEntryEvent.TEAM_ADD:
             return 'created team %s' % (self.data['slug'],)
         elif self.event == AuditLogEntryEvent.TEAM_EDIT:
