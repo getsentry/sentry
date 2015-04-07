@@ -43,6 +43,5 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         self.assertTemplateUsed(resp, 'sentry/organization-login.html')
 
-        assert 'form' not in resp.context
         assert resp.context['provider_key'] == 'dummy'
         assert not resp.context['CAN_REGISTER']
