@@ -2827,6 +2827,50 @@ table.member-list {
   }
 }
 
+.sso-toggle-container {
+  margin-bottom: 10px;
+  font-size: 15px;
+
+  .go-back {
+    display: none;
+    position: relative;
+  }
+
+  a {
+    color: lighten(@gray, 30);
+
+    &:hover {
+      color: lighten(@gray, 10);
+    }
+  }
+
+  .icon-arrow-left {
+    position: absolute;
+    background: 0;
+    font-size: 18px;
+    left: -20px;
+  }
+}
+
+.body.show-sso {
+
+  .sso-link {
+    display: none;
+  }
+
+  .go-back {
+    display: block;
+  }
+
+  #standard {
+    display: none;
+  }
+
+  #sso {
+    display: block;
+  }
+}
+
 /* For wider screens */
 
 @media all and (min-width: 1301px) {
