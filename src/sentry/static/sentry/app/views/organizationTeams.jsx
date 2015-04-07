@@ -35,7 +35,10 @@ var OrganizationTeams = React.createClass({
               <div className="box" key={team.slug}>
                 <div className="box-header">
                   <div className="pull-right actions">
-                    <a href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
+                    <a className="new-project" href={urlPrefix + '/projects/new/'}>
+                      <span className="icon-plus"></span> New Project
+                    </a>
+                    <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
                       <span className="icon-settings"></span> Team Settings
                     </a>
                   </div>
