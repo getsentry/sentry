@@ -5,7 +5,7 @@ from django.contrib.auth import login
 from sentry import features
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import BaseView
-from sentry.utils.auth import get_auth_providers, get_login_redirect
+from sentry.utils.auth import get_login_redirect
 
 
 class AuthLoginView(BaseView):
@@ -35,7 +35,5 @@ class AuthLoginView(BaseView):
             'form': form,
             'next': request.session.get('_next'),
             'CAN_REGISTER': features.has('auth:register') or request.session.get('can_register'),
-            'AUTH_PROVIDERS': get_auth_providers(),
-            'SOCIAL_AUTH_CREATE_USERS': features.has('social-auth:register'),
         }
         return self.respond('sentry/login.html', context)
