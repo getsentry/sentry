@@ -35,23 +35,11 @@ class AuthLoginView(BaseView):
 
         return auth_provider
 
-    def handle(self, request):
-        if request.user.is_authenticated():
-            return self.redirect(get_login_redirect(request))
-
-        if request.POST.get('op') == 'sso' and request.POST.get('organization'):
-            auth_provider = self.get_auth_provider(request.POST['organization'])
-            if auth_provider:
-                next_uri = reverse('sentry-auth-organization',
-                                   args=[request.POST['organization']])
-            else:
-                next_uri = request.path
-                messages.add_message(request, messages.ERROR, ERR_NO_SSO)
-
-            return HttpResponseRedirect(next_uri)
-
-        form = AuthenticationForm(request, request.POST or None,
-                                  captcha=bool(request.session.get('needs_captcha')))
+    def handle_basic_auth(self, request):
+        form = AuthenticationForm(
+            request, request.POST or None,
+            captcha=bool(request.session.get('needs_captcha')),
+        )
         if form.is_valid():
             login(request, form.get_user())
 
@@ -68,7 +56,23 @@ class AuthLoginView(BaseView):
 
         context = {
             'form': form,
-            'next': request.session.get('_next'),
             'CAN_REGISTER': features.has('auth:register') or request.session.get('can_register'),
         }
         return self.respond('sentry/login.html', context)
+
+    def handle(self, request):
+        if request.user.is_authenticated():
+            return self.redirect(get_login_redirect(request))
+
+        if request.POST.get('op') == 'sso' and request.POST.get('organization'):
+            auth_provider = self.get_auth_provider(request.POST['organization'])
+            if auth_provider:
+                next_uri = reverse('sentry-auth-organization',
+                                   args=[request.POST['organization']])
+            else:
+                next_uri = request.path
+                messages.add_message(request, messages.ERROR, ERR_NO_SSO)
+
+            return HttpResponseRedirect(next_uri)
+
+        return self.handle_basic_auth(request)
