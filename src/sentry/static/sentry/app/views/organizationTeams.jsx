@@ -25,6 +25,9 @@ var OrganizationTeams = React.createClass({
     return (
       <OrganizationHomeContainer>
         <div className="team-list">
+          <div className="pull-right">
+            <a href={urlPrefix + '/teams/new/'} className="new-team"><span className="icon-plus"></span> New Team</a>
+          </div>
           <h3>Teams</h3>
           {org.teams.map((team, teamIdx) => {
             var teamRouteParams = {
