@@ -11,15 +11,12 @@
 
 {% block account_nav %}
     {% if CAN_REGISTER %}
-        <li><a href="{% url 'sentry-register' %}">{% trans "Create a new account" %}</a></li>
+        <li><a href="{% url 'sentry-register' %}">{% trans "New Account" %}</a></li>
     {% endif %}
 {% endblock%}
 
 {% block main %}
     <section class="body">
-       {% if next %}
-            <p class="alert alert-info">{% trans "Please login to continue." %}</p>
-        {% endif %}
         <div class="sso-toggle-container">
             <a href="#" class="sso-link sso-toggle">Looking for single sign-on?</a>
             <a href="#" class="go-back sso-toggle"><span class="icon-arrow-left"></span> Back to email login</a>
@@ -31,7 +28,7 @@
                     {{ form|as_crispy_errors }}
 
                     <fieldset>
-                        <legend style="border: 0">{% trans "Login with your Sentry account" %}</legend>
+                        <legend style="border: 0">{% trans "Login to Sentry" %}</legend>
                     </fieldset>
                     {% csrf_token %}
 
@@ -52,7 +49,7 @@
                     <div class="control-group">
                         <div class="controls">
                             <span style="padding: 7px 0; font-size: 15px">app.getsentry.com/</span> <input style="width: 190px; margin: 0 0 4px; padding: 6px;" type="text" placeholder="acme">
-                            <p class="help-block">Your organizations' URL slug</p>
+                            <p class="help-block">Enter your organization's ID and we'll get things started.</p>
                         </div>
                     </div>
                     <div class="form-actions" style="margin-top: 25px">
