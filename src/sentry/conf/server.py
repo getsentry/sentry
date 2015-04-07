@@ -765,6 +765,9 @@ SENTRY_OPTIONS = {}
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
 
+# Delay (in ms) to induce on API responses
+SENTRY_API_RESPONSE_DELAY = 0
+
 # Configure celery
 import djcelery
 djcelery.setup_loader()
