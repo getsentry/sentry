@@ -49,7 +49,7 @@ var StreamGroup = React.createClass({
 
     switch(this.props.statsPeriod) {
       case '24h':
-        points = data.stats['48h'].slice(-24);
+        points = data.stats['24h'].slice(-24);
         break;
       default:
         points = data.stats[this.props.statsPeriod];

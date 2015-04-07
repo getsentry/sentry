@@ -47,7 +47,7 @@ class GroupSerializer(Serializer):
             model=tsdb.models.group,
             keys=group_ids,
             end=now,
-            start=now - timedelta(days=2),
+            start=now - timedelta(days=1),
             rollup=3600,
         )
         daily_stats = tsdb.get_range(
@@ -122,7 +122,7 @@ class GroupSerializer(Serializer):
                 'slug': obj.project.slug,
             },
             'stats': {
-                '48h': attrs['hourly_stats'],
+                '24h': attrs['hourly_stats'],
                 '30d': attrs['daily_stats'],
             },
             'assignedTo': attrs['assigned_to'],
