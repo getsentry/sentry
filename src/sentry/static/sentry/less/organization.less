@@ -97,3 +97,64 @@
     }
   }
 }
+
+/**
+* Create team
+* ============================================================================
+*/
+
+.create-flow {
+  padding: 30px 0;
+
+  .help-block {
+    font-size: 14px;
+    color: @gray;
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+
+  .control-group {
+    margin-bottom: 20px;
+  }
+
+  input[type="text"] {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+  }
+
+  .actions {
+    text-align: right;
+    border-top: 2px solid darken(#f1f2f3, 0);
+    padding-top: 30px;
+    margin-top: 10px;
+  }
+
+  .steps {
+    .clearfix();
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 30px;
+
+    li {
+      width: 33.33%;
+      float: left;
+      text-align: center;
+      font-size: 22px;
+      color: lighten(@gray, 45);
+
+      &.active {
+        color: @gray;
+      }
+
+      &:first-child {
+        text-align: left;
+      }
+
+      &:last-child {
+        text-align: right;
+      }
+    }
+  }
+}
