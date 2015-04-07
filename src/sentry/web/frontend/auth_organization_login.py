@@ -69,6 +69,7 @@ class AuthOrganizationLoginView(BaseView):
         provider = auth_provider.get_provider()
 
         context = {
+            'CAN_REGISTER': False,
             'organization': organization,
             'provider_key': provider.key,
             'provider_name': provider.name,
