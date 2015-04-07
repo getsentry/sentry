@@ -38,7 +38,7 @@ var GroupDetails = React.createClass({
   getInitialState() {
     return {
       group: null,
-      statsPeriod: '48h'
+      statsPeriod: '30d'
     };
   },
 
