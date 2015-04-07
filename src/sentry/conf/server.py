@@ -320,7 +320,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.social.social_auth_user',
     'social_auth.backends.pipeline.associate.associate_by_email',
     'social_auth.backends.pipeline.misc.save_status_to_session',
-    'sentry.utils.social_auth.create_user_if_enabled',
     'social_auth.backends.pipeline.social.associate_user',
     'social_auth.backends.pipeline.social.load_extra_data',
     'social_auth.backends.pipeline.user.update_user_details',
@@ -534,7 +533,6 @@ SENTRY_CACHE_BACKEND = 'default'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'social-auth:register': True,
     'organizations:create': True,
     'organizations:sso': False,
     'projects:quotas': True,

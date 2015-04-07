@@ -358,10 +358,6 @@ def apply_legacy_settings(config):
         warnings.warn('SENTRY_ALLOW_REGISTRATION is deprecated. Use SENTRY_FEATURES instead.', DeprecationWarning)
         settings.SENTRY_FEATURES['auth:register'] = settings.SENTRY_ALLOW_REGISTRATION
 
-    if hasattr(settings, 'SOCIAL_AUTH_CREATE_USERS'):
-        warnings.warn('SOCIAL_AUTH_CREATE_USERS is deprecated. Use SENTRY_FEATURES instead.', DeprecationWarning)
-        settings.SENTRY_FEATURES['social-auth:register'] = settings.SOCIAL_AUTH_CREATE_USERS
-
 
 def skip_migration_if_applied(settings, app_name, table_name,
                               name='0001_initial'):
