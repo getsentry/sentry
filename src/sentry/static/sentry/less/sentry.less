@@ -2555,9 +2555,10 @@ table.member-list {
 }
 
 .nav-tabs > .active > a,
-.nav-tabs > .active > a:hover {
+.nav-tabs > .active > a:hover,
+.nav-tabs > .active > a:focus {
   border: 2px solid #dee3e9;
-  border-bottom-color: transparent;
+  border-bottom-color: #fff;
 }
 
 .nav-tabs > li > a {
@@ -2565,6 +2566,7 @@ table.member-list {
   font-weight: bold;
   padding-left: 14px;
   padding-right: 14px;
+  .transition(none);
 
   &:hover {
     background-color: transparent;
