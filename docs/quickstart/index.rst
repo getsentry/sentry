@@ -398,51 +398,6 @@ Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install dja
 slightly better).
 
 
-Enabling Third Party Auth
--------------------------
-
-Most of the time it doesn't really matter **how** someone authenticates to the service, so much as it that they do. In
-these cases, Sentry provides integrating with several common services, including: Google
-and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a
-couple values in your ``sentry.conf.py`` file.
-
-By default, users will be able to both signup (create a new account) as well as associate an existing account. If you
-want to disable account creation, simply set the following value:
-
-.. code-block:: python
-
-  SENTRY_FEATURES = {
-    'social-auth:register': False,
-  }
-
-
-Google
-~~~~~~
-
-Register an application at http://code.google.com/apis/accounts/docs/OAuth2.html#Registering. Take the values given on the page, and configure
-the following:
-
-.. code-block:: python
-
-  GOOGLE_OAUTH2_CLIENT_ID = ''
-  GOOGLE_OAUTH2_CLIENT_SECRET = ''
-
-
-GitHub
-~~~~~~
-
-Register an application at https://github.com/settings/applications/new. Take the values given on the page, and configure
-the following:
-
-.. code-block:: python
-
-  GITHUB_APP_ID = ''
-  GITHUB_API_SECRET = ''
-
-For more information on configuring social authentication services, consult the `documentation on django-social-auth
-<https://github.com/omab/django-social-auth/>`_.
-
-
 What's Next?
 ------------
 
