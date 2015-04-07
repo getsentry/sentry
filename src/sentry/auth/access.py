@@ -95,15 +95,18 @@ def from_member(member):
     except AuthProvider.DoesNotExist:
         sso_is_valid = True
     else:
-        try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                user=member.user_id,
-            )
-        except AuthIdentity.DoesNotExist:
-            sso_is_valid = False
+        if auth_provider.flags.allow_unlinked:
+            sso_is_valid = True
         else:
-            sso_is_valid = auth_identity.is_valid(member)
+            try:
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    user=member.user_id,
+                )
+            except AuthIdentity.DoesNotExist:
+                sso_is_valid = False
+            else:
+                sso_is_valid = auth_identity.is_valid(member)
 
     return Access(
         is_global=member.has_global_access,

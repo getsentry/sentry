@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from bitfield import BitField
 from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
@@ -32,6 +33,10 @@ class AuthProvider(Model):
     # to either write our own which works w/ BigAuto or switch this to use
     # through.
     default_teams = models.ManyToManyField('sentry.Team', blank=True)
+
+    flags = BitField(flags=(
+        ('allow_unlinked', 'Grant access to members who have not linked SSO accounts.'),
+    ), default=0)
 
     class Meta:
         app_label = 'sentry'
