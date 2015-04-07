@@ -64,4 +64,10 @@
         width: 92%;
     }
     </style>
+    <script>
+    $('.sso-toggle').click(function (e) {
+      e.preventDefault();
+      $(".body").toggleClass('show-sso');
+    })
+    </script>
 {% endblock %}
