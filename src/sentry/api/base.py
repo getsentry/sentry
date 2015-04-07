@@ -3,8 +3,10 @@ from __future__ import absolute_import
 __all__ = ['DocSection', 'Endpoint', 'StatsMixin']
 
 import logging
+import time
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from enum import Enum
@@ -92,6 +94,9 @@ class Endpoint(APIView):
         request = self.initialize_request(request, *args, **kwargs)
         self.request = request
         self.headers = self.default_response_headers  # deprecate?
+
+        if settings.SENTRY_API_RESPONSE_DELAY:
+            time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
 
         try:
             self.initial(request, *args, **kwargs)
