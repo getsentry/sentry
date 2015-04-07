@@ -109,6 +109,7 @@ var Stream = React.createClass({
   getGroupListEndpoint() {
     var params = this.getParams();
     var queryParams = this.getQuery();
+    queryParams.limit = 50;
     var querystring = $.param(queryParams);
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
