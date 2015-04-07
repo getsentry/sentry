@@ -256,9 +256,9 @@
             });
         });
 
-        $('#login-tabs a').click(function (e) {
+        $('.sso-toggle').click(function (e) {
           e.preventDefault();
-          $(this).tab('show');
+          $(".body").toggleClass('show-sso');
         })
         </script>
     </body>
