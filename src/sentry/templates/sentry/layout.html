@@ -114,7 +114,7 @@
                                     {% if request.user.is_authenticated %}
                                         <li><a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a></li>
                                         {% with organization_list=request.user|list_organizations %}
-                                        {% if organiation_list %}
+                                        {% if organization_list %}
                                             <li class="dropdown org-dropdown">
                                               <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                                                 {% if organization %}
