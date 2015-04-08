@@ -58,6 +58,7 @@ class Command(BaseCommand):
         email = options['email']
         is_superuser = options['is_superuser']
 
+        password = None
         if not options['noinput']:
             try:
                 if not email:
@@ -71,9 +72,6 @@ class Command(BaseCommand):
             except KeyboardInterrupt:
                 self.stderr.write("\nOperation cancelled.")
                 sys.exit(1)
-
-        else:
-            password = None
 
         if not email:
             raise CommandError('Invalid or missing email address')
