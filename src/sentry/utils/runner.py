@@ -64,6 +64,10 @@ SENTRY_USE_BIG_INTS = True
 # SENTRY_ADMIN_EMAIL = 'your.name@example.com'
 SENTRY_ADMIN_EMAIL = ''
 
+# Instruct Sentry that this install intends to be run by a single organization
+# and thus various UI optimizations should be enabled.
+SENTRY_SINGLE_ORGANIZATION = True
+
 ###########
 ## Redis ##
 ###########
@@ -324,6 +328,10 @@ def initialize_app(config):
         warnings.warn('Sentry is configured to run asynchronous tasks in-process. '
                       'This is not recommended within production environments. '
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
+
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        # Update default features
+        settings.SENTRY_FEATURES['organizations:create'] = False
 
     initialize_receivers()
 

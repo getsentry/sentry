@@ -567,6 +567,10 @@ SENTRY_ADMIN_EMAIL = ''
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
 
+# Instruct Sentry that this install intends to be run by a single organization
+# and thus various UI optimizations should be enabled.
+SENTRY_SINGLE_ORGANIZATION = False
+
 # Login url (defaults to LOGIN_URL)
 SENTRY_LOGIN_URL = None
 
