@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.core.urlresolvers import reverse
@@ -64,6 +65,12 @@ class AuthLoginView(BaseView):
         return self.respond('sentry/login.html', context)
 
     def handle(self, request):
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            org = Organization.objects.all()[0]
+            next_uri = reverse('sentry-auth-organization',
+                               args=[org.slug])
+            return HttpResponseRedirect(next_uri)
+
         if request.POST.get('op') == 'sso' and request.POST.get('organization'):
             auth_provider = self.get_auth_provider(request.POST['organization'])
             if auth_provider:
