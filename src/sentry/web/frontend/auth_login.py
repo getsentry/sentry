@@ -36,6 +36,9 @@ class AuthLoginView(BaseView):
         return auth_provider
 
     def handle_basic_auth(self, request):
+        if request.user.is_authenticated():
+            return self.redirect(get_login_redirect(request))
+
         form = AuthenticationForm(
             request, request.POST or None,
             captcha=bool(request.session.get('needs_captcha')),
@@ -61,9 +64,6 @@ class AuthLoginView(BaseView):
         return self.respond('sentry/login.html', context)
 
     def handle(self, request):
-        if request.user.is_authenticated():
-            return self.redirect(get_login_redirect(request))
-
         if request.POST.get('op') == 'sso' and request.POST.get('organization'):
             auth_provider = self.get_auth_provider(request.POST['organization'])
             if auth_provider:
