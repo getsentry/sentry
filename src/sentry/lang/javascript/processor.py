@@ -326,7 +326,10 @@ def generate_module(src):
     """
     if not src:
         return UNKNOWN_MODULE
-    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0]) or UNKNOWN_MODULE
+    filename = splitext(urlsplit(src).path)[0]
+    if filename.endswith('.min'):
+        filename = filename[:-4]
+    return CLEAN_MODULE_RE.sub('', filename) or UNKNOWN_MODULE
 
 
 def generate_culprit(frame):

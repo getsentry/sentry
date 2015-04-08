@@ -121,6 +121,7 @@ class GenerateModuleTest(TestCase):
         assert generate_module('/bower_components/foo/bar.js') == 'foo/bar'
         assert generate_module('/node_modules/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/vendor.92cd589eca8235e7b373bf5ae94ebf898e3b949c.js') == 'vendor'
+        assert generate_module('/a/javascripts/application-bundle-149360d3414c26adac3febdf6832e25c.min.js') == 'a/javascripts/application-bundle'
 
 
 class FetchBase64SourcemapTest(TestCase):
