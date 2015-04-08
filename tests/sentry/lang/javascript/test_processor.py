@@ -8,7 +8,7 @@ import responses
 from requests.exceptions import RequestException
 
 from sentry.lang.javascript.processor import (
-    BadSource, fetch_url, generate_module,
+    BadSource, fetch_sourcemap, fetch_url, generate_module,
     SourceProcessor, trim_line, UrlResult
 )
 from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
@@ -127,7 +127,7 @@ class GenerateModuleTest(TestCase):
 class FetchBase64SourcemapTest(TestCase):
     def test_simple(self):
         processor = SourceProcessor()
-        index = processor.fetch_sourcemap(base64_sourcemap)
+        index = fetch_sourcemap(base64_sourcemap)
         states = [SourceMap(1, 0, '/test.js', 0, 0, None)]
         sources = set(['/test.js'])
         keys = [(1, 0)]

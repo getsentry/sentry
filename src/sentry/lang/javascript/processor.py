@@ -552,7 +552,7 @@ class SourceProcessor(object):
 
             # pull down sourcemap
             try:
-                sourcemap_idx = self.fetch_sourcemap(
+                sourcemap_idx = fetch_sourcemap(
                     sourcemap_url,
                     project=project,
                     release=release,
@@ -574,7 +574,5 @@ class SourceProcessor(object):
                         pending_file_list.add(next_filename)
 
     def discover_sourcemap(self, result):
+        global discover_sourcemap
         return discover_sourcemap(result)
-
-    def fetch_sourcemap(self, url, project=None, release=None):
-        return fetch_sourcemap(url, project, release)
