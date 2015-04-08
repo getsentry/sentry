@@ -14,12 +14,15 @@ def _get_key(key):
 
 
 def incr(key, amount=1):
-    return statsd.incr(_get_key(key), amount)
+    return statsd.incr(_get_key(key), amount,
+                       rate=settings.SENTRY_METRICS_SAMPLE_RATE)
 
 
 def timing(key, value):
-    return statsd.timing(_get_key(key), value)
+    return statsd.timing(_get_key(key), value,
+                         rate=settings.SENTRY_METRICS_SAMPLE_RATE)
 
 
 def timer(key):
-    return statsd.timer(_get_key(key))
+    return statsd.timer(_get_key(key),
+                        rate=settings.SENTRY_METRICS_SAMPLE_RATE)
