@@ -1,5 +1,6 @@
 {% extends "sentry/bases/organization.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block org_auth_settings_nav %}active{% endblock %}
@@ -37,6 +38,19 @@
 
           {{ content }}
         {% endif %}
+
+        <hr>
+
+        <h3>General Settings</h3>
+
+        {{ form|as_crispy_errors }}
+
+        <button class="btn btn-primary pull-right" name="op"
+                value="settings" style="margin-left: 20px">Save Settings</button>
+
+        {% for field in form %}
+          {{ field|as_crispy_field }}
+        {% endfor %}
 
         <hr>
 
