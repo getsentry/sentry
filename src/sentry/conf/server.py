@@ -524,6 +524,7 @@ RECAPTCHA_PRIVATE_KEY = None
 
 STATSD_CLIENT = 'django_statsd.clients.null'
 SENTRY_METRICS_PREFIX = ''
+SENTRY_METRICS_SAMPLE_RATE = 1.0
 
 # Sentry and Raven configuration
 
