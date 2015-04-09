@@ -66,7 +66,7 @@ def pytest_configure(config):
 
     # disable error reporting by default
     settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
-    settings.BROKER_URL = 'redis://localhost:6379/9'
+    settings.BROKER_URL = 'redis://localhost:6379/8'
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
