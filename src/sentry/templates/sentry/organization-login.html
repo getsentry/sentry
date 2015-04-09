@@ -12,7 +12,7 @@
     <form class="form-stacked" action="" method="post">
       {% csrf_token %}
 
-      <img src="https://github.com/getsentry.png" class="org-avatar">
+      <img src="{% url 'sentry-media' "sentry" "images/sentry-avatar.png" %}" class="org-avatar">
 
       <h3>
         {{ organization.name }}
