@@ -8,9 +8,12 @@ sentry.tasks.store
 
 from __future__ import absolute_import
 
+from celery.utils.log import get_task_logger
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
+
+logger = get_task_logger(__name__)
 
 
 @instrumented_task(
@@ -21,8 +24,6 @@ def preprocess_event(cache_key=None, data=None, **kwargs):
 
     if cache_key:
         data = default_cache.get(cache_key)
-
-    logger = preprocess_event.get_logger()
 
     if data is None:
         logger.error('Data not available in preprocess_event (cache_key=%s)', cache_key)

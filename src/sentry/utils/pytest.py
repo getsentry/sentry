@@ -7,11 +7,10 @@ from django.conf import settings
 
 
 def pytest_configure(config):
-    os.environ['RECAPTCHA_TESTING'] = 'True'
+    os.environ.setdefault('RECAPTCHA_TESTING', 'True')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
 
     if not settings.configured:
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
-
         # only configure the db if its not already done
         test_db = os.environ.get('DB', 'sqlite')
         if test_db == 'mysql':
@@ -32,22 +31,7 @@ def pytest_configure(config):
                 'NAME': ':memory:',
             })
 
-    # http://djangosnippets.org/snippets/646/
-    class InvalidVarException(object):
-        def __mod__(self, missing):
-            try:
-                missing_str = unicode(missing)
-            except:
-                missing_str = 'Failed to create string representation'
-            raise Exception('Unknown template variable %r %s' % (missing, missing_str))
-
-        def __contains__(self, search):
-            if search == '%s':
-                return True
-            return False
-
     settings.TEMPLATE_DEBUG = True
-    # settings.TEMPLATE_STRING_IF_INVALID = InvalidVarException()
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -91,7 +75,10 @@ def pytest_configure(config):
     settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
     settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
+    settings.BROKER_BACKEND = 'memory'
+    settings.BROKER_URL = None
     settings.CELERY_ALWAYS_EAGER = False
+    settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DISABLE_RAVEN = True
 
@@ -109,13 +96,23 @@ def pytest_configure(config):
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
 
+    from sentry.testutils.cases import flush_redis
+    flush_redis()
+
     from sentry.utils.runner import initialize_receivers
     initialize_receivers()
 
-    from sentry.testutils.cases import flush_redis
-    flush_redis()
+    # force celery registration
+    from sentry.celery import app  # NOQA
 
 
 def pytest_runtest_teardown(item):
     from sentry.app import tsdb
     tsdb.flush()
+
+    from redis import StrictRedis
+    client = StrictRedis(db=9)
+    client.flushdb()
+
+    from celery.task.control import discard_all
+    discard_all()
