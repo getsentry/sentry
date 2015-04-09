@@ -8,8 +8,7 @@ sentry.tasks.post_process
 
 from __future__ import absolute_import, print_function
 
-import logging
-
+from celery.utils.log import get_task_logger
 from django.conf import settings
 from hashlib import md5
 
@@ -19,8 +18,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
-
-rules_logger = logging.getLogger('sentry')
+logger = get_task_logger(__name__)
 
 
 def _capture_stats(event, is_new):
@@ -94,8 +92,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     name='sentry.tasks.post_process.record_affected_user')
 def record_affected_user(event, **kwargs):
     from sentry.models import Group
-
-    logger = record_affected_user.get_logger()
 
     if not settings.SENTRY_ENABLE_EXPLORE_USERS:
         logger.info('Skipping sentry:user tag due to SENTRY_ENABLE_EXPLORE_USERS')

@@ -8,10 +8,14 @@ sentry.tasks.deletion
 
 from __future__ import absolute_import
 
-from sentry.tasks.base import instrumented_task, retry
 
+from celery.utils.log import get_task_logger
 from django.db import connections
+
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import db
+
+logger = get_task_logger(__name__)
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
@@ -30,7 +34,6 @@ def delete_organization(object_id, continuous=True, **kwargs):
     if o.status != OrganizationStatus.DELETION_IN_PROGRESS:
         o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
-    logger = delete_organization.get_logger()
     for team in Team.objects.filter(organization=o).order_by('id')[:1]:
         logger.info('Removing Team id=%s where organization=%s', team.id, o.id)
         delete_team(team.id, continuous=False)
@@ -63,8 +66,6 @@ def delete_team(object_id, continuous=True, **kwargs):
 
     if t.status != TeamStatus.DELETION_IN_PROGRESS:
         t.update(status=TeamStatus.DELETION_IN_PROGRESS)
-
-    logger = delete_team.get_logger()
 
     # Delete 1 project at a time since this is expensive by itself
     for project in Project.objects.filter(team=t).order_by('id')[:1]:
@@ -101,8 +102,6 @@ def delete_project(object_id, continuous=True, **kwargs):
 
     if p.status != ProjectStatus.DELETION_IN_PROGRESS:
         p.update(status=ProjectStatus.DELETION_IN_PROGRESS)
-
-    logger = delete_project.get_logger()
 
     # XXX: remove keys first to prevent additional data from flowing in
     model_list = (
@@ -146,8 +145,6 @@ def delete_group(object_id, continuous=True, **kwargs):
     except Group.DoesNotExist:
         return
 
-    logger = delete_group.get_logger()
-
     bulk_model_list = (
         GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping
     )
@@ -178,8 +175,6 @@ def delete_tag_key(object_id, continuous=True, **kwargs):
         tagkey = TagKey.objects.get(id=object_id)
     except TagKey.DoesNotExist:
         return
-
-    logger = delete_tag_key.get_logger()
 
     if tagkey.status != TagKeyStatus.DELETION_IN_PROGRESS:
         tagkey.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
