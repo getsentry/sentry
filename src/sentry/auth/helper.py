@@ -361,7 +361,7 @@ class AuthHelper(object):
 
         messages.add_message(
             self.request, messages.ERROR,
-            'Authentication error: {}'.format(message),
+            u'Authentication error: {}'.format(message),
         )
 
         return HttpResponseRedirect(redirect_uri)
