@@ -21,10 +21,9 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         import logging
-        from sentry.tasks.cleanup import cleanup
+        from sentry.tasks.cleanup import cleanup, logger
 
         if options['verbosity'] > 1:
-            logger = cleanup.get_logger()
             logger.setLevel(logging.DEBUG)
             logger.addHandler(logging.StreamHandler())
 
