@@ -69,6 +69,9 @@ def from_user(user, organization):
     if not organization:
         return DEFAULT
 
+    if user.is_anonymous():
+        return DEFAULT
+
     try:
         om = OrganizationMember.objects.get(
             user=user,

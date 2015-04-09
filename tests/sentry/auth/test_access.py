@@ -78,6 +78,15 @@ class FromUserTest(TestCase):
         result = access.from_user(user, organization)
         assert result.sso_is_valid
 
+    def test_anonymous_user(self):
+        from django.contrib.auth.models import AnonymousUser
+        user = self.create_user()
+        anon_user = AnonymousUser()
+        organization = self.create_organization(owner=user)
+        result = access.from_user(anon_user, organization)
+
+        assert not result.is_active
+
 
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
