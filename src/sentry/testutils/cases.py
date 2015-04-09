@@ -37,7 +37,7 @@ from sentry.rules import EventState
 from sentry.utils import json
 
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, get_auth_header
+from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner
 
 
 def create_redis_conn():
@@ -71,6 +71,9 @@ class BaseTestCase(Fixtures, Exam):
         session.save()
 
         self.session = session
+
+    def tasks(self):
+        return TaskRunner()
 
     def feature(self, name, active=True):
         """
@@ -147,7 +150,7 @@ class BaseTestCase(Fixtures, Exam):
             secret = self.projectkey.secret_key
 
         message = self._makePostMessage(data)
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             resp = self.client.post(
                 reverse('sentry-api-store'), message,
                 content_type='application/octet-stream',
@@ -170,7 +173,7 @@ class BaseTestCase(Fixtures, Exam):
             'sentry_key': key,
             'sentry_data': message,
         }
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             resp = self.client.get(
                 '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
                 **headers
