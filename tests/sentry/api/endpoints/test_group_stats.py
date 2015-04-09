@@ -11,10 +11,6 @@ class GroupStatsTest(APITestCase):
         group1 = self.create_group()
         group2 = self.create_group()
 
-        import logging
-        logging.getLogger().addHandler(logging.StreamHandler())
-        logging.getLogger().setLevel(logging.DEBUG)
-
         url = reverse('sentry-api-0-group-stats', kwargs={
             'group_id': group1.id,
         })
