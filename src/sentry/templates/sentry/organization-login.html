@@ -3,11 +3,9 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block wrapperclass %}windowed-small{% endblock %}
+{% block wrapperclass %}windowed-small org-login{% endblock %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
-
-{% block account_nav %}<!-- what the hell django -->{% endblock %}
 
 {% block main %}
   <section class="body org-login">
@@ -29,5 +27,4 @@
 {% endblock %}
 
 {% block footer %}
-  <a href="#"></a>
 {% endblock %}
