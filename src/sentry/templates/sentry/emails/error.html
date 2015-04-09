@@ -32,10 +32,10 @@
     {% endfor %}
     </ul>
 
-    {% for label, text in interfaces %}
+    {% for label, html, _ in interfaces %}
     <div class="interface">
         <h3 class="title">{{ label }}</h3>
-		{{ text }}
+		{{ html }}
     </div>
     {% endfor %}
 

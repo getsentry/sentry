@@ -128,8 +128,19 @@ class OAuth2Callback(AuthView):
 
 
 class OAuth2Provider(Provider):
+    client_id = None
+    client_secret = None
+
     def get_auth_pipeline(self):
-        return [OAuth2Login(), OAuth2Callback()]
+        return [
+            OAuth2Login(
+                client_id=self.client_id,
+            ),
+            OAuth2Callback(
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+            ),
+        ]
 
     def get_refresh_token_url(self):
         raise NotImplementedError
@@ -196,7 +207,7 @@ class OAuth2Provider(Provider):
         if req.status_code != 200:
             raise Exception(formatted_error)
 
-        auth_identity.data = self.build_oauth_data(payload)
+        auth_identity.data.update(self.get_oauth_data(payload))
         auth_identity.update(data=auth_identity.data)
 
         return True

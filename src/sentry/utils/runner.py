@@ -64,6 +64,10 @@ SENTRY_USE_BIG_INTS = True
 # SENTRY_ADMIN_EMAIL = 'your.name@example.com'
 SENTRY_ADMIN_EMAIL = ''
 
+# Instruct Sentry that this install intends to be run by a single organization
+# and thus various UI optimizations should be enabled.
+SENTRY_SINGLE_ORGANIZATION = True
+
 ###########
 ## Redis ##
 ###########
@@ -327,6 +331,10 @@ def initialize_app(config):
                       'This is not recommended within production environments. '
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
 
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        # Update default features
+        settings.SENTRY_FEATURES['organizations:create'] = False
+
     initialize_receivers()
 
 
@@ -337,7 +345,6 @@ def initialize_celery(settings):
 
     from celery.app import default_app
     default_app.config_from_object(settings, force=True)
-
 
 
 def apply_legacy_settings(config):
@@ -367,6 +374,14 @@ def apply_legacy_settings(config):
         print('')
         # Set `ALLOWED_HOSTS` to the catch-all so it works
         settings.ALLOWED_HOSTS = ['*']
+
+    if settings.TIME_ZONE != 'UTC':
+        # non-UTC timezones are not supported
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! TIME_ZONE should be set to UTC !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
 
     # Set ALLOWED_HOSTS if it's not already available
     if not settings.ALLOWED_HOSTS:

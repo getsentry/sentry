@@ -113,29 +113,49 @@
                                 {% block account_nav %}
                                     {% if request.user.is_authenticated %}
                                         <li><a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a></li>
-                                        <li class="dropdown org-dropdown">
-                                          <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                                            {% if organization %}
-                                              {{ organization.name }}
-                                            {% else %}
-                                              {% trans "Organizations" %}
-                                            {% endif %}
-                                            <span class="caret"></span>
-                                          </a>
-                                          <ul class="dropdown-menu">
+                                        {% with organization_list=request.user|list_organizations %}
+                                        {% if organization_list %}
+                                            <li class="dropdown org-dropdown">
+                                              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                                {% if organization %}
+                                                  {{ organization.name }}
+                                                {% else %}
+                                                  {% trans "Organizations" %}
+                                                {% endif %}
+                                                <span class="caret"></span>
+                                              </a>
+                                              <ul class="dropdown-menu">
+                                                {% feature organizations:create %}
+                                                  <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>{% trans "Organizations" %}</h6></li>
+                                                {% endfeature %}
+                                                {% for o in organization_list %}
+                                                    <li{% if o == organization %} class="active"{% endif %}>
+                                                        <a href="{% url 'sentry-organization-home' o.slug %}">{{ o.name }}</a>
+                                                        {% if request.user|can_manage_org:o %}
+                                                            <a href="{% url 'sentry-organization-settings' o.slug %}" class="org-settings"><span class="icon-cog"></span></a>
+                                                        {% endif %}
+                                                    </li>
+                                                {% endfor %}
+                                              </ul>
+                                            </li>
+                                        {% else %}
                                             {% feature organizations:create %}
-                                              <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>{% trans "Organizations" %}</h6></li>
-                                            {% endfeature %}
-                                            {% for o in request.user|list_organizations %}
-                                                <li{% if o == organization %} class="active"{% endif %}>
-                                                    <a href="{% url 'sentry-organization-home' o.slug %}">{{ o.name }}</a>
-                                                    {% if request.user|can_manage_org:o %}
-                                                        <a href="{% url 'sentry-organization-settings' o.slug %}" class="org-settings"><span class="icon-cog"></span></a>
+                                            <li class="dropdown org-dropdown">
+                                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                                    {% if organization %}
+                                                        {{ organization.name }}
+                                                    {% else %}
+                                                        {% trans "Organizations" %}
                                                     {% endif %}
-                                                </li>
-                                            {% endfor %}
-                                          </ul>
-                                        </li>
+                                                    <span class="caret"></span>
+                                                </a>
+                                                <ul class="dropdown-menu">
+                                                    <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>{% trans "Organizations" %}</h6></li>
+                                                </ul>
+                                            </li>
+                                            {% endfeature %}
+                                        {% endif %}
+                                        {% endwith %}
                                         <li class="dropdown">
                                             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> <span class="caret"></span></a>
                                             <ul class="dropdown-menu">

@@ -175,7 +175,7 @@ class AuthHelper(object):
                 is_managed=True,
             )
 
-            AuthIdentity.objects.create(
+            auth_identity = AuthIdentity.objects.create(
                 auth_provider=auth_provider,
                 user=user,
                 ident=identity['id'],
@@ -312,31 +312,38 @@ class AuthHelper(object):
         except OrganizationMember.DoesNotExist:
             return self.error(ERR_UID_MISMATCH)
 
-        # TODO(dcramer): handle case when another user exists w/ this identity
-        auth_identity = AuthIdentity.objects.create(
+        auth_data = identity.get('data', {})
+        auth_identity, auth_is_new = AuthIdentity.objects.get_or_create(
             user=request.user,
             ident=identity['id'],
             auth_provider=self.auth_provider,
-            data=identity.get('data', {}),
+            defaults={
+                'data': auth_data,
+            }
         )
+
+        if auth_identity.data != auth_data:
+            auth_identity.data = auth_data
+            auth_identity.save()
 
         setattr(om.flags, 'sso:invalid', False)
         setattr(om.flags, 'sso:linked', True)
         om.save()
 
-        AuditLogEntry.objects.create(
-            organization=self.organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
-            target_object=auth_identity.id,
-            event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
-            data=auth_identity.get_audit_log_data(),
-        )
+        if auth_is_new:
+            AuditLogEntry.objects.create(
+                organization=self.organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=auth_identity.id,
+                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                data=auth_identity.get_audit_log_data(),
+            )
 
-        messages.add_message(
-            self.request, messages.SUCCESS,
-            OK_LINK_IDENTITY,
-        )
+            messages.add_message(
+                self.request, messages.SUCCESS,
+                OK_LINK_IDENTITY,
+            )
 
         next_uri = reverse('sentry-organization-home', args=[
             self.organization.slug,
@@ -354,7 +361,7 @@ class AuthHelper(object):
 
         messages.add_message(
             self.request, messages.ERROR,
-            'Authentication error: {}'.format(message),
+            u'Authentication error: {}'.format(message),
         )
 
         return HttpResponseRedirect(redirect_uri)
