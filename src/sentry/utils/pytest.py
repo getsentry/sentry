@@ -66,8 +66,6 @@ def pytest_configure(config):
 
     # disable error reporting by default
     settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
-    settings.BROKER_BACKEND = 'memory'
-    settings.BROKER_URL = None
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
@@ -77,6 +75,8 @@ def pytest_configure(config):
     settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
     settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
+    settings.BROKER_BACKEND = 'memory'
+    settings.BROKER_URL = None
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
@@ -112,6 +112,5 @@ def pytest_runtest_teardown(item):
     client = StrictRedis(db=9)
     client.flushdb()
 
-    # TODO(dcramer): does not work at all
     from celery.task.control import discard_all
     discard_all()
