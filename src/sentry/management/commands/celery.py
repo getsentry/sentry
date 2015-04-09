@@ -1,11 +1,11 @@
 from __future__ import absolute_import, unicode_literals
 
 from celery.bin import celery
-from djcelery.management.base import CeleryCommand
 
-from sentry.app import celery
+from sentry.celery import app
+from sentry.queue.command import CeleryCommand
 
-base = celery.CeleryCommand(app=celery)
+base = celery.CeleryCommand(app=app)
 
 
 # this is a reimplementation of the djcelery 'celery' command

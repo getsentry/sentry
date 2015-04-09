@@ -6,11 +6,11 @@ Start the celery clock service from the Django management command.
 from __future__ import absolute_import, unicode_literals
 
 from celery.bin import beat
-from djcelery.management.base import CeleryCommand
 
-from sentry.app import celery
+from sentry.celery import app
+from sentry.queue.command import CeleryCommand
 
-beat = beat.beat(app=celery)
+beat = beat.beat(app=app)
 
 
 # this is a reimplementation of the djcelery 'celerybeat' command
