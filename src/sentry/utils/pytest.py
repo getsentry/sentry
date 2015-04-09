@@ -77,6 +77,7 @@ def pytest_configure(config):
     settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
     settings.CELERY_ALWAYS_EAGER = False
+    settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DISABLE_RAVEN = True
 
@@ -97,9 +98,11 @@ def pytest_configure(config):
     from sentry.testutils.cases import flush_redis
     flush_redis()
 
-    from sentry.utils.runner import initialize_celery, initialize_receivers
-    initialize_celery(settings)
+    from sentry.utils.runner import initialize_receivers
     initialize_receivers()
+
+    # force celery registration
+    from sentry.celery import app  # NOQA
 
 
 def pytest_runtest_teardown(item):

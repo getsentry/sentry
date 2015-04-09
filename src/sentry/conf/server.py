@@ -231,7 +231,6 @@ INSTALLED_APPS = (
 
     'captcha',
     'crispy_forms',
-    'djcelery',
     'gunicorn',
     'kombu.transport.django',
     'raven.contrib.django.raven_compat',
@@ -351,6 +350,7 @@ from kombu import Exchange, Queue
 BROKER_URL = "django://"
 
 CELERY_ALWAYS_EAGER = True
+CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
 CELERY_RESULT_BACKEND = None
