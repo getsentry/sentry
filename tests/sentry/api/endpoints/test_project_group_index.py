@@ -293,7 +293,7 @@ class GroupDeleteTest(APITestCase):
             group4=group4,
         )
 
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             response = self.client.delete(url, format='json')
         assert response.status_code == 204
 

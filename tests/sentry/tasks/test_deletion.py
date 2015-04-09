@@ -13,7 +13,7 @@ class DeleteTeamTest(TestCase):
         project1 = self.create_project(team=team, name='test1', slug='test1')
         project2 = self.create_project(team=team, name='test2', slug='test2')
 
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             delete_team(object_id=team.id)
 
         assert not Team.objects.filter(id=team.id).exists()
@@ -30,7 +30,7 @@ class DeleteTagKeyTest(TestCase):
         GroupTagKey.objects.create(key='foo', group=group, project=project)
         GroupTagValue.objects.create(key='foo', value='bar', group=group, project=project)
 
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             delete_tag_key(object_id=tk.id)
 
             assert not GroupTagValue.objects.filter(key=tk.key, project=project).exists()

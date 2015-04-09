@@ -163,7 +163,7 @@ class GroupDeleteTest(APITestCase):
         url = reverse('sentry-api-0-group-details', kwargs={
             'group_id': group.id
         })
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             response = self.client.delete(url, format='json')
 
         assert response.status_code == 202, response.content
