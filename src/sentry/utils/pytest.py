@@ -107,8 +107,10 @@ def pytest_configure(config):
 
 
 def pytest_runtest_teardown(item):
-    from redis import StrictRedis
+    from sentry.app import tsdb
+    tsdb.flush()
 
+    from redis import StrictRedis
     client = StrictRedis(db=9)
     client.flushdb()
 
