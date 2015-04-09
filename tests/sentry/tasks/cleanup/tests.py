@@ -2,7 +2,6 @@
 
 from __future__ import absolute_import
 
-from celery.task import Task
 from sentry.models import Event, Group, GroupTagValue, TagValue, TagKey
 from sentry.tasks.cleanup import cleanup
 from sentry.testutils import TestCase
@@ -12,9 +11,6 @@ ALL_MODELS = (Event, Group, GroupTagValue, TagValue, TagKey)
 
 class SentryCleanupTest(TestCase):
     fixtures = ['tests/fixtures/cleanup.json']
-
-    def test_is_task(self):
-        self.assertTrue(isinstance(cleanup, Task))
 
     def test_simple(self):
         cleanup(days=1)

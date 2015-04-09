@@ -66,7 +66,8 @@ def pytest_configure(config):
 
     # disable error reporting by default
     settings.SENTRY_REDIS_OPTIONS = {'hosts': {0: {'db': 9}}}
-    settings.BROKER_URL = 'redis://localhost:6379/8'
+    settings.BROKER_BACKEND = 'memory'
+    settings.BROKER_URL = None
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
 
@@ -110,3 +111,7 @@ def pytest_runtest_teardown(item):
 
     client = StrictRedis(db=9)
     client.flushdb()
+
+    # TODO(dcramer): does not work at all
+    from celery.task.control import discard_all
+    discard_all()
