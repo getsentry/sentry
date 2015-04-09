@@ -117,7 +117,7 @@ class RavenIntegrationTest(TransactionTestCase):
                 self.pk.public_key, self.pk.secret_key, self.pk.project_id)
         )
 
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             client.capture('Message', message='foo')
 
         send_remote.assert_called_once()
@@ -215,7 +215,7 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             resp = self.client.post(
                 self.path, message,
                 content_type='application/octet-stream',
@@ -246,7 +246,7 @@ class SentryRemoteTest(TestCase):
         key = self.projectkey.public_key
         secret = self.projectkey.secret_key
 
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             resp = self.client.post(
                 self.path, fp.getvalue(),
                 content_type='application/octet-stream',

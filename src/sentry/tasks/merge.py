@@ -8,10 +8,13 @@ sentry.tasks.merge
 
 from __future__ import absolute_import
 
+from celery.utils.log import get_task_logger
 from django.db import IntegrityError, transaction
 from django.db.models import F
 
 from sentry.tasks.base import instrumented_task, retry
+
+logger = get_task_logger(__name__)
 
 
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='cleanup',
@@ -22,8 +25,6 @@ def merge_group(from_object_id, to_object_id, **kwargs):
         Group, GroupHash, GroupRuleStatus, GroupTagKey, GroupTagValue,
         EventMapping, Event
     )
-
-    logger = merge_group.get_logger()
 
     try:
         group = Group.objects.get(id=from_object_id)

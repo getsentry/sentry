@@ -82,7 +82,7 @@ class LostPasswordTest(TestCase):
         )
 
     def test_send_recover_mail(self):
-        with self.settings(SENTRY_URL_PREFIX='http://testserver', CELERY_ALWAYS_EAGER=True):
+        with self.settings(SENTRY_URL_PREFIX='http://testserver'), self.tasks():
             self.password_hash.send_recover_mail()
 
         assert len(mail.outbox) == 1
