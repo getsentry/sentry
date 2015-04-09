@@ -82,13 +82,7 @@ if 'DATABASE_URL' in os.environ:
 
 EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
-# Local time zone for this installation. Choices can be found here:
-# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
-# although not all choices may be available on all operating systems.
-# On Unix systems, a value of None will cause Django to use the same
-# timezone as the operating system.
-# If running in a Windows environment this must be set to the same as your
-# system time zone.
+# This should always be UTC.
 TIME_ZONE = 'UTC'
 
 # Language code for this installation. All choices can be found here:
@@ -530,6 +524,7 @@ RECAPTCHA_PRIVATE_KEY = None
 
 STATSD_CLIENT = 'django_statsd.clients.null'
 SENTRY_METRICS_PREFIX = ''
+SENTRY_METRICS_SAMPLE_RATE = 1.0
 
 # Sentry and Raven configuration
 
@@ -545,8 +540,13 @@ SENTRY_FEATURES = {
     'social-auth:register': True,
     'organizations:create': True,
     'organizations:sso': False,
+    'projects:quotas': True,
     'teams:create': True,
 }
+
+# Default time zone for localization in the UI.
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
@@ -567,6 +567,10 @@ SENTRY_ADMIN_EMAIL = ''
 
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
+
+# Instruct Sentry that this install intends to be run by a single organization
+# and thus various UI optimizations should be enabled.
+SENTRY_SINGLE_ORGANIZATION = False
 
 # Login url (defaults to LOGIN_URL)
 SENTRY_LOGIN_URL = None
@@ -765,3 +769,6 @@ SENTRY_OPTIONS = {}
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
+
+# Delay (in ms) to induce on API responses
+SENTRY_API_RESPONSE_DELAY = 0

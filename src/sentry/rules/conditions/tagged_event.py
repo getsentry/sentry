@@ -35,7 +35,9 @@ MATCH_CHOICES = OrderedDict([
 
 class TaggedEventForm(forms.Form):
     key = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'key'}))
-    match = forms.ChoiceField(choices=MATCH_CHOICES.items())
+    match = forms.ChoiceField(MATCH_CHOICES.items(), widget=forms.Select(
+        attrs={'style': 'width:150px'},
+    ))
     value = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'value'}))
 
 

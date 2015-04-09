@@ -1421,8 +1421,8 @@ div.commands:hover {
 
 div.commands {
   position: absolute;
-  right: 10px;
-  top: 6px;
+  right: 0;
+  top: -1px;
   font-size: 0.9em;
   .opacity(30);
 
@@ -1496,9 +1496,7 @@ ul.traceback {
 .frame {
   overflow: hidden;
   position: relative;
-  padding: 5px;
-  border: 1px solid #fff;
-  margin: -6px -6px 0 -6px;
+  margin: 5px 0;
 
   &.system-frame {
     color: #999;
@@ -2464,7 +2462,7 @@ table.vars {
 .table-striped {
   tbody tr:nth-child(odd) td,
   tbody tr:nth-child(odd) th {
-    background-color: lighten(#f1f2f3, 4);
+    background-color: #f6f7f8;
   }
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(even) th {

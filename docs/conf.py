@@ -20,6 +20,10 @@ sys.path.insert(1, os.path.join(os.path.dirname(__file__), '_themes'))
 if 'DJANGO_SETTINGS_MODULE' not in os.environ:
     os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
+# TODO(dcramer): this is to allow autodoc support
+from django.conf import settings
+settings.SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.

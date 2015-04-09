@@ -5,6 +5,12 @@
 {% load sentry_helpers %}
 
 {% block inner %}
+    <style>
+    .rule-form input[type=text] {
+        width: auto;
+    }
+    </style>
+
     <div class="page-header">
         <h2>
             {% if rule.id %}
@@ -16,7 +22,7 @@
         </h2>
     </div>
     <div id="new-rule-form">
-        <form method="POST" action="">
+        <form method="POST" action="" class="rule-form">
             {% csrf_token %}
 
             {% if not form_is_valid %}
@@ -33,7 +39,7 @@
                 </div>
             </fieldset>
 
-            <fieldset>
+            <fieldset style="margin: 20px 0">
                 <div><legend>Conditions</legend></div>
                 <p>When <select name="action_match" style="width:100px" class="select2-small">
                     <option value="all">all of</option>
@@ -47,12 +53,12 @@
                     </colgroup>
                     <tbody></tbody>
                 </table>
-                <div class="controls">
+                <div class="controls row-fluid">
                     <select id="condition-select" class="span6" placeholder="add a condition"></select>
                 </div>
             </fieldset>
 
-            <fieldset>
+            <fieldset style="margin: 20px 0">
                 <div><legend>Actions</legend></div>
                 <p>Take these actions every time this rules matches:</p>
                 <table class="action-list table table-striped">
@@ -62,12 +68,12 @@
                     </colgroup>
                     <tbody></tbody>
                 </table>
-                <div class="controls">
+                <div class="controls row-fluid">
                     <select id="action-select" class="span6" placeholder="add an action"></select>
                 </div>
             </fieldset>
 
-            <div class="actions">
+            <div class="actions" style="margin-top: 20px">
                 <button type="submit" class="btn btn-primary">{% trans "Save Rule" %}</button>
             </div>
         </form>

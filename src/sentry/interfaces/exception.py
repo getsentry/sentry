@@ -50,7 +50,7 @@ class SingleException(Interface):
 
         kwargs = {
             'type': trim(data.get('type'), 128),
-            'value': trim(data.get('value'), 1024),
+            'value': trim(data.get('value'), 4096),
             'module': trim(data.get('module'), 128),
             'stacktrace': stacktrace,
         }
@@ -226,10 +226,47 @@ class Exception(Interface):
 
     def get_context(self, event, is_public=False, **kwargs):
         newest_first = is_newest_frame_first(event)
+
+        system_frames = 0
+        app_frames = 0
+        unknown_frames = 0
+        for exc in self.values:
+            if not exc.stacktrace:
+                continue
+
+            for frame in exc.stacktrace.frames:
+                if frame.in_app is False:
+                    system_frames += 1
+                elif frame.in_app is True:
+                    app_frames += 1
+                else:
+                    unknown_frames += 1
+
+        # TODO(dcramer): this should happen in normalize
+        # We need to ensure that implicit values for in_app are handled
+        # appropriately
+        if unknown_frames and (app_frames or system_frames):
+            for exc in self.values:
+                if not exc.stacktrace:
+                    continue
+
+                for frame in exc.stacktrace.frames:
+                    if frame.in_app is None:
+                        frame.in_app = bool(system_frames)
+                        if frame.in_app:
+                            app_frames += 1
+                        else:
+                            system_frames += 1
+
+        # if there is a mix of frame styles then we indicate that system frames
+        # are present and should be represented as a split
+        has_system_frames = app_frames and system_frames
+
         context_kwargs = {
             'event': event,
             'is_public': is_public,
             'newest_first': newest_first,
+            'has_system_frames': has_system_frames,
         }
 
         exceptions = []
@@ -255,7 +292,7 @@ class Exception(Interface):
 
         return {
             'newest_first': newest_first,
-            'system_frames': sum(e['stacktrace'].get('system_frames', 0) for e in exceptions),
+            'system_frames': system_frames if has_system_frames else 0,
             'exceptions': exceptions,
             'stacktrace': self.get_stacktrace(event, newest_first=newest_first),
             'first_exc_omitted': first_exc_omitted,
