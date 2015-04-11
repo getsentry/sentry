@@ -24,7 +24,7 @@ Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong class="dsn">S
 
 <p>{% trans "Add additional user context if it's available:" %}</p>
 
-<pre>Raven.setUser({
+<pre>Raven.setUserContext({
     email: 'user@example.com',
     id: 'username'
 });</pre>
