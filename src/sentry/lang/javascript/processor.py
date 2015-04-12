@@ -326,6 +326,9 @@ def generate_module(src):
     """
     if not src:
         return UNKNOWN_MODULE
+    if not src.endswith('.js'):
+        return UNKNOWN_MODULE
+
     filename = splitext(urlsplit(src).path)[0]
     if filename.endswith('.min'):
         filename = filename[:-4]
