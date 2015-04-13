@@ -176,6 +176,88 @@ class AuthHelper(object):
         return response
 
     @transaction.atomic
+    def _handle_attach_identity(self, identity, member=None):
+        """
+        Given an already authenticated user, attach or re-attach and identity.
+        """
+        auth_provider = self.auth_provider
+        request = self.request
+        user = request.user
+        organization = self.organization
+
+        try:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider=auth_provider,
+                ident=identity['id'],
+            )
+        except AuthIdentity.DoesNotExist:
+            auth_identity = AuthIdentity.objects.create(
+                auth_provider=auth_provider,
+                user=user,
+                ident=identity['id'],
+            )
+            auth_is_new = True
+        else:
+            now = timezone.now()
+            auth_identity.update(
+                user=user,
+                data=identity['data'],
+                last_verified=now,
+                last_synced=now,
+            )
+            auth_is_new = False
+
+        if member is None:
+            try:
+                member = OrganizationMember.objects.get(
+                    user=user,
+                    organization=organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                member = OrganizationMember.objects.create(
+                    organization=organization,
+                    type=auth_provider.default_role,
+                    has_global_access=auth_provider.default_global_access,
+                    user=user,
+                    flags=getattr(OrganizationMember.flags, 'sso:linked'),
+                )
+
+                default_teams = auth_provider.default_teams.all()
+                for team in default_teams:
+                    member.teams.add(team)
+
+                AuditLogEntry.objects.create(
+                    organization=organization,
+                    actor=user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    target_object=member.id,
+                    target_user=user,
+                    event=AuditLogEntryEvent.MEMBER_ADD,
+                    data=member.get_audit_log_data(),
+                )
+        if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
+            setattr(member.flags, 'sso:invalid', False)
+            setattr(member.flags, 'sso:linked', True)
+            member.save()
+
+        if auth_is_new:
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=auth_identity.id,
+                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                data=auth_identity.get_audit_log_data(),
+            )
+
+            messages.add_message(
+                request, messages.SUCCESS,
+                OK_LINK_IDENTITY,
+            )
+
+        return auth_identity
+
+    @transaction.atomic
     def _finish_login_pipeline(self, identity):
         """
         The login flow executes both with anonymous and authenticated users.
@@ -284,21 +366,7 @@ class AuthHelper(object):
             config=config,
         )
 
-        now = timezone.now()
-        AuthIdentity.objects.create_or_update(
-            user=request.user,
-            ident=identity['id'],
-            auth_provider=self.auth_provider,
-            defaults={
-                'data': identity.get('data', {}),
-                'last_verified': now,
-                'last_synced': now,
-            },
-        )
-
-        setattr(om.flags, 'sso:invalid', False)
-        setattr(om.flags, 'sso:linked', True)
-        om.save()
+        self._handle_attach_identity(identity, om)
 
         AuditLogEntry.objects.create(
             organization=self.organization,
@@ -339,48 +407,7 @@ class AuthHelper(object):
         if request.user.id != request.session['auth']['uid']:
             return self.error(ERR_UID_MISMATCH)
 
-        state = request.session['auth']['state']
-
-        try:
-            om = OrganizationMember.objects.get(
-                user=request.user,
-                organization=self.organization,
-            )
-        except OrganizationMember.DoesNotExist:
-            return self.error(ERR_UID_MISMATCH)
-
-        auth_data = identity.get('data', {})
-        auth_identity, auth_is_new = AuthIdentity.objects.get_or_create(
-            user=request.user,
-            ident=identity['id'],
-            auth_provider=self.auth_provider,
-            defaults={
-                'data': auth_data,
-            }
-        )
-
-        if auth_identity.data != auth_data:
-            auth_identity.data = auth_data
-            auth_identity.save()
-
-        setattr(om.flags, 'sso:invalid', False)
-        setattr(om.flags, 'sso:linked', True)
-        om.save()
-
-        if auth_is_new:
-            AuditLogEntry.objects.create(
-                organization=self.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                target_object=auth_identity.id,
-                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
-                data=auth_identity.get_audit_log_data(),
-            )
-
-            messages.add_message(
-                self.request, messages.SUCCESS,
-                OK_LINK_IDENTITY,
-            )
+        self._handle_attach_identity(identity)
 
         next_uri = reverse('sentry-organization-home', args=[
             self.organization.slug,
