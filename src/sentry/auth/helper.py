@@ -132,7 +132,7 @@ class AuthHelper(object):
             'state': {},
         }
         self.request.session['auth'] = session
-        self.request.session.is_modified = True
+        self.request.session.modified = True
 
     def get_redirect_url(self):
         return self.request.build_absolute_uri(reverse('sentry-auth-sso'))
@@ -140,7 +140,7 @@ class AuthHelper(object):
     def clear_session(self):
         if 'auth' in self.request.session:
             del self.request.session['auth']
-            self.request.session.is_modified = True
+            self.request.session.modified = True
 
     def current_step(self):
         """
@@ -157,7 +157,7 @@ class AuthHelper(object):
         Render the next step.
         """
         self.request.session['auth']['idx'] += 1
-        self.request.session.is_modified = True
+        self.request.session.modified = True
         return self.current_step()
 
     def finish_pipeline(self):
@@ -464,7 +464,7 @@ class AuthHelper(object):
 
     def bind_state(self, key, value):
         self.request.session['auth']['state'][key] = value
-        self.request.session.is_modified = True
+        self.request.session.modified = True
 
     def fetch_state(self, key):
         return self.request.session['auth']['state'].get(key)
