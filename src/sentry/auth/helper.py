@@ -21,7 +21,7 @@ from sentry.web.helpers import render_to_response
 
 from . import manager
 
-OK_LINK_IDENTITY = _('You have successully linked your account your SSO provider.')
+OK_LINK_IDENTITY = _('You have successully linked your account to your SSO provider.')
 
 OK_SETUP_SSO = _('SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
 
