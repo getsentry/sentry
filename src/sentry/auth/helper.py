@@ -127,6 +127,10 @@ class AuthHelper(object):
     def get_redirect_url(self):
         return self.request.build_absolute_uri(reverse('sentry-auth-sso'))
 
+    def clear_session(self):
+        del self.request.session['auth']
+        self.request.session.is_modified = True
+
     def next_step(self):
         # TODO: this needs to somehow embed the next step
         # (it shouldnt force an exteneral redirect)
@@ -154,8 +158,7 @@ class AuthHelper(object):
             # create identity and authenticate the user
             response = self._finish_link_pipeline(identity)
 
-        del self.request.session['auth']
-        self.request.session.is_modified = True
+        self.clear_session()
 
         return response
 
