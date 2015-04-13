@@ -6,6 +6,7 @@ from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 from sentry.testutils import AuthProviderTestCase
 
 
+# TODO(dcramer): this is an integration test
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def test_renders_basic_login_form(self):
         organization = self.create_organization(name='foo', owner=self.user)
@@ -62,7 +63,14 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content
 
+        path = reverse('sentry-auth-sso')
+
         resp = self.client.post(path, {'email': 'foo@example.com'})
+
+        self.assertTemplateUsed(resp, 'sentry/auth-confirm-identity.html')
+        assert resp.status_code == 200
+
+        resp = self.client.post(path, {'op': 'confirm'})
 
         assert resp.status_code == 302
 
