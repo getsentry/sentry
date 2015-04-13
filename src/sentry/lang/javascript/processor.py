@@ -54,7 +54,7 @@ ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
 ERR_HTTP_CODE = 'Received HTTP {status_code} response'
 ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
 ERR_MISSING_SOURCE = 'Source was not found: {filename}'
-ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable'
+ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable (likely invalid JSON)'
 ERR_TOO_MANY_REMOTE_SOURCES = 'Not fetching context due to too many remote sources'
 ERR_UNKNOWN_INTERNAL_ERROR = 'An unknown internal error occurred while attempting to fetch the source'
 
