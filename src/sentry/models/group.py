@@ -18,7 +18,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import buffer, tsdb
+from sentry.app import buffer
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -56,19 +56,11 @@ class GroupManager(BaseManager):
         project_id = group.project_id
         date = group.last_seen
 
-        tsdb_keys = []
-
         for tag_item in tags:
             if len(tag_item) == 2:
                 (key, value), data = tag_item, None
             else:
                 key, value, data = tag_item
-
-            tsdb_id = u'%s=%s' % (key, value)
-
-            tsdb_keys.extend([
-                (tsdb.models.project_tag_value, tsdb_id),
-            ])
 
             buffer.incr(TagValue, {
                 'times_seen': 1,
@@ -91,9 +83,6 @@ class GroupManager(BaseManager):
             }, {
                 'last_seen': date,
             })
-
-        if tsdb_keys:
-            tsdb.incr_multi(tsdb_keys)
 
 
 class Group(Model):
