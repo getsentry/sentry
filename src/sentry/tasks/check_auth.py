@@ -8,6 +8,7 @@ sentry.tasks.check_alerts
 
 from __future__ import absolute_import, division
 
+from celery.utils.log import get_task_logger
 from datetime import timedelta
 from django.utils import timezone
 
@@ -15,6 +16,8 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.models import AuthIdentity, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+
+logger = get_task_logger(__name__)
 
 AUTH_CHECK_INTERVAL = 3600
 
@@ -44,8 +47,6 @@ def check_auth(**kwargs):
 
 @instrumented_task(name='sentry.tasks.check_auth_identity', queue='auth')
 def check_auth_identity(auth_identity_id, **kwargs):
-    logger = check_auth_identity.get_logger()
-
     try:
         auth_identity = AuthIdentity.objects.get(id=auth_identity_id)
     except AuthIdentity.DoesNotExist:
@@ -60,6 +61,11 @@ def check_auth_identity(auth_identity_id, **kwargs):
     try:
         provider.refresh_identity(auth_identity)
     except IdentityNotValid:
+        logger.warning(
+            'AuthIdentity(id=%s) notified as not valid',
+            auth_identity_id,
+            exc_info=True,
+        )
         metrics.incr('auth.identities.invalidated', 1)
         is_linked = False
         is_valid = False

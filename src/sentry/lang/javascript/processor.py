@@ -54,7 +54,7 @@ ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
 ERR_HTTP_CODE = 'Received HTTP {status_code} response'
 ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
 ERR_MISSING_SOURCE = 'Source was not found: {filename}'
-ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable'
+ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable (likely invalid JSON)'
 ERR_TOO_MANY_REMOTE_SOURCES = 'Not fetching context due to too many remote sources'
 ERR_UNKNOWN_INTERNAL_ERROR = 'An unknown internal error occurred while attempting to fetch the source'
 
@@ -298,10 +298,11 @@ def fetch_sourcemap(url, project=None, release=None):
         result = fetch_url(url, project=project, release=release)
         body = result.body
 
-    # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
-    # A SourceMap may be prepended with ")]}'" to cause a Javascript error.
-    # If the file starts with that string, ignore the entire first line.
-    if body.startswith(")]}'"):
+    # According to various specs[1][2] a SourceMap may be prefixed to force
+    # a Javascript load error.
+    # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
+    # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
+    if body.startswith((")]}'\n", ")]}\n")):
         body = body.split('\n', 1)[1]
 
     try:
@@ -326,6 +327,9 @@ def generate_module(src):
     """
     if not src:
         return UNKNOWN_MODULE
+    if not src.endswith('.js'):
+        return UNKNOWN_MODULE
+
     filename = splitext(urlsplit(src).path)[0]
     if filename.endswith('.min'):
         filename = filename[:-4]
