@@ -17,6 +17,7 @@ from sentry.models import (
     OrganizationMember, User
 )
 from sentry.utils.auth import get_login_redirect
+from sentry.web.helpers import render_to_response
 
 from . import manager
 
@@ -133,10 +134,6 @@ class AuthHelper(object):
         self.request.session['auth'] = session
         self.request.session.is_modified = True
 
-    def get_current_view(self):
-        idx = self.request.session['auth']['idx']
-        return self.pipeline[idx]
-
     def get_redirect_url(self):
         return self.request.build_absolute_uri(reverse('sentry-auth-sso'))
 
@@ -145,18 +142,23 @@ class AuthHelper(object):
             del self.request.session['auth']
             self.request.session.is_modified = True
 
-    def next_step(self):
-        # TODO: this needs to somehow embed the next step
-        # (it shouldnt force an exteneral redirect)
+    def current_step(self):
+        """
+        Render the current step.
+        """
         session = self.request.session['auth']
-        session['idx'] += 1
-        self.request.session.is_modified = True
-
         idx = session['idx']
         if idx == len(self.pipeline):
             return self.finish_pipeline()
-
         return self.pipeline[idx].dispatch(self.request, self)
+
+    def next_step(self):
+        """
+        Render the next step.
+        """
+        self.request.session['auth']['idx'] += 1
+        self.request.session.is_modified = True
+        return self.current_step()
 
     def finish_pipeline(self):
         session = self.request.session['auth']
@@ -171,8 +173,6 @@ class AuthHelper(object):
         elif session['flow'] == self.FLOW_LINK_IDENTITY:
             # create identity and authenticate the user
             response = self._finish_link_pipeline(identity)
-
-        self.clear_session()
 
         return response
 
@@ -274,6 +274,16 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
+        request = self.request
+
+        if request.POST.get('op') != 'confirm':
+            if request.user.is_authenticated():
+                return self.respond('sentry/auth-confirm-link.html', {
+                    'identity': identity,
+                })
+            return self.respond('sentry/auth-confirm-identity.html', {
+                'identity': identity,
+            })
 
         try:
             auth_identity = AuthIdentity.objects.get(
@@ -335,6 +345,8 @@ class AuthHelper(object):
 
         login(self.request, user)
 
+        self.clear_session()
+
         return HttpResponseRedirect(get_login_redirect(self.request))
 
     @transaction.atomic
@@ -390,6 +402,8 @@ class AuthHelper(object):
             OK_SETUP_SSO,
         )
 
+        self.clear_session()
+
         next_uri = reverse('sentry-organization-auth-settings', args=[
             self.organization.slug,
         ])
@@ -408,12 +422,29 @@ class AuthHelper(object):
         if request.user.id != request.session['auth']['uid']:
             return self.error(ERR_UID_MISMATCH)
 
+        if request.POST.get('op') != 'confirm':
+            return self.respond('sentry/auth-confirm-link.html', {
+                'identity': identity,
+            })
+
         self._handle_attach_identity(identity)
+
+        self.clear_session()
 
         next_uri = reverse('sentry-organization-home', args=[
             self.organization.slug,
         ])
         return HttpResponseRedirect(next_uri)
+
+    def respond(self, template, context=None, status=200):
+        default_context = {
+            'organization': self.organization,
+        }
+        if context:
+            default_context.update(context)
+
+        return render_to_response(template, default_context, self.request,
+                                  status=status)
 
     def error(self, message):
         session = self.request.session['auth']
