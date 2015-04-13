@@ -301,7 +301,7 @@ def fetch_sourcemap(url, project=None, release=None):
     # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
     # A SourceMap may be prepended with ")]}'" to cause a Javascript error.
     # If the file starts with that string, ignore the entire first line.
-    if body.startswith((")]}'", ")]}")):
+    if body.startswith((")]}'\n", ")]}\n")):
         body = body.split('\n', 1)[1]
 
     try:
