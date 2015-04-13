@@ -175,7 +175,7 @@ class OAuth2Provider(Provider):
         refresh_token = auth_identity.data.get('refresh_token')
 
         if not refresh_token:
-            raise IdentityNotValid
+            raise IdentityNotValid('Missing refresh token')
 
         data = self.get_refresh_token_params(
             refresh_token=refresh_token,

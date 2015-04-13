@@ -108,6 +108,7 @@ class GroupSerializer(Serializer):
             'lastSeen': obj.last_seen,
             'timeSpent': obj.avg_time_spent,
             'isResolved': obj.get_status() == GroupStatus.RESOLVED,
+            'level': obj.get_level_display(),
             'status': status_label,
             'isPublic': obj.is_public,
             # 'score': getattr(obj, 'sort_value', 0),
