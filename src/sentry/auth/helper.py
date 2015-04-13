@@ -35,6 +35,19 @@ class AuthHelper(object):
 
     Designed to link provider and views as well as manage the state and
     pipeline.
+
+    Auth has several flows:
+
+    1. The user is going through provider setup, thus enforcing that they link
+       their current account to the new auth identity.
+    2. The user is anonymous and creating a brand new account.
+    3. The user is anonymous and logging into an existing account.
+    4. The user is anonymous and creating a brand new account, but may have an
+       existing account that should/could be merged.
+    5. The user is authenticated and creating a new identity, thus associating
+       it with their current account.
+    6. The user is authenticated and creating a new identity, but not linking
+       it with their account (thus creating a new account).
     """
     # logging in or registering
     FLOW_LOGIN = 1
