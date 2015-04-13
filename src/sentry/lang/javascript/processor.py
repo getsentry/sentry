@@ -298,9 +298,10 @@ def fetch_sourcemap(url, project=None, release=None):
         result = fetch_url(url, project=project, release=release)
         body = result.body
 
-    # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
-    # A SourceMap may be prepended with ")]}'" to cause a Javascript error.
-    # If the file starts with that string, ignore the entire first line.
+    # According to various specs[1][2] a SourceMap may be prefixed to force
+    # a Javascript load error.
+    # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
+    # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
     if body.startswith((")]}'\n", ")]}\n")):
         body = body.split('\n', 1)[1]
 
