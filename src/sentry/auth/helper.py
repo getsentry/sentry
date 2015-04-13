@@ -141,8 +141,9 @@ class AuthHelper(object):
         return self.request.build_absolute_uri(reverse('sentry-auth-sso'))
 
     def clear_session(self):
-        del self.request.session['auth']
-        self.request.session.is_modified = True
+        if 'auth' in self.request.session:
+            del self.request.session['auth']
+            self.request.session.is_modified = True
 
     def next_step(self):
         # TODO: this needs to somehow embed the next step
@@ -282,7 +283,7 @@ class AuthHelper(object):
         except AuthIdentity.DoesNotExist:
             user = User.objects.create(
                 email=identity['email'],
-                first_name=identity.get('name'),
+                first_name=identity.get('name', ''),
                 is_managed=True,
             )
 
