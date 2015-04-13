@@ -177,6 +177,19 @@ class AuthHelper(object):
 
     @transaction.atomic
     def _finish_login_pipeline(self, identity):
+        """
+        The login flow executes both with anonymous and authenticated users.
+
+        Upon completion a few branches exist:
+
+        If the identity is already linked, the user should be logged in
+        and redirected immediately.
+
+        Otherwise, the user is presented with a confirmation window. That window
+        will show them the new account that will be created, and if they're
+        already authenticated an optional button to associate the identity with
+        their account.
+        """
         auth_provider = self.auth_provider
 
         try:
@@ -243,6 +256,10 @@ class AuthHelper(object):
 
     @transaction.atomic
     def _finish_setup_pipeline(self, identity):
+        """
+        The setup flow creates the auth provider as well as an identity linked
+        to the active user.
+        """
         request = self.request
         if not request.user.is_authenticated():
             return self.error(ERR_NOT_AUTHED)
@@ -311,6 +328,10 @@ class AuthHelper(object):
 
     @transaction.atomic
     def _finish_link_pipeline(self, identity):
+        """
+        The link flow shows the user a confirmation of the link that is about
+        to be created, and upon confirmation associates the identity.
+        """
         request = self.request
         if not request.user.is_authenticated():
             return self.error(ERR_NOT_AUTHED)
