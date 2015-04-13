@@ -89,39 +89,46 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert getattr(member.flags, 'sso:linked')
         assert not getattr(member.flags, 'sso:invalid')
 
-    # def test_basic_provider_flow_as_existing_user(self):
-    #     organization = self.create_organization(name='foo', owner=self.user)
-    #     team = self.create_team(organization=organization)
-    #     project = self.create_project(team=team)
-    #     auth_provider = AuthProvider.objects.create(
-    #         organization=organization,
-    #         provider='dummy',
-    #     )
-    #     user = self.create_user('bar@example.com')
+    def test_basic_provider_flow_as_existing_user(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team = self.create_team(organization=organization)
+        project = self.create_project(team=team)
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+        user = self.create_user('bar@example.com')
 
-    #     path = reverse('sentry-auth-organization', args=[organization.slug])
+        path = reverse('sentry-auth-organization', args=[organization.slug])
 
-    #     self.login_as(user)
+        self.login_as(user)
 
-    #     resp = self.client.post(path)
+        resp = self.client.post(path)
 
-    #     assert resp.status_code == 200
-    #     assert self.provider.TEMPLATE in resp.content
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content
 
-    #     resp = self.client.post(path, {'email': 'baz@example.com'})
+        path = reverse('sentry-auth-sso')
 
-    #     assert resp.status_code == 302
+        resp = self.client.post(path, {'email': 'bar@example.com'})
 
-    #     auth_identity = AuthIdentity.objects.get(
-    #         auth_provider=auth_provider,
-    #     )
+        self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
+        assert resp.status_code == 200
 
-    #     assert auth_identity.user == user
+        resp = self.client.post(path, {'op': 'confirm'})
 
-    #     member = OrganizationMember.objects.get(
-    #         organization=organization,
-    #         user=user,
-    #     )
+        assert resp.status_code == 302
 
-    #     assert getattr(member.flags, 'sso:linked')
-    #     assert not getattr(member.flags, 'sso:invalid')
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=auth_provider,
+        )
+
+        assert auth_identity.user == user
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
