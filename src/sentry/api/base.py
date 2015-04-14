@@ -80,7 +80,7 @@ class Endpoint(APIView):
         try:
             return super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
-            logging.exception(unicode(exc), extra={'request': request})
+            logging.error(unicode(exc), extra={'request': request}, exc_info=True)
             context = {'detail': 'Internal Error'}
             if hasattr(request, 'sentry'):
                 context['errorId'] = request.sentry['id']
