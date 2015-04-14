@@ -11,6 +11,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
+from uuid import uuid4
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
@@ -295,6 +296,7 @@ class AuthHelper(object):
                 user = request.user
             else:
                 user = User.objects.create(
+                    username=uuid4().hex,
                     email=identity['email'],
                     first_name=identity.get('name', ''),
                     is_managed=True,
