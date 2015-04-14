@@ -259,6 +259,48 @@ class AuthHelper(object):
 
         return auth_identity
 
+    def _handle_new_user(self, identity):
+        auth_provider = self.auth_provider
+        organization = self.organization
+        request = self.request
+
+        user = User.objects.create(
+            username=uuid4().hex,
+            email=identity['email'],
+            first_name=identity.get('name', ''),
+            is_managed=True,
+        )
+
+        auth_identity = AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            user=user,
+            ident=identity['id'],
+        )
+
+        om = OrganizationMember.objects.create(
+            organization=organization,
+            type=auth_provider.default_role,
+            has_global_access=auth_provider.default_global_access,
+            user=user,
+            flags=getattr(OrganizationMember.flags, 'sso:linked'),
+        )
+
+        default_teams = auth_provider.default_teams.all()
+        for team in default_teams:
+            om.teams.add(team)
+
+        AuditLogEntry.objects.create(
+            organization=organization,
+            actor=user,
+            ip_address=request.META['REMOTE_ADDR'],
+            target_object=om.id,
+            target_user=om.user,
+            event=AuditLogEntryEvent.MEMBER_ADD,
+            data=om.get_audit_log_data(),
+        )
+
+        return auth_identity
+
     @transaction.atomic
     def _finish_login_pipeline(self, identity):
         """
@@ -277,7 +319,11 @@ class AuthHelper(object):
         auth_provider = self.auth_provider
         request = self.request
 
-        if request.POST.get('op') != 'confirm':
+        if request.POST.get('op') == 'confirm' and request.user.is_authenticated():
+            auth_identity = self._handle_attach_identity(identity)
+        elif request.POST.get('op') == 'newuser':
+            auth_identity = self._handle_new_user(identity)
+        else:
             if request.user.is_authenticated():
                 return self.respond('sentry/auth-confirm-link.html', {
                     'identity': identity,
@@ -285,65 +331,6 @@ class AuthHelper(object):
             return self.respond('sentry/auth-confirm-identity.html', {
                 'identity': identity,
             })
-
-        try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                ident=identity['id'],
-            )
-        except AuthIdentity.DoesNotExist:
-            if request.user.is_authenticated():
-                user = request.user
-            else:
-                user = User.objects.create(
-                    username=uuid4().hex,
-                    email=identity['email'],
-                    first_name=identity.get('name', ''),
-                    is_managed=True,
-                )
-
-            auth_identity = AuthIdentity.objects.create(
-                auth_provider=auth_provider,
-                user=user,
-                ident=identity['id'],
-            )
-
-            om = OrganizationMember.objects.create(
-                organization=self.organization,
-                type=auth_provider.default_role,
-                has_global_access=auth_provider.default_global_access,
-                user=user,
-                flags=getattr(OrganizationMember.flags, 'sso:linked'),
-            )
-
-            default_teams = auth_provider.default_teams.all()
-            for team in default_teams:
-                om.teams.add(team)
-
-            AuditLogEntry.objects.create(
-                organization=self.organization,
-                actor=user,
-                ip_address=self.request.META['REMOTE_ADDR'],
-                target_object=om.id,
-                target_user=om.user,
-                event=AuditLogEntryEvent.MEMBER_ADD,
-                data=om.get_audit_log_data(),
-            )
-        else:
-            now = timezone.now()
-            auth_identity.update(
-                data=identity['data'],
-                last_verified=now,
-                last_synced=now,
-            )
-
-            om = OrganizationMember.objects.get(
-                user=auth_identity.user,
-                organization=self.organization,
-            )
-            setattr(om.flags, 'sso:invalid', False)
-            setattr(om.flags, 'sso:linked', True)
-            om.save()
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -427,12 +414,19 @@ class AuthHelper(object):
         if request.user.id != request.session['auth']['uid']:
             return self.error(ERR_UID_MISMATCH)
 
-        if request.POST.get('op') != 'confirm':
+        if request.POST.get('op') == 'confirm':
+            self._handle_attach_identity(identity)
+        elif request.POST.get('op') == 'newuser':
+            auth_identity = self._handle_new_user(identity)
+
+            user = auth_identity.user
+            user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+            login(self.request, user)
+        else:
             return self.respond('sentry/auth-confirm-link.html', {
                 'identity': identity,
             })
-
-        self._handle_attach_identity(identity)
 
         self.clear_session()
 
