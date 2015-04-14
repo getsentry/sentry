@@ -29,7 +29,7 @@ class OAuth2ProviderTest(TestCase):
             auth_provider=self.auth_provider,
             user=self.user,
             data={
-                'access_token': 'access_token',
+                'data': {'access_token': 'access_token'},
             }
         )
 
