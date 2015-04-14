@@ -319,18 +319,33 @@ class AuthHelper(object):
         auth_provider = self.auth_provider
         request = self.request
 
-        if request.POST.get('op') == 'confirm' and request.user.is_authenticated():
-            auth_identity = self._handle_attach_identity(identity)
-        elif request.POST.get('op') == 'newuser':
-            auth_identity = self._handle_new_user(identity)
-        else:
-            if request.user.is_authenticated():
-                return self.respond('sentry/auth-confirm-link.html', {
+        try:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider=auth_provider,
+                ident=identity['id'],
+            )
+        except AuthIdentity.DoesNotExist:
+            if request.POST.get('op') == 'confirm' and request.user.is_authenticated():
+                auth_identity = self._handle_attach_identity(identity)
+            elif request.POST.get('op') == 'newuser':
+                auth_identity = self._handle_new_user(identity)
+            else:
+                if request.user.is_authenticated():
+                    return self.respond('sentry/auth-confirm-link.html', {
+                        'identity': identity,
+                    })
+                return self.respond('sentry/auth-confirm-identity.html', {
                     'identity': identity,
                 })
-            return self.respond('sentry/auth-confirm-identity.html', {
-                'identity': identity,
-            })
+        else:
+            member = OrganizationMember.objects.get(
+                user=auth_identity.user,
+                organization=self.organization,
+            )
+            if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
+                setattr(member.flags, 'sso:invalid', False)
+                setattr(member.flags, 'sso:linked', True)
+                member.save()
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]

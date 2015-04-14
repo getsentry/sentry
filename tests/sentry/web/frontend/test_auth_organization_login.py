@@ -177,3 +177,40 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         assert getattr(member.flags, 'sso:linked')
         assert not getattr(member.flags, 'sso:invalid')
+
+    def test_basic_provider_flow_as_existing_user_and_identity(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team = self.create_team(organization=organization)
+        project = self.create_project(team=team)
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+        auth_identity = AuthIdentity.objects.create(
+            auth_provider=auth_provider,
+            ident='bar@example.com',
+            user=self.user,
+        )
+
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        self.login_as(self.user)
+
+        resp = self.client.post(path)
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content
+
+        path = reverse('sentry-auth-sso')
+
+        resp = self.client.post(path, {'email': 'bar@example.com'})
+
+        assert resp.status_code == 302
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=self.user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
