@@ -3508,10 +3508,30 @@ pre {
     font-size: 16px;
   }
 
-  .org-avatar {
+  .org-avatar, .merge-avatar {
     .square(60px);
-    border-radius: 60px;
+    border-radius: 4px;
     margin-bottom: 10px;
+  }
+
+  .icon-arrow-right, .icon-arrow-left {
+    background: none;
+    font-size: 32px;
+    width: 20px;
+    line-height: .35;
+    text-align: center;
+    position: relative;
+    opacity: .25;
+  }
+
+  .icon-arrow-right {
+    left: 2px;
+    top: -7px;
+  }
+
+   .icon-arrow-left {
+    right: 14px;
+    top: 11px;
   }
 
   .btn-default {
