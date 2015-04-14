@@ -29,7 +29,7 @@ def create_user_if_enabled(*args, **kwargs):
     details = kwargs.pop('details')
     response = kwargs.pop('response')
     uid = kwargs.pop('uid')
-    username = kwargs.pop('username', None)
+    username = kwargs.pop('username', None) or details.get('username', None)
     user = kwargs.pop('user', None)
 
     return create_user(backend=backend, details=details, response=response, uid=uid, username=username, user=user, *args, **kwargs)
