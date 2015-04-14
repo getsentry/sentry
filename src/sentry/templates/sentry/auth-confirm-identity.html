@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block wrapperclass %}windowed-small org-login{% endblock %}
 
@@ -14,17 +15,13 @@
     <form class="form-stacked" action="" method="post">
       {% csrf_token %}
 
-      <input type="hidden" name="op" value="confirm" />
+      <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
 
-      <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="merge-avatar avatar">
-      <span class="icon-arrow-right"></span>
-      <span class="icon-arrow-left"></span>
-      <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="merge-avatar avatar">
+      <p>We've identified you as {{ identity.email }}. If everything sounds good, we'll go ahead and create a new account for you with this email address.</p>
 
-      <p>Looks like you've signed in previously with another account.
-Would you like to merge it with this one?</p>
-
-      <p class="align-center"><button class="btn btn-default">No thanks</button> <button class="btn btn-primary" type="submit">Merge accounts</button></p>
+      <p class="align-center">
+        <button class="btn btn-default" type="submit" name="op" value="newuser">Continue</button>
+      </p>
     </form>
   </section>
 {% endblock %}
