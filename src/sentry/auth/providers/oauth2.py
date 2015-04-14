@@ -154,12 +154,14 @@ class OAuth2Provider(Provider):
         }
 
     def get_oauth_data(self, payload):
-        return {
+        data = {
             'access_token': payload['access_token'],
-            'refresh_token': payload.get('refresh_token'),
             'token_type': payload['token_type'],
             'expires': time() + payload['expires_in'],
         }
+        if 'refresh_token' in payload:
+            data['refresh_token'] = payload['refresh_token']
+        return data
 
     def build_identity(self, state):
         # data = state['data']
