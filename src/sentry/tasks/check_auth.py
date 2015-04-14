@@ -60,21 +60,23 @@ def check_auth_identity(auth_identity_id, **kwargs):
     provider = auth_provider.get_provider()
     try:
         provider.refresh_identity(auth_identity)
-    except IdentityNotValid:
+    except IdentityNotValid as exc:
         logger.warning(
-            'AuthIdentity(id=%s) notified as not valid',
+            u'AuthIdentity(id=%s) notified as not valid: %s',
+            unicode(exc),
             auth_identity_id,
             exc_info=True,
         )
         metrics.incr('auth.identities.invalidated', 1)
         is_linked = False
         is_valid = False
-    except Exception:
+    except Exception as exc:
         # to ensure security we count any kind of error as an invalidation
         # event
         metrics.incr('auth.identities.refresh_error', 1)
         logger.exception(
-            'AuthIdentity(id=%s) returned an error during validation',
+            u'AuthIdentity(id=%s) returned an error during validation: %s',
+            unicode(exc),
             auth_identity_id,
         )
         is_linked = True
