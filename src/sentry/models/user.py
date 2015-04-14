@@ -98,4 +98,4 @@ class User(BaseModel, AbstractBaseUser):
             obj.update(user=to_user)
 
     def get_display_name(self):
-        return self.first_name or self.username
+        return self.first_name or self.email
