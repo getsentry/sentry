@@ -197,6 +197,7 @@ class AuthHelper(object):
                 auth_provider=auth_provider,
                 user=user,
                 ident=identity['id'],
+                data=identity['data'],
             )
             auth_is_new = True
         else:
