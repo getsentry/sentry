@@ -291,11 +291,14 @@ class AuthHelper(object):
                 ident=identity['id'],
             )
         except AuthIdentity.DoesNotExist:
-            user = User.objects.create(
-                email=identity['email'],
-                first_name=identity.get('name', ''),
-                is_managed=True,
-            )
+            if request.user.is_authenticated():
+                user = request.user
+            else:
+                user = User.objects.create(
+                    email=identity['email'],
+                    first_name=identity.get('name', ''),
+                    is_managed=True,
+                )
 
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=auth_provider,
