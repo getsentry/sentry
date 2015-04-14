@@ -2555,9 +2555,10 @@ table.member-list {
 }
 
 .nav-tabs > .active > a,
-.nav-tabs > .active > a:hover {
+.nav-tabs > .active > a:hover,
+.nav-tabs > .active > a:focus {
   border: 2px solid #dee3e9;
-  border-bottom-color: transparent;
+  border-bottom-color: #fff;
 }
 
 .nav-tabs > li > a {
@@ -2565,6 +2566,7 @@ table.member-list {
   font-weight: bold;
   padding-left: 14px;
   padding-right: 14px;
+  .transition(none);
 
   &:hover {
     background-color: transparent;
@@ -2825,6 +2827,50 @@ table.member-list {
   }
 }
 
+.sso-toggle-container {
+  margin-bottom: 10px;
+  font-size: 15px;
+
+  .go-back {
+    display: none;
+    position: relative;
+  }
+
+  a {
+    color: lighten(@gray, 30);
+
+    &:hover {
+      color: lighten(@gray, 10);
+    }
+  }
+
+  .icon-arrow-left {
+    position: absolute;
+    background: 0;
+    font-size: 18px;
+    left: -20px;
+  }
+}
+
+.body.show-sso {
+
+  .sso-link {
+    display: none;
+  }
+
+  .go-back {
+    display: block;
+  }
+
+  #standard {
+    display: none;
+  }
+
+  #sso {
+    display: block;
+  }
+}
+
 /* For wider screens */
 
 @media all and (min-width: 1301px) {
@@ -2909,8 +2955,20 @@ table.member-list {
 
   .outer-wrapper {
     width: auto;
-    max-width: 400px;
+    max-width: 450px;
   }
+
+  .outer-wrapper {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    .box-shadow(0 0 0 2px rgba(0,0,0, .03));
+    .border-radius(9px);
+  }
+
+  .navbar .navbar-inner {
+    .border-radius(7px 7px 0 0);
+  }
+
   footer, header {
     text-align: center;
     padding: 0;
@@ -2919,7 +2977,8 @@ table.member-list {
   }
   footer {
     padding: 10px 25px;
-    height: 60px;
+    max-height: 60px;
+    .border-radius(0 0 7px 7px);
   }
   header {
     height: 40px;
@@ -2942,12 +3001,6 @@ table.member-list {
   .container {
     width: auto;
     min-width: 0;
-  }
-
-  &.org-login {
-    .nav.pull-right {
-      display: none;
-    }
   }
 }
 
@@ -3431,6 +3484,14 @@ pre {
 .org-login {
   text-align: center;
 
+  fieldset {
+    text-align: left;
+  }
+
+  .basic-login label {
+    display: none;
+  }
+
   h3 {
     margin: 10px 0 0;
     font-size: 26px;
@@ -3441,10 +3502,30 @@ pre {
     font-size: 16px;
   }
 
-  .org-avatar {
+  .org-avatar, .merge-avatar {
     .square(60px);
-    border-radius: 60px;
+    border-radius: 4px;
     margin-bottom: 10px;
+  }
+
+  .icon-arrow-right, .icon-arrow-left {
+    background: none;
+    font-size: 32px;
+    width: 20px;
+    line-height: .35;
+    text-align: center;
+    position: relative;
+    opacity: .25;
+  }
+
+  .icon-arrow-right {
+    left: 2px;
+    top: -7px;
+  }
+
+   .icon-arrow-left {
+    right: 14px;
+    top: 11px;
   }
 
   .btn-default {

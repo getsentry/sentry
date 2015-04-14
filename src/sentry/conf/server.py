@@ -320,7 +320,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.social.social_auth_user',
     'social_auth.backends.pipeline.associate.associate_by_email',
     'social_auth.backends.pipeline.misc.save_status_to_session',
-    'sentry.utils.social_auth.create_user_if_enabled',
     'social_auth.backends.pipeline.social.associate_user',
     'social_auth.backends.pipeline.social.load_extra_data',
     'social_auth.backends.pipeline.user.update_user_details',
@@ -331,10 +330,7 @@ INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
-    'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
-    'facebook': ('FACEBOOK_APP_ID', 'FACEBOOK_API_SECRET'),
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
-    'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
 }
@@ -537,7 +533,6 @@ SENTRY_CACHE_BACKEND = 'default'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'social-auth:register': True,
     'organizations:create': True,
     'organizations:sso': False,
     'projects:quotas': True,

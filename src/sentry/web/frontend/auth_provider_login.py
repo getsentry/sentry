@@ -16,4 +16,4 @@ class AuthProviderLoginView(BaseView):
 
         if not helper.pipeline_is_valid():
             return helper.error('Something unexpected happened during authentication.')
-        return helper.next_step()
+        return helper.current_step()
