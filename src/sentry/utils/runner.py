@@ -394,6 +394,9 @@ def skip_migration_if_applied(settings, app_name, table_name,
     from sentry.utils.db import table_exists
     import types
 
+    if app_name not in settings.INSTALLED_APPS:
+        return
+
     migration = Migrations(app_name)[name]
 
     def skip_if_table_exists(original):
