@@ -25,6 +25,20 @@
           {% endif %}
         </li>
       {% endfor %}
+        <li class="no-access">
+          <div class="pull-right actions">
+            <a class="btn btn-primary" href="#">Request Access</a>
+          </div>
+          <h3>The Good Guys</h3>
+          <p>You currently do not have access to this team.</p>
+        </li>
+        <li class="no-access">
+          <div class="pull-right actions">
+            <a class="btn btn-default btn-disabled" href="#">Request pending...</a>
+          </div>
+          <h3>The Bad Guys</h3>
+          <p>You currently do not have access to this team.</p>
+        </li>
     </ul>
   {% endif %}
 {% endblock %}
