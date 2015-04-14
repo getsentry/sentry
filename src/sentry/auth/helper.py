@@ -197,14 +197,14 @@ class AuthHelper(object):
                 auth_provider=auth_provider,
                 user=user,
                 ident=identity['id'],
-                data=identity['data'],
+                data=identity.get('data', {}),
             )
             auth_is_new = True
         else:
             now = timezone.now()
             auth_identity.update(
                 user=user,
-                data=identity['data'],
+                data=identity.get('data', {}),
                 last_verified=now,
                 last_synced=now,
             )
