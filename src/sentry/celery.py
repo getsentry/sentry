@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import celery
 import os
 import os.path
 import sys
@@ -15,7 +16,18 @@ if not settings.configured:
     from sentry.utils.runner import configure
     configure()
 
-from celery import Celery
+
+class Celery(celery.Celery):
+    def on_configure(self):
+        from raven.contrib.django.models import client
+        from raven.contrib.celery import register_signal, register_logger_signal
+
+        # register a custom filter to filter out duplicate logs
+        register_logger_signal(client)
+
+        # hook into the Celery error handler
+        register_signal(client)
+
 
 app = Celery('sentry')
 
