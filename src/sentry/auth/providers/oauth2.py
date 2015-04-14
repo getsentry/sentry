@@ -174,7 +174,8 @@ class OAuth2Provider(Provider):
         raise NotImplementedError
 
     def refresh_identity(self, auth_identity):
-        refresh_token = auth_identity.data.get('refresh_token')
+        data = auth_identity.data.get('data')
+        refresh_token = data.get('refresh_token')
 
         if not refresh_token:
             raise IdentityNotValid('Missing refresh token')
@@ -209,7 +210,7 @@ class OAuth2Provider(Provider):
         if req.status_code != 200:
             raise Exception(formatted_error)
 
-        auth_identity.data.update(self.get_oauth_data(payload))
+        auth_identity.data['data'].update(self.get_oauth_data(payload))
         auth_identity.update(data=auth_identity.data)
 
         return True
