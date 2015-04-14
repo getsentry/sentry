@@ -8,9 +8,9 @@
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
 {% block account_nav %}
-    {% if CAN_REGISTER %}
-        <li><a href="{% url 'sentry-register' %}">{% trans "New Account" %}</a></li>
-    {% endif %}
+  {% if CAN_REGISTER %}
+    <li><a href="{% url 'sentry-register' %}">{% trans "New Account" %}</a></li>
+  {% endif %}
 {% endblock%}
 
 {% block main %}
