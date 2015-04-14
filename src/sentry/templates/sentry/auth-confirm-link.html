@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block wrapperclass %}windowed-small org-login{% endblock %}
 
@@ -10,23 +11,21 @@
 {% block account_nav %}{% endblock%}
 
 {% block main %}
-  <section class="body org-login">
+  <section class="body org-login" style="padding: 40px">
     <form class="form-stacked" action="" method="post">
       {% csrf_token %}
 
-      <input type="hidden" name="op" value="confirm" />
+      <img src="{% gravatar_url user.email size 36 %}" class="merge-avatar avatar">
+      <span class="icon-arrow-right"></span>
+      <span class="icon-arrow-left"></span>
+      <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
 
-      <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
+      <p>You're already logged in with an existing account. Would you look to add this identity? If not, we'll go ahead and create a new account for you.</p>
 
-      <h3>
-        {{ organization.name }}
-      </h3>
-
-      <p>A new link is being added to your account:</p>
-
-      <button type="submit" class="btn btn-default">
-        Confirm
-      </button>
+      <p class="align-center">
+        <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
+        <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
+      </p>
     </form>
   </section>
 {% endblock %}
