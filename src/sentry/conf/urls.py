@@ -45,9 +45,15 @@ def handler500(request):
     return HttpResponseServerError(t.render(Context(context)))
 
 
+def handler_healthcheck(request):
+    from django.http import HttpResponse
+    return HttpResponse('ok')
+
+
 urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^500/', handler500, name='error-500'),
     url(r'^404/', handler404, name='error-400'),
+    url(r'^healthcheck/', handler_healthcheck, name='healthcheck'),
     url(r'^403-csrf-failure/', CsrfFailureView.as_view(), name='error-403-csrf-failure'),
 ) + web_urlpatterns
