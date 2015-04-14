@@ -70,7 +70,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, 'sentry/auth-confirm-identity.html')
         assert resp.status_code == 200
 
-        resp = self.client.post(path, {'op': 'confirm'})
+        resp = self.client.post(path, {'op': 'newuser'})
 
         assert resp.status_code == 302
 
@@ -128,6 +128,51 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         member = OrganizationMember.objects.get(
             organization=organization,
             user=user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
+
+    def test_basic_provider_flow_as_existing_user_new_account(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team = self.create_team(organization=organization)
+        project = self.create_project(team=team)
+        auth_provider = AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+        )
+        user = self.create_user('bar@example.com')
+
+        path = reverse('sentry-auth-organization', args=[organization.slug])
+
+        self.login_as(user)
+
+        resp = self.client.post(path)
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content
+
+        path = reverse('sentry-auth-sso')
+
+        resp = self.client.post(path, {'email': 'foo@example.com'})
+
+        self.assertTemplateUsed(resp, 'sentry/auth-confirm-link.html')
+        assert resp.status_code == 200
+
+        resp = self.client.post(path, {'op': 'newuser'})
+
+        assert resp.status_code == 302
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=auth_provider,
+        )
+
+        assert auth_identity.user != user
+        assert auth_identity.user.email == 'foo@example.com'
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=auth_identity.user,
         )
 
         assert getattr(member.flags, 'sso:linked')
