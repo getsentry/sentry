@@ -18,6 +18,7 @@ except ImportError:
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 from django.contrib import admin
 from django.views.defaults import page_not_found
+from django.http import HttpResponse
 
 from sentry.web.urls import urlpatterns as web_urlpatterns
 from sentry.web.frontend.csrf_failure import CsrfFailureView
@@ -45,9 +46,14 @@ def handler500(request):
     return HttpResponseServerError(t.render(Context(context)))
 
 
+def handler_healthcheck(request):
+    return HttpResponse('ok')
+
+
 urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^500/', handler500, name='error-500'),
     url(r'^404/', handler404, name='error-400'),
+    url(r'^_health/$', handler_healthcheck, name='healthcheck'),
     url(r'^403-csrf-failure/', CsrfFailureView.as_view(), name='error-403-csrf-failure'),
 ) + web_urlpatterns
