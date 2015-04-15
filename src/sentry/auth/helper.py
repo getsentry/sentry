@@ -340,6 +340,14 @@ class AuthHelper(object):
                     'identity': identity,
                 })
         else:
+            # TODO(dcramer): this is very similar to attach
+            now = timezone.now()
+            auth_identity.update(
+                data=identity.get('data', {}),
+                last_verified=now,
+                last_synced=now,
+            )
+
             member = OrganizationMember.objects.get(
                 user=auth_identity.user,
                 organization=self.organization,
