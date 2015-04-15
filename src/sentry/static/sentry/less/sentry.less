@@ -8,7 +8,7 @@
 
 @baseFontSize: 13px;
 @grayDark: #404f60;
-@gray: #465262;
+@gray: #343C45;
 @navbarInverseLinkBackgroundActive: #333;
 
 @linkColor: @blue;
@@ -19,7 +19,7 @@
 @iconWhiteSpritePath:     "../vendor/bootstrap/img/glyphicons-halflings-white.png";
 
 @red: #ff2e46;
-@blue: #2e9fff;
+@blue: #1791F8;
 
 
 /* =============================  Global  ============================== */
@@ -590,12 +590,12 @@ h3 {
       width: 190px;
       display: block;
       margin-right: 0;
-      margin-top: 5px;
+      margin-top: 9px;
       margin-left: -250px;
       .nav a {
-        padding: 5px 15px;
+        padding: 8px 15px;
         margin: 0;
-        .border-radius(4px);
+        .border-radius(3px);
 
         &:hover {
           background: #F0F2F5;
@@ -774,7 +774,7 @@ h3 {
       }
     }
     .nav-list {
-      margin: 0 -29px 8px -30px;
+      margin: 0 -40px 8px -30px;
       li a {
         padding: 5px 30px;
       }
@@ -2223,16 +2223,15 @@ img.avatar32 {
 }
 
 .btn {
-  background: #F1F2F3;
   .border-radius(4px);
   .box-shadow(none);
   border: none;
-  color: #666d73;
   font-weight: bold;
   text-shadow: none;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
-  padding: 7px 12px;
+  padding: 7px 14px;
+  background: #f1f2f3;
 
   i {
     background-image: none;
@@ -2268,10 +2267,12 @@ img.avatar32 {
   &.btn-primary {
     background: @blue;
     color: #fff;
-    border-color: darken(@blue, 4);
+    border: 1px solid darken(@blue, 16);
+    box-shadow: 0 1px 1px rgba(0,0,0, .1);
+
     &:hover {
-      background: darken(@blue, 3);
-      border-color: darken(@blue, 8);
+      background: darken(@blue, 6);
+      border-color: darken(@blue, 24);
     }
 
     &.disabled, &[disabled] {
@@ -2280,6 +2281,17 @@ img.avatar32 {
 
     .caret {
       border-top-color: #fff;
+    }
+  }
+
+  &.btn-default {
+    color: #343C45;
+    border: 1px solid darken(#E1E2E3, 4);
+    background: rgba(250, 250, 250, 0.55);
+    box-shadow: 0 1px 1px rgba(0,0,0, .04);
+
+    &:hover {
+      background: rgba(245, 245, 245, 1);
     }
   }
 
@@ -2564,7 +2576,7 @@ table.member-list {
   color: #A1A8AE;
   font-weight: 500;
   padding: 10px 20px 12px;
-  font-size: 15px;
+  font-size: 16px;
 
   &:hover {
     background-color: transparent;
@@ -2746,12 +2758,12 @@ table.member-list {
       margin-bottom: 0;
       line-height: 22px;
       height: 22px;
-      font-size: 18px;
+      font-size: 16px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       color: #465262;
-      font-weight: bold;
+      font-weight: 500;
       border-bottom: 1px solid darken(#E3E7EC, 1);;
       padding: 10px 20px;
       margin: 0px -20px 10px;
