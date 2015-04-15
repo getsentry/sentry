@@ -14,7 +14,7 @@ from hashlib import md5
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
-    OrganizationMember, User
+    OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.utils.auth import get_login_redirect
 
@@ -191,7 +191,10 @@ class AuthHelper(object):
 
             default_teams = auth_provider.default_teams.all()
             for team in default_teams:
-                om.teams.add(team)
+                OrganizationMemberTeam.objects.create(
+                    team=team,
+                    organizationmember=om,
+                )
 
             AuditLogEntry.objects.create(
                 organization=self.organization,

@@ -34,13 +34,13 @@ class OrganizationMemberSettingsTest(TestCase):
         team_2 = self.create_team(name='bar', organization=organization)
 
         user = self.create_user('bar@example.com')
-        member = OrganizationMember.objects.create(
+        member = self.create_member(
             organization=organization,
             user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
+            teams=[team_2],
         )
-        member.teams.add(team_2)
 
         path = reverse('sentry-organization-member-settings',
                        args=[organization.slug, member.id])
@@ -88,7 +88,7 @@ class OrganizationMemberSettingsTest(TestCase):
         assert member.has_global_access is True
         assert member.type == OrganizationMemberType.ADMIN
 
-        assert member.teams.count() == 0
+        assert member.teams.count() == 2
 
         ale = AuditLogEntry.objects.get(
             organization=organization,
