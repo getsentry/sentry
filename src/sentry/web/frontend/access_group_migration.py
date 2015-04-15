@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from collections import defaultdict
 
 from sentry.models import (
-    AccessGroup, OrganizationMember, OrganizationMemberType, Team
+    AccessGroup, OrganizationMember, OrganizationMemberTeam,
+    OrganizationMemberType, Team
 )
 from sentry.web.frontend.base import OrganizationView
 
@@ -41,7 +42,10 @@ class AccessGroupMigrationView(OrganizationView):
 
             if created and not global_access:
                 for team in teams:
-                    om.teams.add(Team.objects.get_from_cache(slug=team))
+                    OrganizationMemberTeam.objects.create(
+                        team=Team.objects.get_from_cache(slug=team),
+                        organizationmember=om,
+                    )
 
         member.delete()
 

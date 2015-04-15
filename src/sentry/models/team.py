@@ -68,6 +68,7 @@ class TeamManager(BaseManager):
             except OrganizationMember.DoesNotExist:
                 team_qs = self.none()
             else:
+                # TODO(dcramer):
                 if om.has_global_access:
                     team_qs = base_team_qs
                 else:
