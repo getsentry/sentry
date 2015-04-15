@@ -5,42 +5,64 @@
 {% block org_teams_nav %}active{% endblock %}
 
 {% block inner %}
-  {% if not team_list %}
-    <p>You don't have any teams for this organization yet. Get started by <a href="{% url 'sentry-create-team' organization.slug %}">creating your first team</a>.</p>
-  {% else %}
-    <ul class="team-list">
-      {% for team, project_list in team_list %}
-        <li>
-          <h3><div class="pull-right actions">
-            <a href="{% url 'sentry-create-project' organization.slug %}?team={{ team.slug }}">New Project</a>
-            <a href="#">Leave Team</a>
-            <a href="{% url 'sentry-manage-team' organization.slug team.slug %}"><span class="icon-cog"></span>Settings</a>
-          </div><a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}">{{ team.name }}</a></h3>
-          {% if not project_list %}
-            <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.slug %}?team={{ team.slug }}">create a project</a>?</p>
-          {% else %}
-            <ul>
-              {% for project in project_list %}
-                <li><a href="{% url 'sentry-stream' organization.slug project.slug %}">{{ project.name }}</a></li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        </li>
-      {% endfor %}
-        <li class="no-access">
-          <div class="pull-right actions">
-            <a class="btn btn-primary" href="#">Request Access</a>
-          </div>
-          <h3>The Good Guys</h3>
-          <p>You currently do not have access to this team.</p>
-        </li>
-        <li class="no-access">
-          <div class="pull-right actions">
-            <a class="btn btn-default btn-disabled" href="#">Request pending...</a>
-          </div>
-          <h3>The Bad Guys</h3>
-          <p>You currently do not have access to this team.</p>
-        </li>
-    </ul>
-  {% endif %}
+  <ul class="nav nav-tabs" id="teams-tab">
+    <li class="active"><a href="#my-teams" data-toggle="tab">My Teams</a></li>
+    <li><a href="#all-teams" data-toggle="tab">All Teams</a></li>
+  </ul>
+  <div class="tab-content">
+    <div class="tab-pane active" id="my-teams">
+    {% if not team_list %}
+      <p>You don't have any teams for this organization yet. Get started by <a href="{% url 'sentry-create-team' organization.slug %}">creating your first team</a>.</p>
+    {% else %}
+      <ul class="team-list">
+        {% for team, project_list in team_list %}
+          <li>
+            <h3><div class="pull-right actions">
+              <a href="{% url 'sentry-create-project' organization.slug %}?team={{ team.slug }}">New Project</a>
+              <a href="#">Leave Team</a>
+              <a href="{% url 'sentry-manage-team' organization.slug team.slug %}"><span class="icon-cog"></span>Settings</a>
+            </div><a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}">{{ team.name }}</a></h3>
+            {% if not project_list %}
+              <p>There are no projects in this team. Would you like to <a href="{% url 'sentry-create-project' organization.slug %}?team={{ team.slug }}">create a project</a>?</p>
+            {% else %}
+              <ul>
+                {% for project in project_list %}
+                  <li><a href="{% url 'sentry-stream' organization.slug project.slug %}">{{ project.name }}</a></li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    </div>
+    <div class="tab-pane" id="all-teams">
+      <table class="table simple-list table-bordered">
+        <tr>
+          <td><h4>Captain Planet</h4></td>
+          <td style="text-align: right">
+            <a class="btn btn-default">Leave Team</a>
+          </td>
+        </tr>
+        <tr>
+          <td><h4>Massive Dynamic</h4></td>
+          <td style="text-align: right">
+            <a class="btn btn-default">Leave Team</a>
+          </td>
+        </tr>
+        <tr>
+          <td><h4>The Good Guys</h4></td>
+          <td style="text-align: right">
+            <a class="btn btn-primary">Request Access</a>
+          </td>
+        </tr>
+        <tr>
+          <td><h4>The Bad Guys</h4></td>
+          <td style="text-align: right">
+            <a class="btn btn-primary">Request Access</a>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
 {% endblock %}
