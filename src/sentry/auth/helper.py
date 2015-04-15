@@ -276,6 +276,7 @@ class AuthHelper(object):
             auth_provider=auth_provider,
             user=user,
             ident=identity['id'],
+            data=identity.get('data', {}),
         )
 
         om = OrganizationMember.objects.create(
