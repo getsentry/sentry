@@ -49,6 +49,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
 * `sentry-irccat <https://github.com/russss/sentry-irccat>`_
+* `sentry-javascript-lite <https://github.com/Banno/getsentry-javascript-lite>`_
 * `sentry-jira <https://github.com/thurloat/sentry-jira>`_
 * `sentry-ldap-auth <https://github.com/banno/getsentry-ldap-auth>`_
 * `sentry-lighthouse <https://github.com/gthb/sentry-lighthouse>`_
