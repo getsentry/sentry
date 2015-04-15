@@ -20,11 +20,14 @@
   </ul>
   <div class="tab-content">
     <div class="tab-pane active" id="my-teams">
-    {% if not team_list %}
-      <p>You don't have any teams for this organization yet. Get started by <a href="{% url 'sentry-create-team' organization.slug %}">creating your first team</a>.</p>
+    {% if not active_teams %}
+      <p>You don't have access to any teams for this organization yet.</p>
+      {% if ACCESS.org_write %}
+        <p>Get started by <a href="{% url 'sentry-create-team' organization.slug %}">creating your first team</a>.</p>
+      {% endif %}
     {% else %}
       <ul class="team-list">
-        {% for team, project_list in team_list %}
+        {% for team, project_list in active_teams %}
           <li>
             <h3><div class="pull-right actions">
               {% if ACCESS.team_write %}
@@ -51,30 +54,18 @@
     </div>
     <div class="tab-pane" id="all-teams">
       <table class="table simple-list table-bordered">
-        <tr>
-          <td><h4>Captain Planet</h4></td>
-          <td style="text-align: right">
-            <a class="btn btn-default">Leave Team</a>
-          </td>
-        </tr>
-        <tr>
-          <td><h4>Massive Dynamic</h4></td>
-          <td style="text-align: right">
-            <a class="btn btn-default">Leave Team</a>
-          </td>
-        </tr>
-        <tr>
-          <td><h4>The Good Guys</h4></td>
-          <td style="text-align: right">
-            <a class="btn btn-primary">Request Access</a>
-          </td>
-        </tr>
-        <tr>
-          <td><h4>The Bad Guys</h4></td>
-          <td style="text-align: right">
-            <a class="btn btn-primary">Request Access</a>
-          </td>
-        </tr>
+        {% for team, is_member in all_teams %}
+          <tr>
+            <td><h4>{{ team.name }}</h4></td>
+            <td style="text-align: right">
+              {% if is_member %}
+                <a class="btn btn-default">Leave Team</a>
+              {% else %}
+                <a class="btn btn-default">Request Access</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
       </table>
     </div>
   </div>

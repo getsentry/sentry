@@ -84,6 +84,10 @@ class Organization(Model):
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.OrganizationMember', related_name='org_memberships')
 
+    # flags = BitField(flags=(
+    #     ('allow_joinleave', 'Allow members to join and leave teams without requiring approval.'),
+    # ), default=0)
+
     objects = OrganizationManager(cache_fields=(
         'pk',
         'slug',
