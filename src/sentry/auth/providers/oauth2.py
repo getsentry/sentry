@@ -174,7 +174,7 @@ class OAuth2Provider(Provider):
         raise NotImplementedError
 
     def refresh_identity(self, auth_identity):
-        data = auth_identity.data.get('data')
+        data = auth_identity.data.get('data', {})
         refresh_token = data.get('refresh_token')
 
         if not refresh_token:
