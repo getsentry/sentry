@@ -593,9 +593,12 @@ h3 {
       margin-top: 9px;
       margin-left: -250px;
       .nav a {
+        font-size: 16px;
+        font-weight: 500;
         padding: 8px 15px;
         margin: 0;
         .border-radius(3px);
+        color: lighten(@gray, 30);
 
         &:hover {
           background: #F0F2F5;
@@ -834,22 +837,14 @@ footer {
   }
 
   .btn {
-    color: #f1f2f3;
     padding-top: 4px;
     padding-bottom: 4px;
-    background: #A8AEB6;
     position: relative;
     top: -2px;
-    margin: 0 0 0 10px;
+    margin: 0 0 0 15px;
 
-    &:hover {
-      color: #fff;
-      background: darken(#A8AEB6, 6);
-      border-color: darken(#A8AEB6, 12);
-    }
-    &:active, &:focus {
-      background: darken(#A8AEB6, 12);
-      top: -1px;
+    &:last-child {
+      margin-left: 4px;
     }
   }
 }
@@ -2230,7 +2225,7 @@ img.avatar32 {
   text-shadow: none;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
-  padding: 7px 14px;
+  padding: 6px 14px;
   background: #f1f2f3;
 
   i {
@@ -2298,7 +2293,8 @@ img.avatar32 {
   &.btn-danger {
     background: #da4f49;
     color: #fff;
-    border-color: #bd362f;
+    border: 1px solid darken(#da4f49, 20);
+    box-shadow: 0 1px 1px rgba(0,0,0, .1);
     &:hover {
       background: darken(#da4f49, 3);
       border-color: darken(#bd362f, 5);
@@ -2474,7 +2470,7 @@ table.vars {
 .table-striped {
   tbody tr:nth-child(odd) td,
   tbody tr:nth-child(odd) th {
-    background-color: #f6f7f8;
+    background: rgba(250, 250, 250, 0.55);
   }
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(even) th {
