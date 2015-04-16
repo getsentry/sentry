@@ -17,6 +17,7 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--days', default='30', type=int, help='Numbers of days to truncate on.'),
         make_option('--project', type=int, help='Limit truncation to only entries from project.'),
+        make_option('--concurrency', type=int, default=1, help='The number of concurrent workers to run.'),
     )
 
     def handle(self, **options):
@@ -27,4 +28,8 @@ class Command(BaseCommand):
             logger.setLevel(logging.DEBUG)
             logger.addHandler(logging.StreamHandler())
 
-        cleanup(days=options['days'], project=options['project'])
+        cleanup(
+            days=options['days'],
+            project=options['project'],
+            concurrency=options['concurrency'],
+        )

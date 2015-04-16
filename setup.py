@@ -93,7 +93,7 @@ install_requires = [
     'Pygments>=1.6.0,<1.7.0',
     'pytest',
     'pytest-django',
-    'python-dateutil>=1.5.0,<2.0.0',
+    'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
     'raven>=5.0.0',
     'redis>=2.7.0,<2.11.0',

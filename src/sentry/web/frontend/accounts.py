@@ -68,8 +68,6 @@ def register(request):
 
     return render_to_response('sentry/register.html', {
         'form': form,
-        'AUTH_PROVIDERS': get_auth_providers(),
-        'SOCIAL_AUTH_CREATE_USERS': features.has('social-auth:register'),
     }, request)
 
 

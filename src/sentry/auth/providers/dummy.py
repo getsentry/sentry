@@ -21,7 +21,11 @@ class DummyProvider(Provider):
         return [AskEmail()]
 
     def build_identity(self, state):
-        return state['email']
+        return {
+            'name': 'Dummy',
+            'id': state['email'],
+            'email': state['email'],
+        }
 
     def refresh_identity(self, auth_identity):
         pass
