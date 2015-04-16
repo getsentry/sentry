@@ -25,7 +25,7 @@ class UpdateOrganizationMemberTeamTest(APITestCase):
 
         self.login_as(self.user)
 
-        resp = self.client.put(path, data={'isActive': '1'})
+        resp = self.client.put(path, data={'isActive': '0'})
 
         assert resp.status_code == 200
 
@@ -33,4 +33,33 @@ class UpdateOrganizationMemberTeamTest(APITestCase):
             team=team,
             organizationmember=member_om,
         )
-        assert omt.is_active
+        assert not omt.is_active
+
+    def test_can_change_status_as_team_member(self):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        team = self.create_team(name='foo', organization=organization)
+        member_om = self.create_member(
+            organization=organization,
+            email='foo@example.com',
+            type=OrganizationMemberType.MEMBER,
+            has_global_access=False,
+            teams=[team],
+        )
+
+        path = reverse('sentry-api-0-organization-member-team-details', args=[
+            organization.slug, member_om.id, team.slug,
+        ])
+
+        self.login_as(self.user)
+
+        resp = self.client.put(path, data={'isActive': '0'})
+
+        assert resp.status_code == 200
+
+        omt = OrganizationMemberTeam.objects.get(
+            team=team,
+            organizationmember=member_om,
+        )
+        assert not omt.is_active
