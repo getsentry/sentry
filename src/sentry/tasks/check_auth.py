@@ -57,33 +57,6 @@ def check_auth_identity(auth_identity_id, **kwargs):
         return
 
     auth_provider = auth_identity.auth_provider
-    provider = auth_provider.get_provider()
-    try:
-        provider.refresh_identity(auth_identity)
-    except IdentityNotValid as exc:
-        logger.warning(
-            u'AuthIdentity(id=%s) notified as not valid: %s',
-            auth_identity_id,
-            unicode(exc),
-            exc_info=True,
-        )
-        metrics.incr('auth.identities.invalidated', 1)
-        is_linked = False
-        is_valid = False
-    except Exception as exc:
-        # to ensure security we count any kind of error as an invalidation
-        # event
-        metrics.incr('auth.identities.refresh_error', 1)
-        logger.exception(
-            u'AuthIdentity(id=%s) returned an error during validation: %s',
-            auth_identity_id,
-            unicode(exc),
-        )
-        is_linked = True
-        is_valid = False
-    else:
-        is_linked = True
-        is_valid = True
 
     try:
         om = OrganizationMember.objects.get(
@@ -98,9 +71,42 @@ def check_auth_identity(auth_identity_id, **kwargs):
         auth_identity.delete()
         return
 
-    setattr(om.flags, 'sso:linked', is_linked)
-    setattr(om.flags, 'sso:invalid', not is_valid)
-    om.update(flags=om.flags)
+    prev_is_valid = not getattr(om.flags, 'sso:invalid')
+
+    provider = auth_provider.get_provider()
+    try:
+        provider.refresh_identity(auth_identity)
+    except IdentityNotValid as exc:
+        if prev_is_valid:
+            logger.warning(
+                u'AuthIdentity(id=%s) notified as not valid: %s',
+                auth_identity_id,
+                unicode(exc),
+                exc_info=True,
+            )
+            metrics.incr('auth.identities.invalidated', 1)
+        is_linked = False
+        is_valid = False
+    except Exception as exc:
+        # to ensure security we count any kind of error as an invalidation
+        # event
+        if prev_is_valid:
+            metrics.incr('auth.identities.refresh_error', 1)
+            logger.exception(
+                u'AuthIdentity(id=%s) returned an error during validation: %s',
+                auth_identity_id,
+                unicode(exc),
+            )
+        is_linked = True
+        is_valid = False
+    else:
+        is_linked = True
+        is_valid = True
+
+    if getattr(om.flags, 'sso:linked') != is_linked:
+        setattr(om.flags, 'sso:linked', is_linked)
+        setattr(om.flags, 'sso:invalid', not is_valid)
+        om.update(flags=om.flags)
 
     now = timezone.now()
     auth_identity.update(
