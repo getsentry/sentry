@@ -74,10 +74,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         serializer = OrganizationMemberTeamSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
-            return Response(status=400)
+            return Response(serializer.errors, status=400)
 
         result = serializer.object
         if result.get('isActive') is not None:
             omt.is_active = result['isActive']
             omt.save()
-        return Response(status=204)
+        return Response({
+            'slug': team.slug,
+            'isActive': omt.is_active,
+        }, status=200)
