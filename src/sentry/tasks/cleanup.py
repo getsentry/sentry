@@ -90,6 +90,7 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
             else:
                 for obj in qs[:chunk_size].iterator():
                     delete_object(obj)
+                    count += 1
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long

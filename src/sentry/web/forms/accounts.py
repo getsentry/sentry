@@ -69,9 +69,8 @@ TIMEZONE_CHOICES = _get_timezone_choices()
 
 
 class AuthenticationForm(CaptchaForm):
-    username = forms.CharField(
-        label=_('Username or email'), max_length=128)
-    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput)
+    username = forms.CharField(label=_('Account'), max_length=128)
+    password = forms.CharField(label=_('Password'), widget=forms.PasswordInput)
 
     error_messages = {
         'invalid_login': _("Please enter a correct %(username)s and password. "
