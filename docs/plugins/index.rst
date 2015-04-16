@@ -50,6 +50,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
 * `sentry-irccat <https://github.com/russss/sentry-irccat>`_
 * `sentry-jira <https://github.com/thurloat/sentry-jira>`_
+* `sentry-kafka <https://github.com/Banno/getsentry-kafka>`_
 * `sentry-ldap-auth <https://github.com/banno/getsentry-ldap-auth>`_
 * `sentry-lighthouse <https://github.com/gthb/sentry-lighthouse>`_
 * `sentry-notifico <https://github.com/lukegb/sentry-notifico>`_
