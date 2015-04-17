@@ -12,10 +12,13 @@ var PropTypes = require("../proptypes");
 var utils = require("../utils");
 
 var GroupDetails = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   mixins: [
     BreadcrumbMixin,
-    Reflux.listenTo(GroupListStore, "onAggListChange"),
-    Router.State
+    Reflux.listenTo(GroupListStore, "onAggListChange")
   ],
 
   propTypes: {
@@ -57,7 +60,7 @@ var GroupDetails = React.createClass({
   },
 
   onAggListChange() {
-    var id = this.getParams().groupId;
+    var id = this.context.router.getCurrentParams().groupId;
 
     this.setState({
       group: GroupListStore.getItem(id)
@@ -65,12 +68,14 @@ var GroupDetails = React.createClass({
   },
 
   getGroupDetailsEndpoint() {
-    return '/groups/' + this.getParams().groupId + '/';
+    var id = this.context.router.getCurrentParams().groupId;
+
+    return '/groups/' + id + '/';
   },
 
   render() {
     var group = this.state.group;
-    var params = this.getParams();
+    var params = this.context.router.getCurrentParams();
 
     if (!group) {
       return <div />;

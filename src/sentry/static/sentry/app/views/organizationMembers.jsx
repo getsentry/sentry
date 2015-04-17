@@ -16,11 +16,14 @@ var OrganizationMembers = React.createClass({
   mixins: [
     BreadcrumbMixin,
     OrganizationState,
-    RouteMixin,
-    Router.State
+    RouteMixin
   ],
 
   crumbReservations: 1,
+
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   getInitialState() {
     return {
@@ -35,7 +38,8 @@ var OrganizationMembers = React.createClass({
   },
 
   routeDidChange(nextPath, nextParams) {
-    if (nextParams.orgId != this.getParams().orgId) {
+    var router = this.context.router;
+    if (nextParams.orgId != router.getCurrentParams().orgId) {
       this.fetchData();
     }
   },
@@ -67,7 +71,8 @@ var OrganizationMembers = React.createClass({
   },
 
   getOrganizationMembersEndpoint() {
-    var params = this.getParams();
+    var router = this.context.router;
+    var params = this.getCurrentParams();
     return '/organizations/' + params.orgId + '/members/';
   },
 

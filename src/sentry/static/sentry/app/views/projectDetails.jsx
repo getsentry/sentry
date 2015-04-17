@@ -18,8 +18,7 @@ var ProjectDetails = React.createClass({
     BreadcrumbMixin,
     Reflux.connect(MemberListStore, "memberList"),
     OrganizationState,
-    RouteMixin,
-    Router.State
+    RouteMixin
   ],
 
   crumbReservations: 2,
@@ -27,6 +26,10 @@ var ProjectDetails = React.createClass({
   childContextTypes: {
     project: PropTypes.Project,
     team: PropTypes.Team
+  },
+
+  contextTypes: {
+    router: React.PropTypes.func
   },
 
   getChildContext() {
@@ -50,8 +53,10 @@ var ProjectDetails = React.createClass({
   },
 
   routeDidChange(nextPath, nextParams) {
-    if (nextParams.projectId != this.getParams().projectId ||
-        nextParams.orgId != this.getParams().orgId) {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    if (nextParams.projectId != params.projectId ||
+        nextParams.orgId != params.orgId) {
       this.fetchData();
     }
   },
@@ -62,7 +67,9 @@ var ProjectDetails = React.createClass({
       return;
     }
 
-    var projectSlug = this.getParams().projectId;
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    var projectSlug = params.projectId;
     var activeProject;
     var activeTeam;
     org.teams.forEach((team) => {
@@ -99,7 +106,8 @@ var ProjectDetails = React.createClass({
   },
 
   getMemberListEndpoint() {
-    var params = this.getParams();
+    var router = this.context.router;
+    var params = router.getCurrentParams();
     return '/projects/' + params.orgId + '/' + params.projectId + '/members/';
   },
 

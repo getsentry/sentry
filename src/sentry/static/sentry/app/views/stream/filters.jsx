@@ -1,7 +1,6 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var Router = require("react-router");
 var $ = require("jquery");
 
 var utils = require("../../utils");
@@ -47,10 +46,14 @@ var SearchDropdown = React.createClass({
 });
 
 var SearchBar = React.createClass({
-  mixins: [Router.Navigation, Router.State],
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   getInitialState() {
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
+
     var query = (typeof queryParams.query === 'undefined' ?
       'is:unresolved' :
       queryParams.query);
@@ -62,7 +65,9 @@ var SearchBar = React.createClass({
   },
 
   onSubmit(event) {
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
+
     queryParams.query = this.state.query;
 
     event.preventDefault();
@@ -113,21 +118,24 @@ var SearchBar = React.createClass({
 });
 
 var FilterSelectLink = React.createClass({
-  mixins: [Router.State],
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   propTypes: {
     query: React.PropTypes.object.isRequired
   },
 
   render() {
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
+    var params = router.getCurrentParams();
     var className = this.props.extraClass;
     className += ' btn btn-default';
 
     if (this.props.isActive) {
       className += ' active';
     }
-
-    var queryParams = this.getQuery();
 
     // whitelist relevant params
     var finalQueryParams = $.extend({
@@ -139,7 +147,7 @@ var FilterSelectLink = React.createClass({
       <Router.Link
           to="stream"
           activeClassName=""
-          params={this.getParams()}
+          params={params}
           query={finalQueryParams}
           className={className}>
         {this.props.label}
@@ -149,14 +157,17 @@ var FilterSelectLink = React.createClass({
 });
 
 var StreamFilters = React.createClass({
-  mixins: [Router.State],
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   render() {
-    var params = utils.getQueryParams();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
     var activeButton;
-    if (params.bookmarks) {
+    if (queryParams.bookmarks) {
       activeButton = 'bookmarks';
-    } else if (params.assigned) {
+    } else if (queryParams.assigned) {
       activeButton = 'assigned';
     } else {
       activeButton = 'all';

@@ -2,7 +2,6 @@
 
 var $ = require("jquery");
 var React = require("react");
-var Router = require("react-router");
 
 var api = require("../api");
 var Count = require("../components/count");
@@ -13,7 +12,11 @@ var Pagination = require("../components/pagination");
 var PropTypes = require("../proptypes");
 
 var GroupTagValues = React.createClass({
-  mixins: [GroupState, Router.Navigation, Router.State],
+  mixins: [GroupState],
+
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   getInitialState() {
     return {
@@ -30,8 +33,9 @@ var GroupTagValues = React.createClass({
   },
 
   fetchData() {
-    var params = this.getParams();
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    var queryParams = router.getCurrentQuery();
     var querystring = $.param(queryParams);
 
     this.setState({
@@ -39,7 +43,7 @@ var GroupTagValues = React.createClass({
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/' + this.getParams().tagKey + '/', {
+    api.request('/groups/' + this.getGroup().id + '/tags/' + params.tagKey + '/', {
       success: (data) => {
         this.setState({
           tagKey: data,
@@ -54,7 +58,7 @@ var GroupTagValues = React.createClass({
       }
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/' + this.getParams().tagKey + '/values/?' + querystring, {
+    api.request('/groups/' + this.getGroup().id + '/tags/' + params.tagKey + '/values/?' + querystring, {
       success: (data, _, jqXHR) => {
         this.setState({
           tagValueList: data,
@@ -72,10 +76,11 @@ var GroupTagValues = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('groupTagValues', this.getParams(), queryParams);
+    this.transitionTo('groupTagValues', router.getCurrentParams(), queryParams);
   },
 
   render() {

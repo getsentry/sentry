@@ -71,9 +71,12 @@ var EventNode = React.createClass({
 
 var EventList = React.createClass({
   mixins: [
-    RouteMixin,
-    Router.State
+    RouteMixin
   ],
+
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   propTypes: {
     title: React.PropTypes.string.isRequired,
@@ -94,7 +97,9 @@ var EventList = React.createClass({
   },
 
   routeDidChange(nextPath, nextParams) {
-    if (nextParams.teamId != this.getParams().teamId) {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    if (nextParams.teamId != params.teamId) {
       this.fetchData();
     }
   },

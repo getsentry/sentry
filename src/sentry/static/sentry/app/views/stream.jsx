@@ -1,7 +1,6 @@
 /*** @jsx React.DOM */
 var React = require("react");
 var Reflux = require("reflux");
-var Router = require("react-router");
 var $ = require("jquery");
 
 var api = require("../api");
@@ -19,10 +18,12 @@ var utils = require("../utils");
 var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupListStore, "onAggListChange"),
-    RouteMixin,
-    Router.Navigation,
-    Router.State,
+    RouteMixin
   ],
+
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   propTypes: {
     memberList: React.PropTypes.instanceOf(Array).isRequired,
@@ -107,8 +108,9 @@ var Stream = React.createClass({
   },
 
   getGroupListEndpoint() {
-    var params = this.getParams();
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
     var querystring = $.param(queryParams);
 
@@ -138,13 +140,17 @@ var Stream = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    var queryParams = router.getCurrentQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('stream', this.getParams(), queryParams);
+    this.transitionTo('stream', params, queryParams);
   },
 
   render() {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
     var groupNodes = this.state.groupList.map((node) => {
       return <StreamGroup
           key={node.id}
@@ -152,8 +158,6 @@ var Stream = React.createClass({
           memberList={this.props.memberList}
           statsPeriod={this.state.statsPeriod} />;
     });
-
-    var params = this.getParams();
 
     return (
       <div>

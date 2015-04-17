@@ -13,9 +13,12 @@ var TeamState = require("../../mixins/teamState");
 var TeamChart = React.createClass({
   mixins: [
     RouteMixin,
-    Router.State,
     TeamState,
   ],
+
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   getInitialState() {
     return {
@@ -38,7 +41,9 @@ var TeamChart = React.createClass({
   },
 
   routeDidChange(nextPath, nextParams) {
-    if (nextParams.teamId != this.getParams().teamId) {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    if (nextParams.teamId != params.teamId) {
       this.fetchData();
     }
   },

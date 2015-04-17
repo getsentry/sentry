@@ -16,14 +16,17 @@ var TeamDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
     OrganizationState,
-    RouteMixin,
-    Router.State
+    RouteMixin
   ],
 
   crumbReservations: 1,
 
   childContextTypes: {
     team: PropTypes.Team
+  },
+
+  contextTypes: {
+    router: React.PropTypes.func
   },
 
   getChildContext() {
@@ -43,7 +46,9 @@ var TeamDetails = React.createClass({
   },
 
   routeDidChange(nextPath, nextParams) {
-    if (nextParams.teamId != this.getParams().teamId) {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    if (nextParams.teamId != params.teamId) {
       this.fetchData();
     }
   },
@@ -54,7 +59,9 @@ var TeamDetails = React.createClass({
       return;
     }
 
-    var teamSlug = this.getParams().teamId;
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    var teamSlug = params.teamId;
     var team = org.teams.filter((team) => {
       return team.slug === teamSlug;
     })[0];
