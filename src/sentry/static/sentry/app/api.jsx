@@ -3,12 +3,25 @@
 var $ = require("jquery");
 var GroupActions = require("./actions/groupActions");
 
+class Request {
+  constructor(xhr) {
+    this.xhr = xhr;
+    this.alive = true;
+  }
+
+  cancel() {
+    this.alive = false;
+    this.xhr.abort();
+  }
+}
+
 class Client {
   constructor(options) {
     if (typeof options === 'undefined') {
       options = {};
     }
     this.baseUrl = options.baseUrl || "/api/0";
+    this.activeRequests = {};
   }
 
   uniqueId() {
@@ -21,10 +34,27 @@ class Client {
            s4() + '-' + s4() + s4() + s4();
   }
 
+  wrapCallback(id, func, cleanup) {
+    if (typeof func === "undefined") {
+      return;
+    }
+
+    return () => {
+      var req = this.activeRequests[id];
+      if (cleanup === true) {
+        delete this.activeRequests[id];
+      }
+      if (req.alive) {
+        return func.apply(req, arguments);
+      }
+    };
+  }
+
   request(path, options) {
     var query = $.param(options.query || "", true);
     var method = options.method || (options.data ? "POST" : "GET");
     var data = options.data;
+    var id = this.uniqueId();
 
     if (typeof data !== "undefined") {
       data = JSON.stringify(data);
@@ -44,15 +74,17 @@ class Client {
       }
     }
 
-    $.ajax({
+    this.activeRequests[id] = new Request($.ajax({
       url: fullUrl,
       method: method,
       data: data,
       contentType: 'application/json',
-      success: options.success,
-      error: options.error,
-      complete: options.complete
-    });
+      success: this.wrapCallback(id, options.success),
+      error: this.wrapCallback(id, options.error),
+      complete: this.wrapCallback(id, options.complete, true)
+    }));
+
+    return this.activeRequests[id];
   }
 
   bulkDelete(params) {

@@ -3,7 +3,7 @@
 var React = require("react");
 var {Link} = require("react-router");
 
-var api = require("../api");
+var ApiMixin = require("../mixins/apiMixin");
 var Count = require("../components/count");
 var GroupState = require("../mixins/groupState");
 var LoadingError = require("../components/loadingError");
@@ -11,7 +11,10 @@ var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
 var GroupTags = React.createClass({
-  mixins: [GroupState],
+  mixins: [
+    ApiMixin,
+    GroupState
+  ],
 
   getInitialState() {
     return {
@@ -31,7 +34,7 @@ var GroupTags = React.createClass({
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/tags/', {
+    this.apiRequest('/groups/' + this.getGroup().id + '/tags/', {
       success: (data) => {
         if (!this.isMounted()) {
           return;
