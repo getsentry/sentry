@@ -24,7 +24,7 @@ def incr(key, amount=1):
 
     if sample_rate >= 1 or random() >= sample_rate:
         if sample_rate < 1:
-            amount = amount * (1.0 / sample_rate)
+            amount = int(amount * (1.0 / sample_rate))
         tsdb.incr(tsdb.models.internal, key, count=amount)
 
 
