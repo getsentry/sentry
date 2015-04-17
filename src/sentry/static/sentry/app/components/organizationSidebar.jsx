@@ -19,7 +19,7 @@ var OrganizationSelector = React.createClass({
 
     return (
       <DropdownLink
-          topLevelClasses="org-selector"
+          topLevelClasses="org-selector anchor-right"
           onOpen={this.onDropdownOpen}
           onClose={this.onDropdownClose}
           title={activeOrg.name}>
