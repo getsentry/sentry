@@ -525,7 +525,8 @@ table.integrations {
     position: absolute;
     top: 0;
     right: 0;
-    padding: 22px 20px 20px 5px;
+    left: 0;
+    padding: 22px 20px;
     z-index: 10;
   }
 
@@ -1264,15 +1265,14 @@ legend {
   box-shadow: 0 1px 0 rgba(52, 60, 69, .03);
 
   .box-header {
-    background: @gray;
+    color: @grayDark;
     line-height: 1;
     padding: 20px 20px 19px;
     border-radius: 2px 2px 0 0;
-    margin: -1px -1px 0;
-    color: #fff;
+    border-bottom: 1px solid @trim;
 
     a {
-      color: #fff;
+      color: inherit;
     }
 
     h3, h4, h5 {
