@@ -23,9 +23,9 @@ def incr(key, amount=1):
                 rate=sample_rate)
 
     if sample_rate >= 1 or random() >= sample_rate:
-        if sample_rate > 0 and sample_rate < 1:
+        if sample_rate < 1:
             amount = amount * (1.0 / sample_rate)
-        tsdb.incr(tsdb.models.internal, key, amount)
+        tsdb.incr(tsdb.models.internal, key, count=amount)
 
 
 def timing(key, value):
