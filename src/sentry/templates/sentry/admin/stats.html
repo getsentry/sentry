@@ -1,27 +1,31 @@
 {% extends "sentry/bases/admin.html" %}
 
-{% block admin-nav-stats %} class="active"{% endblock %}
+{% block admin-nav-overview %} class="active"{% endblock %}
 
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{% trans "Stats" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Overview" %} | {{ block.super }}{% endblock %}
 
 {% block inner %}
-    <div class="page-header">
-        <h2>{% trans "Statistics" %}</h2>
+  <div class="page-header">
+    <h2>{% trans "System Overview" %}</h2>
+  </div>
+
+  <div class="row">
+    <div class="span6">
+      <h3>Total Events</h3>
+      <div class="chart" data-api-url="{% url 'sentry-api-0-internal-stats' %}?key=events.total"></div>
     </div>
-    <table class="table vars table-bordered table-striped">
-        <colgroup>
-            <col style="width:220px">
-        </colgroup>
-        <tbody>
-            {% for key, value in statistics %}
-                <tr>
-                    <td>{{ key }}</td>
-                    <td>{{ value }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="span6">
+      <h3>Dropped Events</h3>
+      <div class="chart" data-api-url="{% url 'sentry-api-0-internal-stats' %}?key=events.dropped"></div>
+    </div>
+  </div>
+
+  <script>
+    $('.chart').height('150px').each(function(){
+      Sentry.charts.render(this);
+    });
+  </script>
 {% endblock %}
