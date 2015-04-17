@@ -465,15 +465,6 @@ class EventManager(object):
             elif group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
 
-        update_kwargs = {
-            'times_seen': 1,
-        }
-        if time_spent:
-            update_kwargs.update({
-                'time_spent_total': time_spent,
-                'time_spent_count': 1,
-            })
-
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
         can_sample = should_sample(event.datetime, group.last_seen, group.times_seen)
