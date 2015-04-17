@@ -11,6 +11,8 @@ This release removes the ability to login or create accounts using a social auth
 - Facebook, Google, and Twitter identities are no longer available.
 - Plugin's inheriting from TagPlugin are now based on v2 of the API, and thus no longer create
   excess jobs in the queue.
+- Metrics (counters) are now collected in both in sentry.tsdb and an optionally configured statsd
+  instance.
 
 
 Version 7.4.3
