@@ -42,9 +42,9 @@
 
 .btn-default {
   color: #34343f;
-  background-color: lighten(#f1f2f3, 3);
-  border-color: #cacccc;
-  box-shadow: 0 1px 0 rgba(52, 60, 69, 0.03);
+  background-color: #fff;
+  border-color: darken(@trim, 3);
+  box-shadow: 0 1px 0 rgba(52, 60, 69, 0.015);
 
   &:hover, &:focus, &:active {
     color: #34343f;
@@ -56,8 +56,8 @@
 .btn-primary {
   color: #ffffff;
   background-color: @blue;
-  border-color: darken(@blue, 15);
-  box-shadow: 0 1px 0 rgba(70, 82, 98, 0.16);
+  border-color: transparent;
+  box-shadow: none;
 
   &:hover, &:focus, &:active {
     background-color: darken(@blue, 4);
@@ -790,7 +790,7 @@ table.integrations {
 
       &:before {
         content: "";
-        background: rgba(52, 60, 69, .04);
+        background: #F0F1F4;
         display: block;
         border-radius: 1px;
         position: absolute;
@@ -804,7 +804,7 @@ table.integrations {
         border-radius: 1px;
         min-height: 4px;
         min-width: 5px;
-        background: @grayDark;
+        background: @teal;
       }
     }
   }
