@@ -4,6 +4,8 @@ var React = require("react");
 
 var AppState = require("../mixins/appState");
 var ConfigStore = require("../stores/configStore");
+var DropdownLink = require("./dropdownLink");
+var MenuItem = require("./menuItem");
 var Gravatar = require("./gravatar");
 var ListLink = require("./listLink");
 var OrganizationState = require("../mixins/organizationState");
@@ -16,23 +18,19 @@ var OrganizationSelector = React.createClass({
     var activeOrg = this.getOrganization();
 
     return (
-      <div className="org-selector dropdown">
-        <a href="" className="active-org">{activeOrg.name}</a>
-        <a href="" className="dropdown-toggle">
-          <span className="icon-arrow-down" />
-        </a>
-        <div className="dropdown-menu">
-          <ul className="orgs">
-            {this.getOrganizationList().map((org) => {
-              return (
-                <li key={org.slug}>
-                  <a href="">{org.name}</a>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </div>
+      <DropdownLink
+          topLevelClasses="org-selector"
+          onOpen={this.onDropdownOpen}
+          onClose={this.onDropdownClose}
+          title={activeOrg.name}>
+        {this.getOrganizationList().map((org) => {
+          return (
+            <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}}>
+              {org.name}
+            </MenuItem>
+          );
+        })}
+      </DropdownLink>
     );
   }
 });
