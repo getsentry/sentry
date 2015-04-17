@@ -17,6 +17,13 @@ img {
 
 .bordered-column {
 	border-right: 1px solid @trim;
-  margin: -20px 10px 0 -10px;
+  margin: -20px -1px 0 -10px;
   padding: 20px 20px 0;
+
+  &+.bordered-column {
+  	border: 0;
+	  border-left: 1px solid @trim;
+	  margin: -20px 0 0 0;
+	  padding: 20px 0 0 20px;
+  }
 }
