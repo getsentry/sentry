@@ -9,6 +9,8 @@ This release removes the ability to login or create accounts using a social auth
 - The default logger name is now an empty value.
 - Celery has been upgraded to 3.1 and is now available at 'sentry.celery'.
 - Facebook, Google, and Twitter identities are no longer available.
+- Plugin's inheriting from TagPlugin are now based on v2 of the API, and thus no longer create
+  excess jobs in the queue.
 
 
 Version 7.4.3
