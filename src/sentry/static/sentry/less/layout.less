@@ -3,11 +3,11 @@ body {
   font-family: @font-family-base;
   font-size: 14px;
   line-height: 20px;
-  color: #343C45;
+  color: @gray;
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
   overflow-x: hidden;
-  background: #fbfbfc;
+  background: @bgColor;
   padding-left: @sidebar-width;
 }
 
@@ -51,7 +51,7 @@ body.narrow {
 */
 
 body.show-rightbar {
-  background: #fbfbfc url(../images/dashboard/sidebar-bg.png) top right repeat-y;
+  background: @bgColor url(../images/dashboard/sidebar-bg.png) top right repeat-y;
   background-size: 220px 2px;
 
   .content {
@@ -91,7 +91,7 @@ body.show-rightbar {
 header {
   background: #fff;
   color: @gray;
-  border-bottom: 1px solid #E6E7E9;
+  border-bottom: 1px solid @trim;
   position: relative;
   height: 66px;
   padding: 25px 0 0;
@@ -154,12 +154,12 @@ header {
 
       &:last-child {
         a {
-          color: @gray-light;
+          color: lighten(@gray, 15);
         }
       }
       &:first-child:last-child {
         a {
-          color: @gray-dark;
+          color: @gray;
         }
       }
 
@@ -308,7 +308,7 @@ header {
   .icon-settings {
     opacity: .5;
     font-size: 14px;
-    color: #747f8e;
+    color: lighten(@gray, 2);
 
     &:hover {
       opacity: 1;
@@ -319,14 +319,14 @@ header {
     margin: 15px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #747f8e;
+    color: lighten(@gray, 2);
 
     &:first-child {
       margin-top: 5px;
     }
 
     a {
-      color: #747f8e;
+      color: lighten(@gray, 2);
     }
   }
 
@@ -434,9 +434,9 @@ header {
 footer {
   line-height: 30px;
   text-align: center;
-  color: #B5B9BD;
+  color: lighten(@gray, 25);
   font-weight: 500;
-  border-top: 1px solid #f1f2f3;
+  border-top: 1px solid @trim;
   margin-top: 20px;
   padding: 22px 0;
 
@@ -447,14 +447,14 @@ footer {
   }
 
   a {
-    color: #B5B9BD;
+    color: lighten(@gray, 25);
     &:hover {
-      color: darken(#B5B9BD, 10);
+      color: @gray;
     }
   }
 
   .icon-sentry-logo {
-    color: #D1D3D6;
+    color: lighten(@gray, 25);
     font-size: 28px;
     width: 32px;
     margin: 0 auto;
