@@ -152,6 +152,25 @@ header {
         white-space: nowrap;
       }
 
+      &:first-child {
+
+        a {
+          font-size: 0;
+          position: relative;
+          padding-left: 22px;
+
+          &:before {
+            font-family: "sentry-simple";
+            content: "\e620";
+            font-size: 20px;
+            position: absolute;
+            left: 0;
+            top: -17px;
+            opacity: .85;
+          }
+        }
+      }
+
       &:last-child {
         a {
           color: lighten(@gray, 15);
@@ -159,7 +178,12 @@ header {
       }
       &:first-child:last-child {
         a {
-          color: @gray;
+          font-size: 18px;
+          padding-left: 0;
+
+          &:before {
+            display: none;
+          }
         }
       }
 
