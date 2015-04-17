@@ -8,7 +8,6 @@
 }
 
 .stream-actions {
-  background: #fff;
   border: 1px solid @trim;
   border-bottom: 0;
   border-radius: 2px 2px 0 0;
@@ -96,7 +95,7 @@
         .transition(background .2s linear);
       }
       &.active a {
-        background: @gray;
+        background: lighten(@gray, 15);
         opacity: 1;
         font-weight: 500;
         color: #fff;
