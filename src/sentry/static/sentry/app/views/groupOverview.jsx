@@ -71,7 +71,7 @@ var GroupOverview = React.createClass({
 
     api.request(url, {
       success: (data, _, jqXHR) => {
-        if (!this.isMounted) {
+        if (!this.isMounted()) {
           return;
         }
         this.setState({
@@ -89,7 +89,7 @@ var GroupOverview = React.createClass({
         });
       },
       error: () => {
-        if (!this.isMounted) {
+        if (!this.isMounted()) {
           return;
         }
         this.setState({
