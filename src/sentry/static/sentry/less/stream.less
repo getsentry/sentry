@@ -9,18 +9,14 @@
 
 .stream-actions {
   background: #fff;
-  border-top: 1px solid rgba(52, 60, 69, .08);
-  box-shadow: 0 1px 0 rgba(52, 60, 69, .08);
+  border-top: 1px solid @trim;
+  box-shadow: 0 1px 0 @trim;
   margin-left: -20px;
   margin-right: -20px;
   padding-right: 10px;
 
   .btn-group > .btn {
     color: inherit;
-  }
-
-  .btn-default {
-    border-color: rgba(70, 82, 98, .18);
   }
 
   .checkbox {
@@ -99,7 +95,7 @@
         .transition(background .2s linear);
       }
       &.active a {
-        background: rgba(70,82, 98, .45);
+        background: @teal;
         opacity: 1;
         font-weight: 500;
         color: #fff;
@@ -125,7 +121,7 @@
 
   .group {
     position: relative;
-    border-bottom: 1px solid rgba(52, 60, 69, .08);
+    border-bottom: 1px solid @trim;
     margin: 0;
     padding-right: 10px;
     background: #fff;
@@ -172,7 +168,7 @@
     &.hasSeen {
       h3 {
         a {
-          color: #949ea4;
+          color: @gray;
         }
       }
     }
@@ -235,7 +231,7 @@
       letter-spacing: -0.25px;
       margin: 0 0 3px;
       a {
-        color: inherit;
+        color: @grayDark;
       }
     }
 
