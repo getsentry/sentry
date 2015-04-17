@@ -19,11 +19,13 @@ var DateRangePicker = React.createClass({
   }
 });
 
-var OrganizationHeader = React.createClass({
-  mixins: [Router.State],
+var ProjectHeader = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   render() {
-    var routeParams = this.getParams();
+    var routeParams = this.context.router.getCurrentParams();
     var navSection = this.props.activeSection;
     var urlPrefix = ConfigStore.get('urlPrefix');
 
@@ -51,4 +53,4 @@ var OrganizationHeader = React.createClass({
   }
 });
 
-module.exports = OrganizationHeader;
+module.exports = ProjectHeader;
