@@ -1,24 +1,32 @@
 /*** @jsx React.DOM */
 
+var React = require("react");
+
 var RouteMixin = {
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   getInitialState() {
+    var router = this.context.router;
     return {
-      activeRoutePath: this.getPath(),
-      activeParams: this.getParams(),
-      activeQuery: this.getQuery()
+      activeRoutePath: router.getCurrentPath(),
+      activeParams: router.getCurrentParams(),
+      activeQuery: router.getCurrentQuery()
     };
   },
 
   componentWillReceiveProps(nextProps) {
-    if (this.state.activeRoutePath != this.getPath()) {
+    var router = this.context.router;
+    if (this.state.activeRoutePath != router.getCurrentPath()) {
       this.routeDidChange(
         this.state.activeRoutePath,
         this.state.activeParams,
         this.state.activeQuery);
       this.setState({
-        activeRoutePath: this.getPath(),
-        activeParams: this.getParams(),
-        activeQuery: this.getQuery()
+        activeRoutePath: router.getCurrentPath(),
+        activeParams: router.getCurrentParams(),
+        activeQuery: router.getCurrentQuery()
       });
     }
   },

@@ -1,7 +1,6 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
-var Router = require("react-router");
 
 var EventList = require("./teamDashboard/eventList");
 var TeamChart = require("./teamDashboard/chart");
@@ -10,17 +9,22 @@ var TeamStatsBar = require("./teamDashboard/statsBar");
 
 var TeamDashboard = React.createClass({
   mixins: [
-    Router.State,
     TeamState
   ],
 
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   getTrendingEventsEndpoint() {
-    var params = this.getParams();
+    var router = this.context.router;
+    var params = router.getCurrentParams();
     return "/teams/" + params.orgId + "/" + params.teamId + "/groups/trending/";
   },
 
   getNewEventsEndpoint() {
-    var params = this.getParams();
+    var router = this.context.router;
+    var params = router.getCurrentParams();
     return "/teams/" + params.orgId + "/" + params.teamId + "/groups/new/";
   },
 

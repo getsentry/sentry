@@ -13,7 +13,11 @@ var PropTypes = require("../proptypes");
 var TimeSince = require("../components/timeSince");
 
 var GroupEvents = React.createClass({
-  mixins: [GroupState, Router.Navigation, Router.State],
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
+  mixins: [GroupState],
 
   getInitialState() {
     return {
@@ -29,7 +33,7 @@ var GroupEvents = React.createClass({
   },
 
   fetchData() {
-    var queryParams = this.getQuery();
+    var queryParams = this.context.router.getCurrentQuery();
     var querystring = $.param(queryParams);
 
     this.setState({
@@ -56,10 +60,10 @@ var GroupEvents = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = this.getQuery();
+    var queryParams = this.context.router.getCurrentQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('groupEvents', this.getParams(), queryParams);
+    this.transitionTo('groupEvents', this.context.router.getCurrentParams(), queryParams);
   },
 
   render() {

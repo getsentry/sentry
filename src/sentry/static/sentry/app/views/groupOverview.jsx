@@ -31,10 +31,13 @@ var MutedBox = React.createClass({
 });
 
 var GroupOverview = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   mixins: [
     ApiMixin,
     GroupState,
-    Router.State,
     RouteMixin
   ],
 
@@ -60,7 +63,7 @@ var GroupOverview = React.createClass({
   },
 
   fetchData() {
-    var eventId = this.getParams().eventId || 'latest';
+    var eventId = this.context.router.getCurrentParams().eventId || 'latest';
 
     var url = (eventId === 'latest' ?
       '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
@@ -99,7 +102,7 @@ var GroupOverview = React.createClass({
   render() {
     var group = this.getGroup();
     var evt = this.state.event;
-    var params = this.getParams();
+    var params = this.context.router.getCurrentParams();
 
     if (evt) {
       var eventNavNodes = [

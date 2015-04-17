@@ -1,7 +1,6 @@
 /*** @jsx React.DOM */
 var React = require("react");
 var Reflux = require("reflux");
-var Router = require("react-router");
 
 var utils = require("../../utils");
 
@@ -137,21 +136,27 @@ var ActionLink = React.createClass({
 });
 
 var SortOptions = React.createClass({
-  mixins: [Router.State],
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   getMenuItem(key, label, isActive) {
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
+    var params = router.getCurrentParams();
+
     queryParams.sort = key;
 
     return (
-      <MenuItem to="stream" params={this.getParams()} query={queryParams} isActive={isActive}>
+      <MenuItem to="stream" params={params} query={queryParams} isActive={isActive}>
         {label}
       </MenuItem>
     );
   },
 
   render() {
-    var queryParams = this.getQuery();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
     var sortBy = queryParams.sort || 'date';
     var sortLabel;
 

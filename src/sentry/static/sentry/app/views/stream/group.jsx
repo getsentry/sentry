@@ -10,9 +10,12 @@ var SelectedGroupStore = require("../../stores/selectedGroupStore");
 var TimeSince = require("../../components/timeSince");
 
 var StreamGroup = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   mixins: [
-    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange"),
-    Router.State
+    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange")
   ],
 
   propTypes: {
@@ -42,9 +45,10 @@ var StreamGroup = React.createClass({
   },
 
   render() {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
     var data = this.props.data;
     var userCount = 0;
-    var params = this.getParams();
     var points;
 
     switch(this.props.statsPeriod) {

@@ -15,14 +15,17 @@ var RouteMixin = require("../mixins/routeMixin");
 var OrganizationDetails = React.createClass({
   mixins: [
     BreadcrumbMixin,
-    RouteMixin,
-    Router.State
+    RouteMixin
   ],
 
   crumbReservations: 1,
 
   childContextTypes: {
     organization: PropTypes.Organization
+  },
+
+  contextTypes: {
+    router: React.PropTypes.func
   },
 
   getChildContext() {
@@ -44,7 +47,9 @@ var OrganizationDetails = React.createClass({
   },
 
   routeDidChange(nextPath, nextParams) {
-    if (nextParams.orgId != this.getParams().orgId) {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    if (nextParams.orgId != params.orgId) {
       this.fetchData();
     }
   },
@@ -70,7 +75,8 @@ var OrganizationDetails = React.createClass({
   },
 
   getOrganizationDetailsEndpoint() {
-    var params = this.getParams();
+    var router = this.context.router;
+    var params = router.getCurrentParams();
     return '/organizations/' + params.orgId + '/';
   },
 
