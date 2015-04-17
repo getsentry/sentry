@@ -70,6 +70,19 @@ class SingleException(Interface):
             'stacktrace': stacktrace,
         }
 
+    def get_api_context(self):
+        if self.stacktrace:
+            stacktrace = self.stacktrace.get_api_context()
+        else:
+            stacktrace = None
+
+        return {
+            'type': self.type,
+            'value': self.value,
+            'module': self.module,
+            'stacktrace': stacktrace,
+        }
+
     def get_alias(self):
         return 'exception'
 
@@ -176,6 +189,12 @@ class Exception(Interface):
         return {
             'values': [v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
+        }
+
+    def get_api_context(self):
+        return {
+            'values': [v.get_api_context() for v in self.values],
+            'excOmitted': self.exc_omitted,
         }
 
     def __getitem__(self, key):
