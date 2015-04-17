@@ -16,16 +16,15 @@ var ListLink = React.createClass({
     onClick: React.PropTypes.func
   },
 
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   getDefaultProps() {
     return {
       activeClassName: 'active'
     };
   },
-
-  mixins: [
-    Router.Navigation,
-    Router.State
-  ],
 
   getClassName() {
     var classNames = {};
@@ -33,7 +32,7 @@ var ListLink = React.createClass({
     if (this.props.className)
       classNames[this.props.className] = true;
 
-    if (this.isActive(this.props.to, this.props.params, this.props.query))
+    if (this.context.router.isActive(this.props.to, this.props.params, this.props.query))
       classNames[this.props.activeClassName] = true;
 
     return classSet(classNames);

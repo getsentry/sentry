@@ -14,9 +14,12 @@ var PropTypes = require("../../proptypes");
 
 var GroupHeader = React.createClass({
   mixins: [
-    GroupState,
-    Router.State,
+    GroupState
   ],
+
+  contextTypes: {
+    router: React.PropTypes.func.isRequired
+  },
 
   propTypes: {
     memberList: React.PropTypes.instanceOf(Array).isRequired,
@@ -24,7 +27,7 @@ var GroupHeader = React.createClass({
   },
 
   isEventDetailView() {
-    var currentRoutes = this.context.getCurrentRoutes();
+    var currentRoutes = this.context.router.getCurrentRoutes();
     return currentRoutes[currentRoutes.length - 1].name == 'groupEventDetails';
   },
 
@@ -51,7 +54,7 @@ var GroupHeader = React.createClass({
       className += " isResolved";
     }
 
-    var groupRouteParams = this.getParams();
+    var groupRouteParams = this.context.router.getCurrentParams();
 
     return (
       <div className={className}>
