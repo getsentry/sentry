@@ -61,10 +61,10 @@ class MailStatusTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
 
 
-class StatsTest(TestCase):
+class OverviewTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-admin-stats')
+        return reverse('sentry-admin-overview')
 
     def test_requires_auth(self):
         resp = self.client.get(self.path)
