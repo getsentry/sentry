@@ -70,11 +70,23 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
             expires=300,
         )
 
+    record_additional_tags(event=event)
+
     rp = RuleProcessor(event, is_new, is_regression, is_sample)
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
     for callback, futures in rp.apply():
         safe_execute(callback, event, futures)
+
+
+def record_additional_tags(event):
+    from sentry.models import Group
+
+    added_tags = []
+    for plugin in plugins.for_project(event.project, version=2):
+        added_tags.extend(safe_execute(plugin.get_tags, event) or ())
+    if added_tags:
+        Group.objects.add_tags(event.group, added_tags)
 
 
 @instrumented_task(
@@ -109,7 +121,9 @@ def record_affected_user(event, **kwargs):
         value = user_data.get(key)
         if value:
             tag_data[key] = value
-    tag_data['ip'] = event.ip_address
+    ip_address = event.ip_address
+    if ip_address:
+        tag_data['ip'] = ip_address
 
     Group.objects.add_tags(event.group, [
         ('sentry:user', user_ident, tag_data)
