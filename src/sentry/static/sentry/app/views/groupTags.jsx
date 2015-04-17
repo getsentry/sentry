@@ -33,6 +33,9 @@ var GroupTags = React.createClass({
 
     api.request('/groups/' + this.getGroup().id + '/tags/', {
       success: (data) => {
+        if (!this.isMounted()) {
+          return;
+        }
         this.setState({
           tagList: data,
           error: false,
@@ -40,6 +43,9 @@ var GroupTags = React.createClass({
         });
       },
       error: (error) => {
+        if (!this.isMounted()) {
+          return;
+        }
         this.setState({
           error: true,
           loading: false
