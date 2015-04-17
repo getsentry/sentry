@@ -534,17 +534,22 @@ table.integrations {
     top: 0;
     right: 0;
     left: 0;
-    padding: 22px 20px;
+    padding: 23px 20px;
     z-index: 10;
+    .transition(.1s color linear);
   }
 
   .dropdown-menu {
     background: #fff;
-    border-radius: 0;
-    top: 66px;
-    width: @sidebar-width;
-    margin: 0;
-    padding: 0;
+    border-radius: 2px;
+    top: 62px;
+    width: @sidebar-width - 10;
+    margin: 0 5px;
+    padding: 10px 0;
+
+    &:after {
+      right: 15px !important;
+    }
   }
 
   .orgs {
@@ -564,6 +569,12 @@ table.integrations {
           color: #fff;
         }
       }
+    }
+  }
+
+  &.open {
+    .dropdown-toggle {
+      color: @blue;
     }
   }
 }
