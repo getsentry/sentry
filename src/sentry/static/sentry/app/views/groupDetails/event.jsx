@@ -40,6 +40,10 @@ var GroupEventExtraData = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.event.id !== nextProps.event.id;
+  },
+
   render() {
     var children = [];
     var context = this.props.event.context;
