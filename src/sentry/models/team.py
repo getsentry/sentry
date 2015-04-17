@@ -34,7 +34,8 @@ class TeamManager(BaseManager):
         OrganizationMemberType value.
         """
         from sentry.models import (
-            AccessGroup, OrganizationMember, OrganizationMemberType, Project
+            AccessGroup, OrganizationMember, OrganizationMemberTeam,
+            OrganizationMemberType, Project
         )
 
         if not user.is_authenticated():
@@ -45,15 +46,25 @@ class TeamManager(BaseManager):
             status=TeamStatus.VISIBLE
         )
 
-        if user.is_superuser:
-            team_list = list(base_team_qs)
-            for team in team_list:
-                team.access_type = OrganizationMemberType.OWNER
+        if user.is_superuser or (settings.SENTRY_PUBLIC and access is None):
+            inactive = list(OrganizationMemberTeam.objects.filter(
+                organizationmember__user=user,
+                organizationmember__organization=organization,
+                is_active=False,
+            ).values_list('team', flat=True))
 
-        elif settings.SENTRY_PUBLIC and access is None:
-            team_list = list(base_team_qs)
+            team_list = base_team_qs
+            if inactive:
+                team_list = team_list.exclude(id__in=inactive)
+
+            team_list = list(team_list)
+
+            if user.is_superuser:
+                access = OrganizationMemberType.OWNER
+            else:
+                access = OrganizationMemberType.MEMBER
             for team in team_list:
-                team.access_type = OrganizationMemberType.MEMBER
+                team.access_type = access
 
         else:
             om_qs = OrganizationMember.objects.filter(
@@ -69,12 +80,20 @@ class TeamManager(BaseManager):
                 team_qs = self.none()
             else:
                 # TODO(dcramer):
+                om_teams = om.teams.filter(
+                    status=TeamStatus.VISIBLE
+                )
+
                 if om.has_global_access:
+                    inactive = list(om_teams.filter(
+                        is_active=False,
+                    ).values_list('team', flat=True))
+
                     team_qs = base_team_qs
+                    if inactive:
+                        team_qs = team_qs.exclude(id__in=inactive)
                 else:
-                    team_qs = om.teams.filter(
-                        status=TeamStatus.VISIBLE
-                    )
+                    team_qs = om_teams
 
                 for team in team_qs:
                     team.access_type = om.type

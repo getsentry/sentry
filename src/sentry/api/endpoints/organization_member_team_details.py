@@ -80,6 +80,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         if result.get('isActive') is not None:
             omt.is_active = result['isActive']
             omt.save()
+
         return Response({
             'slug': team.slug,
             'isActive': omt.is_active,
