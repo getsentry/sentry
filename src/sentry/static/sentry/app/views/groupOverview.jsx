@@ -71,6 +71,9 @@ var GroupOverview = React.createClass({
 
     api.request(url, {
       success: (data, _, jqXHR) => {
+        if (!this.isMounted) {
+          return;
+        }
         this.setState({
           event: data,
           error: false,
@@ -86,6 +89,9 @@ var GroupOverview = React.createClass({
         });
       },
       error: () => {
+        if (!this.isMounted) {
+          return;
+        }
         this.setState({
           error: true,
           loading: false
