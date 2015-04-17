@@ -33,7 +33,7 @@
     </div>
 
     {% if not tag_values.paginator.objects %}
-        <p>{% blocktrans %}You dont seem to have any data recorded for this tag. For more information on how to send this information consult your client's documentation.{% endblocktrans %}</p>
+        <div class="well">{% blocktrans %}You dont seem to have any data recorded for this tag. For more information on how to send this information consult your client's documentation.{% endblocktrans %}</div>
     {% else %}
         <table class="table">
             <thead>
