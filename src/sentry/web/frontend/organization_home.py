@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.models import Team
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+
+from sentry.api import client
+from sentry.models import OrganizationMember, Team
 from sentry.web.frontend.base import OrganizationView
 
 
@@ -21,6 +25,48 @@ class OrganizationHomeView(OrganizationView):
         context = {
             'active_teams': active_teams,
             'all_teams': all_teams,
+            'open_membership': True,
         }
 
         return self.respond('sentry/organization-home.html', context)
+
+    def post(self, request, organization):
+        op = request.POST.get('op')
+        team = request.POST.get('team')
+
+        om = OrganizationMember.objects.get(
+            user=request.user,
+            organization=organization,
+        )
+
+        if op == 'leave':
+            try:
+                client.put('/organizations/{}/members/{}/teams/{}/'.format(
+                    organization.slug, om.id, team,
+                ), request.user, data={'isActive': False})
+            except client.ApiError:
+                messages.add_message(
+                    request, messages.ERROR,
+                    'We were unable to remove you from the team.',
+                )
+            else:
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    'Your team membership has been deactivated.',
+                )
+        elif op == 'join':
+            try:
+                client.put('/organizations/{}/members/{}/teams/{}/'.format(
+                    organization.slug, om.id, team,
+                ), request.user, data={'isActive': True})
+            except client.ApiError:
+                messages.add_message(
+                    request, messages.ERROR,
+                    'We were unable to join the team.',
+                )
+            else:
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    'Your team membership has been activated.',
+                )
+        return HttpResponseRedirect(request.path)

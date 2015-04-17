@@ -58,11 +58,19 @@
           <tr>
             <td><h4>{{ team.name }}</h4></td>
             <td style="text-align: right">
-              {% if is_member %}
-                <a class="btn btn-default">Leave Team</a>
-              {% else %}
-                <a class="btn btn-default">Request Access</a>
-              {% endif %}
+              <form method="POST" action="." style="display:inline">
+                {% csrf_token %}
+                <input type="hidden" name="team" value="{{ team.slug }}" />
+                {% if is_member %}
+                  <button name="op" value="leave" type="submit" class="btn btn-default">Leave Team</button>
+                {% else %}
+                  {% if open_membership %}
+                    <button name="op" value="join" type="submit" class="btn btn-primary">Join Team</button>
+                  {% else %}
+                    <button name="op" value="join" type="submit" class="btn btn-primary">Request Access</button>
+                  {% endif %}
+                {% endif %}
+              </form>
             </td>
           </tr>
         {% endfor %}
