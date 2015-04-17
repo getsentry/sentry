@@ -4,6 +4,7 @@ var React = require("react");
 var Router = require("react-router");
 
 var api = require("../api");
+var ApiMixin = require("../mixins/apiMixin");
 var GroupActivity = require("./groupDetails/activity");
 var GroupChart = require("./groupDetails/chart");
 var GroupEvent = require("./groupDetails/event");
@@ -31,6 +32,7 @@ var MutedBox = React.createClass({
 
 var GroupOverview = React.createClass({
   mixins: [
+    ApiMixin,
     GroupState,
     Router.State,
     RouteMixin
@@ -69,11 +71,8 @@ var GroupOverview = React.createClass({
       error: false
     });
 
-    api.request(url, {
+    this.apiRequest(url, {
       success: (data, _, jqXHR) => {
-        if (!this.isMounted()) {
-          return;
-        }
         this.setState({
           event: data,
           error: false,
@@ -89,9 +88,6 @@ var GroupOverview = React.createClass({
         });
       },
       error: () => {
-        if (!this.isMounted()) {
-          return;
-        }
         this.setState({
           error: true,
           loading: false
