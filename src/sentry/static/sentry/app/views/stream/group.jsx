@@ -8,6 +8,7 @@ var BarChart = require("../../components/barChart");
 var Count = require("../../components/count");
 var SelectedGroupStore = require("../../stores/selectedGroupStore");
 var TimeSince = require("../../components/timeSince");
+var utils = require("../../utils");
 
 var StreamGroup = React.createClass({
   contextTypes: {
@@ -30,6 +31,22 @@ var StreamGroup = React.createClass({
     return {
       isSelected: false,
     };
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (nextProps.statsPeriod !== this.props.statsPeriod) {
+      return true;
+    }
+    if (nextState.isSelected !== this.state.isSelected) {
+      return true;
+    }
+    if (!utils.objectMatchesSubset(this.props.data, nextProps.data, true)) {
+      return true;
+    }
+    if (!utils.arrayIsEqual(this.props.memberList, nextProps.data)) {
+      return true;
+    }
+    return false;
   },
 
   onSelectedGroupChange() {

@@ -154,6 +154,16 @@ var SortOptions = React.createClass({
     );
   },
 
+  componentWillReceiveProps(nextProps) {
+    var router = this.context.router;
+    this._activeRoutePath = router.getCurrentPath();
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    var router = this.context.router;
+    return this._activeRoutePath != router.getCurrentPath();
+  },
+
   render() {
     var router = this.context.router;
     var queryParams = router.getCurrentQuery();
