@@ -34,9 +34,9 @@
     "mocha": "1.9.x",
     "moment": "^2.8.4",
     "raven-js": "^1.1.11",
-    "react": "^0.12.2",
+    "react": "^0.13.0",
     "react-bootstrap": "^0.13.0",
-    "react-router": "^0.11.6",
+    "react-router": "^0.13.2",
     "reflux": "^0.2.2",
     "sinon": "^1.10.3",
     "webpack": "^1.7.2"
