@@ -10,6 +10,7 @@ var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 var PropTypes = require("../proptypes");
 var LoadingIndicator = require("../components/loadingIndicator");
+var utils = require("../utils");
 
 var AssigneeSelector = React.createClass({
   mixins: [Reflux.ListenerMixin],
@@ -21,18 +22,19 @@ var AssigneeSelector = React.createClass({
 
   getInitialState() {
     return {
-      filterQuery: ''
+      filterQuery: '',
+      loading: false
     };
   },
 
   assignTo(member) {
     api.assignTo({id: this.props.group.id, email: member.email});
-    this.setState({filterQuery: ''});
+    this.setState({filterQuery: '', loading: true});
   },
 
   clearAssignTo() {
     api.assignTo({id: this.props.group.id, email: ''});
-    this.setState({filterQuery: ''});
+    this.setState({filterQuery: '', loading: true});
   },
 
   onChangeFilter() {
@@ -51,9 +53,32 @@ var AssigneeSelector = React.createClass({
     });
   },
 
+  componentWillReceiveProps(nextProps) {
+    var loading = GroupListStore.hasStatus(nextProps.group.id, 'assignTo');
+    if (this.state.loading != loading) {
+      this.setState({loading: loading});
+    }
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (!utils.objectMatchesSubset(nextProps.group.assignedTo, this.props.group.assignedTo)) {
+      return true;
+    }
+    if (nextState.filterQuery !== this.state.filterQuery) {
+      return true;
+    }
+    if (nextState.loading !== this.state.loading) {
+      return true;
+    }
+    if (!utils.arrayIsEqual(this.props.memberList, nextProps.memberList)) {
+      return true;
+    }
+    return false;
+  },
+
   render() {
     var group = this.props.group;
-    var loading = GroupListStore.hasStatus(group.id, 'assignTo');
+    var loading = this.state.loading;
 
     var className = "assignee-selector anchor-right";
     if (!group.assignedTo) {

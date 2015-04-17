@@ -1,5 +1,60 @@
 /*** @jsx React.DOM */
 
+
+var objectMatchesSubset = function(obj, other, deep){
+  var k;
+
+  if (deep !== true) {
+    for (k in other) {
+      if (obj[k] != other[k]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  for (k in other) {
+    if (obj[k] === other[k]) {
+      continue;
+    }
+
+    if (obj[k] instanceof Array || other[k] instanceof Array) {
+      if (!arrayIsEqual(obj[k], other[k])) {
+        return false;
+      }
+      continue;
+    }
+
+    if (obj[k] instanceof Object || other[k] instanceof Object) {
+      if (!objectMatchesSubset(obj[k], other[k])) {
+        return false;
+      }
+      continue;
+    }
+  }
+  return true;
+};
+
+var arrayIsEqual = function(arr, other) {
+  // if the other array is a falsy value, return
+  if (!arr || !other) {
+    return false;
+  }
+
+  // compare lengths - can save a lot of time
+  if (arr.length != other.length) {
+    return false;
+  }
+
+  for (var i = 0, l = arr.length; i < l; i++) {
+    // Warning - two different object instances will never be equal: {x:20} != {x:20}
+    if (arr[i] != other[i]) {
+      return false;
+    }
+  }
+  return true;
+};
+
 module.exports = {
   getQueryParams() {
     var vars = {},
@@ -74,6 +129,8 @@ module.exports = {
     });
   },
 
+  arrayIsEqual: arrayIsEqual,
+  objectMatchesSubset: objectMatchesSubset,
   parseLinkHeader: require('./utils/parseLinkHeader'),
 
   Collection: require('./utils/collection'),
