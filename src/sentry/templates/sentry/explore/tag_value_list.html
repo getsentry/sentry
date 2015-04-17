@@ -27,7 +27,7 @@
             </ul>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn btn-default prev{% if not tag_values.paginator.has_previous %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}{% endif %}"><span><span title="Next" class="icon-arrow-left"></span></span></a>
+            <a class="btn btn-default prev{% if not tag_values.paginator.has_previous %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}{% endif %}"><span><span title="Previous" class="icon-arrow-left"></span></span></a>
             <a class="btn btn-default next{% if not tag_values.paginator.has_next %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}{% endif %}"><span><span title="Next" class="icon-arrow-right"></span></span></a>
         </div>
     </div>
@@ -61,7 +61,7 @@
 
         <div class="btn-toolbar" style="margin-top: 20px;">
             <div class="btn-group pull-right">
-                <a class="btn btn-default prev{% if not tag_values.paginator.has_previous %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}{% endif %}"><span><span title="Next" class="icon-arrow-left"></span></span></a>
+                <a class="btn btn-default prev{% if not tag_values.paginator.has_previous %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}{% endif %}"><span><span title="Previous" class="icon-arrow-left"></span></span></a>
                 <a class="btn btn-default next{% if not tag_values.paginator.has_next %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}{% endif %}"><span><span title="Next" class="icon-arrow-right"></span></span></a>
             </div>
         </div>
