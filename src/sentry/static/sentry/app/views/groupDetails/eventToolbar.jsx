@@ -28,10 +28,10 @@ var GroupEventToolbar  = React.createClass({
                      projectId: projectId,
                      groupId: groupId,
                      eventId: evt.nextEventID}}
-            className="btn btn-default btn-lg">Newer</Router.Link>
+            className="btn btn-default">Newer</Router.Link>
       :
         <a key="next"
-           className="btn btn-default btn-lg disabled">Newer</a>
+           className="btn btn-default disabled">Newer</a>
       ),
       (evt.previousEventID ?
         <Router.Link
@@ -41,10 +41,10 @@ var GroupEventToolbar  = React.createClass({
                      projectId: projectId,
                      groupId: groupId,
                      eventId: evt.previousEventID}}
-            className="btn btn-default btn-lg">Older</Router.Link>
+            className="btn btn-default">Older</Router.Link>
       :
         <a key="prev"
-           className="btn btn-default btn-lg disabled">Older</a>
+           className="btn btn-default disabled">Older</a>
       ),
     ];
 

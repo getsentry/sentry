@@ -7,7 +7,7 @@
   position: relative;
   padding: 20px 20px 0;
   margin: -19px -20px 20px !important;
-  border-bottom: 1px solid #E9EBEC;
+  border-bottom: 1px solid @trim;
   margin-top: -5px;
   background: #fff;
 
@@ -156,9 +156,6 @@
 // Group Overview
 
 .group-overview {
-  background: #fff;
-  margin: -20px -20px 0;
-  padding: 20px 10px 0;
 }
 
 /**
@@ -177,7 +174,11 @@
       margin: 0;
       .transition(.1s ease-in-out all);
       padding: 11px 15px;
-      border-color: #DFE1E3;
+      border-color: darken(@trim, 5);
+
+      &:focus {
+        border-color: darken(@trim, 10);
+      }
 
       &.expanded {
         max-height: 100px;
@@ -263,32 +264,27 @@
 */
 
 .event-toolbar {
-  background: #fff;
   margin: 0 -20px 20px;
-  height: 50px;
-  border-top: 1px solid #E3E5E7;
-  border-bottom: 1px solid #E3E5E7;
+  height: 60px;
+  border-top: 1px solid @trim;
+  border-bottom: 1px solid @trim;
+  padding: 0 20px;
+
+  &.affix {
+    background: #fff;
+    border-color: @trim;
+  }
 
   .nav-tabs {
-    margin-left: 20px;
-    position: relative;
-    top: 14px;
-
+    margin: 0;
     > li a {
-      padding-bottom: 12px;
+      padding-top: 18px;
+      padding-bottom: 18px;
     }
   }
 
-  .btn-group {
-    margin: -1px -1px -1px 0;
-    position: relative;
-    z-index: 10;
-  }
-
-  .btn {
-    padding: 0 20px;
-    height: 50px;
-    line-height: 50px;
+  .pull-right {
+    margin-top: 11px;
   }
 }
 
