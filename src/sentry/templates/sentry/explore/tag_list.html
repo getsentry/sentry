@@ -4,7 +4,8 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block inner %}
+{% block content %}
+    {% comment %}
     {% if tag_list %}
         {% for tag_key, tag_values in tag_list %}
             {% if not forloop.counter|divisibleby:2 %}
@@ -42,5 +43,99 @@
         <p>{% trans "There don't seem to be any tags in the system yet. For more information on how you can tag data, check your client's documentation." %}</p>
 
     {% endif %}
+    {% endcomment %}
 
+    <div class="barchart">
+        <h6>Users in the last 48 hours</h6>
+        <div class="box">
+            <div style="line-height: 150px; text-align: center; opacity: .5">Graph</div>
+        </div>
+    </div>
+
+    <table class="table simple-list">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Last seen</th>
+                <th class="align-right">Events seen</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+            <tr>
+                <td><a href="#">Curtis Blackman</a></td>
+                <td>curtisbman@gmail.com</td>
+                <td>1 day ago</td>
+                <td class="align-right">12</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="btn-group pull-right" style="margin-top: 20px">
+        <a class="btn btn-default btn-lg prev disabled"><span title="Previous" class="icon-arrow-left"></span></a><a class="btn btn-default btn-lg next"><span title="Next" class="icon-arrow-right"></span></a>
+    </div>
+
+{% endblock %}
+
+{% block rightbar %}
+    <ul class="nav nav-stacked">
+        <li class="active"><a href="#">Users</a></li>
+        <li><a href="#">Servers</a></li>
+        <li><a href="#">Devices</a></li>
+        <li><a href="#">Browsers</a></li>
+    </ul>
 {% endblock %}

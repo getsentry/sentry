@@ -5,6 +5,8 @@
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
+{% block wrapperclass %}{{ block.super }} show-rightbar{% endblock %}
+
 {% block page_header %}
     {{ block.super }}
     <ul class="nav nav-tabs project-nav">
@@ -26,11 +28,4 @@
 
 {% block main %}
   	{% block inner %}{% endblock %}
-{% endblock %}
-
-{% block sidebar %}
-    <h5>{% trans "About Explore" %}</h5>
-    <p><strong>Notice:</strong> The Explore feature is currently a draft, and may change without notice.</p>
-    <p>Explore allows you to drill into the tagged data recorded at a project level. You can drill into each tag to quickly find outliers or events which have been recorded under a specific tagged value.</p>
-    <p>To learn more about sending tags, check the <a href="{% url 'sentry-help' %}">knowledge base</a>.</p>
 {% endblock %}
