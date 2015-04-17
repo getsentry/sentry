@@ -31,8 +31,8 @@
     <h3>{{ tag_key.get_label }}: {{ tag_value.value }}</h3>
 
     <div class="btn-group pull-right">
-      <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?p={{ event_list.paginator.previous_page }}{% endif %}"><span><span title="Previous" class="icon-arrow-left"></span></span></span></a>
-      <a class="btn next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?p={{ event_list.paginator.next_page }}{% endif %}"><span><span title="Next" class="icon-arrow-right"></span></span></span></a>
+      <a class="btn btn-default prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?p={{ event_list.paginator.previous_page }}{% endif %}"><span><span title="Previous" class="icon-arrow-left"></span></span></span></a>
+      <a class="btn btn-default next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?p={{ event_list.paginator.next_page }}{% endif %}"><span><span title="Next" class="icon-arrow-right"></span></span></span></a>
     </div>
   </div>
 
@@ -47,7 +47,7 @@
   </script>
 
   <div class="btn-group pull-right">
-    <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?p={{ event_list.paginator.previous_page }}{% endif %}"><span><span title="Previous" class="icon-arrow-left"></span></span></span></a>
-    <a class="btn next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?p={{ event_list.paginator.next_page }}{% endif %}"><span><span title="Next" class="icon-arrow-right"></span></span></span></a>
+    <a class="btn btn-default prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?p={{ event_list.paginator.previous_page }}{% endif %}"><span><span title="Previous" class="icon-arrow-left"></span></span></span></a>
+    <a class="btn btn-default next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?p={{ event_list.paginator.next_page }}{% endif %}"><span><span title="Next" class="icon-arrow-right"></span></span></span></a>
   </div>
 {% endblock %}
