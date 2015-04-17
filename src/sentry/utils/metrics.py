@@ -19,11 +19,11 @@ def incr(key, amount=1):
 
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
 
+    statsd.incr(_get_key(key), amount,
+                rate=sample_rate)
+
     if sample_rate < 1 and random() >= sample_rate:
         tsdb.incr(tsdb.models.internal, key)
-
-    return statsd.incr(_get_key(key), amount,
-                       rate=sample_rate)
 
 
 def timing(key, value):
