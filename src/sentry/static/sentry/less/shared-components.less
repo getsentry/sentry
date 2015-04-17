@@ -1258,16 +1258,22 @@ legend {
 
 .box {
   background: #fff;
-  border: 1px solid #e5e7e8;
+  border: 1px solid @trim;
   border-radius: 2px;
   margin: 0 0 20px;
   box-shadow: 0 1px 0 rgba(52, 60, 69, .03);
 
   .box-header {
+    background: @gray;
     line-height: 1;
     padding: 20px 20px 19px;
-    border-bottom: 1px solid #E5E7E8;
     border-radius: 2px 2px 0 0;
+    margin: -1px -1px 0;
+    color: #fff;
+
+    a {
+      color: #fff;
+    }
 
     h3, h4, h5 {
       font-size: 14px;
