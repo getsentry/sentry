@@ -20,6 +20,8 @@ class ApiError(Exception):
 class ApiClient(object):
     prefix = '/api/0'
 
+    ApiError = ApiError
+
     def request(self, method, path, user, auth=None, params=None, data=None):
         full_path = self.prefix + path
 
@@ -31,7 +33,7 @@ class ApiClient(object):
             data = json.loads(json.dumps(data))
 
         rf = APIRequestFactory()
-        mock_request = getattr(rf, method.lower())(full_path)
+        mock_request = getattr(rf, method.lower())(full_path, data)
         mock_request.auth = auth
         mock_request.user = user
 
@@ -48,7 +50,7 @@ class ApiClient(object):
         response = callback(mock_request, *callback_args, **callback_kwargs)
         if 200 >= response.status_code < 400:
             return response
-        raise ApiError(response.status_code, response.data)
+        raise self.ApiError(response.status_code, response.data)
 
     def get(self, *args, **kwargs):
         return self.request('GET', *args, **kwargs)
