@@ -286,7 +286,7 @@ header {
 */
 
 .app-sidebar {
-  background: #343C45;
+  background: @grayDark;
   color: #fff;
   width: @sidebar-width;
   position: fixed;
@@ -308,22 +308,25 @@ header {
   .icon-settings {
     opacity: .5;
     font-size: 14px;
-    color: #ACB9C5;
+    color: #747f8e;
+
+    &:hover {
+      opacity: 1;
+    }
   }
 
   h6 {
     margin: 15px 0;
-    opacity: .5;
     font-size: 14px;
     font-weight: 600;
-    color: #ACB9C5;
+    color: #747f8e;
 
-    a {
-      color: #ACB9C5;
+    &:first-child {
+      margin-top: 5px;
     }
 
-    .icon-settings {
-      opacity: 1;
+    a {
+      color: #747f8e;
     }
   }
 
