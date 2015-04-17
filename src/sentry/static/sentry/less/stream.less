@@ -9,10 +9,11 @@
 
 .stream-actions {
   background: #fff;
-  border-top: 1px solid @trim;
+  border: 1px solid @trim;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
   box-shadow: 0 1px 0 @trim;
-  margin-left: -20px;
-  margin-right: -20px;
+  margin: 0;
   padding-right: 10px;
 
   .btn-group > .btn {
@@ -111,9 +112,9 @@
 
 .group-list {
   background: #fff;
-  margin-left: -20px;
-  margin-right: -20px;
   padding-top: 1px;
+  border: 1px solid @trim;
+  border-radius: 2px;
 }
 
 .group-list, .events {
@@ -196,6 +197,8 @@
     }
 
     &:last-child {
+      border: 0;
+      border-radius: 0 0 2px 2px;
       .event-cell {
         border-bottom: 1px solid #E9EBEC;
       }
