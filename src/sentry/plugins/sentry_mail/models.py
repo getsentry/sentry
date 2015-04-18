@@ -144,7 +144,10 @@ class MailPlugin(NotificationPlugin):
             body = interface.to_email_html(event)
             if not body:
                 continue
-            interface_list.append((interface.get_title(), mark_safe(body)))
+            text_body = interface.to_string(event)
+            interface_list.append(
+                (interface.get_title(), mark_safe(body), text_body)
+            )
 
         subject = group.get_email_subject()
 

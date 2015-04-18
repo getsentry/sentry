@@ -68,8 +68,6 @@ def register(request):
 
     return render_to_response('sentry/register.html', {
         'form': form,
-        'AUTH_PROVIDERS': get_auth_providers(),
-        'SOCIAL_AUTH_CREATE_USERS': features.has('social-auth:register'),
     }, request)
 
 
@@ -89,6 +87,7 @@ def recover(request):
         if not password_hash.is_valid():
             password_hash.date_added = timezone.now()
             password_hash.set_hash()
+            password_hash.save()
 
         password_hash.send_recover_mail()
 
@@ -189,7 +188,7 @@ def appearance_settings(request):
     form = AppearanceSettingsForm(request.user, request.POST or None, initial={
         'language': options.get('language') or request.LANGUAGE_CODE,
         'stacktrace_order': int(options.get('stacktrace_order', -1) or -1),
-        'timezone': options.get('timezone') or settings.TIME_ZONE,
+        'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
     })
     if form.is_valid():
         form.save()

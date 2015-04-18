@@ -31,7 +31,7 @@ class AuthLinkIdentityView(BaseView):
                 organization=organization,
                 user=request.user,
             )
-        except OrganizationMember.DoesNotExist():
+        except OrganizationMember.DoesNotExist:
             messages.add_message(
                 request, messages.ERROR,
                 ERR_LINK_INVALID,

@@ -1,5 +1,6 @@
 {% extends "sentry/bases/organization.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block org_auth_settings_nav %}active{% endblock %}
@@ -36,7 +37,20 @@
 
         <hr>
 
-        <h4>Disable {{ provider_name }} Authentication</h4>
+        <h3>General Settings</h3>
+
+        {{ form|as_crispy_errors }}
+
+        <button class="btn btn-primary pull-right" name="op"
+                value="settings" style="margin-left: 20px">Save Settings</button>
+
+        {% for field in form %}
+          {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <hr>
+
+        <h3>Disable {{ provider_name }} Authentication</h3>
 
         <button class="btn btn-danger pull-right" name="op"
                 value="disable" style="margin-left: 20px">Disable {{ provider_name }} Auth</button>

@@ -115,6 +115,7 @@ class GroupSerializer(Serializer):
             'firstSeen': obj.first_seen,
             'lastSeen': obj.last_seen,
             'timeSpent': obj.avg_time_spent,
+            'level': obj.get_level_display(),
             'status': status_label,
             'isPublic': obj.is_public,
             'project': {

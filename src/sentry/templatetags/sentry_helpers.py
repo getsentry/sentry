@@ -484,7 +484,7 @@ def localized_datetime(context, dt, format='DATETIME_FORMAT'):
     request = context['request']
     timezone = getattr(request, 'timezone', None)
     if not timezone:
-        timezone = pytz.timezone(settings.TIME_ZONE)
+        timezone = pytz.timezone(settings.SENTRY_DEFAULT_TIME_ZONE)
 
     dt = dt.astimezone(timezone)
 

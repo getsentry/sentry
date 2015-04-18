@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.db import transaction
@@ -24,6 +25,14 @@ ERR_NO_SSO = _('The SSO feature is not enabled for this organization.')
 OK_PROVIDER_DISABLED = _('SSO authentication has been disabled.')
 
 OK_REMINDERS_SENT = _('A reminder email has been sent to members who have not yet linked their accounts.')
+
+
+class AuthProviderSettingsForm(forms.Form):
+    require_link = forms.BooleanField(
+        label=_('Require SSO'),
+        help_text=_('Require members use a valid linked SSO account to access this organization'),
+        required=False,
+    )
 
 
 class OrganizationAuthSettingsView(OrganizationView):
@@ -67,6 +76,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
     def handle_existing_provider(self, request, organization, auth_provider):
         provider = auth_provider.get_provider()
+
         if request.method == 'POST':
             op = request.POST.get('op')
             if op == 'disable':
@@ -92,6 +102,17 @@ class OrganizationAuthSettingsView(OrganizationView):
                                    args=[organization.slug])
                 return self.redirect(next_uri)
 
+        form = AuthProviderSettingsForm(
+            data=request.POST if request.POST.get('op') == 'settings' else None,
+            initial={
+                'require_link': not auth_provider.flags.allow_unlinked,
+            },
+        )
+
+        if form.is_valid():
+            auth_provider.flags.allow_unlinked = not form.cleaned_data['require_link']
+            auth_provider.save()
+
         view = provider.get_configure_view()
         response = view(request, organization, auth_provider)
         if isinstance(response, HttpResponse):
@@ -109,6 +130,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         ).count()
 
         context = {
+            'form': form,
             'pending_links_count': pending_links_count,
             'login_url': absolute_uri(reverse('sentry-organization-home', args=[organization.slug])),
             'auth_provider': auth_provider,

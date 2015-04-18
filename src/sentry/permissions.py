@@ -35,6 +35,7 @@ class Permissions(object):
     ADD_ORGANIZATION = Permission('add_organization', 'create new organizations')
     ADD_TEAM = Permission('add_team', 'create new teams')
     ADD_PROJECT = Permission('add_project', 'create new projects')
+    ADD_MEMBER = Permission('add_organization_member', 'add an organization member')
 
 
 def requires_login(func):

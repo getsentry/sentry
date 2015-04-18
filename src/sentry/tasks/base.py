@@ -7,9 +7,10 @@ sentry.tasks.base
 """
 from __future__ import absolute_import
 
-from celery.task import current, task
+from celery.task import current
 from functools import wraps
 
+from sentry.celery import app
 from sentry.utils import metrics
 
 
@@ -23,7 +24,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
             with metrics.timer(key):
                 result = func(*args, **kwargs)
             return result
-        return task(name=name, **kwargs)(_wrapped)
+        return app.task(name=name, **kwargs)(_wrapped)
     return wrapped
 
 

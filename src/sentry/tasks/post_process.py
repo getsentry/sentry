@@ -8,8 +8,7 @@ sentry.tasks.post_process
 
 from __future__ import absolute_import, print_function
 
-import logging
-
+from celery.utils.log import get_task_logger
 from django.conf import settings
 from hashlib import md5
 
@@ -19,8 +18,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
-
-rules_logger = logging.getLogger('sentry')
+logger = get_task_logger(__name__)
 
 
 def _capture_stats(event, is_new):
@@ -60,23 +58,32 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     if settings.SENTRY_ENABLE_EXPLORE_USERS:
         record_affected_user.delay(event=event)
 
-    for plugin in plugins.for_project(project):
-        plugin_post_process_group.apply_async(
-            kwargs={
-                'plugin_slug': plugin.slug,
-                'event': event,
-                'is_new': is_new,
-                'is_regresion': is_regression,
-                'is_sample': is_sample,
-            },
-            expires=300,
-        )
+    record_additional_tags(event=event)
 
     rp = RuleProcessor(event, is_new, is_regression, is_sample)
     # TODO(dcramer): ideally this would fanout, but serializing giant
     # objects back and forth isn't super efficient
     for callback, futures in rp.apply():
         safe_execute(callback, event, futures)
+
+    for plugin in plugins.for_project(project):
+        plugin_post_process_group(
+            plugin_slug=plugin.slug,
+            event=event,
+            is_new=is_new,
+            is_regresion=is_regression,
+            is_sample=is_sample,
+        )
+
+
+def record_additional_tags(event):
+    from sentry.models import Group
+
+    added_tags = []
+    for plugin in plugins.for_project(event.project, version=2):
+        added_tags.extend(safe_execute(plugin.get_tags, event) or ())
+    if added_tags:
+        Group.objects.add_tags(event.group, added_tags)
 
 
 @instrumented_task(
@@ -95,8 +102,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
 def record_affected_user(event, **kwargs):
     from sentry.models import Group
 
-    logger = record_affected_user.get_logger()
-
     if not settings.SENTRY_ENABLE_EXPLORE_USERS:
         logger.info('Skipping sentry:user tag due to SENTRY_ENABLE_EXPLORE_USERS')
         return
@@ -113,7 +118,9 @@ def record_affected_user(event, **kwargs):
         value = user_data.get(key)
         if value:
             tag_data[key] = value
-    tag_data['ip'] = event.ip_address
+    ip_address = event.ip_address
+    if ip_address:
+        tag_data['ip'] = ip_address
 
     Group.objects.add_tags(event.group, [
         ('sentry:user', user_ident, tag_data)

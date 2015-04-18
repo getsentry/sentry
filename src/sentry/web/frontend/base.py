@@ -236,6 +236,8 @@ class OrganizationView(BaseView):
             and self.valid_sso_required and not request.access.sso_is_valid
         )
 
+        request.session['_next'] = request.get_full_path()
+
         if needs_link:
             messages.add_message(
                 request, messages.ERROR,

@@ -355,7 +355,7 @@ def status_mail(request):
 
 
 @requires_admin
-def stats(request):
+def overview(request):
     new_projects = Project.objects.filter(
         date_added__gte=timezone.now() - datetime.timedelta(hours=24),
     ).count()

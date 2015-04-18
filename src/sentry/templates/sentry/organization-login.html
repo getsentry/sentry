@@ -3,29 +3,51 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block wrapperclass %}windowed-small{% endblock %}
+{% block wrapperclass %}windowed-small org-login{% endblock %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+
+{% block account_nav %}
+  {% if CAN_REGISTER %}
+    <li><a href="{% url 'sentry-register' %}">{% trans "New Account" %}</a></li>
+  {% endif %}
+{% endblock%}
 
 {% block main %}
   <section class="body org-login">
     <form class="form-stacked" action="" method="post">
       {% csrf_token %}
 
-      <img src="https://github.com/getsentry.png" class="org-avatar">
+      <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
 
       <h3>
         {{ organization.name }}
       </h3>
 
-      <p>Sign in with your {{ provider_name }} account to continue.</p>
+      {% if provider_name %}
+        <p>Sign in with your {{ provider_name }} account to continue.</p>
 
-      <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
-        <span class="provider-logo {{ provider_name | lower}}"></span>Login with {{ provider_name }}</button>
+        <button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
+          <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
+        </button>
+      {% else %}
+        <p>Sign in with your Sentry account to continue.</p>
+
+        {{ form|as_crispy_errors }}
+
+        <div class="basic-login">
+          {% for field in form %}
+            {{ field|as_crispy_field }}
+          {% endfor %}
+        </div>
+
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 6px" href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
+        </fieldset>
+      {% endif %}
     </form>
   </section>
 {% endblock %}
 
 {% block footer %}
-  <a href="#"></a>
 {% endblock %}

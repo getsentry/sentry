@@ -4,15 +4,11 @@ from __future__ import absolute_import
 
 import mock
 
-from celery.task import Task
 from sentry.tasks.process_buffer import process_incr
 from sentry.testutils import TestCase
 
 
 class ProcessIncrTest(TestCase):
-    def test_is_task(self):
-        self.assertTrue(isinstance(process_incr, Task))
-
     @mock.patch('sentry.app.buffer.process')
     def test_calls_process(self, process):
         model = mock.Mock()

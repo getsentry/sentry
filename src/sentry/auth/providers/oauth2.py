@@ -128,8 +128,19 @@ class OAuth2Callback(AuthView):
 
 
 class OAuth2Provider(Provider):
+    client_id = None
+    client_secret = None
+
     def get_auth_pipeline(self):
-        return [OAuth2Login(), OAuth2Callback()]
+        return [
+            OAuth2Login(
+                client_id=self.client_id,
+            ),
+            OAuth2Callback(
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+            ),
+        ]
 
     def get_refresh_token_url(self):
         raise NotImplementedError
@@ -143,12 +154,14 @@ class OAuth2Provider(Provider):
         }
 
     def get_oauth_data(self, payload):
-        return {
+        data = {
             'access_token': payload['access_token'],
-            'refresh_token': payload.get('refresh_token'),
             'token_type': payload['token_type'],
             'expires': time() + payload['expires_in'],
         }
+        if 'refresh_token' in payload:
+            data['refresh_token'] = payload['refresh_token']
+        return data
 
     def build_identity(self, state):
         # data = state['data']
@@ -164,7 +177,7 @@ class OAuth2Provider(Provider):
         refresh_token = auth_identity.data.get('refresh_token')
 
         if not refresh_token:
-            raise IdentityNotValid
+            raise IdentityNotValid('Missing refresh token')
 
         data = self.get_refresh_token_params(
             refresh_token=refresh_token,
@@ -196,7 +209,7 @@ class OAuth2Provider(Provider):
         if req.status_code != 200:
             raise Exception(formatted_error)
 
-        auth_identity.data = self.build_oauth_data(payload)
+        auth_identity.data['data'].update(self.get_oauth_data(payload))
         auth_identity.update(data=auth_identity.data)
 
         return True
