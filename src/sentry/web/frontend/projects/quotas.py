@@ -12,16 +12,27 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import app
+from sentry import app, features
 from sentry.constants import MEMBER_ADMIN
+from sentry.quotas.base import Quota
 from sentry.web.decorators import has_access
 from sentry.web.forms.projects import ProjectQuotasForm
 from sentry.web.helpers import render_to_response
 
 
+ERR_NO_SSO = _('The quotas feature is not enabled for this project.')
+
+
 @has_access(MEMBER_ADMIN)
 def manage_project_quotas(request, organization, project):
-    from sentry.quotas.base import Quota
+    if not features.has('projects:quotas', project, actor=request.user):
+        messages.add_message(
+            request, messages.ERROR,
+            ERR_NO_SSO,
+        )
+        redirect = reverse('sentry-manage-project',
+                           args=[organization.slug, project.slug])
+        return HttpResponseRedirect(redirect)
 
     form = ProjectQuotasForm(project, request.POST or None)
 

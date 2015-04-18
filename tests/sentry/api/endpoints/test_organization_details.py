@@ -15,7 +15,7 @@ class OrganizationDetailsTest(APITestCase):
             'organization_slug': org.slug,
         })
         response = self.client.get(url)
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
         assert response.data['id'] == str(org.id)
 
 
@@ -26,11 +26,11 @@ class OrganizationUpdateTest(APITestCase):
         url = reverse('sentry-api-0-organization-details', kwargs={
             'organization_slug': org.slug,
         })
-        resp = self.client.put(url, data={
+        response = self.client.put(url, data={
             'name': 'hello world',
             'slug': 'foobar',
         })
-        assert resp.status_code == 200, resp.content
+        assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
         assert org.name == 'hello world'
         assert org.slug == 'foobar'

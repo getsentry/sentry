@@ -100,7 +100,7 @@ class EventManagerTest(TransactionTestCase):
             message='foo bar', event_id='b' * 32,
             checksum='a' * 32,
         ))
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             event2 = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
@@ -116,7 +116,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
@@ -144,7 +144,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
@@ -169,7 +169,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='a' * 32, checksum='a' * 32,
             timestamp=1403007314,
         ))
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             event = manager.save(1)
 
         mock_is_resolved.return_value = True
@@ -177,7 +177,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='b' * 32, checksum='a' * 32,
             timestamp=1403007414,
         ))
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             event2 = manager.save(1)
         assert event.group_id == event2.group_id
 

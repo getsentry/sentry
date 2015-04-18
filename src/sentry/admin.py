@@ -17,7 +17,7 @@ from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 from sentry.models import (
-    AuthProvider, AuditLogEntry, Broadcast, HelpPage, Organization,
+    AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, HelpPage, Organization,
     OrganizationMember, Project, Team, User
 )
 
@@ -74,6 +74,15 @@ class AuthProviderAdmin(admin.ModelAdmin):
     list_filter = ('provider',)
 
 admin.site.register(AuthProvider, AuthProviderAdmin)
+
+
+class AuthIdentityAdmin(admin.ModelAdmin):
+    list_display = ('user', 'auth_provider', 'ident', 'date_added', 'last_verified')
+    list_filter = ('auth_provider__provider',)
+    search_fields = ('user', 'auth_provider__organization')
+    raw_id_fields = ('user', 'auth_provider')
+
+admin.site.register(AuthIdentity, AuthIdentityAdmin)
 
 
 class TeamProjectInline(admin.TabularInline):

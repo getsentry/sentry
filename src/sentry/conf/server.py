@@ -82,13 +82,7 @@ if 'DATABASE_URL' in os.environ:
 
 EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
-# Local time zone for this installation. Choices can be found here:
-# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
-# although not all choices may be available on all operating systems.
-# On Unix systems, a value of None will cause Django to use the same
-# timezone as the operating system.
-# If running in a Windows environment this must be set to the same as your
-# system time zone.
+# This should always be UTC.
 TIME_ZONE = 'UTC'
 
 # Language code for this installation. All choices can be found here:
@@ -237,7 +231,6 @@ INSTALLED_APPS = (
 
     'captcha',
     'crispy_forms',
-    'djcelery',
     'gunicorn',
     'kombu.transport.django',
     'raven.contrib.django.raven_compat',
@@ -327,7 +320,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.social.social_auth_user',
     'social_auth.backends.pipeline.associate.associate_by_email',
     'social_auth.backends.pipeline.misc.save_status_to_session',
-    'sentry.utils.social_auth.create_user_if_enabled',
     'social_auth.backends.pipeline.social.associate_user',
     'social_auth.backends.pipeline.social.load_extra_data',
     'social_auth.backends.pipeline.user.update_user_details',
@@ -338,10 +330,7 @@ INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
-    'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
-    'facebook': ('FACEBOOK_APP_ID', 'FACEBOOK_API_SECRET'),
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
-    'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
 }
@@ -357,6 +346,7 @@ from kombu import Exchange, Queue
 BROKER_URL = "django://"
 
 CELERY_ALWAYS_EAGER = True
+CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
 CELERY_RESULT_BACKEND = None
@@ -532,6 +522,7 @@ RECAPTCHA_PRIVATE_KEY = None
 
 STATSD_CLIENT = 'django_statsd.clients.null'
 SENTRY_METRICS_PREFIX = ''
+SENTRY_METRICS_SAMPLE_RATE = 1.0
 
 # Sentry and Raven configuration
 
@@ -544,11 +535,15 @@ SENTRY_CACHE_BACKEND = 'default'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'social-auth:register': True,
     'organizations:create': True,
     'organizations:sso': False,
+    'projects:quotas': True,
     'teams:create': True,
 }
+
+# Default time zone for localization in the UI.
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
@@ -565,6 +560,10 @@ SENTRY_ADMIN_EMAIL = ''
 
 # Allow access to Sentry without authentication.
 SENTRY_PUBLIC = False
+
+# Instruct Sentry that this install intends to be run by a single organization
+# and thus various UI optimizations should be enabled.
+SENTRY_SINGLE_ORGANIZATION = False
 
 # Login url (defaults to LOGIN_URL)
 SENTRY_LOGIN_URL = None
@@ -766,7 +765,3 @@ SENTRY_USE_BIG_INTS = False
 
 # Delay (in ms) to induce on API responses
 SENTRY_API_RESPONSE_DELAY = 0
-
-# Configure celery
-import djcelery
-djcelery.setup_loader()

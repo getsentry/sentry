@@ -5,52 +5,71 @@
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block content %}
+{% block footer %}{% endblock %}
+
+{% block account_nav %}
+    {% if CAN_REGISTER %}
+        <li><a href="{% url 'sentry-register' %}">{% trans "New Account" %}</a></li>
+    {% endif %}
+{% endblock%}
+
+{% block main %}
     <div class="row">
         <div class="col-sm-6" style=" margin-bottom: 30px">
-            <form class="form-stacked" action="." method="post">
-                {{ form|as_crispy_errors }}
 
-                <h2>{% trans "Login with your Sentry account" %}</h2>
-
-                {% csrf_token %}
-
-                {% for field in form %}
-                    {{ field|as_crispy_field }}
-                {% endfor %}
-
-                <p class="help-block">
-                    <a href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
-                </p>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" style="min-width: 110px; text-align: center">{% trans "Login" %}</button>
-                    {% if CAN_REGISTER %}
-                        <span class="btn" style="cursor: default">or</span>
-                        <a href="{% url 'sentry-register' %}" class="btn btn-default">{% trans "Create a new account" %}</a>
-                    {% endif %}
-                </div>
-            </form>
+        <div class="sso-toggle-container">
+            <a href="#" class="sso-link sso-toggle">Looking for single sign-on?</a>
+            <a href="#" class="go-back sso-toggle"><span class="icon-arrow-left"></span> Back to login</a>
         </div>
-        {% if AUTH_PROVIDERS %}
-            <div class="col-sm-6">
-                <h2>
-                    {% if SOCIAL_AUTH_CREATE_USERS %}
-                        {% trans "Login or Register using another service" %}
-                    {% else %}
-                        {% trans "Login using another service" %}
-                    {% endif %}
-                </h2>
-                {% url 'sentry-account-settings-identities' as identities_link %}
-                <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
-                    <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
-                <br>
-                <ul class="auth-options">
-                    {% for engine in AUTH_PROVIDERS %}
-                        <li><a href="{% url 'socialauth_begin' engine %}"class="btn btn-default auth-btn auth-{{ engine }}"><span class="auth-icon"></span>{{ engine|title }}</a></li>
+
+        <div class="tab-content">
+            <div class="tab-pane active" id="standard">
+                <form class="form-stacked" action="" method="post">
+                    {{ form|as_crispy_errors }}
+
+                    <fieldset>
+                        <legend style="border: 0">{% trans "Login to Sentry" %}</legend>
+                    </fieldset>
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                        {{ field|as_crispy_field }}
                     {% endfor %}
-                </ul>
+
+                    <fieldset class="form-actions">
+                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 6px" href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
+                    </fieldset>
+                </form>
             </div>
-        {% endif %}
-    </div>
+            <div class="tab-pane" id="sso">
+                <fieldset>
+                    <legend style="border: 0; margin: 0 0 10px;">Single sign-on</legend>
+                </fieldset>
+                <form class="form-stacked" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="op" value="sso" />
+                    <div class="control-group">
+                        <div class="controls">
+                            <span style="padding: 7px 0; font-size: 15px">app.getsentry.com/</span> <input style="width: 190px; margin: 0 0 4px; padding: 6px;" type="text" name="organization" placeholder="acme">
+                            <p class="help-block">Enter your organization's ID and we'll get things started.</p>
+                        </div>
+                    </div>
+                    <div class="form-actions" style="margin-top: 25px">
+                        <button class="btn btn-primary">Log in</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+    <style type="text/css">
+    input[type="text"], input[type="password"] {
+        width: 92%;
+    }
+    </style>
+    <script>
+    $('.sso-toggle').click(function (e) {
+      e.preventDefault();
+      $(".body").toggleClass('show-sso');
+    })
+    </script>
 {% endblock %}

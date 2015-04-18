@@ -59,4 +59,4 @@ class SentryInternalClient(DjangoClient):
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
         metrics.incr('internal.uncaptured.logs')
-        return not can_record_current_event()
+        return can_record_current_event()

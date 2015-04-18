@@ -11,7 +11,7 @@ Details
 
 First Seen: {{ group.first_seen|date }}
 
-{% if interfaces %}{% for label, text in interfaces %}
+{% if interfaces %}{% for label, _, text in interfaces %}
 {{ label }}
 -----------
 

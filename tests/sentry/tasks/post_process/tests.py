@@ -7,7 +7,8 @@ from mock import Mock, patch
 from sentry.models import Group
 from sentry.testutils import TestCase
 from sentry.tasks.post_process import (
-    post_process_group, record_affected_user, record_affected_code
+    post_process_group, record_affected_user, record_affected_code,
+    record_additional_tags
 )
 
 
@@ -107,14 +108,27 @@ class RecordAffectedUserTest(TestCase):
         with patch.object(Group.objects, 'add_tags') as add_tags:
             record_affected_user(event=event)
 
-            add_tags.assert_called_once(event.group, [
+            add_tags.assert_called_once_with(event.group, [
                 ('sentry:user', 'email:foo@example.com', {
-                    'id': None,
                     'email': 'foo@example.com',
-                    'username': None,
-                    'data': None,
                 })
             ])
+
+
+class RecordAdditionalTagsTest(TestCase):
+    def test_simple(self):
+        # TODO(dcramer): this test ideally would actually test that tags get
+        # added
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'foo@example.com',
+            },
+        })
+
+        with patch.object(Group.objects, 'add_tags') as add_tags:
+            record_additional_tags(event=event)
+
+            assert not add_tags.called
 
 
 class RecordAffectedCodeTest(TestCase):

@@ -7,9 +7,12 @@ sentry.tasks.cleanup
 """
 from __future__ import absolute_import
 
+from celery.utils.log import get_task_logger
 from nydus.utils import ThreadPool
 
 from sentry.tasks.base import instrumented_task
+
+logger = get_task_logger(__name__)
 
 
 def delete_object(item):
@@ -51,26 +54,24 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
         (Group, 'last_seen'),
     )
 
-    log = cleanup.get_logger()
-
     ts = timezone.now() - datetime.timedelta(days=days)
 
-    log.info("Removing expired values for LostPasswordHash")
+    logger.info("Removing expired values for LostPasswordHash")
     LostPasswordHash.objects.filter(
         date_added__lte=timezone.now() - datetime.timedelta(hours=48)
     ).delete()
 
     # TODO: we should move this into individual backends
     if not project:
-        log.info("Removing old Node values")
+        logger.info("Removing old Node values")
         try:
             app.nodestore.cleanup(ts)
         except NotImplementedError:
-            log.warning("Node backend does not support cleanup operation")
+            logger.warning("Node backend does not support cleanup operation")
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
-        log.info("Removing %s for days=%s project=%s", model.__name__, days, project or '*')
+        logger.info("Removing %s for days=%s project=%s", model.__name__, days, project or '*')
         qs = model.objects.filter(**{'%s__lte' % (date_col,): ts})
         if project:
             qs = qs.filter(project=project)
@@ -78,7 +79,7 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
 
         count = 0
         while qs.exists():
-            log.info("Removing %s chunk %d", model.__name__, count)
+            logger.info("Removing %s chunk %d", model.__name__, count)
             if concurrency > 1:
                 worker_pool = ThreadPool(workers=concurrency)
                 for obj in qs[:chunk_size].iterator():
@@ -89,11 +90,12 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
             else:
                 for obj in qs[:chunk_size].iterator():
                     delete_object(obj)
+                    count += 1
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
     if days > 7:
-        log.info("Removing expired values for EventMapping")
+        logger.info("Removing expired values for EventMapping")
         EventMapping.objects.filter(
             date_added__lte=timezone.now() - datetime.timedelta(days=7)
         ).delete()

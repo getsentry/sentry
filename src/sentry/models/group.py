@@ -19,7 +19,9 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import buffer, tsdb
-from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
+from sentry.constants import (
+    DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+)
 from sentry.db.models import (
     BaseManager, BoundedIntegerField, BoundedPositiveIntegerField,
     FlexibleForeignKey, Model, GzippedDictField, sane_repr
@@ -100,7 +102,7 @@ class Group(Model):
     """
     project = FlexibleForeignKey('sentry.Project', null=True)
     logger = models.CharField(
-        max_length=64, blank=True, default='root', db_index=True)
+        max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
         db_index=True)

@@ -13,7 +13,7 @@ class SentryInternalClientTest(TestCase):
     def test_simple(self):
         assert client.__class__ is SentryInternalClient
 
-        with self.settings(CELERY_ALWAYS_EAGER=True):
+        with self.tasks():
             client.captureMessage('internal client test')
 
         event = Event.objects.get()

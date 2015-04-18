@@ -81,6 +81,9 @@ class RedisTSDB(BaseTSDB):
         # Redis, whereas long strings (say tag values) will store in a more
         # efficient hashed format.
         if not isinstance(key, six.integer_types):
+            # enforce utf-8 encoding
+            if isinstance(key, unicode):
+                key = key.encode('utf-8')
             return md5(repr(key)).hexdigest()
         return key
 

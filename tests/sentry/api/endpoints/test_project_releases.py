@@ -64,3 +64,22 @@ class ProjectReleaseCreateTest(APITestCase):
             project=project,
             version=response.data['version'],
         ).exists()
+
+    def test_duplicate(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team(owner=self.user)
+        project = self.create_project(team=team, name='foo')
+
+        Release.objects.create(version='1.2.1', project=project)
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+        })
+
+        assert response.status_code == 400, response.content

@@ -74,7 +74,7 @@ test-cli:
 	mkdir test_cli
 	cd test_cli && sentry init test.conf > /dev/null
 	cd test_cli && sentry --config=test.conf upgrade --traceback --noinput > /dev/null
-	cd test_cli && sentry --config=test.conf help | grep start > /dev/null
+	cd test_cli && sentry --config=test.conf help 2>&1 | grep start > /dev/null
 	rm -r test_cli
 	@echo ""
 

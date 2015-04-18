@@ -28,21 +28,6 @@
                     </fieldset>
                 </form>
             </div>
-            {% if AUTH_PROVIDERS and SOCIAL_AUTH_CREATE_USERS %}
-                <div class="col-xs-6">
-                    <h2>{% trans "Register using another service" %}</h2>
-
-                    {% url 'sentry-account-settings-identities' as identities_link %}
-                    <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
-                        <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
-                    <br>
-                    <ul class="auth-options">
-                        {% for engine in AUTH_PROVIDERS %}
-                            <li><a href="{% url 'socialauth_begin' engine %}"class="btn btn-default auth-btn auth-{{ engine }}"><span class="auth-icon"></span>{{ engine|title }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
         </div>
     </section>
 {% endblock %}
