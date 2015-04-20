@@ -8,13 +8,23 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding model 'OrganizationMemberTeam'
         db.add_column('sentry_organizationmember_teams', 'is_active', self.gf('django.db.models.fields.BooleanField')(default=True), keep_default=False)
 
         db.send_create_signal('sentry', ['OrganizationMemberTeam'])
 
+        # Adding field 'Organization.flags'
+        db.add_column('sentry_organization', 'flags',
+                      self.gf('django.db.models.fields.BigIntegerField')(default=0),
+                      keep_default=False)
+
 
     def backwards(self, orm):
         db.delete_column('sentry_organizationmember_teams', 'is_active')
+
+
+        # Deleting field 'Organization.flags'
+        db.delete_column('sentry_organization', 'flags')
 
 
     models = {
@@ -268,6 +278,7 @@ class Migration(SchemaMigration):
         'sentry.organization': {
             'Meta': {'object_name': 'Organization'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'flags': ('django.db.models.fields.BigIntegerField', [], {'default': '0'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'members': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'org_memberships'", 'symmetrical': 'False', 'through': "orm['sentry.OrganizationMember']", 'to': "orm['sentry.User']"}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
@@ -283,15 +294,15 @@ class Migration(SchemaMigration):
             'has_global_access': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'member_set'", 'to': "orm['sentry.Organization']"}),
-            'teams': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['sentry.Team']", 'symmetrical': 'False', 'blank': 'True'}),
+            'teams': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['sentry.Team']", 'symmetrical': 'False', 'through': "orm['sentry.OrganizationMemberTeam']", 'blank': 'True'}),
             'type': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '50'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'blank': 'True', 'related_name': "'sentry_orgmember_set'", 'null': 'True', 'to': "orm['sentry.User']"})
         },
         'sentry.organizationmemberteam': {
-            'Meta': {'unique_together': "(('team', 'member'),)", 'object_name': 'OrganizationMemberTeam', 'db_table': "'sentry_organizationmember_teams'"},
+            'Meta': {'unique_together': "(('team', 'organizationmember'),)", 'object_name': 'OrganizationMemberTeam', 'db_table': "'sentry_organizationmember_teams'"},
             'id': ('sentry.db.models.fields.bounded.BoundedAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'member': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.OrganizationMember']", 'db_column': "'organizationmember_id'"}),
+            'organizationmember': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.OrganizationMember']"}),
             'team': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Team']"})
         },
         'sentry.pendingteammember': {
