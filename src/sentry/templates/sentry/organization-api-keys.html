@@ -21,23 +21,20 @@
 
   <p>API keys grant access to the <a href="{% url 'sentry-api-0-help' %}">developer web API</a>.</p>
 
+  <br />
+
   <table class="table simple-list table-bordered member-list">
     <colgroup>
       <col />
       <col width="20%"/>
     </colgroup>
-    <thead>
-      <tr>
-        <th>Key</th>
-        <th>&nbsp;</th>
-      </tr>
-    </thead>
     <tbody>
       {% if key_list %}
         {% for key in key_list %}
           <tr>
             <td>
-              <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a>
+              <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a><br />
+              <code class="clippy">{{ key.key }}</code>
             </td>
             <td></td>
           </tr>
