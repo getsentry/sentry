@@ -97,7 +97,7 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
         method = 'POST' if (data or json) else 'GET'
 
     try:
-        return getattr(session, method.lower())(
+        response = getattr(session, method.lower())(
             url,
             allow_redirects=allow_redirects,
             timeout=timeout,
@@ -108,6 +108,13 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
     # appropriately generically catchable exception
     except ZeroReturnError as exc:
         six.reraise(SSLError, exc)
+
+    # requests' attempts to use chardet internally when no encoding is found
+    # and we want to avoid that slow behavior
+    if not response.encoding:
+        response.encoding = 'utf-8'
+
+    return response
 
 
 def safe_urlread(response):
