@@ -128,8 +128,8 @@
               {% endif %}
               {% endblock %}
             </div>
-            {% if request.user.is_authenticated %}
             {% block breadcrumb_outer %}
+            {% if request.user.is_authenticated %}
             <ul class="breadcrumb">
               {% block breadcrumb_inner %}
               {% if team %}
@@ -146,8 +146,8 @@
               {% endif %}
               {% endblock %}
             </ul>
-            {% endblock %}
             {% endif %}
+            {% endblock %}
           </div>
         </header>
         {% endblock %}

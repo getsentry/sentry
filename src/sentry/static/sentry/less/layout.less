@@ -97,10 +97,11 @@ header {
   padding: 25px 0 0;
   margin: 0 0 20px;
   line-height: 1;
+  font-size: 18px;
 
   .logo-logged-in {
     position: relative;
-    padding-left: 34px;
+    padding-left: 38px;
     .icon-sentry-logo {
       position: absolute;
       left: 0;
@@ -111,7 +112,6 @@ header {
     background: none;
     padding: 0;
     margin-bottom: 0;
-    font-size: 18px;
     white-space: nowrap;
     margin-right: 140px;
     position: relative;
@@ -186,21 +186,21 @@ header {
           color: lighten(@gray, 15);
         }
       }
-      &:first-child:last-child {
-        a {
-          font-size: 18px;
-          padding-left: 0;
-
-          &:before {
-            display: none;
-          }
-        }
-      }
 
       &:nth-child(2) {
         padding-left: 38px;
         &:before {
           display: none;
+        }
+      }
+
+      &:first-child:last-child {
+
+        &:after {
+          font-weight: 400;
+          content: "Home";
+          padding-left: 38px;
+          opacity: .6;
         }
       }
     }
