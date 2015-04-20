@@ -43,3 +43,16 @@ class OrganizationApiKeysTest(TestCase):
             key1,
             key2,
         ]
+
+    def test_creates_api_key(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        path = reverse('sentry-organization-api-keys', args=[organization.slug])
+
+        self.login_as(self.user)
+
+        resp = self.client.post(path, {'op': 'newkey'})
+
+        assert resp.status_code == 302
+
+        assert ApiKey.objects.filter(organization=organization).exists()
