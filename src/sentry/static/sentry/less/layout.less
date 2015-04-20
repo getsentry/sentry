@@ -156,23 +156,33 @@ header {
 
         a {
           font-size: 0;
-          position: relative;
           padding-left: 20px;
 
           &:before {
+            display: block;
             font-family: "sentry-simple";
             content: "\e620";
             font-size: 18px;
             position: absolute;
-            left: 1px;
-            top: -16px;
+            left: -20px;
+            top: -25px;
             opacity: .85;
+            height: 65px;
+            width: 60px;
+            line-height: 66px;
+            text-align: center;
+            border-right: 1px solid lighten(@trim, 2);
+          }
+
+          &:hover:before {
+            background: rgba(246, 247, 248, 0.6);
           }
         }
       }
 
       &:last-child {
         a {
+          font-weight: 400;
           color: lighten(@gray, 15);
         }
       }
@@ -187,8 +197,11 @@ header {
         }
       }
 
-      &:nth-child(3) {
-        font-weight: 400;
+      &:nth-child(2) {
+        padding-left: 38px;
+        &:before {
+          display: none;
+        }
       }
     }
 
