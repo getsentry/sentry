@@ -16,7 +16,7 @@ class ApiKeyForm(forms.ModelForm):
 
     class Meta:
         model = ApiKey
-        fields = ('label', 'scopes', 'allowed_origins')
+        fields = ('label', 'scopes')
 
 
 class OrganizationApiKeySettingsView(OrganizationView):
@@ -25,8 +25,14 @@ class OrganizationApiKeySettingsView(OrganizationView):
     def handle(self, request, organization, key_id):
         key = ApiKey.objects.get(organization=organization, id=key_id)
 
-        form = ApiKeyForm(request.POST or None, instance=key)
+        form = ApiKeyForm(
+            request.POST or None, instance=key, initial={
+                'allowed_origins': key.allowed_origins,
+            },
+        )
+
         if form.is_valid():
+            key.allowed_origins = '\n'.join(form.cleaned_data['allowed_origins'])
             key.save()
             messages.add_message(
                 request, messages.SUCCESS,
