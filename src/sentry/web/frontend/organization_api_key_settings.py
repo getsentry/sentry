@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from django import forms
+from django.contrib import messages
+from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import ApiKey, OrganizationMemberType
@@ -24,6 +26,13 @@ class OrganizationApiKeySettingsView(OrganizationView):
         key = ApiKey.objects.get(organization=organization, id=key_id)
 
         form = ApiKeyForm(request.POST or None, instance=key)
+        if form.is_valid():
+            key.save()
+            messages.add_message(
+                request, messages.SUCCESS,
+                'Your settings were saved.',
+            )
+            return HttpResponseRedirect(request.path)
 
         context = {
             'key': key,
