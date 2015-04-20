@@ -1291,7 +1291,10 @@ legend {
     border-bottom: 1px solid @trim;
 
     a {
-      color: inherit;
+      color: @gray;
+      &:hover {
+        color: darken(@gray, 20);
+      }
     }
 
     h3, h4, h5 {
