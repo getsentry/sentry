@@ -79,6 +79,13 @@
       {% endfeature %}
     {% endif %}
     {% if ACCESS.org_write %}
+    <li class="{% block org_apikeys_nav %}{% endblock %}">
+      <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
+        {% trans "API Keys" %}
+      </a>
+    </li>
+    {% endif %}
+    {% if ACCESS.org_write %}
     <li class="{% block org_settings_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-settings' organization.slug %}">
         {% trans "Settings" %}

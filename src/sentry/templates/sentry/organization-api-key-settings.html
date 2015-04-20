@@ -1,0 +1,41 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "API Keys" %} | {{ block.super }}{% endblock %}
+
+{% block org_apikeys_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>{% trans "API Keys" %}</h2>
+  </div>
+
+  <table class="table simple-list table-bordered member-list">
+    <colgroup>
+      <col width="30%"/>
+      <col width="25%" />
+      <col width="20%"/>
+      <col width="20%"/>
+      <col width="5%"/>
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>&nbsp;</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for key in key_list %}
+        <tr>
+          <td>
+            <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a>
+          </td>
+          <td></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
