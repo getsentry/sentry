@@ -57,6 +57,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
             {method} {path}
             name=http%3A%2F%2Fexample.com%2Fapplication.js
+            &header=X-SourceMap%3A%20http%3A%2F%2Fexample.com%2Fapplication.js.map
 
             # ...
 
@@ -73,21 +74,30 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         )
 
         if 'file' not in request.FILES:
-            return Response(status=400)
+            return Response({'detail': 'Missing uploaded file'}, status=400)
 
         fileobj = request.FILES['file']
 
         full_name = request.DATA.get('name', fileobj.name)
         name = full_name.rsplit('/', 1)[-1]
 
+        headers = {
+            'Content-Type': fileobj.content_type,
+        }
+        for headerval in request.DATA.getlist('header') or ():
+            try:
+                k, v = headerval.split(':', 1)
+            except ValueError:
+                return Response({'detail': 'header value was not formatted correctly'}, status=400)
+            else:
+                headers[k] = v.strip()
+
         # TODO(dcramer): File's are unique on (name, checksum) so we need to
         # ensure that this file does not already exist for other purposes
         file = File(
             name=name,
             type='release.file',
-            headers={
-                'Content-Type': fileobj.content_type,
-            }
+            headers=headers,
         )
         file.putfile(fileobj)
 
