@@ -10,6 +10,12 @@
 
 {% block inner %}
   <div class="page-header">
+    <form class="pull-right" method="POST" action=".">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="newkey" />
+      <button type="submit" class="btn btn-primary">New API Key</button>
+    </form>
+
     <h2>{% trans "API Keys" %}</h2>
   </div>
 
@@ -36,7 +42,7 @@
       {% else %}
         <tr>
           <td colspan="2">
-            <p class="alert-block">You haven't yet created any API keys for this organization. Get started by <a href="#">registering a new api key</a>.</p>
+            <p class="alert-block">You haven't yet created any API keys for this organization.</p>
           </td>
         </tr>
       {% endif %}
