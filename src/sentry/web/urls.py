@@ -44,6 +44,8 @@ from sentry.web.frontend.help_page import HelpPageView
 from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
 from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
+from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
+from sentry.web.frontend.organization_api_key_settings import OrganizationApiKeySettingsView
 from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_home import OrganizationHomeView
@@ -192,6 +194,10 @@ urlpatterns += patterns('',
         name='sentry-create-organization'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/access-groups/$', AccessGroupMigrationView.as_view(),
         name='sentry-organization-access-group-migration'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$', OrganizationApiKeysView.as_view(),
+        name='sentry-organization-api-keys'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)$', OrganizationApiKeySettingsView.as_view(),
+        name='sentry-organization-api-key-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$', OrganizationAuthSettingsView.as_view(),
         name='sentry-organization-auth-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/audit-log/$', OrganizationAuditLogView.as_view(),
