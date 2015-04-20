@@ -9,11 +9,7 @@ from sentry.api.bases.organization import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
-ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'
-
-ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization.'
-
-ERR_UNINVITABLE = 'You cannot send an invitation to a user who is already a full member.'
+ERR_INSUFFICIENT_ROLE = 'You cannot modify a member other than yourself.'
 
 
 class OrganizationMemberTeamSerializer(serializers.Serializer):
@@ -23,8 +19,8 @@ class OrganizationMemberTeamSerializer(serializers.Serializer):
 class RelaxedOrganizationPermission(OrganizationPermission):
     scope_map = {
         'GET': ['org:read', 'org:write', 'org:delete'],
-        'POST': ['org:write', 'org:delete'],
-        'PUT': ['org:write', 'org:delete'],
+        'POST': ['org:read', 'org:write', 'org:delete'],
+        'PUT': ['org:read', 'org:write', 'org:delete'],
 
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
@@ -35,6 +31,16 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
+    def _can_access(self, request, member):
+        # TODO(dcramer): ideally org owners/admins could perform these actions
+        if request.user.is_superuser:
+            return True
+
+        if request.user.id == member.user_id:
+            return True
+
+        return False
+
     def put(self, request, organization, member_id, team_slug):
         try:
             om = OrganizationMember.objects.filter(
@@ -43,6 +49,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             ).select_related('user').get()
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self._can_access(request, om):
+            return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
             team = Team.objects.get(
@@ -59,7 +68,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                     organizationmember=om,
                 )
             except OrganizationMemberTeam.DoesNotExist:
-                raise ResourceDoesNotExist
+                if not organization.flags.allow_joinleave:
+                    raise ResourceDoesNotExist
+                omt = OrganizationMemberTeam(
+                    team=team,
+                    organizationmember=om,
+                    is_active=False,
+                )
         else:
             try:
                 omt = OrganizationMemberTeam.objects.get(
@@ -77,7 +92,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.object
-        if result.get('isActive') is not None:
+        if result.get('isActive') is not None and result['isActive'] != omt.is_active:
             omt.is_active = result['isActive']
             omt.save()
 
