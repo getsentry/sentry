@@ -9,13 +9,15 @@ from __future__ import absolute_import
 
 import six
 
+from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
 from django.forms.util import flatatt
 from django.forms import (
-    Field, CharField, IntegerField, TypedChoiceField, ValidationError
+    Field, CharField, IntegerField, Textarea, TypedChoiceField, ValidationError
 )
 from django.utils.encoding import force_unicode
 from django.utils.html import format_html
+from sentry.utils.http import parse_uri_match
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -111,3 +113,36 @@ class ReadOnlyTextField(Field):
         # Always return initial because the widget doesn't
         # render an input field.
         return initial
+
+
+class OriginsField(CharField):
+    # Special case origins that don't fit the normal regex pattern, but are valid
+    WHITELIST_ORIGINS = ('*')
+
+    _url_validator = URLValidator()
+    widget = Textarea(
+        attrs={
+            'placeholder': mark_safe(_('e.g. example.com or https://example.com')),
+            'class': 'span8',
+        },
+    )
+
+    def clean(self, value):
+        if not value:
+            return []
+        values = filter(bool, (v.strip() for v in value.split('\n')))
+        for value in values:
+            if not self.is_valid_origin(value):
+                raise ValidationError('%r is not an acceptable value' % value)
+        return values
+
+    def is_valid_origin(self, value):
+        if value in self.WHITELIST_ORIGINS:
+            return True
+
+        bits = parse_uri_match(value)
+        # ports are not supported on matching expressions (yet)
+        if ':' in bits.domain:
+            return False
+
+        return True
