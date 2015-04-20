@@ -275,7 +275,7 @@ def fetch_url(url, project=None, release=None):
 
         result = (
             {k.lower(): v for k, v in response.headers.items()},
-            response.content,
+            response.text,
             response.status_code,
         )
         cache.set(cache_key, result, 60)
