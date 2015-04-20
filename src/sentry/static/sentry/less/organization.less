@@ -26,16 +26,11 @@
   padding-left: 0;
 
   .box-header {
-    .pull-right {
-      margin-top: -3px;
-        .icon-plus, .icon-settings {
-          margin-right: 2px;
-          opacity: .3;
-          position: relative;
-        }
+    .actions {
 
-        .new-project {
-          margin-right: 20px;
+        a {
+          font-size: 13px;
+          margin-left: 20px;
         }
 
         .icon-plus {
@@ -49,7 +44,10 @@
       }
 
       a {
-        color: inherit;
+        color: @gray;
+        &:hover {
+          color: darken(@gray, 20);
+        }
       }
   }
 
