@@ -85,6 +85,6 @@ class ApiKey(Model):
         return {
             'label': self.label,
             'key': self.key,
-            'roles': int(self.roles),
+            'scopes': int(self.scopes),
             'status': self.status,
         }

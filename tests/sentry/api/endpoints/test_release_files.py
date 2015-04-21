@@ -61,6 +61,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         response = self.client.post(url, {
             'name': 'http://example.com/application.js',
+            'header': 'X-SourceMap: http://example.com',
             'file': SimpleUploadedFile('application.js', 'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
@@ -71,4 +72,5 @@ class ReleaseFileCreateTest(APITestCase):
         assert releasefile.name == 'http://example.com/application.js'
         assert releasefile.file.headers == {
             'Content-Type': 'application/javascript',
+            'X-SourceMap': 'http://example.com',
         }

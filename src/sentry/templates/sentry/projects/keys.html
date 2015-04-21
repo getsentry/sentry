@@ -4,7 +4,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{% trans "Manage API Keys" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Manage Client Keys" %} | {{ block.super }}{% endblock %}
 
 {% block content %}
     <div class="page-header">
@@ -12,7 +12,7 @@
             <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
         {% endif %}
         <h3>
-            {% trans "Manage API Keys" %}
+            {% trans "Manage Client Keys" %}
         </h3>
     </div>
     <table class="table table-bordered">
@@ -22,8 +22,7 @@
         </colgroup>
         <thead>
             <tr>
-                <th colspan="2">{% trans "API Key" %}</th>
-
+                <th colspan="2">{% trans "Client Key" %}</th>
             </tr>
         </thead>
         <tbody>
