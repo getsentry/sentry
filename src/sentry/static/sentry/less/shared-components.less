@@ -1836,20 +1836,14 @@ legend {
 
   .welcome-slides {
     width: @slideWidth * @slideCount;
+    .transition(margin-left .5s ease-in-out);
   }
 
   .slide {
     width: @slideWidth;
-    opacity: 0;
-    visibility: hidden;
-    .transition(opacity .3s linear);
-    max-height: 0;
-    position: absolute !important;
-
+    float: left;
     &.active {
-      opacity: 1;
-      visibility: visible;
-      position: relative;
+
     }
 
     h1, h2, h3 {
