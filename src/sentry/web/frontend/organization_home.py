@@ -22,10 +22,15 @@ class OrganizationHomeView(OrganizationView):
         for team in Team.objects.filter(organization=organization).order_by('name'):
             all_teams.append((team, team.id in active_team_set))
 
+        if request.access.is_global:
+            open_membership = True
+        else:
+            open_membership = bool(getattr(organization.flags, 'allow_joinleave'))
+
         context = {
             'active_teams': active_teams,
             'all_teams': all_teams,
-            'open_membership': True,
+            'open_membership': open_membership,
         }
 
         return self.respond('sentry/organization-home.html', context)

@@ -22,6 +22,7 @@ SCOPES = set([
 
 class BaseAccess(object):
     is_active = False
+    is_global = False
     sso_is_valid = False
     teams = ()
     scopes = frozenset()
@@ -44,11 +45,12 @@ class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_active, teams, sso_is_valid):
+    def __init__(self, scopes, is_active, is_global, teams, sso_is_valid):
         self.teams = teams
         self.scopes = scopes
 
         self.is_active = is_active
+        self.is_global = is_global
         self.sso_is_valid = sso_is_valid
 
 
@@ -57,6 +59,7 @@ def from_user(user, organization):
         return Access(
             scopes=SCOPES,
             is_active=True,
+            is_global=True,
             teams=organization.team_set.all(),
             sso_is_valid=True,
         )
@@ -108,6 +111,7 @@ def from_member(member):
 
     return Access(
         is_active=True,
+        is_global=member.has_global_access,
         sso_is_valid=sso_is_valid,
         scopes=member.scopes,
         teams=teams,
@@ -118,6 +122,10 @@ class NoAccess(BaseAccess):
     @property
     def sso_is_valid(self):
         return True
+
+    @property
+    def is_global(self):
+        return False
 
     @property
     def is_active(self):
