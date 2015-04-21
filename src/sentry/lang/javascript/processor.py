@@ -273,9 +273,14 @@ def fetch_url(url, project=None, release=None):
                            exc_info=True)
             raise CannotFetchSource(error)
 
+        # requests' attempts to use chardet internally when no encoding is found
+        # and we want to avoid that slow behavior
+        if not response.encoding:
+            response.encoding = 'utf-8'
+
         result = (
             {k.lower(): v for k, v in response.headers.items()},
-            response.content,
+            response.text,
             response.status_code,
         )
         cache.set(cache_key, result, 60)

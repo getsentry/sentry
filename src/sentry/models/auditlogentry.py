@@ -47,8 +47,11 @@ class AuditLogEntryEvent(object):
     SSO_ENABLE = 60
     SSO_DISABLE = 61
     SSO_EDIT = 62
-
     SSO_IDENTITY_LINK = 63
+
+    APIKEY_ADD = 70
+    APIKEY_EDIT = 71
+    APIKEY_REMOVE = 72
 
 
 class AuditLogEntry(Model):
@@ -89,8 +92,11 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.SSO_ENABLE, 'sso.enable'),
         (AuditLogEntryEvent.SSO_DISABLE, 'sso.disable'),
         (AuditLogEntryEvent.SSO_EDIT, 'sso.edit'),
-
         (AuditLogEntryEvent.SSO_IDENTITY_LINK, 'sso-identity.link'),
+
+        (AuditLogEntryEvent.APIKEY_ADD, 'api-key.create'),
+        (AuditLogEntryEvent.APIKEY_EDIT, 'api-key.edit'),
+        (AuditLogEntryEvent.APIKEY_REMOVE, 'api-key.remove'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -157,8 +163,14 @@ class AuditLogEntry(Model):
             return 'disabled sso (%s)' % (self.data['provider'],)
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
             return 'edited sso settings'
-
         elif self.event == AuditLogEntryEvent.SSO_IDENTITY_LINK:
             return 'linked their account to a new identity'
+
+        elif self.event == AuditLogEntryEvent.APIKEY_ADD:
+            return 'added api key %s (%s)' % (self.data['label'], self.data['key'])
+        elif self.event == AuditLogEntryEvent.APIKEY_EDIT:
+            return 'edited api key %s (%s)' % (self.data['label'], self.data['key'])
+        elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
+            return 'removed api key %s (%s)' % (self.data['label'], self.data['key'])
 
         return ''

@@ -27,10 +27,6 @@ class BetterJSONEncoder(DjangoJSONEncoder):
         return super(BetterJSONEncoder, self).default(obj)
 
 
-def better_decoder(data):
-    return data
-
-
 def dumps(value, **kwargs):
     if 'separators' not in kwargs:
         kwargs['separators'] = (',', ':')
@@ -38,4 +34,4 @@ def dumps(value, **kwargs):
 
 
 def loads(value, **kwargs):
-    return json.loads(value, object_hook=better_decoder)
+    return json.loads(value)
