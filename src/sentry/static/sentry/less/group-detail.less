@@ -171,7 +171,7 @@
   .activity-field {
     .form-control();
     padding: 0 10px 0 0;
-    margin: 0 0 10px;
+    margin: 0 0 15px;
     .transition(padding .2s ease-in-out);
 
     textarea {
@@ -228,67 +228,72 @@
   > ul {
     .list-unstyled();
 
-    > li {
-      padding: 0 0 10px 35px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid #E5E7E8;
+    .activity-note {
       position: relative;
-
-      &:last-child {
-        border: 0;
-      }
-
-      h6 {
-        font-size: 13px;
-        margin: 0 0 4px;
-        a {
-          font-weight: 600;
-          color: @grayDark;
-        }
-      }
-
-      time {
-        line-height: 1;
-        color: #C0C3C6;
-        font-size: 12px;
-        float: right;
-      }
+      margin-bottom: 15px;
 
       .avatar {
         position: absolute;
         left: 0;
         top: 0;
-        width: 24px;
-        height: 24px;
-        display: block;
-        background-size: 24px 24px;
+        .square(32px);
+      }
+
+      .activity-bubble {
+        background: #fff;
+        border: 1px solid @trim;
+        margin-left: 42px;
+        border-radius: 2px;
+        font-size: 13px;
+        padding: 8px 12px;
+
+        p {
+          margin: 0;
+        }
+
+        .activity-author {
+          font-weight: 500;
+        }
+
+        time {
+          float: right;
+          color: lighten(@gray, 20);
+        }
+      }
+    }
+
+    .activity-item {
+      padding: 15px 0;
+      border-top: 1px solid rgba(226, 231, 236, .4);
+      position: relative;
+      font-size: 13px;
+      color: lighten(@gray, 20);
+
+      .avatar {
+        width: 20px;
+        height: 20px;
+        display: inline-block;
+        background-size: 20px 20px;
         background-repeat: no-repeat;
         background-position: center center;
         border-radius: 2px;
-
-        img {
-          width: 16px;
-          height: 16px;
-          display: block;
-          border-radius: 3px;
-        }
+        position: relative;
+        top: -1px;
+        left: -3px;
 
         &.sentry {
           background-image: url('../images/favicon.ico');
         }
       }
 
-      p {
-        font-size: 13px;
-        margin-bottom: 10px;
-        &:last-child {
-          margin: 0;
-        }
+      time {
+        float: right;
+        color: lighten(@gray, 25);
       }
 
-      .sep, .time {
-        font-size: 12px;
-        color: #aaa;
+      .activity-author {
+        font-weight: 500;
+        color: lighten(@gray, 10);
       }
     }
   }
