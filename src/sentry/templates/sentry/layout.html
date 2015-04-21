@@ -219,7 +219,7 @@
           <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
           <div class="modal-body">
             <div class="welcome-slides">
-              <div class="slide active">
+              <div class="slide">
                 <div class="container">
                   <h1>Welcome to Sentry</h1>
                   <p>Hell yeah! Bout damn time we got this shit poppin'.</p>
@@ -227,19 +227,19 @@
                     <a class="btn btn-default " href="#">Installation Instructions</a>
                     <a class="btn btn-primary " href="#">Start Overview</a>
                   </p>
-                  <div class="screenshot"></div>
+                  <div class="screenshot fadeInUp" data-animate></div>
                 </div>
               </div>
               <div class="slide">
                 <div class="row">
-                  <div class="col-md-5">
+                  <div class="col-md-5 fadeIn" data-animate>
                     <h3>Teach Sentry about your business.</h3>
                     <p>Tag users, servers, shopping cart totals, or whatever is important to you.</p>
                     <p><a class="btn btn-primary" href="#">Learn more about Tagging</a></p>
                   </div>
                   <div class="col-md-7">
                     <div class="screenshot">
-                      <div class="loupe"></div>
+                      <div class="loupe zoomIn" data-animate></div>
                     </div>
                   </div>
                 </div>
@@ -247,7 +247,7 @@
               <div class="slide">
                 <div class="row">
                   <div class="col-md-7 chat-column">
-                    <ul class="chat">
+                    <ul class="chat fadeInUp" data-animate>
                       <li class="chat-message">
                         <div class="chat-avatar"></div>
                         <h5>Sentry <time>8:02pm</time></h5>
@@ -378,7 +378,14 @@
           $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
           $(".slide-" + location).addClass("active");
           $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
+
+          // Animate shit
+
+          $(".slide *").removeClass("animated");
+          $(".slide-" + location + " [data-animate]").addClass("animated");
         }
+
+        showSlide(1);
       }
 
       $( "body" ).keypress(function( event ) {
