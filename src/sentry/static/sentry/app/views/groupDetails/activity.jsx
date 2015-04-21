@@ -45,7 +45,7 @@ var GroupActivity = React.createClass({
     var children = group.activity.map((item, itemIdx) => {
       var avatar = (item.user ?
         <Gravatar email={item.user.email} size={64} className="avatar" /> :
-        <img src="" className="avatar sentry" />);
+        <div className="avatar sentry" />);
 
       var authorName = (item.user ?
         item.user.name :
