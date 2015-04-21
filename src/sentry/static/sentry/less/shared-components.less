@@ -1836,21 +1836,12 @@ legend {
 
   .welcome-slides {
     width: @slideWidth * @slideCount;
+    .transition(margin-left .4s ease-in-out);
   }
 
   .slide {
     width: @slideWidth;
-    opacity: 0;
-    visibility: hidden;
-    .transition(opacity .3s linear);
-    max-height: 0;
-    position: absolute !important;
-
-    &.active {
-      opacity: 1;
-      visibility: visible;
-      position: relative;
-    }
+    float: left;
 
     h1, h2, h3 {
       color: @grayDark;
@@ -1882,6 +1873,10 @@ legend {
       height: 348px;
       margin: 30px auto 0;
       background-image: url(https://s3.amazonaws.com/f.cl.ly/items/261Y0m3B2W3V0F2I2b1w/Screen%20Shot%202015-04-20%20at%205.04.01%20PM.png);
+    }
+
+    &.active {
+
     }
   }
 
