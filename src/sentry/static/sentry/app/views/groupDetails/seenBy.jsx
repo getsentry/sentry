@@ -14,7 +14,7 @@ var GroupSeenBy = React.createClass({
     var seenByNodes = group.seenBy.map((user, userIdx) => {
       return (
         <li key={userIdx}>
-          <Gravatar size={24} email={user.email} />
+          <Gravatar size={52} email={user.email} />
         </li>
       );
     });
@@ -26,7 +26,7 @@ var GroupSeenBy = React.createClass({
     return (
       <div className="seen-by">
         <ul>
-          <li>Seen by:</li>
+          <li><span className="icon-eye"></span> 23</li>
           {seenByNodes}
         </ul>
       </div>
