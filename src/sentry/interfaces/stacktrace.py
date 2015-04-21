@@ -33,6 +33,9 @@ _filename_version_re = re.compile(r"""(?:
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
+    if lineno is None:
+        return []
+
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
