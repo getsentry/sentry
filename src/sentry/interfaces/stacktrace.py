@@ -36,6 +36,9 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
     if lineno is None:
         return []
 
+    if context_line is None and not (pre_context or post_context):
+        return []
+
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])

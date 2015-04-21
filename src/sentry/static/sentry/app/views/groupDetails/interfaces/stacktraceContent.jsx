@@ -98,7 +98,7 @@ var Frame = React.createClass({
     }
 
     var context = '';
-    if (this.isDefined(data.context)) {
+    if (this.isDefined(data.context) && data.context.length) {
       var startLineNo = data.context[0][0];
       context = (
         <ol start={startLineNo} className={outerClassName}
