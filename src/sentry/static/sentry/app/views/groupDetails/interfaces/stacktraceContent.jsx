@@ -83,6 +83,7 @@ var Frame = React.createClass({
     }
 
     if (this.isDefined(data.lineNo)) {
+      title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a><span className="divider"></span>Last changed by <a>dcramer</a><span className="divider"></span><a href="#">Assign</a></span>);
       title.push(<span className="in-at" key="at"> at line </span>);
       if (this.isDefined(data.colNo)) {
         title.push(<code key="line">{data.lineNo}:{data.colNo}</code>);
