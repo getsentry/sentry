@@ -331,6 +331,8 @@
         var numSlides = 0;
         var currentSlide;
 
+        // Find all slides
+
         $(".slide").each(function(i) {
           numSlides++;
 
@@ -344,8 +346,12 @@
 
           $(this).addClass("slide-" + slide );
 
+          // Build dot nav
+
           $(".dot-nav").append('<li class="'+ (isActive ? "active" : "") + '"><a href="#" class="show-slide" data-show-slide="'+ slide +'"></a></li>')
         });
+
+        // Input handlers
 
         $(".show-slide").click(function() {
           showSlide($(this).attr("data-show-slide"));
@@ -373,10 +379,18 @@
 
         this.showSlide = function(location) {
           currentSlide = location;
+
+          // Clear active items
           $(".slide").removeClass("active");
           $(".dot-nav li").removeClass("active");
+
+          // Set new active items
+
           $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
           $(".slide-" + location).addClass("active");
+
+          // Use margin to show slide
+
           $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
 
           // Animate shit
