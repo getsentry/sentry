@@ -169,21 +169,56 @@
   position: relative;
 
   .activity-field {
-    margin-bottom: 15px;
+    .form-control();
+    padding: 0 10px 0 0;
+    margin: 0 0 10px;
+    .transition(padding .2s ease-in-out);
+
     textarea {
-      max-height: 45px;
+      display: block;
+      width: 100%;
+      max-height: 28px;
       max-width: 100%;
       margin: 0;
-      .transition(.1s ease-in-out all);
-      padding: 11px 15px;
-      border-color: darken(@trim, 5);
+      .transition(.2s ease-in-out all);
+      border: 0;
+      padding: 10px 0 0 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
 
       &:focus {
-        border-color: darken(@trim, 10);
+        outline: 0;
+      }
+    }
+
+    .activity-actions {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      text-align: right;
+      border-top: 1px solid lighten(@trim, 4);
+      opacity: 0;
+      visibility: hidden;
+      .transition(opacity .2s ease-in-out);
+
+      .btn {
+        font-size: 13px;
+        margin: -1px -1px -1px;
+        border-radius: 0 0 2px;
+      }
+    }
+
+    &.expanded {
+      padding-bottom: 35px;
+
+      textarea {
+        max-height: 1000px;
       }
 
-      &.expanded {
-        max-height: 100px;
+      .activity-actions {
+        opacity: 1;
+        visibility: visible;
       }
     }
   }
@@ -195,6 +230,7 @@
       padding: 0 0 10px 35px;
       margin-bottom: 12px;
       border-bottom: 1px solid #E5E7E8;
+      position: relative;
 
       &:last-child {
         border: 0;
