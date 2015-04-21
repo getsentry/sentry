@@ -16,6 +16,8 @@ ONE_DAY = ONE_HOUR * 24
 
 
 class TSDBModel(Enum):
+    internal = 0
+
     # number of events seen specific to grouping
     project = 1
     project_tag_key = 2

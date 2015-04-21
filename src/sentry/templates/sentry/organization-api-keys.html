@@ -1,0 +1,58 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "API Keys" %} | {{ block.super }}{% endblock %}
+
+{% block org_apikeys_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <form class="pull-right" method="POST" action=".">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="newkey" />
+      <button type="submit" class="btn btn-primary">New API Key</button>
+    </form>
+
+    <h2>{% trans "API Keys" %}</h2>
+  </div>
+
+  <p>API keys grant access to the <a href="{% url 'sentry-api-0-help' %}">developer web API</a>. If you're looking to configure a Sentry client, you'll need a client key which is available in our <a href="{% url 'sentry-help-platform-list' %}">platform documentation</a> or your project's settings.</p>
+
+  <br />
+
+  <table class="table simple-list table-bordered member-list">
+    <colgroup>
+      <col />
+      <col width="20%"/>
+    </colgroup>
+    <tbody>
+      {% if key_list %}
+        {% for key in key_list %}
+          <tr>
+            <td>
+              <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a><br />
+              <code class="clippy">{{ key.key }}</code>
+            </td>
+            <td>
+              <form class="pull-right" method="POST" action="." onsubmit="return confirm('Are you sure you want to remove this API key?');">
+                {% csrf_token %}
+                <input type="hidden" name="op" value="removekey" />
+                <input type="hidden" name="kid" value="{{ key.id }}" />
+                <button class="btn btn-default btn-small">Remove</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="2">
+            <p class="alert-block">You haven't yet created any API keys for this organization.</p>
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+{% endblock %}

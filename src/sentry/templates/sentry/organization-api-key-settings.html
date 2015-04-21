@@ -1,0 +1,43 @@
+{% extends "sentry/bases/organization.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "API Key Settings" %} | {{ block.super }}{% endblock %}
+
+{% block org_apikeys_nav %}active{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>{% trans "API Key Settings" %}</h2>
+  </div>
+
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
+
+    {% if form.errors %}
+      <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+    {% endif %}
+
+    {{ form|as_crispy_errors }}
+
+    <fieldset>
+      <div class="control-group">
+        <label>{% trans "Key" %}</label>
+        <div class="controls">
+          <code class="clippy">{{ key.key }}</code>
+        </div>
+      </div>
+
+      {{ form.label|as_crispy_field }}
+      {{ form.scopes|as_crispy_field }}
+      {{ form.allowed_origins|as_crispy_field }}
+
+    </fieldset>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+    </div>
+  </form>
+{% endblock %}

@@ -8,11 +8,10 @@ sentry.plugins.bases.tag
 from __future__ import absolute_import
 
 from sentry.constants import MAX_TAG_VALUE_LENGTH
-from sentry.models import Group
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin2
 
 
-class TagPlugin(Plugin):
+class TagPlugin(Plugin2):
     tag = None
     tag_label = None
     project_default_enabled = True
@@ -32,6 +31,3 @@ class TagPlugin(Plugin):
             for v in self.get_tag_values(event)
             if len(v) <= MAX_TAG_VALUE_LENGTH
         ]
-
-    def post_process(self, group, event, is_new, is_sample, **kwargs):
-        Group.objects.add_tags(group, self.get_tags(event))

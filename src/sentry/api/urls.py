@@ -17,6 +17,7 @@ from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.helppage_details import HelpPageDetailsEndpoint
 from .endpoints.helppage_index import HelpPageIndexEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
@@ -180,6 +181,11 @@ urlpatterns = patterns(
     url(r'^helppages/(?P<page_id>\d+)/$',
         HelpPageDetailsEndpoint.as_view(),
         name='sentry-api-0-helppage-details'),
+
+    # Internal
+    url(r'^internal/stats/$',
+        InternalStatsEndpoint.as_view(),
+        name='sentry-api-0-internal-stats'),
 
     url(r'^$',
         IndexEndpoint.as_view(),

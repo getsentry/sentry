@@ -8,7 +8,7 @@
     app.charts = {
 
         render: function(el, options) {
-            var $el = $('#chart');
+            var $el = $(el);
             var url = $el.attr('data-api-url');
             var title = $(el).attr('data-title');
             var $spark = $el.find('.sparkline');

@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.core.validators import URLValidator
 from django.http import HttpResponseRedirect
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
@@ -14,45 +13,13 @@ from sentry.models import (
 )
 from sentry.permissions import can_remove_project, can_set_public_projects
 from sentry.plugins import plugins
-from sentry.web.forms.fields import CustomTypedChoiceField, RangeField
+from sentry.web.forms.fields import (
+    CustomTypedChoiceField, RangeField, OriginsField
+)
 from sentry.web.frontend.base import ProjectView
-from sentry.utils.http import parse_uri_match
 
 
 BLANK_CHOICE = [("", "")]
-
-# Special case origins that don't fit the normal regex pattern, but are valid
-WHITELIST_ORIGINS = ('*')
-
-
-class OriginsField(forms.CharField):
-    _url_validator = URLValidator()
-    widget = forms.Textarea(
-        attrs={
-            'placeholder': mark_safe(_('e.g. example.com or https://example.com')),
-            'class': 'span8',
-        },
-    )
-
-    def clean(self, value):
-        if not value:
-            return []
-        values = filter(bool, (v.strip() for v in value.split('\n')))
-        for value in values:
-            if not self.is_valid_origin(value):
-                raise forms.ValidationError('%r is not an acceptable value' % value)
-        return values
-
-    def is_valid_origin(self, value):
-        if value in WHITELIST_ORIGINS:
-            return True
-
-        bits = parse_uri_match(value)
-        # ports are not supported on matching expressions (yet)
-        if ':' in bits.domain:
-            return False
-
-        return True
 
 
 class EditProjectForm(forms.ModelForm):
