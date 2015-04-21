@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from collections import defaultdict
 
 from sentry.models import (
-    AuthProvider, OrganizationMember, OrganizationMemberTeams,
+    AuthProvider, OrganizationMember, OrganizationMemberTeam,
     OrganizationMemberType
 )
 from sentry.web.frontend.base import OrganizationView
@@ -19,7 +19,7 @@ class OrganizationMembersView(OrganizationView):
                 organization=organization,
             ).type
 
-        queryset = OrganizationMemberTeams.objects.filter(
+        queryset = OrganizationMemberTeam.objects.filter(
             organizationmember__organization=organization,
         ).select_related('team')
 
