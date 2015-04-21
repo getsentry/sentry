@@ -128,7 +128,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         # TODO(dcramer): we should allow assignment to anyone who has membership
         # even if that membership is not SSO linked
-        if result.get('assignedTo') and not group.project.has_access(result['assignedTo']):
+        if result.get('assignedTo') and not group.project.member_set.filter(user=result['assignedTo']).exists():
             return Response({'detail': 'Cannot assign to non-team member'}, status=400)
 
         if result.get('status') == 'resolved':

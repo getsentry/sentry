@@ -131,9 +131,6 @@
                                                 {% for o in organization_list %}
                                                     <li{% if o == organization %} class="active"{% endif %}>
                                                         <a href="{% url 'sentry-organization-home' o.slug %}">{{ o.name }}</a>
-                                                        {% if request.user|can_manage_org:o %}
-                                                            <a href="{% url 'sentry-organization-settings' o.slug %}" class="org-settings"><span class="icon-cog"></span></a>
-                                                        {% endif %}
                                                     </li>
                                                 {% endfor %}
                                               </ul>
@@ -161,7 +158,7 @@
                                             <ul class="dropdown-menu">
                                                 <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
                                                 {% if request.user.is_staff %}
-                                                    <li><a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a></li>
+                                                    <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
                                                 {% endif %}
                                                 <li class="divider">
                                                 <li><a href="{% url 'sentry-logout' %}">{% trans "Logout" %}</a></li>

@@ -8,6 +8,7 @@ sentry.utils.http
 from __future__ import absolute_import
 
 import sentry
+import six
 import socket
 import requests
 import warnings
@@ -16,6 +17,8 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from ipaddr import IPNetwork
 from requests.adapters import HTTPAdapter
+from requests.exceptions import SSLError
+from OpenSSL.SSL import ZeroReturnError
 from urlparse import urlparse
 
 USER_AGENT = 'sentry/{version} (https://getsentry.com)'.format(
@@ -93,13 +96,25 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
     if method is None:
         method = 'POST' if (data or json) else 'GET'
 
-    return getattr(session, method.lower())(
-        url,
-        allow_redirects=allow_redirects,
-        timeout=timeout,
-        verify=verify_ssl,
-        **kwargs
-    )
+    try:
+        response = getattr(session, method.lower())(
+            url,
+            allow_redirects=allow_redirects,
+            timeout=timeout,
+            verify=verify_ssl,
+            **kwargs
+        )
+    # Our version of requests does not transform ZeroReturnError into an
+    # appropriately generically catchable exception
+    except ZeroReturnError as exc:
+        six.reraise(SSLError, exc)
+
+    # requests' attempts to use chardet internally when no encoding is found
+    # and we want to avoid that slow behavior
+    if not response.encoding:
+        response.encoding = 'utf-8'
+
+    return response
 
 
 def safe_urlread(response):

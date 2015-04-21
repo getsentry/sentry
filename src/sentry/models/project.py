@@ -203,15 +203,14 @@ class Project(Model):
             Q(teams=self.team) | Q(has_global_access=True),
             user__is_active=True,
             organization=self.organization,
-        )
+        ).distinct()
 
     def has_access(self, user, access=None):
         from sentry.models import AuthIdentity, OrganizationMember
 
         warnings.warn('Project.has_access is deprecated.', DeprecationWarning)
 
-        queryset = self.member_set.filter(
-            user=user)
+        queryset = self.member_set.filter(user=user)
 
         if access is not None:
             queryset = queryset.filter(type__lte=access)

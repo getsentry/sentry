@@ -43,7 +43,10 @@ class PluginManager(InstanceManager):
             yield plugin
 
     def get(self, slug):
-        for plugin in self.all():
+        for plugin in self.all(version=1):
+            if plugin.slug == slug:
+                return plugin
+        for plugin in self.all(version=2):
             if plugin.slug == slug:
                 return plugin
         raise KeyError(slug)

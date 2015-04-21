@@ -44,6 +44,8 @@ from sentry.web.frontend.help_page import HelpPageView
 from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
 from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
+from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
+from sentry.web.frontend.organization_api_key_settings import OrganizationApiKeySettingsView
 from sentry.web.frontend.organization_audit_log import OrganizationAuditLogView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
 from sentry.web.frontend.organization_home import OrganizationHomeView
@@ -151,6 +153,40 @@ urlpatterns += patterns('',
     url(r'^docs/platforms/(?P<platform>[^\/]+)/$', HelpPlatformDetailsView.as_view(),
         name='sentry-help-platform'),
 
+    # Admin
+    url(r'^manage/$', admin.overview,
+        name='sentry-admin-overview'),
+    url(r'^manage/status/environment/$', admin.status_env,
+        name='sentry-admin-status'),
+    url(r'^manage/status/packages/$', admin.status_packages,
+        name='sentry-admin-packages-status'),
+    url(r'^manage/status/mail/$', admin.status_mail,
+        name='sentry-admin-mail-status'),
+
+    # Admin - Teams
+    url(r'^manage/teams/$', admin.manage_teams,
+        name='sentry-admin-teams'),
+
+    # Admin - Projects
+    url(r'^manage/projects/$', admin.manage_projects,
+        name='sentry-admin-projects'),
+
+    # Admin - Users
+    url(r'^manage/users/$', admin.manage_users,
+        name='sentry-admin-users'),
+    url(r'^manage/users/new/$', admin.create_new_user,
+        name='sentry-admin-new-user'),
+    url(r'^manage/users/(?P<user_id>\d+)/$', admin.edit_user,
+        name='sentry-admin-edit-user'),
+    url(r'^manage/users/(?P<user_id>\d+)/remove/$', admin.remove_user,
+        name='sentry-admin-remove-user'),
+    url(r'^manage/users/(?P<user_id>\d+)/projects/$', admin.list_user_projects,
+        name='sentry-admin-list-user-projects'),
+
+    # Admin - Plugins
+    url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
+        name='sentry-admin-configure-plugin'),
+
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', OrganizationHomeView.as_view(),
         name='sentry-organization-home'),
@@ -158,6 +194,10 @@ urlpatterns += patterns('',
         name='sentry-create-organization'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/access-groups/$', AccessGroupMigrationView.as_view(),
         name='sentry-organization-access-group-migration'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$', OrganizationApiKeysView.as_view(),
+        name='sentry-organization-api-keys'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)$', OrganizationApiKeySettingsView.as_view(),
+        name='sentry-organization-api-key-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/auth/$', OrganizationAuthSettingsView.as_view(),
         name='sentry-organization-auth-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/audit-log/$', OrganizationAuditLogView.as_view(),
@@ -260,40 +300,6 @@ urlpatterns += patterns('',
     # Generic
     url(r'^$', HomeView.as_view(),
         name='sentry'),
-
-    # Admin
-    url(r'^manage/status/$', admin.status_env,
-        name='sentry-admin-status'),
-    url(r'^manage/status/packages/$', admin.status_packages,
-        name='sentry-admin-packages-status'),
-    url(r'^manage/status/mail/$', admin.status_mail,
-        name='sentry-admin-mail-status'),
-    url(r'^manage/stats/$', admin.stats,
-        name='sentry-admin-stats'),
-
-    # Admin - Teams
-    url(r'^manage/teams/$', admin.manage_teams,
-        name='sentry-admin-teams'),
-
-    # Admin - Projects
-    url(r'^manage/projects/$', admin.manage_projects,
-        name='sentry-admin-projects'),
-
-    # Admin - Users
-    url(r'^manage/users/$', admin.manage_users,
-        name='sentry-admin-users'),
-    url(r'^manage/users/new/$', admin.create_new_user,
-        name='sentry-admin-new-user'),
-    url(r'^manage/users/(?P<user_id>\d+)/$', admin.edit_user,
-        name='sentry-admin-edit-user'),
-    url(r'^manage/users/(?P<user_id>\d+)/remove/$', admin.remove_user,
-        name='sentry-admin-remove-user'),
-    url(r'^manage/users/(?P<user_id>\d+)/projects/$', admin.list_user_projects,
-        name='sentry-admin-list-user-projects'),
-
-    # Admin - Plugins
-    url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
-        name='sentry-admin-configure-plugin'),
 
     # crossdomain.xml
     url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
