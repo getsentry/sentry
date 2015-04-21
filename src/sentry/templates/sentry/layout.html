@@ -327,6 +327,7 @@
 
       var slideShow = function() {
 
+        var slideWidth = $(".slide").width();
         var numSlides = 0;
         var currentSlide;
 
@@ -376,6 +377,7 @@
           $(".dot-nav li").removeClass("active");
           $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
           $(".slide-" + location).addClass("active");
+          $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
         }
       }
 
