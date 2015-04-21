@@ -44,8 +44,8 @@ var GroupActivity = React.createClass({
 
     var children = group.activity.map((item, itemIdx) => {
       var avatar = (item.user ?
-        <Gravatar email={item.user.email} size={16} className="avatar" /> :
-        <img src="" className="avatar" />);
+        <Gravatar email={item.user.email} size={64} className="avatar" /> :
+        <img src="" className="avatar sentry" />);
 
       var authorName = (item.user ?
         item.user.name :
@@ -53,16 +53,24 @@ var GroupActivity = React.createClass({
 
       var label = formatActivity(item);
 
-      return (
-        <li className="activity-item" key={itemIdx}>
-          {avatar}
-          <TimeSince date={item.dateCreated} />
-          <strong>{authorName}</strong> {label}
-          {item.type === 'note' &&
-            utils.nl2br(utils.urlize(utils.escape(item.data.text)))
-          }
-        </li>
-      );
+      if (item.type === 'note') {
+        return (
+          <li className="activity-note" key={itemIdx}>
+            {avatar}
+            <div className="activity-bubble">
+              <TimeSince date={item.dateCreated} />
+              <div className="activity-author">{authorName}</div>
+              <p>{ utils.nl2br(utils.urlize(utils.escape(item.data.text))) }</p>
+            </div>
+          </li>
+        );
+      } else {
+        return (
+          <li className="activity-item" key={itemIdx}>
+            {avatar} <span className="activity-author">{authorName}</span> {label} <TimeSince date={item.dateCreated} />
+          </li>
+        );
+      }
     });
 
     return (
