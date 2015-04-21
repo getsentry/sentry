@@ -130,20 +130,26 @@
 
   ul {
     .list-unstyled;
+
     li:first-child {
-      padding-right: 5px;
-      padding-top: 2px;
-      color: lighten(@gray, 20);
-      line-height: 32px;
+      padding: 4px 5px 2px;
+      border: 1px solid @trim;
+      color: lighten(@gray, 15);
+      border-radius: 2px;
+
+      .icon-eye {
+        font-size: 10px;
+        opacity: .4;
+      }
     }
+
     li {
       float: left;
       margin-left: 5px;
 
       img {
-        border-radius: 3px;
-        width: 30px;
-        height: 30px;
+        border-radius: 2px;
+        .square(28px);
       }
     }
   }
