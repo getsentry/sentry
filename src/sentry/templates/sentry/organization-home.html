@@ -35,7 +35,11 @@
               {% else %}
                 <a title="You do not have the required permissions for adding projects.">{% trans "New Project" %}</a>
               {% endif %}
-              <a href="#">Leave Team</a>
+              <form method="POST" action="." style="display:inline">
+                {% csrf_token %}
+                <input type="hidden" name="team" value="{{ team.slug }}" />
+                <button name="op" value="leave" type="submit">Leave Team</button>
+              </form>
               <a href="{% url 'sentry-manage-team' organization.slug team.slug %}">Settings</a>
             </div><a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}">{{ team.name }}</a></h3>
             {% if not project_list %}

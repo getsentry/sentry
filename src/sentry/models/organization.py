@@ -120,4 +120,5 @@ class Organization(Model):
             'slug': self.slug,
             'name': self.name,
             'status': self.status,
+            'flags': self.flags,
         }
