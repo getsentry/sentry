@@ -485,14 +485,31 @@
 .expandable {
   height: 0;
   overflow: hidden;
+  position: relative;
+
+  .icon-plus {
+    position: absolute;
+    left: 6px;
+    top: 5px;
+    opacity: .25;
+    .transition(.1s opacity linear);
+  }
 
   &.vars {
     display: none;
   }
 
+  &:hover {
+    .icon-plus {
+      opacity: .5;
+    }
+  }
 }
 
 .expanded {
+  .icon-plus {
+    display: none;
+  }
   .expandable {
     overflow: none;
     height: auto;
