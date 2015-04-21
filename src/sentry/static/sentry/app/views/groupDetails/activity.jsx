@@ -69,7 +69,10 @@ var GroupActivity = React.createClass({
       <div className="activity">
         <h6>Timeline</h6>
         <div className="activity-field">
-          <textarea className="form-control" placeholder="Add some details or an update on this event" />
+          <div className="activity-notes">
+            <textarea className="form-control" placeholder="Add some details or an update on this event" />
+            <button className="btn">Post</button>
+          </div>
         </div>
         <ul className="activity">
           {children}
