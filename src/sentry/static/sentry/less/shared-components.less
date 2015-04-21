@@ -28,6 +28,11 @@
 
 /* Button sizes */
 
+.btn-sm {
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
 .btn-lg {
   font-size: 16px;
   padding: 10px 20px;
@@ -41,10 +46,10 @@
 /* Button types */
 
 .btn-default {
-  color: #34343f;
+  color: @grayDark;
   background-color: #fff;
-  border-color: darken(@trim, 4);
-  box-shadow: 0 1px 0 rgba(52, 60, 69, 0.02);
+  border-color: darken(@trim, 5);
+  box-shadow: none;
 
   &:hover, &:focus, &:active {
     color: #34343f;
@@ -56,23 +61,25 @@
 .btn-primary {
   color: #ffffff;
   background-color: @blue;
-  border-color: transparent;
+  border-color: darken(@blue, 15);
   box-shadow: none;
 
   &:hover, &:focus, &:active {
     background-color: darken(@blue, 5);
-    border-color: transparent;
+    border-color: darken(@blue, 18);
   }
 }
 
 .btn-danger {
-  background: @red;
-  border-color: darken(@red, 15);
-  box-shadow: 0 1px 0 rgba(70, 82, 98, 0.16);
+  background: #fff;
+  color: darken(@red, 15);
+  border-color: @red;
+  box-shadow: none;
 
   &:hover, &:focus, &:active {
-    background-color: darken(@red, 5);
-    border-color: darken(@red, 30);
+    background: #fff;
+    color: darken(@red, 15);
+    border-color: darken(@red, 20);
   }
 }
 
