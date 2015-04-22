@@ -1,8 +1,10 @@
 /*** @jsx React.DOM */
 var React = require("react");
 
+var api = require("../../api");
 var Gravatar = require("../../components/gravatar");
 var GroupState = require("../../mixins/groupState");
+var GroupStore = require("../../stores/groupStore");
 var PropTypes = require("../../proptypes");
 var TimeSince = require("../../components/timeSince");
 var utils = require("../../utils");
@@ -36,24 +38,93 @@ var formatActivity = function(item) {
   }
 };
 
-var GroupActivity = React.createClass({
-  mixins: [GroupState],
-
+var NoteInput = React.createClass({
   getInitialState() {
     return {
-      noteTextareaExpanded: false
+      loading: false,
+      error: false,
+      expanded: false,
+      value: ''
     };
   },
 
-  expandNoteTextarea() {
-    this.setState({noteTextareaExpanded: true});
+  onSubmit(e) {
+    e.preventDefault();
+
+    this.setState({
+      loading: true,
+      error: false
+    });
+
+    api.request('/groups/' + this.props.group.id + '/notes/', {
+      method: 'POST',
+      data: {
+        text: this.state.value
+      },
+      error: () => {
+        this.setState({
+          loading: false,
+          error: true
+        });
+      },
+      success: (data) => {
+        this.setState({
+          value: '',
+          expanded: false,
+          loading: false
+        });
+        GroupStore.addActivity(this.props.group.id, data);
+      }
+    });
   },
 
-  collapseNoteTextarea() {
-    this.setState({noteTextareaExpanded: false});
+  onChange(e) {
+    this.setState({value: e.target.value});
   },
 
-  render: function() {
+  expand() {
+    this.setState({expanded: true});
+  },
+
+  collapse() {
+    if (this.state.value === '') {
+      this.setState({expanded: false});
+    }
+  },
+
+  render() {
+    var classNames = 'activity-field';
+    if (this.state.expanded) {
+      classNames += ' expanded';
+    }
+    if (this.state.error) {
+      classNames += ' error';
+    }
+    if (this.state.loading) {
+      classNames += ' loading';
+    }
+
+    return (
+      <form className={classNames} onSubmit={this.onSubmit}>
+        <div className="activity-notes">
+          <textarea placeholder="Add some details or an update on this event"
+                    onChange={this.onChange}
+                    onFocus={this.expand} onBlur={this.maybeCollapse}
+                    value={this.state.value} />
+          <div className="activity-actions">
+            <button className="btn btn-default" type="submit">Leave note</button>
+          </div>
+        </div>
+      </form>
+    );
+  }
+});
+
+
+var GroupActivity = React.createClass({
+  mixins: [GroupState],
+
+  render() {
     var group = this.getGroup();
 
     var children = group.activity.map((item, itemIdx) => {
@@ -87,22 +158,9 @@ var GroupActivity = React.createClass({
       }
     });
 
-    var activityFieldClasses = 'activity-field';
-    if (this.state.noteTextareaExpanded) {
-      activityFieldClasses += ' expanded';
-    }
-
     return (
       <div className="activity">
-        <div className={activityFieldClasses}>
-          <div className="activity-notes">
-            <textarea placeholder="Add some details or an update on this event"
-                      onFocus={this.expandNoteTextarea} onBlur={this.collapseNoteTextarea}/>
-            <div className="activity-actions">
-              <button className="btn btn-default">Leave note</button>
-            </div>
-          </div>
-        </div>
+        <NoteInput group={group} />
         <ul className="activity">
           {children}
         </ul>
