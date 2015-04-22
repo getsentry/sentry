@@ -39,6 +39,20 @@ var formatActivity = function(item) {
 var GroupActivity = React.createClass({
   mixins: [GroupState],
 
+  getInitialState() {
+    return {
+      noteTextareaExpanded: false
+    };
+  },
+
+  expandNoteTextarea() {
+    this.setState({noteTextareaExpanded: true});
+  },
+
+  collapseNoteTextarea() {
+    this.setState({noteTextareaExpanded: false});
+  },
+
   render: function() {
     var group = this.getGroup();
 
@@ -73,11 +87,17 @@ var GroupActivity = React.createClass({
       }
     });
 
+    var activityFieldClasses = 'activity-field';
+    if (this.state.noteTextareaExpanded) {
+      activityFieldClasses += ' expanded';
+    }
+
     return (
       <div className="activity">
-        <div className="activity-field">
+        <div className={activityFieldClasses}>
           <div className="activity-notes">
-            <textarea placeholder="Add some details or an update on this event" />
+            <textarea placeholder="Add some details or an update on this event"
+                      onFocus={this.expandNoteTextarea} onBlur={this.collapseNoteTextarea}/>
             <div className="activity-actions">
               <button className="btn btn-default">Leave note</button>
             </div>
