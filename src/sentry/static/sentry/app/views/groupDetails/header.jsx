@@ -11,17 +11,17 @@ var GroupSeenBy = require("./seenBy");
 var GroupState = require("../../mixins/groupState");
 var ListLink = require("../../components/listLink");
 var PropTypes = require("../../proptypes");
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var GroupHeader = React.createClass({
-  mixins: [
-    GroupState
-  ],
+  mixins: [PureRenderMixin],
 
   contextTypes: {
     router: React.PropTypes.func.isRequired
   },
 
   propTypes: {
+    group: PropTypes.Group.isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
     statsPeriod: React.PropTypes.string.isRequired
   },
@@ -32,7 +32,7 @@ var GroupHeader = React.createClass({
   },
 
   render() {
-    var group = this.getGroup(),
+    var group = this.props.group,
         userCount = 0;
 
     var chartData = group.stats[this.props.statsPeriod].map(function(point){

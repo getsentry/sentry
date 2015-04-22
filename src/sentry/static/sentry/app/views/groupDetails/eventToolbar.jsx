@@ -3,9 +3,12 @@
 var React = require("react");
 
 var PropTypes = require("../../proptypes");
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var utils = require("../../utils");
 
 var GroupEventToolbar  = React.createClass({
+  mixins: [PureRenderMixin],
+
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,

@@ -15,6 +15,10 @@ var LoadingIndicator = React.createClass({
     };
   },
 
+  shouldComponentUpdate() {
+    return false;
+  },
+
   render() {
     var className = classSet({
       "loading": true,

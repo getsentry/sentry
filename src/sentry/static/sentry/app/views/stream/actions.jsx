@@ -11,10 +11,11 @@ var DropdownLink = require("../../components/dropdownLink");
 var MenuItem = require("../../components/menuItem");
 var Modal = require("react-bootstrap/Modal");
 var OverlayMixin = require("react-bootstrap/OverlayMixin");
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var SelectedGroupStore = require("../../stores/selectedGroupStore");
 
 var ActionLink = React.createClass({
-  mixins: [OverlayMixin],
+  mixins: [OverlayMixin, PureRenderMixin],
 
   propTypes: {
     actionLabel: React.PropTypes.string,
@@ -208,7 +209,8 @@ var SortOptions = React.createClass({
 
 var StreamActions = React.createClass({
   mixins: [
-    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')
+    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
+    PureRenderMixin
   ],
 
   propTypes: {
