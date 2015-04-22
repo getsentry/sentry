@@ -2,14 +2,18 @@
 var React = require("react");
 
 var BarChart = require("../../components/barChart");
-var GroupState = require("../../mixins/groupState");
 var PropTypes = require("../../proptypes");
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var GroupChart = React.createClass({
-  mixins: [GroupState],
+  mixins: [PureRenderMixin],
+
+  propTypes: {
+    group: PropTypes.Group.isRequired,
+  },
 
   render: function() {
-    var group = this.getGroup();
+    var group = this.props.group;
     var stats = group.stats['24h'];
     var points = stats.map((point) => {
       return {x: point[0], y: point[1]};

@@ -3,10 +3,10 @@ var React = require("react");
 
 var api = require("../../api");
 var Gravatar = require("../../components/gravatar");
-var GroupState = require("../../mixins/groupState");
 var GroupStore = require("../../stores/groupStore");
 var MemberListStore = require("../../stores/memberListStore");
 var PropTypes = require("../../proptypes");
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var TimeSince = require("../../components/timeSince");
 var utils = require("../../utils");
 
@@ -47,6 +47,8 @@ var formatActivity = function(item) {
 };
 
 var NoteInput = React.createClass({
+  mixins: [PureRenderMixin],
+
   getInitialState() {
     return {
       loading: false,
@@ -130,10 +132,10 @@ var NoteInput = React.createClass({
 
 
 var GroupActivity = React.createClass({
-  mixins: [GroupState],
+  mixins: [PureRenderMixin],
 
   render() {
-    var group = this.getGroup();
+    var group = this.props.group;
 
     var children = group.activity.map((item, itemIdx) => {
       var avatar = (item.user ?

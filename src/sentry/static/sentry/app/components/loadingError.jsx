@@ -14,6 +14,10 @@ var LoadingError = React.createClass({
     };
   },
 
+  shouldComponentUpdate() {
+    return false;
+  },
+
   render() {
     return (
       <div className="alert alert-error alert-block">

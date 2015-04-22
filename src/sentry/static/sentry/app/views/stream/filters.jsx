@@ -2,10 +2,13 @@
 
 var React = require("react");
 var $ = require("jquery");
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var utils = require("../../utils");
 
 var SearchDropdown = React.createClass({
+  mixins: [PureRenderMixin],
+
   propTypes: {
     dropdownVisible: React.PropTypes.bool
   },
@@ -49,6 +52,8 @@ var SearchBar = React.createClass({
   contextTypes: {
     router: React.PropTypes.func
   },
+
+  mixins: [PureRenderMixin],
 
   getInitialState() {
     var router = this.context.router;
