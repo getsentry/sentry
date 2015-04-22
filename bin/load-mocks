@@ -57,7 +57,10 @@ def main():
     user = User.objects.filter(is_superuser=True)[0]
 
     dummy_user, _ = User.objects.get_or_create(
-        username='dummy@example.com'
+        username='dummy@example.com',
+        defaults={
+            'email': 'dummy@example.com',
+        }
     )
 
     mocks = (
