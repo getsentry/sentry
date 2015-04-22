@@ -49,16 +49,11 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     'is_active': is_approved,
                 }
             )
-            if affected:
+            if affected and is_approved:
                 omt = OrganizationMemberTeam.objects.get(
                     organizationmember=access_request.member,
                     team=access_request.team,
                 )
-
-                if is_approved:
-                    event = AuditLogEntryEvent.MEMBER_JOIN_TEAM
-                else:
-                    event = AuditLogEntryEvent.MEMBER_LEAVE_TEAM
 
                 AuditLogEntry.objects.create(
                     organization=organization,
@@ -66,7 +61,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     ip_address=request.META['REMOTE_ADDR'],
                     target_object=omt.id,
                     target_user=access_request.member.user,
-                    event=event,
+                    event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
                     data=omt.get_audit_log_data(),
                 )
 
