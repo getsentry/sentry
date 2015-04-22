@@ -46,9 +46,9 @@ class OrganizationHomeView(OrganizationView):
 
         if op == 'leave':
             try:
-                client.put('/organizations/{}/members/{}/teams/{}/'.format(
+                client.delete('/organizations/{}/members/{}/teams/{}/'.format(
                     organization.slug, om.id, team,
-                ), request.user, data={'isActive': False})
+                ), request.user)
             except client.ApiError:
                 messages.add_message(
                     request, messages.ERROR,
@@ -61,9 +61,9 @@ class OrganizationHomeView(OrganizationView):
                 )
         elif op == 'join':
             try:
-                client.put('/organizations/{}/members/{}/teams/{}/'.format(
+                client.post('/organizations/{}/members/{}/teams/{}/'.format(
                     organization.slug, om.id, team,
-                ), request.user, data={'isActive': True})
+                ), request.user)
             except client.ApiError:
                 messages.add_message(
                     request, messages.ERROR,
