@@ -34,7 +34,7 @@ class TeamPermission(ScopedPermission):
             return False
 
         allowed_scopes = set(self.scope_map[request.method])
-        current_scopes = om.scopes
+        current_scopes = om.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
 

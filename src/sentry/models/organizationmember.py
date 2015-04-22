@@ -82,8 +82,7 @@ class OrganizationMember(Model):
             checksum.update(x)
         return checksum.hexdigest()
 
-    @property
-    def scopes(self):
+    def get_scopes(self):
         scopes = []
         if self.type <= OrganizationMemberType.MEMBER:
             scopes.extend([
@@ -166,6 +165,5 @@ class OrganizationMember(Model):
             'teams': [t.id for t in self.teams.all()],
             'has_global_access': self.has_global_access,
         }
-
 
 OrganizationMemberTeams = OrganizationMember.teams.through

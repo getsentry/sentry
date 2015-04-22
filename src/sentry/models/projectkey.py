@@ -129,3 +129,6 @@ class ProjectKey(Model):
             'roles': int(self.roles),
             'status': self.status,
         }
+
+    def get_scopes(self):
+        return self.scopes
