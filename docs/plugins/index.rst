@@ -54,6 +54,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-ldap-auth <https://github.com/banno/getsentry-ldap-auth>`_
 * `sentry-lighthouse <https://github.com/gthb/sentry-lighthouse>`_
 * `sentry-notifico <https://github.com/lukegb/sentry-notifico>`_
+* `sentry-opsgenie <http://github.com/getsentry/sentry-opsgenie>`_
 * `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
 * `sentry-pivotal <https://github.com/getsentry/sentry-pivotal>`_
 * `sentry-pushover <https://github.com/dz0ny/sentry-pushover>`_
