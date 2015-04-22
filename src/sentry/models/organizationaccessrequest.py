@@ -38,9 +38,9 @@ class OrganizationAccessRequest(Model):
             'name': user.get_display_name(),
             'organization': organization,
             'team': self.team,
-            'url': absolute_uri(reverse('sentry-organization-access-requests', kwargs={
+            'url': absolute_uri(reverse('sentry-organization-members', kwargs={
                 'organization_slug': organization.slug,
-            })),
+            }) + '?ref=access-requests'),
         }
 
         msg = MessageBuilder(
