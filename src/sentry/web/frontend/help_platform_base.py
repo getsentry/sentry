@@ -25,15 +25,11 @@ class HelpPlatformBaseView(BaseView):
             results.append((org, org_results))
         return results
 
-    def get_key(self, project, user):
+    def get_key(self, project):
         try:
-            key = ProjectKey.objects.filter(user=None, project=project)[0]
+            key = ProjectKey.objects.filter(project=project)[0]
         except IndexError:
-            try:
-                key = ProjectKey.objects.filter(user=user, project=project)[0]
-            except IndexError:
-                key = None
-
+            key = None
         return key
 
     def convert_args(self, request, *args, **kwargs):
@@ -69,7 +65,7 @@ class HelpPlatformBaseView(BaseView):
         context = super(HelpPlatformBaseView, self).get_context_data(request, **kwargs)
 
         if selected_project:
-            key = self.get_key(selected_project, request.user)
+            key = self.get_key(selected_project)
         else:
             key = None
 
