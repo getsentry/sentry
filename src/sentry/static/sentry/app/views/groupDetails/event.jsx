@@ -116,7 +116,7 @@ var GroupEvent = React.createClass({
     });
 
     return (
-      <div className="row">
+      <div className="row event">
         <div className="col-md-9">
           <GroupEventHeader
               group={group}

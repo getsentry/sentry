@@ -345,10 +345,6 @@
   padding: 0 20px;
   background: #fff;
 
-  &.affix {
-    border-color: @trim;
-  }
-
   .nav-tabs {
     margin: 0;
     > li a {
@@ -360,6 +356,16 @@
   .pull-right {
     margin-top: 12px;
   }
+}
+
+.sticky .event-toolbar {
+  margin: 0 0 0 200px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.sticky + div .event {
+  margin-top: 82px;
 }
 
 .module-user .avatar {
