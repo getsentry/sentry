@@ -134,7 +134,7 @@ def main():
         accessgroup.projects.add(project)
         accessgroup.members.add(dummy_user)
 
-        OrganizationAccessRequest.objects.create(
+        OrganizationAccessRequest.objects.create_or_update(
             member=dummy_member,
             team=team,
         )
