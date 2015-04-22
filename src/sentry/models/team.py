@@ -80,20 +80,23 @@ class TeamManager(BaseManager):
                 team_qs = self.none()
             else:
                 # TODO(dcramer):
-                om_teams = om.teams.filter(
-                    status=TeamStatus.VISIBLE
+                om_teams = self.model.objects.filter(
+                    status=TeamStatus.VISIBLE,
                 )
 
                 if om.has_global_access:
                     inactive = list(om_teams.filter(
-                        is_active=False,
-                    ).values_list('team', flat=True))
+                        organizationmemberteam__is_active=False,
+                    ).values_list('id', flat=True))
 
                     team_qs = base_team_qs
                     if inactive:
                         team_qs = team_qs.exclude(id__in=inactive)
                 else:
-                    team_qs = om_teams
+                    team_qs = om_teams.filter(
+                        organizationmemberteam__organizationmember=om,
+                        organizationmemberteam__is_active=True,
+                    )
 
                 for team in team_qs:
                     team.access_type = om.type
