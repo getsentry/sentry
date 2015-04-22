@@ -2,8 +2,11 @@
 
 var React = require("react");
 var AlertActions = require('../actions/alertActions');
+var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var AlertMessage = React.createClass({
+  mixins: [PureRenderMixin],
+
   propTypes: {
     type: React.PropTypes.string,
     children: React.PropTypes.any.isRequired
