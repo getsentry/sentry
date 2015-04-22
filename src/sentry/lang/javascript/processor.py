@@ -10,6 +10,7 @@ import base64
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
+from OpenSSL.SSL import ZeroReturnError
 from os.path import splitext
 from requests.exceptions import RequestException
 from simplejson import JSONDecodeError
@@ -259,7 +260,7 @@ def fetch_url(url, project=None, release=None):
             logger.debug('Unable to fetch %r', url, exc_info=True)
             if isinstance(exc, SuspiciousOperation):
                 error = unicode(exc)
-            elif isinstance(exc, RequestException):
+            elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = ERR_GENERIC_FETCH_FAILURE.format(
                     type=type(exc),
                 )
