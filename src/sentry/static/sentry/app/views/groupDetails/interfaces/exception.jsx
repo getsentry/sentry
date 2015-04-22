@@ -24,9 +24,9 @@ var ExceptionInterface = React.createClass({
     var children = data.values.map((exc, excIdx) => {
       return (
         <div key={excIdx}>
-          <h3>
+          <h4>
             <span>{exc.type}</span>
-          </h3>
+          </h4>
           {exc.value &&
             <div className="exc-message">{exc.value}</div>
           }
