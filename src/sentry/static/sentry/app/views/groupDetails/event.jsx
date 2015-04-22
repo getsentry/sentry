@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Sticky = require("react-sticky");
 
 var GroupEventDataSection = require("./eventDataSection");
 var GroupEventHeader = require("./eventHeader");
@@ -131,16 +132,20 @@ var GroupEvent = React.createClass({
                 event={evt} />
           }
         </div>
-        <div className="col-md-3 event-stats">
-          {evt.user &&
-            <UserWidget data={evt.user} />
-          }
+        <div className="col-md-3">
+          <Sticky stickyClass="sticky-sidebar" stickyStyle={{}}>
+            <div className="event-stats">
+              {evt.user &&
+                <UserWidget data={evt.user} />
+              }
 
-          <h6>Sample ID</h6>
-          <p><strong className="truncate">{evt.eventID}</strong></p>
+              <h6>Sample ID</h6>
+              <p><strong className="truncate">{evt.eventID}</strong></p>
 
-          <h6>Time</h6>
-          <p><strong>{evt.dateCreated}</strong></p>
+              <h6>Time</h6>
+              <p><strong>{evt.dateCreated}</strong></p>
+            </div>
+          </Sticky>
         </div>
       </div>
     );
