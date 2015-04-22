@@ -37,7 +37,7 @@ def manage_project_keys(request, organization, project):
 
     key_list = list(ProjectKey.objects.filter(
         project=project,
-    ).select_related('user', 'user_added').order_by('-id'))
+    ).select_related('user_added').order_by('-id'))
 
     for key in key_list:
         key.project = project

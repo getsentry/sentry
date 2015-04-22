@@ -205,12 +205,9 @@ class APIView(BaseView):
                 raise InvalidRequest(str(e))
 
             try:
-                project_, user = project_from_auth_vars(auth_vars)
+                project_ = project_from_auth_vars(auth_vars)
             except APIError as error:
                 return HttpResponse(six.text_type(error.msg), status=error.http_status)
-            else:
-                if user:
-                    request.user = user
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
