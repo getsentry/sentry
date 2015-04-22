@@ -57,12 +57,10 @@ class Command(BaseCommand):
         print("Creating missing project keys")
         queryset = Team.objects.all()
         for team in RangeQuerySetWrapperWithProgressBar(queryset):
-            for member in team.member_set.select_related('user'):
-                for project in team.project_set.all():
-                    try:
-                        created = ProjectKey.objects.get_or_create(
-                            project=project,
-                            user=member.user,
-                        )[1]
-                    except ProjectKey.MultipleObjectsReturned:
-                        pass
+            for project in team.project_set.all():
+                try:
+                    ProjectKey.objects.get_or_create(
+                        project=project,
+                    )
+                except ProjectKey.MultipleObjectsReturned:
+                    pass

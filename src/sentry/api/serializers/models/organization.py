@@ -9,13 +9,16 @@ from sentry.models import (
 @register(Organization)
 class OrganizationSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        member_map = dict(
-            (om.organization_id, om)
-            for om in OrganizationMember.objects.filter(
-                organization__in=item_list,
-                user=user,
+        if user.is_authenticated():
+            member_map = dict(
+                (om.organization_id, om)
+                for om in OrganizationMember.objects.filter(
+                    organization__in=item_list,
+                    user=user,
+                )
             )
-        )
+        else:
+            member_map = {}
 
         result = {}
         for organization in item_list:

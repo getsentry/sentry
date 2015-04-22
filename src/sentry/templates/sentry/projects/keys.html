@@ -33,7 +33,7 @@
                         {% if key.label %}
                             <a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a>
                         {% else %}
-                            <a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}
+                            <a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a>
                         {% endif %}<br>
                         <code class="clippy">{{ key.dsn_private }}</code><br>
                         {% if key.user_added %}

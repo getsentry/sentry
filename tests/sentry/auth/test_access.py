@@ -28,7 +28,7 @@ class FromUserTest(TestCase):
         result = access.from_user(user, organization)
         assert result.is_active
         assert result.sso_is_valid
-        assert result.scopes == member.scopes
+        assert result.scopes == member.get_scopes()
         assert result.has_team(team)
 
     def test_team_restricted_org_member_access(self):
@@ -45,7 +45,7 @@ class FromUserTest(TestCase):
         result = access.from_user(user, organization)
         assert result.is_active
         assert result.sso_is_valid
-        assert result.scopes == member.scopes
+        assert result.scopes == member.get_scopes()
         assert result.has_team(team)
 
     def test_unlinked_sso(self):

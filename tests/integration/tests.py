@@ -85,7 +85,7 @@ class RavenIntegrationTest(TransactionTestCase):
         self.team = self.create_team(owner=self.user)
         self.project = self.create_project(team=self.team)
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
-        self.pk = self.project.key_set.get_or_create(user=self.user)[0]
+        self.pk = self.project.key_set.get_or_create()[0]
 
         self.configure_sentry_errors()
 

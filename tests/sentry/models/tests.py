@@ -71,7 +71,7 @@ class ProjectKeyTest(TestCase):
         user = self.create_user('admin@example.com')
         team = self.create_team(name='Test', owner=user)
         project = self.create_project(name='Test', team=team)
-        assert project.key_set.filter(user__isnull=True).exists() is True
+        assert project.key_set.exists() is True
 
 
 class LostPasswordTest(TestCase):

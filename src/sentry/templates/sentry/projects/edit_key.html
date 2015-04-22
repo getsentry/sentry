@@ -19,12 +19,6 @@
             <legend>Details</legend>
             {{ form.label|as_crispy_field }}
             <div class="control-group">
-                <label>{% trans "Owner" %}</label>
-                <div class="controls">
-                    {% if key.user %}{{ key.user }}{% else %}&mdash;{% endif %}
-                </div>
-            </div>
-            <div class="control-group">
                 <label>{% trans "Created" %}</label>
                 <div class="controls">
                     {{ key.date_added|timesince }}

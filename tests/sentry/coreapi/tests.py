@@ -21,7 +21,7 @@ class BaseAPITest(TestCase):
         self.team = self.create_team(name='Foo', owner=self.user)
         self.project = self.create_project(team=self.team)
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
-        self.pk = self.project.key_set.get_or_create(user=self.user)[0]
+        self.pk = self.project.key_set.get_or_create()[0]
 
 
 class ExtractAuthVarsTest(BaseAPITest):
@@ -68,7 +68,7 @@ class ProjectFromAuthVarsTest(BaseAPITest):
     def test_valid_with_key(self):
         auth_vars = {'sentry_key': self.pk.public_key}
         result = project_from_auth_vars(auth_vars)
-        self.assertEquals(result, (self.project, self.pk.user))
+        self.assertEquals(result, self.project)
 
     def test_invalid_key(self):
         auth_vars = {'sentry_key': 'z'}
