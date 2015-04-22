@@ -66,7 +66,7 @@ class OrganizationHomeView(OrganizationView):
                 )
         elif op == 'join':
             try:
-                client.post('/organizations/{}/members/{}/teams/{}/'.format(
+                resp = client.post('/organizations/{}/members/{}/teams/{}/'.format(
                     organization.slug, om.id, team,
                 ), request.user)
             except client.ApiError as exc:
@@ -76,8 +76,14 @@ class OrganizationHomeView(OrganizationView):
                     'We were unable to join the team.',
                 )
             else:
-                messages.add_message(
-                    request, messages.SUCCESS,
-                    'Your team membership has been activated.',
-                )
+                if resp.status_code == 202:
+                    messages.add_message(
+                        request, messages.SUCCESS,
+                        'A request has been sent to join the team.',
+                    )
+                else:
+                    messages.add_message(
+                        request, messages.SUCCESS,
+                        'Your team membership has been activated.',
+                    )
         return HttpResponseRedirect(request.path)
