@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry.api.serializers import serialize
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission
 )
@@ -41,7 +42,18 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
         return False
 
-    def put(self, request, organization, member_id, team_slug):
+    def post(self, request, organization, member_id, team_slug):
+        """
+        Join a team
+
+        Join or request access to a team.
+
+        If the user is already a member of the team, this will simply return
+        a 204.
+
+        If the user needs permission to join the team, an access request will
+        be generated and the returned status code will be 202.
+        """
         try:
             om = OrganizationMember.objects.filter(
                 organization=organization,
@@ -68,13 +80,18 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                     organizationmember=om,
                 )
             except OrganizationMemberTeam.DoesNotExist:
+                # TODO(dcramer): this should create a pending request and
+                # return a 202
                 if not organization.flags.allow_joinleave:
-                    raise ResourceDoesNotExist
+                    return Response(status=400)
                 omt = OrganizationMemberTeam(
                     team=team,
                     organizationmember=om,
                     is_active=False,
                 )
+
+            if omt.is_active:
+                return Response(status=204)
         else:
             try:
                 omt = OrganizationMemberTeam.objects.get(
@@ -82,21 +99,64 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                     organizationmember=om,
                 )
             except OrganizationMemberTeam.DoesNotExist:
-                omt = OrganizationMemberTeam(
+                # if the relationship doesnt exist, they're already a member
+                return Response(status=204)
+
+        omt.is_active = True
+        omt.save()
+
+        return Response(serialize(team), status=201)
+
+    def delete(self, request, organization, member_id, team_slug):
+        """
+        Leave a team
+
+        Leave a team.
+        """
+        try:
+            om = OrganizationMember.objects.filter(
+                organization=organization,
+                id=member_id,
+            ).select_related('user').get()
+        except OrganizationMember.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        if not self._can_access(request, om):
+            return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
+
+        try:
+            team = Team.objects.get(
+                organization=organization,
+                slug=team_slug,
+            )
+        except Team.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        if not om.has_global_access:
+            try:
+                omt = OrganizationMemberTeam.objects.get(
                     team=team,
                     organizationmember=om,
                 )
+            except OrganizationMemberTeam.DoesNotExist:
+                # if the relationship doesnt exist, they're already a member
+                return Response(status=204)
+        else:
+            try:
+                omt = OrganizationMemberTeam.objects.get(
+                    team=team,
+                    organizationmember=om,
+                    is_active=True,
+                )
+            except OrganizationMemberTeam.DoesNotExist:
+                omt = OrganizationMemberTeam(
+                    team=team,
+                    organizationmember=om,
+                    is_active=True,
+                )
 
-        serializer = OrganizationMemberTeamSerializer(data=request.DATA, partial=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        result = serializer.object
-        if result.get('isActive') is not None and result['isActive'] != omt.is_active:
-            omt.is_active = result['isActive']
+        if omt.is_active:
+            omt.is_active = False
             omt.save()
 
-        return Response({
-            'slug': team.slug,
-            'isActive': omt.is_active,
-        }, status=200)
+        return Response(status=204)
