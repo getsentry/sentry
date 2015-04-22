@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 
@@ -9,6 +11,8 @@ from sentry.web.frontend.base import OrganizationView
 
 
 class OrganizationHomeView(OrganizationView):
+    logger = logging.getLogger('sentry.api')
+
     def get(self, request, organization):
         active_teams = Team.objects.get_for_user(
             organization=organization,
@@ -49,7 +53,8 @@ class OrganizationHomeView(OrganizationView):
                 client.delete('/organizations/{}/members/{}/teams/{}/'.format(
                     organization.slug, om.id, team,
                 ), request.user)
-            except client.ApiError:
+            except client.ApiError as exc:
+                self.logger.exception('Unable to remove member from team: %s', unicode(exc))
                 messages.add_message(
                     request, messages.ERROR,
                     'We were unable to remove you from the team.',
@@ -64,7 +69,8 @@ class OrganizationHomeView(OrganizationView):
                 client.post('/organizations/{}/members/{}/teams/{}/'.format(
                     organization.slug, om.id, team,
                 ), request.user)
-            except client.ApiError:
+            except client.ApiError as exc:
+                self.logger.exception('Unable to add member from team: %s', unicode(exc))
                 messages.add_message(
                     request, messages.ERROR,
                     'We were unable to join the team.',
