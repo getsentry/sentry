@@ -37,6 +37,7 @@
     "react": "^0.13.0",
     "react-bootstrap": "^0.13.0",
     "react-router": "^0.13.2",
+    "react-sticky": "^2.1.0",
     "reflux": "^0.2.2",
     "sinon": "^1.10.3",
     "webpack": "^1.7.2"
