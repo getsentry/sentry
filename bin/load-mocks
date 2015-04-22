@@ -80,8 +80,8 @@ def main():
             'has_global_access': False,
         }
     )
-    if not dummy_member.has_global_access:
-        dummy_member.update(has_global_access=True)
+    if dummy_member.has_global_access:
+        dummy_member.update(has_global_access=False)
 
     for team_name, project_names in mocks:
         print('> Mocking team {}'.format(team_name))
