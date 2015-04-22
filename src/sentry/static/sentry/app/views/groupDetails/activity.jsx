@@ -117,7 +117,7 @@ var NoteInput = React.createClass({
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
-          <textarea placeholder="Add some details or an update to this event"
+          <textarea placeholder="Add details or updates to this event"
                     onChange={this.onChange}
                     onFocus={this.expand} onBlur={this.maybeCollapse}
                     value={this.state.value} />
