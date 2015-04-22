@@ -30,7 +30,7 @@ class OrganizationAccessRequest(Model):
         from sentry.utils.email import MessageBuilder
 
         user = self.member.user
-        email = user.get_email()
+        email = user.email
         organization = self.team.organization
 
         context = {
