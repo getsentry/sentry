@@ -12,7 +12,7 @@ class OrganizationAccessRequestsView(OrganizationView):
     def get(self, request, organization):
         access_requests = OrganizationAccessRequest.objects.filter(
             team__organization=organization,
-        ).select_related('team', 'user')
+        ).select_related('team', 'member__user')
 
         context = {
             'request_list': list(access_requests),

@@ -8,7 +8,10 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
+    OrganizationMemberTeam, Team
+)
 
 ERR_INSUFFICIENT_ROLE = 'You cannot modify a member other than yourself.'
 
@@ -105,6 +108,16 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         omt.is_active = True
         omt.save()
 
+        AuditLogEntry.objects.create(
+            organization=organization,
+            actor=request.user,
+            ip_address=request.META['REMOTE_ADDR'],
+            target_object=omt.id,
+            target_user=request.user,
+            event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
+            data=omt.get_audit_log_data(),
+        )
+
         return Response(serialize(team), status=201)
 
     def delete(self, request, organization, member_id, team_slug):
@@ -158,5 +171,15 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         if omt.is_active:
             omt.is_active = False
             omt.save()
+
+            AuditLogEntry.objects.create(
+                organization=organization,
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                target_object=omt.id,
+                target_user=request.user,
+                event=AuditLogEntryEvent.MEMBER_LEAVE_TEAM,
+                data=omt.get_audit_log_data(),
+            )
 
         return Response(status=204)

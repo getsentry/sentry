@@ -19,6 +19,7 @@ from .endpoints.helppage_index import HelpPageIndexEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
+from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
@@ -70,6 +71,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/$',
         OrganizationDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/(?P<request_id>\d+)/$',
+        OrganizationAccessRequestDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-access-request-details'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'),

@@ -9,7 +9,8 @@ from random import randint
 
 from sentry.app import tsdb
 from sentry.models import (
-    AccessGroup, Activity, User, Organization, Project, Team
+    AccessGroup, Activity, User, Organization, OrganizationAccessRequest,
+    OrganizationMember, Project, Team
 )
 from sentry.utils.samples import create_sample_event
 
@@ -72,6 +73,11 @@ def main():
         },
     )
 
+    dummy_member, _ = OrganizationMember.objects.get_or_create(
+        user=dummy_user,
+        organization=org,
+    )
+
     for team_name, project_names in mocks:
         print('> Mocking team {}'.format(team_name))
         team, _ = Team.objects.get_or_create(
@@ -122,6 +128,11 @@ def main():
         )
         accessgroup.projects.add(project)
         accessgroup.members.add(dummy_user)
+
+        OrganizationAccessRequest.objects.create(
+            member=dummy_member,
+            team=team,
+        )
 
     Activity.objects.create(
         type=Activity.RELEASE,

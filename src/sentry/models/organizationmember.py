@@ -47,6 +47,14 @@ class OrganizationMemberTeam(BaseModel):
 
     __repr__ = sane_repr('team_id', 'organizationmember_id')
 
+    def get_audit_log_data(self):
+        return {
+            'team_slug': self.team.slug,
+            'member_id': self.organizationmember_id,
+            'email': self.organizationmember.get_email(),
+            'is_active': self.is_active,
+        }
+
 
 class OrganizationMember(Model):
     """
