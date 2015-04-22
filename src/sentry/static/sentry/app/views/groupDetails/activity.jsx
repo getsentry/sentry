@@ -86,7 +86,7 @@ var NoteInput = React.createClass({
     this.setState({expanded: true});
   },
 
-  collapse() {
+  maybeCollapse() {
     if (this.state.value === '') {
       this.setState({expanded: false});
     }
