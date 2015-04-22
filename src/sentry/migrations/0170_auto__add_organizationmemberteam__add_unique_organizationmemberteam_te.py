@@ -18,14 +18,28 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BigIntegerField')(default=0),
                       keep_default=False)
 
+        # Adding model 'OrganizationAccessRequest'
+        db.create_table('sentry_organizationaccessrequest', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('team', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Team'])),
+            ('member', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.OrganizationMember'])),
+        ))
+        db.send_create_signal('sentry', ['OrganizationAccessRequest'])
+
+        # Adding unique constraint on 'OrganizationAccessRequest', fields ['team', 'member']
+        db.create_unique('sentry_organizationaccessrequest', ['team_id', 'member_id'])
 
     def backwards(self, orm):
         db.delete_column('sentry_organizationmember_teams', 'is_active')
 
-
         # Deleting field 'Organization.flags'
         db.delete_column('sentry_organization', 'flags')
 
+        # Removing unique constraint on 'OrganizationAccessRequest', fields ['team', 'member']
+        db.delete_unique('sentry_organizationaccessrequest', ['team_id', 'member_id'])
+
+        # Deleting model 'OrganizationAccessRequest'
+        db.delete_table('sentry_organizationaccessrequest')
 
     models = {
         'sentry.accessgroup': {
@@ -286,6 +300,12 @@ class Migration(SchemaMigration):
             'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50'}),
             'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'})
         },
+        'sentry.organizationaccessrequest': {
+            'Meta': {'unique_together': "(('team', 'member'),)", 'object_name': 'OrganizationAccessRequest'},
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'member': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.OrganizationMember']"}),
+            'team': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Team']"})
+        },
         'sentry.organizationmember': {
             'Meta': {'unique_together': "(('organization', 'user'), ('organization', 'email'))", 'object_name': 'OrganizationMember'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
@@ -335,7 +355,6 @@ class Migration(SchemaMigration):
             'roles': ('django.db.models.fields.BigIntegerField', [], {'default': '1'}),
             'secret_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
             'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
-            'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True'}),
             'user_added': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'keys_added_set'", 'null': 'True', 'to': "orm['sentry.User']"})
         },
         'sentry.projectoption': {
