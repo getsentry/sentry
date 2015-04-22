@@ -100,6 +100,15 @@ var GroupListStore = Reflux.createStore({
     return this.statuses[id][status] || false;
   },
 
+  addActivity(id, data) {
+    var group = this.getItem(id);
+    if (!group) {
+      return;
+    }
+    group.activity.unshift(data);
+    this.trigger();
+  },
+
   getItem(id) {
     var pendingForId = [];
     this.pendingChanges.forEach(change => {
