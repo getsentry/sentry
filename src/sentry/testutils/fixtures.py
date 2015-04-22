@@ -28,7 +28,7 @@ LEGACY_DATA = pickle.loads(decompress("""eJy9WW1v20YS/q5fwfqLpECluMvXFSzjgKK9Bri
 class Fixtures(object):
     @fixture
     def projectkey(self):
-        return self.create_project_key(project=self.project, user=self.user)
+        return self.create_project_key(project=self.project)
 
     @fixture
     def user(self):
@@ -118,8 +118,8 @@ class Fixtures(object):
 
         return Project.objects.create(**kwargs)
 
-    def create_project_key(self, project, user):
-        return project.key_set.get_or_create(user=user)[0]
+    def create_project_key(self, project):
+        return project.key_set.get_or_create()[0]
 
     def create_user(self, email=None, **kwargs):
         if not email:

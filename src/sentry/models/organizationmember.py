@@ -100,8 +100,7 @@ class OrganizationMember(Model):
             checksum.update(x)
         return checksum.hexdigest()
 
-    @property
-    def scopes(self):
+    def get_scopes(self):
         scopes = []
         if self.type <= OrganizationMemberType.MEMBER:
             scopes.extend([

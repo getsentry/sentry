@@ -139,7 +139,7 @@ def project_from_auth_vars(auth_vars):
 
     project = Project.objects.get_from_cache(pk=pk.project_id)
 
-    return project, pk.user
+    return project
 
 
 def decompress_deflate(encoded_data):
