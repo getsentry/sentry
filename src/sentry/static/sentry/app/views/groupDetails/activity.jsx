@@ -5,6 +5,7 @@ var api = require("../../api");
 var Gravatar = require("../../components/gravatar");
 var GroupState = require("../../mixins/groupState");
 var GroupStore = require("../../stores/groupStore");
+var MemberListStore = require("../../stores/memberListStore");
 var PropTypes = require("../../proptypes");
 var TimeSince = require("../../components/timeSince");
 var utils = require("../../utils");
@@ -32,7 +33,9 @@ var formatActivity = function(item) {
     case "first_seen":
       return "first saw this event";
     case "assigned":
-      return `assigned this event to ${data.user}`;
+      var assignee = MemberListStore.getById(data.assignee);
+      assignee = (assignee ? assignee.email : 'an unknown user');
+      return `assigned this event to ${assignee}`;
     case "unassigned":
       return "unassigned this event";
   }

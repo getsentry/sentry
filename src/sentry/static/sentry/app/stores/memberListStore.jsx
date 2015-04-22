@@ -7,17 +7,27 @@ var Reflux = require("reflux");
 var MemberListStore = Reflux.createStore({
   // listenables: MemberActions,
 
-  init: function() {
+  init() {
     this.items = [];
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
-  loadInitialData: function(items) {
+  loadInitialData(items) {
     this.items = items;
     this.trigger(this.items, 'initial');
   },
 
-  getByEmail: function(email) {
+  getById(id) {
+    id = '' + id;
+    for (var i=0; i<this.items.length; i++) {
+      if (this.items[i].id === id) {
+        return this.items[i];
+      }
+    }
+    return null;
+  },
+
+  getByEmail(email) {
     email = email.toLowerCase();
     for (var i=0; i<this.items.length; i++) {
       if (this.items[i].email.toLowerCase() === email) {
