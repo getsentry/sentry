@@ -73,9 +73,12 @@ def main():
         },
     )
 
-    dummy_member, _ = OrganizationMember.objects.get_or_create(
+    dummy_member, _ = OrganizationMember.objects.create_or_update(
         user=dummy_user,
         organization=org,
+        defaults={
+            'has_global_access': False,
+        }
     )
 
     for team_name, project_names in mocks:
