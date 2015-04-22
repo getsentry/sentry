@@ -1,13 +1,14 @@
-{% extends "sentry/bases/organization.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "Pending Access Requests" %} | {{ block.super }}{% endblock %}
 
-{% block org_members_nav %}active{% endblock %}
-
 {% block inner %}
   <div class="page-header">
+    <div class="pull-right">
+      <a href="{% url 'sentry-organization-home' organization.slug %}">Back to Organization Home</a>
+    </div>
     <h2>{% trans "Pending Access Requests" %}</h2>
   </div>
 
