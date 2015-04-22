@@ -48,7 +48,7 @@ class ApiClient(object):
             mock_request.POST._mutable = False
 
         response = callback(mock_request, *callback_args, **callback_kwargs)
-        if 200 >= response.status_code < 400:
+        if 200 <= response.status_code < 400:
             return response
         raise self.ApiError(response.status_code, response.data)
 
