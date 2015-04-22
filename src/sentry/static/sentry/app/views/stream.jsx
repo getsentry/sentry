@@ -10,6 +10,7 @@ var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var Pagination = require("../components/pagination");
 var RouteMixin = require("../mixins/routeMixin");
+var Sticky = require('react-sticky');
 var StreamGroup = require('./stream/group');
 var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
@@ -162,20 +163,18 @@ var Stream = React.createClass({
     return (
       <div>
         <StreamFilters />
-        <div className="group-header-container" data-spy="affix" data-offset-top="134">
-          <div className="container">
-            <div className="group-header">
-              <StreamActions
-                orgId={params.orgId}
-                projectId={params.projectId}
-                onSelectStatsPeriod={this.handleSelectStatsPeriod}
-                onRealtimeChange={this.handleRealtimeChange}
-                realtimeActive={this.state.realtimeActive}
-                statsPeriod={this.state.statsPeriod}
-                groupList={this.state.groupList} />
-            </div>
+        <Sticky stickyClass="sticky">
+          <div className="group-header">
+            <StreamActions
+              orgId={params.orgId}
+              projectId={params.projectId}
+              onSelectStatsPeriod={this.handleSelectStatsPeriod}
+              onRealtimeChange={this.handleRealtimeChange}
+              realtimeActive={this.state.realtimeActive}
+              statsPeriod={this.state.statsPeriod}
+              groupList={this.state.groupList} />
           </div>
-        </div>
+        </Sticky>
         {this.state.loading ?
           <LoadingIndicator />
         : (this.state.error ?
