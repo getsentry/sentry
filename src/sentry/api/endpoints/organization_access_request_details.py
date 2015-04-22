@@ -65,6 +65,8 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     data=omt.get_audit_log_data(),
                 )
 
+                access_request.send_approved_email()
+
         access_request.delete()
 
         return Response(status=204)

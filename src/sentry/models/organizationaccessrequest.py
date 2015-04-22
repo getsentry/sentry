@@ -55,3 +55,30 @@ class OrganizationAccessRequest(Model):
         except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
+
+    def send_approved_email(self):
+        from sentry.utils.email import MessageBuilder
+
+        user = self.member.user
+        email = user.email
+        organization = self.team.organization
+
+        context = {
+            'email': email,
+            'name': user.get_display_name(),
+            'organization': organization,
+            'team': self.team,
+        }
+
+        msg = MessageBuilder(
+            subject='Sentry Access Request',
+            template='sentry/emails/access-approved.txt',
+            html_template='sentry/emails/access-approved.html',
+            context=context,
+        )
+
+        try:
+            msg.send([email])
+        except Exception as e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
