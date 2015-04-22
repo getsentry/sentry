@@ -28,7 +28,7 @@ var ExceptionInterface = React.createClass({
             <span>{exc.type}</span>
           </h3>
           {exc.value &&
-            <pre className="exc-message">{exc.value}</pre>
+            <div className="exc-message">{exc.value}</div>
           }
           <StacktraceContent data={exc.stacktrace} />
         </div>
