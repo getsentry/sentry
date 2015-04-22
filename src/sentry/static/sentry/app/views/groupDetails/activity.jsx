@@ -33,8 +33,13 @@ var formatActivity = function(item) {
     case "first_seen":
       return "first saw this event";
     case "assigned":
-      var assignee = MemberListStore.getById(data.assignee);
-      assignee = (assignee ? assignee.email : 'an unknown user');
+      var assignee;
+      if (data.assignee == item.user) {
+        assignee = MemberListStore.getById(data.assignee);
+        assignee = (assignee ? assignee.email : 'an unknown user');
+      } else {
+        assignee = 'themselves';
+      }
       return `assigned this event to ${assignee}`;
     case "unassigned":
       return "unassigned this event";
