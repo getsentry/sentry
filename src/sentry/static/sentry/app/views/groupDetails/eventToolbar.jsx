@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Sticky = require('react-sticky');
 
 var PropTypes = require("../../proptypes");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
@@ -68,17 +69,19 @@ var GroupEventToolbar  = React.createClass({
     }
 
     return (
-      <div className="event-toolbar">
-        <div className="pull-right">
-          <div className="btn-group">
-            {eventNavNodes}
+      <Sticky>
+        <div className="event-toolbar">
+          <div className="pull-right">
+            <div className="btn-group">
+              {eventNavNodes}
+            </div>
           </div>
+          <ul className="nav nav-tabs">
+            <li className="active"><a href="#tags">Tags</a></li>
+            {entryLinks}
+          </ul>
         </div>
-        <ul className="nav nav-tabs">
-          <li className="active"><a href="#tags">Tags</a></li>
-          {entryLinks}
-        </ul>
-      </div>
+      </Sticky>
     );
   }
 });
