@@ -13,7 +13,7 @@
 
   h3 {
     color: @grayDark;
-    font-size: 24px;
+    font-size: 22px;
     margin: 0 0 8px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -469,9 +469,13 @@
   position: relative;
   margin-bottom: 0;
 
+  h3 {
+    font-size: 22px;
+  }
+
   p {
     font-size: 12px;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
 
     a.annotation {
       &.trigger-popover {
@@ -519,7 +523,8 @@
   }
 
   .context {
-    margin-bottom: 10px;
+    margin-top: -5px;
+    margin-bottom: 15px;
   }
 
   .tag-app {
@@ -549,6 +554,10 @@
   }
 
   &:last-child {
+    .context {
+      margin-bottom: 0;
+    }
+
     .toggle-expand .btn {
       margin-bottom: -13px;
     }
@@ -591,6 +600,10 @@
   dl.vars {
     &.expandable {
       display: block;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
   }
 }
