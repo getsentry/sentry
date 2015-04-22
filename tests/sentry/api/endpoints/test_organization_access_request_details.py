@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
@@ -44,6 +45,8 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         assert not OrganizationAccessRequest.objects.filter(
             id=access_request.id,
         ).exists()
+
+        assert len(mail.outbox) == 1
 
     def test_deny_request(self):
         self.login_as(user=self.user)

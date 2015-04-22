@@ -1,0 +1,11 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block header %}
+    <h1>Sentry <small>Access Approved</small></h1>
+{% endblock %}
+
+{% block inner %}
+    <p>You have been granted access to the {{ team.name }} team on Sentry.</p>
+{% endblock %}
