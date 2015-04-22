@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Organization, OrganizationMemberTeam, OrganizationMemberType
+    Organization, OrganizationAccessRequest, OrganizationMemberTeam,
+    OrganizationMemberType
 )
 from sentry.testutils import APITestCase
 
@@ -13,9 +15,10 @@ class CreateOrganizationMemberTeamTest(APITestCase):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=True,
         )
@@ -35,9 +38,10 @@ class CreateOrganizationMemberTeamTest(APITestCase):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=True,
         )
@@ -69,9 +73,10 @@ class CreateOrganizationMemberTeamTest(APITestCase):
 
         organization = self.create_organization(name='foo', owner=self.user)
         team = self.create_team(name='foo', organization=organization)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
             teams=[team],
@@ -92,9 +97,11 @@ class CreateOrganizationMemberTeamTest(APITestCase):
 
         organization = self.create_organization(name='foo', owner=self.user)
         team = self.create_team(name='foo', organization=organization)
+        user = self.create_user('dummy@example.com')
+
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
         )
@@ -107,7 +114,14 @@ class CreateOrganizationMemberTeamTest(APITestCase):
 
         resp = self.client.post(path)
 
-        assert resp.status_code == 400
+        assert resp.status_code == 202
+
+        assert len(mail.outbox) == 1
+
+        assert OrganizationAccessRequest.objects.filter(
+            member=member_om,
+            team=team,
+        ).exists()
 
     def test_can_join_on_open_org(self):
         self.login_as(user=self.user)
@@ -118,9 +132,10 @@ class CreateOrganizationMemberTeamTest(APITestCase):
             flags=Organization.flags.allow_joinleave,
         )
         team = self.create_team(name='foo', organization=organization)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
         )
@@ -147,9 +162,10 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=True,
         )
@@ -175,9 +191,10 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
         self.login_as(user=self.user)
 
         organization = self.create_organization(name='foo', owner=self.user)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=True,
         )
@@ -209,9 +226,10 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         organization = self.create_organization(name='foo', owner=self.user)
         team = self.create_team(name='foo', organization=organization)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
             teams=[team],
@@ -238,9 +256,10 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         organization = self.create_organization(name='foo', owner=self.user)
         team = self.create_team(name='foo', organization=organization)
+        user = self.create_user('dummy@example.com')
         member_om = self.create_member(
             organization=organization,
-            email='foo@example.com',
+            user=user,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
         )

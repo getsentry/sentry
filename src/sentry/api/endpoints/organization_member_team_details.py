@@ -9,8 +9,8 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberTeam, Team
+    AuditLogEntry, AuditLogEntryEvent, OrganizationAccessRequest,
+    OrganizationMember, OrganizationMemberTeam, Team
 )
 
 ERR_INSUFFICIENT_ROLE = 'You cannot modify a member other than yourself.'
@@ -86,7 +86,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
                 # TODO(dcramer): this should create a pending request and
                 # return a 202
                 if not organization.flags.allow_joinleave:
-                    return Response(status=400)
+                    omt, created = OrganizationAccessRequest.objects.get_or_create(
+                        team=team,
+                        member=om,
+                    )
+                    if created:
+                        omt.send_request_email()
+                    return Response(status=202)
+
                 omt = OrganizationMemberTeam(
                     team=team,
                     organizationmember=om,
