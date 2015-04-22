@@ -107,7 +107,10 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
     # Our version of requests does not transform ZeroReturnError into an
     # appropriately generically catchable exception
     except ZeroReturnError as exc:
-        six.reraise(SSLError, exc)
+        import sys
+        exc_tb = sys.exc_info()[2]
+        six.reraise(SSLError, exc, exc_tb)
+        del exc_tb
 
     # requests' attempts to use chardet internally when no encoding is found
     # and we want to avoid that slow behavior
