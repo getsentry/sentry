@@ -130,11 +130,17 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.MEMBER_JOIN_TEAM:
             if self.target_user == self.actor:
                 return 'joined team %s' % (self.data['team_slug'],)
-            return 'added %s to team %s' % (self.data.get('email'), self.data['team_slug'],)
+            return 'added %s to team %s' % (
+                self.data.get('email') or self.target_user.get_display_name(),
+                self.data['team_slug'],
+            )
         elif self.event == AuditLogEntryEvent.MEMBER_LEAVE_TEAM:
             if self.target_user == self.actor:
                 return 'left team %s' % (self.data['team_slug'],)
-            return 'removed %s from team %s' % (self.data.get('email'), self.data['team_slug'],)
+            return 'removed %s from team %s' % (
+                self.data.get('email') or self.target_user.get_display_name(),
+                self.data['team_slug'],
+            )
 
         elif self.event == AuditLogEntryEvent.ORG_ADD:
             return 'created the organization'
