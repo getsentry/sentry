@@ -58,4 +58,4 @@ class OrganizationHomeTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/organization-home.html')
 
         assert resp.context['organization'] == organization
-        assert resp.context['team_list'] == [(team, [project])]
+        assert resp.context['active_teams'] == [(team, [project])]

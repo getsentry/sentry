@@ -8,7 +8,7 @@
 
 @baseFontSize: 13px;
 @grayDark: #404f60;
-@gray: #465262;
+@gray: #343C45;
 @navbarInverseLinkBackgroundActive: #333;
 
 @linkColor: @blue;
@@ -19,7 +19,7 @@
 @iconWhiteSpritePath:     "../vendor/bootstrap/img/glyphicons-halflings-white.png";
 
 @red: #ff2e46;
-@blue: #2e9fff;
+@blue: #1791F8;
 
 
 /* =============================  Global  ============================== */
@@ -31,7 +31,7 @@ body {
   color: @gray;
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
-  background: #e4e8ed;
+  background: #f1f2f3;
 }
 
 .container {
@@ -499,7 +499,7 @@ h3 {
       color: #878f99;
       background: #fff;
       text-align: center;
-      width: 28px;
+      width: 32px;
       height: 28px;
       position: relative;
       .border-radius(3px);
@@ -509,8 +509,8 @@ h3 {
         background-image: none;
         position: relative;
         font-size: 16px;
-        top: 4px;
-        left: -1px;
+        top: 3px;
+        left: 0px;
       }
     }
   }
@@ -590,12 +590,29 @@ h3 {
       width: 190px;
       display: block;
       margin-right: 0;
-      margin-top: 5px;
+      margin-top: 9px;
       margin-left: -250px;
       .nav a {
-        padding: 5px 15px;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 8px 15px;
         margin: 0;
-        .border-radius(4px);
+        .border-radius(3px);
+
+        .badge {
+          font-size: 12px;
+          background: @red;
+          text-shadow: none;
+          font-weight: 600;
+          .square(20px);
+          line-height: 20px;
+          text-align: center;
+          padding: 0;
+          border-radius: 20px;
+          position: relative;
+          top: -1px;
+          margin-left: 3px;
+        }
 
         &:hover {
           background: #F0F2F5;
@@ -774,7 +791,7 @@ h3 {
       }
     }
     .nav-list {
-      margin: 0 -29px 8px -30px;
+      margin: 0 -40px 8px -30px;
       li a {
         padding: 5px 30px;
       }
@@ -834,22 +851,14 @@ footer {
   }
 
   .btn {
-    color: #f1f2f3;
     padding-top: 4px;
     padding-bottom: 4px;
-    background: #A8AEB6;
     position: relative;
     top: -2px;
-    margin: 0 0 0 10px;
+    margin: 0 0 0 15px;
 
-    &:hover {
-      color: #fff;
-      background: darken(#A8AEB6, 6);
-      border-color: darken(#A8AEB6, 12);
-    }
-    &:active, &:focus {
-      background: darken(#A8AEB6, 12);
-      top: -1px;
+    &:last-child {
+      margin-left: 4px;
     }
   }
 }
@@ -1918,6 +1927,7 @@ img.avatar32 {
 
 #messages .alert {
   .border-radius(0);
+  margin-bottom: 10px;
 }
 
 .alert {
@@ -2223,16 +2233,15 @@ img.avatar32 {
 }
 
 .btn {
-  background: #F1F2F3;
   .border-radius(4px);
   .box-shadow(none);
   border: none;
-  color: #666d73;
   font-weight: bold;
   text-shadow: none;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
-  padding: 7px 12px;
+  padding: 6px 14px;
+  background: #f1f2f3;
 
   i {
     background-image: none;
@@ -2268,10 +2277,12 @@ img.avatar32 {
   &.btn-primary {
     background: @blue;
     color: #fff;
-    border-color: darken(@blue, 4);
+    border: 1px solid darken(@blue, 16);
+    box-shadow: 0 1px 1px rgba(0,0,0, .1);
+
     &:hover {
-      background: darken(@blue, 3);
-      border-color: darken(@blue, 8);
+      background: darken(@blue, 6);
+      border-color: darken(@blue, 24);
     }
 
     &.disabled, &[disabled] {
@@ -2283,10 +2294,22 @@ img.avatar32 {
     }
   }
 
+  &.btn-default {
+    color: #343C45;
+    border: 1px solid darken(#E1E2E3, 4);
+    background: rgba(250, 250, 250, 0.55);
+    box-shadow: 0 1px 1px rgba(0,0,0, .04);
+
+    &:hover {
+      background: rgba(245, 245, 245, 1);
+    }
+  }
+
   &.btn-danger {
     background: #da4f49;
     color: #fff;
-    border-color: #bd362f;
+    border: 1px solid darken(#da4f49, 20);
+    box-shadow: 0 1px 1px rgba(0,0,0, .1);
     &:hover {
       background: darken(#da4f49, 3);
       border-color: darken(#bd362f, 5);
@@ -2462,7 +2485,7 @@ table.vars {
 .table-striped {
   tbody tr:nth-child(odd) td,
   tbody tr:nth-child(odd) th {
-    background-color: #f6f7f8;
+    background: rgba(250, 250, 250, 0.55);
   }
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(even) th {
@@ -2499,6 +2522,36 @@ table.simple-list {
       left: 15px;
       top: 10px;
     }
+  }
+}
+
+.access-request-list {
+  border: 1px solid #e1e2e3;
+  border-radius: 3px;
+  margin-bottom: 20px;
+
+  h3 {
+    font-weight: 500;
+    font-size: 14px;
+    padding: 6px 15px;
+    margin: 0;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    font-size: 13px;
+    list-style: none;
+    line-height: 28px;
+    padding: 9px 14px;
+    border-top: 1px solid #e1e2e3;
+  }
+
+  .btn-small {
+    padding: 2px 8px;
   }
 }
 
@@ -2548,25 +2601,23 @@ table.member-list {
 }
 
 .nav-tabs {
-  border-bottom: 2px solid #dee3e9;
+  border-bottom: 1px solid #dee3e9;
   > li {
-    margin-bottom: -2px;
+    margin-bottom: -1px;
   }
 }
 
 .nav-tabs > .active > a,
-.nav-tabs > .active > a:hover,
-.nav-tabs > .active > a:focus {
-  border: 2px solid #dee3e9;
-  border-bottom-color: #fff;
+.nav-tabs > .active > a:hover {
+  border: 1px solid #dee3e9;
+  border-bottom-color: transparent;
 }
 
 .nav-tabs > li > a {
   color: #A1A8AE;
-  font-weight: bold;
-  padding-left: 14px;
-  padding-right: 14px;
-  .transition(none);
+  font-weight: 500;
+  padding: 10px 20px 12px;
+  font-size: 16px;
 
   &:hover {
     background-color: transparent;
@@ -2748,12 +2799,12 @@ table.member-list {
       margin-bottom: 0;
       line-height: 22px;
       height: 22px;
-      font-size: 18px;
+      font-size: 16px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       color: #465262;
-      font-weight: bold;
+      font-weight: 500;
       border-bottom: 1px solid darken(#E3E7EC, 1);;
       padding: 10px 20px;
       margin: 0px -20px 10px;
@@ -2769,6 +2820,8 @@ table.member-list {
 
         a {
           color: #949BA5;
+          margin-left: 16px;
+          font-weight: normal;
 
           &:hover {
             color: darken(#949BA5, 15);
@@ -2777,7 +2830,7 @@ table.member-list {
 
         .icon-cog {
           background: none;
-          margin-top: 2px;
+          margin-top: 1px;
           margin-right: 5px;
         }
       }
@@ -2800,7 +2853,7 @@ table.member-list {
 
       > li {
         display: inline-block;
-        width: 142px;
+        width: 24%;
         margin-right: 5px;
         white-space: nowrap;
         overflow: hidden;
@@ -2876,21 +2929,6 @@ table.member-list {
 @media all and (min-width: 1301px) {
   body {
     background: #c8cbd0;
-  }
-
-  .outer-wrapper {
-    margin-top: 30px;
-    margin-bottom: 30px;
-    .box-shadow(0 0 0 2px rgba(0,0,0, .03));
-    .border-radius(9px);
-  }
-
-  .navbar .navbar-inner {
-    .border-radius(7px 7px 0 0);
-  }
-
-  footer {
-    .border-radius(0 0 7px 7px);
   }
 }
 

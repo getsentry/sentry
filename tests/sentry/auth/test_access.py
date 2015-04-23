@@ -14,7 +14,6 @@ class FromUserTest(TestCase):
         user = self.create_user()
 
         result = access.from_user(user, organization)
-        assert not result.is_global
         assert not result.is_active
         assert result.sso_is_valid
         assert not result.scopes
@@ -27,7 +26,6 @@ class FromUserTest(TestCase):
         team = self.create_team(organization=organization)
 
         result = access.from_user(user, organization)
-        assert result.is_global
         assert result.is_active
         assert result.sso_is_valid
         assert result.scopes == member.get_scopes()
@@ -37,15 +35,14 @@ class FromUserTest(TestCase):
         user = self.create_user()
         organization = self.create_organization()
         team = self.create_team(organization=organization)
-        member = organization.member_set.create(
+        member = self.create_member(
             organization=organization,
             user=user,
             has_global_access=False,
+            teams=[team],
         )
-        member.teams.add(team)
 
         result = access.from_user(user, organization)
-        assert not result.is_global
         assert result.is_active
         assert result.sso_is_valid
         assert result.scopes == member.get_scopes()
@@ -91,7 +88,6 @@ class FromUserTest(TestCase):
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
         result = access.DEFAULT
-        assert not result.is_global
         assert not result.is_active
         assert result.sso_is_valid
         assert not result.scopes

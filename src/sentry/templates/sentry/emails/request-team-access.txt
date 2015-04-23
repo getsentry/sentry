@@ -1,0 +1,5 @@
+{{ name }} is requesting access to {{ team.name }}.
+
+You can accept or decline this request in via the pending requests panel:
+
+    {{ url }}
