@@ -34,33 +34,6 @@
         {% endfor %}
       </ul>
     </div>
-
-    <script>
-    $(function(){
-      $('.access-request-list > li a').click(function(e){
-        var $el = $(this);
-        if (!$el.data('action')) {
-          return;
-        }
-        e.preventDefault();
-
-        $.ajax({
-          method: 'PUT',
-          url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/access-requests/' + $el.data('id') + '/',
-          contentType: 'application/json',
-          data: JSON.stringify({
-            isApproved: $el.data('action') === 'approve'
-          }),
-          success: function() {
-            $el.parents('li').remove();
-          },
-          error: function() {
-            window.alert('We were unable to act on the access request. Maybe someone else beat you to it?');
-          }
-        });
-      });
-    });
-    </script>
   {% elif ref == 'access-requests' %}
     <div class="alert alert-block alert-info">
       <p>All pending access requests have been taken care of.</p>
@@ -182,6 +155,32 @@
       error: function() {
         $loader.replaceWith($link);
         alert('There was an error while trying to reinvite the member.');
+      }
+    });
+  });
+
+  $('.access-request-list li a').click(function(e){
+    var $el = $(this);
+    if (!$el.data('action')) {
+      return;
+    }
+    e.preventDefault();
+
+    $.ajax({
+      method: 'PUT',
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/access-requests/' + $el.data('id') + '/',
+      contentType: 'application/json',
+      data: JSON.stringify({
+        isApproved: $el.data('action') === 'approve'
+      }),
+      success: function() {
+        $el.parents('li').remove();
+        if (!$('.access-request-list li').length) {
+          $('.access-request-list').remove();
+        }
+      },
+      error: function() {
+        window.alert('We were unable to act on the access request. Maybe someone else beat you to it?');
       }
     });
   });
