@@ -18,21 +18,22 @@
   <br>
 
   {% if request_list %}
-    <h3>Pending Accessing Requests</h3>
-
-    <ul class="access-request-list">
-      {% for access_request in request_list %}
-        <li>
-          <div class="pull-right">
-            <a href="#" class="btn btn-primary"
-               data-action="approve" data-id="{{ access_request.id }}">Approve</a>
-            <a href="#" class="btn btn-default"
-               data-action="deny" data-id="{{ access_request.id }}">Deny</a>
-          </div>
-          <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
-        </li>
-      {% endfor %}
-    </ul>
+    <div class="access-request-list">
+      <h3>Pending Accessing Requests</h3>
+      <ul>
+        {% for access_request in request_list %}
+          <li>
+            <div class="pull-right">
+              <a href="#" class="btn btn-primary btn-small"
+                 data-action="approve" data-id="{{ access_request.id }}">Approve</a>
+              <a href="#" class="btn btn-default btn-small"
+                 data-action="deny" data-id="{{ access_request.id }}">Deny</a>
+            </div>
+            <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
 
     <script>
     $(function(){
