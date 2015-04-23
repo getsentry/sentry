@@ -333,10 +333,11 @@ def generate_module(src):
     """
     if not src:
         return UNKNOWN_MODULE
-    if not src.endswith('.js'):
+
+    filename, ext = splitext(urlsplit(src).path)
+    if ext not in ('.js', '.coffee'):
         return UNKNOWN_MODULE
 
-    filename = splitext(urlsplit(src).path)[0]
     if filename.endswith('.min'):
         filename = filename[:-4]
     return CLEAN_MODULE_RE.sub('', filename) or UNKNOWN_MODULE
