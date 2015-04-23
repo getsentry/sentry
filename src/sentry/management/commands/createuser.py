@@ -10,10 +10,13 @@ from __future__ import absolute_import
 import getpass
 import sys
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError, make_option
 
-from sentry.models import User
+from sentry.models import (
+    Organization, OrganizationMember, OrganizationMemberType, User
+)
 
 
 class Command(BaseCommand):
@@ -93,3 +96,14 @@ class Command(BaseCommand):
         user.save()
 
         self.stdout.write('User created: %s' % (email,))
+
+        # TODO(dcramer): kill this when we improve flows
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            org = Organization.objects.all()[0]
+            OrganizationMember.objects.create(
+                organization=org,
+                user=user,
+                type=OrganizationMemberType.OWNER,
+                has_global_access=user.is_superuser,
+            )
+            self.stdout.write('Added to organization: %s' % (org.slug,))

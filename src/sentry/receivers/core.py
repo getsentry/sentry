@@ -136,7 +136,7 @@ def create_keys_for_project(instance, created, **kwargs):
     if not created or kwargs.get('raw'):
         return
 
-    if not ProjectKey.objects.filter(project=instance, user__isnull=True).exists():
+    if not ProjectKey.objects.filter(project=instance).exists():
         ProjectKey.objects.create(
             project=instance,
             label='Default',
