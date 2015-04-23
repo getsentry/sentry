@@ -22,6 +22,8 @@ class AuditLogEntryEvent(object):
     MEMBER_ACCEPT = 3
     MEMBER_EDIT = 4
     MEMBER_REMOVE = 5
+    MEMBER_JOIN_TEAM = 6
+    MEMBER_LEAVE_TEAM = 7
 
     ORG_ADD = 10
     ORG_EDIT = 11
@@ -67,6 +69,8 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.MEMBER_ACCEPT, 'member.accept-invite'),
         (AuditLogEntryEvent.MEMBER_REMOVE, 'member.remove'),
         (AuditLogEntryEvent.MEMBER_EDIT, 'member.edit'),
+        (AuditLogEntryEvent.MEMBER_JOIN_TEAM, 'member.join-team'),
+        (AuditLogEntryEvent.MEMBER_LEAVE_TEAM, 'member.leave-team'),
 
         (AuditLogEntryEvent.TEAM_ADD, 'team.create'),
         (AuditLogEntryEvent.TEAM_EDIT, 'team.edit'),
@@ -123,6 +127,20 @@ class AuditLogEntry(Model):
             return 'removed member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
         elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
             return 'edited member %s' % (self.data.get('email') or self.target_user.get_display_name(),)
+        elif self.event == AuditLogEntryEvent.MEMBER_JOIN_TEAM:
+            if self.target_user == self.actor:
+                return 'joined team %s' % (self.data['team_slug'],)
+            return 'added %s to team %s' % (
+                self.data.get('email') or self.target_user.get_display_name(),
+                self.data['team_slug'],
+            )
+        elif self.event == AuditLogEntryEvent.MEMBER_LEAVE_TEAM:
+            if self.target_user == self.actor:
+                return 'left team %s' % (self.data['team_slug'],)
+            return 'removed %s from team %s' % (
+                self.data.get('email') or self.target_user.get_display_name(),
+                self.data['team_slug'],
+            )
 
         elif self.event == AuditLogEntryEvent.ORG_ADD:
             return 'created the organization'

@@ -21,8 +21,8 @@ SCOPES = set([
 
 
 class BaseAccess(object):
-    is_global = False
     is_active = False
+    is_global = False
     sso_is_valid = False
     teams = ()
     scopes = frozenset()
@@ -35,8 +35,6 @@ class BaseAccess(object):
     def has_team(self, team):
         if not self.is_active:
             return False
-        if self.is_global:
-            return True
         return team in self.teams
 
     def to_django_context(self):
@@ -47,12 +45,12 @@ class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_global, is_active, teams, sso_is_valid):
+    def __init__(self, scopes, is_active, is_global, teams, sso_is_valid):
         self.teams = teams
         self.scopes = scopes
 
-        self.is_global = is_global
         self.is_active = is_active
+        self.is_global = is_global
         self.sso_is_valid = sso_is_valid
 
 
@@ -60,9 +58,9 @@ def from_user(user, organization):
     if user.is_superuser:
         return Access(
             scopes=SCOPES,
-            is_global=True,
             is_active=True,
-            teams=(),
+            is_global=True,
+            teams=organization.team_set.all(),
             sso_is_valid=True,
         )
 
@@ -87,7 +85,7 @@ def from_member(member):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     if member.has_global_access:
-        teams = ()
+        teams = member.organization.team_set.all()
     else:
         teams = member.teams.all()
 
@@ -112,8 +110,8 @@ def from_member(member):
                 sso_is_valid = auth_identity.is_valid(member)
 
     return Access(
-        is_global=member.has_global_access,
         is_active=True,
+        is_global=member.has_global_access,
         sso_is_valid=sso_is_valid,
         scopes=member.get_scopes(),
         teams=teams,
