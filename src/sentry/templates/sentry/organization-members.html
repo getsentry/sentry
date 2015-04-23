@@ -160,11 +160,15 @@
   });
 
   $('.access-request-list li a').click(function(e){
-    var $el = $(this);
+    var $el = $(this),
+        $row = $el.parents('li');
     if (!$el.data('action')) {
       return;
     }
     e.preventDefault();
+
+    $row.addClass('loading');
+    $('a', $row).attr('disabled', true);
 
     $.ajax({
       method: 'PUT',
@@ -174,13 +178,14 @@
         isApproved: $el.data('action') === 'approve'
       }),
       success: function() {
-        $el.parents('li').remove();
+        $row.remove();
         if (!$('.access-request-list li').length) {
           $('.access-request-list').remove();
         }
       },
       error: function() {
         window.alert('We were unable to act on the access request. Maybe someone else beat you to it?');
+        $('a', $row).attr('disabled', false);
       }
     });
   });
