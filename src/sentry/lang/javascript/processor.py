@@ -324,7 +324,7 @@ def is_data_uri(url):
 def generate_module(src):
     """
     Converts a url into a made-up module name by doing the following:
-     * Extract just the path name
+     * Extract just the path name ignoring querystrings
      * Trimming off the initial /
      * Trimming off the file extension
      * Removes off useless folder prefixes
