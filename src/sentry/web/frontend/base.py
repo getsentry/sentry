@@ -214,6 +214,8 @@ class OrganizationView(BaseView):
     valid_sso_required = True
 
     def get_access(self, request, organization, *args, **kwargs):
+        if organization is None:
+            return access.DEFAULT
         return access.from_user(request.user, organization)
 
     def get_context_data(self, request, organization, **kwargs):

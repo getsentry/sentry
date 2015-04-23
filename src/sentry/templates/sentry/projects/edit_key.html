@@ -22,12 +22,6 @@
             <div class="box-content with-padding">
               {{ form.label|as_crispy_field }}
               <div class="form-group">
-                  <label>{% trans "Owner" %}</label>
-                  <div class="controls">
-                      {% if key.user %}{{ key.user }}{% else %}&mdash;{% endif %}
-                  </div>
-              </div>
-              <div class="form-group">
                   <label>{% trans "Created" %}</label>
                   <div class="controls">
                       {{ key.date_added|timesince }}

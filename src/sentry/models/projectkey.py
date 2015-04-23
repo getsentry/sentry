@@ -35,7 +35,6 @@ class ProjectKey(Model):
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     roles = BitField(flags=(
         # access to post events to the store endpoint
         ('store', 'Event API access'),
@@ -71,7 +70,7 @@ class ProjectKey(Model):
         app_label = 'sentry'
         db_table = 'sentry_projectkey'
 
-    __repr__ = sane_repr('project_id', 'user_id', 'public_key')
+    __repr__ = sane_repr('project_id', 'public_key')
 
     def __unicode__(self):
         return six.text_type(self.public_key)
@@ -122,9 +121,11 @@ class ProjectKey(Model):
     def get_audit_log_data(self):
         return {
             'label': self.label,
-            'user_id': self.user_id,
             'public_key': self.public_key,
             'secret_key': self.secret_key,
             'roles': int(self.roles),
             'status': self.status,
         }
+
+    def get_scopes(self):
+        return self.scopes

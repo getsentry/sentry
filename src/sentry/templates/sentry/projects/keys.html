@@ -32,7 +32,7 @@
                         {% if key.label %}
                             <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a></h5>
                         {% else %}
-                            <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}</h5>
+                            <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a></h5>
                         {% endif %}<br>
                         <input class="form-control" value="{{ key.dsn_private }}">
                         {% if key.user_added %}

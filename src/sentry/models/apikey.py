@@ -88,3 +88,6 @@ class ApiKey(Model):
             'scopes': int(self.scopes),
             'status': self.status,
         }
+
+    def get_scopes(self):
+        return self.scopes.keys()

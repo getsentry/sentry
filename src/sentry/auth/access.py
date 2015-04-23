@@ -115,7 +115,7 @@ def from_member(member):
         is_global=member.has_global_access,
         is_active=True,
         sso_is_valid=sso_is_valid,
-        scopes=member.scopes,
+        scopes=member.get_scopes(),
         teams=teams,
     )
 
