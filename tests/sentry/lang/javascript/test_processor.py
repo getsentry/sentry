@@ -115,6 +115,8 @@ class GenerateModuleTest(TestCase):
         assert generate_module('http://example.com/abcdef0/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/92cd589eca8235e7b373bf5ae94ebf898e3b949c/foo/bar.js') == 'foo/bar'
         assert generate_module('http://example.com/7d6d00eae0ceccdc7ee689659585d95f/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/foo/bar.coffee') == 'foo/bar'
+        assert generate_module('http://example.com/foo/bar.js?v=1234') == 'foo/bar'
         assert generate_module('/foo/bar.js') == 'foo/bar'
         assert generate_module('../../foo/bar.js') == 'foo/bar'
         assert generate_module('/foo/bar-7d6d00eae0ceccdc7ee689659585d95f.js') == 'foo/bar'
