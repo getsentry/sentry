@@ -24,6 +24,7 @@ class OrganizationMembersView(OrganizationView):
 
         queryset = OrganizationMemberTeam.objects.filter(
             organizationmember__organization=organization,
+            is_active=True,
         ).select_related('team')
 
         team_map = defaultdict(list)
