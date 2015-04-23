@@ -43,7 +43,7 @@ class MailPlugin(NotificationPlugin):
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
         msg = MessageBuilder(
-            subject='%s%s' % (subject_prefix, subject),
+            subject=u'%s%s' % (subject_prefix, subject.decode('utf-8')),
             template=template,
             html_template=html_template,
             body=body,
