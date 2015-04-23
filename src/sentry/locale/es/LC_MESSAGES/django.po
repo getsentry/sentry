@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# 
+#
 # Translators:
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-02-10 19:13+0000\n"
-"PO-Revision-Date: 2015-02-10 19:14+0000\n"
+"PO-Revision-Date: 2015-04-23 08:14-0400\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/sentry/language/es/)\n"
 "MIME-Version: 1.0\n"
@@ -2663,7 +2663,7 @@ msgstr "ayer"
 
 #: templatetags/sentry_helpers.py:168
 msgid " ago"
-msgstr "atrás"
+msgstr " atrás"
 
 #: web/api.py:625
 msgid "Deletion has been queued and should occur shortly."
