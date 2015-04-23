@@ -593,12 +593,26 @@ h3 {
       margin-top: 9px;
       margin-left: -250px;
       .nav a {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
         padding: 8px 15px;
         margin: 0;
         .border-radius(3px);
-        color: lighten(@gray, 30);
+
+        .badge {
+          font-size: 12px;
+          background: @red;
+          text-shadow: none;
+          font-weight: 600;
+          .square(20px);
+          line-height: 20px;
+          text-align: center;
+          padding: 0;
+          border-radius: 20px;
+          position: relative;
+          top: -1px;
+          margin-left: 3px;
+        }
 
         &:hover {
           background: #F0F2F5;
