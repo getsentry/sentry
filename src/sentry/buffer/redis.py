@@ -89,8 +89,9 @@ class RedisBuffer(Buffer):
     def process_pending(self):
         lock_key = self._make_lock_key(self.pending_key)
         # prevent a stampede due to celerybeat + periodic task
-        if not self.conn.set(lock_key, '1', nx=True, ex=60):
+        if not self.conn.setnx(lock_key, '1'):
             return
+        self.conn.expire(lock_key, 60)
 
         try:
             for conn in self.conn.hosts.itervalues():
@@ -111,8 +112,9 @@ class RedisBuffer(Buffer):
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
-        if not self.conn.set(lock_key, '1', nx=True, ex=10):
+        if not self.conn.setnx(lock_key, '1'):
             return
+        self.conn.expire(lock_key, 10)
 
         with self.conn.map() as conn:
             values = conn.hgetall(key)
