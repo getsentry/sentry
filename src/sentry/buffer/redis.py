@@ -83,7 +83,7 @@ class RedisBuffer(Buffer):
             for column, value in extra.iteritems():
                 pipe.hset(key, 'e+' + column, pickle.dumps(value))
         pipe.expire(key, self.key_expire)
-        pipe.zadd(self.pending_key, key, time())
+        pipe.zadd(self.pending_key, time(), key)
         pipe.execute()
 
     def process_pending(self):
