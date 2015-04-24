@@ -61,7 +61,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             team = Team.objects.create(
                 name=result['name'],
                 slug=result.get('slug'),
-                owner=result.get('owner') or organization.owner,
                 organization=organization,
             )
 

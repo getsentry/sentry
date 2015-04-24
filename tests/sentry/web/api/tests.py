@@ -217,7 +217,7 @@ class SearchProjectsTest(TestCase):
 
     def test_does_not_include_projects_from_other_organizations(self):
         org = self.create_organization(owner=self.user, name='Sample')
-        team = self.create_team(organization=org, owner=self.user, name='Sample')
+        team = self.create_team(organization=org, name='Sample')
         self.create_project(organization=org, team=team, name='Sample')
 
         resp = self.client.get(self.path, {'query': 'sample'})
