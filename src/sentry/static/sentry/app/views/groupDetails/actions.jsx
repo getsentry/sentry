@@ -4,7 +4,9 @@ var React = require("react");
 var Router = require("react-router");
 
 var api = require("../../api");
+var DropdownLink = require("../../components/dropdownLink");
 var GroupState = require("../../mixins/groupState");
+var MenuItem = require("../../components/menuItem");
 var LinkWithConfirmation = require("../../components/linkWithConfirmation");
 
 var GroupActions = React.createClass({
@@ -95,9 +97,13 @@ var GroupActions = React.createClass({
           </LinkWithConfirmation>
         </div>
         <div className="btn-group more">
-          <a href="#" className="btn btn-default btn-sm dropdown-toggle">More <span className="icon-arrow-down"></span></a>
-          <ul className="dropdown-menu">
-          </ul>
+          <DropdownLink
+              className="btn btn-default btn-sm"
+              title="More">
+            <MenuItem onSelect={this.onMute} >
+              Mute this event
+            </MenuItem>
+          </DropdownLink>
         </div>
         <div className="severity">
           <span className="severity-indicator-bg">
