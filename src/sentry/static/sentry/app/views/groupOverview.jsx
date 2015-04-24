@@ -10,6 +10,7 @@ var GroupChart = require("./groupDetails/chart");
 var GroupEvent = require("./groupDetails/event");
 var GroupEventToolbar = require("./groupDetails/eventToolbar");
 var GroupState = require("../mixins/groupState");
+var MutedBox = require("../components/mutedBox");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
@@ -17,18 +18,6 @@ var RouteMixin = require("../mixins/routeMixin");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
 
-var MutedBox = React.createClass({
-  render() {
-    if (this.props.status !== 'muted') {
-      return <div />;
-    }
-    return (
-      <div className="alert alert-info">
-        This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
-      </div>
-    );
-  }
-});
 
 var GroupOverview = React.createClass({
   contextTypes: {
