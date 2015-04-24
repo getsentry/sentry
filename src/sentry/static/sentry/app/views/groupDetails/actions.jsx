@@ -33,6 +33,21 @@ var GroupActions = React.createClass({
     });
   },
 
+  onToggleMute() {
+    var group = this.getGroup();
+    var project = this.getProject();
+    var org = this.getOrganization();
+
+    api.bulkUpdate({
+      orgId: org.slug,
+      projectId: project.slug,
+      itemIds: [group.id],
+      data: {
+        status: group.status === 'muted' ? 'unresolved' : 'muted'
+      }
+    });
+  },
+
   onToggleResolve() {
     var group = this.getGroup();
     var project = this.getProject();
@@ -100,8 +115,12 @@ var GroupActions = React.createClass({
           <DropdownLink
               className="btn btn-default btn-sm"
               title="More">
-            <MenuItem onSelect={this.onMute} >
-              Mute this event
+            <MenuItem onSelect={this.onToggleMute} >
+              {group.status !== 'muted' ?
+                'Mute this event'
+              :
+                'Unmute this event'
+              }
             </MenuItem>
           </DropdownLink>
         </div>
