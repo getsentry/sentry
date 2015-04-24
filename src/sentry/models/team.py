@@ -150,7 +150,7 @@ class Team(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     slug = models.SlugField()
     name = models.CharField(max_length=64)
-    owner = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    owner = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     status = BoundedPositiveIntegerField(choices=(
         (TeamStatus.VISIBLE, _('Active')),
         (TeamStatus.PENDING_DELETION, _('Pending Deletion')),

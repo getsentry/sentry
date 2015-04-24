@@ -27,7 +27,6 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.name == 'Backend'
         assert project.slug == 'backend'
         team = project.team
-        assert team.owner == user
         assert team.slug == 'sentry'
 
         pk = ProjectKey.objects.get(project=project)
@@ -51,7 +50,6 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.name == 'Backend'
         assert project.slug == 'backend'
         team = project.team
-        assert team.owner == user
         assert team.slug == 'sentry'
 
         pk = ProjectKey.objects.get(project=project)
