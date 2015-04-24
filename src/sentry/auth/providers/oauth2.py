@@ -209,7 +209,7 @@ class OAuth2Provider(Provider):
         if req.status_code != 200:
             raise Exception(formatted_error)
 
-        auth_identity.data['data'].update(self.get_oauth_data(payload))
+        auth_identity.data.update(self.get_oauth_data(payload))
         auth_identity.update(data=auth_identity.data)
 
         return True
