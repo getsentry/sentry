@@ -13,6 +13,7 @@ This release removes the ability to login or create accounts using a social auth
 - Metrics (counters) are now collected both in sentry.tsdb and an optionally configured statsd
   instance.
 - Organizations can now toggle open membership which allows members to freely join/leave any team.
+- ProjectKey.user has been removed.
 
 
 Version 7.4.3
