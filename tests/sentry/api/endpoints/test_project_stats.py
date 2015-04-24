@@ -8,10 +8,8 @@ class ProjectStatsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        team = self.create_team(owner=self.user)
-
-        project1 = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='bar')
+        project1 = self.create_project(name='foo')
+        project2 = self.create_project(name='bar')
 
         tsdb.incr(tsdb.models.project, project1.id, count=3)
         tsdb.incr(tsdb.models.project, project2.id, count=5)

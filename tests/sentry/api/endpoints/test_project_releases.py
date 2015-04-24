@@ -11,7 +11,7 @@ class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        team = self.create_team(owner=self.user)
+        team = self.create_team()
         project1 = self.create_project(team=team, name='foo')
         project2 = self.create_project(team=team, name='bar')
 
@@ -46,7 +46,7 @@ class ProjectReleaseCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        team = self.create_team(owner=self.user)
+        team = self.create_team()
         project = self.create_project(team=team, name='foo')
 
         url = reverse('sentry-api-0-project-releases', kwargs={
@@ -68,7 +68,7 @@ class ProjectReleaseCreateTest(APITestCase):
     def test_duplicate(self):
         self.login_as(user=self.user)
 
-        team = self.create_team(owner=self.user)
+        team = self.create_team()
         project = self.create_project(team=team, name='foo')
 
         Release.objects.create(version='1.2.1', project=project)
