@@ -59,8 +59,8 @@ class ProjectPermissionTest(ProjectPermissionBase):
             organization=self.org,
             type=OrganizationMemberType.MEMBER,
             has_global_access=False,
+            teams=[self.team]
         )
-        om.teams.add(self.team)
         assert self.has_object_perm(None, user, self.project)
 
     def test_project_key_with_project_access(self):

@@ -87,6 +87,10 @@ if settings.DEBUG:
             sentry.web.frontend.debug.mail.new_event),
         url(r'^debug/mail/new-note/$',
             sentry.web.frontend.debug.mail.new_note),
+        url(r'^debug/mail/request-access/$',
+            sentry.web.frontend.debug.mail.request_access),
+        url(r'^debug/mail/access-approved/$',
+            sentry.web.frontend.debug.mail.access_approved),
     )
 
 urlpatterns += patterns('',

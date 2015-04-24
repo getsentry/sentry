@@ -72,7 +72,7 @@ class User(BaseModel, AbstractBaseUser):
         return self.is_superuser
 
     def get_display_name(self):
-        return self.first_name or self.email
+        return self.first_name or self.email or self.username
 
     def get_full_name(self):
         return self.first_name

@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType, Team
+    OrganizationMemberTeam, OrganizationMemberType, Team
 )
 from sentry.web.forms.fields import CustomTypedChoiceField
 
@@ -29,7 +29,7 @@ class EditOrganizationMemberForm(forms.ModelForm):
     )
 
     class Meta:
-        fields = ('type', 'has_global_access', 'teams')
+        fields = ('type', 'has_global_access')
         model = OrganizationMember
 
     def __init__(self, authorizing_access, *args, **kwargs):
@@ -44,10 +44,17 @@ class EditOrganizationMemberForm(forms.ModelForm):
         )
 
     def save(self, actor, organization, ip_address=None):
-        if self.cleaned_data['has_global_access']:
-            self.cleaned_data['teams'] = []
-
         om = super(EditOrganizationMemberForm, self).save()
+
+        for team in self.cleaned_data['teams']:
+            OrganizationMemberTeam.objects.create_or_update(
+                team=team,
+                organizationmember=om,
+            )
+
+        OrganizationMemberTeam.objects.filter(
+            organizationmember=om,
+        ).exclude(team__in=self.cleaned_data['teams']).delete()
 
         AuditLogEntry.objects.create(
             organization=organization,

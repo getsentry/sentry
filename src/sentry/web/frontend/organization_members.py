@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from collections import defaultdict
 
 from sentry.models import (
-    AuthProvider, OrganizationMember, OrganizationMemberTeams,
-    OrganizationMemberType
+    AuthProvider, OrganizationAccessRequest, OrganizationMember,
+    OrganizationMemberTeam, OrganizationMemberType
 )
 from sentry.web.frontend.base import OrganizationView
 
@@ -13,14 +13,18 @@ class OrganizationMembersView(OrganizationView):
     def handle(self, request, organization):
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
+            access_is_global = True
         else:
-            authorizing_access = OrganizationMember.objects.get(
+            member = OrganizationMember.objects.get(
                 user=request.user,
                 organization=organization,
-            ).type
+            )
+            authorizing_access = member.type
+            access_is_global = member.has_global_access
 
-        queryset = OrganizationMemberTeams.objects.filter(
+        queryset = OrganizationMemberTeam.objects.filter(
             organizationmember__organization=organization,
+            is_active=True,
         ).select_related('team')
 
         team_map = defaultdict(list)
@@ -51,9 +55,19 @@ class OrganizationMembersView(OrganizationView):
                 and om.user is not None)
         )
 
+        # pending requests
+        if access_is_global and authorizing_access <= OrganizationMemberType.ADMIN:
+            access_requests = list(OrganizationAccessRequest.objects.filter(
+                team__organization=organization,
+            ).select_related('team', 'member__user'))
+        else:
+            access_requests = []
+
         context = {
             'org_has_sso': auth_provider is not None,
             'member_list': member_list,
+            'request_list': access_requests,
+            'ref': request.GET.get('ref'),
             'authorizing_access': authorizing_access,
             'member_can_leave': member_can_leave,
         }

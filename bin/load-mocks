@@ -12,7 +12,8 @@ from random import randint
 
 from sentry.app import tsdb
 from sentry.models import (
-    AccessGroup, Activity, User, Organization, Project, Team
+    AccessGroup, Activity, User, Organization, OrganizationAccessRequest,
+    OrganizationMember, Project, Team
 )
 from sentry.utils.samples import create_sample_event
 
@@ -59,7 +60,10 @@ def main():
     user = User.objects.filter(is_superuser=True)[0]
 
     dummy_user, _ = User.objects.get_or_create(
-        username='dummy@example.com'
+        username='dummy@example.com',
+        defaults={
+            'email': 'dummy@example.com',
+        }
     )
 
     mocks = (
@@ -74,6 +78,16 @@ def main():
             'owner': user,
         },
     )
+
+    dummy_member, _ = OrganizationMember.objects.get_or_create(
+        user=dummy_user,
+        organization=org,
+        defaults={
+            'has_global_access': False,
+        }
+    )
+    if dummy_member.has_global_access:
+        dummy_member.update(has_global_access=False)
 
     for team_name, project_names in mocks:
         print('> Mocking team {}'.format(team_name))
@@ -125,6 +139,11 @@ def main():
         )
         accessgroup.projects.add(project)
         accessgroup.members.add(dummy_user)
+
+        OrganizationAccessRequest.objects.create_or_update(
+            member=dummy_member,
+            team=team,
+        )
 
     Activity.objects.create(
         type=Activity.RELEASE,

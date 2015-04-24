@@ -508,3 +508,12 @@ def needs_access_group_migration(user, organization):
     return AccessGroup.objects.filter(
         team__organization=organization
     ).exists()
+
+
+@register.filter
+def count_pending_access_requests(organization):
+    from sentry.models import OrganizationAccessRequest
+
+    return OrganizationAccessRequest.objects.filter(
+        team__organization=organization,
+    ).count()

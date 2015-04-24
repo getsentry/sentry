@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
-    OrganizationMember, User
+    OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.utils.auth import get_login_redirect
 from sentry.web.helpers import render_to_response
@@ -227,7 +227,10 @@ class AuthHelper(object):
 
                 default_teams = auth_provider.default_teams.all()
                 for team in default_teams:
-                    member.teams.add(team)
+                    OrganizationMemberTeam.objects.create(
+                        team=team,
+                        organizationmember=member,
+                    )
 
                 AuditLogEntry.objects.create(
                     organization=organization,

@@ -29,8 +29,8 @@ class RedisBufferTest(TestCase):
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.redis.process_incr')
     def test_process_pending(self, process_incr):
-        self.buf.conn.zadd('b:p', 'foo', 1)
-        self.buf.conn.zadd('b:p', 'bar', 2)
+        self.buf.conn.zadd('b:p', 1, 'foo')
+        self.buf.conn.zadd('b:p', 2, 'bar')
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
         process_incr.apply_async.assert_any_call(kwargs={'key': 'foo'})

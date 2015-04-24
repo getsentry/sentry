@@ -19,9 +19,11 @@ from .endpoints.helppage_index import HelpPageIndexEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
+from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
+from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -69,12 +71,18 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/$',
         OrganizationDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/access-requests/(?P<request_id>\d+)/$',
+        OrganizationAccessRequestDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-access-request-details'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>\d+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>\d+)/teams/(?P<team_slug>[^\/]+)/$',
+        OrganizationMemberTeamDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-member-team-details'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/projects/$',
         OrganizationProjectsEndpoint.as_view(),
         name='sentry-api-0-organization-projects'),
