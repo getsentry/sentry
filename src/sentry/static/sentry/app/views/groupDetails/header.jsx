@@ -11,11 +11,8 @@ var GroupSeenBy = require("./seenBy");
 var GroupState = require("../../mixins/groupState");
 var ListLink = require("../../components/listLink");
 var PropTypes = require("../../proptypes");
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var GroupHeader = React.createClass({
-  mixins: [PureRenderMixin],
-
   contextTypes: {
     router: React.PropTypes.func.isRequired
   },
