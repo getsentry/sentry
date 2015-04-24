@@ -21,7 +21,6 @@ class AddTeamForm(forms.ModelForm):
     def save(self, actor, organization, ip_address):
         team = super(AddTeamForm, self).save(commit=False)
         team.organization = organization
-        team.owner = organization.owner
         team.save()
 
         AuditLogEntry.objects.create(

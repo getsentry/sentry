@@ -52,7 +52,6 @@ How do I
      team = Team()
      team.name = 'Sentry'
      team.organization = organization
-     team.owner = user
      team.save()
 
      project = Project()

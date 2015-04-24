@@ -122,9 +122,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',
                             status=status.HTTP_403_FORBIDDEN)
 
-        if not (request.user.is_superuser or project.team.owner_id == request.user.id):
-            return Response('{"error": "form"}', status=status.HTTP_403_FORBIDDEN)
-
         updated = Project.objects.filter(
             id=project.id,
             status=ProjectStatus.VISIBLE,
