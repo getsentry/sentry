@@ -13,6 +13,7 @@ This release removes the ability to login or create accounts using a social auth
 - Metrics (counters) are now collected both in sentry.tsdb and an optionally configured statsd
   instance.
 - ProjectKey.user has been removed.
+- Organization API keys are now exposed in the UI.
 
 
 Version 7.4.3
