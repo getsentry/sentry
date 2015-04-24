@@ -31,14 +31,14 @@ class TeamSettingsTest(TestCase):
         return reverse('sentry-manage-team', args=[self.organization.slug, self.team.slug])
 
     def test_renders_with_context(self):
-        self.login_as(self.team.owner)
+        self.login_as(self.user)
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
         assert resp.context['team'] == self.team
 
     def test_valid_params(self):
-        self.login_as(self.team.owner)
+        self.login_as(self.user)
         resp = self.client.post(self.path, {
             'name': 'bar',
             'slug': self.team.slug,
