@@ -18,7 +18,8 @@ from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
 
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, FlexibleForeignKey, sane_repr
+    BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
+    FlexibleForeignKey, Model, sane_repr
 )
 from sentry.utils.http import absolute_uri
 
@@ -29,6 +30,30 @@ class OrganizationMemberType(object):
     ADMIN = 25
     MEMBER = 50
     BOT = 100
+
+
+class OrganizationMemberTeam(BaseModel):
+    id = BoundedAutoField(primary_key=True)
+    team = FlexibleForeignKey('sentry.Team')
+    organizationmember = FlexibleForeignKey('sentry.OrganizationMember')
+    # an inactive membership simply removes the team from the default list
+    # but still allows them to re-join without request
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_organizationmember_teams'
+        unique_together = (('team', 'organizationmember'),)
+
+    __repr__ = sane_repr('team_id', 'organizationmember_id')
+
+    def get_audit_log_data(self):
+        return {
+            'team_slug': self.team.slug,
+            'member_id': self.organizationmember_id,
+            'email': self.organizationmember.get_email(),
+            'is_active': self.is_active,
+        }
 
 
 class OrganizationMember(Model):
@@ -57,7 +82,8 @@ class OrganizationMember(Model):
     ), default=0)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
-    teams = models.ManyToManyField('sentry.Team', blank=True)
+    teams = models.ManyToManyField('sentry.Team', blank=True,
+                                   through='sentry.OrganizationMemberTeam')
 
     class Meta:
         app_label = 'sentry'
@@ -165,5 +191,3 @@ class OrganizationMember(Model):
             'teams': [t.id for t in self.teams.all()],
             'has_global_access': self.has_global_access,
         }
-
-OrganizationMemberTeams = OrganizationMember.teams.through

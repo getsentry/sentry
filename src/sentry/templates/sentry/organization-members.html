@@ -13,6 +13,29 @@
 
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
 
+  {% if request_list %}
+    <div class="access-request-list">
+      <h3>Pending Access Requests</h3>
+      <ul>
+        {% for access_request in request_list %}
+          <li>
+            <div class="pull-right">
+              <a href="#" class="btn btn-primary btn-small"
+                 data-action="approve" data-id="{{ access_request.id }}">Approve</a>
+              <a href="#" class="btn btn-default btn-small"
+                 data-action="deny" data-id="{{ access_request.id }}">Deny</a>
+            </div>
+            <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% elif ref == 'access-requests' %}
+    <div class="alert alert-block alert-info">
+      <p>All pending access requests have been taken care of.</p>
+    </div>
+  {% endif %}
+
   <table class="table">
     <colgroup>
       <col width="30%"/>
@@ -125,6 +148,37 @@
       error: function() {
         $loader.replaceWith($link);
         alert('There was an error while trying to reinvite the member.');
+      }
+    });
+  });
+
+  $('.access-request-list li a').click(function(e){
+    var $el = $(this),
+        $row = $el.parents('li');
+    if (!$el.data('action')) {
+      return;
+    }
+    e.preventDefault();
+
+    $row.addClass('loading');
+    $('a', $row).attr('disabled', true);
+
+    $.ajax({
+      method: 'PUT',
+      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/access-requests/' + $el.data('id') + '/',
+      contentType: 'application/json',
+      data: JSON.stringify({
+        isApproved: $el.data('action') === 'approve'
+      }),
+      success: function() {
+        $row.remove();
+        if (!$('.access-request-list li').length) {
+          $('.access-request-list').remove();
+        }
+      },
+      error: function() {
+        window.alert('We were unable to act on the access request. Maybe someone else beat you to it?');
+        $('a', $row).attr('disabled', false);
       }
     });
   });

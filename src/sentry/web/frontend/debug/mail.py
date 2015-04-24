@@ -2,11 +2,15 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
-from sentry.models import Activity, Event, Group, Project, Rule, Team
+from sentry.models import (
+    Activity, Event, Group, Organization, Project, Rule, Team
+)
 from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
+from sentry.utils.http import absolute_uri
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
@@ -120,6 +124,69 @@ def new_note(request):
             'date': note.datetime,
             'group': group,
             'link': group.get_absolute_url(),
+        },
+    )
+
+    return render_to_response('sentry/debug/mail/preview.html', {
+        'preview': preview,
+    })
+
+
+@login_required
+def request_access(request):
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
+    team = Team(
+        id=1,
+        slug='example',
+        name='Example',
+        organization=org,
+    )
+
+    preview = MailPreview(
+        html_template='sentry/emails/request-team-access.html',
+        text_template='sentry/emails/request-team-access.txt',
+        context={
+            'email': 'foo@example.com',
+            'name': 'George Bush',
+            'organization': org,
+            'team': team,
+            'url': absolute_uri(reverse('sentry-organization-members', kwargs={
+                'organization_slug': org.slug,
+            }) + '?ref=access-requests'),
+        },
+    )
+
+    return render_to_response('sentry/debug/mail/preview.html', {
+        'preview': preview,
+    })
+
+
+@login_required
+def access_approved(request):
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
+    team = Team(
+        id=1,
+        slug='example',
+        name='Example',
+        organization=org,
+    )
+
+    preview = MailPreview(
+        html_template='sentry/emails/access-approved.html',
+        text_template='sentry/emails/access-approved.txt',
+        context={
+            'email': 'foo@example.com',
+            'name': 'George Bush',
+            'organization': org,
+            'team': team,
         },
     )
 

@@ -36,9 +36,14 @@
     {% endif %}
     {% if ACCESS.org_read %}
     <li class="{% block org_members_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-members' organization.slug %}">
-        {% trans "Members" %}
-      </a>
+      {% with pending_requests=organization|count_pending_access_requests %}
+        <a href="{% url 'sentry-organization-members' organization.slug %}">
+          {% trans "Members" %}
+          {% if ACCESS.org_write and pending_requests %}
+            <span class="badge">{{ pending_requests }}</span>
+          {% endif %}
+        </a>
+      {% endwith %}
     </li>
     {% endif %}
     {% if ACCESS.org_delete %}

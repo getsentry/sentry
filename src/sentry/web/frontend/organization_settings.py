@@ -15,6 +15,11 @@ from sentry.web.frontend.base import OrganizationView
 class OrganizationSettingsForm(forms.ModelForm):
     name = forms.CharField(help_text=_('The name of your organization. i.e. My Company'))
     slug = forms.SlugField(help_text=_('A unique ID used to identify this organization.'))
+    allow_joinleave = forms.BooleanField(
+        label=_('Open Membership'),
+        help_text=_('Allow organization members to freely join or leave any team.'),
+        required=False,
+    )
 
     class Meta:
         fields = ('name', 'slug')
@@ -27,13 +32,18 @@ class OrganizationSettingsView(OrganizationView):
     def get_form(self, request, organization):
         return OrganizationSettingsForm(
             request.POST or None,
-            instance=organization
+            instance=organization,
+            initial={
+                'allow_joinleave': bool(getattr(organization.flags, 'allow_joinleave')),
+            }
         )
 
     def handle(self, request, organization):
         form = self.get_form(request, organization)
         if form.is_valid():
-            form.save()
+            instance = form.save(commit=False)
+            setattr(instance.flags, 'allow_joinleave', form.cleaned_data['allow_joinleave'])
+            instance.save()
 
             AuditLogEntry.objects.create(
                 organization=organization,

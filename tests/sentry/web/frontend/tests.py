@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.constants import MEMBER_USER
-from sentry.models import OrganizationMember, User
+from sentry.models import User
 from sentry.testutils import TestCase
 
 
@@ -127,12 +127,12 @@ class PermissionBase(TestCase):
         user.set_password('member')
         user.save()
 
-        om = OrganizationMember.objects.create(
+        om = self.create_member(
             organization=self.team.organization,
             user=user,
             type=MEMBER_USER,
+            teams=[self.team],
         )
-        om.teams.add(self.team)
         return user
 
     @fixture

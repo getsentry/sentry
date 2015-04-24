@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from sentry.models import (
     Activity, Event, Group, Organization, OrganizationMember,
-    OrganizationMemberType, Project, Team, User
+    OrganizationMemberTeam, OrganizationMemberType, Project, Team, User
 )
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
@@ -90,7 +90,10 @@ class Fixtures(object):
         om = OrganizationMember.objects.create(**kwargs)
         if teams:
             for team in teams:
-                om.teams.add(team)
+                OrganizationMemberTeam.objects.create(
+                    team=team,
+                    organizationmember=om,
+                )
         return om
 
     def create_team(self, **kwargs):
