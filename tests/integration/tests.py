@@ -82,8 +82,7 @@ class RavenIntegrationTest(TransactionTestCase):
     """
     def setUp(self):
         self.user = self.create_user('coreapi@example.com')
-        self.team = self.create_team(owner=self.user)
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project()
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create()[0]
 

@@ -69,7 +69,7 @@ class ProjectKeyTest(TestCase):
 
     def test_key_is_created_for_project(self):
         user = self.create_user('admin@example.com')
-        team = self.create_team(name='Test', owner=user)
+        team = self.create_team(name='Test')
         project = self.create_project(name='Test', team=team)
         assert project.key_set.exists() is True
 

@@ -50,7 +50,6 @@ class Fixtures(object):
             organization=self.organization,
             name='foo',
             slug='foo',
-            owner=self.organization.owner,
         )
 
     @fixture
@@ -102,8 +101,6 @@ class Fixtures(object):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
             kwargs['organization'] = self.organization
-        if not kwargs.get('owner'):
-            kwargs['owner'] = kwargs['organization'].owner
 
         return Team.objects.create(**kwargs)
 

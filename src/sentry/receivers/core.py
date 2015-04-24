@@ -86,7 +86,6 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         organization=org,
         slug='sentry',
         defaults={
-            'owner': org.owner,
             'name': 'Sentry',
         }
     )
