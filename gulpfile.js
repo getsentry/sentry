@@ -2,12 +2,13 @@
 
 var gulp = require("gulp"),
     gp_cached = require("gulp-cached"),
-    gp_clean = require("gulp-clean"),
     gp_concat = require("gulp-concat"),
     gp_less = require("gulp-less"),
     gp_rename = require("gulp-rename"),
     gp_uglify = require("gulp-uglify"),
-    gp_util = require("gulp-util");
+    gp_util = require("gulp-util"),
+    del = require("del"),
+    vinylPaths = require('vinyl-paths');
 
 var path = require("path");
 
@@ -145,7 +146,7 @@ function buildJsDistroTasks() {
 
 gulp.task("clean", function () {
   return gulp.src(distPath, {read: false})
-    .pipe(gp_clean())
+    .pipe(vinylPaths(del))
     .on("error", gp_util.log);
 });
 
