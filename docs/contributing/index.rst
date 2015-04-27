@@ -174,6 +174,18 @@ automatic reloading on code changes. For that you'd want to use the standard bui
 	sentry runserver
 
 
+DDL (Schema Changes)
+--------------------
+
+Schema changes should always introduce the new schema in a commit, and then introduce code relying on that schema in a followup commit. This also means that new columns must be NULLable.
+
+Removing columns and tables requires a slightly more painful flow, and should resemble the follow multi-commit flow:
+
+- Remove all references to the column or table (but dont remove the Model itself)
+- Remove the model code
+- Remove the table or column
+
+
 Contributing Back Code
 ----------------------
 
