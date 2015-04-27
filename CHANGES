@@ -16,7 +16,8 @@ This release removes the ability to login or create accounts using a social auth
 - ProjectKey.user has been removed.
 - Organization API keys are now exposed in the UI.
 - Team.owner has been removed.
-
+- TeamMember has been removed.
+- PendingTeamMember has been removed.
 
 Version 7.4.3
 -------------

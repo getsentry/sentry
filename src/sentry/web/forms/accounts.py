@@ -97,10 +97,15 @@ class AuthenticationForm(CaptchaForm):
         if not self.fields['username'].label:
             self.fields['username'].label = capfirst(self.username_field.verbose_name)
 
+    def clean_username(self):
+        value = (self.cleaned_data.get('username') or '').strip()
+        if not value:
+            return
+        return value.lower()
+
     def clean(self):
-        username = self.cleaned_data['username']
-        username = username.strip()
-        password = self.cleaned_data['password']
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
 
         if username and password:
             self.user_cache = authenticate(username=username,
@@ -140,8 +145,7 @@ class RegistrationForm(CaptchaModelForm):
         model = User
 
     def clean_username(self):
-        value = self.cleaned_data['username']
-        value = value.strip()
+        value = (self.cleaned_data.get('username') or '').strip()
         if not value:
             return
         if User.objects.filter(username__iexact=value).exists():
@@ -161,16 +165,15 @@ class RecoverPasswordForm(CaptchaForm):
     user = forms.CharField(label=_('Username or email'))
 
     def clean_user(self):
-        value = self.cleaned_data['user']
-        value = value.strip()
-        if value:
-            users = find_users(value, with_valid_password=False)
-            if not users:
-                raise forms.ValidationError(_("We were unable to find a matching user."))
-            if len(users) > 1:
-                raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
-            return users[0]
-        return None
+        value = (self.cleaned_data.get('user') or '').strip()
+        if not value:
+            return
+        users = find_users(value, with_valid_password=False)
+        if not users:
+            raise forms.ValidationError(_("We were unable to find a matching user."))
+        if len(users) > 1:
+            raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
+        return users[0]
 
 
 class ChangePasswordRecoverForm(forms.Form):
