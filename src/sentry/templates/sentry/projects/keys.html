@@ -36,9 +36,6 @@
                             <a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a>
                         {% endif %}<br>
                         <code class="clippy">{{ key.dsn_private }}</code><br>
-                        {% if key.user_added %}
-                            <small>Added by {{ key.user_added.email }} ({{ key.date_added|timesince }})</small>
-                        {% endif %}
                     </td>
                     <td style="text-align:center; vertical-align:middle;">
                         {% if key.can_edit %}

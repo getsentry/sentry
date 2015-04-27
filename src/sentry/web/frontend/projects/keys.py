@@ -37,7 +37,7 @@ def manage_project_keys(request, organization, project):
 
     key_list = list(ProjectKey.objects.filter(
         project=project,
-    ).select_related('user_added').order_by('-id'))
+    ).order_by('-id'))
 
     for key in key_list:
         key.project = project
@@ -65,7 +65,6 @@ def new_project_key(request, organization, project):
 
     key = ProjectKey.objects.create(
         project=project,
-        user_added=request.user,
     )
 
     AuditLogEntry.objects.create(
