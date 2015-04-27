@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-from django.db.models import Q
-
+from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
-from sentry.models import OrganizationMember, Project
+from sentry.models import Project
 
 
 class ProjectPermission(ScopedPermission):
@@ -22,21 +21,13 @@ class ProjectPermission(ScopedPermission):
                 return request.auth.project_id == project.id
             return request.auth.organization_id == project.organization_id
 
-        if request.user.is_superuser:
-            return True
+        request.access = access.from_user(request.user, project.organization)
 
-        try:
-            om = OrganizationMember.objects.get(
-                Q(has_global_access=True) | Q(teams=project.team_id),
-                organization=project.organization_id,
-                user=request.user,
-            )
-        except OrganizationMember.DoesNotExist:
+        if not request.access.has_team(project.team):
             return False
 
         allowed_scopes = set(self.scope_map[request.method])
-        current_scopes = om.get_scopes()
-        return any(s in allowed_scopes for s in current_scopes)
+        return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
 class ProjectEventPermission(ProjectPermission):

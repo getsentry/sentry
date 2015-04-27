@@ -188,6 +188,25 @@ class OrganizationMember(Model):
         return {
             'email': self.email,
             'user': self.user_id,
-            'teams': [t.id for t in self.teams.all()],
+            'teams': [t.id for t in self.get_teams()],
             'has_global_access': self.has_global_access,
         }
+
+    def get_teams(self):
+        from sentry.models import Team
+
+        if self.has_global_access:
+            return Team.objects.filter(
+                organization=self.organization,
+            ).exclude(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember=self,
+                    is_active=False,
+                ).values('team')
+            )
+        return Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=self,
+                is_active=True,
+            ).values('team')
+        )
