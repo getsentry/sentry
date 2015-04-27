@@ -98,8 +98,9 @@ class AuthenticationForm(CaptchaForm):
             self.fields['username'].label = capfirst(self.username_field.verbose_name)
 
     def clean(self):
-        username = self.cleaned_data.get('username')
-        password = self.cleaned_data.get('password')
+        username = self.cleaned_data['username']
+        username = username.strip()
+        password = self.cleaned_data['password']
 
         if username and password:
             self.user_cache = authenticate(username=username,
@@ -139,7 +140,8 @@ class RegistrationForm(CaptchaModelForm):
         model = User
 
     def clean_username(self):
-        value = self.cleaned_data.get('username')
+        value = self.cleaned_data['username']
+        value = value.strip()
         if not value:
             return
         if User.objects.filter(username__iexact=value).exists():
@@ -159,7 +161,8 @@ class RecoverPasswordForm(CaptchaForm):
     user = forms.CharField(label=_('Username or email'))
 
     def clean_user(self):
-        value = self.cleaned_data.get('user')
+        value = self.cleaned_data['user']
+        value = value.strip()
         if value:
             users = find_users(value, with_valid_password=False)
             if not users:
