@@ -20,7 +20,7 @@ class OrganizationMemberSettingsView(OrganizationView):
             initial={
                 'type': member.type,
                 'has_global_access': member.has_global_access,
-                'teams': member.teams.all(),
+                'teams': member.get_teams(),
             }
         )
 

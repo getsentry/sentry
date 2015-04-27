@@ -279,7 +279,7 @@ class OrganizationMemberSettingsTest(TestCase):
         )
 
         OrganizationMemberTeam.objects.create(
-            member=member,
+            organizationmember=member,
             team=team_1,
             is_active=False,
         )
@@ -299,10 +299,10 @@ class OrganizationMemberSettingsTest(TestCase):
         member = OrganizationMember.objects.get(id=member.id)
 
         assert member.has_global_access is True
-        assert member.type == OrganizationMemberType.ADMIN
+        assert member.type == OrganizationMemberType.MEMBER
 
         om_teams = OrganizationMemberTeam.objects.filter(
-            member=member,
+            organizationmember=member,
         )
 
         assert len(om_teams) == 1
