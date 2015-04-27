@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
+    OrganizationMemberTeam, OrganizationMemberType
 )
 from sentry.testutils import TestCase, PermissionTestCase
 
@@ -264,3 +264,47 @@ class OrganizationMemberSettingsTest(TestCase):
 
         assert resp.context['organization'] == organization
         assert resp.context['member'] == owner_om
+
+    def test_global_access_with_inactive_teams(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+        team_1 = self.create_team(name='foo', organization=organization)
+        team_2 = self.create_team(name='bar', organization=organization)
+
+        user = self.create_user('bar@example.com')
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            user=user,
+            type=OrganizationMemberType.MEMBER,
+            has_global_access=True,
+        )
+
+        OrganizationMemberTeam.objects.create(
+            member=member,
+            team=team_1,
+            is_active=False,
+        )
+
+        path = reverse('sentry-organization-member-settings',
+                       args=[organization.slug, member.id])
+
+        self.login_as(self.user)
+
+        resp = self.client.post(path, {
+            'has_global_access': True,
+            'type': OrganizationMemberType.MEMBER,
+        })
+
+        assert resp.status_code == 302
+
+        member = OrganizationMember.objects.get(id=member.id)
+
+        assert member.has_global_access is True
+        assert member.type == OrganizationMemberType.ADMIN
+
+        om_teams = OrganizationMemberTeam.objects.filter(
+            member=member,
+        )
+
+        assert len(om_teams) == 1
+        assert om_teams[0].is_active is False
+        assert om_teams[0].team == team_1
