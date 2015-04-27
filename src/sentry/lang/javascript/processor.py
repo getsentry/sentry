@@ -549,7 +549,7 @@ class SourceProcessor(object):
             cache.add(filename, result.body.splitlines())
             cache.alias(result.url, filename)
 
-            sourcemap_url = discover_sourcemap(result)
+            sourcemap_url = self.discover_sourcemap(result)
             if not sourcemap_url:
                 continue
 
@@ -586,3 +586,7 @@ class SourceProcessor(object):
                         done_file_list.add(next_filename)
                     else:
                         pending_file_list.add(next_filename)
+
+    def discover_sourcemap(self, result):
+        global discover_sourcemap
+        return discover_sourcemap(result)

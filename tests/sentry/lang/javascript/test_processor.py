@@ -8,8 +8,8 @@ import responses
 from requests.exceptions import RequestException
 
 from sentry.lang.javascript.processor import (
-    BadSource, discover_sourcemap, fetch_sourcemap, fetch_url, generate_module,
-    trim_line, UrlResult
+    BadSource, fetch_sourcemap, fetch_url, generate_module,
+    SourceProcessor, trim_line, UrlResult
 )
 from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
 from sentry.testutils import TestCase
@@ -75,29 +75,30 @@ class DiscoverSourcemapTest(TestCase):
     # discover_sourcemap(result)
     def test_simple(self):
         result = UrlResult('http://example.com', {}, '')
-        assert discover_sourcemap(result) is None
+        processor = SourceProcessor()
+        assert processor.discover_sourcemap(result) is None
 
         result = UrlResult('http://example.com', {
             'x-sourcemap': 'http://example.com/source.map.js'
         }, '')
-        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+        assert processor.discover_sourcemap(result) == 'http://example.com/source.map.js'
 
         result = UrlResult('http://example.com', {
             'sourcemap': 'http://example.com/source.map.js'
         }, '')
-        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+        assert processor.discover_sourcemap(result) == 'http://example.com/source.map.js'
 
         result = UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)')
-        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+        assert processor.discover_sourcemap(result) == 'http://example.com/source.map.js'
 
         result = UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)')
-        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+        assert processor.discover_sourcemap(result) == 'http://example.com/source.map.js'
 
         result = UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js')
-        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+        assert processor.discover_sourcemap(result) == 'http://example.com/source.map.js'
 
         result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js')
-        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+        assert processor.discover_sourcemap(result) == 'http://example.com/source.map.js'
 
 
 class GenerateModuleTest(TestCase):
@@ -129,6 +130,7 @@ class GenerateModuleTest(TestCase):
 
 class FetchBase64SourcemapTest(TestCase):
     def test_simple(self):
+        processor = SourceProcessor()
         index = fetch_sourcemap(base64_sourcemap)
         states = [SourceMap(1, 0, '/test.js', 0, 0, None)]
         sources = set(['/test.js'])
