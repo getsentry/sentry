@@ -46,9 +46,6 @@ class ProjectKey(Model):
         (ProjectKeyStatus.ACTIVE, _('Active')),
         (ProjectKeyStatus.INACTIVE, _('Inactive')),
     ), db_index=True)
-
-    # For audits
-    user_added = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager(cache_fields=(
