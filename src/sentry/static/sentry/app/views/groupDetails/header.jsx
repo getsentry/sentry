@@ -96,9 +96,6 @@ var GroupHeader = React.createClass({
           <ListLink to="groupEvents" params={groupRouteParams}>
             Similar Events
           </ListLink>
-          <ListLink to="groupEvents" params={groupRouteParams}>
-            Latest Event
-          </ListLink>
         </ul>
       </div>
     );
