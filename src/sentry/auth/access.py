@@ -2,7 +2,10 @@ from __future__ import absolute_import
 
 __all__ = ['from_user', 'from_member', 'DEFAULT', 'SCOPES']
 
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
+from sentry.models import (
+    AuthIdentity, AuthProvider, OrganizationMember, OrganizationMemberTeam,
+    Team
+)
 
 SCOPES = set([
     'org:read',
@@ -85,9 +88,21 @@ def from_member(member):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
     if member.has_global_access:
-        teams = member.organization.team_set.all()
+        teams = Team.objects.filter(
+            organization=member.organization,
+        ).exclude(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=member,
+                is_active=False,
+            ).values('team')
+        )
     else:
-        teams = member.teams.all()
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=member,
+                is_active=True,
+            ).values('team')
+        )
 
     try:
         auth_provider = AuthProvider.objects.get(
