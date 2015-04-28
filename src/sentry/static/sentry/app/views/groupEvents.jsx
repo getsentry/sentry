@@ -6,6 +6,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var GroupState = require("../mixins/groupState");
+var Gravatar = require("../components/gravatar");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var Pagination = require("../components/pagination");
@@ -90,6 +91,10 @@ var GroupEvents = React.createClass({
             <small className="tagList">{event.tags.map((tag, tagIdx) => {
               return <span key={tagIdx}>{tag[0]} = {tag[1]} </span>;
             })}</small>
+          </td>
+          <td className="event-user table-user-info">
+            <Gravatar email={event.user.email} size={84} className="avatar" />
+            <p>{event.user.email}</p>
           </td>
           <td className="align-right">
             <TimeSince date={event.dateCreated} />
