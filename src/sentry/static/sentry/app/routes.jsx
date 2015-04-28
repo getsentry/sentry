@@ -11,6 +11,7 @@ var GroupEvents = require("./views/groupEvents");
 var GroupTags = require("./views/groupTags");
 var GroupTagValues = require("./views/groupTagValues");
 var GroupOverview = require("./views/groupOverview");
+var GroupEventDetails = require("./views/groupEventDetails");
 var OrganizationDetails = require("./views/organizationDetails");
 var OrganizationTeams = require("./views/organizationTeams");
 var ProjectDetails = require("./views/projectDetails");
@@ -31,7 +32,7 @@ var routes = (
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>
           <DefaultRoute name="groupOverview" handler={GroupOverview} />
-          <Route name="groupEventDetails" path="events/:eventId/" handler={GroupOverview} />
+          <Route name="groupEventDetails" path="events/:eventId/" handler={GroupEventDetails} />
           <Route name="groupTags" path="tags/" handler={GroupTags} />
           <Route name="groupTagValues" path="tags/:tagKey/" handler={GroupTagValues} />
           <Route name="groupEvents" path="events/" handler={GroupEvents} />
