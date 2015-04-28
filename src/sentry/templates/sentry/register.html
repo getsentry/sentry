@@ -5,29 +5,25 @@
 
 {% block title %}{% trans "Register" %} | {{ block.super }}{% endblock %}
 
+{% block wrapperclass %}{{ block.super }} auth{% endblock %}
+
 {% block content %}
-    <section class="body">
+    {{ form|as_crispy_errors }}
+
+    <form class="form-stacked" action="." method="post">
+        <h3>{% trans "Create a new account" %}</h3>
+
+        {% csrf_token %}
         {{ form|as_crispy_errors }}
+        {% for field in form %}
+            {{ field|as_crispy_field }}
+        {% endfor %}
 
-        <div class="row">
-            <div class="col-xs-6">
-                <form class="form-stacked" action="." method="post">
-                    <h2>{% trans "Create a new account" %}</h2>
-
-                    {% csrf_token %}
-                    {{ form|as_crispy_errors }}
-                    {% for field in form %}
-                        {{ field|as_crispy_field }}
-                    {% endfor %}
-
-                    <fieldset class="form-actions">
-                        <div class="pull-right" style="margin-top: 6px;">
-                            <a href="{% url 'sentry-login' %}">{% trans "Login as an existing user" %}</a>
-                        </div>
-                        <button type="submit" class="btn btn-primary">{% trans "Create account" %}</button>
-                    </fieldset>
-                </form>
+        <fieldset class="form-actions">
+            <div class="pull-right" style="margin-top: 6px;">
+                <a href="{% url 'sentry-login' %}">{% trans "Sign in as an existing user" %}</a>
             </div>
-        </div>
-    </section>
+            <button type="submit" class="btn btn-primary">{% trans "Create account" %}</button>
+        </fieldset>
+    </form>
 {% endblock %}
