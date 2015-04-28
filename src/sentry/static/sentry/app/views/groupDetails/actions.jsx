@@ -115,13 +115,20 @@ var GroupActions = React.createClass({
           <DropdownLink
               className="btn btn-default btn-sm"
               title="More">
-            <MenuItem onSelect={this.onToggleMute} >
+            <MenuItem onSelect={this.onToggleMute} key="mute">
               {group.status !== 'muted' ?
                 'Mute this event'
               :
                 'Unmute this event'
               }
             </MenuItem>
+            {group.pluginActions.map((action, actionIdx) => {
+              return (
+                <MenuItem key={actionIdx} href={action[1]}>
+                  {action[0]}
+                </MenuItem>
+              );
+            })}
           </DropdownLink>
         </div>
         <div className="severity">
