@@ -347,18 +347,18 @@
 */
 
 .event-toolbar {
-  margin: 0 -20px 20px;
+  margin: -20px -20px 20px;
   height: 64px;
-  border-top: 1px solid @trim;
-  border-bottom: 1px solid @trim;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid lighten(@trim, 3);
   padding: 0 20px;
-  background: #fff;
 
   .nav-tabs {
     margin: 0;
     > li a {
       padding-top: 21px;
       padding-bottom: 18px;
+      border-color: @trim;
     }
   }
 
