@@ -5,71 +5,61 @@
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
+{% block wrapperclass %} {{block.super }} auth{% endblock %}
+
 {% block footer %}{% endblock %}
 
-{% block account_nav %}
-    {% if CAN_REGISTER %}
-        <li><a href="{% url 'sentry-register' %}">{% trans "New Account" %}</a></li>
-    {% endif %}
+{% block header_action %}
+{% if CAN_REGISTER %}
+<a href="{% url 'sentry-register' %}">{% trans "Create Account" %}</a>
+{% endif %}
 {% endblock%}
 
-{% block main %}
-    <div class="row">
-        <div class="col-sm-6" style=" margin-bottom: 30px">
+{% block content %}
+  <div class="sso-toggle-container pull-right">
+    <a href="#" class="sso-link sso-toggle">Looking for single sign-on?</a>
+    <a href="#" class="go-back sso-toggle"><span class="icon-arrow-left"></span> Back to login</a>
+  </div>
 
-        <div class="sso-toggle-container">
-            <a href="#" class="sso-link sso-toggle">Looking for single sign-on?</a>
-            <a href="#" class="go-back sso-toggle"><span class="icon-arrow-left"></span> Back to login</a>
+  <div class="tab-content">
+    <div class="tab-pane active" id="standard">
+      <form class="form-stacked" action="" method="post">
+        {{ form|as_crispy_errors }}
+
+        <h3>{% trans "Sign in" %}</h3>
+        {% csrf_token %}
+
+        {% for field in form %}
+        {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Sign in" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
+        </fieldset>
+      </form>
+    </div>
+    <div class="tab-pane" id="sso">
+      <h3>Single sign-on</h3>
+      <form class="form-stacked" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="op" value="sso" />
+        <div class="control-group">
+          <div class="controls">
+            <span style="padding: 7px 0; font-size: 15px">app.getsentry.com/</span> <input style="width: 190px; margin: 0 0 4px; padding: 6px;" type="text" name="organization" placeholder="acme">
+            <p class="help-block">Enter your organization's ID and we'll get things started.</p>
+          </div>
         </div>
-
-        <div class="tab-content">
-            <div class="tab-pane active" id="standard">
-                <form class="form-stacked" action="" method="post">
-                    {{ form|as_crispy_errors }}
-
-                    <fieldset>
-                        <legend style="border: 0">{% trans "Login to Sentry" %}</legend>
-                    </fieldset>
-                    {% csrf_token %}
-
-                    {% for field in form %}
-                        {{ field|as_crispy_field }}
-                    {% endfor %}
-
-                    <fieldset class="form-actions">
-                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 6px" href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
-                    </fieldset>
-                </form>
-            </div>
-            <div class="tab-pane" id="sso">
-                <fieldset>
-                    <legend style="border: 0; margin: 0 0 10px;">Single sign-on</legend>
-                </fieldset>
-                <form class="form-stacked" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="op" value="sso" />
-                    <div class="control-group">
-                        <div class="controls">
-                            <span style="padding: 7px 0; font-size: 15px">app.getsentry.com/</span> <input style="width: 190px; margin: 0 0 4px; padding: 6px;" type="text" name="organization" placeholder="acme">
-                            <p class="help-block">Enter your organization's ID and we'll get things started.</p>
-                        </div>
-                    </div>
-                    <div class="form-actions" style="margin-top: 25px">
-                        <button class="btn btn-primary">Log in</button>
-                    </div>
-                </form>
-            </div>
+        <div class="form-actions" style="margin-top: 25px">
+          <button class="btn btn-primary">Sign in</button>
         </div>
-    </section>
-    <style type="text/css">
-    input[type="text"], input[type="password"] {
-        width: 92%;
-    }
-    </style>
-    <script>
+      </form>
+    </div>
+  </div>
+
+  <script>
     $('.sso-toggle').click(function (e) {
       e.preventDefault();
       $(".body").toggleClass('show-sso');
     })
-    </script>
+  </script>
 {% endblock %}
