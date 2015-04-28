@@ -93,7 +93,7 @@ var GroupHeader = React.createClass({
           <ListLink to="groupEvents" params={groupRouteParams}>
             Events
           </ListLink>
-          <li><a>Activity <span className="badge">3</span></a></li>
+          <li><a>Activity <span className="badge bounce">3</span></a></li>
           <ListLink to="groupTags" params={groupRouteParams}>
             Tags
           </ListLink>
