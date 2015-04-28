@@ -3,6 +3,13 @@
 * ============================================================================
 */
 
+.auth {
+  h3 {
+    font-size: 22px;
+    margin: 10px 0 30px;
+  }
+}
+
 section.org-login {
   text-align: center;
   .org-avatar {
@@ -39,5 +46,51 @@ section.org-login {
   &.okta {
     background: url(../images/auth-providers/okta.png);
     background-size: cover;
+  }
+}
+
+// Toggle SSO
+
+.sso-toggle-container {
+  margin-top: 2px;
+  font-size: 15px;
+
+  .go-back {
+    display: none;
+    position: relative;
+  }
+
+  a {
+    color: lighten(@gray, 30);
+
+    &:hover {
+      color: lighten(@gray, 10);
+    }
+  }
+
+  .icon-arrow-left {
+    position: absolute;
+    background: 0;
+    font-size: 18px;
+    left: -20px;
+  }
+}
+
+.body.show-sso {
+
+  .sso-link {
+    display: none;
+  }
+
+  .go-back {
+    display: block;
+  }
+
+  #standard {
+    display: none;
+  }
+
+  #sso {
+    display: block;
   }
 }
