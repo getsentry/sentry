@@ -4,14 +4,16 @@
 {% if is_dict %}
     <table class="table table-striped vars">
         <colgroup>
-            <col style="width:100px;">
+            {% if is_list %}
+                <col style="width:50px;">
+            {% else %}
+                <col style="width:100px;">
+            {% endif %}
         </colgroup>
         {% if is_list %}
             <thead>
                 <tr>
-                    <th>
-                        {% trans "Index" %}
-                    </th>
+                    <th>{% trans "Index" %}</th>
                     <th>{% trans "Value" %}</th>
                 </tr>
             </thead>
