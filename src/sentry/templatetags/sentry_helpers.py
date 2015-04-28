@@ -392,10 +392,12 @@ def github_button(user, repo):
 @register.inclusion_tag('sentry/partial/data_values.html')
 def render_values(value, threshold=5, collapse_to=3):
     if isinstance(value, (list, tuple)):
-        value = dict(enumerate(value))
+        value = list(enumerate(value))
         is_list, is_dict = bool(value), True
     else:
         is_list, is_dict = False, isinstance(value, dict)
+        if is_dict:
+            value = sorted(value.iteritems())
 
     context = {
         'is_dict': is_dict,
@@ -405,7 +407,6 @@ def render_values(value, threshold=5, collapse_to=3):
     }
 
     if is_dict:
-        value = sorted(value.iteritems())
         value_len = len(value)
         over_threshold = value_len > threshold
         if over_threshold:
