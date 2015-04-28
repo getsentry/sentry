@@ -82,17 +82,6 @@ class User(Interface):
             'user_data': self.data,
         }
 
-    def to_html(self, event, is_public=False, **kwargs):
-        if is_public:
-            return ''
-
-        context = self.get_context()
-        context.update({
-            'is_public': is_public,
-            'event': event,
-        })
-        return render_to_string('sentry/partial/interfaces/user.html', context)
-
     def to_email_html(self, event, **kwargs):
         context = self.get_context()
         return render_to_string('sentry/partial/interfaces/user_email.html', context)

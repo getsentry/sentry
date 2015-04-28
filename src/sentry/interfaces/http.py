@@ -19,7 +19,7 @@ from urlparse import parse_qsl, urlsplit, urlunsplit
 
 from sentry.constants import HTTP_METHODS
 from sentry.interfaces.base import Interface
-from sentry.utils.safe import trim, trim_dict, safe_execute
+from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 
 
@@ -176,28 +176,6 @@ class Http(Interface):
             'method': self.method,
             'query_string': self.query_string,
         })
-
-    def to_html(self, event, is_public=False, **kwargs):
-        context = {
-            'is_public': is_public,
-            'event': event,
-            'url': self.full_url,
-            'short_url': self.url,
-            'method': self.method,
-            'query_string': self.query_string,
-            'fragment': self.fragment,
-            'headers': self.headers,
-            'curl': safe_execute(self.to_curl),
-        }
-        if not is_public:
-            # It's kind of silly we store this twice
-            context.update({
-                'cookies': self.cookies,
-                'env': self.env,
-                'data': self.data,
-            })
-
-        return render_to_string('sentry/partial/interfaces/http.html', context)
 
     def to_curl(self):
         method = self.method.upper() if self.method else 'GET'

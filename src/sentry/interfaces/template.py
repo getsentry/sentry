@@ -12,7 +12,6 @@ __all__ = ('Template',)
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
-from sentry.web.helpers import render_to_string
 
 
 class Template(Interface):
@@ -82,26 +81,6 @@ class Template(Interface):
         ]
 
         return '\n'.join(result)
-
-    def to_html(self, event, is_public=False, **kwargs):
-        context = get_context(
-            lineno=self.lineno,
-            context_line=self.context_line,
-            pre_context=self.pre_context,
-            post_context=self.post_context,
-            filename=self.filename,
-        )
-
-        return render_to_string('sentry/partial/interfaces/template.html', {
-            'event': event,
-            'abs_path': self.abs_path,
-            'filename': self.filename,
-            'lineno': int(self.lineno),
-            'start_lineno': context[0][0],
-            'context': context,
-            'template': self.get_traceback(event, context),
-            'is_public': is_public,
-        })
 
     def get_traceback(self, event, context):
         result = [
