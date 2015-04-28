@@ -374,6 +374,8 @@ urlpatterns += patterns('',
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', ReactPageView.as_view(),
         name='sentry-group'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/activity/$', ReactPageView.as_view(),
+        name='sentry-group-activity'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', ReactPageView.as_view(),
         name='sentry-group-events'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', ReactPageView.as_view(),

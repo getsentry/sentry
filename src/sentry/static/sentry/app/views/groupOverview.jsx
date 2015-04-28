@@ -5,7 +5,6 @@ var Router = require("react-router");
 
 var api = require("../api");
 var ApiMixin = require("../mixins/apiMixin");
-var GroupActivity = require("./groupDetails/activity");
 var GroupChart = require("./groupDetails/chart");
 var GroupEvent = require("./groupDetails/event");
 var GroupEventToolbar = require("./groupDetails/eventToolbar");

@@ -6,6 +6,7 @@ var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
 var App = require("./views/app");
+var GroupActivity = require("./views/groupActivity");
 var GroupDetails = require("./views/groupDetails");
 var GroupEvents = require("./views/groupEvents");
 var GroupTags = require("./views/groupTags");
@@ -32,6 +33,7 @@ var routes = (
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>
           <DefaultRoute name="groupOverview" handler={GroupOverview} />
+          <Route name="groupActivity" path="activity/" handler={GroupActivity} />
           <Route name="groupEventDetails" path="events/:eventId/" handler={GroupEventDetails} />
           <Route name="groupTags" path="tags/" handler={GroupTags} />
           <Route name="groupTagValues" path="tags/:tagKey/" handler={GroupTagValues} />
