@@ -11,9 +11,11 @@ from sentry.api.serializers import serialize
 from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagValue
+    Activity, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen,
+    GroupStatus, GroupTagValue
 )
+from sentry.plugins import plugins
+from sentry.utils.safe import safe_execute
 
 
 class GroupSerializer(serializers.Serializer):
@@ -63,6 +65,24 @@ class GroupDetailsEndpoint(GroupEndpoint):
         ], key=lambda ls: ls[1], reverse=True)
         return [s[0] for s in seen_by]
 
+    def _get_actions(self, request, group):
+        project = group.project
+
+        action_list = []
+        for plugin in plugins.for_project(project, version=1):
+            results = safe_execute(plugin.actions, request, group, action_list)
+
+            if not results:
+                continue
+
+            action_list = results
+
+        for plugin in plugins.for_project(project, version=2):
+            for action in (safe_execute(plugin.get_actions, request, group) or ()):
+                action_list.append(action)
+
+        return action_list
+
     def get(self, request, group):
         """
         Retrieve an aggregate
@@ -72,6 +92,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             {method} {path}
 
         """
+        GroupMeta.objects.populate_cache([group])
+
         data = serialize(group, request.user)
 
         # TODO: these probably should be another endpoint
@@ -93,10 +115,13 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 'dateCreated': first_release.first_seen,
             }
 
+        action_list = self._get_actions(request, group)
+
         data.update({
             'firstRelease': first_release,
             'activity': serialize(activity, request.user),
             'seenBy': serialize(seen_by, request.user),
+            'pluginActions': action_list,
         })
 
         return Response(data)
