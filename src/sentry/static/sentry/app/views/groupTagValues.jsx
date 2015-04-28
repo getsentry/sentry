@@ -105,21 +105,21 @@ var GroupTagValues = React.createClass({
     });
 
     return (
-      <div className="box">
-        <div className="box-content with-padding">
-          <div className="page-header">
+      <div>
+        <div className="box">
+          <div className="box-header">
             <span className="pull-right">
               <a href="">More Details</a>
             </span>
-            <h5>{tagKey.name} <small><Count value={tagKey.totalValues} /></small></h5>
+            <h3>{tagKey.name} (<Count value={tagKey.totalValues} />)</h3>
           </div>
-
-          <ul className="list-unstyled">
-            {children}
-          </ul>
-
-          <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+          <div className="box-content with-padding">
+            <ul className="list-unstyled">
+              {children}
+            </ul>
+          </div>
         </div>
+        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
   }
