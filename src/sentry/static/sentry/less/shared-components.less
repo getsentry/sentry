@@ -1659,6 +1659,11 @@ legend {
       position: relative;
       top: -1px;
       margin-left: 2px;
+      .transition(.1s background linear);
+
+      &.new {
+        background: @red;
+      }
     }
   }
 }
