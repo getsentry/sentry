@@ -5,11 +5,10 @@
 
 {% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
 
+{% block wrapperclass %}narrow auth hide-sidebar{% endblock %}
+
 {% block main %}
-    <section class="body">
-        <div class="page-header">
-            <h2>{% trans "Recover Account" %}</h2>
-        </div>
-        <p>{% blocktrans %}We have sent an email to the address registered with this account containing further instructions to reset your password.{% endblocktrans %}</p>
-    </section>
+	<h2>{% trans "Recover Account" %}</h2>
+
+	<p>{% blocktrans %}We have sent an email to the address registered with this account containing further instructions to reset your password.{% endblocktrans %}</p>
 {% endblock %}

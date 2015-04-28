@@ -5,23 +5,22 @@
 
 {% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
-    <section class="body">
-        <div class="page-header">
-            <h2>{% trans "Recover Account" %}</h2>
-        </div>
-        <p>{% trans "You have confirmed your email, and may now update your password below." %}</p>
-        <form method="POST" action=".">
-            {% csrf_token %}
-            {{ form|as_crispy_errors }}
+{% block wrapperclass %}narrow auth hide-sidebar{% endblock %}
 
-            {% for field in form %}
-            	{{ field|as_crispy_field }}
-            {% endfor %}
+{% block content %}
+    <h2>{% trans "Recover Account" %}</h2>
 
-            <fieldset class="form-actions">
-                <button type="submit" class="btn btn-primary">{% trans "Change Password" %}</button>
-            </fieldset>
-        </form>
-    </section>
+    <p>{% trans "You have confirmed your email, and may now update your password below." %}</p>
+    <form method="POST" action=".">
+        {% csrf_token %}
+        {{ form|as_crispy_errors }}
+
+        {% for field in form %}
+        	{{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Change Password" %}</button>
+        </fieldset>
+    </form>
 {% endblock %}
