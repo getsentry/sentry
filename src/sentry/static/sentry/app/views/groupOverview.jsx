@@ -121,45 +121,49 @@ var GroupOverview = React.createClass({
     return (
       <div>
         <div className="row group-overview">
-          <div className="col-md-8 bordered-column">
-            <GroupActivity group={group} />
-          </div>
-          <div className="col-md-4 bordered-column">
-            <GroupChart statsPeriod={this.props.statsPeriod} group={group} />
-            <div className="row group-stats">
-              <div className="col-md-6">
-                <h6>First seen</h6>
-                <h3><TimeSince date={group.firstSeen} /></h3>
-                <h6>Last seen</h6>
-                <h3><TimeSince date={group.lastSeen} /></h3>
+          <div className="col-md-9">
+            <div className="box">
+              <div className="box-header">
+                <h3>Exception</h3>
               </div>
-              <div className="col-md-6">
-                <h6>In release</h6>
-                <h3 className="truncate">{firstRelease}</h3>
-                <h6>Status</h6>
-                <h3>{group.status}</h3>
+              <div className="box-content with-padding">
+                <p>...</p>
+              </div>
+            </div>
+            <div className="box">
+              <div className="box-header">
+                <h3>Request</h3>
+              </div>
+              <div className="box-content with-padding">
+                <p>...</p>
+              </div>
+            </div>
+            <div className="box">
+              <div className="box-header">
+                <h3>Additional Data</h3>
+              </div>
+              <div className="box-content with-padding">
+                <p>...</p>
               </div>
             </div>
           </div>
-        </div>
+          <div className="col-md-3">
+            <GroupChart statsPeriod={this.props.statsPeriod} group={group} />
+            <div className="group-stats">
+              <h6>First seen</h6>
+              <h3><TimeSince date={group.firstSeen} /></h3>
 
-        <MutedBox status={group.status} />
-        {evt &&
-          <GroupEventToolbar
-              group={group}
-              event={evt}
-              orgId={params.orgId}
-              projectId={params.projectId} />
-        }
-        {this.state.loading ?
-          <LoadingIndicator />
-        : (this.state.error ?
-          <LoadingError onRetry={this.fetchData} />
-        :
-          <div>
-            <GroupEvent group={group} event={evt} />
+              <h6>Last seen</h6>
+              <h3><TimeSince date={group.lastSeen} /></h3>
+
+              <h6>In release</h6>
+              <h3 className="truncate">{firstRelease}</h3>
+
+              <h6>Status</h6>
+              <h3>{group.status}</h3>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }
