@@ -105,9 +105,6 @@ class Interface(object):
     def get_score(self):
         return self.score
 
-    def to_html(self, event, is_public=False, **kwargs):
-        return ''
-
     def to_string(self, event, is_public=False, **kwargs):
         return ''
 

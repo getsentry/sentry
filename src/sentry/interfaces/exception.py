@@ -15,7 +15,6 @@ from django.conf import settings
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace, is_newest_frame_first
 from sentry.utils.safe import trim
-from sentry.web.helpers import render_to_string
 
 
 class SingleException(Interface):
@@ -317,18 +316,6 @@ class Exception(Interface):
             'first_exc_omitted': first_exc_omitted,
             'last_exc_omitted': last_exc_omitted,
         }
-
-    def to_html(self, event, **kwargs):
-        if not self.values:
-            return ''
-
-        if len(self.values) == 1 and not self.values[0].stacktrace:
-            exception = self.values[0]
-            context = exception.get_context(event=event, **kwargs)
-            return render_to_string('sentry/partial/interfaces/exception.html', context)
-
-        context = self.get_context(event=event, **kwargs)
-        return render_to_string('sentry/partial/interfaces/chained_exception.html', context)
 
     def to_string(self, event, is_public=False, **kwargs):
         if not self.values:

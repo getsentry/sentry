@@ -272,40 +272,6 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, 'foo\n\nbar')
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
-    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_traceback')
-    @mock.patch('sentry.interfaces.stacktrace.render_to_string')
-    @mock.patch('sentry.interfaces.stacktrace.Frame.get_context')
-    def test_to_html_render_call(self, get_frame_context, render_to_string, get_traceback):
-        event = mock.Mock(spec=Event())
-        get_traceback.return_value = 'bar'
-        interface = Stacktrace.to_python(dict(frames=[{'lineno': 1, 'filename': 'foo.py'}]))
-        result = interface.to_html(event)
-        get_traceback.assert_called_once_with(event, newest_first=False)
-        get_frame_context.assert_called_once_with(event=event, is_public=False)
-        render_to_string.assert_called_once_with('sentry/partial/interfaces/stacktrace.html', {
-            'event': event,
-            'frames': [get_frame_context.return_value],
-            'stacktrace': 'bar',
-            'stack_id': 'stacktrace_1',
-            'system_frames': 0,
-            'newest_first': False,
-            'is_public': False,
-            'first_frame_omitted': None,
-            'last_frame_omitted': None,
-        })
-        self.assertEquals(result, render_to_string.return_value)
-
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
-    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_traceback')
-    def test_to_html_response(self, get_traceback):
-        event = mock.Mock(spec=Event())
-        event.message = 'foo'
-        get_traceback.return_value = 'bar'
-        interface = Stacktrace.to_python(dict(frames=[{'lineno': 1, 'filename': 'foo.py'}]))
-        result = interface.to_html(event)
-        get_traceback.assert_called_once_with(event, newest_first=False)
-
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo'}, {'filename': 'bar'}]))

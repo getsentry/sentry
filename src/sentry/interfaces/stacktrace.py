@@ -548,13 +548,6 @@ class Stacktrace(Interface):
             context['stacktrace'] = self.get_traceback(event, newest_first=newest_first)
         return context
 
-    def to_html(self, event, **kwargs):
-        context = self.get_context(
-            event=event,
-            **kwargs
-        )
-        return render_to_string('sentry/partial/interfaces/stacktrace.html', context)
-
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
 

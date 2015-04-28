@@ -35,12 +35,10 @@ from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Organization
-from sentry.web.helpers import group_is_public
 from sentry.utils import json, to_unicode
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.javascript import to_json
-from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
@@ -254,37 +252,6 @@ def querystring(context, request, withoutvar, asvar=None):
     return result
 
 
-@register.inclusion_tag('sentry/partial/_form.html')
-def render_form(form):
-    return {'form': form}
-
-
-@register.filter
-def as_bookmarks(group_list, user):
-    group_list = list(group_list)
-    if user.is_authenticated() and group_list:
-        project = group_list[0].project
-        bookmarks = set(project.bookmark_set.filter(
-            user=user,
-            group__in=group_list,
-        ).values_list('group_id', flat=True))
-    else:
-        bookmarks = set()
-
-    for g in group_list:
-        yield g, g.pk in bookmarks
-
-
-@register.filter
-def is_bookmarked(group, user):
-    if user.is_authenticated():
-        return group.bookmark_set.filter(
-            user=user,
-            group=group,
-        ).exists()
-    return False
-
-
 @register.filter
 def date(dt, arg=None):
     from django.template.defaultfilters import date
@@ -378,64 +345,12 @@ def split(value, delim=''):
     return value.split(delim)
 
 
-@register.filter
-def get_rendered_interfaces(event, request):
-    interface_list = []
-    is_public = group_is_public(event.group, request.user)
-    for interface in event.interfaces.itervalues():
-        html = safe_execute(interface.to_html, event, is_public=is_public)
-        if not html:
-            continue
-        interface_list.append((interface, mark_safe(html)))
-    return sorted(interface_list, key=lambda x: x[0].get_display_score(), reverse=True)
-
-
 @register.inclusion_tag('sentry/partial/github_button.html')
 def github_button(user, repo):
     return {
         'user': user,
         'repo': repo,
     }
-
-
-@register.inclusion_tag('sentry/partial/data_values.html')
-def render_values(value, threshold=5, collapse_to=3):
-    if isinstance(value, (list, tuple)):
-        value = dict(enumerate(value))
-        is_list, is_dict = bool(value), True
-    else:
-        is_list, is_dict = False, isinstance(value, dict)
-
-    context = {
-        'is_dict': is_dict,
-        'is_list': is_list,
-        'threshold': threshold,
-        'collapse_to': collapse_to,
-    }
-
-    if is_dict:
-        value = sorted(value.iteritems())
-        value_len = len(value)
-        over_threshold = value_len > threshold
-        if over_threshold:
-            context.update({
-                'over_threshold': over_threshold,
-                'hidden_values': value_len - collapse_to,
-                'value_before_expand': value[:collapse_to],
-                'value_after_expand': value[collapse_to:],
-            })
-        else:
-            context.update({
-                'over_threshold': over_threshold,
-                'hidden_values': 0,
-                'value_before_expand': value,
-                'value_after_expand': [],
-            })
-
-    else:
-        context['value'] = value
-
-    return context
 
 
 @tag(register, [Constant('from'), Variable('project'),
@@ -446,17 +361,6 @@ def recent_alerts(context, project, asvar):
     context[asvar] = list(Alert.get_recent_for_project(project.id))
 
     return ''
-
-
-@register.filter
-def reorder_teams(team_list, team=None):
-    pending = []
-    for t, p_list in team_list:
-        if t == team:
-            pending.insert(0, (t, p_list))
-        else:
-            pending.append((t, p_list))
-    return pending
 
 
 @register.filter
