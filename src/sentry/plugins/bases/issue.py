@@ -35,10 +35,12 @@ class IssuePlugin(Plugin):
     auth_provider = None
 
     def _get_group_body(self, request, group, event, **kwargs):
-        interface = event.interfaces.get('exception')
-        if interface:
-            return safe_execute(interface.to_string, event)
-        return
+        result = []
+        for interface in event.interfaces.itervalues():
+            output = safe_execute(interface.to_string, event)
+            if output:
+                result.append(output)
+        return '\n\n'.join(result)
 
     def _get_group_description(self, request, group, event):
         output = [
