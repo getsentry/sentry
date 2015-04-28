@@ -90,11 +90,12 @@ var GroupHeader = React.createClass({
                     className={this.isEventDetailView() ? 'active': ''}>
             Overview
           </ListLink>
+          <ListLink to="groupEvents" params={groupRouteParams}>
+            Events
+          </ListLink>
+          <li><a>Activity</a></li>
           <ListLink to="groupTags" params={groupRouteParams}>
             Tags
-          </ListLink>
-          <ListLink to="groupEvents" params={groupRouteParams}>
-            Similar Events
           </ListLink>
         </ul>
       </div>
