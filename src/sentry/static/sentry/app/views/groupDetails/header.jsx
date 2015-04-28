@@ -23,11 +23,6 @@ var GroupHeader = React.createClass({
     statsPeriod: React.PropTypes.string.isRequired
   },
 
-  isEventDetailView() {
-    var currentRoutes = this.context.router.getCurrentRoutes();
-    return currentRoutes[currentRoutes.length - 1].name == 'groupEventDetails';
-  },
-
   render() {
     var group = this.props.group,
         userCount = 0;
@@ -86,8 +81,7 @@ var GroupHeader = React.createClass({
         <GroupSeenBy />
         <GroupActions />
         <ul className="nav nav-tabs">
-          <ListLink to="groupOverview" params={groupRouteParams}
-                    className={this.isEventDetailView() ? 'active': ''}>
+          <ListLink to="groupOverview" params={groupRouteParams}>
             Overview
           </ListLink>
           <ListLink to="groupEvents" params={groupRouteParams}>
