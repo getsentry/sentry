@@ -6,8 +6,7 @@ var Router = require("react-router");
 var api = require("../api");
 var ApiMixin = require("../mixins/apiMixin");
 var GroupChart = require("./groupDetails/chart");
-var GroupEvent = require("./groupDetails/event");
-var GroupEventToolbar = require("./groupDetails/eventToolbar");
+var GroupEventEntries = require("./groupDetails/eventEntries");
 var GroupState = require("../mixins/groupState");
 var MutedBox = require("../components/mutedBox");
 var LoadingError = require("../components/loadingError");
@@ -16,7 +15,6 @@ var PropTypes = require("../proptypes");
 var RouteMixin = require("../mixins/routeMixin");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
-
 
 var GroupOverview = React.createClass({
   contextTypes: {
@@ -121,30 +119,15 @@ var GroupOverview = React.createClass({
       <div>
         <div className="row group-overview">
           <div className="col-md-9">
-            <div className="box">
-              <div className="box-header">
-                <h3>Exception</h3>
-              </div>
-              <div className="box-content with-padding">
-                <p>...</p>
-              </div>
-            </div>
-            <div className="box">
-              <div className="box-header">
-                <h3>Request</h3>
-              </div>
-              <div className="box-content with-padding">
-                <p>...</p>
-              </div>
-            </div>
-            <div className="box">
-              <div className="box-header">
-                <h3>Additional Data</h3>
-              </div>
-              <div className="box-content with-padding">
-                <p>...</p>
-              </div>
-            </div>
+            {this.state.loading ?
+              <LoadingIndicator />
+            : (this.state.error ?
+              <LoadingError onRetry={this.fetchData} />
+            :
+              <GroupEventEntries
+                  group={group}
+                  event={evt} />
+            )}
           </div>
           <div className="col-md-3">
             <GroupChart statsPeriod={this.props.statsPeriod} group={group} />

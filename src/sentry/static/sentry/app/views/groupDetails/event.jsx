@@ -3,7 +3,7 @@
 var React = require("react");
 var Sticky = require("react-sticky");
 
-var GroupEventDataSection = require("./eventDataSection");
+var GroupEventEntries = require("./eventEntries");
 var GroupEventHeader = require("./eventHeader");
 var GroupEventTags = require("./eventTags");
 var GroupState = require("../../mixins/groupState");
@@ -33,44 +33,6 @@ var UserWidget = React.createClass({
   }
 });
 
-var GroupEventExtraData = React.createClass({
-  mixins: [GroupState],
-
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.event.id !== nextProps.event.id;
-  },
-
-  render() {
-    var children = [];
-    var context = this.props.event.context;
-    for (var key in context) {
-      children.push(<dt key={'dt-' + key}>{key}</dt>);
-      children.push((
-        <dd key={'dd-' + key}>
-          <pre>{JSON.stringify(context[key], null, 2)}</pre>
-        </dd>
-      ));
-    }
-
-    return (
-      <GroupEventDataSection
-          group={this.props.group}
-          event={this.props.event}
-          type="extra"
-          title="Additional Data">
-        <dl className="vars">
-          {children}
-        </dl>
-      </GroupEventDataSection>
-    );
-  }
-});
-
 var GroupEvent = React.createClass({
   mixins: [GroupState],
 
@@ -78,59 +40,19 @@ var GroupEvent = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
-  // TODO(dcramer): make this extensible
-  interfaces: {
-    exception: require("./interfaces/exception"),
-    request: require("./interfaces/request"),
-    stacktrace: require("./interfaces/stacktrace")
-  },
-
   render(){
     var group = this.getGroup();
     var evt = this.props.event;
 
-    var entries = evt.entries.map((entry, entryIdx) => {
-      try {
-        var Component = this.interfaces[entry.type];
-        if (!Component) {
-          throw new Error('Unregistered interface: ' + entry.type);
-
-        }
-        return <Component
-                  key={"entry-" + entryIdx}
-                  group={group}
-                  event={evt}
-                  type={entry.type}
-                  data={entry.data} />;
-      } catch (ex) {
-        // TODO(dcramer): this should log to Sentry
-        return (
-          <GroupEventDataSection
-              group={group}
-              event={evt}
-              type={entry.type}
-              title={entry.type}>
-            <p>There was an error rendering this data.</p>
-          </GroupEventDataSection>
-        );
-      }
-    });
-
     return (
       <div className="row event">
         <div className="col-md-9">
-          <GroupEventHeader
-              group={group}
-              event={evt} />
           <GroupEventTags
               group={group}
               event={evt} />
-          {entries}
-          {!utils.objectIsEmpty(evt.context) &&
-            <GroupEventExtraData
-                group={group}
-                event={evt} />
-          }
+          <GroupEventEntries
+              group={group}
+              event={evt} />
         </div>
         <div className="col-md-3">
           <Sticky stickyClass="sticky-sidebar" stickyStyle={{}}>
