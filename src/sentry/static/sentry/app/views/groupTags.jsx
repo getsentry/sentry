@@ -91,14 +91,13 @@ var GroupTags = React.createClass({
         return (
           <div className="col-md-6" key={tagIdx}>
             <div className="box">
+              <div className="box-header">
+                <span className="pull-right">
+                  <Link to="groupTagValues" params={routeParams}>More Details</Link>
+                </span>
+                <h5>{tag.name} (<Count value={tag.totalValues} />)</h5>
+              </div>
               <div className="box-content with-padding">
-                <div className="page-header">
-                  <span className="pull-right">
-                    <Link to="groupTagValues" params={routeParams}>More Details</Link>
-                  </span>
-                  <h5>{tag.name} <small><Count value={tag.totalValues} /></small></h5>
-                </div>
-
                 <ul className="list-unstyled">
                   {valueChildren}
                 </ul>
@@ -110,11 +109,13 @@ var GroupTags = React.createClass({
     }
 
     return (
-      <div className="row">
+      <div>
         <div className="alert alert-info alert-block">
           Counts represent values seen in the last ~7 days.
         </div>
-        {children}
+        <div className="row">
+          {children}
+        </div>
       </div>
     );
   }
