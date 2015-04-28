@@ -84,14 +84,14 @@ var GroupEvents = React.createClass({
       return (
         <tr key={eventIdx}>
           <td>
-            <Router.Link to="groupEventDetails"
+            <h5><Router.Link to="groupEventDetails"
                   params={linkParams}>{event.message}</Router.Link>
-            <br />
+            </h5>
             <small className="tagList">{event.tags.map((tag, tagIdx) => {
-              return <span key={tagIdx}>{tag[0]} = {tag[1]}</span>;
+              return <span key={tagIdx}>{tag[0]} = {tag[1]} </span>;
             })}</small>
           </td>
-          <td>
+          <td className="align-right">
             <TimeSince date={event.dateCreated} />
           </td>
         </tr>
@@ -100,7 +100,7 @@ var GroupEvents = React.createClass({
 
     return (
       <div>
-        <table className="table">
+        <table className="table event-list">
           {children}
         </table>
 
