@@ -124,7 +124,7 @@
             <div class="pull-right">
               {% block header_action %}
               {% if not request.user.is_authenticated %}
-              <a href="{% url 'sentry-login' %}">{% trans "Login" %}</a>
+              <a href="{% url 'sentry-login' %}">{% trans "Sign in" %}</a>
               {% endif %}
               {% endblock %}
             </div>
