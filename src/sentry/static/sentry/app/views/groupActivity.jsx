@@ -1,14 +1,18 @@
 /*** @jsx React.DOM */
-var React = require("react");
 
-var api = require("../../api");
-var Gravatar = require("../../components/gravatar");
-var GroupStore = require("../../stores/groupStore");
-var MemberListStore = require("../../stores/memberListStore");
-var PropTypes = require("../../proptypes");
+var $ = require("jquery");
+var React = require("react");
+var Router = require("react-router");
+
+var api = require("../api");
+var Gravatar = require("../components/gravatar");
+var GroupState = require("../mixins/groupState");
+var GroupStore = require("../stores/groupStore");
+var MemberListStore = require("../stores/memberListStore");
+var PropTypes = require("../proptypes");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-var TimeSince = require("../../components/timeSince");
-var utils = require("../../utils");
+var TimeSince = require("../components/timeSince");
+var utils = require("../utils");
 
 var formatActivity = function(item) {
   var data = item.data;
@@ -132,7 +136,11 @@ var NoteInput = React.createClass({
 
 
 var GroupActivity = React.createClass({
-  mixins: [PureRenderMixin],
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
+  mixins: [GroupState, PureRenderMixin],
 
   render() {
     var group = this.props.group;
