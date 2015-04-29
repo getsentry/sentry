@@ -23,6 +23,18 @@ var GroupHeader = React.createClass({
     statsPeriod: React.PropTypes.string.isRequired
   },
 
+  componentWillMount() {
+    this.setState({
+      activityCount: this.props.group.activity.length
+    });
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      activityCount: nextProps.group.activity.length
+    });
+  },
+
   render() {
     var group = this.props.group,
         userCount = 0;
@@ -88,7 +100,7 @@ var GroupHeader = React.createClass({
             Events
           </ListLink>
           <ListLink to="groupActivity" params={groupRouteParams}>
-            Activity <span className="badge animated">3</span>
+            Activity <span className="badge animated">{this.state.activityCount}</span>
           </ListLink>
           <ListLink to="groupTags" params={groupRouteParams}>
             Tags

@@ -136,11 +136,12 @@ var NoteInput = React.createClass({
 
 
 var GroupActivity = React.createClass({
+  // TODO(dcramer): only re-render on group/activity change
   contextTypes: {
     router: React.PropTypes.func
   },
 
-  mixins: [GroupState, PureRenderMixin],
+  mixins: [GroupState],
 
   render() {
     var group = this.props.group;
