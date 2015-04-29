@@ -30,7 +30,7 @@ class GroupSerializer(serializers.Serializer):
 class GroupDetailsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
-    def _get_activity(self, request, group, num=7):
+    def _get_activity(self, request, group, num):
         activity_items = set()
         activity = []
         activity_qs = Activity.objects.filter(
@@ -97,7 +97,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         data = serialize(group, request.user)
 
         # TODO: these probably should be another endpoint
-        activity = self._get_activity(request, group, num=7)
+        activity = self._get_activity(request, group, num=100)
         seen_by = self._get_seen_by(request, group)
 
         # find first seen release
