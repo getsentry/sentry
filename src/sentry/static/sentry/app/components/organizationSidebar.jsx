@@ -93,7 +93,7 @@ var OrganizationSidebar = React.createClass({
                       {team.name}
                     </Router.Link>
                   </h6>
-                  <ul className="project-list list-unstyled truncate">
+                  <ul className="project-list list-unstyled">
                     {team.projects.map((project) => {
                       var routeParams = {
                         orgId: activeOrg.slug,
