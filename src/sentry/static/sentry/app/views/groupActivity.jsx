@@ -178,11 +178,15 @@ var GroupActivity = React.createClass({
     });
 
     return (
-      <div className="activity">
-        <NoteInput group={group} />
-        <ul className="activity">
-          {children}
-        </ul>
+      <div className="row">
+        <div className="col-md-9">
+          <div className="activity-container">
+            <NoteInput group={group} />
+            <ul className="activity">
+              {children}
+            </ul>
+          </div>
+        </div>
       </div>
     );
   }
