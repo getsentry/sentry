@@ -20,9 +20,9 @@
         {% for access_request in request_list %}
           <li>
             <div class="pull-right">
-              <a href="#" class="btn btn-primary btn-small"
+              <a href="#" class="btn btn-primary btn-sm"
                  data-action="approve" data-id="{{ access_request.id }}">Approve</a>
-              <a href="#" class="btn btn-default btn-small"
+              <a href="#" class="btn btn-default btn-sm"
                  data-action="deny" data-id="{{ access_request.id }}">Deny</a>
             </div>
             <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
@@ -71,7 +71,8 @@
               {% else %}
                 <strong>Invited</strong>
               {% endif %}
-              <a href="javascript:void(0)" class="resend-invite btn btn-small btn-primary" data-member-id="{{ member.id }}">Resend invite</a>
+              <br>
+              <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
             {% endif %}
           </td>
           <td>{{ member.get_type_display }}</td>
