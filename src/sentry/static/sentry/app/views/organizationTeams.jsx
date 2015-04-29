@@ -47,6 +47,9 @@ var OrganizationTeams = React.createClass({
                     <a className="new-project" href={urlPrefix + '/projects/new/'}>
                       New Project
                     </a>
+                    <a className="leave-team" href="#">
+                      Leave Team
+                    </a>
                     <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
                       Team Settings
                     </a>
