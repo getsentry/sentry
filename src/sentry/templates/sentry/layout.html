@@ -53,8 +53,10 @@
           {% if request.user.is_authenticated %}
           {% if organization %}
           <div class="org-selector dropdown">
-            <a href="{% url 'sentry-organization-home' organization.slug %}" class="active-org">{{ organization.name }}</a>
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="$(this).parent('.dropdown').toggleClass('open');"><span class="icon-arrow-down"></span></a>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="$(this).parent('.dropdown').toggleClass('open');">
+              <span>{{ organization.name }}</span>
+              <i class="icon-arrow-down"></i>
+            </a>
             {% if list_organizations|length > 1 %}
             <div class="dropdown-menu">
               <ul class="orgs">
