@@ -7,16 +7,17 @@ sentry.utils.email
 """
 from __future__ import absolute_import
 
+import toronado
+
 from django.conf import settings
 from django.core.mail import get_connection, EmailMultiAlternatives
 from django.core.signing import Signer
 from django.utils.encoding import force_bytes
 from django.utils.functional import cached_property
-
 from email.utils import parseaddr
-import toronado
 
 from sentry.web.helpers import render_to_string
+from sentry.utils.safe import safe_execute
 
 signer = Signer()
 
@@ -194,7 +195,7 @@ class MessageBuilder(object):
         from sentry.tasks.email import send_email
         messages = self.get_built_messages(to)
         for message in messages:
-            send_email.delay(message=message)
+            safe_execute(send_email.delay, message=message)
 
 
 def inline_css(html):
