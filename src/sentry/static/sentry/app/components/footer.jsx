@@ -18,7 +18,7 @@ var Footer = React.createClass({
           <div className="version pull-left">
             Sentry {config.version.current}
           </div>
-          <span className="icon-sentry-logo"></span>
+          <a href="/" className="icon-sentry-logo"></a>
         </div>
       </footer>
     );
