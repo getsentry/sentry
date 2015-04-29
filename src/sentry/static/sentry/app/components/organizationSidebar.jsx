@@ -48,7 +48,7 @@ var UserNav = React.createClass({
       <div className="user-nav">
         <Gravatar email={user.email} className="avatar" />
         <div className="user-details">
-          <span className="user-name">{user.name || user.email}</span>
+          <span className="user-name truncate">{user.name || user.email}</span>
           <ul>
             <li><a href={urlPrefix + '/account/settings/'}>Account</a></li>
             <li><a href={urlPrefix + '/auth/logout/'}>Sign out</a></li>
