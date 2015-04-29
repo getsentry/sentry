@@ -15,8 +15,8 @@ var OrganizationTeams = React.createClass({
 
     if (org.teams.length === 0) {
       return (
-        <div>
-          <ul class="nav nav-tabs">
+        <div className="team-list">
+          <ul class="nav nav-tabs border-bottom">
             <li class="active"><a href="#">Your Teams</a></li>
             <li class=""><a href="#">All Teams</a></li>
           </ul>
