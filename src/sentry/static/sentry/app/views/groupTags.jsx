@@ -110,9 +110,7 @@ var GroupTags = React.createClass({
 
     return (
       <div>
-        <div className="alert alert-info alert-block">
-          Counts represent values seen in the last ~7 days.
-        </div>
+        <h5>Values seen in the last 7 days.</h5>
         <div className="row">
           {children}
         </div>
