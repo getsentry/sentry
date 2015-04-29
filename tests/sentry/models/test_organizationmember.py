@@ -9,6 +9,22 @@ from sentry.testutils import TestCase
 
 
 class OrganizationMemberTest(TestCase):
+    def test_counter(self):
+        organization = self.create_organization(name='Foo')
+
+        user2 = self.create_user('foo@example.com')
+        member2 = self.create_member(user=user2, organization=organization)
+        assert member2.counter == 2
+
+        user3 = self.create_user('bar@example.com')
+        member3 = self.create_member(user=user3, organization=organization)
+        assert member3.counter == 3
+
+        member2.delete()
+
+        member3 = OrganizationMember.objects.get(id=member3.id)
+        assert member3.counter == 2
+
     def test_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email='foo@example.com')
         with self.settings(SECRET_KEY='a'):
