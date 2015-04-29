@@ -16,7 +16,10 @@ var OrganizationTeams = React.createClass({
     if (org.teams.length === 0) {
       return (
         <div>
-          <h3>Teams</h3>
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#">Your Teams</a></li>
+            <li class=""><a href="#">All Teams</a></li>
+          </ul>
           <p>You dont have any teams for this organization yet. Get started by <a href="#">creating your first team</a>.</p>
         </div>
       );
@@ -26,9 +29,12 @@ var OrganizationTeams = React.createClass({
       <OrganizationHomeContainer>
         <div className="team-list">
           <div className="pull-right">
-            <a href={urlPrefix + '/teams/new/'} className="new-team"><span className="icon-plus"></span> New Team</a>
+            <a href={urlPrefix + '/teams/new/'} className="new-team"><span className="icon-plus"></span> Create Team</a>
           </div>
-          <h3>Teams</h3>
+          <ul className="nav nav-tabs border-bottom">
+            <li className="active"><a href="#">Your Teams</a></li>
+            <li className=""><a href="#">All Teams</a></li>
+          </ul>
           {org.teams.map((team, teamIdx) => {
             var teamRouteParams = {
               orgId: org.slug,
