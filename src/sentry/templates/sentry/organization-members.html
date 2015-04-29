@@ -14,24 +14,31 @@
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
 
   {% if request_list %}
-    <div class="access-request-list">
-      <h3>Pending Access Requests</h3>
-      <ul>
-        {% for access_request in request_list %}
-          <li>
-            <div class="pull-right">
-              <a href="#" class="btn btn-primary btn-sm"
+  <table class="table" style="margin-bottom: 20px">
+    <thead>
+      <tr>
+        <th colspan="2">Pending Access Requests</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for access_request in request_list %}
+      <tr>
+        <td>
+          <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
+        </td>
+        <td class="align-right">
+          <a href="#" class="btn btn-primary btn-sm"
                  data-action="approve" data-id="{{ access_request.id }}">Approve</a>
-              <a href="#" class="btn btn-default btn-sm"
+          <a href="#" class="btn btn-default btn-sm"
                  data-action="deny" data-id="{{ access_request.id }}">Deny</a>
-            </div>
-            <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   {% elif ref == 'access-requests' %}
-    <div class="alert alert-block alert-info">
+    <div class="well">
       <p>All pending access requests have been taken care of.</p>
     </div>
   {% endif %}
