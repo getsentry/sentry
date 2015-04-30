@@ -20,10 +20,17 @@ class OrganizationMemberTest(TestCase):
         member3 = self.create_member(user=user3, organization=organization)
         assert member3.counter == 3
 
+        user4 = self.create_user('baz@example.com')
+        member4 = self.create_member(user=user4, organization=organization)
+        assert member4.counter == 4
+
         member2.delete()
 
         member3 = OrganizationMember.objects.get(id=member3.id)
         assert member3.counter == 2
+
+        member4 = OrganizationMember.objects.get(id=member4.id)
+        assert member4.counter == 3
 
     def test_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email='foo@example.com')
