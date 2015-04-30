@@ -1,15 +1,15 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from collections import defaultdict
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import TAG_LABELS
 from sentry.models import (
-    Group, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus
+    Group, GroupAssignee, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -40,22 +40,11 @@ class GroupSerializer(Serializer):
         for key, group_id, values_seen in tag_results:
             tag_counts[key][group_id] = values_seen
 
-        # we need to compute stats at 1d (1h resolution), and 14d/30d (1 day res)
-        group_ids = [g.id for g in item_list]
-        now = timezone.now()
-        hourly_stats = tsdb.get_range(
-            model=tsdb.models.group,
-            keys=group_ids,
-            end=now,
-            start=now - timedelta(days=1),
-            rollup=3600,
-        )
-        daily_stats = tsdb.get_range(
-            model=tsdb.models.group,
-            keys=group_ids,
-            end=now,
-            start=now - timedelta(days=30),
-            rollup=3600 * 24,
+        assignees = dict(
+            (a.group_id, a.user)
+            for a in GroupAssignee.objects.filter(
+                group__in=item_list,
+            ).select_related('user')
         )
 
         result = {}
@@ -75,11 +64,10 @@ class GroupSerializer(Serializer):
                 }
 
             result[item] = {
+                'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'tags': tags,
-                'hourly_stats': hourly_stats[item.id],
-                'daily_stats': daily_stats[item.id],
             }
         return result
 
@@ -111,17 +99,53 @@ class GroupSerializer(Serializer):
             'level': obj.get_level_display(),
             'status': status_label,
             'isPublic': obj.is_public,
-            # 'score': getattr(obj, 'sort_value', 0),
             'project': {
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
-            'stats': {
-                '24h': attrs['hourly_stats'],
-                '30d': attrs['daily_stats'],
-            },
+            'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'hasSeen': attrs['has_seen'],
             'tags': attrs['tags'],
         }
         return d
+
+
+class StreamGroupSerializer(GroupSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
+
+        # we need to compute stats at 1d (1h resolution), and 14d
+        group_ids = [g.id for g in item_list]
+        now = timezone.now()
+        hourly_stats = tsdb.get_range(
+            model=tsdb.models.group,
+            keys=group_ids,
+            end=now,
+            start=now - timedelta(days=1),
+            rollup=3600,
+        )
+        daily_stats = tsdb.get_range(
+            model=tsdb.models.group,
+            keys=group_ids,
+            end=now,
+            start=now - timedelta(days=14),
+            rollup=3600 * 24,
+        )
+
+        for item in item_list:
+            attrs[item].update({
+                'hourly_stats': hourly_stats[item.id],
+                'daily_stats': daily_stats[item.id],
+            })
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        result = super(StreamGroupSerializer, self).serialize(obj, attrs, user)
+
+        result['stats'] = {
+            '24h': attrs['hourly_stats'],
+            '14d': attrs['daily_stats'],
+        }
+
+        return result

@@ -6,21 +6,24 @@ from django.contrib.auth.models import AnonymousUser
 registry = {}
 
 
-def serialize(objects, user=None):
+def serialize(objects, user=None, serializer=None):
     if user is None:
         user = AnonymousUser()
 
     if not objects:
         return objects
     elif not isinstance(objects, (list, tuple)):
-        return serialize([objects], user=user)[0]
+        return serialize([objects], user=user, serializer=serializer)[0]
 
     # elif isinstance(obj, dict):
     #     return dict((k, serialize(v, request=request)) for k, v in obj.iteritems())
-    try:
-        serializer = registry[type(objects[0])]
-    except KeyError:
-        return objects
+    if serializer is None:
+        try:
+            serializer = registry[type(objects[0])]
+        except KeyError:
+            return objects
+    else:
+        serializer = serializer()
 
     attrs = serializer.get_attrs(item_list=objects, user=user)
     return [serializer(o, attrs=attrs.get(o, {}), user=user) for o in objects]
