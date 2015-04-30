@@ -1,9 +1,11 @@
 from __future__ import absolute_import, print_function
 
+from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry.app import tsdb
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.fields import UserField
@@ -117,11 +119,31 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         action_list = self._get_actions(request, group)
 
+        now = timezone.now()
+        hourly_stats = tsdb.get_range(
+            model=tsdb.models.group,
+            keys=[group.id],
+            end=now,
+            start=now - timedelta(days=1),
+            rollup=3600,
+        )[group.id]
+        daily_stats = tsdb.get_range(
+            model=tsdb.models.group,
+            keys=[group.id],
+            end=now,
+            start=now - timedelta(days=30),
+            rollup=3600 * 24,
+        )[group.id]
+
         data.update({
             'firstRelease': first_release,
             'activity': serialize(activity, request.user),
             'seenBy': serialize(seen_by, request.user),
             'pluginActions': action_list,
+            'stats': {
+                '24h': hourly_stats,
+                '30d': daily_stats,
+            }
         })
 
         return Response(data)

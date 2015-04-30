@@ -40,24 +40,6 @@ class GroupSerializer(Serializer):
         for key, group_id, values_seen in tag_results:
             tag_counts[key][group_id] = values_seen
 
-        # we need to compute stats at 1d (1h resolution), and 14d/30d (1 day res)
-        group_ids = [g.id for g in item_list]
-        now = timezone.now()
-        hourly_stats = tsdb.get_range(
-            model=tsdb.models.group,
-            keys=group_ids,
-            end=now,
-            start=now - timedelta(days=1),
-            rollup=3600,
-        )
-        daily_stats = tsdb.get_range(
-            model=tsdb.models.group,
-            keys=group_ids,
-            end=now,
-            start=now - timedelta(days=30),
-            rollup=3600 * 24,
-        )
-
         assignees = dict(
             (a.group_id, a.user)
             for a in GroupAssignee.objects.filter(
@@ -86,8 +68,6 @@ class GroupSerializer(Serializer):
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'tags': tags,
-                'hourly_stats': hourly_stats[item.id],
-                'daily_stats': daily_stats[item.id],
             }
         return result
 
@@ -122,13 +102,49 @@ class GroupSerializer(Serializer):
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
-            'stats': {
-                '24h': attrs['hourly_stats'],
-                '30d': attrs['daily_stats'],
-            },
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'hasSeen': attrs['has_seen'],
             'tags': attrs['tags'],
         }
         return d
+
+
+class StreamGroupSerializer(GroupSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
+
+        # we need to compute stats at 1d (1h resolution), and 14d
+        group_ids = [g.id for g in item_list]
+        now = timezone.now()
+        hourly_stats = tsdb.get_range(
+            model=tsdb.models.group,
+            keys=group_ids,
+            end=now,
+            start=now - timedelta(days=1),
+            rollup=3600,
+        )
+        daily_stats = tsdb.get_range(
+            model=tsdb.models.group,
+            keys=group_ids,
+            end=now,
+            start=now - timedelta(days=14),
+            rollup=3600 * 24,
+        )
+
+        for item in item_list:
+            attrs[item].update({
+                'hourly_stats': hourly_stats[item.id],
+                'daily_stats': daily_stats[item.id],
+            })
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        result = super(StreamGroupSerializer, self).serialize(obj, attrs, user)
+
+        result['stats'] = {
+            '24h': attrs['hourly_stats'],
+            '14d': attrs['daily_stats'],
+        }
+
+        return result
