@@ -10,6 +10,7 @@ from sentry.app import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.constants import (
     DEFAULT_SORT_OPTION, STATUS_CHOICES
 )
@@ -126,7 +127,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         GroupMeta.objects.populate_cache(context)
 
-        response = Response(serialize(context, request.user))
+        response = Response(serialize(context, request.user, StreamGroupSerializer))
         response['Link'] = ', '.join([
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
