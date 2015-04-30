@@ -62,6 +62,8 @@ def main():
             'email': 'dummy@example.com',
         }
     )
+    dummy_user.set_password('dummy')
+    dummy_user.save()
 
     mocks = (
         ('Massive Dynamic', ('Ludic Science',)),
