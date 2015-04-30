@@ -119,6 +119,7 @@ class JavascriptIntegrationTest(TestCase):
         assert not frame.pre_context
         assert frame.context_line == 'console.log("hello, World!")'
         assert not frame.post_context
+        assert frame.data['sourcemap'] == 'http://example.com/test.min.js'
 
     @responses.activate
     def test_sourcemap_source_expansion(self):
