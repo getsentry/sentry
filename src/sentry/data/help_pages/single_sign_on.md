@@ -15,3 +15,7 @@ Additionally we'll automatically send each pre-existing member an email with ins
 ## Default Membership
 
 Every member who creates a new account via SSO will be given global organization access with a member role. This means that they can access events from any team, but they won't be able to create new projects or administer current ones.
+
+## Security
+
+Our SSO implementation priorities security. We aggressively monitor linked accounts and will disable them within any reasonable sign that the account's access may have been revoked. Generally this will be transparent to you, but if the provider is functioning in an unexpected way you may experience more frequent re-authorization requests.
