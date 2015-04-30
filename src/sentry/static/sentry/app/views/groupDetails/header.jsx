@@ -19,8 +19,7 @@ var GroupHeader = React.createClass({
 
   propTypes: {
     group: PropTypes.Group.isRequired,
-    memberList: React.PropTypes.instanceOf(Array).isRequired,
-    statsPeriod: React.PropTypes.string.isRequired
+    memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
   componentWillMount() {
@@ -38,10 +37,6 @@ var GroupHeader = React.createClass({
   render() {
     var group = this.props.group,
         userCount = 0;
-
-    var chartData = group.stats[this.props.statsPeriod].map(function(point){
-      return {x: point[0], y: point[1]};
-    });
 
     if (group.tags["sentry:user"] !== undefined) {
       userCount = group.tags["sentry:user"].count;

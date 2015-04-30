@@ -40,8 +40,7 @@ var GroupDetails = React.createClass({
 
   getInitialState() {
     return {
-      group: null,
-      statsPeriod: '30d'
+      group: null
     };
   },
 
@@ -87,12 +86,10 @@ var GroupDetails = React.createClass({
             orgId={params.orgId}
             projectId={params.projectId}
             group={group}
-            statsPeriod={this.state.statsPeriod}
             memberList={this.props.memberList} />
         <Router.RouteHandler
             memberList={this.props.memberList}
-            group={group}
-            statsPeriod={this.state.statsPeriod} />
+            group={group} />
       </div>
     );
   }

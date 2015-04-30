@@ -10,18 +10,20 @@ var GroupChart = React.createClass({
 
   propTypes: {
     group: PropTypes.Group.isRequired,
+    statsPeriod: React.PropTypes.string.isRequired
   },
 
   render: function() {
     var group = this.props.group;
-    var stats = group.stats['24h'];
+    var stats = group.stats[this.props.statsPeriod];
     var points = stats.map((point) => {
       return {x: point[0], y: point[1]};
     });
+    var className = "bar-chart group-chart " + (this.props.className || '');
 
     return (
-      <div className="bar-chart group-chart">
-        <h6>Last 24 Hours</h6>
+      <div className={className}>
+        <h6>{this.props.title}</h6>
         <BarChart points={points} className="sparkline" />
       </div>
     );

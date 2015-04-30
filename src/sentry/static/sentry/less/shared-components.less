@@ -842,43 +842,36 @@ table.integrations {
 
   figure {
     margin-bottom: 20px;
+    position: relative;
     .clearfix();
+    border-top: 1px solid #F0F1F4;
+
+    > .max-y,
+    > .min-y {
+      position: absolute;
+      width: 40px;
+      right: 2px;
+      text-align: right;
+      color: darken(@blue, 4);
+      font-size: 10px;
+    }
+
+    > .max-y {
+      top: 0;
+    }
+    > .min-y {
+      bottom: 0;
+    }
 
     a {
       height: 90px;
       position: relative;
 
-      &:before {
-        content: "";
-        background: #F0F1F4;
+      span {
         display: block;
         border-radius: 1px;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        min-width: 5px;
-      }
-
-      span {
-        border-radius: 1px;
-        min-height: 4px;
-        min-width: 5px;
+        min-height: 2px;
         background: darken(@blue, 4);
-      }
-    }
-  }
-
-  &.team-chart {
-    figure a {
-      &:before {
-        min-width: 1px;
-        width: 3px;
-      }
-
-      span {
-        min-width: 3px;
-        max-width: 3px;
       }
     }
   }
@@ -925,8 +918,8 @@ table.integrations {
 
     &:hover {
       > span {
-        background: @blue;
-        border-color: @blue;
+        background: lighten(@blue, 10%);
+        border-color: lighten(@blue, 10%);
       }
     }
 
@@ -943,7 +936,6 @@ table.integrations {
       text-indent: -9999px;
       text-align: left;
       min-height: 2px;
-      max-width: 3px;
       border-radius: 1px;
     }
   }
