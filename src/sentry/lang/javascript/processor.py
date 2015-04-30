@@ -467,13 +467,19 @@ class SourceProcessor(object):
             if sourcemap_idx and frame.colno is not None:
                 last_state = state
                 state = find_source(sourcemap_idx, frame.lineno, frame.colno)
+
+                if is_data_uri(sourcemap_url):
+                    sourcemap_label = frame.abs_path
+                else:
+                    sourcemap_label = sourcemap_url
+
                 abs_path = urljoin(sourcemap_url, state.src)
 
                 logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
                 source = cache.get(abs_path)
                 if not source:
                     frame.data = {
-                        'sourcemap': sourcemap_url,
+                        'sourcemap': sourcemap_label,
                     }
                     errors = cache.get_errors(abs_path)
                     if errors:
@@ -490,7 +496,7 @@ class SourceProcessor(object):
                     'orig_function': frame.function,
                     'orig_abs_path': frame.abs_path,
                     'orig_filename': frame.filename,
-                    'sourcemap': sourcemap_url,
+                    'sourcemap': sourcemap_label,
                 }
 
                 # SourceMap's return zero-indexed lineno's
