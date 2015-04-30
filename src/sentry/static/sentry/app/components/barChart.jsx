@@ -1,7 +1,8 @@
 /*** @jsx React.DOM */
+var moment = require("moment");
 var React = require("react");
 
-var TooltipTrigger = require("./tooltipTrigger");
+var TooltipTrigger = require("./TooltipTrigger");
 
 var BarChart = React.createClass({
   propTypes: {
@@ -11,12 +12,15 @@ var BarChart = React.createClass({
       label: React.PropTypes.string
     })),
     interval: React.PropTypes.string,
-    placement: React.PropTypes.string
+    placement: React.PropTypes.string,
+    label: React.PropTypes.string
   },
 
   getDefaultProps(){
     return {
-      placement: "bottom"
+      placement: "bottom",
+      points: [],
+      label: "events"
     };
   },
 
@@ -33,6 +37,17 @@ var BarChart = React.createClass({
       <span>
         {timeMoment.format("LL")}<br />
         {timeMoment.format("LT")} &mdash;&rsaquo; {nextMoment.format("LT")}
+      </span>
+    );
+  },
+
+  timeLabelAsDay(point) {
+    var timeMoment = moment(point.x * 1000);
+    var nextMoment = timeMoment.clone().add(59, "minute");
+
+    return (
+      <span>
+        {timeMoment.format("LL")}
       </span>
     );
   },
@@ -55,9 +70,7 @@ var BarChart = React.createClass({
   },
 
   render(){
-    // TODO: maxval could default to # of hours since first_seen / times_seen
     var points = this.props.points;
-
     var maxval = 10;
     points.forEach(function(point){
       if (point.y > maxval) {
@@ -73,6 +86,9 @@ var BarChart = React.createClass({
       case 3600:
         timeLabelFunc = this.timeLabelAsHour;
         break;
+      case 86400:
+        timeLabelFunc = this.timeLabelAsDay;
+        break;
       case null:
         timeLabelFunc = this.timeLabelAsFull;
         break;
@@ -85,8 +101,8 @@ var BarChart = React.createClass({
       var timeLabel = timeLabelFunc(point);
 
       var title = (
-        <div style={{minWidth: 200}}>
-          {point.y} events<br/>
+        <div style={{minWidth: 100}}>
+          {point.y} {this.props.label}<br/>
           {timeLabel}
         </div>
       );
@@ -107,7 +123,11 @@ var BarChart = React.createClass({
     });
 
     return (
-      <figure className={this.props.className}>
+      <figure className={this.props.className || '' + ' barchart'}
+              height={this.props.height}
+              width={this.props.width}>
+        <span className="max-y" key="max-y">{maxval}</span>
+        <span className="min-y" key="min-y">{0}</span>
         {children}
       </figure>
     );

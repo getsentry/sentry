@@ -130,8 +130,12 @@ var GroupOverview = React.createClass({
             )}
           </div>
           <div className="col-md-3">
-            <GroupChart statsPeriod={this.props.statsPeriod} group={group} />
             <div className="group-stats">
+              <GroupChart statsPeriod="24h" group={group}
+                          title="Last 24 Hours" />
+              <GroupChart statsPeriod="30d" group={group}
+                          title="Last 30 Days"
+                          className="bar-chart-small" />
               <h6>First seen</h6>
               <h3><TimeSince date={group.firstSeen} /></h3>
 

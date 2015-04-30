@@ -457,8 +457,8 @@ var StreamActions = React.createClass({
             <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
               <a onClick={this.selectStatsPeriod.bind(this, '24h')}>24h</a>
             </li>
-            <li className={this.props.statsPeriod === '30d' ? 'active' : ''}>
-              <a onClick={this.selectStatsPeriod.bind(this, '30d')}>30d</a>
+            <li className={this.props.statsPeriod === '14d' ? 'active' : ''}>
+              <a onClick={this.selectStatsPeriod.bind(this, '14d')}>14d</a>
             </li>
           </ul>
         </div>
