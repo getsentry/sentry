@@ -18,4 +18,4 @@ Every member who creates a new account via SSO will be given global organization
 
 ## Security
 
-Our SSO implementation priorities security. We aggressively monitor linked accounts and will disable them within any reasonable sign that the account's access may have been revoked. Generally this will be transparent to you, but if the provider is functioning in an unexpected way you may experience more frequent re-authorization requests.
+Our SSO implementation prioritizes security. We aggressively monitor linked accounts and will disable them within any reasonable sign that the account's access may have been revoked. Generally this will be transparent to you, but if the provider is functioning in an unexpected way you may experience more frequent re-authorization requests.
