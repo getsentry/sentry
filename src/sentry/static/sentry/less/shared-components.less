@@ -848,6 +848,7 @@ table.integrations {
 
     > .max-y,
     > .min-y {
+      display: block;
       position: absolute;
       width: 40px;
       right: 2px;
@@ -910,10 +911,15 @@ table.integrations {
 .sparkline {
   position: relative;
 
+  > .max-y,
+  > .min-y {
+    display: none;
+  }
+
   > a {
     position: relative;
     float: left;
-    height: 18px;
+    height: 20px;
     display: block;
 
     &:hover {
