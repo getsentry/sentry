@@ -193,7 +193,7 @@ urlpatterns = patterns(
 
     url(r'^$',
         IndexEndpoint.as_view(),
-        name='sentry-api-catchall'),
+        name='sentry-api-index'),
 
 
     url(r'^',
