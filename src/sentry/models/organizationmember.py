@@ -93,7 +93,6 @@ class OrganizationMember(Model):
         unique_together = (
             ('organization', 'user'),
             ('organization', 'email'),
-            ('organization', 'counter'),
         )
 
     __repr__ = sane_repr('organization_id', 'user_id', 'type')
