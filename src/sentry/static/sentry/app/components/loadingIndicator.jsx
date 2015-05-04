@@ -9,12 +9,6 @@ var LoadingIndicator = React.createClass({
     mini:  React.PropTypes.bool
   },
 
-  getDefaultProps() {
-    return {
-      message: "Loading..."
-    };
-  },
-
   shouldComponentUpdate() {
     return false;
   },
