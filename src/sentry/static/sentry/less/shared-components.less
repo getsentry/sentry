@@ -485,16 +485,22 @@ table.integrations {
 // mini
 
 .loading.mini {
-  margin: 0;
+  margin: 4px 0;
+  font-size: 13px;
+
   .loading-indicator {
-    margin: 5px 10px 0 0;
-    display: inline-block;
+    margin: 0;
     border-radius: 50%;
     width: 20px;
     height: 20px;
-    border-width: 2px
+    border-width: 2px;
+    position: absolute;
+    left: 0;
+    top: 0;
   }
   .loading-message {
+    padding-left: 30px;
+    margin-top: 1px;
     display: inline-block;
   }
 }
