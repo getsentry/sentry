@@ -19,6 +19,10 @@ var OrganizationHomeContainer = React.createClass({
             {this.props.children}
           </div>
         </div>
+        <div className="loading global">
+          <div className="loading-indicator"></div>
+          <div className="loading-message">Doing global shit...</div>
+        </div>
       </div>
     );
   }
