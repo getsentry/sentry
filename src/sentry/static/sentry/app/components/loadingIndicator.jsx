@@ -27,7 +27,8 @@ var LoadingIndicator = React.createClass({
 
     return (
       <div className={joinClasses(this.props.className, className)}>
-        {this.props.message}
+        <div className="loading-indicator"></div>
+        <div className="loading-message">{this.props.message}</div>
       </div>
     );
   }

@@ -16,7 +16,10 @@
   <div id="chart" class="chart" data-api-url="">
     <div class="sparkline">
       <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-      <span class="loading">{% trans "Loading historical data..." %}</span>
+      <div class="loading">
+        <div class="loading-indicator"></div>
+        <div class="loading-message">{% trans "Loading historical data..." %}</div>
+      </div>
     </div>
   </div>
 

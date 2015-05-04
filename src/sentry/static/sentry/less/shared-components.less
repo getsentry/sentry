@@ -439,21 +439,28 @@ table.integrations {
 
 .loading {
   margin: 6em auto;
-  font-size: 10px;
   position: relative;
-  text-indent: -9999em;
-  border-top: 6px solid rgba(52, 60, 69, .09);
-  border-right: 6px solid rgba(52, 60, 69, .09);
-  border-bottom: 6px solid rgba(52, 60, 69, .09);
-  border-left: 6px solid rgba(52, 60, 69, .4);
-  -webkit-animation: loading .5s infinite linear;
-  animation: loading .55s infinite linear;
+
+  .loading-indicator {
+    text-indent: -9999em;
+    border-top: 6px solid rgba(52, 60, 69, .09);
+    border-right: 6px solid rgba(52, 60, 69, .09);
+    border-bottom: 6px solid rgba(52, 60, 69, .09);
+    border-left: 6px solid rgba(52, 60, 69, .4);
+    -webkit-animation: loading .5s infinite linear;
+    animation: loading .55s infinite linear;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+  }
+
+  .loading-message {
+    margin-top: 15px;
+    text-align: center;
+  }
 }
-.loading {
-  border-radius: 50%;
-  width: 7em;
-  height: 7em;
-}
+
 @-webkit-keyframes loading {
   0% {
     -webkit-transform: rotate(0deg);
