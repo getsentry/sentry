@@ -20,6 +20,7 @@ var OrganizationHomeContainer = React.createClass({
           </div>
         </div>
         <div className="loading global">
+          <div className="loading-mask"></div>
           <div className="loading-indicator"></div>
           <div className="loading-message">Doing global shit...</div>
         </div>

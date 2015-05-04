@@ -514,10 +514,12 @@ table.integrations {
   border-radius: 3px;
 
   position: fixed;
-  bottom: 20px;
+  bottom: -100px;
   right: 20px;
   background: rgba(52, 60, 69, .8);
   color: #fff;
+
+  .transition(.2s bottom ease-in-out);
 
   .loading-indicator {
     border-color: rgba(255,255, 255, .4);
@@ -530,9 +532,7 @@ table.integrations {
     padding-left: 24px;
   }
 
-  &:before {
-    display: block;
-    content: "";
+  .loading-mask {
     position: fixed;
     top: 0;
     left: 0;
@@ -540,6 +540,17 @@ table.integrations {
     bottom: 0;
     background: rgba(52, 60, 69, .4);
     z-index: -1;
+    opacity: 0;
+    visibility: hidden;
+    .transition(opacity .1s linear);
+  }
+
+  &.active {
+    bottom: 20px;
+    .loading-mask {
+      visibility: visible;
+      opacity: 1;
+    }
   }
 }
 
