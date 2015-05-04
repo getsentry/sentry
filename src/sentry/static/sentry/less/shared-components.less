@@ -498,10 +498,36 @@ table.integrations {
     left: 0;
     top: 0;
   }
+
   .loading-message {
     padding-left: 30px;
     margin-top: 1px;
     display: inline-block;
+  }
+}
+
+.loading.global {
+  .loading.mini();
+  padding: 20px 30px;
+  font-size: 15px;
+  z-index: 100000;
+  border-radius: 3px;
+
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(52, 60, 69, .8);
+  color: #fff;
+
+  .loading-indicator {
+    border-color: rgba(255,255, 255, .4);
+    border-left-color: rgba(255,255, 255, 1);
+    top: 20px;
+    left: 24px;
+  }
+
+  .loading-message {
+    padding-left: 24px;
   }
 }
 
