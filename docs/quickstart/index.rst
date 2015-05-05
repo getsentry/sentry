@@ -143,7 +143,7 @@ is not a fully supported database and should not be used in production**.
     DATABASES = {
         'default': {
             # We suggest PostgreSQL for optimal performance
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'ENGINE': 'sentry.db.postgres',
 
             # Alternatively you can use MySQL
             'ENGINE': 'django.db.backends.mysql',
