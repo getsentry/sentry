@@ -21,7 +21,7 @@ def pytest_configure(config):
             })
         elif test_db == 'postgres':
             settings.DATABASES['default'].update({
-                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'ENGINE': 'sentry.db.postgres',
                 'USER': 'postgres',
                 'NAME': 'sentry',
             })
@@ -99,8 +99,10 @@ def pytest_configure(config):
     from sentry.testutils.cases import flush_redis
     flush_redis()
 
-    from sentry.utils.runner import initialize_receivers
+    from sentry.utils.runner import initialize_receivers, fix_south
     initialize_receivers()
+
+    fix_south(settings)
 
     # force celery registration
     from sentry.celery import app  # NOQA

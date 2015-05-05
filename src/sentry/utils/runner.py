@@ -32,7 +32,7 @@ DATABASES = {
     'default': {
         # You can swap out the engine for MySQL easily by changing this value
         # to ``django.db.backends.mysql`` or to PostgreSQL with
-        # ``django.db.backends.postgresql_psycopg2``
+        # ``sentry.db.postgres``
 
         # If you change this, you'll also need to install the appropriate python
         # package: psycopg2 (Postgres) or mysql-python
@@ -288,12 +288,9 @@ def initialize_app(config):
 
     settings = config['settings']
 
-    install_plugins(settings)
+    fix_south(settings)
 
-    skip_migration_if_applied(
-        settings, 'kombu.contrib.django', 'djkombu_queue')
-    skip_migration_if_applied(
-        settings, 'social_auth', 'social_auth_association')
+    install_plugins(settings)
 
     apply_legacy_settings(config)
 
@@ -305,10 +302,19 @@ def initialize_app(config):
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
-        # Update default features
         settings.SENTRY_FEATURES['organizations:create'] = False
 
     initialize_receivers()
+
+
+def fix_south(settings):
+    # South needs an adapter defined conditionally
+    if settings.DATABASES['default']['ENGINE'] != 'sentry.db.postgres':
+        return
+
+    settings.SOUTH_DATABASE_ADAPTERS = {
+        'default': 'south.db.postgresql_psycopg2'
+    }
 
 
 def apply_legacy_settings(config):
@@ -384,6 +390,18 @@ def skip_migration_if_applied(settings, app_name, table_name,
         skip_if_table_exists(migration.forwards), migration)
 
 
+def on_configure(config):
+    """
+    Executes after settings are full installed and configured.
+    """
+    settings = config['settings']
+
+    skip_migration_if_applied(
+        settings, 'kombu.contrib.django', 'djkombu_queue')
+    skip_migration_if_applied(
+        settings, 'social_auth', 'social_auth_association')
+
+
 def configure(config_path=None):
     configure_app(
         project='sentry',
@@ -393,6 +411,7 @@ def configure(config_path=None):
         settings_initializer=generate_settings,
         settings_envvar='SENTRY_CONF',
         initializer=initialize_app,
+        on_configure=on_configure,
     )
 
 
