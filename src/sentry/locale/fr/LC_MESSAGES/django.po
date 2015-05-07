@@ -12,14 +12,14 @@
 # mounir <messelmeni.mounir@gmail.com>, 2014
 # Nathan Le Ray <oyokoon@gmail.com>, 2013
 # NotSqrt <notsqrt@gmail.com>, 2013-2014
-# pierreot <chtipepere@gmail.com>, 2014
+# pierreot <chtipepere@gmail.com>, 2014-2015
 # Thomas Decaux <ebuildy@gmail.com>, 2014
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-02-10 19:13+0000\n"
-"PO-Revision-Date: 2015-02-10 19:14+0000\n"
+"POT-Creation-Date: 2015-05-07 02:41+0000\n"
+"PO-Revision-Date: 2015-05-07 02:42+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/sentry/language/fr/)\n"
 "MIME-Version: 1.0\n"
@@ -28,23 +28,23 @@ msgstr ""
 "Language: fr\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: admin.py:115
+#: admin.py:131
 msgid "Personal info"
 msgstr "Informations personnelles"
 
-#: admin.py:116
+#: admin.py:132
 msgid "Permissions"
 msgstr "Permissions"
 
-#: admin.py:117
+#: admin.py:133
 msgid "Important dates"
 msgstr "Dates importantes"
 
-#: admin.py:205
+#: admin.py:221
 msgid "Password changed successfully."
 msgstr "Mot de passe modifié avec succès."
 
-#: admin.py:215
+#: admin.py:231
 #, python-format
 msgid "Change password: %s"
 msgstr "Modifier le mot de passe : %s"
@@ -83,14 +83,13 @@ msgstr "Temps moyen"
 msgid "Score"
 msgstr "Score"
 
-#: constants.py:68 models/organizationmember.py:51
-#: templates/sentry/projects/edit_key.html:22
+#: constants.py:68 models/organizationmember.py:78
 #: web/forms/edit_organization_member.py:15
 msgid "Owner"
 msgstr "Propriétaire"
 
-#: constants.py:69 models/organizationmember.py:50 models/teammember.py:39
-#: templates/sentry/layout.html:143 templates/sentry/bases/admin.html:5
+#: constants.py:69 models/organizationmember.py:77
+#: templates/sentry/layout.html:161 templates/sentry/bases/admin.html:6
 #: web/forms/__init__.py:49 web/forms/edit_organization_member.py:14
 msgid "Admin"
 msgstr "Administration"
@@ -115,7 +114,7 @@ msgstr "Fichier"
 
 #: constants.py:187
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:30
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:57
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:61
 msgid "Function"
 msgstr "Fonction"
 
@@ -136,311 +135,329 @@ msgstr "URL"
 msgid "Server"
 msgstr "Serveur"
 
-#: conf/server.py:99
-msgid "Afrikaans"
+#: auth/helper.py:25
+msgid "You have successully linked your account to your SSO provider."
 msgstr ""
+
+#: auth/helper.py:27
+msgid ""
+"SSO has been configured for your organization and any existing members have "
+"been sent an email to link their accounts."
+msgstr ""
+
+#: auth/helper.py:29
+msgid "There was an error encountered during authentication."
+msgstr ""
+
+#: auth/helper.py:31
+msgid "You must be authenticated to link accounts."
+msgstr ""
+
+#: conf/server.py:93
+msgid "Afrikaans"
+msgstr "Afrikaans"
+
+#: conf/server.py:94
+msgid "Arabic"
+msgstr "Arabe"
+
+#: conf/server.py:95
+msgid "Azerbaijani"
+msgstr "Azéri"
+
+#: conf/server.py:96
+msgid "Bulgarian"
+msgstr "Bulgare"
+
+#: conf/server.py:97
+msgid "Belarusian"
+msgstr "Biélorusse"
+
+#: conf/server.py:98
+msgid "Bengali"
+msgstr "Bengali"
+
+#: conf/server.py:99
+msgid "Breton"
+msgstr "Breton"
 
 #: conf/server.py:100
-msgid "Arabic"
-msgstr ""
+msgid "Bosnian"
+msgstr "Bosnien"
 
 #: conf/server.py:101
-msgid "Azerbaijani"
-msgstr ""
+msgid "Catalan"
+msgstr "Catalan"
 
 #: conf/server.py:102
-msgid "Bulgarian"
-msgstr ""
+msgid "Czech"
+msgstr "Tchèque"
 
 #: conf/server.py:103
-msgid "Belarusian"
-msgstr ""
+msgid "Welsh"
+msgstr "Gallois"
 
 #: conf/server.py:104
-msgid "Bengali"
-msgstr ""
+msgid "Danish"
+msgstr "Danois"
 
 #: conf/server.py:105
-msgid "Breton"
-msgstr ""
+msgid "German"
+msgstr "Allemand"
 
 #: conf/server.py:106
-msgid "Bosnian"
-msgstr ""
+msgid "Greek"
+msgstr "Grec"
 
 #: conf/server.py:107
-msgid "Catalan"
-msgstr ""
+msgid "English"
+msgstr "Anglais"
 
 #: conf/server.py:108
-msgid "Czech"
-msgstr ""
+msgid "Esperanto"
+msgstr "Espéranto"
 
 #: conf/server.py:109
-msgid "Welsh"
-msgstr ""
+msgid "Spanish"
+msgstr "Espagnol"
 
 #: conf/server.py:110
-msgid "Danish"
-msgstr ""
+msgid "Estonian"
+msgstr "Estonien"
 
 #: conf/server.py:111
-msgid "German"
-msgstr ""
+msgid "Basque"
+msgstr "Basque"
 
 #: conf/server.py:112
-msgid "Greek"
-msgstr ""
+msgid "Persian"
+msgstr "Perse"
 
 #: conf/server.py:113
-msgid "English"
-msgstr ""
+msgid "Finnish"
+msgstr "Finlandais"
 
 #: conf/server.py:114
-msgid "Esperanto"
-msgstr ""
+msgid "French"
+msgstr "Français"
 
 #: conf/server.py:115
-msgid "Spanish"
-msgstr ""
+msgid "Irish"
+msgstr "Irlandais"
 
 #: conf/server.py:116
-msgid "Estonian"
-msgstr ""
+msgid "Galician"
+msgstr "Galicien"
 
 #: conf/server.py:117
-msgid "Basque"
-msgstr ""
+msgid "Hebrew"
+msgstr "Hébreu"
 
 #: conf/server.py:118
-msgid "Persian"
-msgstr ""
+msgid "Hindi"
+msgstr "Hindi"
 
 #: conf/server.py:119
-msgid "Finnish"
-msgstr ""
+msgid "Croatian"
+msgstr "Croate"
 
 #: conf/server.py:120
-msgid "French"
-msgstr ""
+msgid "Hungarian"
+msgstr "Hongrois"
 
 #: conf/server.py:121
-msgid "Irish"
-msgstr ""
+msgid "Interlingua"
+msgstr "Interlingua"
 
 #: conf/server.py:122
-msgid "Galician"
-msgstr ""
+msgid "Indonesian"
+msgstr "Indonésien"
 
 #: conf/server.py:123
-msgid "Hebrew"
-msgstr ""
+msgid "Icelandic"
+msgstr "Islandais"
 
 #: conf/server.py:124
-msgid "Hindi"
-msgstr ""
+msgid "Italian"
+msgstr "Italien"
 
 #: conf/server.py:125
-msgid "Croatian"
-msgstr ""
+msgid "Japanese"
+msgstr "Japonais"
 
 #: conf/server.py:126
-msgid "Hungarian"
-msgstr ""
+msgid "Georgian"
+msgstr "Géorgien"
 
 #: conf/server.py:127
-msgid "Interlingua"
-msgstr ""
+msgid "Kazakh"
+msgstr "Kazakh"
 
 #: conf/server.py:128
-msgid "Indonesian"
-msgstr ""
+msgid "Khmer"
+msgstr "Khmer"
 
 #: conf/server.py:129
-msgid "Icelandic"
-msgstr ""
+msgid "Kannada"
+msgstr "Kannada"
 
 #: conf/server.py:130
-msgid "Italian"
-msgstr ""
+msgid "Korean"
+msgstr "Coréen"
 
 #: conf/server.py:131
-msgid "Japanese"
-msgstr ""
+msgid "Luxembourgish"
+msgstr "Luxembourgeois"
 
 #: conf/server.py:132
-msgid "Georgian"
-msgstr ""
+msgid "Lithuanian"
+msgstr "Lituanien"
 
 #: conf/server.py:133
-msgid "Kazakh"
-msgstr ""
+msgid "Latvian"
+msgstr "Letton"
 
 #: conf/server.py:134
-msgid "Khmer"
-msgstr ""
+msgid "Macedonian"
+msgstr "Macédonien"
 
 #: conf/server.py:135
-msgid "Kannada"
-msgstr ""
+msgid "Malayalam"
+msgstr "Malayalam"
 
 #: conf/server.py:136
-msgid "Korean"
-msgstr ""
+msgid "Mongolian"
+msgstr "Mongol"
 
 #: conf/server.py:137
-msgid "Luxembourgish"
-msgstr ""
+msgid "Burmese"
+msgstr "Birman"
 
 #: conf/server.py:138
-msgid "Lithuanian"
-msgstr ""
+msgid "Norwegian Bokmal"
+msgstr "Norvégien Bokmål"
 
 #: conf/server.py:139
-msgid "Latvian"
-msgstr ""
+msgid "Nepali"
+msgstr "Népalais"
 
 #: conf/server.py:140
-msgid "Macedonian"
-msgstr ""
+msgid "Dutch"
+msgstr "Néerlandais"
 
 #: conf/server.py:141
-msgid "Malayalam"
-msgstr ""
+msgid "Norwegian Nynorsk"
+msgstr "Norvégien Nynorsk"
 
 #: conf/server.py:142
-msgid "Mongolian"
-msgstr ""
+msgid "Ossetic"
+msgstr "Ossète"
 
 #: conf/server.py:143
-msgid "Burmese"
-msgstr ""
+msgid "Punjabi"
+msgstr "Pendjabi"
 
 #: conf/server.py:144
-msgid "Norwegian Bokmal"
-msgstr ""
+msgid "Polish"
+msgstr "Polonais"
 
 #: conf/server.py:145
-msgid "Nepali"
-msgstr ""
+msgid "Portuguese"
+msgstr "Portugais"
 
 #: conf/server.py:146
-msgid "Dutch"
-msgstr ""
+msgid "Brazilian Portuguese"
+msgstr "Portugais du Brésil"
 
 #: conf/server.py:147
-msgid "Norwegian Nynorsk"
-msgstr ""
+msgid "Romanian"
+msgstr "Roumain"
 
 #: conf/server.py:148
-msgid "Ossetic"
-msgstr ""
+msgid "Russian"
+msgstr "Russe"
 
 #: conf/server.py:149
-msgid "Punjabi"
-msgstr ""
+msgid "Slovak"
+msgstr "Slovène"
 
 #: conf/server.py:150
-msgid "Polish"
-msgstr ""
+msgid "Slovenian"
+msgstr "Slovène"
 
 #: conf/server.py:151
-msgid "Portuguese"
-msgstr ""
+msgid "Albanian"
+msgstr "Albanais"
 
 #: conf/server.py:152
-msgid "Brazilian Portuguese"
-msgstr ""
+msgid "Serbian"
+msgstr "Serbe"
 
 #: conf/server.py:153
-msgid "Romanian"
-msgstr ""
+msgid "Swedish"
+msgstr "Suédois"
 
 #: conf/server.py:154
-msgid "Russian"
-msgstr ""
+msgid "Swahili"
+msgstr "Swahili"
 
 #: conf/server.py:155
-msgid "Slovak"
-msgstr ""
+msgid "Tamil"
+msgstr "Tamoul"
 
 #: conf/server.py:156
-msgid "Slovenian"
-msgstr ""
+msgid "Telugu"
+msgstr "Télougou"
 
 #: conf/server.py:157
-msgid "Albanian"
-msgstr ""
+msgid "Thai"
+msgstr "Thaïlandais"
 
 #: conf/server.py:158
-msgid "Serbian"
-msgstr ""
+msgid "Turkish"
+msgstr "Turque"
 
 #: conf/server.py:159
-msgid "Swedish"
-msgstr ""
+msgid "Tatar"
+msgstr "Tatar"
 
 #: conf/server.py:160
-msgid "Swahili"
-msgstr ""
+msgid "Udmurt"
+msgstr "Oudmourte"
 
 #: conf/server.py:161
-msgid "Tamil"
-msgstr ""
+msgid "Ukrainian"
+msgstr "Ukrainien"
 
 #: conf/server.py:162
-msgid "Telugu"
-msgstr ""
+msgid "Urdu"
+msgstr "Ourdou"
 
 #: conf/server.py:163
-msgid "Thai"
-msgstr ""
+msgid "Vietnamese"
+msgstr "Vietnamien"
 
 #: conf/server.py:164
-msgid "Turkish"
-msgstr ""
+msgid "Simplified Chinese"
+msgstr "Chinois simplifié"
 
 #: conf/server.py:165
-msgid "Tatar"
-msgstr ""
-
-#: conf/server.py:166
-msgid "Udmurt"
-msgstr ""
-
-#: conf/server.py:167
-msgid "Ukrainian"
-msgstr ""
-
-#: conf/server.py:168
-msgid "Urdu"
-msgstr ""
-
-#: conf/server.py:169
-msgid "Vietnamese"
-msgstr ""
-
-#: conf/server.py:170
-msgid "Simplified Chinese"
-msgstr ""
-
-#: conf/server.py:171
 msgid "Traditional Chinese"
-msgstr ""
+msgstr "Chinois traditionel"
 
 #: db/models/fields/bounded.py:54 db/models/fields/bounded.py:68
 msgid "Big Integer"
 msgstr "Big Integer"
 
-#: filters/builtins.py:22 models/alert.py:36 models/group.py:115
+#: filters/builtins.py:22 models/alert.py:36 models/group.py:106
 msgid "Unresolved"
 msgstr "Non résolu"
 
-#: filters/builtins.py:23 models/alert.py:37 models/group.py:116
+#: filters/builtins.py:23 models/alert.py:37 models/group.py:107
 msgid "Resolved"
 msgstr "Résolu"
 
-#: filters/builtins.py:24 models/group.py:117
+#: filters/builtins.py:24 models/group.py:108
 msgid "Muted"
 msgstr "Silencieux"
 
@@ -449,17 +466,26 @@ msgstr "Silencieux"
 msgid "Status"
 msgstr "Statut"
 
-#: interfaces/http.py:231 templates/sentry/partial/interfaces/http.html:10
+#: interfaces/http.py:232 templates/sentry/partial/interfaces/http.html:10
 msgid "Request"
 msgstr "Requête"
 
-#: interfaces/stacktrace.py:518
+#: interfaces/stacktrace.py:563
 msgid "Stacktrace (most recent call first):"
 msgstr "Stacktrace (appel le plus récent en premier) : "
 
-#: interfaces/stacktrace.py:520
+#: interfaces/stacktrace.py:565
 msgid "Stacktrace (most recent call last):"
 msgstr "Stacktrace (appel le plus récent en dernier) : "
+
+#: models/apikey.py:49 models/project.py:96 models/projectkey.py:46
+#: models/team.py:136
+msgid "Active"
+msgstr "Actif"
+
+#: models/apikey.py:50 models/projectkey.py:47
+msgid "Inactive"
+msgstr "Inactif"
 
 #: models/event.py:47
 msgid "message"
@@ -469,112 +495,103 @@ msgstr "message"
 msgid "messages"
 msgstr "messages"
 
-#: models/event.py:61 models/group.py:262
+#: models/event.py:61 models/group.py:253
 msgid "error"
 msgstr "erreur"
 
-#: models/group.py:137
+#: models/group.py:128
 msgid "grouped messages"
 msgstr "messages groupés"
 
-#: models/group.py:138
+#: models/group.py:129
 msgid "grouped message"
 msgstr "message groupé"
 
-#: models/organization.py:80 models/tagkey.py:63
+#: models/organization.py:81 models/tagkey.py:63
 msgid "Visible"
 msgstr "Visible"
 
-#: models/organization.py:81 models/project.py:96 models/tagkey.py:64
-#: models/team.py:131
+#: models/organization.py:82 models/project.py:97 models/tagkey.py:64
+#: models/team.py:137
 msgid "Pending Deletion"
 msgstr "En attente de suppression"
 
-#: models/organization.py:82 models/project.py:97 models/tagkey.py:65
-#: models/team.py:132
+#: models/organization.py:83 models/project.py:98 models/tagkey.py:65
+#: models/team.py:138
 msgid "Deletion in Progress"
 msgstr "Suppression en cours"
 
-#: models/organizationmember.py:48 models/teammember.py:40
+#: models/organizationmember.py:75
 msgid "Bot"
 msgstr "Robot"
 
-#: models/organizationmember.py:49 models/teammember.py:38
-#: web/forms/edit_organization_member.py:13
+#: models/organizationmember.py:76 web/forms/edit_organization_member.py:13
 msgid "Member"
 msgstr "Membre"
 
-#: models/project.py:95 models/projectkey.py:47 models/team.py:130
-msgid "Active"
-msgstr "Actif"
-
-#: models/projectkey.py:48
-msgid "Inactive"
-msgstr ""
-
-#: models/user.py:25
+#: models/user.py:26
 msgid "username"
 msgstr "nom d'utilisateur"
 
-#: models/user.py:26
+#: models/user.py:27
 msgid "first name"
 msgstr "prénom"
 
-#: models/user.py:27
+#: models/user.py:28
 msgid "last name"
 msgstr "nom"
 
-#: models/user.py:28
+#: models/user.py:29
 msgid "email address"
 msgstr "adresse email"
 
-#: models/user.py:30
+#: models/user.py:31
 msgid "staff status"
 msgstr "statut de l'équipe"
 
-#: models/user.py:31
+#: models/user.py:32
 msgid "Designates whether the user can log into this admin site."
 msgstr "Désigne le fait que l'utilisateur peut se connecter à cette interface d'administration."
 
-#: models/user.py:34
+#: models/user.py:35
 msgid "active"
 msgstr "actif"
 
-#: models/user.py:35
+#: models/user.py:36
 msgid ""
 "Designates whether this user should be treated as active. Unselect this "
 "instead of deleting accounts."
 msgstr "Désigne le fait que cet utilisateur doive être considéré comme actif. Désélectionnez ceci au lieu de supprimer des comptes."
 
-#: models/user.py:38
+#: models/user.py:39
 msgid "superuser status"
 msgstr "statut super utilisateur"
 
-#: models/user.py:39
+#: models/user.py:40
 msgid ""
 "Designates that this user has all permissions without explicitly assigning "
 "them."
 msgstr "Donner toutes les permissions à cet utilisateur sans les assigner une par une."
 
-#: models/user.py:42
+#: models/user.py:43
 msgid "managed"
 msgstr "géré"
 
-#: models/user.py:43
+#: models/user.py:44
 msgid ""
 "Designates whether this user should be treated as managed. Select this to "
 "disallow the user from modifying their account (username, password, etc)."
 msgstr "Marque cet utilisateur comme géré. Choisissez cette option pour empêcher l'utilisateur de modifier son compte (nom d'utilisateur, mot de passe, etc)."
 
-#: models/user.py:47
+#: models/user.py:48
 msgid "date joined"
 msgstr "date d'adhésion"
 
-#: models/user.py:57
+#: models/user.py:58
 msgid "user"
 msgstr "utilisateur"
 
-#: models/user.py:58
+#: models/user.py:59
 msgid "users"
 msgstr "utilisateurs"
 
@@ -584,13 +601,13 @@ msgid ""
 "an already resolved event has changed back to unresolved."
 msgstr "Notifier les membres du projet lorsqu'un événement est vu pour la première fois, ou lorsque un événement déjà résolu repasse en statut non résolu."
 
-#: plugins/sentry_interface_types/models.py:24
+#: plugins/sentry_interface_types/models.py:25
 msgid "Auto Tag: Interface Types"
 msgstr "Tag automatique : Types d'interface"
 
 #: plugins/sentry_mail/models.py:27
 #: templates/sentry/account/notifications.html:54
-#: templates/sentry/bases/admin.html:39
+#: templates/sentry/bases/admin.html:45
 msgid "Mail"
 msgstr "Email"
 
@@ -621,6 +638,18 @@ msgstr "Tag automatique : Appareil"
 #: plugins/sentry_useragents/models.py:109
 msgid "Device"
 msgstr "Appareil"
+
+#: plugins/sentry_webhooks/plugin.py:17
+msgid "Callback URLs"
+msgstr ""
+
+#: plugins/sentry_webhooks/plugin.py:20
+msgid "Enter callback URLs to POST new events to (one per line)."
+msgstr ""
+
+#: plugins/sentry_webhooks/plugin.py:40
+msgid "WebHooks"
+msgstr ""
 
 #: templates/sentry/403-csrf-failure.html:5
 #: templates/sentry/403-csrf-failure.html:10
@@ -683,12 +712,11 @@ msgid ""
 msgstr "Pour continuer, vous devez soit vous connecter à votre compte existant, ou en créer un nouveau."
 
 #: templates/sentry/accept-organization-invite.html:36
-#: templates/sentry/register.html:26
 msgid "Login as an existing user"
 msgstr "Connexion comme utilisateur existant"
 
 #: templates/sentry/accept-organization-invite.html:38
-#: templates/sentry/login.html:31 templates/sentry/register.html:16
+#: templates/sentry/register.html:18
 msgid "Create a new account"
 msgstr "Créer un nouveau compte"
 
@@ -703,6 +731,7 @@ msgid "Access Group Migration"
 msgstr "Migration des groupes d'accès"
 
 #: templates/sentry/access-group-migration.html:67
+#: templates/sentry/organization-api-key-settings.html:40
 #: templates/sentry/organization-member-settings.html:73
 #: templates/sentry/organization-settings.html:32
 #: templates/sentry/account/appearance.html:37
@@ -710,15 +739,24 @@ msgstr "Migration des groupes d'accès"
 #: templates/sentry/account/settings.html:41
 #: templates/sentry/admin/users/edit.html:19
 #: templates/sentry/partial/_form.html:9
-#: templates/sentry/plugins/bases/issue/create_issue.html:26
-#: templates/sentry/projects/edit_key.html:78
-#: templates/sentry/projects/manage.html:50
+#: templates/sentry/plugins/bases/issue/create_issue.html:25
+#: templates/sentry/projects/edit_key.html:72
+#: templates/sentry/projects/manage.html:52
 #: templates/sentry/projects/manage_tags.html:61
 #: templates/sentry/projects/notifications.html:46
 #: templates/sentry/projects/quotas.html:37
 #: templates/sentry/teams/manage.html:47
 msgid "Save Changes"
 msgstr "Sauvegarder les modifications"
+
+#: templates/sentry/auth-confirm-identity.html:9
+#: templates/sentry/auth-confirm-link.html:9
+msgid "Confirm Identity"
+msgstr ""
+
+#: templates/sentry/auth-link-identity.html:8
+msgid "Link Identity"
+msgstr ""
 
 #: templates/sentry/create-organization-member.html:6
 #: templates/sentry/create-organization-member.html:14
@@ -766,7 +804,8 @@ msgid "Create Organization"
 msgstr "Créer une organisation"
 
 #: templates/sentry/create-project.html:5
-#: templates/sentry/bases/organization.html:21
+#: templates/sentry/organization-home.html:34
+#: templates/sentry/organization-home.html:36
 #: templates/sentry/projects/cannot_create_teams.html:5
 msgid "New Project"
 msgstr "Nouveau projet"
@@ -784,7 +823,7 @@ msgid ""
 msgstr "Les projets vous permettent de limiter les évènements à une application particulière de votre organisation. Par exemple, vous pouvez avoir des projets séparés pour les instances de production et de développement, ou des projets séparés pour application web et votre application mobile."
 
 #: templates/sentry/create-team.html:6
-#: templates/sentry/bases/organization.html:18
+#: templates/sentry/organization-home.html:14
 msgid "New Team"
 msgstr "Nouvelle équipe"
 
@@ -808,7 +847,7 @@ msgstr "Passer cette étape"
 msgid "Continue"
 msgstr "Continuer"
 
-#: templates/sentry/dashboard.html:5 templates/sentry/layout.html:165
+#: templates/sentry/dashboard.html:5 templates/sentry/layout.html:183
 msgid "Dashboard"
 msgstr "Tableau de bord"
 
@@ -861,61 +900,50 @@ msgstr "Vous n'avez accès à aucun projet. Voulez vous <a href=\"%(link)s\">cr�
 msgid "Getting Started"
 msgstr "Mise en route"
 
-#: templates/sentry/layout.html:114
+#: templates/sentry/layout.html:115
 msgid "Docs"
 msgstr "Documentation"
 
-#: templates/sentry/layout.html:120 templates/sentry/layout.html.py:126
+#: templates/sentry/layout.html:123 templates/sentry/layout.html.py:129
+#: templates/sentry/layout.html:145 templates/sentry/layout.html.py:150
 msgid "Organizations"
 msgstr "Organisations"
 
-#: templates/sentry/layout.html:141 templates/sentry/bases/account.html:31
+#: templates/sentry/layout.html:159 templates/sentry/bases/account.html:31
+#: web/forms/accounts.py:72 web/frontend/auth_organization_login.py:18
 msgid "Account"
 msgstr "Compte"
 
-#: templates/sentry/layout.html:146
+#: templates/sentry/layout.html:164
 msgid "Logout"
 msgstr "Déconnexion"
 
-#: templates/sentry/layout.html:150 templates/sentry/login.html:6
-#: templates/sentry/login.html.py:34
+#: templates/sentry/layout.html:168 templates/sentry/login.html:6
+#: templates/sentry/login.html.py:40
+#: templates/sentry/organization-login.html:8
+#: templates/sentry/organization-login.html:45
 msgid "Login"
 msgstr "Connexion"
 
-#: templates/sentry/layout.html:206
+#: templates/sentry/layout.html:225
 msgid "Contribute"
 msgstr "Contribuer"
 
-#: templates/sentry/layout.html:206
+#: templates/sentry/layout.html:225
 msgid "Translate"
 msgstr "Traduire"
 
-#: templates/sentry/login.html:11
-msgid "Please login to continue."
-msgstr "Connectez-vous pour continuer."
+#: templates/sentry/login.html:14 templates/sentry/organization-login.html:12
+msgid "New Account"
+msgstr ""
 
-#: templates/sentry/login.html:20
-msgid "Login with your Sentry account"
-msgstr "Connectez vous avec votre compte Sentry"
+#: templates/sentry/login.html:31
+msgid "Login to Sentry"
+msgstr ""
 
-#: templates/sentry/login.html:34
+#: templates/sentry/login.html:40 templates/sentry/organization-login.html:45
 msgid "Lose your password?"
 msgstr "Mot de passe perdu ?"
-
-#: templates/sentry/login.html:43
-msgid "Login or Register using another service"
-msgstr "Connectez ou enregistrez vous avec un autre service"
-
-#: templates/sentry/login.html:45
-msgid "Login using another service"
-msgstr "Connexion avec un autre service"
-
-#: templates/sentry/login.html:49 templates/sentry/register.html:38
-#, python-format
-msgid ""
-"If you already have an account, you can associate a social identity in the\n"
-"                        <a href=\"%(link)s\">identities</a> page in your account settings (after you login)."
-msgstr "Si vous avez déjà un compte, vous pouvez associer une identité sociale dans la page\n<a href=\"%(link)s\">des identités</a> dans les paramètres de votre compte (après s'être connecté)."
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
@@ -926,41 +954,12 @@ msgstr "Interdit"
 msgid "You do not have access to this page with your current permissions."
 msgstr "Vos permissions ne vous donnent pas accès à cette page."
 
-#: templates/sentry/organization-audit-log.html:6
-#: templates/sentry/bases/organization.html:54
-msgid "Audit Log"
-msgstr "Journal d'audit"
+#: templates/sentry/organization-api-key-settings.html:7
+#: templates/sentry/organization-api-key-settings.html:13
+msgid "API Key Settings"
+msgstr ""
 
-#: templates/sentry/organization-audit-log.html:18
-msgid "Sentry keeps track of important events within your Organization."
-msgstr "Sentry garde une trace des évènements importants au sein de votre organisation."
-
-#: templates/sentry/organization-member-details.html:7
-msgid "Member Details"
-msgstr "Détails du membre"
-
-#: templates/sentry/organization-member-details.html:22
-#: templates/sentry/organization-member-settings.html:31
-#: web/forms/accounts.py:133 web/forms/accounts.py:241
-msgid "Email"
-msgstr "Email"
-
-#: templates/sentry/organization-member-details.html:40
-#: web/forms/edit_organization_member.py:20
-msgid "Membership Type"
-msgstr "Type d'adhésion"
-
-#: templates/sentry/organization-member-details.html:48
-#: templates/sentry/organization-member-settings.html:52
-#: templates/sentry/bases/admin.html:17
-#: templates/sentry/bases/organization.html:38
-msgid "Teams"
-msgstr "Équipes"
-
-#: templates/sentry/organization-member-settings.html:7
-msgid "Member Settings"
-msgstr "Préférences du membre"
-
+#: templates/sentry/organization-api-key-settings.html:20
 #: templates/sentry/organization-member-settings.html:24
 #: templates/sentry/organization-settings.html:17
 #: templates/sentry/partial/form_base.html:5
@@ -968,12 +967,61 @@ msgstr "Préférences du membre"
 msgid "Please correct the errors below."
 msgstr "Corrigez les erreurs ci-dessous."
 
+#: templates/sentry/organization-api-key-settings.html:27
+msgid "Key"
+msgstr ""
+
+#: templates/sentry/organization-api-keys.html:7
+#: templates/sentry/organization-api-keys.html:19
+#: templates/sentry/bases/organization.html:75
+msgid "API Keys"
+msgstr "Clés d'API"
+
+#: templates/sentry/organization-audit-log.html:6
+#: templates/sentry/bases/organization.html:47
+msgid "Audit Log"
+msgstr "Journal d'audit"
+
+#: templates/sentry/organization-audit-log.html:18
+msgid "Sentry keeps track of important events within your Organization."
+msgstr "Sentry garde une trace des évènements importants au sein de votre organisation."
+
+#: templates/sentry/organization-home.html:11
+msgid "Create a new Team"
+msgstr ""
+
+#: templates/sentry/organization-member-details.html:7
+msgid "Member Details"
+msgstr "Détails du membre"
+
+#: templates/sentry/organization-member-details.html:22
+#: templates/sentry/organization-member-settings.html:31
+#: web/forms/accounts.py:138 web/forms/accounts.py:248
+msgid "Email"
+msgstr "Email"
+
+#: templates/sentry/organization-member-details.html:40
+msgid "Role"
+msgstr ""
+
+#: templates/sentry/organization-member-details.html:48
+#: templates/sentry/organization-member-settings.html:52
+#: templates/sentry/bases/admin.html:23
+#: templates/sentry/bases/organization.html:34
+msgid "Teams"
+msgstr "Équipes"
+
+#: templates/sentry/organization-member-settings.html:7
+msgid "Member Settings"
+msgstr "Préférences du membre"
+
 #: templates/sentry/organization-member-settings.html:72
 msgid "Resend Invite"
 msgstr "Renvoyer l'invitation"
 
 #: templates/sentry/organization-members.html:7
-#: templates/sentry/bases/organization.html:49
+#: templates/sentry/organization-members.html:13
+#: templates/sentry/bases/organization.html:55
 msgid "Members"
 msgstr "Membres"
 
@@ -991,23 +1039,17 @@ msgid "Remove Organization"
 msgstr "Supprimer l'organisation"
 
 #: templates/sentry/organization-stats.html:7
-#: templates/sentry/admin/stats.html:8
-#: templates/sentry/bases/organization.html:44
+#: templates/sentry/bases/organization.html:40
 msgid "Stats"
 msgstr "Stats"
 
-#: templates/sentry/register.html:6 templates/sentry/register.html.py:28
+#: templates/sentry/register.html:6 templates/sentry/register.html.py:31
 msgid "Register"
 msgstr "Inscription"
 
-#: templates/sentry/register.html:35
-msgid "Register using another service"
-msgstr "Inscription avec un autre service"
-
-#: templates/sentry/register.html:43
-#, python-format
-msgid "Sign in with %(service)s"
-msgstr "Connexion avec %(service)s"
+#: templates/sentry/register.html:29
+msgid "Already have an account?"
+msgstr ""
 
 #: templates/sentry/remove-organization.html:16
 msgid "Removing this organization is permanent and cannot be undone!"
@@ -1075,6 +1117,7 @@ msgid ""
 msgstr "Les alertes sont généralement envoyés lorsqu'un nouvel évènement\nest vu, un évènement déjà résolu change en non résolu, ou\nun pic d'évènements est détecté."
 
 #: templates/sentry/account/notifications.html:47
+#: templates/sentry/bases/admin.html:16
 #: templates/sentry/projects/notifications.html:24
 msgid "General"
 msgstr "Général"
@@ -1092,7 +1135,7 @@ msgid ""
 msgstr "Note : Vous ne recevrez jamais de notifications si un projet les a désactivé (via les paramètres du projet)"
 
 #: templates/sentry/account/notifications.html:72
-#: web/frontend/project_settings.py:59
+#: web/frontend/project_settings.py:26
 msgid "Project Name"
 msgstr "Nom du projet"
 
@@ -1124,8 +1167,8 @@ msgstr "Votre mot de passe n'était pas valide."
 #: templates/sentry/account/recover/confirm.html:11
 #: templates/sentry/account/recover/failure.html:6
 #: templates/sentry/account/recover/failure.html:11
-#: templates/sentry/account/recover/index.html:6
-#: templates/sentry/account/recover/index.html:11
+#: templates/sentry/account/recover/index.html:8
+#: templates/sentry/account/recover/index.html:14
 #: templates/sentry/account/recover/sent.html:6
 #: templates/sentry/account/recover/sent.html:11
 msgid "Recover Account"
@@ -1147,13 +1190,13 @@ msgid ""
 "again</a>."
 msgstr "Nous n'avons pas été en mesure de confirmer votre identité. Soit le lien que vous avez suivis est invalide, soit il a expiré. Vous pouvez toujours <a href=\"%(link)s\">réessayer</a>."
 
-#: templates/sentry/account/recover/index.html:13
+#: templates/sentry/account/recover/index.html:15
 msgid ""
 "To recover a lost account, you will need to know your account's username. We will send a confirmation\n"
-"            email to this address which allows you to change your password."
-msgstr "Pour retrouver un compte perdu, vous devez connaitre le nom d'utilisateur de votre compte. Nous enverrons un email de confirmation à cette adresse vous permettant de changer votre mot de passe."
+"        email to this address which allows you to change your password."
+msgstr ""
 
-#: templates/sentry/account/recover/index.html:26
+#: templates/sentry/account/recover/index.html:28
 msgid "Send Email"
 msgstr "Envoyer l'email"
 
@@ -1163,9 +1206,13 @@ msgid ""
 " further instructions to reset your password."
 msgstr "Nous avons envoyé un email à l'adresse enregistrée avec ce compte et contenant de plus amples instructions pour réinitialiser votre mot de passe."
 
-#: templates/sentry/admin/stats.html:12 templates/sentry/bases/admin.html:41
-msgid "Statistics"
-msgstr "Statistiques"
+#: templates/sentry/admin/stats.html:8 templates/sentry/bases/admin.html:18
+msgid "Overview"
+msgstr "Vue d'ensemble"
+
+#: templates/sentry/admin/stats.html:12
+msgid "System Overview"
+msgstr ""
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
@@ -1174,7 +1221,7 @@ msgstr "Gérer vos projets"
 #: templates/sentry/admin/projects/list.html:18
 #: templates/sentry/admin/projects/list.html:72
 #: templates/sentry/admin/teams/list.html:18
-#: templates/sentry/admin/teams/list.html:73
+#: templates/sentry/admin/teams/list.html:64
 #: templates/sentry/admin/users/list.html:16
 #: templates/sentry/admin/users/list.html:74
 #: templates/sentry/explore/tag_details.html:35
@@ -1201,7 +1248,7 @@ msgstr "Précédent"
 #: templates/sentry/admin/projects/list.html:19
 #: templates/sentry/admin/projects/list.html:73
 #: templates/sentry/admin/teams/list.html:19
-#: templates/sentry/admin/teams/list.html:74
+#: templates/sentry/admin/teams/list.html:65
 #: templates/sentry/admin/users/list.html:17
 #: templates/sentry/admin/users/list.html:75
 #: templates/sentry/explore/tag_details.html:36
@@ -1251,12 +1298,11 @@ msgid "There are no active projects in Sentry."
 msgstr "Aucun project actif dans Sentry."
 
 #: templates/sentry/admin/status/env.html:9
-#: templates/sentry/bases/admin.html:35
 msgid "Server Status"
 msgstr "Statut du serveur"
 
 #: templates/sentry/admin/status/env.html:13
-#: templates/sentry/bases/admin.html:37
+#: templates/sentry/bases/admin.html:43
 msgid "Environment"
 msgstr "Environnement"
 
@@ -1300,7 +1346,7 @@ msgstr "Adresse d'envoi"
 msgid "Host"
 msgstr "Serveur"
 
-#: templates/sentry/admin/status/mail.html:29 web/forms/accounts.py:240
+#: templates/sentry/admin/status/mail.html:29 web/forms/accounts.py:247
 msgid "Username"
 msgstr "Nom d'utilisateur"
 
@@ -1309,7 +1355,8 @@ msgstr "Nom d'utilisateur"
 msgid "not set"
 msgstr "non configuré"
 
-#: templates/sentry/admin/status/mail.html:33 web/forms/accounts.py:74
+#: templates/sentry/admin/status/mail.html:33 web/forms/accounts.py:73
+#: web/frontend/auth_organization_login.py:23
 msgid "Password"
 msgstr "Mot de passe"
 
@@ -1341,7 +1388,7 @@ msgid "Send a test email to %(email)s"
 msgstr "Envoyer un email de test à %(email)s"
 
 #: templates/sentry/admin/status/packages.html:8
-#: templates/sentry/bases/admin.html:38
+#: templates/sentry/bases/admin.html:44
 msgid "Packages"
 msgstr "Paquetages"
 
@@ -1368,11 +1415,11 @@ msgstr "Equipe"
 #: templates/sentry/admin/teams/list.html:36
 #: templates/sentry/admin/users/edit.html:28
 #: templates/sentry/admin/users/list_projects.html:7
-#: templates/sentry/bases/admin.html:18
+#: templates/sentry/bases/admin.html:24
 msgid "Projects"
 msgstr "Projets"
 
-#: templates/sentry/admin/teams/list.html:68
+#: templates/sentry/admin/teams/list.html:59
 msgid "There are no active teams in Sentry."
 msgstr "Il n'y a aucune équipe active dans Sentry."
 
@@ -1399,7 +1446,7 @@ msgid "Manage Users"
 msgstr "Gérer les utilisateurs"
 
 #: templates/sentry/admin/users/list.html:32 web/forms/__init__.py:34
-#: web/forms/accounts.py:242 web/forms/add_project.py:14
+#: web/forms/accounts.py:249 web/forms/add_project.py:14
 #: web/forms/add_team.py:10
 msgid "Name"
 msgstr "Nom"
@@ -1447,7 +1494,7 @@ msgid "When:"
 msgstr "Quand : "
 
 #: templates/sentry/alerts/list.html:6 templates/sentry/alerts/team.html:6
-#: templates/sentry/projects/notifications.html:34
+#: templates/sentry/projects/notifications.html:34 web/forms/accounts.py:186
 msgid "Alerts"
 msgstr "Alertes"
 
@@ -1458,31 +1505,35 @@ msgstr "Alertes récentes"
 #: templates/sentry/bases/account.html:6
 #: templates/sentry/bases/account.html:30
 #: templates/sentry/bases/explore.html:20
-#: templates/sentry/bases/organization.html:59
+#: templates/sentry/bases/organization.html:82
 #: templates/sentry/bases/settings.html:18
 #: templates/sentry/bases/stream.html:26
-#: templates/sentry/projects/manage.html:70
+#: templates/sentry/projects/manage.html:76
 msgid "Settings"
 msgstr "Préférences"
 
 #: templates/sentry/bases/account.html:33
-#: templates/sentry/projects/manage.html:73
+#: templates/sentry/projects/manage.html:79
 #: templates/sentry/projects/notifications.html:7
 #: templates/sentry/projects/notifications.html:11
 msgid "Notifications"
 msgstr "Notifications"
 
-#: templates/sentry/bases/admin.html:15 templates/sentry/bases/admin.html:43
-msgid "Overview"
-msgstr "Vue d'ensemble"
+#: templates/sentry/bases/admin.html:21
+msgid "Manage"
+msgstr ""
 
-#: templates/sentry/bases/admin.html:19
+#: templates/sentry/bases/admin.html:25
 msgid "Users"
 msgstr "Utilisateurs"
 
-#: templates/sentry/bases/admin.html:24
+#: templates/sentry/bases/admin.html:30
 msgid "Plugins"
 msgstr "Extensions"
+
+#: templates/sentry/bases/admin.html:41
+msgid "System"
+msgstr ""
 
 #: templates/sentry/bases/explore.html:12
 #: templates/sentry/bases/settings.html:12
@@ -1500,13 +1551,21 @@ msgstr "Explorer"
 msgid "About Explore"
 msgstr "A propos d'Explore"
 
-#: templates/sentry/bases/organization.html:7
+#: templates/sentry/bases/organization.html:8
 msgid "Organization Settings"
 msgstr "Paramètres de l'organisation"
 
-#: templates/sentry/bases/organization.html:24
+#: templates/sentry/bases/organization.html:18
+msgid "Invite Member"
+msgstr ""
+
+#: templates/sentry/bases/organization.html:21
 msgid "New Member"
 msgstr "Nouveau membre"
+
+#: templates/sentry/bases/organization.html:67
+msgid "Auth"
+msgstr ""
 
 #: templates/sentry/bases/stream.html:11
 msgid "Search query or event ID"
@@ -1543,7 +1602,7 @@ msgid ""
 msgstr "Il ne semble y avoir aucun tag dans le système actuellement. Pour plus d'information sur la manière de tagger les données, vérifiez la documentation de votre client."
 
 #: templates/sentry/explore/tag_value_details.html:10
-#: templates/sentry/projects/manage.html:68
+#: templates/sentry/projects/manage.html:74
 msgid "Details"
 msgstr "Détails"
 
@@ -1602,7 +1661,7 @@ msgstr "Échantillon plus ancien"
 
 #: templates/sentry/groups/details.html:81
 #: templates/sentry/partial/event_nav.html:27
-#: templates/sentry/projects/manage.html:82
+#: templates/sentry/projects/manage.html:90
 msgid "Tags"
 msgstr "Tags"
 
@@ -1775,19 +1834,19 @@ msgstr "Versions des paquets"
 msgid "Test Configuration"
 msgstr "Configuration du Test"
 
-#: templates/sentry/partial/data_values.html:13
+#: templates/sentry/partial/data_values.html:16
 msgid "Index"
 msgstr "Index"
 
-#: templates/sentry/partial/data_values.html:15
+#: templates/sentry/partial/data_values.html:17
 msgid "Value"
 msgstr "Valeur"
 
-#: templates/sentry/partial/data_values.html:40
+#: templates/sentry/partial/data_values.html:42
 msgid "Collapse Context"
 msgstr "Fermer le contexte"
 
-#: templates/sentry/partial/data_values.html:41
+#: templates/sentry/partial/data_values.html:43
 #, python-format
 msgid "Expand Context (%(num)s hidden)"
 msgstr "Elargir le contexte (%(num)s cachés)"
@@ -1818,8 +1877,7 @@ msgstr "Enregistrez une instance du middleware Connection <strong>après le gest
 #: templates/sentry/partial/client_config/express.html:17
 #: templates/sentry/partial/client_config/flask.html:19
 #: templates/sentry/partial/client_config/ios.html:23
-#: templates/sentry/partial/client_config/rails3.html:14
-#: templates/sentry/partial/client_config/rails4.html:14
+#: templates/sentry/partial/client_config/rails3.html:18
 #: templates/sentry/partial/client_config/sinatra.html:20
 msgid ""
 "That's it! Raven automatically installs an error handling hook to pipe all "
@@ -1870,9 +1928,7 @@ msgid "Add raven to the list of installed apps"
 msgstr "Ajoutez raven à la liste des applications installées"
 
 #: templates/sentry/partial/client_config/django.html:21
-#: templates/sentry/partial/client_config/python.html:29
-#: templates/sentry/partial/client_config/rails3.html:16
-#: templates/sentry/partial/client_config/rails4.html:16
+#: templates/sentry/partial/client_config/python.html:40
 msgid ""
 "If you wish to test your connection to the server, you can use the raven "
 "test command:"
@@ -1905,7 +1961,7 @@ msgstr "Commencez par installer <a href=\"%(link)s\">raven-go</a>."
 msgid ""
 "For more information on other uses of Raven with Go, please see the <a "
 "href=\"%(link)s\">official documentation for raven-go</a>."
-msgstr ""
+msgstr "Pour plus d'information sur les autres usages de Raven avec Go, veuillez vous référer à <a href=\"%(link)s\">la documentation officielle de raven-go</a>."
 
 #: templates/sentry/partial/client_config/ios.html:3
 #, python-format
@@ -1935,10 +1991,10 @@ msgid "You can manually send events using the EventBuilder:"
 msgstr "Vous pouvez envoyer des évènements manuellement avec EventBuilder :"
 
 #: templates/sentry/partial/client_config/java.html:18
-#: templates/sentry/partial/client_config/javascript.html:32
+#: templates/sentry/partial/client_config/javascript.html:35
 #: templates/sentry/partial/client_config/node.js.html:23
-#: templates/sentry/partial/client_config/php.html:17
-#: templates/sentry/partial/client_config/python.html:14
+#: templates/sentry/partial/client_config/php.html:20
+#: templates/sentry/partial/client_config/python.html:25
 msgid "record a simple message"
 msgstr "enregistrer un message simple"
 
@@ -1985,25 +2041,25 @@ msgstr "Ajouter n'importe URLs qui servira au log des erreurs dans la configurat
 msgid "Configure the client:"
 msgstr "Configurer le client : "
 
-#: templates/sentry/partial/client_config/javascript.html:22
+#: templates/sentry/partial/client_config/javascript.html:25
 msgid "Add additional user context if it's available:"
 msgstr "Ajouter un contexte utilisateur additionnel si disponible :"
 
-#: templates/sentry/partial/client_config/javascript.html:29
+#: templates/sentry/partial/client_config/javascript.html:32
 #: templates/sentry/partial/client_config/node.js.html:21
-#: templates/sentry/partial/client_config/php.html:15
-#: templates/sentry/partial/client_config/python.html:12
+#: templates/sentry/partial/client_config/php.html:18
+#: templates/sentry/partial/client_config/python.html:23
 msgid "Now call out to the raven client to capture events:"
 msgstr "Appelez maintenant le client raven pour capturer les évènements : "
 
-#: templates/sentry/partial/client_config/javascript.html:35
+#: templates/sentry/partial/client_config/javascript.html:38
 #: templates/sentry/partial/client_config/node.js.html:26
-#: templates/sentry/partial/client_config/php.html:20
-#: templates/sentry/partial/client_config/python.html:17
+#: templates/sentry/partial/client_config/php.html:23
+#: templates/sentry/partial/client_config/python.html:28
 msgid "capture an exception"
 msgstr "capturer une exception"
 
-#: templates/sentry/partial/client_config/javascript.html:42
+#: templates/sentry/partial/client_config/javascript.html:45
 #, python-format
 msgid ""
 "For more information on other uses of Raven with Javascript, please see the "
@@ -2018,7 +2074,7 @@ msgid "Create an instance of the client:"
 msgstr "Créez une instance du client : "
 
 #: templates/sentry/partial/client_config/node.js.html:17
-#: templates/sentry/partial/client_config/php.html:28
+#: templates/sentry/partial/client_config/php.html:31
 msgid ""
 "You can also optionally install a default error handler to catch all "
 "exceptions:"
@@ -2033,13 +2089,13 @@ msgstr "Commencez par installer <a href=\"%(link)s\">raven-php</a>."
 msgid "Register the autoloader:"
 msgstr "Enregistrez l'autoloader : "
 
-#: templates/sentry/partial/client_config/php.html:36
+#: templates/sentry/partial/client_config/php.html:39
 msgid ""
 "<strong>Note:</strong> We dont recommend registering the generic error "
 "handler as it can be quite noisey."
 msgstr "<strong>Note :</strong> Nous ne recommendons pas l'utilisation du gestionnaire d'erreur générique car il peut être assez bruyant."
 
-#: templates/sentry/partial/client_config/php.html:38
+#: templates/sentry/partial/client_config/php.html:41
 #, python-format
 msgid ""
 "For more information on other uses of Raven with PHP, please see the <a "
@@ -2066,7 +2122,7 @@ msgid ""
 "<em>SentryHandler</em>:"
 msgstr "Ajouter les lignes suivantes au fichier <em>.ini</em> de votre projet pour configurer le <em>SentryHandler</em>&nbsp;:"
 
-#: templates/sentry/partial/client_config/python.html:23
+#: templates/sentry/partial/client_config/python.html:34
 msgid ""
 "If you want to wrap a WSGI app to record uncaught exceptions, Raven provides"
 " a middleware for that:"
@@ -2109,7 +2165,6 @@ msgid ""
 msgstr "Pour plus d'informations sur les autres utilisations du paquet logging, veuillez consulter <a href=\"%(link)s\">la documentation officielle de r-logging</a>."
 
 #: templates/sentry/partial/client_config/rails3.html:6
-#: templates/sentry/partial/client_config/rails4.html:6
 msgid "Add a <code>config/initializers/raven.rb</code> containing:"
 msgstr "Ajouter un <code>config/initializers/raven.rb</code> contenant : "
 
@@ -2252,22 +2307,22 @@ msgid "Stacktrace"
 msgstr "Stacktrace"
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:16
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:38
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:42
 msgid "Original Location"
 msgstr "Emplacement original"
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:18
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:40
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:44
 msgid "Filename"
 msgstr "Nom du fichier"
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:26
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:49
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:53
 msgid "Line Number"
 msgstr "Numéro de ligne"
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:28
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:53
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:57
 msgid "Column Number"
 msgstr "Numéro de colonne"
 
@@ -2275,7 +2330,7 @@ msgstr "Numéro de colonne"
 msgid "Sourcemap"
 msgstr "Sourcemap"
 
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:78
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:86
 #: templates/sentry/partial/interfaces/template.html:12
 msgid "Toggle Context"
 msgstr "Basculer le contexte"
@@ -2285,18 +2340,22 @@ msgid "Template Error"
 msgstr "Erreur avec un template"
 
 #: templates/sentry/partial/interfaces/user.html:25
+#: templates/sentry/partial/interfaces/user_email.html:18
 msgid "ID:"
 msgstr "ID : "
 
 #: templates/sentry/partial/interfaces/user.html:31
+#: templates/sentry/partial/interfaces/user_email.html:24
 msgid "IP Address:"
 msgstr "Adresse IP :"
 
 #: templates/sentry/partial/interfaces/user.html:37
+#: templates/sentry/partial/interfaces/user_email.html:30
 msgid "Username:"
 msgstr "Nom d'utilisateur :"
 
 #: templates/sentry/partial/interfaces/user.html:43
+#: templates/sentry/partial/interfaces/user_email.html:36
 msgid "Email:"
 msgstr "Email :"
 
@@ -2304,21 +2363,21 @@ msgstr "Email :"
 msgid "Changes to your configuration were saved successfully."
 msgstr "Les changements de votre configuration ont été sauvegardés avec succès."
 
-#: templates/sentry/plugins/bases/issue/needs_auth.html:14
+#: templates/sentry/plugins/bases/issue/needs_auth.html:13
 #, python-format
 msgid ""
 "You still need to <a href=\"%(link)s\">associate an identity</a> with %(title)s before you can\n"
-"            create issues with this service."
-msgstr "Vous devez toujours <a href=\"%(link)s\">associer une identité</a> avec %(title)s avec de pouvoir créer des issues avec ce service."
+"        create issues with this service."
+msgstr ""
 
-#: templates/sentry/plugins/bases/issue/not_configured.html:14
+#: templates/sentry/plugins/bases/issue/not_configured.html:13
 #, python-format
 msgid ""
 "Your server administrator will need to configure authentication with\n"
-"                <strong>%(auth_provider)s</strong> before you can use this plugin."
-msgstr "Votre administrateur système devra configurer l'authentification avec <strong>%(auth_provider)s</strong> avant que vous puissiez utiliser ce plugin."
+"            <strong>%(auth_provider)s</strong> before you can use this plugin."
+msgstr ""
 
-#: templates/sentry/plugins/bases/issue/not_configured.html:24
+#: templates/sentry/plugins/bases/issue/not_configured.html:23
 #, python-format
 msgid ""
 "You still need to <a href=\"%(link)s\">configure this plugin</a> before you "
@@ -2340,11 +2399,11 @@ msgstr "Vous ne pouvez pas créer de nouveau projet car vous n'êtes membre d'au
 msgid "Edit API Key"
 msgstr "Éditer la clé d'API"
 
-#: templates/sentry/projects/edit_key.html:28
+#: templates/sentry/projects/edit_key.html:22
 msgid "Created"
 msgstr "Créé"
 
-#: templates/sentry/projects/edit_key.html:37
+#: templates/sentry/projects/edit_key.html:31
 msgid ""
 "Your credentials are bound to public and secret key (though both should be "
 "considered semi-secret). Different clients will require different "
@@ -2352,122 +2411,128 @@ msgid ""
 " in."
 msgstr "Vos identifiants sont liés à une clé publique et une clé privée (bien que les deux doivent être considérés semi-secret). Des clients différents requèreront des identifiants différents, soyez donc sûr de vérifier la documentation avant de connecter quoi que ce soit."
 
-#: templates/sentry/projects/edit_key.html:39
+#: templates/sentry/projects/edit_key.html:33
 msgid "DSN"
 msgstr "DSN"
 
-#: templates/sentry/projects/edit_key.html:45
+#: templates/sentry/projects/edit_key.html:39
 msgid "DSN (Public)"
 msgstr "DSN (Publique)"
 
-#: templates/sentry/projects/edit_key.html:46
+#: templates/sentry/projects/edit_key.html:40
 #, python-format
 msgid ""
 "Use your public DSN with insecure clients such as <a href=\"%(link)s"
 "\">raven-js</a>."
 msgstr "Utilisez votre DSN public avec les clients non-sécurisés comme <a href=\"%(link)s\">raven-js</a>."
 
-#: templates/sentry/projects/edit_key.html:52
+#: templates/sentry/projects/edit_key.html:46
 msgid "Public Key"
 msgstr "Clé publique"
 
-#: templates/sentry/projects/edit_key.html:58
+#: templates/sentry/projects/edit_key.html:52
 msgid "Secret Key"
 msgstr "Clé secrète"
 
-#: templates/sentry/projects/edit_key.html:64
+#: templates/sentry/projects/edit_key.html:58
 msgid "Project ID"
 msgstr "ID de projet"
 
 #: templates/sentry/projects/keys.html:7
 #: templates/sentry/projects/keys.html:15
-msgid "Manage API Keys"
-msgstr "Gérer les clés d'API"
+msgid "Manage Client Keys"
+msgstr ""
 
 #: templates/sentry/projects/keys.html:12
 msgid "Generate New Key"
 msgstr "Générer une nouvelle clé"
 
 #: templates/sentry/projects/keys.html:25
-msgid "API Key"
-msgstr "Clé d'API"
+msgid "Client Key"
+msgstr ""
 
-#: templates/sentry/projects/keys.html:48
+#: templates/sentry/projects/keys.html:45
 msgid "Disable"
-msgstr ""
+msgstr "Désactiver"
 
-#: templates/sentry/projects/keys.html:53
+#: templates/sentry/projects/keys.html:50
 msgid "Enable"
-msgstr ""
+msgstr "Activer"
 
-#: templates/sentry/projects/keys.html:60
+#: templates/sentry/projects/keys.html:57
 msgid "Revoke"
 msgstr "Révoquer"
 
-#: templates/sentry/projects/manage.html:18
+#: templates/sentry/projects/manage.html:19
 msgid "Project Details"
 msgstr "Détails du projet"
 
-#: templates/sentry/projects/manage.html:32
+#: templates/sentry/projects/manage.html:33
 msgid "Event Settings"
 msgstr "Paramètres d'évènement"
 
-#: templates/sentry/projects/manage.html:41
+#: templates/sentry/projects/manage.html:43
 msgid "Client Security"
 msgstr "Sécurité du client"
 
-#: templates/sentry/projects/manage.html:43
+#: templates/sentry/projects/manage.html:45
 #, python-format
 msgid ""
 "Configure origin URLs which Sentry should accept events from. This is used "
 "for communication with clients like <a href=\"%(link)s\">raven-js</a>."
 msgstr "Configurer les URLs d'origine pour lesquelles Sentry doit accepter les évènements. Ceci est utilisé pour la communication avec les clients comme <a href=\"%(link)s\">raven-js</a>."
 
-#: templates/sentry/projects/manage.html:44
+#: templates/sentry/projects/manage.html:46
 msgid ""
 "This will restrict requests based on the <code>Origin</code> and "
 "<code>Referer</code> headers."
 msgstr "Ceci limitera les requêtes en se basant sur les en-têtes <code>Origin</code> et <code>Referer</code>."
 
-#: templates/sentry/projects/manage.html:52
+#: templates/sentry/projects/manage.html:55
+#: templates/sentry/projects/manage.html:57
+#: templates/sentry/projects/manage.html:60
 #: templates/sentry/projects/remove.html:6
 #: templates/sentry/projects/remove.html:18
 msgid "Remove Project"
 msgstr "Supprimer le projet"
 
-#: templates/sentry/projects/manage.html:54
+#: templates/sentry/projects/manage.html:57
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
 msgstr "Ce projet ne peut pas être supprimé. Il est utilisé en interne par le serveur Sentry."
 
-#: templates/sentry/projects/manage.html:76
+#: templates/sentry/projects/manage.html:60
+msgid "You do not have the required permission to remove this project."
+msgstr ""
+
+#: templates/sentry/projects/manage.html:83
 #: templates/sentry/projects/quotas.html:7
 #: templates/sentry/projects/quotas.html:11
 msgid "Rate Limits"
 msgstr "Limites du taux"
 
-#: templates/sentry/projects/manage.html:79
+#: templates/sentry/projects/manage.html:87
 #: templates/sentry/projects/rules/list.html:8
 msgid "Rules"
 msgstr "Règles"
 
-#: templates/sentry/projects/manage.html:85
-msgid "API Keys"
-msgstr "Clés d'API"
+#: templates/sentry/projects/manage.html:93
+msgid "Client Keys"
+msgstr ""
 
-#: templates/sentry/projects/manage.html:87
+#: templates/sentry/projects/manage.html:95
 msgid "Help"
-msgstr ""
+msgstr "Aide"
 
-#: templates/sentry/projects/manage.html:89
+#: templates/sentry/projects/manage.html:97
 msgid "Setup &amp; Installation"
-msgstr ""
+msgstr "Configuration &amp; installation"
 
-#: templates/sentry/projects/manage.html:92
+#: templates/sentry/projects/manage.html:100
 msgid "Integrations"
 msgstr "Intégrations"
 
-#: templates/sentry/projects/manage.html:94
+#: templates/sentry/projects/manage.html:102
 #: templates/sentry/projects/plugins/list.html:7
 #: templates/sentry/projects/plugins/list.html:11
 msgid "Manage Integrations"
@@ -2589,29 +2654,29 @@ msgid "Enabled"
 msgstr "Activé"
 
 #: templates/sentry/projects/rules/list.html:7
-#: templates/sentry/projects/rules/new.html:13
+#: templates/sentry/projects/rules/new.html:19
 msgid "New Rule"
 msgstr "Nouvelle règle"
 
-#: templates/sentry/projects/rules/new.html:11
+#: templates/sentry/projects/rules/new.html:17
 msgid "Edit Rule"
 msgstr "Editer la règle"
 
-#: templates/sentry/projects/rules/new.html:24
+#: templates/sentry/projects/rules/new.html:30
 msgid ""
 "There were errors with your submission. Please ensure all options are filled"
 " out correctly."
 msgstr "Des erreurs se sont produites lors de votre envoi. Veuillez vérifier que toutes les options sont remplies correctement."
 
-#: templates/sentry/projects/rules/new.html:32
+#: templates/sentry/projects/rules/new.html:38
 msgid "Label:"
 msgstr "Étiquette :"
 
-#: templates/sentry/projects/rules/new.html:32
+#: templates/sentry/projects/rules/new.html:38
 msgid "e.g. My Rule Name"
 msgstr "par exemple Nom De Ma Règle"
 
-#: templates/sentry/projects/rules/new.html:71
+#: templates/sentry/projects/rules/new.html:77
 msgid "Save Rule"
 msgstr "Enregistrer la règle"
 
@@ -2623,10 +2688,14 @@ msgstr "Liste des équipes"
 msgid "Team Settings"
 msgstr "Préférences d'équipe"
 
-#: templates/sentry/teams/manage.html:49 templates/sentry/teams/remove.html:6
-#: templates/sentry/teams/remove.html:14
+#: templates/sentry/teams/manage.html:49 templates/sentry/teams/manage.html:51
+#: templates/sentry/teams/remove.html:6 templates/sentry/teams/remove.html:14
 msgid "Remove Team"
 msgstr "Supprimer l'équipe"
+
+#: templates/sentry/teams/manage.html:51
+msgid "You do not have the required permission to remove this team."
+msgstr ""
 
 #: templates/sentry/teams/remove.html:19
 msgid ""
@@ -2711,92 +2780,96 @@ msgstr "Désactiver ce compte."
 msgid "Permanently remove the user and their data."
 msgstr "Effacer l'utilisateur et ses informations de façon permanente."
 
-#: web/forms/accounts.py:73 web/forms/accounts.py:160
-msgid "Username or email"
-msgstr "Nom d'utilisateur ou email"
-
-#: web/forms/accounts.py:77
+#: web/forms/accounts.py:76
 #, python-format
 msgid ""
 "Please enter a correct %(username)s and password. Note that both fields may "
 "be case-sensitive."
 msgstr "Veuillez entrez un %(username)s et mot de passe valide. Notez que les deux champs peuvent être sensibles à la casse."
 
-#: web/forms/accounts.py:79
+#: web/forms/accounts.py:78
 msgid ""
 "Your Web browser doesn't appear to have cookies enabled. Cookies are "
 "required for logging in."
 msgstr "Votre navigateur web ne semble pas autoriser les cookies. Les cookies sont obligatoire pour se connecter."
 
-#: web/forms/accounts.py:81
+#: web/forms/accounts.py:80
 msgid "This account is inactive."
 msgstr "Ce compte est inactif."
 
-#: web/forms/accounts.py:147
+#: web/forms/accounts.py:152
 msgid "An account is already registered with that email address."
 msgstr "Un compte est déjà enregistré avec cette adresse email."
 
-#: web/forms/accounts.py:167
+#: web/forms/accounts.py:165
+msgid "Username or email"
+msgstr "Nom d'utilisateur ou email"
+
+#: web/forms/accounts.py:173
 msgid "We were unable to find a matching user."
 msgstr "Nous n'avons pas trouvé d'utilisateur correspondant."
 
-#: web/forms/accounts.py:169
+#: web/forms/accounts.py:175
 msgid "Multiple accounts were found matching this email address."
 msgstr "Plusieurs comptes correspondent à cette adresse email."
 
-#: web/forms/accounts.py:179
+#: web/forms/accounts.py:184
 msgid "Designate an alternative email address to send email notifications to."
 msgstr "Désigne une adresse email alternative à la quelle envoyer les notifications."
 
-#: web/forms/accounts.py:182
+#: web/forms/accounts.py:188
 msgid "Automatically subscribe to notifications for new projects"
 msgstr "S'inscrire automatiquement aux notifications pour les nouveaux projets"
 
-#: web/forms/accounts.py:183
+#: web/forms/accounts.py:189
 msgid "Do not subscribe to notifications for new projects"
 msgstr "Ne pas souscrire aux notifications pour les nouveaux projets"
 
-#: web/forms/accounts.py:188
+#: web/forms/accounts.py:193
+msgid "Notes"
+msgstr ""
+
+#: web/forms/accounts.py:195
 msgid "Get notified about new notes"
 msgstr "Etre averti lors de l'ajout de notes"
 
-#: web/forms/accounts.py:189
+#: web/forms/accounts.py:196
 msgid "Do not subscribe to note notifications"
 msgstr "Ne pas s'inscrire aux notifications de notes."
 
-#: web/forms/accounts.py:243
+#: web/forms/accounts.py:250
 msgid "New password"
 msgstr "Nouveau mot de passe"
 
-#: web/forms/accounts.py:282
+#: web/forms/accounts.py:289
 msgid "That username is already in use."
 msgstr "Ce pseudonyme est déjà utilisé."
 
-#: web/forms/accounts.py:310
+#: web/forms/accounts.py:317
 msgid "Language"
 msgstr "Langue"
 
-#: web/forms/accounts.py:313
+#: web/forms/accounts.py:320
 msgid "Stacktrace order"
 msgstr "Ordre de la stacktrace"
 
-#: web/forms/accounts.py:314
+#: web/forms/accounts.py:321
 msgid "Default (let Sentry decide)"
 msgstr "Défaut (laisse Sentry décider)"
 
-#: web/forms/accounts.py:315
+#: web/forms/accounts.py:322
 msgid "Most recent call last"
 msgstr "Appel le plus récent en dernier"
 
-#: web/forms/accounts.py:316
+#: web/forms/accounts.py:323
 msgid "Most recent call first"
 msgstr "Appel le plus récent en premier"
 
-#: web/forms/accounts.py:317
+#: web/forms/accounts.py:324
 msgid "Choose the default ordering of frames in stacktraces."
 msgstr "Choisissez l'ordre pas défaut des frames dans les stacktraces."
 
-#: web/forms/accounts.py:321
+#: web/forms/accounts.py:328
 msgid "Time zone"
 msgstr "Fuseau horaire"
 
@@ -2804,7 +2877,7 @@ msgstr "Fuseau horaire"
 msgid "e.g. Backend, Frontend, iOS, Android"
 msgstr "ex : Backend, Frontend, iOS, Android"
 
-#: web/forms/add_project.py:22 web/frontend/project_settings.py:62
+#: web/forms/add_project.py:22 web/frontend/project_settings.py:29
 msgid "Select a platform"
 msgstr "Sélectionnez une plateform"
 
@@ -2812,17 +2885,25 @@ msgstr "Sélectionnez une plateform"
 msgid "E.g. Platform, API, Website, ..."
 msgstr "Ex : Plateforme, API, Site web, ..."
 
+#: web/forms/edit_organization_member.py:20
+msgid "Membership Type"
+msgstr "Type d'adhésion"
+
 #: web/forms/edit_organization_member.py:22
 msgid "This member should have access to all teams within the organization."
 msgstr "Ce membre devrait avoir accès à toutes les équipes de l'organisation."
 
-#: web/forms/fields.py:77
+#: web/forms/fields.py:79
 msgid "Invalid username"
 msgstr "Nom d'utilisateur invalide"
 
-#: web/forms/fields.py:99
+#: web/forms/fields.py:101
 msgid "Not set"
 msgstr "Non configuré"
+
+#: web/forms/fields.py:125
+msgid "e.g. example.com or https://example.com"
+msgstr "ex: exemple.com ou https://exemple.com"
 
 #: web/forms/projects.py:20
 msgid "Threshold"
@@ -2887,21 +2968,41 @@ msgstr "Les membres gagneront ce niveau d'accès pour tous les projets assignés
 msgid "Invalid project"
 msgstr "Projet invalide"
 
-#: web/frontend/accept_organization_invite.py:34
-#: web/frontend/accept_organization_invite.py:42
-#: web/frontend/accept_organization_invite.py:50
-msgid "The invite link you followed is no longer valid."
-msgstr "Le lien d'invitation que vous avez suivi a expiré."
+#: web/frontend/accept_organization_invite.py:13
+msgid "The invite link you followed is not valid."
+msgstr ""
 
-#: web/frontend/accept_organization_invite.py:87
+#: web/frontend/accept_organization_invite.py:89
 #, python-format
 msgid "You are already a member of the %r organization."
 msgstr "Vous êtes déjà membre de l'organisation %r."
 
-#: web/frontend/accept_organization_invite.py:110
+#: web/frontend/accept_organization_invite.py:112
 #, python-format
 msgid "You have been added to the %r organization."
 msgstr "Vous avez été ajouté à l'organisation %r."
+
+#: web/frontend/auth_link_identity.py:11
+msgid ""
+"Either you are not a member of the given organization or it does not exist."
+msgstr ""
+
+#: web/frontend/auth_login.py:16
+msgid ""
+"The organization does not exist or does not have Single Sign-On enabled."
+msgstr ""
+
+#: web/frontend/auth_organization_login.py:19
+msgid "username or email"
+msgstr ""
+
+#: web/frontend/auth_organization_login.py:24
+msgid "password"
+msgstr ""
+
+#: web/frontend/base.py:21
+msgid "You need to link your account with the SSO provider to continue."
+msgstr ""
 
 #: web/frontend/create_organization.py:16
 msgid "Organization Name"
@@ -2911,11 +3012,11 @@ msgstr "Nom de l'organisation"
 msgid "My Company"
 msgstr "Mon entreprise"
 
-#: web/frontend/create_organization_member.py:41
+#: web/frontend/create_organization_member.py:42
 msgid "The organization member was added."
 msgstr "Le membre de l'organisation a été ajouté."
 
-#: web/frontend/create_organization_member.py:44
+#: web/frontend/create_organization_member.py:45
 msgid "The organization member already exists."
 msgstr "Ce membre existe déjà."
 
@@ -2928,74 +3029,125 @@ msgstr "Permission manquante"
 msgid "You do not have the required permissions to %s."
 msgstr "Vous n'avez pas la permission requise pour %s."
 
+#: web/frontend/organization_api_key_settings.py:16
+#: web/frontend/project_settings.py:33
+msgid "Allowed Domains"
+msgstr "Domaines autorisés"
+
+#: web/frontend/organization_api_key_settings.py:17
+#: web/frontend/project_settings.py:34
+msgid "Separate multiple entries with a newline."
+msgstr "Séparez les entrées par un retour à la ligne."
+
+#: web/frontend/organization_auth_settings.py:23
+msgid "The SSO feature is not enabled for this organization."
+msgstr ""
+
+#: web/frontend/organization_auth_settings.py:25
+msgid "SSO authentication has been disabled."
+msgstr ""
+
+#: web/frontend/organization_auth_settings.py:27
+msgid ""
+"A reminder email has been sent to members who have not yet linked their "
+"accounts."
+msgstr ""
+
+#: web/frontend/organization_auth_settings.py:32
+msgid "Require SSO"
+msgstr ""
+
+#: web/frontend/organization_auth_settings.py:33
+msgid ""
+"Require members use a valid linked SSO account to access this organization"
+msgstr ""
+
 #: web/frontend/organization_member_settings.py:28
 #, python-format
 msgid "An invitation to join %(organization)s has been sent to %(email)s"
 msgstr "Une invitation à rejoindre %(organization)s a été envoyée à %(email)s"
 
-#: web/frontend/organization_member_settings.py:78
+#: web/frontend/organization_member_settings.py:77
 msgid "Your changes were saved."
 msgstr "Vos changements ont été sauvegardés."
 
-#: web/frontend/organization_settings.py:45
+#: web/frontend/organization_settings.py:16
+msgid "The name of your organization. i.e. My Company"
+msgstr ""
+
+#: web/frontend/organization_settings.py:17
+msgid "A unique ID used to identify this organization."
+msgstr ""
+
+#: web/frontend/organization_settings.py:19
+msgid "Open Membership"
+msgstr ""
+
+#: web/frontend/organization_settings.py:20
+msgid "Allow organization members to freely join or leave any team."
+msgstr ""
+
+#: web/frontend/organization_settings.py:58
 msgid "Changes to your organization were saved."
 msgstr "Les changements de votre organisation ont été sauvegardés."
 
-#: web/frontend/project_settings.py:32
-msgid "e.g. example.com or https://example.com"
-msgstr "ex: exemple.com ou https://exemple.com"
-
-#: web/frontend/project_settings.py:60
+#: web/frontend/project_settings.py:27
 msgid "Production"
 msgstr "Production"
 
-#: web/frontend/project_settings.py:64
+#: web/frontend/project_settings.py:31
 msgid "Imply public access to any event for this project."
 msgstr "Implique l'accès publique à tous les évènements de ce projet."
 
-#: web/frontend/project_settings.py:66
-msgid "Allowed Domains"
-msgstr "Domaines autorisés"
-
-#: web/frontend/project_settings.py:67
-msgid "Separate multiple entries with a newline."
-msgstr "Séparez les entrées par un retour à la ligne."
-
-#: web/frontend/project_settings.py:68
+#: web/frontend/project_settings.py:35
 msgid "Security token"
-msgstr ""
+msgstr "Jeton de sécurité"
 
-#: web/frontend/project_settings.py:69
+#: web/frontend/project_settings.py:36
 #, python-brace-format
 msgid ""
 "Outbound requests matching Allowed Domains will have the header \"X-Sentry-"
 "Token: {token}\" appended."
-msgstr ""
+msgstr "Les requêtes entrantes des domaines autorisés auront l'en-tête supplémentaire \"X-Sentry-Token: {token}\"."
 
-#: web/frontend/project_settings.py:70
+#: web/frontend/project_settings.py:37
 msgid ""
 "Treat an event as resolved if it hasn't been seen for this amount of time."
 msgstr "Considérer un évènement comme résolu si il n'a pas été vu pendant cette durée de temps."
 
-#: web/frontend/project_settings.py:73
+#: web/frontend/project_settings.py:40
 msgid "Data Scrubber"
 msgstr "Nettoyeur de données"
 
-#: web/frontend/project_settings.py:74
+#: web/frontend/project_settings.py:41
 msgid ""
 "Apply server-side data scrubbing to prevent things like passwords and credit"
 " cards from being stored."
 msgstr "Applique un nettoyage des données côté serveur pour empêcher que des données comme les mots de passe ou les cartes de crédit soit enregistrées."
 
-#: web/frontend/project_settings.py:78
+#: web/frontend/project_settings.py:45
+msgid "Additional sensitive fields"
+msgstr ""
+
+#: web/frontend/project_settings.py:46
+msgid ""
+"Additional field names to match against when scrubbing data. Separate "
+"multiple entries with a newline."
+msgstr ""
+
+#: web/frontend/project_settings.py:48
+msgid "e.g. email"
+msgstr ""
+
+#: web/frontend/project_settings.py:55
 msgid "Don't store IP Addresses"
-msgstr ""
+msgstr "Ne pas conserver les adresses IP"
 
-#: web/frontend/project_settings.py:79
+#: web/frontend/project_settings.py:56
 msgid "Prevent IP addresses from being stored for new events."
-msgstr ""
+msgstr "Empêcher les adresses IP d'être enregistrées pour les nouveaux événements."
 
-#: web/frontend/project_settings.py:226
+#: web/frontend/project_settings.py:212
 msgid "Changes to your project were saved."
 msgstr "Les changements de votre projet ont été sauvegardés."
 
@@ -3018,36 +3170,40 @@ msgstr "L'équipe %r à été programmée pour suppression."
 msgid "Changes to your team were saved."
 msgstr "Les changements de votre équipe ont été sauvegardés."
 
-#: web/frontend/projects/keys.py:112
+#: web/frontend/projects/keys.py:111
 #, python-format
 msgid "Changes to the API key (%s) were saved."
-msgstr ""
+msgstr "Les changements de la clé d'API (%s) ont été enregistrés."
 
-#: web/frontend/projects/keys.py:154
+#: web/frontend/projects/keys.py:153
 #, python-format
 msgid "The API key (%s) was revoked."
 msgstr "La clé d'API (%s) a été révoquée."
 
-#: web/frontend/projects/keys.py:185
+#: web/frontend/projects/keys.py:184
 #, python-format
 msgid "The API key (%s) was disabled."
-msgstr ""
+msgstr "La clé d'API (%s) a été désactivée."
 
-#: web/frontend/projects/keys.py:216
+#: web/frontend/projects/keys.py:215
 #, python-format
 msgid "The API key (%s) was enabled."
-msgstr ""
+msgstr "La clé d'API (%s) a été activée."
 
 #: web/frontend/projects/notifications.py:63
 #: web/frontend/projects/plugins.py:38 web/frontend/projects/plugins.py:76
-#: web/frontend/projects/quotas.py:33 web/frontend/projects/tags.py:44
+#: web/frontend/projects/quotas.py:44 web/frontend/projects/tags.py:44
 msgid "Your settings were saved successfully."
 msgstr "Vos paramètres ont été sauvegardés avec succès."
 
-#: web/frontend/projects/rules.py:146
+#: web/frontend/projects/quotas.py:23
+msgid "The quotas feature is not enabled for this project."
+msgstr ""
+
+#: web/frontend/projects/rules.py:172
 msgid "Changes to your rule were saved."
 msgstr "Les changements sur vos règles ont été enregistrés."
 
-#: web/frontend/projects/rules.py:198
+#: web/frontend/projects/rules.py:224
 msgid "The rule was removed."
 msgstr "La règle a été supprimée."
