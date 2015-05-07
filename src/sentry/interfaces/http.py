@@ -128,14 +128,18 @@ class Http(Interface):
             headers = {}
 
         body = data.get('data')
+        # TODO(dcramer): a list as a body is not even close to valid
         if isinstance(body, (list, tuple)):
             body = trim_dict(dict(enumerate(body)))
         elif isinstance(body, dict):
-            body = trim_dict(body)
+            body = trim_dict(dict(
+                (k, v or '')
+                for k, v in body.iteritems()
+            ))
         elif body:
             body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
             if headers.get('Content-Type') == cls.FORM_TYPE and '=' in body:
-                body = dict(parse_qsl(body))
+                body = dict(parse_qsl(body, True))
 
         # if cookies were a string, convert to a dict
         # parse_qsl will parse both acceptable formats:
