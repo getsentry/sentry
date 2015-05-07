@@ -27,7 +27,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             {method} {path}
 
         """
-        if request.auth:
+        if request.auth and hasattr(request.auth, 'project'):
             teams = [request.auth.project.team]
             if teams[0].organization != organization:
                 return Response(status=403)

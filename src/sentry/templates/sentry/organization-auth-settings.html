@@ -12,6 +12,10 @@
     <div class="box-header"><h3>Choose a provider</h3></div>
       <div class="box-content">
 
+      <p>Get started with Single Sign-on for your organization by selecting a provider. For more information on SSO please see our <a href="{% url 'sentry-help' %}">documentation</a>.</p>
+
+      <br>
+
       {% if provider_list %}
         <form method="POST">
           {% csrf_token %}

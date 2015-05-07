@@ -62,6 +62,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     search_fields = ('name', 'owner__username', 'owner__email', 'slug')
     raw_id_fields = ('owner',)
+    fields = ('name', 'slug', 'owner', 'status')
     inlines = (OrganizationMemberInline, OrganizationTeamInline)
 
 admin.site.register(Organization, OrganizationAdmin)
