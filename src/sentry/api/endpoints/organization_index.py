@@ -28,7 +28,10 @@ class OrganizationIndexEndpoint(Endpoint):
 
         """
         if request.auth:
-            organizations = [request.auth.project.organization]
+            if hasattr(request.auth, 'project'):
+                organizations = [request.auth.project.organization]
+            else:
+                organizations = [request.auth.organization]
         else:
             organizations = Organization.objects.get_for_user(
                 user=request.user,

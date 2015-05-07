@@ -12,7 +12,8 @@ import logging
 from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db import models
+from django.db import models, transaction
+from django.db.models import F
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from hashlib import md5
@@ -82,20 +83,52 @@ class OrganizationMember(Model):
     ), default=0)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
+    counter = BoundedPositiveIntegerField(null=True, blank=True)
     teams = models.ManyToManyField('sentry.Team', blank=True,
                                    through='sentry.OrganizationMemberTeam')
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_organizationmember'
-        unique_together = (('organization', 'user'), ('organization', 'email'))
+        unique_together = (
+            ('organization', 'user'),
+            ('organization', 'email'),
+        )
 
     __repr__ = sane_repr('organization_id', 'user_id', 'type')
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
         assert self.user_id or self.email, \
             'Must set user or email'
-        return super(OrganizationMember, self).save(*args, **kwargs)
+        super(OrganizationMember, self).save(*args, **kwargs)
+        if not self.counter:
+            self._set_counter()
+
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        super(OrganizationMember, self).delete(*args, **kwargs)
+        if self.counter:
+            self._unshift_counter()
+
+    def _unshift_counter(self):
+        assert self.counter
+        OrganizationMember.objects.filter(
+            organization=self.organization,
+            counter__gt=self.counter,
+        ).update(
+            counter=F('counter') - 1,
+        )
+
+    def _set_counter(self):
+        assert self.id and not self.counter
+        # XXX(dcramer): this isnt atomic, but unfortunately MySQL doesnt support
+        # the subquery pattern we'd need
+        self.update(
+            counter=OrganizationMember.objects.filter(
+                organization=self.organization,
+            ).count(),
+        )
 
     @property
     def is_pending(self):

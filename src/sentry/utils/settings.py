@@ -15,6 +15,7 @@ from sentry.utils.imports import import_string
 
 PACKAGES = {
     'django.db.backends.postgresql_psycopg2': 'psycopg2.extensions',
+    'sentry.db.postgres': 'psycopg2.extensions',
     'django.db.backends.mysql': 'MySQLdb',
     'django.db.backends.oracle': 'cx_Oracle',
     'django.core.cache.backends.memcached.MemcachedCache': 'memcache',

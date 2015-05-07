@@ -65,7 +65,7 @@ tests_require = [
 
 install_requires = [
     'BeautifulSoup>=3.2.1,<3.3.0',
-    'celery>=3.1.7,<3.2.0',
+    'celery>=3.1.8,<3.2.0',
     'cssutils>=0.9.9,<0.10.0',
     'Django>=1.6.0,<1.7',
     'django-bitfield>=1.7.0,<1.8.0',
@@ -84,7 +84,7 @@ install_requires = [
     'exam>=0.5.1',
     'gunicorn>=19.2.1,<20.0.0',
     'ipaddr>=2.1.11,<2.2.0',
-    'logan>=0.5.8.2,<0.6.0',
+    'logan>=0.7.1,<0.8.0',
     'lxml>=3.4.1',
     'mock>=0.8.0',
     'nydus>=0.11.0,<0.12.0',
@@ -95,7 +95,7 @@ install_requires = [
     'pytest-django',
     'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
-    'raven>=5.0.0',
+    'raven>=5.3.0',
     'redis>=2.7.0,<2.11.0',
     'requests[security]>=2.5.1,<2.6.0',
     'simplejson>=3.1.0,<3.4.0',
