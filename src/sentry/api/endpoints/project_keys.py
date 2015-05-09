@@ -6,7 +6,9 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, ProjectKey
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
+)
 
 
 class KeySerializer(serializers.Serializer):
@@ -27,6 +29,8 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         """
         keys = list(ProjectKey.objects.filter(
             project=project,
+            status=ProjectKeyStatus.ACTIVE,
+            roles=ProjectKey.roles.store,
         ))
         return Response(serialize(keys, request.user))
 
