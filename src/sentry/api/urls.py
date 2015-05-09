@@ -31,6 +31,7 @@ from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
+from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
@@ -126,6 +127,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/keys/$',
         ProjectKeysEndpoint.as_view(),
         name='sentry-api-0-project-keys'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/$',
+        ProjectKeyDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-key-details'),
     url(r'^projects/(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/members/$',
         ProjectMemberIndexEndpoint.as_view(),
         name='sentry-api-0-project-member-index'),
