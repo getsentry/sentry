@@ -8,6 +8,7 @@ from sentry.models import ProjectKey
 class ProjectKeySerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
+            'id': obj.public_key,
             'label': obj.label,
             'public': obj.public_key,
             'secret': obj.secret_key,
