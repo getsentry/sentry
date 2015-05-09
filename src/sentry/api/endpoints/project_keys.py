@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import petname
-
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -51,7 +49,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
 
             key = ProjectKey.objects.create(
                 project=project,
-                label=result.get('name') or petname.Generate(2, ' ').title(),
+                label=result.get('name'),
             )
 
             AuditLogEntry.objects.create(
