@@ -7,6 +7,7 @@ sentry.models.projectkey
 """
 from __future__ import absolute_import, print_function
 
+import petname
 import six
 
 from bitfield import BitField
@@ -85,6 +86,8 @@ class ProjectKey(Model):
             self.public_key = ProjectKey.generate_api_key()
         if not self.secret_key:
             self.secret_key = ProjectKey.generate_api_key()
+        if not self.label:
+            self.label = petname.Generate(2, ' ').title()
         super(ProjectKey, self).save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
