@@ -39,7 +39,7 @@ var OrganizationHomeSidebar = React.createClass({
           {access.has('org:read') &&
             <li><a href={urlPrefix + '/members/'}>Members</a></li>
           }
-          {features.has('organizations:sso') && access.has('org:write') &&
+          {features.has('sso') && access.has('org:write') &&
             <li><a href={urlPrefix + '/auth/'}>Auth</a></li>
           }
           {access.has('org:write') &&
