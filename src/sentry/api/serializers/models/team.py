@@ -14,7 +14,6 @@ class TeamSerializer(Serializer):
                 user=user,
             )
         )
-
         result = {}
         for team in item_list:
             try:
@@ -33,6 +32,7 @@ class TeamSerializer(Serializer):
             'slug': obj.slug,
             'name': obj.name,
             'dateCreated': obj.date_added,
+            'isMember': attrs['access_type'] is not None,
             'permission': {
                 'owner': attrs['access_type'] <= OrganizationMemberType.OWNER,
                 'admin': attrs['access_type'] <= OrganizationMemberType.ADMIN,
