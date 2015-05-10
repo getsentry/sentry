@@ -2,6 +2,7 @@
 
 var React = require("react");
 
+var api = require("../api");
 var ConfigStore = require("../stores/configStore");
 var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
@@ -87,7 +88,9 @@ var SlimTeamList = React.createClass({
 
   propTypes: {
     organization: PropTypes.Organization.isRequired,
-    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired
+    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
+    loading: React.PropTypes.bool,
+    error: React.PropTypes.bool
   },
 
   render() {
@@ -103,9 +106,11 @@ var SlimTeamList = React.createClass({
         <div className="box" key={team.slug}>
           <div className="box-header">
             <div className="pull-right actions">
-              <a className="leave-team" href="#">
-                Leave Team
-              </a>
+              {team.isMember ?
+                <a className="leave-team" href="#">Leave Team</a>
+              :
+                <a className="join-team" href="#">Request Access</a>
+              }
             </div>
             <h3>{team.name}</h3>
           </div>
@@ -130,8 +135,41 @@ var OrganizationTeams = React.createClass({
 
   getInitialState() {
     return {
-      activeNav: 'your-teams'
+      activeNav: 'your-teams',
+      loading: true,
+      error: false,
+      allTeams: []
     };
+  },
+
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  routeDidChange(nextPath, nextParams) {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    if (nextParams.orgId != params.orgId) {
+      this.fetchData();
+    }
+  },
+
+  fetchData() {
+    var org = this.getOrganization();
+
+    this.setState({
+      loading: true,
+      error: false
+    });
+
+    api.request('/organizations/' + org.slug + '/teams/', {
+      success: (data) => {
+        this.setState({
+          allTeams: data,
+          loading: false
+        });
+      }
+    });
   },
 
   toggleTeams(nav) {
@@ -165,7 +203,9 @@ var OrganizationTeams = React.createClass({
           {activeNav == 'your-teams' ?
             <ExpandedTeamList organization={org} teamList={org.teams} />
           :
-            <SlimTeamList organization={org} teamList={org.teams} />
+            <SlimTeamList
+                organization={org} teamList={this.state.allTeams}
+                loading={this.state.loading} error={this.state.error} />
           }
         </div>
       </OrganizationHomeContainer>
