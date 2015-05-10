@@ -9,17 +9,31 @@ from sentry.testutils import APITestCase
 
 
 class OrganizationTeamsListTest(APITestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-api-0-organization-teams', args=[self.organization.slug])
-
     def test_simple(self):
-        team = self.create_team()  # force creation
-        self.login_as(user=self.user)
-        response = self.client.get(self.path)
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]['id'] == str(team.id)
+        user = self.create_user()
+        org = self.create_organization(owner=self.user)
+        team1 = self.create_team(organization=org, name='foo')
+        team2 = self.create_team(organization=org, name='bar')
+
+        self.create_member(
+            organization=org,
+            user=user,
+            has_global_access=False,
+            teams=[team1],
+        )
+
+        path = reverse('sentry-api-0-organization-teams', args=[org.slug])
+
+        self.login_as(user=user)
+
+        response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]['id'] == str(team2.id)
+        assert not response.data[0]['isMember']
+        assert response.data[1]['id'] == str(team1.id)
+        assert response.data[1]['isMember']
 
 
 class OrganizationTeamsCreateTest(APITestCase):
