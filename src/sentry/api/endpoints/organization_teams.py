@@ -32,10 +32,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             if teams[0].organization != organization:
                 return Response(status=403)
         else:
-            teams = Team.objects.get_for_user(
+            teams = list(Team.objects.filter(
                 organization=organization,
-                user=request.user,
-            )
+            ).order_by('name'))
+
         return Response(serialize(teams, request.user))
 
     def post(self, request, organization):
