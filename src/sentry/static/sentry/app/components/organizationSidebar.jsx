@@ -74,7 +74,6 @@ var OrganizationSidebar = React.createClass({
   mixins: [
     AppState,
     OrganizationState,
-    PureRenderMixin,
     Reflux.listenTo(TeamStore, "onTeamListChange")
   ],
 
@@ -91,6 +90,7 @@ var OrganizationSidebar = React.createClass({
       teamList: newTeamList
     });
   },
+
   render() {
     var activeOrg = this.getOrganization();
     if (!activeOrg) {
