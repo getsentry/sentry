@@ -72,7 +72,7 @@ class OrganizationManager(BaseManager):
 
 class Organization(Model):
     """
-    A team represents a group of individuals which maintain ownership of projects.
+    An organization represents a group of individuals which maintain ownership of projects.
     """
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
