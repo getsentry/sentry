@@ -177,8 +177,11 @@ class Team(Model):
     @property
     def member_set(self):
         return self.organization.member_set.filter(
-            Q(teams=self) | Q(has_global_access=True),
+            Q(organizationmemberteam__team=self) | Q(has_global_access=True),
             user__is_active=True,
+        ).exclude(
+            organizationmemberteam__team=self,
+            organizationmemberteam__is_active=False,
         ).distinct()
 
     def has_access(self, user, access=None):
