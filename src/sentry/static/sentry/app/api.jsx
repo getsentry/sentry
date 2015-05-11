@@ -2,6 +2,7 @@
 
 var $ = require("jquery");
 var GroupActions = require("./actions/groupActions");
+var TeamActions = require("./actions/teamActions");
 
 class Request {
   constructor(xhr) {
@@ -160,6 +161,40 @@ class Client {
       },
       error: (error) => {
         GroupActions.assignToError(id, params.id, error);
+      }
+    });
+  }
+
+  joinTeam(params) {
+    var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
+    var id = this.uniqueId();
+
+    TeamActions.update(id, params.teamId);
+
+    return this.request(path, {
+      method: "POST",
+      success: (response) => {
+        TeamActions.updateSuccess(id, params.teamId, response);
+      },
+      error: (error) => {
+        TeamActions.updateError(id, params.teamId, error);
+      }
+    });
+  }
+
+  leaveTeam(params) {
+    var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
+    var id = this.uniqueId();
+
+    TeamActions.update(id, params.teamId);
+
+    return this.request(path, {
+      method: "DELETE",
+      success: (response) => {
+        TeamActions.updateSuccess(id, params.teamId, response);
+      },
+      error: (error) => {
+        TeamActions.updateError(id, params.teamId, error);
       }
     });
   }

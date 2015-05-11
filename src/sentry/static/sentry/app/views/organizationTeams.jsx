@@ -12,11 +12,17 @@ var PropTypes = require("../proptypes");
 var TeamStore = require("../stores/teamStore");
 
 var ExpandedTeamList = React.createClass({
-  mixins: [PureRenderMixin],
-
   propTypes: {
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired
+  },
+
+  leaveTeam(team) {
+    // TODO(dcramer): handle loading indicator
+    api.leaveTeam({
+      orgId: this.props.organization.slug,
+      teamId: team.slug
+    });
   },
 
   render() {
@@ -35,7 +41,8 @@ var ExpandedTeamList = React.createClass({
               <a className="new-project" href={urlPrefix + '/projects/new/'}>
                 New Project
               </a>
-              <a className="leave-team" href="#">
+              <a className="leave-team"
+                 onClick={this.leaveTeam.bind(this, team)}>
                 Leave Team
               </a>
               <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
@@ -86,11 +93,26 @@ var ExpandedTeamList = React.createClass({
 });
 
 var SlimTeamList = React.createClass({
-  mixins: [PureRenderMixin],
-
   propTypes: {
     organization: PropTypes.Organization.isRequired,
-    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired
+    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
+    openMembership: React.PropTypes.bool
+  },
+
+  joinTeam(team) {
+    // TODO(dcramer): handle 'requested' case and loading indicator
+    api.joinTeam({
+      orgId: this.props.organization.slug,
+      teamId: team.slug
+    });
+  },
+
+  leaveTeam(team) {
+    // TODO(dcramer): handle loading indicator
+    api.leaveTeam({
+      orgId: this.props.organization.slug,
+      teamId: team.slug
+    });
   },
 
   render() {
@@ -107,10 +129,17 @@ var SlimTeamList = React.createClass({
           <div className="box-header">
             <div className="pull-right actions">
               {team.isMember ?
-                <a className="leave-team" href="#">Leave Team</a>
+                <a className="leave-team"
+                   onClick={this.leaveTeam.bind(this, team)}>Leave Team</a>
+              : (team.isPending ?
+                <a className="join-team">Request Pending</a>
+              : (this.props.openMembership ?
+                <a className="join-team"
+                   onClick={this.joinTeam.bind(this, team)}>Join Team</a>
               :
-                <a className="join-team" href="#">Request Access</a>
-              }
+                <a className="join-team"
+                   onClick={this.joinTeam.bind(this, team)}>Request Access</a>
+              ))}
             </div>
             <h3>{team.name}</h3>
           </div>
@@ -133,14 +162,13 @@ var SlimTeamList = React.createClass({
 var OrganizationTeams = React.createClass({
   mixins: [
     OrganizationState,
-    PureRenderMixin,
     Reflux.listenTo(TeamStore, "onTeamListChange")
   ],
 
   getInitialState() {
     return {
       activeNav: 'your-teams',
-      teamList: []
+      teamList: TeamStore.getAll()
     };
   },
 
@@ -159,6 +187,8 @@ var OrganizationTeams = React.createClass({
   },
 
   render() {
+    var access = this.getAccess();
+    var features = this.getFeatures();
     var org = this.getOrganization();
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
@@ -183,10 +213,12 @@ var OrganizationTeams = React.createClass({
             </li>
           </ul>
           {activeNav == 'your-teams' ?
-            <ExpandedTeamList organization={org} teamList={activeTeams} />
+            <ExpandedTeamList
+                organization={org} teamList={activeTeams} />
           :
             <SlimTeamList
-                organization={org} teamList={allTeams} />
+                organization={org} teamList={allTeams}
+                openMembership={features.has('open-membership') || access.has('org:write')} />
           }
         </div>
       </OrganizationHomeContainer>

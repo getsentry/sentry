@@ -2,14 +2,31 @@
 
 var Reflux = require("reflux");
 
+var TeamActions = require("../actions/teamActions");
+
 var TeamStore = Reflux.createStore({
   init() {
     this.items = [];
+
+    this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
   },
 
   loadInitialData(items) {
     this.items = items;
     this.trigger(this.items, 'initial');
+  },
+
+  onUpdateSuccess(changeId, itemId, response) {
+    if (!response) {
+      return;
+    }
+    var item = this.getBySlug(itemId);
+    if (!item) {
+      this.items.push(response);
+    } else {
+      $.extend(true, item, response);
+    }
+    this.trigger(this.items, 'update');
   },
 
   getById(id) {
