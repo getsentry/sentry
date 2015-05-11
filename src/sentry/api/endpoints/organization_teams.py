@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team
+from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team, TeamStatus
 from sentry.permissions import can_create_teams
 
 
@@ -27,16 +28,18 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             {method} {path}
 
         """
+        # TODO(dcramer): this should be system-wide default for organization
+        # based endpoints
         if request.auth and hasattr(request.auth, 'project'):
-            teams = [request.auth.project.team]
-            if teams[0].organization != organization:
-                return Response(status=403)
-        else:
-            teams = list(Team.objects.filter(
-                organization=organization,
-            ).order_by('name'))
+            return Response(status=403)
 
-        return Response(serialize(teams, request.user))
+        team_list = list(Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ).order_by('name', 'slug'))
+
+        return Response(serialize(
+            team_list, request.user, TeamWithProjectsSerializer))
 
     def post(self, request, organization):
         """
