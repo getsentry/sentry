@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Reflux = require("reflux");
 
 var AppState = require("../mixins/appState");
 var ConfigStore = require("../stores/configStore");
@@ -10,9 +11,15 @@ var Gravatar = require("./gravatar");
 var ListLink = require("./listLink");
 var OrganizationState = require("../mixins/organizationState");
 var PropTypes = require("../proptypes");
+var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
+var TeamStore = require("../stores/teamStore");
 
 var OrganizationSelector = React.createClass({
-  mixins: [AppState, OrganizationState],
+  mixins: [
+    AppState,
+    OrganizationState,
+    PureRenderMixin
+  ],
 
   render() {
     var activeOrg = this.getOrganization();
@@ -36,6 +43,10 @@ var OrganizationSelector = React.createClass({
 });
 
 var UserNav = React.createClass({
+  mixins: [
+    PureRenderMixin
+  ],
+
   propTypes: {
     user: PropTypes.User.isRequired
   },
@@ -60,8 +71,26 @@ var UserNav = React.createClass({
 });
 
 var OrganizationSidebar = React.createClass({
-  mixins: [AppState, OrganizationState],
+  mixins: [
+    AppState,
+    OrganizationState,
+    PureRenderMixin,
+    Reflux.listenTo(TeamStore, "onTeamListChange")
+  ],
 
+  getInitialState() {
+    return {
+      teamList: []
+    };
+  },
+
+  onTeamListChange() {
+    var newTeamList = TeamStore.getActive();
+
+    this.setState({
+      teamList: newTeamList
+    });
+  },
   render() {
     var activeOrg = this.getOrganization();
     if (!activeOrg) {
@@ -76,7 +105,7 @@ var OrganizationSidebar = React.createClass({
         <OrganizationSelector />
         <div className="app-sidebar-content">
           <div className="teams">
-            {activeOrg.teams.map((team, teamIdx) => {
+            {this.state.teamList.map((team, teamIdx) => {
               var routeParams = {
                 orgId: activeOrg.slug,
                 teamId: team.slug
