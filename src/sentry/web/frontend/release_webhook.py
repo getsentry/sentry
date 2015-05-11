@@ -5,6 +5,7 @@ import hmac
 import logging
 
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils.crypto import constant_time_compare
 
@@ -22,6 +23,7 @@ class ReleaseWebhookView(View):
             digestmod=hashlib.sha256
         ).hexdigest())
 
+    @csrf_exempt
     def post(self, request, project_id, plugin_id, signature):
         project = Project.objects.get_from_cache(id=project_id)
 
