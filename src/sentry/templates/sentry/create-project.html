@@ -6,7 +6,7 @@
 
 {% block breadcrumb_inner %}
   {{ block.super }}
-  <li><a>New Project</a></li>
+  <li><a>{% trans "New Project" %}</a></li>
 {% endblock %}
 
 {% block content %}
@@ -21,8 +21,6 @@
   </div>
 
   <p>{% blocktrans %}Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.{% endblocktrans %}</p>
-
-  <br>
 
   {% include "sentry/partial/_form.html" %}
 {% endblock %}
