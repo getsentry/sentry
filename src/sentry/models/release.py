@@ -21,6 +21,8 @@ class Release(Model):
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
+    # the explicit release date (or unknown)
+    date_released = models.DateTimeField(null=True)
 
     class Meta:
         app_label = 'sentry'
