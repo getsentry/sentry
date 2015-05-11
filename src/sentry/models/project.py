@@ -200,9 +200,12 @@ class Project(Model):
         from sentry.models import OrganizationMember
 
         return OrganizationMember.objects.filter(
-            Q(teams=self.team) | Q(has_global_access=True),
+            Q(organizationmemberteam__team=self.team) | Q(has_global_access=True),
             user__is_active=True,
             organization=self.organization,
+        ).exclude(
+            organizationmemberteam__team=self.team,
+            organizationmemberteam__is_active=False,
         ).distinct()
 
     def has_access(self, user, access=None):
