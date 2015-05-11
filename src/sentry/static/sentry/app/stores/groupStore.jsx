@@ -202,7 +202,7 @@ var GroupListStore = Reflux.createStore({
       delete this.statuses[itemId];
       this.clearStatus(itemId, 'delete');
     });
-    this.items.filter((item) => !itemIdSet.has(item.id));
+    this.items = this.items.filter((item) => !itemIdSet.has(item.id));
     AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
     this.trigger();
   },

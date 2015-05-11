@@ -1,6 +1,7 @@
 /*** @jsx React.DOM */
 
 var React = require("react");
+var Reflux = require("reflux");
 
 var api = require("../api");
 var ConfigStore = require("../stores/configStore");
@@ -8,6 +9,7 @@ var OrganizationHomeContainer = require("../components/organizationHomeContainer
 var OrganizationState = require("../mixins/organizationState");
 var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
 var PropTypes = require("../proptypes");
+var TeamStore = require("../stores/teamStore");
 
 var ExpandedTeamList = React.createClass({
   mixins: [PureRenderMixin],
@@ -88,9 +90,7 @@ var SlimTeamList = React.createClass({
 
   propTypes: {
     organization: PropTypes.Organization.isRequired,
-    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
-    loading: React.PropTypes.bool,
-    error: React.PropTypes.bool
+    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired
   },
 
   render() {
@@ -131,44 +131,24 @@ var SlimTeamList = React.createClass({
 });
 
 var OrganizationTeams = React.createClass({
-  mixins: [OrganizationState, PureRenderMixin],
+  mixins: [
+    OrganizationState,
+    PureRenderMixin,
+    Reflux.listenTo(TeamStore, "onTeamListChange")
+  ],
 
   getInitialState() {
     return {
       activeNav: 'your-teams',
-      loading: true,
-      error: false,
-      allTeams: []
+      teamList: []
     };
   },
 
-  componentWillMount() {
-    this.fetchData();
-  },
-
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    if (nextParams.orgId != params.orgId) {
-      this.fetchData();
-    }
-  },
-
-  fetchData() {
-    var org = this.getOrganization();
+  onTeamListChange() {
+    var newTeamList = TeamStore.getAll();
 
     this.setState({
-      loading: true,
-      error: false
-    });
-
-    api.request('/organizations/' + org.slug + '/teams/', {
-      success: (data) => {
-        this.setState({
-          allTeams: data,
-          loading: false
-        });
-      }
+      teamList: newTeamList
     });
   },
 
@@ -183,6 +163,8 @@ var OrganizationTeams = React.createClass({
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     var activeNav = this.state.activeNav;
+    var allTeams = this.state.teamList;
+    var activeTeams = this.state.teamList.filter((team) => team.isMember);
 
     return (
       <OrganizationHomeContainer>
@@ -201,11 +183,10 @@ var OrganizationTeams = React.createClass({
             </li>
           </ul>
           {activeNav == 'your-teams' ?
-            <ExpandedTeamList organization={org} teamList={org.teams} />
+            <ExpandedTeamList organization={org} teamList={activeTeams} />
           :
             <SlimTeamList
-                organization={org} teamList={this.state.allTeams}
-                loading={this.state.loading} error={this.state.error} />
+                organization={org} teamList={allTeams} />
           }
         </div>
       </OrganizationHomeContainer>

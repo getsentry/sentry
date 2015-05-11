@@ -11,6 +11,7 @@ var OrganizationState = require("../mixins/organizationState");
 var OrganizationSidebar = require("../components/organizationSidebar");
 var Footer = require("../components/footer");
 var RouteMixin = require("../mixins/routeMixin");
+var TeamStore = require("../stores/teamStore");
 
 var OrganizationDetails = React.createClass({
   mixins: [
@@ -66,6 +67,8 @@ var OrganizationDetails = React.createClass({
           organization: data,
           loading: false
         });
+
+        TeamStore.loadInitialData(data.teams);
 
         this.setBreadcrumbs([
           {name: data.name, to: 'organizationDetails'}
