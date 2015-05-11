@@ -14,8 +14,8 @@ Users Guide
 .. toctree::
    :maxdepth: 2
 
-   quickstart/index
-   quickstart/nginx
+   getting-started/index
+   getting-started/nginx
    upgrading/index
    config/index
    queue/index
