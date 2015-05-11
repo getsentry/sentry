@@ -1,5 +1,5 @@
-Quickstart
-==========
+Getting Started
+===============
 
 This guide will step you through setting up a Python-based virtualenv, installing the required packages,
 and configuring the basic web service.
