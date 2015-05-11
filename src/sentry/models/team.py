@@ -179,7 +179,7 @@ class Team(Model):
         return self.organization.member_set.filter(
             Q(teams=self) | Q(has_global_access=True),
             user__is_active=True,
-        )
+        ).distinct()
 
     def has_access(self, user, access=None):
         from sentry.models import AuthIdentity, OrganizationMember
