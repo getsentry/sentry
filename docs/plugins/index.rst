@@ -47,6 +47,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-github <https://github.com/getsentry/sentry-github>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
+* `sentry-heroku <https://github.com/getsentry/sentry-heroku>`_
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
 * `sentry-irccat <https://github.com/russss/sentry-irccat>`_
 * `sentry-jira <https://github.com/thurloat/sentry-jira>`_
