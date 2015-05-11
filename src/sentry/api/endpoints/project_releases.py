@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -12,6 +13,7 @@ from sentry.models import Release
 
 class ReleaseSerializer(serializers.Serializer):
     version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=200, required=True)
+    dateReleased = serializers.DateTimeField(required=False)
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
@@ -45,7 +47,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             {method} {path}
             {{
-                "version": "abcdef"
+                "version": "abcdef",
+                "dateReleased": "2015-05-11T02:23:10Z"
             }}
 
         """
@@ -59,6 +62,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                     release = Release.objects.create(
                         version=result['version'],
                         project=project,
+                        date_released=result.get('dateReleased') or timezone.now(),
                     )
                 except IntegrityError:
                     return Response({
