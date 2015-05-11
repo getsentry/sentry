@@ -4,6 +4,8 @@ Quickstart
 This guide will step you through setting up a Python-based virtualenv, installing the required packages,
 and configuring the basic web service.
 
+Disclaimer: While Sentry is seemingly easy to get up and running, it's a fairly complex system. This documentation does not intend to teach you how to maintain and configure many of the services, and the task should not be taken lightly.
+
 Dependencies
 ------------
 
