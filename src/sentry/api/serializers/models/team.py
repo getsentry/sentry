@@ -5,7 +5,10 @@ import itertools
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import OrganizationMemberType, Project, ProjectStatus, Team
+from sentry.models import (
+    OrganizationAccessRequest, OrganizationMemberType, Project, ProjectStatus,
+    Team
+)
 
 
 @register(Team)
@@ -20,6 +23,17 @@ class TeamSerializer(Serializer):
                 user=user,
             )
         )
+
+        if user.is_authenticated():
+            access_requests = frozenset(
+                OrganizationAccessRequest.objects.filter(
+                    team__in=item_list,
+                    member__user=user,
+                ).values_list('team')
+            )
+        else:
+            access_requests = frozenset()
+
         result = {}
         for team in item_list:
             try:
@@ -29,6 +43,7 @@ class TeamSerializer(Serializer):
 
             result[team] = {
                 'access_type': access_type,
+                'pending_request': team.id in access_requests,
             }
         return result
 
@@ -39,6 +54,7 @@ class TeamSerializer(Serializer):
             'name': obj.name,
             'dateCreated': obj.date_added,
             'isMember': attrs['access_type'] is not None,
+            'isPending': attrs['pending_request'],
             'permission': {
                 'owner': attrs['access_type'] <= OrganizationMemberType.OWNER,
                 'admin': attrs['access_type'] <= OrganizationMemberType.ADMIN,
