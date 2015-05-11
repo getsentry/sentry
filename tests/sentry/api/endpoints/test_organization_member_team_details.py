@@ -179,7 +179,7 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         resp = self.client.delete(path)
 
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
         assert OrganizationMemberTeam.objects.filter(
             team=team,
@@ -213,7 +213,7 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         resp = self.client.delete(path)
 
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
         assert OrganizationMemberTeam.objects.filter(
             team=team,
@@ -243,7 +243,7 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         resp = self.client.delete(path)
 
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
             team=team,
@@ -272,7 +272,7 @@ class DeleteOrganizationMemberTeamTest(APITestCase):
 
         resp = self.client.delete(path)
 
-        assert resp.status_code == 204
+        assert resp.status_code == 200
 
         assert not OrganizationMemberTeam.objects.filter(
             team=team,
