@@ -13,6 +13,7 @@ from uuid import uuid1
 from sentry import features
 from sentry.models import OrganizationMemberType, ProjectOption
 from sentry.plugins import plugins, ReleaseTrackingPlugin
+from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ProjectView
 
 
@@ -97,11 +98,11 @@ class ProjectReleaseTrackingView(ProjectView):
         other_plugins = []
         for plugin in self._iter_plugins():
             if plugin.is_enabled(project):
-                hook_url = reverse('sentry-release-hook', kwargs={
+                hook_url = absolute_uri(reverse('sentry-release-hook', kwargs={
                     'plugin_id': plugin.slug,
                     'project_id': project.id,
                     'signature': self._get_signature(project.id, plugin.slug, token),
-                })
+                }))
                 content = plugin.get_release_doc_html(hook_url=hook_url)
                 enabled_plugins.append((plugin, mark_safe(content)))
             else:
