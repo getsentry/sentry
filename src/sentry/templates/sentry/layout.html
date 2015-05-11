@@ -134,17 +134,22 @@
             {% if request.user.is_authenticated %}
             <ul class="breadcrumb">
               {% block breadcrumb_inner %}
-              {% if team %}
-              <li>
-                <a class="team-name" href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">{{ team.name }}</a>
-              </li>
-              {% if project %}
-              <li>
-                <a class="project-name" href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
-              </li>
-              {% endif %}
+              {% if organization %}
+                <li>
+                  <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
+                </li>
+                {% if team %}
+                  <li>
+                    <a href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">{{ team.name }}</a>
+                  </li>
+                  {% if project %}
+                    <li>
+                      <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
+                    </li>
+                  {% endif %}
+                {% endif %}
               {% else %}
-              <li>{% block heading %}{% endblock %}</li>
+                <li>{% block heading %}{% endblock %}</li>
               {% endif %}
               {% endblock %}
             </ul>

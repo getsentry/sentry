@@ -7,7 +7,11 @@
 
 {% block title %}{% trans "Team Settings" %} | {{ block.super }}{% endblock %}
 
-{% block team_settings_nav %} class="active"{% endblock %}
+{% block breadcrumb_inner %}
+  {{ block.super }}
+  <li><a>Settings</a></li>
+{% endblock %}
+
 
 {% block content %}
   <div class="page-header">

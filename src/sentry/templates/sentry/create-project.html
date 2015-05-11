@@ -4,7 +4,10 @@
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}<a href="/" class="logo-logged-in"><span class="icon-sentry-logo"></span></a>{% endblock %}
+{% block breadcrumb_inner %}
+  {{ block.super }}
+  <li><a>New Project</a></li>
+{% endblock %}
 
 {% block content %}
 <div class="create-flow">
