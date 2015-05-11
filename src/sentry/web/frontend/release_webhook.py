@@ -8,7 +8,7 @@ from django.http import HttpResponse
 from django.views.generic import View
 from django.utils.crypto import constant_time_compare
 
-from sentry.models import Project
+from sentry.models import Project, ProjectOption
 from sentry.plugins import plugins
 
 
@@ -25,14 +25,18 @@ class ReleaseWebhookView(View):
     def post(self, request, project_id, plugin_id, signature):
         project = Project.objects.get_from_cache(id=project_id)
 
-        plugin = plugins.get(plugin_id)
-        token = plugin.get_option(project, 'token')
+        token = ProjectOption.objects.get_value(project, 'sentry:release-token')
+
+        logging.info('Incoming webhook for project_id=%s, plugin_id=%s',
+                     project_id, plugin_id)
 
         if not self.verify(project_id, plugin_id, token, signature):
-            logging.info('Unable to verify signature for release hook')
+            logging.error('Unable to verify signature for release hook')
             return HttpResponse(status=403)
 
+        plugin = plugins.get(plugin_id)
         cls = plugin.get_release_hook()
         hook = cls(project)
         hook.handle(request)
+
         return HttpResponse(status=204)
