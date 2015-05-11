@@ -396,6 +396,8 @@ urlpatterns += patterns('',
         name='sentry-alert-details'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/(?P<alert_id>\d+)/resolve/$', alerts.resolve_alert,
         name='sentry-resolve-alert'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/releases/$', ReactPageView.as_view(),
+        name='sentry-releases'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', ReactPageView.as_view(),
         name='sentry-stream'),
 
