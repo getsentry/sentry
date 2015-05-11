@@ -58,6 +58,8 @@ from sentry.web.frontend.create_organization_member import CreateOrganizationMem
 from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.project_settings import ProjectSettingsView
+from sentry.web.frontend.project_release_tracking import ProjectReleaseTrackingView
+from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
@@ -108,6 +110,8 @@ urlpatterns += patterns('',
     url(r'^api/0/', include('sentry.api.urls')),
     url(r'^api/hooks/mailgun/inbound/', MailgunInboundWebhookView.as_view(),
         name='sentry-mailgun-inbound-hook'),
+    url(r'^api/hooks/release/(?P<plugin_id>[^/]+)/(?P<project_id>[^/]+)/(?P<signature>[^/]+)/', ReleaseWebhookView.as_view(),
+        name='sentry-release-hook'),
 
     # Auth
     url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthLinkIdentityView.as_view(),
@@ -237,6 +241,9 @@ urlpatterns += patterns('',
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
         ProjectSettingsView.as_view(),
         name='sentry-manage-project'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/release-tracking/$',
+        ProjectReleaseTrackingView.as_view(),
+        name='sentry-project-release-tracking'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/$',
         sentry.web.frontend.projects.keys.manage_project_keys,
         name='sentry-manage-project-keys'),

@@ -1,0 +1,65 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Release Tracking" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <h2>{% trans "Release Tracking" %}</h2>
+  </div>
+  <p>Configure release tracking for this project to automatically record new releases of your application.</p>
+
+  {% if not enabled_plugins and not other_plugins %}
+    <div class="alert alert-error alert-block">
+      <p>There are no release tracking integrations available.</p>
+    </div>
+  {% else %}
+    <form method="POST">
+      {% csrf_token %}
+      <fieldset>
+        <legend>Token</legend>
+        <p>Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.</p>
+        <pre style="display:inline-block;margin-bottom:0" class="clippy">{{ token }}</pre>
+        <button type="submit" class="btn btn-small btn-danger" name="op" value="regenerate-token">Regenerate Token</button>
+      </fieldset>
+    </form>
+
+    {% for plugin, content in enabled_plugins %}
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+        <fieldset>
+          <legend>
+            {{ plugin.get_title }}
+            {% if plugin.can_disable %}
+              <button type="submit" class="btn btn-small btn-default" name="op" value="disable">Disable</button>
+            {% endif %}
+          </legend>
+          {{ content }}
+        </fieldset>
+      </form>
+    {% endfor %}
+
+    {% if other_plugins %}
+      <fieldset>
+        <legend>Inactive Integrations</legend>
+
+        <ul class="integration-list unstyled">
+          {% for plugin in other_plugins %}
+            <li>
+              <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="op" value="enable" />
+                <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+                <button type="submit">{{ plugin.get_title }}</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      </fieldset>
+    {% endif %}
+  {% endif %}
+{% endblock %}

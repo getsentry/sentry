@@ -1,0 +1,105 @@
+from __future__ import absolute_import
+
+import hashlib
+import hmac
+
+from django.contrib import messages
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
+from uuid import uuid1
+
+from sentry.models import OrganizationMemberType, ProjectOption
+from sentry.plugins import plugins, ReleaseTrackingPlugin
+from sentry.web.frontend.base import ProjectView
+
+
+OK_TOKEN_REGENERATED = _("Your deploy token has been regenerated. You will need to update any pre-existing deploy hooks.")
+
+OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
+
+OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
+
+
+class ProjectReleaseTrackingView(ProjectView):
+    required_access = OrganizationMemberType.ADMIN
+
+    def _iter_plugins(self):
+        for plugin in plugins.all(version=2):
+            if not isinstance(plugin, ReleaseTrackingPlugin):
+                continue
+            yield plugin
+
+    def _handle_enable_plugin(self, request, project):
+        plugin = plugins.get(request.POST['plugin'])
+        plugin.set_option('enabled', True, project)
+        messages.add_message(
+            request, messages.SUCCESS,
+            OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
+        )
+
+    def _handle_disable_plugin(self, request, project):
+        plugin = plugins.get(request.POST['plugin'])
+        plugin.set_option('enabled', False, project)
+        messages.add_message(
+            request, messages.SUCCESS,
+            OK_PLUGIN_DISABLED.format(name=plugin.get_title()),
+        )
+
+    def _regenerate_token(self, project):
+        token = uuid1().hex
+        ProjectOption.objects.set_value(project, 'sentry:release-token', token)
+        return token
+
+    def _get_signature(self, project_id, plugin_id, token):
+        return hmac.new(
+            key=str(token),
+            msg='{}-{}'.format(plugin_id, project_id),
+            digestmod=hashlib.sha256
+        ).hexdigest()
+
+    def handle(self, request, organization, team, project):
+        token = None
+
+        if request.method == 'POST':
+            op = request.POST.get('op')
+            if op == 'regenerate-token':
+                token = self._regenerate_token(project)
+                messages.add_message(
+                    request, messages.SUCCESS,
+                    OK_TOKEN_REGENERATED,
+                )
+            elif op == 'enable':
+                self._handle_enable_plugin(request, project)
+            elif op == 'disable':
+                self._handle_disable_plugin(request, project)
+            return HttpResponseRedirect(request.path)
+
+        if token is None:
+            token = ProjectOption.objects.get_value(project, 'sentry:release-token')
+        if token is None:
+            token = self._regenerate_token(project)
+
+        enabled_plugins = []
+        other_plugins = []
+        for plugin in self._iter_plugins():
+            if plugin.is_enabled(project):
+                hook_url = reverse('sentry-release-hook', kwargs={
+                    'plugin_id': plugin.slug,
+                    'project_id': project.id,
+                    'signature': self._get_signature(project.id, plugin.slug, token),
+                })
+                content = plugin.get_release_doc_html(hook_url=hook_url)
+                enabled_plugins.append((plugin, mark_safe(content)))
+            else:
+                other_plugins.append(plugin)
+
+        context = {
+            'page': 'release-tracking',
+            'token': token,
+            'enabled_plugins': enabled_plugins,
+            'other_plugins': other_plugins,
+        }
+
+        return self.respond('sentry/project-release-tracking.html', context)
