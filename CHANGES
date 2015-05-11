@@ -20,6 +20,7 @@ This release removes the ability to login or create accounts using a social auth
 - PendingTeamMember has been removed.
 - Added OrganizationMember.counter.
 - Added 'sentry.db.postgres' optimized Postgres backend.
+- Added ReleaseTrackingPlugin and various release-focused endpoints.
 
 Version 7.4.3
 -------------
