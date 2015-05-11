@@ -38,7 +38,6 @@ def send_beacon():
         logger.info('Not sending beacon (disabled)')
         return
 
-    # TODO(dcramer): move version code off of PyPi and into beacon
     install_id = options.get('sentry:install-id')
     if not install_id:
         logger.info('Generated installation ID: %s', install_id)
