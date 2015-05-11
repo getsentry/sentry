@@ -15,6 +15,9 @@
     <li>
       <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">Stream</a>
     </li>
+    <li>
+      <a href="{% url 'sentry-releases' project.organization.slug project.slug %}">Releases</a>
+    </li>
     <li class="active">
       <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">Settings</a>
     </li>

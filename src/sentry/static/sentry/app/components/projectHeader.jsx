@@ -39,6 +39,11 @@ var ProjectHeader = React.createClass({
                   Stream
                 </Router.Link>
               </li>
+              <li className={navSection == 'releases' ? 'active': ''}>
+                <Router.Link to="projectReleases" params={routeParams}>
+                  Releases
+                </Router.Link>
+              </li>
               <li className={navSection == 'settings' ? 'active': ''}>
                 <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
                   Settings

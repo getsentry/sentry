@@ -16,6 +16,7 @@ var GroupEventDetails = require("./views/groupEventDetails");
 var OrganizationDetails = require("./views/organizationDetails");
 var OrganizationTeams = require("./views/organizationTeams");
 var ProjectDetails = require("./views/projectDetails");
+var ProjectReleases = require("./views/projectReleases");
 var PropTypes = require("./proptypes");
 var Stream = require("./views/stream");
 var TeamDashboard = require("./views/teamDashboard");
@@ -30,6 +31,7 @@ var routes = (
       </Route>
       <Route name="projectDetails" path=":projectId/" handler={ProjectDetails}>
         <DefaultRoute name="stream" handler={Stream} />
+        <Route name="projectReleases" path="releases/" handler={ProjectReleases} />
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>
           <DefaultRoute name="groupOverview" handler={GroupOverview} />
