@@ -9,6 +9,7 @@ class ReleaseSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
             'version': obj.version,
+            'dateReleased': obj.date_released,
             'dateCreated': obj.date_added,
         }
         return d
