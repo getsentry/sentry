@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
-from sentry import features
+from sentry import constants, features
 from sentry.models import OrganizationMemberType, ProjectOption
 from sentry.plugins import plugins, ReleaseTrackingPlugin
 from sentry.utils.http import absolute_uri
@@ -18,10 +18,6 @@ from sentry.web.frontend.base import ProjectView
 
 
 OK_TOKEN_REGENERATED = _("Your deploy token has been regenerated. You will need to update any pre-existing deploy hooks.")
-
-OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
-
-OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 
 ERR_NO_FEATURE = _('The release tracking feature is not enabled for this project.')
 
@@ -40,7 +36,7 @@ class ProjectReleaseTrackingView(ProjectView):
         plugin.set_option('enabled', True, project)
         messages.add_message(
             request, messages.SUCCESS,
-            OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
+            constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
         )
 
     def _handle_disable_plugin(self, request, project):
@@ -48,7 +44,7 @@ class ProjectReleaseTrackingView(ProjectView):
         plugin.set_option('enabled', False, project)
         messages.add_message(
             request, messages.SUCCESS,
-            OK_PLUGIN_DISABLED.format(name=plugin.get_title()),
+            constants.OK_PLUGIN_DISABLED.format(name=plugin.get_title()),
         )
 
     def _regenerate_token(self, project):
