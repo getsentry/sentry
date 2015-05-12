@@ -153,6 +153,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         - An optional 'status' parameter may be used to restrict mutations to
           only events with the given status.
 
+        For example, to resolve all aggregates (project-wide):
+
+            {method} {path}
+            {{
+                "status": "resolved"
+            }}
+
         Attributes:
 
         - status: resolved, unresolved, muted
@@ -181,7 +188,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         result = serializer.object
 
         # validate that we've passed a selector for non-status bulk operations
-        if not group_ids and result.keys() == ['status']:
+        if not group_ids and result.keys() != ['status']:
             return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)
 
         if group_ids:
