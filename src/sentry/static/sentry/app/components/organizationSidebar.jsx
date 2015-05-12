@@ -123,9 +123,6 @@ var OrganizationSidebar = React.createClass({
               return (
                 <div className="team" key={team.slug}>
                   <h6>
-                    <a className="pull-right" href="">
-                      <span className="icon-settings" />
-                    </a>
                     <Router.Link
                         to="teamDetails"
                         params={routeParams}>
