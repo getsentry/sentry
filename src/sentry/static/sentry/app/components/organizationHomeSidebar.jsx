@@ -43,6 +43,9 @@ var OrganizationHomeSidebar = React.createClass({
             <li><a href={urlPrefix + '/auth/'}>Auth</a></li>
           }
           {access.has('org:write') &&
+            <li><a href={urlPrefix + '/api-keys/'}>API Keys</a></li>
+          }
+          {access.has('org:write') &&
             <li><a href={urlPrefix + '/settings/'}>Settings</a></li>
           }
         </ul>
