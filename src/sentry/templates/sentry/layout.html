@@ -82,7 +82,6 @@
               {% for t, p_list in TEAM_LIST %}
               <div class="team">
                 <h6>
-                  <a class="pull-right" href="{% url 'sentry-manage-team' t.organization.slug t.slug %}"><span class="icon-settings"></span></a>
                   <a href="{% url 'sentry-team-dashboard' t.organization.slug t.slug %}">{{ t.name }}</a>
                 </h6>
                 <ul class="project-list list-unstyled truncate">
