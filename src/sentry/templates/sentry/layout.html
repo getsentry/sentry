@@ -102,7 +102,7 @@
         <div class="user-nav">
           <img src="{% gravatar_url user.email size 72 %}" class="avatar">
           <div class="user-details">
-            <span class="user-name">{{ request.user.username }}</span>
+            <span class="user-name">{{ request.user|format_userinfo }}</span>
             <ul>
               <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
               <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>

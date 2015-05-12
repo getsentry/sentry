@@ -421,3 +421,16 @@ def count_pending_access_requests(organization):
     return OrganizationAccessRequest.objects.filter(
         team__organization=organization,
     ).count()
+
+
+@register.filter
+def format_userinfo(user):
+    parts = user.username.split('@')
+    if len(parts) == 1:
+        username = user.username
+    else:
+        username = parts[0].lower()
+    return mark_safe('<span title="%s">%s</span>' % (
+        escape(user.username),
+        escape(username),
+    ))
