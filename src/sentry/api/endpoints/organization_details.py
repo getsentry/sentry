@@ -51,9 +51,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if features.has('organizations:sso', organization, actor=request.user):
             feature_list.append('sso')
 
-        if request.access.is_global:
-            feature_list.append('open-membership')
-        elif getattr(organization.flags, 'allow_joinleave'):
+        if getattr(organization.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
 
         context = serialize(organization, request.user)
