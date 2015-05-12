@@ -12,11 +12,7 @@
   </div>
   <p>Configure release tracking for this project to automatically record new releases of your application.</p>
 
-  {% if not enabled_plugins and not other_plugins %}
-    <div class="alert alert-error alert-block">
-      <p>There are no release tracking integrations available.</p>
-    </div>
-  {% else %}
+  {% if enabled_plugins or other_plugins %}
     <form method="POST">
       {% csrf_token %}
       <fieldset>
@@ -62,4 +58,12 @@
       </fieldset>
     {% endif %}
   {% endif %}
+
+  <fieldset>
+    <legend>API</legend>
+
+    <p>You can notify Sentry when you release new versions of your application via our HTTP API.</p>
+
+    <p>See the <a href="{% url 'sentry-api-0-help-section' 'releases' %}">Releases API documentation</a> for more information.</p>
+  </fieldset>
 {% endblock %}
