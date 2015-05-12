@@ -21,7 +21,11 @@
           <legend>
             {{ plugin.get_title }}
             {% if plugin.can_disable %}
-              <button type="submit" class="btn btn-small btn-default" name="op" value="disable">Disable</button>
+              <form method="POST" style="display: inline-block">
+                {% csrf_token %}
+                <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+                <button type="submit" class="btn btn-small btn-default" name="op" value="disable">Disable</button>
+              </form>
             {% endif %}
           </legend>
           {{ content }}
