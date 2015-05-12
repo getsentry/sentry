@@ -114,7 +114,10 @@ var Frame = React.createClass({
             className += " active";
           }
 
-          return <li className={className} key={line[0]}>{line[1]} <span className="icon-plus"></span></li>;
+          var [_, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/);
+          return <li className={className} key={line[0]}><span className="ws">{
+            lineWs}</span><span className="contextline">{lineCode
+            }</span> <span className="icon-plus"></span></li>;
         })}
         {this.isDefined(data.vars) &&
           <FrameVariables data={data.vars} key="vars" />
