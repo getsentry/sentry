@@ -1,0 +1,61 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Issue Tracking" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+  <h2>{% trans "Issue Tracking" %}</h2>
+
+  <p>Configure issue tracking for this project to enable quick issue creation links on events.</p>
+
+  {% if enabled_plugins or other_plugins %}
+    {% for plugin, content in enabled_plugins %}
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+        <div class="box">
+          <div class="box-header">
+            <h3>
+              {{ plugin.get_title }}
+              {% if plugin.can_disable %}
+                <button type="submit" class="btn btn-sm btn-default" name="op" value="disable">Disable</button>
+              {% endif %}
+            </h3>
+          </div>
+          <div class="box-content with-padding">
+            {{ content }}
+          </div>
+        </div>
+      </form>
+    {% endfor %}
+
+    {% if other_plugins %}
+      <div class="box">
+        <div class="box-header">
+          <h3>{% trans "Inactive Integrations" %}</h3>
+        </div>
+        <div class="box-content with-padding">
+          <ul class="integration-list">
+            {% for plugin in other_plugins %}
+              <li>
+                <form method="POST">
+                  {% csrf_token %}
+                  <input type="hidden" name="op" value="enable" />
+                  <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+                  <button type="submit">{{ plugin.get_title }}</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="alert alert-info alert-block">
+      <p>There are no issue tracker integrations available.</p>
+    </div>
+  {% endif %}
+{% endblock %}

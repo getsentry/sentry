@@ -1,0 +1,86 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Release Tracking" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+  <h2>{% trans "Release Tracking" %}</h2>
+
+  <p>Configure release tracking for this project to automatically record new releases of your application.</p>
+
+  {% if enabled_plugins or other_plugins %}
+
+    <div class="box">
+      <div class="box-header">
+        <h3>{% trans "General" %}</h3>
+      </div>
+      <div class="box-content with-padding">
+        <form method="POST">
+          {% csrf_token %}
+            <p>Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.</p>
+            <p>
+              <pre style="display:inline-block;margin-bottom:0" class="clippy">{{ token }}</pre>
+              <button type="submit" class="btn btn-sm btn-danger" name="op" value="regenerate-token">Regenerate Token</button>
+            </p>
+        </form>
+      </div>
+    </div>
+
+    {% for plugin, content in enabled_plugins %}
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+        <div class="box">
+          <div class="box-header">
+            <h3>
+              {{ plugin.get_title }}
+              {% if plugin.can_disable %}
+                <button type="submit" class="btn btn-sm btn-default" name="op" value="disable">Disable</button>
+              {% endif %}
+            </h3>
+          </div>
+          <div class="box-content with-padding">
+            {{ content }}
+            </form>
+          </div>
+        </div>
+      </form>
+    {% endfor %}
+
+    {% if other_plugins %}
+      <div class="box">
+        <div class="box-header">
+          <h3>{% trans "Inactive Integrations" %}</h3>
+        </div>
+        <div class="box-content with-padding">
+          <ul class="integration-list">
+            {% for plugin in other_plugins %}
+              <li>
+                <form method="POST">
+                  {% csrf_token %}
+                  <input type="hidden" name="op" value="enable" />
+                  <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+                  <button type="submit">{{ plugin.get_title }}</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <div class="box">
+    <div class="box-header">
+      <h3>{% trans "API" %}</h3>
+    </div>
+    <div class="box-content with-padding">
+      <p>You can notify Sentry when you release new versions of your application via our HTTP API.</p>
+
+      <p>See the <a href="{% url 'sentry-api-0-help-section' 'releases' %}">Releases API documentation</a> for more information.</p>
+    </div>
+  </div>
+{% endblock %}

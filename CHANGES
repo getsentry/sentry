@@ -20,6 +20,7 @@ This release removes the ability to login or create accounts using a social auth
 - PendingTeamMember has been removed.
 - Added OrganizationMember.counter.
 - Added 'sentry.db.postgres' optimized Postgres backend.
+- Added ReleaseTrackingPlugin and various release-focused endpoints.
 
 Version 7.4.3
 -------------
@@ -601,7 +602,7 @@ Version 4.9.0
 
 Social authentication is now supported!
 
-By configuring several options (documented on the quickstart guide), you can allow users to signup and login
+By configuring several options (documented in the getting started guide), you can allow users to signup and login
 with accounts from several social services. Additionally users can associate their existing accounts (via a
 new identities panel in their account settings) with any number of these services.
 

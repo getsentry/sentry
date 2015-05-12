@@ -184,7 +184,7 @@ def plugin_config(plugin, project, request):
             initials[field] = value
 
     form = form_class(
-        request.POST or None,
+        request.POST if request.POST.get('plugin') == plugin.slug else None,
         initial=initials,
         prefix=plugin_key
     )

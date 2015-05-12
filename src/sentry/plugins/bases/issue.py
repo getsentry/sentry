@@ -25,7 +25,7 @@ class NewIssueForm(forms.Form):
     description = forms.CharField(widget=forms.Textarea(attrs={'class': 'span9'}))
 
 
-class IssuePlugin(Plugin):
+class IssueTrackingPlugin(Plugin):
     # project_conf_form = BaseIssueOptionsForm
     new_issue_form = NewIssueForm
 
@@ -220,3 +220,8 @@ class IssuePlugin(Plugin):
         )))
 
         return tag_list
+
+    def get_issue_doc_html(self, **kwargs):
+        return ""
+
+IssuePlugin = IssueTrackingPlugin

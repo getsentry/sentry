@@ -233,3 +233,9 @@ DEFAULT_SCRUBBED_FIELDS = (
     'api_key',
     'apikey',
 )
+
+OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
+
+OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
+
+OK_PLUGIN_SAVED = _('Configuration for the {name} integration has been saved.')

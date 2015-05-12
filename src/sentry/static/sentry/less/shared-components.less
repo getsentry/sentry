@@ -2306,6 +2306,40 @@ ul.tag-list {
   }
 }
 
+
+/**
+* Integration list
+* ============================================================================
+*/
+
+.integration-list {
+  .clearfix();
+  .list-unstyled();
+
+  li {
+    display: inline-block;
+
+    button {
+      width: 150px;
+      text-align: center;
+      font-size: 12px;
+      color: darken(#e4e8ed, 30%);
+      letter-spacing: 0.1px;
+      font-weight: 600;
+      text-transform: uppercase;
+      border: 1px solid #eee;
+      background: inherit;
+      border-radius: 4px;
+      padding: 10px;
+      display: block;
+
+      &:hover {
+        border-color: #ccc;
+      }
+    }
+  }
+}
+
 /**
 * Responsive small screens
 * ============================================================================
