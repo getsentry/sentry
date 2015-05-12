@@ -8,14 +8,13 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils.crypto import constant_time_compare
+from django.utils.decorators import method_decorator
 
 from sentry.models import Project, ProjectOption
 from sentry.plugins import plugins
 
 
 class ReleaseWebhookView(View):
-    auth_required = False
-
     def verify(self, project_id, plugin_id, token, signature):
         return constant_time_compare(signature, hmac.new(
             key=str(token),
@@ -23,7 +22,10 @@ class ReleaseWebhookView(View):
             digestmod=hashlib.sha256
         ).hexdigest())
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)
+
     def post(self, request, project_id, plugin_id, signature):
         project = Project.objects.get_from_cache(id=project_id)
 
