@@ -16,6 +16,8 @@ def preprocess_event(data):
 
 
 class JavascriptPlugin(Plugin2):
+    can_disable = False
+
     def get_event_preprocessors(self, **kwargs):
         if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT:
             return []
