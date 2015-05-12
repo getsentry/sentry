@@ -1,14 +1,39 @@
 from __future__ import absolute_import
 
+import re
 import textwrap
 
-from django.contrib.admindocs.views import simplify_regex
 from django.utils.importlib import import_module
 from django.utils.text import slugify
 
 from sentry.api.base import Endpoint
 from sentry.constants import HTTP_METHODS
 from sentry.web.frontend.base import BaseView
+
+optional_group_matcher = re.compile(r'\(\?\:(.+)\)')
+named_group_matcher = re.compile(r'\(\?P<(\w+)>[^\)]+\)')
+non_named_group_matcher = re.compile(r'\(.*?\)')
+
+
+def simplify_regex(pattern):
+    """
+    Clean up urlpattern regexes into something somewhat readable by Mere Humans:
+    turns something like "^(?P<sport_slug>\w+)/athletes/(?P<athlete_slug>\w+)/$"
+    into "{sport_slug}/athletes/{athlete_slug}/"
+    """
+    pattern = optional_group_matcher.sub(lambda m: '[%s]' % m.group(1), pattern)
+
+    # handle named groups first
+    pattern = named_group_matcher.sub(lambda m: '{%s}' % m.group(1), pattern)
+
+    # handle non-named groups
+    pattern = non_named_group_matcher.sub("{var}", pattern)
+
+    # clean up any outstanding regex-y characters.
+    pattern = pattern.replace('^', '').replace('$', '').replace('?', '').replace('//', '/').replace('\\', '')
+    if not pattern.startswith('/'):
+        pattern = '/' + pattern
+    return pattern
 
 
 class ApiHelpBase(BaseView):
@@ -85,8 +110,8 @@ class ApiHelpBase(BaseView):
         return callback
 
     def __get_resource_data(self, pattern, prefix, callback):
+        print(pattern.regex.pattern)
         path = simplify_regex(pattern.regex.pattern)
-        path = path.replace('<', '{').replace('>', '}')
 
         full_path = prefix.rstrip('/') + path
 
