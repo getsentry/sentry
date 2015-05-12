@@ -12,7 +12,10 @@ from sentry.models import Release
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=200, required=True)
+    version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=64, required=True)
+    ref = serializers.CharField(max_length=64, required=False)
+    url = serializers.URLField(required=False)
+    dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
 
 
@@ -60,8 +63,11 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             with transaction.atomic():
                 try:
                     release = Release.objects.create(
-                        version=result['version'],
                         project=project,
+                        version=result['version'],
+                        ref=result.get('ref'),
+                        url=result.get('url'),
+                        date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased') or timezone.now(),
                     )
                 except IntegrityError:

@@ -26,7 +26,6 @@ class StartReleaseTest(TestCase):
         release = Release.objects.get(
             project=project,
             version=version,
-            environment='production',
         )
         assert release.date_started
 
@@ -42,6 +41,5 @@ class FinishReleaseTest(TestCase):
         release = Release.objects.get(
             project=project,
             version=version,
-            environment='production',
         )
         assert release.date_released

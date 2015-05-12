@@ -21,7 +21,6 @@ class Release(Model):
     """
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
-    environment = models.CharField(max_length=64, default='production')
     # ref might be the branch name being released
     ref = models.CharField(max_length=64, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
@@ -34,6 +33,6 @@ class Release(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_release'
-        unique_together = (('project', 'version', 'environment'),)
+        unique_together = (('project', 'version'),)
 
-    __repr__ = sane_repr('project_id', 'version', 'environment')
+    __repr__ = sane_repr('project_id', 'version')
