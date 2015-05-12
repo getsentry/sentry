@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
+from jsonfield import JSONField
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
@@ -20,13 +21,19 @@ class Release(Model):
     """
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
+    environment = models.CharField(max_length=64, default='production')
+    # ref might be the branch name being released
+    ref = models.CharField(max_length=64, null=True, blank=True)
+    url = models.URLField(null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now)
-    # the explicit release date (or unknown)
-    date_released = models.DateTimeField(null=True)
+    date_started = models.DateTimeField(null=True, blank=True)
+    date_released = models.DateTimeField(null=True, blank=True)
+    # arbitrary data recorded with the release
+    data = JSONField(default={})
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_release'
-        unique_together = (('project', 'version'),)
+        unique_together = (('project', 'version', 'environment'),)
 
-    __repr__ = sane_repr('project_id', 'version')
+    __repr__ = sane_repr('project_id', 'version', 'environment')
