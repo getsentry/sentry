@@ -10,13 +10,14 @@
   <div class="page-header">
     <h2>{% trans "Issue Tracking" %}</h2>
   </div>
+
   <p>Configure issue tracking for this project to enable quick issue creation links on events.</p>
 
   {% if enabled_plugins or other_plugins %}
     {% for plugin, content in enabled_plugins %}
-      <fieldset class="integration-settings">
-        <legend>
-          {{ plugin.get_title }}
+      <div class="integration-settings">
+        <div class="page-header">
+          <h3>{{ plugin.get_title }}</h3>
           {% if plugin.can_disable %}
             <form method="POST">
               {% csrf_token %}
@@ -24,14 +25,16 @@
               <button type="submit" class="btn btn-small btn-default" name="op" value="disable">Disable</button>
             </form>
           {% endif %}
-        </legend>
+        </div>
         {{ content }}
-      </fieldset>
+      </div>
     {% endfor %}
 
     {% if other_plugins %}
-      <fieldset>
-        <legend>Inactive Integrations</legend>
+      <div class="integration-settings">
+        <div class="page-header">
+          <h3>Inactive Integrations</h3>
+        </div>
 
         <ul class="integration-list unstyled">
           {% for plugin in other_plugins %}
@@ -45,7 +48,7 @@
             </li>
           {% endfor %}
         </ul>
-      </fieldset>
+      </div>
     {% endif %}
   {% else %}
     <div class="alert alert-info alert-block">
