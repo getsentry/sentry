@@ -35,10 +35,15 @@ class ReleaseWebhookView(View):
                      project_id, plugin_id)
 
         if not self.verify(project_id, plugin_id, token, signature):
-            logging.error('Unable to verify signature for release hook')
+            logging.warn('Unable to verify signature for release hook')
             return HttpResponse(status=403)
 
         plugin = plugins.get(plugin_id)
+        if not plugin.is_enabled(project):
+            logging.warn('Disabled release hook received for project_id=%s, plugin_id=%s',
+                         project_id, plugin_id)
+            return HttpResponse(status=403)
+
         cls = plugin.get_release_hook()
         hook = cls(project)
         hook.handle(request)
