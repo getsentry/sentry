@@ -24,19 +24,19 @@
     </form>
 
     {% for plugin, content in enabled_plugins %}
-      <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
-        <fieldset>
-          <legend>
-            {{ plugin.get_title }}
-            {% if plugin.can_disable %}
+      <fieldset>
+        <legend>
+          {{ plugin.get_title }}
+          {% if plugin.can_disable %}
+            <form method="POST" style="display: inline-block">
+              {% csrf_token %}
+              <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
               <button type="submit" class="btn btn-small btn-default" name="op" value="disable">Disable</button>
-            {% endif %}
-          </legend>
-          {{ content }}
-        </fieldset>
-      </form>
+            </form>
+          {% endif %}
+        </legend>
+        {{ content }}
+      </fieldset>
     {% endfor %}
 
     {% if other_plugins %}
