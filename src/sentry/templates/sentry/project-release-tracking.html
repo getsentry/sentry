@@ -24,7 +24,7 @@
     </form>
 
     {% for plugin, content in enabled_plugins %}
-      <fieldset>
+      <fieldset class="integration-settings">
         <legend>
           {{ plugin.get_title }}
           {% if plugin.can_disable %}
