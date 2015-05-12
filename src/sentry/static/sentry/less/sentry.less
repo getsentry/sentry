@@ -3378,12 +3378,27 @@ pre {
 }
 
 .integration-settings {
-  legend > form {
-    margin: 0 0 0 10px;
-    display: inline-block;
+  margin-bottom: 20px;
+
+  .page-header {
+    margin-bottom: 18px;
+    border-bottom: 2px solid #e5e5e5;
+
+    h3 {
+      font-weight: 400;
+      font-size: 19.5px;
+      vertical-align: middle;
+      display: inline-block;
+      line-height: 40px;
+    }
+    form {
+      margin: 0 0 0 10px;
+      display: inline-block;
+    }
   }
   .form-actions {
-    padding: 20px 0 0 0;
+    border: 0;
+    padding: 0;
     margin-bottom: 0;
   }
 }
@@ -3393,6 +3408,10 @@ pre {
 
   li {
     display: inline-block;
+
+    form {
+      margin-bottom: 0;
+    }
 
     button {
       width: 150px;

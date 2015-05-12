@@ -24,24 +24,26 @@
     </form>
 
     {% for plugin, content in enabled_plugins %}
-      <fieldset class="integration-settings">
-        <legend>
-          {{ plugin.get_title }}
+      <div class="integration-settings">
+        <div class="page-header">
+          <h3>{{ plugin.get_title }}</h3>
           {% if plugin.can_disable %}
-            <form method="POST" style="display: inline-block">
+            <form method="POST">
               {% csrf_token %}
               <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
               <button type="submit" class="btn btn-small btn-default" name="op" value="disable">Disable</button>
             </form>
           {% endif %}
-        </legend>
+        </div>
         {{ content }}
-      </fieldset>
+      </div>
     {% endfor %}
 
     {% if other_plugins %}
-      <fieldset>
-        <legend>Inactive Integrations</legend>
+      <div class="integration-settings">
+        <div class="page-header">
+          <h3>Inactive Integrations</h3>
+        </div>
 
         <ul class="integration-list unstyled">
           {% for plugin in other_plugins %}
@@ -55,15 +57,17 @@
             </li>
           {% endfor %}
         </ul>
-      </fieldset>
+      </div>
     {% endif %}
   {% endif %}
 
-  <fieldset>
-    <legend>API</legend>
+  <div class="integration-settings">
+    <div class="page-header">
+      <h3>API</h3>
+    </div>
 
     <p>You can notify Sentry when you release new versions of your application via our HTTP API.</p>
 
     <p>See the <a href="{% url 'sentry-api-0-help-section' 'releases' %}">Releases API documentation</a> for more information.</p>
-  </fieldset>
+  </div>
 {% endblock %}
