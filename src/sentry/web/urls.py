@@ -57,8 +57,9 @@ from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_team import CreateTeamView
-from sentry.web.frontend.project_settings import ProjectSettingsView
+from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_release_tracking import ProjectReleaseTrackingView
+from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
@@ -238,12 +239,15 @@ urlpatterns += patterns('',
         sentry.web.frontend.projects.general.get_started,
         name='sentry-get-started'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
-        ProjectSettingsView.as_view(),
-        name='sentry-manage-project'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issue-tracking/$',
+        ProjectIssueTrackingView.as_view(),
+        name='sentry-project-issue-tracking'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/release-tracking/$',
         ProjectReleaseTrackingView.as_view(),
         name='sentry-project-release-tracking'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
+        ProjectSettingsView.as_view(),
+        name='sentry-manage-project'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/$',
         sentry.web.frontend.projects.keys.manage_project_keys,
         name='sentry-manage-project-keys'),
