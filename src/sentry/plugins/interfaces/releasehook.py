@@ -19,21 +19,19 @@ class ReleaseHook(object):
     def __init__(self, project):
         self.project = project
 
-    def start_release(self, version, environment='production', **defaults):
+    def start_release(self, version, **defaults):
         defaults.setdefault('date_started', timezone.now())
         Release.objects.create_or_update(
             version=version,
             project=self.project,
-            environment=environment,
             defaults=defaults,
         )
 
-    def finish_release(self, version, environment='production', **defaults):
+    def finish_release(self, version, **defaults):
         defaults.setdefault('date_released', timezone.now())
         Release.objects.create_or_update(
             version=version,
             project=self.project,
-            environment=environment,
             defaults=defaults,
         )
 

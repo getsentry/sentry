@@ -9,7 +9,6 @@ class ReleaseSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
             'version': obj.version,
-            'environment': obj.environment,
             'ref': obj.ref,
             'url': obj.url,
             'dateStarted': obj.date_started,
