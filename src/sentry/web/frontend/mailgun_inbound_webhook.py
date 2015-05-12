@@ -6,8 +6,10 @@ import logging
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from django.utils.crypto import constant_time_compare
+from django.utils.decorators import method_decorator
 from email_reply_parser import EmailReplyParser
 from email.utils import parseaddr
 
@@ -16,14 +18,16 @@ from sentry.utils.email import email_to_group_id
 
 
 class MailgunInboundWebhookView(View):
-    auth_required = False
-
     def verify(self, api_key, token, timestamp, signature):
         return constant_time_compare(signature, hmac.new(
             key=api_key,
             msg='{}{}'.format(timestamp, token),
             digestmod=hashlib.sha256
         ).hexdigest())
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super(MailgunInboundWebhookView, self).dispatch(*args, **kwargs)
 
     def post(self, request):
         token = request.POST['token']

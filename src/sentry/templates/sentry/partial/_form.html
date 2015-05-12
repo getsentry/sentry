@@ -3,6 +3,10 @@
 
 <form action="." method="post">
     {% csrf_token %}
+    {% if plugin %}
+    	<input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+    {% endif %}
+
     {% include "sentry/partial/form_base.html" %}
 
     <fieldset class="form-actions">

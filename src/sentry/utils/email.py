@@ -17,6 +17,7 @@ from django.utils.functional import cached_property
 from email.utils import parseaddr
 
 from sentry.web.helpers import render_to_string
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 signer = Signer()
@@ -189,6 +190,7 @@ class MessageBuilder(object):
 
     def send_all(self, messages, fail_silently=False):
         connection = get_connection(fail_silently=fail_silently)
+        metrics.incr('email.sent', len(messages))
         return connection.send_messages(messages)
 
     def send_async(self, to=None):

@@ -538,6 +538,7 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:sso': False,
     'projects:quotas': True,
+    'projects:release-tracking': True,
     'teams:create': True,
 }
 
