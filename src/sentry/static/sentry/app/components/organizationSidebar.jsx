@@ -8,6 +8,7 @@ var ConfigStore = require("../stores/configStore");
 var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 var Gravatar = require("./gravatar");
+var UserInfo = require("./userInfo");
 var ListLink = require("./listLink");
 var OrganizationState = require("../mixins/organizationState");
 var PropTypes = require("../proptypes");
@@ -42,6 +43,15 @@ var OrganizationSelector = React.createClass({
   }
 });
 
+function getUserDisplayName(user) {
+  var name = user.name || user.email;
+  var parts = user.email.split(/@/);
+  if (parts.length == 1) {
+    return parts[0];
+  }
+  return parts[0].toLowerCase().replace(/[\.-_]+/, ' ');
+}
+
 var UserNav = React.createClass({
   mixins: [
     PureRenderMixin
@@ -59,7 +69,7 @@ var UserNav = React.createClass({
       <div className="user-nav">
         <Gravatar email={user.email} className="avatar" />
         <div className="user-details">
-          <span className="user-name truncate">{user.name || user.email}</span>
+          <UserInfo user={user} className="user-name" />
           <ul>
             <li><a href={urlPrefix + '/account/settings/'}>Account</a></li>
             <li><a href={urlPrefix + '/auth/logout/'}>Sign out</a></li>
