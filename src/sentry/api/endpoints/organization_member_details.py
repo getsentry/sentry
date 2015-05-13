@@ -38,6 +38,19 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
+    def _get_member(self, request, organization, member_id):
+        if member_id == 'me':
+            queryset = OrganizationMember.objects.filter(
+                organization=organization,
+                user__id=request.user.id,
+            )
+        else:
+            queryset = OrganizationMember.objects.filter(
+                organization=organization,
+                id=member_id,
+            )
+        return queryset.select_related('user').get()
+
     def _is_only_owner(self, member):
         if member.type != OrganizationMemberType.OWNER:
             return False
@@ -54,10 +67,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
     def put(self, request, organization, member_id):
         try:
-            om = OrganizationMember.objects.filter(
-                organization=organization,
-                id=member_id,
-            ).select_related('user').get()
+            om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -92,10 +102,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             ).type
 
         try:
-            om = OrganizationMember.objects.filter(
-                organization=organization,
-                id=member_id,
-            ).select_related('user').get()
+            om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
