@@ -7,9 +7,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Project, ProjectStatus
-)
+from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
 from sentry.tasks.deletion import delete_project
 
 
@@ -87,10 +85,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     [s.strip().lower() for s in options['sentry:sensitive_fields']]
                 )
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=project.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_EDIT,
                 data=project.get_audit_log_data(),
@@ -129,10 +126,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if updated:
             delete_project.delay(object_id=project.id)
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=project.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_REMOVE,
                 data=project.get_audit_log_data(),

@@ -7,7 +7,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team, TeamStatus
+from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 
 
@@ -54,10 +54,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
         if serializer.is_valid():
             team = serializer.save()
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=team.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_EDIT,
                 data=team.get_audit_log_data(),
@@ -87,10 +86,9 @@ class TeamDetailsEndpoint(TeamEndpoint):
         if updated:
             delete_team.delay(object_id=team.id, countdown=60 * 5)
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=team.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_REMOVE,
                 data=team.get_audit_log_data(),

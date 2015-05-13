@@ -11,7 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.auth import access
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationStatus, Team,
+    AuditLogEntryEvent, Organization, OrganizationStatus, Team,
     TeamStatus
 )
 from sentry.tasks.deletion import delete_organization
@@ -80,10 +80,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             organization = serializer.save()
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=organization.id,
                 event=AuditLogEntryEvent.ORG_EDIT,
                 data=organization.get_audit_log_data(),
