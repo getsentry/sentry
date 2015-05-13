@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.paginator import DateTimePaginator
 from sentry.models import Event
 
 
@@ -27,6 +28,7 @@ class GroupEventsEndpoint(GroupEndpoint):
             request=request,
             queryset=events,
             # TODO(dcramer): we want to sort by datetime
-            order_by='-id',
+            order_by='-datetime',
             on_results=lambda x: serialize(x, request.user),
+            paginator_cls=DateTimePaginator,
         )
