@@ -26,10 +26,6 @@ Resources
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 * `Transifex <https://www.transifex.com/projects/p/sentry/>`_ (Translate Sentry!)
 
-The `in-development version <http://github.com/getsentry/sentry/tarball/master#egg=sentry-dev>`_
-of Sentry can be installed with ``pip install sentry==dev`` or ``easy_install sentry==dev``.
-
-
 
 Screenshots
 -----------
