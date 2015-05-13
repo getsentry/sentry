@@ -38,8 +38,10 @@
         {% for entry in entry_list.objects %}
           <tr>
             <td class="user-info">
-              <img class="avatar" src="{% gravatar_url entry.actor.email size 80 %}">
-              <strong>{{ entry.actor.get_display_name }}</strong><br>
+              {% if entry.actor %}
+                <img class="avatar" src="{% gravatar_url entry.actor.email size 80 %}">
+              {% endif %}
+              <strong>{{ entry.get_actor_name }}</strong><br>
               {{ entry.get_note }}
             </td>
             <td>{{ entry.get_event_display }}</td>

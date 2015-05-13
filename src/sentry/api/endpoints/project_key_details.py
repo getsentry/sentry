@@ -7,9 +7,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
-)
+from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 
 
 class KeySerializer(serializers.Serializer):
@@ -51,10 +49,9 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
             key.save()
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=project.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=key.id,
                 event=AuditLogEntryEvent.PROJECTKEY_EDIT,
                 data=key.get_audit_log_data(),
@@ -81,6 +78,14 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=key.id,
+            event=AuditLogEntryEvent.PROJECTKEY_REMOVE,
+            data=key.get_audit_log_data(),
+        )
 
         key.delete()
 

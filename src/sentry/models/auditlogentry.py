@@ -58,7 +58,12 @@ class AuditLogEntryEvent(object):
 
 class AuditLogEntry(Model):
     organization = FlexibleForeignKey('sentry.Organization')
-    actor = FlexibleForeignKey('sentry.User', related_name='audit_actors')
+    actor_label = models.CharField(max_length=64, null=True, blank=True)
+    # if the entry was created via a user
+    actor = FlexibleForeignKey('sentry.User', related_name='audit_actors',
+                               null=True, blank=True)
+    # if the entry was created via an api key
+    actor_key = FlexibleForeignKey('sentry.ApiKey', null=True, blank=True)
     target_object = BoundedPositiveIntegerField(null=True)
     target_user = FlexibleForeignKey('sentry.User', null=True, blank=True,
                                     related_name='audit_targets')
@@ -111,6 +116,22 @@ class AuditLogEntry(Model):
         db_table = 'sentry_auditlogentry'
 
     __repr__ = sane_repr('organization_id', 'type')
+
+    def save(self, *args, **kwargs):
+        if not self.actor_label:
+            assert self.actor or self.actor_key
+            if self.actor:
+                self.actor_label = self.actor.username
+            else:
+                self.actor_label = self.actor_key.key
+        super(AuditLogEntry, self).save(*args, **kwargs)
+
+    def get_actor_name(self):
+        if self.actor:
+            return self.actor.get_display_name()
+        elif self.actor_key:
+            return self.actor_key.key + ' (api key)'
+        return self.actor_label
 
     def get_note(self):
         if self.event == AuditLogEntryEvent.MEMBER_INVITE:

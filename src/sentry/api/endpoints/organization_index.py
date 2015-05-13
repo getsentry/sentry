@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Organization
+from sentry.models import AuditLogEntryEvent, Organization
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -61,10 +61,9 @@ class OrganizationIndexEndpoint(Endpoint):
                 owner=request.user,
             )
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=org,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=org.id,
                 event=AuditLogEntryEvent.ORG_ADD,
                 data=org.get_audit_log_data(),

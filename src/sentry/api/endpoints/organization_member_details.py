@@ -8,7 +8,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember,
+    AuditLogEntryEvent, AuthProvider, OrganizationMember,
     OrganizationMemberType
 )
 
@@ -126,10 +126,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         om.delete()
 
-        AuditLogEntry.objects.create(
+        self.create_audit_entry(
+            request=request,
             organization=organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
             target_object=om.id,
             target_user=om.user,
             event=AuditLogEntryEvent.MEMBER_REMOVE,
