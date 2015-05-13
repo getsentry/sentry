@@ -31,6 +31,11 @@ class TSDBModel(Enum):
     # the number of events rejected due to rate limiting
     project_total_rejected = 101
 
+    # the number of operations
+    project_operations = 102
+    # the number of operations with an error state
+    project_operation_errors = 103
+
     # the number of events sent to the server
     organization_total_received = 200
     # the number of events rejected due to rate limiting
