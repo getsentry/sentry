@@ -12,6 +12,8 @@ from sentry.models import (
     OrganizationMemberType
 )
 
+ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
+
 ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'
 
 ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization.'
@@ -93,6 +95,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     def delete(self, request, organization, member_id):
+        if not request.user.is_authenticated():
+            return Response({'detail': ERR_NO_AUTH}, status=400)
+
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:
