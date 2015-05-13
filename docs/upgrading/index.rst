@@ -23,7 +23,7 @@ Upgrading to 7.x
 
 An extremely large amount of changes happened between the 6.x and 7.x series. Many of them are backwards incompatible so you should review the setup guide again.
 
-- Redis is now a requirement
+- Redis (at least version 2.4) is now a requirement
 - The queue and buffer systems are no longer optional for production systems
 - Time series data (graphs) have been moved to a new system (there is no data migration)
 - The default sentry.conf.py has greatly changed
