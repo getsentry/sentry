@@ -60,6 +60,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         queryset = OrganizationMember.objects.filter(
             organization=member.organization_id,
             type=OrganizationMemberType.OWNER,
+            has_global_access=True,
             user__isnull=False,
         ).exclude(id=member.id)
         if queryset.exists():
