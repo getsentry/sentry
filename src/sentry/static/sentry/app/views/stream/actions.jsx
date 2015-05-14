@@ -207,6 +207,110 @@ var SortOptions = React.createClass({
   }
 });
 
+var DateSelector = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
+  mixins: [
+    PureRenderMixin
+  ],
+
+  onToggle() {
+    this.setState({
+      isOpen: !this.state.isOpen
+    });
+  },
+
+  getInitialState() {
+    return {
+      dateFrom: null,
+      dateTo: null,
+      dateType: "last_seen",
+      isOpen: false
+    };
+  },
+
+  onClear() {
+    this.setState({
+      dateFrom: null,
+      dateTo: null
+    });
+    this.onApply(e);
+  },
+
+  onDateFromChange(value) {
+    this.setState({
+      dateFrom: value
+    });
+  },
+
+  onDateToChange(value) {
+    this.setState({
+      dateTo: value
+    });
+  },
+
+  onDateTypeChange(value) {
+    this.setState({
+      dateType: value
+    });
+  },
+
+  onApply(e) {
+    e.preventDefault();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
+    queryParams.dt = this.state.dateTo;
+    queryParams.df = this.state.dateFrom;
+    queryParams.date_type = this.state.dateType;
+    // TODO(dcramer): ideally we wouldn't hardcode stream here
+    router.transitionTo('stream', router.getCurrentParams(), queryParams);
+  },
+
+  render() {
+    return (
+      <div className="btn-group">
+        <a className="btn btn-sm" onClick={this.onToggle}>
+          All time
+          <span className="icon-arrow-down"></span>
+        </a>
+        <div className="datepicker-box dropdown-menu" id="daterange"
+             style={{display: this.state.isOpen ? 'block': 'none'}}>
+          <form method="GET">
+            <div className="input">
+              <DateTimeField onChange={this.onDateFromChange} />
+              to
+              <DateTimeField onChange={this.onDateToChange} />
+              <div className="help-block">All events are represented in UTC time.</div>
+            </div>
+            <div className="submit">
+              <div className="pull-right">
+                <button className="btn btn-default btn-sm"
+                        onClick={this.onClear}>Clear</button>
+                <button className="btn btn-primary btn-sm"
+                        onClick={this.onApply}>Apply</button>
+              </div>
+              <div className="radio-inputs">
+                <label className="radio">
+                  <input type="radio" name="date_type"
+                         onChange={this.onDateTypeChange.bind(this, "last_seen")}
+                         checked={this.state.dateType === "last_seen"} /> Last Seen
+                </label>
+                <label className="radio">
+                  <input type="radio" name="date_type"
+                         onChange={this.onDateTypeChange.bind(this, "first_seen")}
+                         checked={this.state.dateType === "first_seen"} /> First Seen
+                </label>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+});
+
 var StreamActions = React.createClass({
   mixins: [
     Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange'),
@@ -233,11 +337,6 @@ var StreamActions = React.createClass({
   },
   selectStatsPeriod(period) {
     return this.props.onSelectStatsPeriod(period);
-  },
-  toggleDatePicker() {
-    this.setState({
-      datePickerActive: !this.state.datePickerActive
-    });
   },
   actionSelectedGroups(callback, data) {
     var itemIds;
@@ -417,38 +516,7 @@ var StreamActions = React.createClass({
             </a>
           </div>
           <SortOptions />
-
-          <div className="btn-group">
-            <a href="#" className="btn btn-sm" onClick={this.toggleDatePicker}>
-              All time
-              <span aria-hidden="true" className="icon-arrow-down"></span>
-            </a>
-            <div className="datepicker-box dropdown-menu" id="daterange"
-                 style={{display: this.state.datePickerActive ? 'block': 'none'}}>
-              <form method="GET" action=".">
-                <div className="input">
-                  <DateTimeField name="df" />
-                  to
-                  <DateTimeField name="dt" />
-                  <div className="help-block">All events are represented in UTC time.</div>
-                </div>
-                <div className="submit">
-                  <div className="pull-right">
-                    <button className="btn btn-default btn-sm">Clear</button>
-                    <button className="btn btn-primary btn-sm">Apply</button>
-                  </div>
-                  <div className="radio-inputs">
-                    <label className="radio">
-                      <input type="radio" name="date_type" value="last_seen" /> Last Seen
-                    </label>
-                    <label className="radio">
-                      <input type="radio" name="date_type" value="first_seen" /> First Seen
-                    </label>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
+          <DateSelector />
         </div>
         <div className="hidden-sm hidden-xs stream-actions-assignee col-md-1">
         </div>
