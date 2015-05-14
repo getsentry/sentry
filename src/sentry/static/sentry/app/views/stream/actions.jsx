@@ -141,54 +141,59 @@ var SortOptions = React.createClass({
     router: React.PropTypes.func
   },
 
-  getMenuItem(key, label, isActive) {
+  mixins: [
+    PureRenderMixin
+  ],
+
+  getInitialState() {
     var router = this.context.router;
     var queryParams = router.getCurrentQuery();
+
+    return {
+      sortKey: queryParams.sort || 'date'
+    };
+  },
+
+  getMenuItem(key) {
+    var router = this.context.router;
+    var queryParams = $.extend({}, router.getCurrentQuery());
     var params = router.getCurrentParams();
 
     queryParams.sort = key;
 
     return (
-      <MenuItem to="stream" params={params} query={queryParams} isActive={isActive}>
-        {label}
+      <MenuItem to="stream" params={params} query={queryParams}
+                isActive={this.state.sortKey === key}>
+        {this.getSortLabel(key)}
       </MenuItem>
     );
   },
 
   componentWillReceiveProps(nextProps) {
     var router = this.context.router;
-    this._activeRoutePath = router.getCurrentPath();
+    this.setState({
+      sortKey: router.getCurrentQuery().sort || 'date'
+    });
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    var router = this.context.router;
-    return this._activeRoutePath != router.getCurrentPath();
+  getSortLabel(key) {
+    switch (key) {
+      case 'new':
+        return 'First Seen';
+      case 'priority':
+        return 'Priority';
+      case 'freq':
+        return 'Frequency';
+      case 'date':
+        return 'Last Seen';
+    }
   },
 
   render() {
-    var router = this.context.router;
-    var queryParams = router.getCurrentQuery();
-    var sortBy = queryParams.sort || 'date';
-    var sortLabel;
-
-    switch (sortBy) {
-      case 'new':
-        sortLabel = 'First Seen';
-        break;
-      case 'priority':
-        sortLabel = 'Priority';
-        break;
-      case 'freq':
-        sortLabel = 'Frequency';
-        break;
-      default:
-        sortLabel = 'Last Seen';
-        sortBy = 'date';
-    }
-
     var dropdownTitle = (
       <span>
-        <span className="hidden-sm hidden-xs">Sort by:</span> {sortLabel}
+        <span className="hidden-sm hidden-xs">Sort by:</span>
+        &nbsp; {this.getSortLabel(this.state.sortKey)}
       </span>
     );
 
@@ -198,10 +203,10 @@ var SortOptions = React.createClass({
           className="btn btn-sm"
           btnGroup={true}
           title={dropdownTitle}>
-        {this.getMenuItem('priority', 'Priority', sortBy === 'priority')}
-        {this.getMenuItem('date', 'Last Seen', sortBy === 'date')}
-        {this.getMenuItem('new', 'First Seen', sortBy === 'new')}
-        {this.getMenuItem('freq', 'Occurances', sortBy === 'freq')}
+        {this.getMenuItem('priority')}
+        {this.getMenuItem('date')}
+        {this.getMenuItem('new')}
+        {this.getMenuItem('freq')}
       </DropdownLink>
     );
   }
