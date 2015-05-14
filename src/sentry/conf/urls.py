@@ -22,28 +22,13 @@ from django.http import HttpResponse
 
 from sentry.web.urls import urlpatterns as web_urlpatterns
 from sentry.web.frontend.csrf_failure import CsrfFailureView
-
+from sentry.web.frontend.error_500 import Error500View
 
 admin.autodiscover()
 admin_media_dir = os.path.join(os.path.dirname(admin.__file__), 'media')
 
 handler404 = lambda x: page_not_found(x, template_name='sentry/404.html')
-
-
-def handler500(request):
-    """
-    500 error handler.
-
-    Templates: `500.html`
-    Context: None
-    """
-    from django.template import Context, loader
-    from django.http import HttpResponseServerError
-
-    context = {'request': request}
-
-    t = loader.get_template('sentry/500.html')
-    return HttpResponseServerError(t.render(Context(context)))
+handler500 = Error500View.as_view()
 
 
 def handler_healthcheck(request):

@@ -5,13 +5,31 @@
 {% block title %}{% trans "Internal Server Error" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-    <section class="body">
-        <div class="page-header">
-            <h2>{% trans "Internal Server Error" %}</h2>
-        </div>
-        <p>{% trans "There was an internal server error while processing your request." %}</p>
-        {% if request.sentry.id %}
-            <p>{% blocktrans with request.sentry.id as id %}You may reference this error as <strong>{{ id }}</strong>.{% endblocktrans %}</p>
-        {% endif %}
-    </section>
+  <section class="body">
+    <div class="page-header">
+      <h2>{% trans "Internal Server Error" %}</h2>
+    </div>
+    <p>{% trans "There was an internal server error while processing your request." %}</p>
+
+    {% if request.sentry.id %}
+      <script>
+      window.sentryConfig = {
+        eventId: '{{ request.sentry.id }}',
+        dsn: '{{ public_dsn }}'
+      };
+      (function(document, window){
+        var config = window.sentryConfig;
+        var escape = window.encodeURIComponent;
+        var endpoint = '{% url 'sentry-error-page-embed' %}';
+        endpoint += '?eventId=' + escape(config.eventId);
+        endpoint += '&dsn=' + escape(config.dsn);
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.async = true;
+        script.src = endpoint;
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(script);
+      })(document, window);
+      </script>
+    {% endif %}
+  </section>
 {% endblock %}

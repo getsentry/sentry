@@ -77,6 +77,18 @@ class ProjectKey(Model):
     def generate_api_key(cls):
         return uuid4().hex
 
+    @classmethod
+    def from_dsn(cls, dsn):
+        urlparts = urlparse(dsn)
+
+        public_key = urlparts.username
+        project_id = urlparts.path.rsplit('/', 1)[-1]
+
+        return ProjectKey.objects.get(
+            public_key=public_key,
+            project=project_id,
+        )
+
     @property
     def is_active(self):
         return self.status == ProjectKeyStatus.ACTIVE
