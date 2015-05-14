@@ -101,10 +101,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:
-            authorizing_access = OrganizationMember.objects.get(
-                organization=organization,
-                user=request.user,
-            ).type
+            try:
+                authorizing_access = OrganizationMember.objects.get(
+                    organization=organization,
+                    user=request.user,
+                    has_global_access=True,
+                ).type
+            except OrganizationMember.DoesNotExist:
+                return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
             om = self._get_member(request, organization, member_id)
