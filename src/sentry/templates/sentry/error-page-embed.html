@@ -1,0 +1,133 @@
+<style>
+/** Wrapper class name is provided by JS **/
+.sentry-error-embed-wrapper {
+  display: block;
+  outline: none;
+  position: fixed;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  top: 0;
+  left: 0;
+  background: rgba(0,0,0,0.8);
+}
+.sentry-error-embed {
+  background: #fff;
+  margin: 0 auto;
+  max-width: 90%;
+  max-height: 80%;
+  margin-top: 2%;
+  text-align: left;
+  border-radius: 4px;
+}
+.sentry-error-embed a,
+.sentry-error-embed a:visited {
+  color: #000;
+  font-weight: 500;
+  text-decoration: none;
+}
+.sentry-error-embed {
+  border: 1px solid #ccc;
+  padding: 20px;
+  max-width: 600px;
+}
+.sentry-error-embed * {
+  -webkit-font-smoothing: antialiased;
+  font-family: "Helvetica Neue", helvetica, sans-serif;
+}
+.sentry-error-embed p,
+.sentry-error-embed h2 {
+  margin: 0 0 20px;
+}
+.sentry-error-embed form {
+  margin: 0;
+}
+.sentry-error-embed a:active,
+.sentry-error-embed a:focus, a:hover {
+  color: #0666b8;
+  text-decoration: underline;
+}
+.sentry-error-embed h2 {
+  font-size: 28px;
+  font-weight: 500;
+  margin: 0;
+}
+.sentry-error-embed header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.sentry-error-embed header p {
+  color: #999;
+  font-size: 16px;
+}
+.sentry-error-embed .form-field {
+  margin-bottom: 20px;
+}
+.sentry-error-embed .form-field label {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+.sentry-error-embed .form-field input,
+.sentry-error-embed .form-field textarea {
+  font-size: 15px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  width: 100%;
+}
+.sentry-error-embed .form-errors input,
+.sentry-error-embed .form-errors textarea {
+  border-color: red;
+}
+.sentry-error-embed .form-field textarea {
+  height: 100px;
+}
+.sentry-error-embed .form-submit .btn {
+  border: none;
+  color: #fff;
+  background: #1791F8;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.sentry-error-embed .form-submit .btn:hover {
+  background: #0666b8;
+}
+.sentry-error-embed .form-submit .powered-by {
+  padding: 10px 0;
+  float: right;
+  font-size: 12px;
+}
+</style>
+
+<div class="sentry-error-embed">
+  <header>
+    <h2>It looks like we're having some internal issues.</h2>
+    <p>Our team has been notified. If you'd like to help, tell us what happened below.</p>
+  </header>
+  <form>
+    {{ form.dsn }}
+    <div class="form-field{% if form.name.errors %} form-errors{% endif %}">
+      <label>Name</label>
+      {{ form.name }}
+    </div>
+    <div class="form-field{% if form.email.errors %} form-errors{% endif %}">
+      <label>Email</label>
+      {{ form.email }}
+    </div>
+    <div class="form-field{% if form.comments.errors %} form-errors{% endif %}">
+      <label>What happened?</label>
+      {{ form.comments }}
+    </div>
+    <div class="form-submit">
+      <p class="powered-by">
+        Crash reports powered by <a href="https://getsentry.com">Sentry</a>
+      </p>
+      <input type="submit" class="btn" value="Submit Crash Report" />
+    </div>
+  </form>
+</div>
