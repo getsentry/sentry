@@ -98,10 +98,10 @@ class Organization(Model):
         app_label = 'sentry'
         db_table = 'sentry_organization'
 
-    __repr__ = sane_repr('owner_id', 'name')
+    __repr__ = sane_repr('owner_id', 'name', 'slug')
 
     def __unicode__(self):
-        return self.name
+        return u'%s (%s)' % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
