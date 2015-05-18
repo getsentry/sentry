@@ -23,7 +23,6 @@ from sentry.web.frontend import (
 
 import sentry.web.frontend.projects.general
 import sentry.web.frontend.projects.keys
-import sentry.web.frontend.projects.notifications
 import sentry.web.frontend.projects.plugins
 import sentry.web.frontend.projects.quotas
 import sentry.web.frontend.projects.rules
@@ -58,6 +57,7 @@ from sentry.web.frontend.create_organization_member import CreateOrganizationMem
 from sentry.web.frontend.create_project import CreateProjectView
 from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
+from sentry.web.frontend.project_notifications import ProjectNotificationsView
 from sentry.web.frontend.project_release_tracking import ProjectReleaseTrackingView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
@@ -295,8 +295,8 @@ urlpatterns += patterns('',
         sentry.web.frontend.projects.quotas.manage_project_quotas,
         name='sentry-manage-project-quotas'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/notifications/$',
-        sentry.web.frontend.projects.notifications.notification_settings,
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/notifications/$',
+        ProjectNotificationsView.as_view(),
         name='sentry-project-notifications'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/$',

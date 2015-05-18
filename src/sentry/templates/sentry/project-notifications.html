@@ -1,0 +1,92 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Notifications" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Notifications" %}</h2>
+    </div>
+    <form action="." method="POST" class="form-stacked">
+        {% csrf_token %}
+        <input type="hidden" name="op" value="save-settings" />
+
+        <fieldset>
+          <legend>{% trans "Rules" %}</legend>
+
+          {% url 'sentry-project-rules' organization.slug project.slug as link %}
+          <p>{% blocktrans %}Sentry will notify you based on the <a href="{{ link }}">rules configured for this project</a>.{% endblocktrans %}</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>{% trans "General" %}</legend>
+
+          {{ general_form|as_crispy_errors }}
+
+          {% for field in general_form %}
+              {{ field|as_crispy_field }}
+          {% endfor %}
+        </fieldset>
+
+        <fieldset>
+          <legend>{% trans "Alerts" %}</legend>
+
+          <p>{% blocktrans %}Alerts are triggered when the rate of events for the entire project increase by a relative amount. Values represent a 60-second interval.{% endblocktrans %}</p>
+
+          {{ alert_form|as_crispy_errors }}
+
+          {% for field in alert_form %}
+              {{ field|as_crispy_field }}
+          {% endfor %}
+        </fieldset>
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+    </form>
+
+    {% for plugin, content in enabled_plugins %}
+      <div class="integration-settings">
+        <div class="page-header">
+          <h3>{{ plugin.get_title }}</h3>
+          {% if plugin.can_disable %}
+            <form method="POST">
+              {% csrf_token %}
+              <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+              <button type="submit" class="btn btn-small btn-default" name="op" value="disable">Disable</button>
+            </form>
+          {% endif %}
+        </div>
+        {{ content }}
+      </div>
+    {% endfor %}
+
+    {% if other_plugins %}
+      <div class="integration-settings">
+        <div class="page-header">
+          <h3>Inactive Integrations</h3>
+        </div>
+
+        <ul class="integration-list unstyled">
+          {% for plugin in other_plugins %}
+            <li>
+              <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="op" value="enable" />
+                <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+                <button type="submit">{{ plugin.get_title }}</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    <script type="text/javascript">
+    new app.ProjectNotificationsPage();
+    </script>
+{% endblock %}
+

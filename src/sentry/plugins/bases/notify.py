@@ -119,6 +119,9 @@ class NotificationPlugin(Plugin):
         event = create_sample_event(project, default='python')
         return self.notify_users(event.group, event, fail_silently=False)
 
+    def get_notification_doc_html(self, **kwargs):
+        return ""
+
 
 # Backwards-compatibility
 NotifyConfigurationForm = NotificationConfigurationForm
