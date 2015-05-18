@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import File, Release, ReleaseFile
 
@@ -38,10 +39,13 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        release = Release.objects.get(
-            project=project,
-            version=version,
-        )
+        try:
+            release = Release.objects.get(
+                project=project,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            raise ResourceDoesNotExist
 
         file_list = list(ReleaseFile.objects.filter(
             release=release,
@@ -68,10 +72,13 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         file will be referenced as. For example, in the case of JavaScript you
         might specify the full web URI.
         """
-        release = Release.objects.get(
-            project=project,
-            version=version,
-        )
+        try:
+            release = Release.objects.get(
+                project=project,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            raise ResourceDoesNotExist
 
         if 'file' not in request.FILES:
             return Response({'detail': 'Missing uploaded file'}, status=400)
