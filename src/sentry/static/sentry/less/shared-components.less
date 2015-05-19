@@ -1471,6 +1471,20 @@ legend {
 * ============================================================================
 */
 
+header ~ #messages {
+  margin-top: -21px;
+  position: relative;
+  z-index: 100;
+
+  .alert {
+    border-radius: 0;
+    box-shadow: inset 0 1px 0 rgba(0,0,0, .05) !important;
+  }
+  .container {
+    padding: 0;
+  }
+}
+
 .alert {
   background: #ffc01a;
   color: #fff;
@@ -1503,8 +1517,8 @@ legend {
   .close {
     opacity: .5;
     font-weight: 500;
-    position: relative;
-    top: -2px;
+    position: absolute;
+    top: 0px;
     right: -8px;
     box-shadow: none;
     .transition(opacity .15s);
