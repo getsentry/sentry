@@ -482,6 +482,9 @@ class AuthHelper(object):
         elif session['flow'] == self.FLOW_SETUP_PROVIDER:
             redirect_uri = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
 
+        elif session['flow'] == self.FLOW_LINK_IDENTITY:
+            redirect_uri = reverse('sentry-auth-organization', args=[self.organization.slug])
+
         messages.add_message(
             self.request, messages.ERROR,
             u'Authentication error: {}'.format(message),

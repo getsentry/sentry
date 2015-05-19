@@ -6,9 +6,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
-)
+from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 
 
 class KeySerializer(serializers.Serializer):
@@ -56,10 +54,9 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                 label=result.get('name'),
             )
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=project.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=key.id,
                 event=AuditLogEntryEvent.PROJECTKEY_ADD,
                 data=key.get_audit_log_data(),

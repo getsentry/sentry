@@ -53,9 +53,9 @@ SENTRY_USE_BIG_INTS = True
 # If you're expecting any kind of real traffic on Sentry, we highly recommend
 # configuring the CACHES and Redis settings
 
-#############
-## General ##
-#############
+###########
+# General #
+###########
 
 # The administrative email for this installation.
 # Note: This will be reported back to getsentry.com as the point of contact. See
@@ -68,9 +68,9 @@ SENTRY_ADMIN_EMAIL = ''
 # and thus various UI optimizations should be enabled.
 SENTRY_SINGLE_ORGANIZATION = True
 
-###########
-## Redis ##
-###########
+#########
+# Redis #
+#########
 
 # Generic Redis configuration used as defaults for various things including:
 # Buffers, Quotas, TSDB
@@ -84,9 +84,9 @@ SENTRY_REDIS_OPTIONS = {
     }
 }
 
-###########
-## Cache ##
-###########
+#########
+# Cache #
+#########
 
 # If you wish to use memcached, install the dependencies and adjust the config
 # as shown:
@@ -104,9 +104,9 @@ SENTRY_REDIS_OPTIONS = {
 
 SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 
-###########
-## Queue ##
-###########
+#########
+# Queue #
+#########
 
 # See http://sentry.readthedocs.org/en/latest/queue/index.html for more
 # information on configuring your queue broker and workers. Sentry relies
@@ -115,15 +115,15 @@ SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 CELERY_ALWAYS_EAGER = False
 BROKER_URL = 'redis://localhost:6379'
 
-#################
-## Rate Limits ##
-#################
+###############
+# Rate Limits #
+###############
 
 SENTRY_RATELIMITER = 'sentry.ratelimits.redis.RedisRateLimiter'
 
-####################
-## Update Buffers ##
-####################
+##################
+# Update Buffers #
+##################
 
 # Buffers (combined with queueing) act as an intermediate layer between the
 # database and the storage API. They will greatly improve efficiency on large
@@ -132,27 +132,27 @@ SENTRY_RATELIMITER = 'sentry.ratelimits.redis.RedisRateLimiter'
 
 SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
 
-############
-## Quotas ##
-############
+##########
+# Quotas #
+##########
 
 # Quotas allow you to rate limit individual projects or the Sentry install as
 # a whole.
 
 SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
 
-##########
-## TSDB ##
-##########
+########
+# TSDB #
+########
 
 # The TSDB is used for building charts as well as making things like per-rate
 # alerts possible.
 
 SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
-##################
-## File storage ##
-##################
+################
+# File storage #
+################
 
 # Any Django storage backend is compatible with Sentry. For more solutions see
 # the django-storages package: https://django-storages.readthedocs.org/en/latest/
@@ -162,9 +162,9 @@ SENTRY_FILESTORE_OPTIONS = {
     'location': '/tmp/sentry-files',
 }
 
-################
-## Web Server ##
-################
+##############
+# Web Server #
+##############
 
 # You MUST configure the absolute URI root for Sentry:
 SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
@@ -180,9 +180,9 @@ SENTRY_WEB_OPTIONS = {
     # 'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
 }
 
-#################
-## Mail Server ##
-#################
+###############
+# Mail Server #
+###############
 
 # For more information check Django's documentation:
 #  https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#e-mail-backends
@@ -202,9 +202,9 @@ SERVER_EMAIL = 'root@localhost'
 # route to forward to /api/hooks/mailgun/inbound/
 MAILGUN_API_KEY = ''
 
-###########
-## etc. ##
-###########
+########
+# etc. #
+########
 
 # If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
 # Changing this value will result in all current sessions being invalidated
