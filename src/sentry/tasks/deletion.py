@@ -183,17 +183,12 @@ def delete_tag_key(object_id, continuous=True, **kwargs):
         GroupTagValue, GroupTagKey, TagValue
     )
     for model in bulk_model_list:
-        has_more = bulk_delete_objects(model, key=tagkey.key, logger=logger)
+        has_more = bulk_delete_objects(model, project_id=tagkey.project_id,
+                                       key=tagkey.key, logger=logger)
         if has_more:
             if continuous:
                 delete_tag_key.delay(object_id=object_id, countdown=15)
             return
-
-    has_more = delete_events(relation={'group_id': object_id}, logger=logger)
-    if has_more:
-        if continuous:
-            delete_tag_key.delay(object_id=object_id, countdown=15)
-        return
     tagkey.delete()
 
 
@@ -234,9 +229,11 @@ def delete_objects(models, relation, limit=1000, logger=None):
 
 def bulk_delete_objects(model, limit=10000,
                         logger=None, **filters):
-    assert len(filters) == 1, 'Must pass a single column=value filter.'
-
-    column, value = filters.items()[0]
+    query = []
+    params = []
+    for column, value in filters.items():
+        query.append('%s = %%s' % (column,))
+        params.append(value)
 
     connection = connections['default']
     quote_name = connection.ops.quote_name
@@ -250,30 +247,30 @@ def bulk_delete_objects(model, limit=10000,
             where id = any(array(
                 select id
                 from %(table)s
-                where %(column)s = %%s
+                where (%(query)s)
                 limit %(limit)d
             ))
         """ % dict(
+            query=' AND '.join(query),
             table=model._meta.db_table,
             column=quote_name(column),
             limit=limit,
         )
-        params = [value]
     elif db.is_mysql():
         query = """
             delete from %(table)s
-            where %(column)s = %%s
+            where (%(query)s)
             limit %(limit)d
         """ % dict(
+            query=' AND '.join(query),
             table=model._meta.db_table,
             column=quote_name(column),
             limit=limit,
         )
-        params = [value]
     else:
         logger.warning('Using slow deletion strategy due to unknown database')
         has_more = False
-        for obj in model.objects.filter(**{column: value})[:limit]:
+        for obj in model.objects.filter(**filters)[:limit]:
             obj.delete()
             has_more = True
         return has_more
