@@ -229,14 +229,14 @@ def delete_objects(models, relation, limit=1000, logger=None):
 
 def bulk_delete_objects(model, limit=10000,
                         logger=None, **filters):
+    connection = connections['default']
+    quote_name = connection.ops.quote_name
+
     query = []
     params = []
     for column, value in filters.items():
-        query.append('%s = %%s' % (column,))
+        query.append('%s = %%s' % (quote_name(column),))
         params.append(value)
-
-    connection = connections['default']
-    quote_name = connection.ops.quote_name
 
     if logger is not None:
         logger.info('Removing %r objects where %s=%r', model, column, value)
@@ -253,7 +253,6 @@ def bulk_delete_objects(model, limit=10000,
         """ % dict(
             query=' AND '.join(query),
             table=model._meta.db_table,
-            column=quote_name(column),
             limit=limit,
         )
     elif db.is_mysql():
@@ -264,7 +263,6 @@ def bulk_delete_objects(model, limit=10000,
         """ % dict(
             query=' AND '.join(query),
             table=model._meta.db_table,
-            column=quote_name(column),
             limit=limit,
         )
     else:
@@ -275,6 +273,7 @@ def bulk_delete_objects(model, limit=10000,
             has_more = True
         return has_more
 
+    print(query)
     cursor = connection.cursor()
     cursor.execute(query, params)
     return cursor.rowcount > 0
