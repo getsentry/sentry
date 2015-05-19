@@ -4,9 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, TagKey, TagKeyStatus
-)
+from sentry.models import AuditLogEntryEvent, TagKey, TagKeyStatus
 from sentry.tasks.deletion import delete_tag_key
 
 
@@ -33,10 +31,9 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
         if updated:
             delete_tag_key.delay(object_id=tagkey.id)
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=project.organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=tagkey.id,
                 event=AuditLogEntryEvent.TAGKEY_REMOVE,
                 data=tagkey.get_audit_log_data(),

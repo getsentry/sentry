@@ -6,8 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationAccessRequest,
-    OrganizationMemberTeam
+    AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMemberTeam
 )
 
 
@@ -55,10 +54,9 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     team=access_request.team,
                 )
 
-                AuditLogEntry.objects.create(
+                self.create_audit_entry(
+                    request=request,
                     organization=organization,
-                    actor=request.user,
-                    ip_address=request.META['REMOTE_ADDR'],
                     target_object=omt.id,
                     target_user=access_request.member.user,
                     event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,

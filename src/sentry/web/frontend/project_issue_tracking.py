@@ -61,6 +61,8 @@ class ProjectIssueTrackingView(ProjectView):
                             constants.OK_PLUGIN_SAVED.format(name=plugin.get_title()),
                         )
                         return HttpResponseRedirect(request.path)
+                elif content:
+                    enabled_plugins.append((plugin, mark_safe(content)))
                 enabled_plugins.append((plugin, mark_safe(content + view)))
             else:
                 other_plugins.append(plugin)

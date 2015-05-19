@@ -10,7 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationAccessRequest,
+    AuditLogEntryEvent, OrganizationAccessRequest,
     OrganizationMember, OrganizationMemberTeam, Team
 )
 
@@ -40,6 +40,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         # TODO(dcramer): ideally org owners/admins could perform these actions
         if request.user.is_superuser:
             return True
+
+        if not request.user.is_authenticated():
+            return False
 
         if request.user.id == member.user_id:
             return True
@@ -126,12 +129,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         omt.is_active = True
         omt.save()
 
-        AuditLogEntry.objects.create(
+        self.create_audit_entry(
+            request=request,
             organization=organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
             target_object=omt.id,
-            target_user=request.user,
+            target_user=om.user,
             event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
             data=omt.get_audit_log_data(),
         )
@@ -189,12 +191,11 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             omt.is_active = False
             omt.save()
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=omt.id,
-                target_user=request.user,
+                target_user=om.user,
                 event=AuditLogEntryEvent.MEMBER_LEAVE_TEAM,
                 data=omt.get_audit_log_data(),
             )

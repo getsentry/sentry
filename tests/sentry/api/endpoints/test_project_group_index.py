@@ -107,7 +107,7 @@ class GroupUpdateTest(APITestCase):
         response = self.client.put(url + '?status=unresolved', data={
             'status': 'resolved',
         }, format='json')
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
         assert response.data == {
             'status': 'resolved',
         }

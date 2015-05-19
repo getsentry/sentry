@@ -8,9 +8,11 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember,
+    AuditLogEntryEvent, AuthProvider, OrganizationMember,
     OrganizationMemberType
 )
+
+ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
 
 ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'
 
@@ -38,6 +40,19 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
+    def _get_member(self, request, organization, member_id):
+        if member_id == 'me':
+            queryset = OrganizationMember.objects.filter(
+                organization=organization,
+                user__id=request.user.id,
+            )
+        else:
+            queryset = OrganizationMember.objects.filter(
+                organization=organization,
+                id=member_id,
+            )
+        return queryset.select_related('user').get()
+
     def _is_only_owner(self, member):
         if member.type != OrganizationMemberType.OWNER:
             return False
@@ -45,6 +60,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         queryset = OrganizationMember.objects.filter(
             organization=member.organization_id,
             type=OrganizationMemberType.OWNER,
+            has_global_access=True,
             user__isnull=False,
         ).exclude(id=member.id)
         if queryset.exists():
@@ -54,10 +70,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
     def put(self, request, organization, member_id):
         try:
-            om = OrganizationMember.objects.filter(
-                organization=organization,
-                id=member_id,
-            ).select_related('user').get()
+            om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -83,19 +96,23 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     def delete(self, request, organization, member_id):
+        if not request.user.is_authenticated():
+            return Response({'detail': ERR_NO_AUTH}, status=400)
+
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
         else:
-            authorizing_access = OrganizationMember.objects.get(
-                organization=organization,
-                user=request.user,
-            ).type
+            try:
+                authorizing_access = OrganizationMember.objects.get(
+                    organization=organization,
+                    user=request.user,
+                    has_global_access=True,
+                ).type
+            except OrganizationMember.DoesNotExist:
+                return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
-            om = OrganizationMember.objects.filter(
-                organization=organization,
-                id=member_id,
-            ).select_related('user').get()
+            om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -119,10 +136,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         om.delete()
 
-        AuditLogEntry.objects.create(
+        self.create_audit_entry(
+            request=request,
             organization=organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
             target_object=om.id,
             target_user=om.user,
             event=AuditLogEntryEvent.MEMBER_REMOVE,

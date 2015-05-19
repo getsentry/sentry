@@ -7,7 +7,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team, TeamStatus
+from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.permissions import can_create_teams
 
 
@@ -67,10 +67,9 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 organization=organization,
             )
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request=request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_ADD,
                 data=team.get_audit_log_data(),

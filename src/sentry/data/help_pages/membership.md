@@ -10,7 +10,7 @@ The core component of membership revolves around roles. Currently there are thre
 - Admin
 - Member
 
-Additionally there's a "global team member" flag, which effectively indicates that the member should have access organization-wide for their specific role. This affects what they can greatly.
+Additionally there's a "global team member" flag, which effectively indicates that the member should have access organization-wide for their specific role. This affects what they can do greatly.
 
 For example, an Owner role which does not have global access, but has access to a single team will be able effectively manage all things beyond membership for that team. That includes adding and removing projects, changing settings, etc.
 

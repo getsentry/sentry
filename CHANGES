@@ -22,6 +22,8 @@ This release removes the ability to login or create accounts using a social auth
 - Added 'sentry.db.postgres' optimized Postgres backend.
 - Added ReleaseTrackingPlugin and various release-focused endpoints.
 - Dedicated configuration pages for Release Tracking and Issue Tracking integrations now exist.
+- Several additions to the Release schema.
+- Notification integrations are now present within project's notification settings.
 
 Version 7.4.3
 -------------
