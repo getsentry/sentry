@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
@@ -22,7 +22,6 @@ from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.cursors import Cursor
-from sentry.utils.dates import parse_date
 
 
 class GroupSerializer(serializers.Serializer):
@@ -39,6 +38,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     doc_section = DocSection.EVENTS
 
     permission_classes = (ProjectEventPermission,)
+
+    def _parse_date(self, value):
+        return datetime.utcfromtimestamp(float(value)).replace(
+            tzinfo=timezone.utc,
+        )
 
     # bookmarks=0/1
     # status=<x>
@@ -88,11 +92,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         # TODO: dates should include timestamps
         date_from = request.GET.get('since')
-        time_from = request.GET.get('until')
+        date_to = request.GET.get('until')
         date_filter = request.GET.get('date_filter')
 
-        date_to = request.GET.get('dt')
-        time_to = request.GET.get('tt')
         limit = request.GET.get('limit')
         if limit:
             try:
@@ -101,12 +103,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 return Response('{"detail": "invalid limit"}', status=400)
 
         today = timezone.now()
-        # date format is Y-m-d
-        if any(x is not None for x in [date_from, time_from, date_to, time_to]):
-            date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
+        if date_from:
+            date_from = self._parse_date(date_from)
         else:
             date_from = today - timedelta(days=5)
-            date_to = None
+
+        if date_to:
+            date_to = self._parse_date(date_to)
 
         query_kwargs['date_from'] = date_from
         query_kwargs['date_to'] = date_to
