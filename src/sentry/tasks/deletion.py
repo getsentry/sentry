@@ -273,7 +273,6 @@ def bulk_delete_objects(model, limit=10000,
             has_more = True
         return has_more
 
-    print(query)
     cursor = connection.cursor()
     cursor.execute(query, params)
     return cursor.rowcount > 0
