@@ -24,7 +24,7 @@ def auto_reconnect_cursor(func):
                 raise
 
             self.db.close(reconnect=True)
-            self.cursor = self.db.create_cursor()
+            self.cursor = self.db._cursor()
 
             return func(self, *args, **kwargs)
 
