@@ -266,8 +266,8 @@ var DateSelector = React.createClass({
     e.preventDefault();
     var router = this.context.router;
     var queryParams = router.getCurrentQuery();
-    queryParams.dt = this.state.dateTo;
-    queryParams.df = this.state.dateFrom;
+    queryParams.until = this.state.dateTo;
+    queryParams.since = this.state.dateFrom;
     queryParams.date_type = this.state.dateType;
     // TODO(dcramer): ideally we wouldn't hardcode stream here
     router.transitionTo('stream', router.getCurrentParams(), queryParams);
