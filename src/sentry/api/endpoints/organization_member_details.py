@@ -134,6 +134,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             ).exclude(id=om.id)[0].user
             organization.save()
 
+        # TODO(dcramer): we should probably clean up AuthIdentity here
         om.delete()
 
         self.create_audit_entry(
