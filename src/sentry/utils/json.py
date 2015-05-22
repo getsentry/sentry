@@ -27,10 +27,13 @@ class BetterJSONEncoder(DjangoJSONEncoder):
         return super(BetterJSONEncoder, self).default(obj)
 
 
-def dumps(value, **kwargs):
+def dumps(value, escape=False, **kwargs):
     if 'separators' not in kwargs:
         kwargs['separators'] = (',', ':')
-    return json.dumps(value, cls=BetterJSONEncoder, **kwargs)
+    rv = json.dumps(value, cls=BetterJSONEncoder, **kwargs)
+    if escape:
+        rv = rv.replace('</', '<\/')
+    return rv
 
 
 def loads(value, **kwargs):

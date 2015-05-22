@@ -26,3 +26,8 @@ class JSONTest(TestCase):
     def test_frozenset(self):
         res = frozenset(['foo', 'bar'])
         self.assertEquals(json.dumps(res), '["foo","bar"]')
+
+    def test_escape(self):
+        res = '<script>alert(1);</script>'
+        assert json.dumps(res) == '"<script>alert(1);</script>"'
+        assert json.dumps(res, escape=True) == '"<script>alert(1);<\/script>"'
