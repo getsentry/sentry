@@ -197,15 +197,16 @@ class Project(Model):
 
     @property
     def member_set(self):
-        from sentry.models import OrganizationMember
-
-        return OrganizationMember.objects.filter(
-            Q(organizationmemberteam__team=self.team) | Q(has_global_access=True),
+        # Django does not correctly handle exclude on the many2many (it uses
+        # a singular subquery)
+        return self.organization.member_set.filter(
+            Q(organizationmemberteam__is_active=True,
+              organizationmemberteam__team=self.team) |
+            Q(organizationmemberteam__is_active=True,
+              has_global_access=True) |
+            Q(organizationmemberteam__isnull=True,
+              has_global_access=True),
             user__is_active=True,
-            organization=self.organization,
-        ).exclude(
-            organizationmemberteam__team=self.team,
-            organizationmemberteam__is_active=False,
         ).distinct()
 
     def has_access(self, user, access=None):
