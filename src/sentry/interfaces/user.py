@@ -31,13 +31,14 @@ class User(Interface):
     You should provide **at least** either an `id` (a unique identifier for
     an authenticated user) or `ip_address` (their IP address).
 
-    All other data is.
+    All other attributes are optional.
 
     >>> {
     >>>     "id": "unique_id",
     >>>     "username": "my_user",
     >>>     "email": "foo@example.com"
-    >>>     "ip_address": "127.0.0.1"
+    >>>     "ip_address": "127.0.0.1",
+    >>>     "optional": "value"
     >>> }
     """
     @classmethod
