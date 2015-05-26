@@ -22,7 +22,7 @@ class PluginMount(type):
         new_cls = type.__new__(cls, name, bases, attrs)
         if IPlugin2 in bases:
             return new_cls
-        if not new_cls.title:
+        if new_cls.title is None:
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(' ', '-').lower()
