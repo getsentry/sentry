@@ -21,6 +21,13 @@
       </a>
     </li>
     {% if ACCESS.org_read %}
+    <li class="{% block org_projects_nav %}{% endblock %}">
+      <a href="{% url 'sentry-organization-home' organization.slug %}my-projects/">
+        {% trans "Projects" %}
+      </a>
+    </li>
+    {% endif %}
+    {% if ACCESS.org_read %}
     <li class="{% block org_stats_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-stats' organization.slug %}">
         {% trans "Stats" %}
