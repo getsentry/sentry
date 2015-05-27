@@ -147,6 +147,7 @@ class OrganizationMember(Model):
             scopes.extend([
                 'event:read', 'event:write', 'event:delete',
                 'org:read', 'project:read', 'team:read',
+                'member:read',
             ])
         if self.type <= OrganizationMemberType.ADMIN:
             scopes.extend(['project:write', 'team:write'])
@@ -154,9 +155,9 @@ class OrganizationMember(Model):
             scopes.extend(['project:delete', 'team:delete'])
         if self.has_global_access:
             if self.type <= OrganizationMemberType.ADMIN:
-                scopes.extend(['org:write'])
+                scopes.extend(['org:write', 'member:write'])
             if self.type <= OrganizationMemberType.OWNER:
-                scopes.extend(['org:delete'])
+                scopes.extend(['org:delete', 'member:delete'])
         return scopes
 
     def send_invite_email(self):
