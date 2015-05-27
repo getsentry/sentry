@@ -17,6 +17,8 @@ This release removes the ability to login or create accounts using a social auth
 
 If your install was based purely on social accounts you'll need to use the standard reset password flows to recover accounts.
 
+Redis must be at least version 2.6.12.
+
 - Interface.compute_hashes() now receives the platform of the event.
 - Server-side data scrubbers were incorrectly filtering invalid interface aliases.
 - The sensitive_fields option is now exposed in project settings.
