@@ -27,13 +27,13 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
 class RelaxedOrganizationPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:delete'],
-        'POST': ['org:write', 'org:delete'],
-        'PUT': ['org:write', 'org:delete'],
+        'GET': ['member:read', 'member:write', 'member:delete'],
+        'POST': ['member:write', 'member:delete'],
+        'PUT': ['member:write', 'member:delete'],
 
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
-        'DELETE': ['org:read', 'org:write', 'org:delete'],
+        'DELETE': ['member:read', 'member:write', 'member:delete'],
     }
 
 
