@@ -25,6 +25,8 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--email', dest='email'),
         make_option('--superuser', dest='is_superuser', action='store_true', default=None),
+        make_option('--password', dest='password', default=None),
+        make_option('--no-superuser', dest='is_superuser', action='store_false', default=None),
         make_option('--no-password', dest='nopassword', action='store_true', default=False),
         make_option('--no-input', dest='noinput', action='store_true', default=False),
     )
@@ -60,14 +62,14 @@ class Command(BaseCommand):
     def handle(self, **options):
         email = options['email']
         is_superuser = options['is_superuser']
+        password = options['password']
 
-        password = None
         if not options['noinput']:
             try:
                 if not email:
                     email = self.get_email()
 
-                if not options['nopassword']:
+                if not (password or options['nopassword']):
                     password = self.get_password()
 
                 if is_superuser is None:
