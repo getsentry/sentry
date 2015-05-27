@@ -44,6 +44,7 @@ class SentryInternalClient(DjangoClient):
 
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
+        kwargs['project'] = settings.SENTRY_PROJECT
         try:
             manager = EventManager(kwargs)
             data = manager.normalize()
