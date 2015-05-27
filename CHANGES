@@ -1,3 +1,10 @@
+Version 7.5.1
+-------------
+
+- Fix case where certain pages were not correctly including valid team membership
+- Fix default user creation (regain automated signal)
+- Fix sampling of internal metrics
+
 Version 7.5.0
 -------------
 
