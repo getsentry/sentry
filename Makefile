@@ -27,8 +27,6 @@ reset-db:
 	createdb -E utf-8 sentry
 	@echo "--> Applying migrations"
 	sentry upgrade
-	@echo "--> Creating default user"
-	sentry createuser
 
 setup-git:
 	@echo "--> Installing git hooks"
