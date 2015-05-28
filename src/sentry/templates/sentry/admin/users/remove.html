@@ -7,7 +7,7 @@
 
 {% block main %}
     <section class="body">
-        <form action="." method="post">
+        <form action="" method="post">
             {% csrf_token %}
             {{ form|as_crispy_errors }}
             {% for field in form %}

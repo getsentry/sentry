@@ -10,7 +10,7 @@
 {% block inner %}
     {% paginator user_list from request as user_list per_page 50 %}
 
-    <form class="btn-toolbar" method="GET" action=".">
+    <form class="btn-toolbar" method="GET" action="">
         <input type="text" name="uquery" value="{% if user_query %}{{ user_query }}{% endif %}" placeholder="search by email address">
         <div class="btn-group pull-right">
             <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>

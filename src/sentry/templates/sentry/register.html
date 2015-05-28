@@ -10,7 +10,7 @@
 {% block content %}
     {{ form|as_crispy_errors }}
 
-    <form class="form-stacked" action="." method="post">
+    <form class="form-stacked" action="" method="post">
         <h3>{% trans "Create a new account" %}</h3>
 
         {% csrf_token %}

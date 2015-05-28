@@ -10,7 +10,7 @@
 
 {% block inner %}
   <div class="page-header">
-    <form class="pull-right" method="POST" action=".">
+    <form class="pull-right" method="POST" action="">
       {% csrf_token %}
       <input type="hidden" name="op" value="newkey" />
       <button type="submit" class="btn btn-primary">New API Key</button>
@@ -37,7 +37,7 @@
               <code class="clippy">{{ key.key }}</code>
             </td>
             <td>
-              <form class="pull-right" method="POST" action="." onsubmit="return confirm('Are you sure you want to remove this API key?');">
+              <form class="pull-right" method="POST" action="" onsubmit="return confirm('Are you sure you want to remove this API key?');">
                 {% csrf_token %}
                 <input type="hidden" name="op" value="removekey" />
                 <input type="hidden" name="kid" value="{{ key.id }}" />

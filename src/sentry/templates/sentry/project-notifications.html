@@ -9,7 +9,7 @@
 
 {% block content %}
   <h3>{% trans "Notifications" %}</h3>
-  <form action="." method="POST" class="form-stacked">
+  <form action="" method="POST" class="form-stacked">
     {% csrf_token %}
     <input type="hidden" name="op" value="save-settings" />
 
