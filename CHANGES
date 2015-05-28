@@ -4,6 +4,7 @@ Version 7.6.0
 - The project-wide Alert system has been removed (to be re-implemented in the future).
 
 Version 7.5.3
+-------------
 
 - Fix another case where valid team membership was being excluded
 
