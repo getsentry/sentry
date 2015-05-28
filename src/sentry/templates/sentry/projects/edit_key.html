@@ -10,7 +10,7 @@
     <div class="page-header">
         <h2>{% trans "Edit API Key" %}</h2>
     </div>
-    <form class="form-stacked" action="." method="post">
+    <form class="form-stacked" action="" method="post">
         {% csrf_token %}
 
         {{ form|as_crispy_errors }}

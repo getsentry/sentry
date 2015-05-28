@@ -26,7 +26,7 @@
 
 {% block content %}
   <h3>{% trans "Project Settings" %}</h3>
-  <form class="form-stacked" action="." method="post" id="project_settings">
+  <form class="form-stacked" action="" method="post" id="project_settings">
     {% csrf_token %}
 
     {{ form|as_crispy_errors }}

@@ -11,7 +11,7 @@
     <h2>{% trans "Recover Account" %}</h2>
 
     <p>{% trans "You have confirmed your email, and may now update your password below." %}</p>
-    <form method="POST" action=".">
+    <form method="POST" action="">
         {% csrf_token %}
         {{ form|as_crispy_errors }}
 

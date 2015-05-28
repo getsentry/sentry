@@ -18,7 +18,7 @@
         <li{% if current_step == 1 %} class="active"{% endif %}>2. {% trans "Add a project" %}</li>
       </ul>
 
-      <form class="form-stacked" action="." method="post">
+      <form class="form-stacked" action="" method="post">
         {% csrf_token %}
 
         <input type="hidden" name="step" value="{{ current_step }}">

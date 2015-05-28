@@ -12,7 +12,7 @@
     {% paginator team_list from request as team_list per_page 50 %}
 
     <section class="body">
-        <form class="btn-toolbar" method="GET" action=".">
+        <form class="btn-toolbar" method="GET" action="">
             <input type="text" name="tquery" value="{% if team_query %}{{ team_query }}{% endif %}" placeholder="search by team name">
             <div class="btn-group pull-right">
                 <a class="btn prev{% if not team_list.paginator.has_previous %} disabled{% else %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>

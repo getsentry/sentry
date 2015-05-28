@@ -12,7 +12,7 @@
     {% paginator project_list from request as project_list per_page 50 %}
 
     <section class="body">
-        <form class="btn-toolbar" method="GET" action=".">
+        <form class="btn-toolbar" method="GET" action="">
             <input type="text" name="pquery" value="{% if project_query %}{{ project_query }}{% endif %}" placeholder="search by project name">
             <div class="btn-group pull-right">
                 <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% else %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>

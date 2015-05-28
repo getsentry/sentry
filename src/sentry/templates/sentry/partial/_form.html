@@ -1,7 +1,7 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-<form action="." method="post">
+<form action="" method="post">
     {% csrf_token %}
     {% if plugin %}
     	<input type="hidden" name="plugin" value="{{ plugin.slug }}" />
