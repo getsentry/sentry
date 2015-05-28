@@ -97,7 +97,6 @@ def main():
             name=team_name,
             defaults={
                 'organization': org,
-                'owner': org.owner,
             },
         )
 
