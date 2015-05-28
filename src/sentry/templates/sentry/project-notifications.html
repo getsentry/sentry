@@ -36,21 +36,6 @@
       </div>
     </div>
 
-    <div class="box">
-      <div class="box-header">
-        <h3>{% trans "Alerts" %}</h3>
-      </div>
-      <div class="box-content with-padding">
-        <p>{% blocktrans %}Alerts are triggered when the rate of events for the entire project increase by a relative amount. Values represent a 60-second interval.{% endblocktrans %}</p>
-
-        {{ alert_form|as_crispy_errors }}
-
-        {% for field in alert_form %}
-            {{ field|as_crispy_field }}
-        {% endfor %}
-      </div>
-    </div>
-
     <fieldset class="form-actions">
       <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
     </fieldset>
