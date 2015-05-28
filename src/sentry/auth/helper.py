@@ -282,6 +282,16 @@ class AuthHelper(object):
             data=identity.get('data', {}),
         )
 
+        self._handle_new_membership(auth_identity)
+
+        return auth_identity
+
+    def _handle_new_membership(self, identity):
+        auth_provider = self.auth_provider
+        organization = self.organization
+        request = self.request
+        user = identity.user
+
         om = OrganizationMember.objects.create(
             organization=organization,
             type=auth_provider.default_role,
@@ -304,7 +314,7 @@ class AuthHelper(object):
             data=om.get_audit_log_data(),
         )
 
-        return auth_identity
+        return om
 
     @transaction.atomic
     def _finish_login_pipeline(self, identity):
@@ -351,14 +361,20 @@ class AuthHelper(object):
                 last_synced=now,
             )
 
-            member = OrganizationMember.objects.get(
-                user=auth_identity.user,
-                organization=self.organization,
-            )
-            if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
-                setattr(member.flags, 'sso:invalid', False)
-                setattr(member.flags, 'sso:linked', True)
-                member.save()
+            try:
+                member = OrganizationMember.objects.get(
+                    user=auth_identity.user,
+                    organization=self.organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                # this is likely the case when someone was removed from the org
+                # but still has access to rejoin
+                member = self._handle_new_membership(auth_identity)
+            else:
+                if getattr(member.flags, 'sso:invalid') or not getattr(member.flags, 'sso:linked'):
+                    setattr(member.flags, 'sso:invalid', False)
+                    setattr(member.flags, 'sso:linked', True)
+                    member.save()
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]

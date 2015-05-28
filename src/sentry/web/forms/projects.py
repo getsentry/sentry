@@ -12,16 +12,6 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import ProjectOption
-from sentry.web.forms.fields import RangeField
-
-
-class AlertSettingsForm(forms.Form):
-    pct_threshold = RangeField(
-        label=_('Threshold'), required=False, min_value=0, max_value=1000, step_value=100,
-        help_text=_('Notify when the rate of events increases by this percentage.'))
-    min_events = forms.IntegerField(
-        label=_('Minimum Events'), required=False, min_value=0,
-        help_text=_('Generate an alert only when an event is seen more than this many times during the interval.'),)
 
 
 class NotificationSettingsForm(forms.Form):

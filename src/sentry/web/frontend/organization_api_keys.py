@@ -14,6 +14,7 @@ DEFAULT_SCOPES = [
     'event:read',
     'team:read',
     'org:read',
+    'member:read',
 ]
 
 

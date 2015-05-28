@@ -22,7 +22,7 @@ def incr(key, amount=1):
     statsd.incr(_get_key(key), amount,
                 rate=sample_rate)
 
-    if sample_rate >= 1 or random() >= sample_rate:
+    if sample_rate >= 1 or random() >= 1 - sample_rate:
         if sample_rate < 1:
             amount = int(amount * (1.0 / sample_rate))
         tsdb.incr(tsdb.models.internal, key, count=amount)

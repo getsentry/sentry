@@ -30,6 +30,12 @@ class DeleteTagKeyTest(TestCase):
         GroupTagKey.objects.create(key='foo', group=group, project=project)
         GroupTagValue.objects.create(key='foo', value='bar', group=group, project=project)
 
+        project2 = self.create_project(team=team, name='test2')
+        group2 = self.create_group(project=project2)
+        tk2 = TagKey.objects.create(key='foo', project=project2)
+        gtk2 = GroupTagKey.objects.create(key='foo', group=group2, project=project2)
+        gtv2 = GroupTagValue.objects.create(key='foo', value='bar', group=group2, project=project2)
+
         with self.tasks():
             delete_tag_key(object_id=tk.id)
 
@@ -60,3 +66,7 @@ class DeleteTagKeyTest(TestCase):
             assert not delete_tag_key_delay.called
 
             assert not TagKey.objects.filter(id=tk.id).exists()
+
+        assert TagKey.objects.filter(id=tk2.id).exists()
+        assert GroupTagKey.objects.filter(id=gtk2.id).exists()
+        assert GroupTagValue.objects.filter(id=gtv2.id).exists()

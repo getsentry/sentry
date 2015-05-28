@@ -353,16 +353,6 @@ def github_button(user, repo):
     }
 
 
-@tag(register, [Constant('from'), Variable('project'),
-                Constant('as'), Name('asvar')])
-def recent_alerts(context, project, asvar):
-    from sentry.models import Alert
-
-    context[asvar] = list(Alert.get_recent_for_project(project.id))
-
-    return ''
-
-
 @register.filter
 def urlquote(value, safe=''):
     return quote(value.encode('utf8'), safe)

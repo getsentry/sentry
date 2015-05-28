@@ -14,8 +14,8 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * A UNIX-based operating system. We test on Ubuntu.
 * Python 2.7
 * python-setuptools, python-pip, python-dev, libxslt1-dev, libxml2-dev, libz-dev, libffi-dev, libssl-dev
-* A real database (PostgreSQL is preferred, MySQL also works with caveats)
-* Redis (2.4 or newer)
+* A real database (PostgreSQL)
+* Redis (2.6.12 or newer)
 * Nginx (with RealIP, i.e. nginx-full)
 * A dedicated domain to host Sentry on (i.e. sentry.yourcompany.com).
 
@@ -92,8 +92,9 @@ like the following:
 Using MySQL or Postgres
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-We **highly** recommend using PostgreSQL for your database, or MySQL if you have no other choice. The default
-is sqlite and will handle very little load. If you're using MySQL, you should use InnoDB as your storage engine.
+We **highly** recommend using PostgreSQL for your database. The default database is sqlite and is only intended
+for Sentry's development environment. MySQL will work with various caveats (you should use InnoDB, for one), but
+is not officially supported by the Sentry team.
 
 These databases require additional packages, but Sentry provides a couple of meta packages to make things easier:
 

@@ -44,6 +44,9 @@ class ApiKey(Model):
         ('org:read', 'org:read'),
         ('org:write', 'org:write'),
         ('org:delete', 'org:delete'),
+        ('member:read', 'member:read'),
+        ('member:write', 'member:write'),
+        ('member:delete', 'member:delete'),
     ))
     status = BoundedPositiveIntegerField(default=0, choices=(
         (ApiKeyStatus.ACTIVE, _('Active')),

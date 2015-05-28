@@ -18,6 +18,7 @@ import os
 import os.path
 import socket
 import sys
+import tempfile
 import urlparse
 
 gettext_noop = lambda s: s
@@ -398,7 +399,7 @@ def create_partitioned_queues(name):
 create_partitioned_queues('counters')
 create_partitioned_queues('triggers')
 
-
+CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), 'sentry-celerybeat')
 CELERYBEAT_SCHEDULE = {
     'check-auth': {
         'task': 'sentry.tasks.check_auth',

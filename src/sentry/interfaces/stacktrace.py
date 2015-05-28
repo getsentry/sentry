@@ -523,6 +523,10 @@ class Stacktrace(Interface):
         if not has_system_frames:
             for frame in frames:
                 frame['in_app'] = True
+        else:
+            for frame in frames:
+                if frame.get('in_app') is None:
+                    frame['in_app'] = False
 
         if newest_first is None:
             newest_first = is_newest_frame_first(event)
