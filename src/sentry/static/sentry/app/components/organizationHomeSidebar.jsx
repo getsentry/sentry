@@ -32,7 +32,7 @@ var OrganizationHomeSidebar = React.createClass({
           <ListLink to="organizationTeams" params={orgParams}>Teams</ListLink>
           <ListLink to="organizationProjects" params={orgParams}>Projects</ListLink>
           {access.has('org:read') &&
-            <li><a href={urlPrefix + '/stats/'}>Stats</a></li>
+            <ListLink to="organizationStats" params={orgParams}>Stats</ListLink>
           }
           {access.has('org:write') &&
             <li><a href={urlPrefix + '/audit-log/'}>Audit Log</a></li>
