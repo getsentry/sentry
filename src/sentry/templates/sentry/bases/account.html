@@ -5,7 +5,10 @@
 
 {% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_outer %}<a href="/" class="logo-logged-in"><span class="icon-sentry-logo"></span></a> Account{% endblock %}
+{% block breadcrumb_inner %}
+  <li><a href="/"></a></li>
+  <li>Account</li>
+{% endblock %}
 
 {% block alerts %}
 {% endblock %}
