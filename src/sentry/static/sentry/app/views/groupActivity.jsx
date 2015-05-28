@@ -8,6 +8,7 @@ var api = require("../api");
 var Gravatar = require("../components/gravatar");
 var GroupState = require("../mixins/groupState");
 var GroupStore = require("../stores/groupStore");
+var IndicatorStore = require("../stores/indicatorStore");
 var MemberListStore = require("../stores/memberListStore");
 var PropTypes = require("../proptypes");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
@@ -70,6 +71,8 @@ var NoteInput = React.createClass({
       error: false
     });
 
+    var loadingIndicator = IndicatorStore.add('Posting note..');
+
     api.request('/groups/' + this.props.group.id + '/notes/', {
       method: 'POST',
       data: {
@@ -88,6 +91,9 @@ var NoteInput = React.createClass({
           loading: false
         });
         GroupStore.addActivity(this.props.group.id, data);
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
       }
     });
   },
