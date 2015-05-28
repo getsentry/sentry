@@ -175,14 +175,12 @@ class Team(Model):
         return self.owner.username
 
     @property
-    def member_set(self):
-        # Django does not correctly handle exclude on the many2many (it uses
-        # a singular subquery)
+    def member_set(self, user=None):
         return self.organization.member_set.filter(
-            Q(organizationmemberteam__is_active=True,
-              organizationmemberteam__team=self) |
-            Q(organizationmemberteam__isnull=True,
-              has_global_access=True),
+            Q(organizationmemberteam__team=self) |
+            Q(has_global_access=True),
+            ~Q(organizationmemberteam__is_active=False,
+               organizationmemberteam__team=self),
             user__is_active=True,
         ).distinct()
 
