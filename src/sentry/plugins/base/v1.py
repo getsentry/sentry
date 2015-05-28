@@ -25,7 +25,7 @@ class PluginMount(type):
         new_cls = type.__new__(cls, name, bases, attrs)
         if IPlugin in bases:
             return new_cls
-        if not new_cls.title:
+        if new_cls.title is None:
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(' ', '-').lower()
@@ -364,17 +364,6 @@ class IPlugin(local, PluggableViewMixin):
 
         If your plugin does not need to override this response, simply return
         ``None``.
-        """
-
-    def on_alert(self, alert, **kwargs):
-        """
-        Called when a new alert is generated.
-
-        :param alert: an instance of ``Alert``
-
-        >>> def on_alert(self, alert, **kwargs):
-        >>>     print 'New alert!', alert.message
-        >>>     print alert.get_absolute_url()
         """
 
     def is_regression(self, group, event, **kwargs):

@@ -59,7 +59,7 @@ SENTRY_USE_BIG_INTS = True
 
 # The administrative email for this installation.
 # Note: This will be reported back to getsentry.com as the point of contact. See
-# the beacon documentation for more information.
+# the beacon documentation for more information. This **must** be a string.
 
 # SENTRY_ADMIN_EMAIL = 'your.name@example.com'
 SENTRY_ADMIN_EMAIL = ''
@@ -331,6 +331,12 @@ def apply_legacy_settings(config):
         print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
         print('\033[91m!! SENTRY_ADMIN_EMAIL is not configured !!\033[0m')
         print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
+    elif not isinstance(settings.SENTRY_ADMIN_EMAIL, basestring):
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! SENTRY_ADMIN_EMAIL must be a string !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
         print('')
 
     if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com') and not settings.DEBUG:

@@ -10,7 +10,7 @@ from exam import fixture
 from mock import Mock
 
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import AccessGroup, Alert, Event, Group, Rule
+from sentry.models import AccessGroup, Event, Group, Rule
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
@@ -205,14 +205,3 @@ class MailPluginTest(TestCase):
                                   project=project, user=user4)
 
         assert user4.pk not in self.plugin.get_sendable_users(project)
-
-    @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
-    def test_on_alert(self, _send_mail):
-        alert = Alert.objects.create(message='This is a test alert', project=self.project)
-
-        self.plugin.on_alert(alert=alert)
-
-        _send_mail.assert_called_once()
-        args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{0} {1}] ALERT: {2}".format(
-            self.team.name, self.project.name, alert.message)

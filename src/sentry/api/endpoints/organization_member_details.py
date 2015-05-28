@@ -16,6 +16,8 @@ ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request
 
 ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'
 
+ERR_INSUFFICIENT_SCOPE = 'You are missing the member:delete scope.'
+
 ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization.'
 
 ERR_UNINVITABLE = 'You cannot send an invitation to a user who is already a full member.'
@@ -27,13 +29,13 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
 class RelaxedOrganizationPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:delete'],
-        'POST': ['org:write', 'org:delete'],
-        'PUT': ['org:write', 'org:delete'],
+        'GET': ['member:read', 'member:write', 'member:delete'],
+        'POST': ['member:write', 'member:delete'],
+        'PUT': ['member:write', 'member:delete'],
 
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
-        'DELETE': ['org:read', 'org:write', 'org:delete'],
+        'DELETE': ['member:read', 'member:write', 'member:delete'],
     }
 
 
@@ -96,12 +98,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     def delete(self, request, organization, member_id):
-        if not request.user.is_authenticated():
-            return Response({'detail': ERR_NO_AUTH}, status=400)
-
         if request.user.is_superuser:
             authorizing_access = OrganizationMemberType.OWNER
-        else:
+        elif request.user.is_authenticated():
             try:
                 authorizing_access = OrganizationMember.objects.get(
                     organization=organization,
@@ -110,6 +109,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                 ).type
             except OrganizationMember.DoesNotExist:
                 return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
+        elif request.access.has_scope('member:delete'):
+            authorizing_access = OrganizationMemberType.OWNER
+        else:
+            return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
 
         try:
             om = self._get_member(request, organization, member_id)
@@ -134,6 +137,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             ).exclude(id=om.id)[0].user
             organization.save()
 
+        # TODO(dcramer): we should probably clean up AuthIdentity here
         om.delete()
 
         self.create_audit_entry(

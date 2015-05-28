@@ -1,7 +1,33 @@
+Version 7.6.0
+-------------
+
+- The project-wide Alert system has been removed (to be re-implemented in the future).
+
+Version 7.5.3
+-------------
+
+- Fix another case where valid team membership was being excluded
+
+Version 7.5.2
+-------------
+
+- Correctly support SENTRY_PROJECT.
+
+Version 7.5.1
+-------------
+
+- Fix case where certain pages were not correctly including valid team membership
+- Fix default user creation (regain automated signal)
+- Fix sampling of internal metrics
+
 Version 7.5.0
 -------------
 
 This release removes the ability to login or create accounts using a social auth backend.
+
+If your install was based purely on social accounts you'll need to use the standard reset password flows to recover accounts.
+
+Redis must be at least version 2.6.12.
 
 - Interface.compute_hashes() now receives the platform of the event.
 - Server-side data scrubbers were incorrectly filtering invalid interface aliases.
@@ -24,6 +50,7 @@ This release removes the ability to login or create accounts using a social auth
 - Dedicated configuration pages for Release Tracking and Issue Tracking integrations now exist.
 - Several additions to the Release schema.
 - Notification integrations are now present within project's notification settings.
+- Fixed an issue with tag key deletion not following explicit constraints.
 
 Version 7.4.3
 -------------

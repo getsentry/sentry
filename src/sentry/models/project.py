@@ -198,15 +198,12 @@ class Project(Model):
 
     @property
     def member_set(self):
-        from sentry.models import OrganizationMember
-
-        return OrganizationMember.objects.filter(
-            Q(organizationmemberteam__team=self.team) | Q(has_global_access=True),
+        return self.organization.member_set.filter(
+            Q(organizationmemberteam__team=self.team) |
+            Q(has_global_access=True),
+            ~Q(organizationmemberteam__is_active=False,
+               organizationmemberteam__team=self.team),
             user__is_active=True,
-            organization=self.organization,
-        ).exclude(
-            organizationmemberteam__team=self.team,
-            organizationmemberteam__is_active=False,
         ).distinct()
 
     def has_access(self, user, access=None):
