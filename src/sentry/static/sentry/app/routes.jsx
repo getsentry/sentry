@@ -14,6 +14,7 @@ var GroupTagValues = require("./views/groupTagValues");
 var GroupOverview = require("./views/groupOverview");
 var GroupEventDetails = require("./views/groupEventDetails");
 var OrganizationDetails = require("./views/organizationDetails");
+var OrganizationStats = require("./views/organizationStats");
 var OrganizationTeams = require("./views/organizationTeams");
 var OrganizationProjects = require("./views/organizationProjects");
 var ProjectDetails = require("./views/projectDetails");
@@ -44,6 +45,9 @@ var routes = (
           <Route name="groupEvents" path="events/" handler={GroupEvents} />
         </Route>
       </Route>
+    </Route>
+    <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
+      <Route name="organizationStats" path="stats/" handler={OrganizationStats} />
     </Route>
   </Route>
 );

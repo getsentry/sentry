@@ -19,6 +19,10 @@ module.exports = {
       "react-router",
       "react-bootstrap",
       "reflux",
+      "vendor/jquery-flot/jquery.flot",
+      "vendor/jquery-flot/jquery.flot.stack",
+      "vendor/jquery-flot/jquery.flot.time",
+      "vendor/jquery-flot-tooltip/jquery.flot.tooltip",
       "vendor/simple-slider/simple-slider"
     ]
   },
