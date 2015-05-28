@@ -2,13 +2,11 @@
 
 var React = require("react");
 var Reflux = require("reflux");
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var IndicatorStore = require('../stores/indicatorStore');
 
 var Indicators = React.createClass({
   mixins: [
-    PureRenderMixin,
     Reflux.connect(IndicatorStore, "items")
   ],
 
