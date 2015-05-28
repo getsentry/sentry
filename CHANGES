@@ -1,3 +1,7 @@
+Version 7.5.3
+
+- Fix another case where valid team membership was being excluded
+
 Version 7.5.2
 -------------
 
