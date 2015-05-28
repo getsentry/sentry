@@ -430,16 +430,6 @@ def render_values(value, threshold=5, collapse_to=3):
     return context
 
 
-@tag(register, [Constant('from'), Variable('project'),
-                Constant('as'), Name('asvar')])
-def recent_alerts(context, project, asvar):
-    from sentry.models import Alert
-
-    context[asvar] = list(Alert.get_recent_for_project(project.id))
-
-    return ''
-
-
 @register.filter
 def urlquote(value, safe=''):
     return quote(value.encode('utf8'), safe)

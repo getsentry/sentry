@@ -366,17 +366,6 @@ class IPlugin(local, PluggableViewMixin):
         ``None``.
         """
 
-    def on_alert(self, alert, **kwargs):
-        """
-        Called when a new alert is generated.
-
-        :param alert: an instance of ``Alert``
-
-        >>> def on_alert(self, alert, **kwargs):
-        >>>     print 'New alert!', alert.message
-        >>>     print alert.get_absolute_url()
-        """
-
     def is_regression(self, group, event, **kwargs):
         """
         Called on new events when the group's status is resolved.

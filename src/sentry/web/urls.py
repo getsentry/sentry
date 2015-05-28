@@ -17,7 +17,7 @@ from django.conf import settings
 
 from sentry.web import api
 from sentry.web.frontend import (
-    alerts, accounts, generic, groups, events,
+    accounts, generic, groups, events,
     admin, users, explore, explore_code,
 )
 
@@ -366,10 +366,6 @@ urlpatterns += patterns('',
     url(r'^(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
         name='sentry-wall'),
 
-    # Team-wide alerts
-    url(r'^(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/show/alerts/$', alerts.alert_list,
-        name='sentry-alerts'),
-
     # Explore - Users
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/$',
         users.user_list, name='sentry-users'),
@@ -410,12 +406,6 @@ urlpatterns += patterns('',
         name='sentry-group-tags'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', groups.group_tag_details,
         name='sentry-group-tag-details'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/$', alerts.alert_list,
-        name='sentry-alerts'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/(?P<alert_id>\d+)/$', alerts.alert_details,
-        name='sentry-alert-details'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/(?P<alert_id>\d+)/resolve/$', alerts.resolve_alert,
-        name='sentry-resolve-alert'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/stream/$', groups.group_list),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', groups.group_list,
         name='sentry-stream'),

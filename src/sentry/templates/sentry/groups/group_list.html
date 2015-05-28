@@ -126,19 +126,6 @@
         </form>
     </div>
 
-    {% recent_alerts from project as recent_alerts %}
-    {% if recent_alerts %}
-        <ul class="active-alerts">
-            {% for alert in recent_alerts %}
-                <li class="alert alert-error">
-                    <a class="close" data-dismiss="alert">×</a>
-                    <a href="{% url 'sentry-alert-details' project.organization.slug project.slug alert.id %}">{{ alert.message }}</a>
-                    <small>&mdash; {{ alert.datetime|timesince }}</small>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
     <div id="event_list"></div>
 
     <div class="btn-toolbar" style="border-bottom: none">

@@ -9,9 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import constants
 from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins, NotificationPlugin
-from sentry.web.forms.projects import (
-    AlertSettingsForm, NotificationSettingsForm
-)
+from sentry.web.forms.projects import NotificationSettingsForm
 from sentry.web.frontend.base import ProjectView
 from sentry.web.helpers import plugin_config
 
@@ -44,9 +42,6 @@ class ProjectNotificationsView(ProjectView):
         )
 
     def handle(self, request, organization, team, project):
-        threshold, min_events = project.get_option(
-            'alert:threshold', constants.DEFAULT_ALERT_PROJECT_THRESHOLD)
-
         op = request.POST.get('op')
         if op == 'enable':
             self._handle_enable_plugin(request, project)
@@ -64,17 +59,7 @@ class ProjectNotificationsView(ProjectView):
                         'mail:subject_prefix', settings.EMAIL_SUBJECT_PREFIX),
                 },
             )
-            alert_form = AlertSettingsForm(
-                data=request.POST,
-                prefix='alert',
-                initial={
-                    'pct_threshold': threshold,
-                    'min_events': min_events,
-                }
-            )
-            if all(f.is_valid() for f in [general_form, alert_form]):
-                project.update_option('alert:threshold', (
-                    alert_form.cleaned_data['pct_threshold'], alert_form.cleaned_data['min_events']))
+            if general_form.is_valid():
                 project.update_option(
                     'mail:subject_prefix', general_form.cleaned_data['subject_prefix'])
                 messages.add_message(
@@ -88,13 +73,6 @@ class ProjectNotificationsView(ProjectView):
                     'subject_prefix': project.get_option(
                         'mail:subject_prefix', settings.EMAIL_SUBJECT_PREFIX),
                 },
-            )
-            alert_form = AlertSettingsForm(
-                prefix='alert',
-                initial={
-                    'pct_threshold': threshold,
-                    'min_events': min_events,
-                }
             )
 
         enabled_plugins = []
@@ -123,7 +101,6 @@ class ProjectNotificationsView(ProjectView):
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
             'general_form': general_form,
-            'alert_form': alert_form
         }
 
         return self.respond('sentry/project-notifications.html', context)
