@@ -21,7 +21,6 @@ var OrganizationHomeContainer = React.createClass({
             {this.props.children}
           </div>
         </div>
-        <Loading message="Doing some global shit..." global="true"/>
       </div>
     );
   }
