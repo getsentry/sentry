@@ -132,7 +132,8 @@ var NoteInput = React.createClass({
                     onFocus={this.expand} onBlur={this.maybeCollapse}
                     value={this.state.value} />
           <div className="activity-actions">
-            <button className="btn btn-default" type="submit">Leave note</button>
+            <button className="btn btn-default" type="submit"
+                    disabled={this.state.loading}>Leave note</button>
           </div>
         </div>
       </form>
