@@ -32,18 +32,6 @@
           {% endfor %}
         </fieldset>
 
-        <fieldset>
-          <legend>{% trans "Alerts" %}</legend>
-
-          <p>{% blocktrans %}Alerts are triggered when the rate of events for the entire project increase by a relative amount. Values represent a 60-second interval.{% endblocktrans %}</p>
-
-          {{ alert_form|as_crispy_errors }}
-
-          {% for field in alert_form %}
-              {{ field|as_crispy_field }}
-          {% endfor %}
-        </fieldset>
-
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
