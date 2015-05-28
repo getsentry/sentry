@@ -5,7 +5,7 @@ var React = require("react");
 
 var LoadingIndicator = React.createClass({
   propTypes: {
-    message: React.PropTypes.string,
+    global: React.PropTypes.bool,
     mini:  React.PropTypes.bool
   },
 
@@ -24,7 +24,7 @@ var LoadingIndicator = React.createClass({
       <div className={joinClasses(this.props.className, className)}>
         <div className="loading-mask"></div>
         <div className="loading-indicator"></div>
-        <div className="loading-message">{this.props.message}</div>
+        <div className="loading-message">{this.props.children}</div>
       </div>
     );
   }

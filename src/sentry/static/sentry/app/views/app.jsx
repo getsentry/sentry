@@ -5,6 +5,7 @@ var React = require("react");
 var api = require("../api");
 var Alerts = require("../components/alerts");
 var ConfigStore = require("../stores/configStore");
+var Indicators = require("../components/indicators");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 
@@ -58,6 +59,7 @@ var App = React.createClass({
     return (
       <div>
         <Alerts className="messages-container" />
+        <Indicators className="indicators-container" />
         <Router.RouteHandler />
       </div>
     );
