@@ -19,7 +19,7 @@ module.exports = {
       "react-router",
       "react-bootstrap",
       "reflux",
-      "simple-slider"
+      "vendor/simple-slider/simple-slider"
     ]
   },
   module: {
@@ -37,13 +37,16 @@ module.exports = {
     new webpack.optimize.UglifyJsPlugin(),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
-        $: 'jquery',
-        jQuery: 'jquery',
+      $: 'jquery',
+      jQuery: 'jquery',
+      "window.jQuery": "jquery",
+      "root.jQuery": "jquery"
     })
   ],
   resolve: {
     alias: {
-      "app": path.join(__dirname, staticPrefix, "app")
+      "app": path.join(__dirname, staticPrefix, "app"),
+      "vendor": path.join(__dirname, staticPrefix, "vendor")
     },
     modulesDirectories: ["node_modules"],
     extensions: ["", ".jsx", ".js", ".json"]
