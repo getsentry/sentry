@@ -26,7 +26,7 @@
 
 {% block content %}
   <h3>{% trans "Project Settings" %}</h3>
-  <form class="form-stacked" action="." method="post">
+  <form class="form-stacked" action="." method="post" id="project_settings">
     {% csrf_token %}
 
     {{ form|as_crispy_errors }}
@@ -96,6 +96,10 @@
       <button type="submit" class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
     </div>
   </form>
+
+  <script>
+  $('#project_settings input[type=range]').simpleSlider();
+  </script>
 {% endblock %}
 
 {% block rightbar %}
