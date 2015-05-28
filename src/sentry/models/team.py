@@ -175,7 +175,7 @@ class Team(Model):
         return self.owner.username
 
     @property
-    def member_set(self, user=None):
+    def member_set(self):
         return self.organization.member_set.filter(
             Q(organizationmemberteam__team=self) |
             Q(has_global_access=True),
