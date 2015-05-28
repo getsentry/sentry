@@ -38,6 +38,8 @@ var OrganizationSelector = React.createClass({
             </MenuItem>
           );
         })}
+        <div className="divider"></div>
+        <MenuItem>New Organization</MenuItem>
       </DropdownLink>
     );
   }
