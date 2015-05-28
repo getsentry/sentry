@@ -652,10 +652,39 @@ table.integrations {
     top: 62px;
     width: @sidebar-width - 10;
     margin: 0 5px;
-    padding: 10px 0;
+    padding: 0 0 5px;
+
+    .divider {
+      margin: 5px 0 0;
+    }
+
+    li {
+      margin: 5px 0 0;
+      font-size: 16px;
+
+      a {
+        padding: 6px 10px 6px 46px;
+        position: relative;
+      }
+
+      &:last-child {
+        a {
+          padding-left: 15px;
+        }
+      }
+    }
 
     &:after {
       right: 15px !important;
+    }
+
+    .org-avatar {
+      position: absolute;
+      top: 5px;
+      left: 15px;
+      background-size: cover;
+      .square(22px);
+      border-radius: 2px;
     }
   }
 
@@ -676,12 +705,6 @@ table.integrations {
           color: #fff;
         }
       }
-    }
-  }
-
-  &.open {
-    .dropdown-toggle {
-      color: @blue;
     }
   }
 }
