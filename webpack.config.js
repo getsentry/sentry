@@ -18,7 +18,8 @@ module.exports = {
       "react/addons",
       "react-router",
       "react-bootstrap",
-      "reflux"
+      "reflux",
+      "simple-slider"
     ]
   },
   module: {
