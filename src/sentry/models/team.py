@@ -181,8 +181,6 @@ class Team(Model):
         return self.organization.member_set.filter(
             Q(organizationmemberteam__is_active=True,
               organizationmemberteam__team=self) |
-            Q(organizationmemberteam__is_active=True,
-              has_global_access=True) |
             Q(organizationmemberteam__isnull=True,
               has_global_access=True),
             user__is_active=True,
