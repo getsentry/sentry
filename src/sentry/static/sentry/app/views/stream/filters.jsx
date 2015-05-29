@@ -162,11 +162,34 @@ var FilterSelectLink = React.createClass({
 });
 
 var StreamFilters = React.createClass({
+  mixins: [PureRenderMixin],
+
   contextTypes: {
     router: React.PropTypes.func
   },
 
-  render() {
+  getInitialState() {
+    return {
+      activeButton: null
+    };
+  },
+
+  componentWillMount() {
+    this.setState({
+      activeButton: this.getActiveButton()
+    });
+  },
+
+  componentWillReceiveProps(nextProps) {
+    var activeButton = this.getActiveButton();
+    if (activeButton != this.state.activeButton) {
+      this.setState({
+        activeButton: activeButton
+      });
+    }
+  },
+
+  getActiveButton() {
     var router = this.context.router;
     var queryParams = router.getCurrentQuery();
     var activeButton;
@@ -177,7 +200,11 @@ var StreamFilters = React.createClass({
     } else {
       activeButton = 'all';
     }
+    return activeButton;
+  },
 
+  render() {
+    var activeButton = this.state.activeButton;
     return (
       <div className="filter-nav">
         <div className="row">
