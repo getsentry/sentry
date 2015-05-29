@@ -79,10 +79,10 @@ var BarChart = React.createClass({
       if (!nextPoints[i]) {
         return true;
       }
-      if (curPoints[i].x != nextPoints[i].x) {
+      if (curPoints[i].x !== nextPoints[i].x) {
         return true;
       }
-      if (curPoints[i].y != nextPoints[i].y) {
+      if (curPoints[i].y !== nextPoints[i].y) {
         return true;
       }
     }
