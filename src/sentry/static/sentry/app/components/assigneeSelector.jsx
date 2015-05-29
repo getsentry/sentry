@@ -111,7 +111,7 @@ var AssigneeSelector = React.createClass({
     return (
       <div className={className}>
         {loading ?
-          <LoadingIndicator mini="true" />
+          <LoadingIndicator mini={true} />
         :
           <DropdownLink
             className="assignee-selector-toggle"
