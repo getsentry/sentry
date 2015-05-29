@@ -16,6 +16,8 @@ var ConfigStore = Reflux.createStore({
   },
 
   loadInitialData(config) {
+    config.features = new Set(config.features || []);
+
     this.config = config;
   }
 });
