@@ -91,14 +91,14 @@ class Client {
   _chain() {
     var funcs = [];
     for (var i = 0; i < arguments.length; i++) {
-      if (typeof arguments[i] !== "undefined") {
+      if (typeof arguments[i] !== "undefined" && arguments[i]) {
         funcs.push(arguments[i]);
       }
     }
 
     return () => {
       funcs.forEach((func) => {
-        funcs[i].apply(this, arguments);
+        func.apply(this, arguments);
       });
     };
   }

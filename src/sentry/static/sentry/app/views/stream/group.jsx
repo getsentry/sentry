@@ -1,4 +1,5 @@
 /*** @jsx React.DOM */
+var jQuery = require("jquery");
 var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
@@ -6,9 +7,10 @@ var Router = require("react-router");
 var AssigneeSelector = require("../../components/assigneeSelector");
 var BarChart = require("../../components/barChart");
 var Count = require("../../components/count");
+var GroupStore = require("../../stores/groupStore");
 var SelectedGroupStore = require("../../stores/selectedGroupStore");
 var TimeSince = require("../../components/timeSince");
-var utils = require("../../utils");
+var {compareArrays, objectMatchesSubset} = require("../../utils");
 
 var StreamGroup = React.createClass({
   contextTypes: {
@@ -20,9 +22,7 @@ var StreamGroup = React.createClass({
   ],
 
   propTypes: {
-    data: React.PropTypes.shape({
-      id: React.PropTypes.string.isRequired
-    }).isRequired,
+    id: React.PropTypes.string.isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
   },
@@ -30,7 +30,20 @@ var StreamGroup = React.createClass({
   getInitialState() {
     return {
       isSelected: false,
+      data: null
     };
+  },
+
+  componentWillMount() {
+    this.setState({
+      data: GroupStore.getItem(this.props.id)
+    });
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      data: GroupStore.getItem(this.props.id)
+    });
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -40,17 +53,17 @@ var StreamGroup = React.createClass({
     if (nextState.isSelected !== this.state.isSelected) {
       return true;
     }
-    if (!utils.objectMatchesSubset(this.props.data, nextProps.data, true)) {
+    if (!objectMatchesSubset(this.state.data, nextState.data, true)) {
       return true;
     }
-    if (!utils.arrayIsEqual(this.props.memberList, nextProps.data)) {
-      return true;
-    }
-    return false;
+    var memberListEqual = compareArrays(this.props.memberList, nextProps.memberList, (obj, other) => {
+      return obj.email === other.email;
+    });
+    return !memberListEqual;
   },
 
   onSelectedGroupChange() {
-    var id = this.props.data.id;
+    var id = this.state.data.id;
     var isSelected = SelectedGroupStore.isSelected(id);
     if (isSelected !== this.state.isSelected) {
       this.setState({
@@ -60,14 +73,14 @@ var StreamGroup = React.createClass({
   },
 
   onSelect() {
-    var id = this.props.data.id;
+    var id = this.state.data.id;
     SelectedGroupStore.toggleSelect(id);
   },
 
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var data = this.props.data;
+    var data = this.state.data;
     var userCount = 0;
     var points;
 

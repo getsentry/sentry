@@ -1,6 +1,24 @@
 /*** @jsx React.DOM */
 
-var instanceListMatches = function(arr1, arr2) {
+var modelCompare = function(obj1, obj2) {
+  return obj1.id === obj2.id;
+};
+
+var compareArrays = function(arr1, arr2, compFunc) {
+  if (arr1 === arr2) {
+    return true;
+  }
+  if (!arr1) {
+    arr1 = [];
+  }
+  if (!arr2) {
+    arr2 = [];
+  }
+
+  if (arr1.length != arr2.length) {
+    return true;
+  }
+
   for (var i = 0; i < Math.max(arr1.length, arr2.length); i++) {
     if (!arr1[i]) {
       return true;
@@ -8,12 +26,12 @@ var instanceListMatches = function(arr1, arr2) {
     if (!arr2[i]) {
       return true;
     }
-    if (arr1[i].id != arr2[i].id) {
+    if (!compFunc(arr1[i], arr2[i])) {
       return true;
     }
   }
+  return false;
 };
-
 
 var objectMatchesSubset = function(obj, other, deep){
   var k;
@@ -145,7 +163,7 @@ module.exports = {
 
   arrayIsEqual: arrayIsEqual,
   objectMatchesSubset: objectMatchesSubset,
-  instanceListMatches: instanceListMatches,
+  compareArrays: compareArrays,
   parseLinkHeader: require('./utils/parseLinkHeader'),
 
   Collection: require('./utils/collection'),

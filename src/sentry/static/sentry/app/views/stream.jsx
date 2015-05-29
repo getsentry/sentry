@@ -52,10 +52,10 @@ var Stream = React.createClass({
     if (curState.groupList.length != nextState.groupList.length) {
       return true;
     }
-    if (!utils.instanceListMatches(curState.groupList, nextState.groupList)) {
-      return true;
-    }
-    return false;
+    var equal = utils.compareArrays(curState.groupList, nextState.groupList, (obj, other) => {
+      return obj.id === other.id;
+    });
+    return !equal;
   },
 
   componentWillMount() {
@@ -170,7 +170,7 @@ var Stream = React.createClass({
     var groupNodes = this.state.groupList.map((node) => {
       return <StreamGroup
           key={node.id}
-          data={node}
+          id={node.id}
           memberList={this.props.memberList}
           statsPeriod={this.state.statsPeriod} />;
     });

@@ -3,6 +3,7 @@ var moment = require("moment");
 var React = require("react");
 
 var TooltipTrigger = require("./TooltipTrigger");
+var {compareArrays} = require("../utils");
 
 var BarChart = React.createClass({
   propTypes: {
@@ -72,21 +73,10 @@ var BarChart = React.createClass({
   shouldComponentUpdate(nextProps, nextState) {
     var curPoints = this.props.points || [];
     var nextPoints = nextProps.points || [];
-    for (var i = 0; i < Math.max(curPoints.length, nextPoints.length); i++) {
-      if (!curPoints[i]) {
-        return true;
-      }
-      if (!nextPoints[i]) {
-        return true;
-      }
-      if (curPoints[i].x !== nextPoints[i].x) {
-        return true;
-      }
-      if (curPoints[i].y !== nextPoints[i].y) {
-        return true;
-      }
-    }
-    return false;
+    var equal = compareArrays(this.props.points, nextProps.points, (obj, other) => {
+      return (obj.x === other.x && obj.y === other.y);
+    });
+    return !equal;
   },
 
   render(){

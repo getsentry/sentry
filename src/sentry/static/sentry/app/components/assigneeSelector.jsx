@@ -10,7 +10,7 @@ var DropdownLink = require("./dropdownLink");
 var MenuItem = require("./menuItem");
 var PropTypes = require("../proptypes");
 var LoadingIndicator = require("../components/loadingIndicator");
-var utils = require("../utils");
+var {compareArrays} = require("../utils");
 
 var AssigneeSelector = React.createClass({
   mixins: [Reflux.ListenerMixin],
@@ -61,7 +61,17 @@ var AssigneeSelector = React.createClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (!utils.objectMatchesSubset(nextProps.group.assignedTo, this.props.group.assignedTo)) {
+    if (nextProps.group.assignedTo !== this.props.group.assignedTo) {
+      return true;
+    }
+    if (!nextProps.group.assignedTo && this.props.group.assignedTo) {
+      return true;
+    }
+    if (nextProps.group.assignedTo && this.props.group.assignedTo) {
+      if (nextProps.group.assignedTo.email !== this.props.group.assignedTo) {
+        return true;
+      }
+    } else if (!nextProps.group.assignedTo || !this.props.group.assignedTo) {
       return true;
     }
     if (nextState.filterQuery !== this.state.filterQuery) {
@@ -70,10 +80,10 @@ var AssigneeSelector = React.createClass({
     if (nextState.loading !== this.state.loading) {
       return true;
     }
-    if (!utils.arrayIsEqual(this.props.memberList, nextProps.memberList)) {
-      return true;
-    }
-    return false;
+    var memberListEqual = compareArrays(this.props.memberList, nextProps.memberList, (obj, other) => {
+      return obj.email === other.email;
+    });
+    return !memberListEqual;
   },
 
   render() {
