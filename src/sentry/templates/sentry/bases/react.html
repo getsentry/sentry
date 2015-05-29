@@ -15,6 +15,7 @@
             latest: '{{ sentry_version.latest }}',
             upgradeAvailable: {% if sentry_version.upgrade_available %}true{% else %}false{% endif %}
           },
+          features: {{ features }},
           mediaUrl: '{% url 'sentry-media' "sentry" '' %}',
         {% if request.user.is_authenticated %}
           isAuthenticated: true,

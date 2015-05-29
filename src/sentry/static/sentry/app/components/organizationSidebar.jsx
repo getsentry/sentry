@@ -24,6 +24,8 @@ var OrganizationSelector = React.createClass({
 
   render() {
     var activeOrg = this.getOrganization();
+    var urlPrefix = ConfigStore.get('urlPrefix');
+    var features = ConfigStore.get('features');
 
     return (
       <DropdownLink
@@ -37,25 +39,21 @@ var OrganizationSelector = React.createClass({
           };
           return (
             <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}} iconUrl="http://github.com/getsentry.png">
-              <span className="org-avatar" style={iconStyle}></span> {org.name}
+              <span className="org-avatar" style={iconStyle} />
+              {org.name}
             </MenuItem>
           );
         })}
-        <div className="divider"></div>
-        <MenuItem>New Organization</MenuItem>
+        {features.has('organizations:create') &&
+          <div>
+            <div className="divider"></div>
+            <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
+          </div>
+        }
       </DropdownLink>
     );
   }
 });
-
-function getUserDisplayName(user) {
-  var name = user.name || user.email;
-  var parts = user.email.split(/@/);
-  if (parts.length == 1) {
-    return parts[0];
-  }
-  return parts[0].toLowerCase().replace(/[\.-_]+/, ' ');
-}
 
 var UserNav = React.createClass({
   mixins: [
