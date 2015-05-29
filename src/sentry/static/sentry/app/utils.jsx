@@ -16,21 +16,21 @@ var compareArrays = function(arr1, arr2, compFunc) {
   }
 
   if (arr1.length != arr2.length) {
-    return true;
+    return false;
   }
 
   for (var i = 0; i < Math.max(arr1.length, arr2.length); i++) {
     if (!arr1[i]) {
-      return true;
+      return false;
     }
     if (!arr2[i]) {
-      return true;
+      return false;
     }
     if (!compFunc(arr1[i], arr2[i])) {
-      return true;
+      return false;
     }
   }
-  return false;
+  return true;
 };
 
 var objectMatchesSubset = function(obj, other, deep){
