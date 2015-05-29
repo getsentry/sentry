@@ -1,14 +1,15 @@
 /*** @jsx React.DOM */
 var React = require('react');
-var $ = require('jquery');
+var jQuery = require('jquery');
 var moment = require('moment');
 
 // we need flot and the various plugins
 require('flot');
-require('flot/jquery.flot.resize');
+require('flot/jquery.flot.stack');
 require('flot/jquery.flot.time');
+require('flot-tooltip/jquery.flot.tooltip');
 
-var average = function(a) {
+var average = (a) => {
   var r = {mean: 0, variance: 0, deviation: 0}, t = a.length;
   for (var m, s = 0, l = t; l--; s += a[l]);
   for (m = r.mean = s / t, l = t, s = 0; l--; s += Math.pow(a[l] - m, 2));
@@ -16,7 +17,7 @@ var average = function(a) {
   return r;
 };
 
-var percentile = function(a, nth) {
+var percentile = (a, nth) => {
   a = a.sort();
   a.slice(0, a.length - Math.floor(nth / a.length));
   return average(a);
@@ -32,7 +33,7 @@ var timeUnitSize = {
   "year": 365.2425 * 24 * 60 * 60 * 1000
 };
 
-var tickFormatter = function (value, axis) {
+var tickFormatter = (value, axis) => {
   var d = moment(value);
 
   var t = axis.tickSize[0] * timeUnitSize[axis.tickSize[1]];
@@ -65,59 +66,19 @@ var tickFormatter = function (value, axis) {
 
 var FlotChart = React.createClass({
   propTypes: {
-    points: React.PropTypes.arrayOf(React.PropTypes.shape({
-      x: React.PropTypes.number.isRequired,
-      y: React.PropTypes.number.isRequired
-    })),
+    plotData: React.PropTypes.array
   },
 
-  renderChart: function(options) {
-    var $el = $(this.refs.chartNode.getDOMNode());
-
-    var points = [];
-    var p95Inputs = [];
-    this.props.points.forEach(function(point){
-      p95Inputs.push(point.y);
-      points.push([point.x * 1000, point.y]);
-    });
-
-    var p95th = percentile(p95Inputs);
-    var dataAvg = [];
-    points.forEach(function(point){
-      dataAvg.push([point[0], p95th.mean]);
-    });
-
-    var plotData = [
-      {
-        data: points,
-        color: 'rgba(86, 175, 232, 1)',
-        shadowSize: 0,
-        lines: {
-          lineWidth: 2,
-          show: true,
-          fill: false
-        }
-      }
-      // {
-      //   data: dataAvg,
-      //   color: 'rgba(244, 63, 32, .4)',
-      //   // color: '#000000',
-      //   shadowSize: 0,
-      //   dashes: {
-      //     lineWidth: 2,
-      //     show: true,
-      //     fill: false
-      //   }
-      // }
-    ];
+  renderChart(options) {
     var plotOptions = {
       xaxis: {
         mode: "time",
+        minTickSize: [1, "day"],
         tickFormatter: tickFormatter
       },
       yaxis: {
         min: 0,
-        tickFormatter: function(value) {
+        tickFormatter: (value) => {
           if (value > 999999) {
             return (value / 1000000) + 'mm';
           }
@@ -127,16 +88,20 @@ var FlotChart = React.createClass({
           return value;
         }
       },
-      // tooltip: true,
-      // tooltipOpts: {
-      //   content: function(label, xval, yval, flotItem) {
-      //     return yval + ' events<br>' + moment(xval).format('llll');
-      //   },
-      //   defaultTheme: false
-      // },
+      tooltip: true,
+      tooltipOpts: {
+        content: (label, xval, yval, flotItem) => {
+          xval = parseInt(xval, 10);
+          if(typeof yval.toLocaleString == "function") {
+              return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
+          }
+          return yval + ' events<br>' + moment(xval).format('llll');
+        },
+        defaultTheme: false
+      },
       grid: {
         show: true,
-        // hoverable: true,
+        hoverable: true,
         backgroundColor: '#ffffff',
         borderColor: '#DEE3E9',
         borderWidth: 2,
@@ -144,29 +109,35 @@ var FlotChart = React.createClass({
       },
       hoverable: false,
       legend: {
-        noColumns: 5
+        noColumns: 2,
+        position: 'nw'
       },
       lines: { show: false }
     };
 
-    $(function(){
-      $.plot($el, plotData, plotOptions);
-    });
+    var chart = this.refs.chartNode.getDOMNode();
+    jQuery.plot(chart, this.props.plotData, plotOptions);
+  },
 
-    // $(window).resize(function(){
-    //   this.renderChart();
-    // }.bind(this));
+  shouldComponentUpdate(nextProps, nextState) {
+    // TODO(dcramer): improve logic here
+    return nextProps.plotData.length > 0;
   },
-  shouldComponentUpdate: function(nextProps, nextState) {
-    return nextProps.points.length > 0;
-  },
-  componentDidUpdate: function() {
+
+  componentDidUpdate() {
     this.renderChart();
   },
-  componentDidMount: function() {
+
+  componentDidMount() {
     this.renderChart();
+    jQuery(window).resize(this.renderChart);
   },
-  render: function() {
+
+  componentWillUnount() {
+    jQuery(window).unbind('resize', this.renderChart);
+  },
+
+  render() {
     return (
       <figure className={this.props.className} ref="chartNode" />
     );

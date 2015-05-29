@@ -8,6 +8,7 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var ConfigStore = require("../stores/configStore");
 var Count = require("../components/count");
+var FlotChart = require("../components/flotChart");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var OrganizationHomeContainer = require("../components/organizationHomeContainer");
@@ -154,9 +155,6 @@ var OrganizationStats = React.createClass({
     }
     if (state.projectsLoading && !state.projectsRequestsPending) {
       this.processProjectData();
-    }
-    if (!state.statsLoading) {
-      this.renderChart();
     }
   },
 
@@ -324,13 +322,10 @@ var OrganizationStats = React.createClass({
     });
   },
 
-  renderChart() {
-    if (this._renderedChart === true) {
-      return;
-    }
-    this._renderedChart = true;
+  getChartPlotData() {
     var stats = this.state.orgStats;
-    var points = [
+
+    return [
       {
         data: stats.accepted,
         label: 'Accepted',
@@ -356,57 +351,6 @@ var OrganizationStats = React.createClass({
         }
       }
     ];
-
-    var options = {
-      xaxis: {
-        mode: "time",
-        minTickSize: [1, "day"],
-        tickFormatter: tickFormatter
-      },
-      yaxis: {
-        min: 0,
-        tickFormatter: function(value) {
-          if (value > 999999) {
-            return (value / 1000000) + 'mm';
-          }
-          if (value > 999) {
-            return (value / 1000) + 'k';
-          }
-          return value;
-        }
-      },
-      tooltip: true,
-      tooltipOpts: {
-        content: function(label, xval, yval, flotItem) {
-          xval = parseInt(xval, 10);
-          if(typeof yval.toLocaleString == "function") {
-              return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
-          }
-          return yval + ' events<br>' + moment(xval).format('llll');
-        },
-        defaultTheme: false
-      },
-      grid: {
-        show: true,
-        hoverable: true,
-        backgroundColor: '#ffffff',
-        borderColor: '#DEE3E9',
-        borderWidth: 2,
-        tickColor: '#f0f0f0'
-      },
-      hoverable: false,
-      legend: {
-          noColumns: 2,
-          position: 'nw'
-      },
-      lines: { show: false }
-    };
-
-    var chart = $(this.refs.chart.getDOMNode());
-    $.plot(chart, points, options);
-    $(window).resize(function(){
-      $.plot(chart, points, options);
-    });
   },
 
   render() {
@@ -415,9 +359,13 @@ var OrganizationStats = React.createClass({
         <h3>Stats</h3>
         <p>The chart below reflects events the system has received across your entire organization. Events are broken down into two categories: Accepted and Rejected. Rejected events are entries that the system threw away due to quotas being hit.</p>
 
-        <div ref="chart" className="chart">
+        {this.state.statsLoading ?
           <LoadingIndicator />
-        </div>
+        : (this.state.statsError ?
+          <LoadingError onRetry={this.fetchData} />
+        :
+          <FlotChart plotData={this.getChartPlotData()} className="chart" />
+        )}
 
         <h3>Events by Project</h3>
 
