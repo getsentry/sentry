@@ -69,6 +69,26 @@ var BarChart = React.createClass({
     return timeMoment.format("lll");
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    var curPoints = this.props.points || [];
+    var nextPoints = nextProps.points || [];
+    for (var i = 0; i < Math.max(curPoints.length, nextPoints.length); i++) {
+      if (!curPoints[i]) {
+        return true;
+      }
+      if (!nextPoints[i]) {
+        return true;
+      }
+      if (curPoints[i].x != nextPoints[i].x) {
+        return true;
+      }
+      if (curPoints[i].y != nextPoints[i].y) {
+        return true;
+      }
+    }
+    return false;
+  },
+
   render(){
     var points = this.props.points;
     var maxval = 10;
