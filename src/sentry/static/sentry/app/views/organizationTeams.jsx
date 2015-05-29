@@ -125,25 +125,25 @@ var SlimTeamList = React.createClass({
         teamId: team.slug
       };
       return (
-        <div className="box" key={team.slug}>
-          <div className="box-header">
-            <div className="pull-right actions">
-              {team.isMember ?
-                <a className="leave-team"
-                   onClick={this.leaveTeam.bind(this, team)}>Leave Team</a>
-              : (team.isPending ?
-                <a className="join-team">Request Pending</a>
-              : (this.props.openMembership ?
-                <a className="join-team"
-                   onClick={this.joinTeam.bind(this, team)}>Join Team</a>
-              :
-                <a className="join-team"
-                   onClick={this.joinTeam.bind(this, team)}>Request Access</a>
-              ))}
-            </div>
-            <h3>{team.name}</h3>
-          </div>
-        </div>
+        <tr key={team.slug}>
+          <td>
+            <strong>{team.name}</strong>
+          </td>
+          <td className="actions align-right">
+            {team.isMember ?
+              <a className="leave-team btn btn-default btn-sm"
+                 onClick={this.leaveTeam.bind(this, team)}>Leave Team</a>
+            : (team.isPending ?
+              <a className="join-team btn btn-default btn-sm btn btn-default btn-sm btn btn-default btn-sm">Request Pending</a>
+            : (this.props.openMembership ?
+              <a className="join-team btn btn-default btn-sm btn btn-default btn-sm"
+                 onClick={this.joinTeam.bind(this, team)}>Join Team</a>
+            :
+              <a className="join-team btn btn-default btn-sm"
+                 onClick={this.joinTeam.bind(this, team)}>Request Access</a>
+            ))}
+          </td>
+        </tr>
       );
     });
 
@@ -216,9 +216,11 @@ var OrganizationTeams = React.createClass({
             <ExpandedTeamList
                 organization={org} teamList={activeTeams} />
           :
-            <SlimTeamList
+            <table className="table">
+              <SlimTeamList
                 organization={org} teamList={allTeams}
                 openMembership={features.has('open-membership') || access.has('org:write')} />
+            </table>
           }
         </div>
       </OrganizationHomeContainer>
