@@ -46,8 +46,12 @@ var Stream = React.createClass({
 
   shouldComponentUpdate(nextProps, nextState) {
     var curState = this.state;
-    if (!utils.objectMatchesSubset(curState, nextState)) {
-      return true;
+    var keys = ['selectAllActive', 'multiSelected', 'anySelected', 'statsPeriod',
+                'realtimeActive', 'pageLinks', 'loading', 'error'];
+    for (var i = 0; i < keys.length; i++) {
+      if (curState[keys[i]] !== nextState[keys[i]]) {
+        return true;
+      }
     }
     if (curState.groupList.length != nextState.groupList.length) {
       return true;
