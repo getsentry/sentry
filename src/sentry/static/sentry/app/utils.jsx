@@ -46,29 +46,36 @@ var objectMatchesSubset = function(obj, other, deep){
   }
 
   for (k in other) {
-    if (obj[k] === other[k]) {
-      continue;
-    }
-
-    if (obj[k] instanceof Array || other[k] instanceof Array) {
-      if (!arrayIsEqual(obj[k], other[k])) {
-        return false;
-      }
-      continue;
-    }
-
-    if (obj[k] instanceof Object || other[k] instanceof Object) {
-      if (!objectMatchesSubset(obj[k], other[k])) {
-        return false;
-      }
-      continue;
+    if (!valueIsEqual(obj[k], other[k], deep)) {
+      return false;
     }
   }
   return true;
 };
 
-var arrayIsEqual = function(arr, other) {
+var valueIsEqual = function(value, other, deep) {
+  if (value === other) {
+    return true;
+  } else if (!deep) {
+    return false;
+  } else if (value instanceof Array || other instanceof Array) {
+    if (arrayIsEqual(value, other, deep)) {
+      return true;
+    }
+  } else if (value instanceof Object || other instanceof Object) {
+    if (objectMatchesSubset(value, other, deep)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+var arrayIsEqual = function(arr, other, deep) {
   // if the other array is a falsy value, return
+  if (!arr && !other) {
+    return true;
+  }
+
   if (!arr || !other) {
     return false;
   }
@@ -78,13 +85,9 @@ var arrayIsEqual = function(arr, other) {
     return false;
   }
 
-  for (var i = 0, l = arr.length; i < l; i++) {
-    // Warning - two different object instances will never be equal: {x:20} != {x:20}
-    if (arr[i] != other[i]) {
-      return false;
-    }
+  for (var i = 0, l = Math.max(arr.length, other.length); i < l; i++) {
+    return valueIsEqual(arr[i], other[i], deep);
   }
-  return true;
 };
 
 module.exports = {
@@ -164,6 +167,7 @@ module.exports = {
   arrayIsEqual: arrayIsEqual,
   objectMatchesSubset: objectMatchesSubset,
   compareArrays: compareArrays,
+  valueIsEqual: valueIsEqual,
   parseLinkHeader: require('./utils/parseLinkHeader'),
 
   Collection: require('./utils/collection'),

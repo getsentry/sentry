@@ -10,7 +10,7 @@ var Count = require("../../components/count");
 var GroupStore = require("../../stores/groupStore");
 var SelectedGroupStore = require("../../stores/selectedGroupStore");
 var TimeSince = require("../../components/timeSince");
-var {compareArrays, objectMatchesSubset} = require("../../utils");
+var {compareArrays, valueIsEqual} = require("../../utils");
 
 var StreamGroup = React.createClass({
   contextTypes: {
@@ -18,7 +18,8 @@ var StreamGroup = React.createClass({
   },
 
   mixins: [
-    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange")
+    Reflux.listenTo(SelectedGroupStore, "onSelectedGroupChange"),
+    Reflux.listenTo(GroupStore, "onGroupChange")
   ],
 
   propTypes: {
@@ -30,20 +31,17 @@ var StreamGroup = React.createClass({
   getInitialState() {
     return {
       isSelected: false,
-      data: null
+      data: GroupStore.getItem(this.props.id)
     };
   },
 
-  componentWillMount() {
-    this.setState({
-      data: GroupStore.getItem(this.props.id)
-    });
-  },
-
   componentWillReceiveProps(nextProps) {
-    this.setState({
-      data: GroupStore.getItem(this.props.id)
-    });
+    if (nextProps.id != this.props.id) {
+      this.setState({
+        data: GroupStore.getItem(this.props.id),
+        isSelected: SelectedGroupStore.isSelected(id)
+      });
+    }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -53,7 +51,7 @@ var StreamGroup = React.createClass({
     if (nextState.isSelected !== this.state.isSelected) {
       return true;
     }
-    if (!objectMatchesSubset(this.state.data, nextState.data, true)) {
+    if (!valueIsEqual(this.state.data, nextState.data, true)) {
       return true;
     }
     var memberListEqual = compareArrays(this.props.memberList, nextProps.memberList, (obj, other) => {
@@ -63,13 +61,24 @@ var StreamGroup = React.createClass({
   },
 
   onSelectedGroupChange() {
-    var id = this.state.data.id;
+    var id = this.props.id;
     var isSelected = SelectedGroupStore.isSelected(id);
     if (isSelected !== this.state.isSelected) {
       this.setState({
         isSelected: SelectedGroupStore.isSelected(id),
       });
     }
+  },
+
+  onGroupChange(itemIds) {
+    if (!itemIds.has(this.props.id)) {
+      return;
+    }
+    var id = this.props.id;
+    var data = GroupStore.getItem(id);
+    this.setState({
+      data: data,
+    });
   },
 
   onSelect() {

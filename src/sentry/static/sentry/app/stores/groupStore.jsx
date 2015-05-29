@@ -38,10 +38,13 @@ var GroupStore = Reflux.createStore({
     this.items = [];
     this.statuses = {};
     this.pendingChanges.clear();
+
+    var itemIds = new Set();
     items.forEach(item => {
+      itemIds.add(item.id);
       this.items.push(item);
     });
-    this.trigger();
+    this.trigger(itemIds);
   },
 
   add(items) {
@@ -54,29 +57,30 @@ var GroupStore = Reflux.createStore({
       itemsById[item.id] = item;
     });
 
-    for (var i = 0, item; (item = this.items[i]); i++) {
+    items.forEach((item, idx) => {
       if (itemsById[item.id]) {
-        this.items[i] = jQuery.extend(true, {}, this.items[i], itemsById[item.id]);
+        this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
         delete itemsById[item.id];
       }
-    }
+    });
 
+    var itemIds = new Set();
     for (var itemId in itemsById) {
       this.items.push(itemsById[itemId]);
+      itemIds.add(itemId);
     }
 
-    this.trigger();
+    this.trigger(itemIds);
   },
 
   remove(itemId) {
-    for (var i = 0; i < this.items.length; i++) {
-      if (this.items[i].id === itemId) {
-        this.items.splice(i, i + 1);
-        return;
+    this.items.forEach((item, idx) => {
+      if (item.id === itemId) {
+        this.items.splice(idx, idx + 1);
       }
-    }
+    });
 
-    this.trigger();
+    this.trigger(new Set([itemId]));
   },
 
   addStatus(id, status) {
@@ -106,7 +110,7 @@ var GroupStore = Reflux.createStore({
       return;
     }
     group.activity.unshift(data);
-    this.trigger();
+    this.trigger(new Set([id]));
   },
 
   getItem(id) {
@@ -162,7 +166,7 @@ var GroupStore = Reflux.createStore({
 
   onAssignTo(changeId, itemId, data) {
     this.addStatus(itemId, 'assignTo');
-    this.trigger();
+    this.trigger(new Set([itemId]));
   },
 
   // TODO(dcramer): This is not really the best place for this
@@ -178,14 +182,14 @@ var GroupStore = Reflux.createStore({
     }
     item.assignedTo = response.assignedTo;
     this.clearStatus(itemId, 'assignTo');
-    this.trigger();
+    this.trigger(new Set([itemId]));
   },
 
   onDelete(changeId, itemIds) {
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'delete');
     });
-    this.trigger();
+    this.trigger(new Set(itemIds));
   },
 
   onDeleteError(changeId, itemIds, response) {
@@ -193,7 +197,7 @@ var GroupStore = Reflux.createStore({
       this.clearStatus(itemId, 'delete');
     });
     AlertActions.addAlert(ERR_SCHEDULE_DELETE, 'error');
-    this.trigger();
+    this.trigger(new Set(itemIds));
   },
 
   onDeleteSuccess(changeId, itemIds, response) {
@@ -204,13 +208,14 @@ var GroupStore = Reflux.createStore({
     });
     this.items = this.items.filter((item) => !itemIdSet.has(item.id));
     AlertActions.addAlert(OK_SCHEDULE_DELETE, 'success');
-    this.trigger();
+    this.trigger(new Set(itemIds));
   },
 
   onMerge(changeId, itemIds) {
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'merge');
     });
+    this.trigger(new Set(itemIds));
   },
 
   onMergeError(changeId, itemIds, response) {
@@ -218,7 +223,7 @@ var GroupStore = Reflux.createStore({
       this.clearStatus(itemId, 'merge');
     });
     AlertActions.addAlert(ERR_SCHEDULE_MERGE, 'error');
-    this.trigger();
+    this.trigger(new Set(itemIds));
   },
 
   onMergeSuccess(changeId, itemIds, response) {
@@ -226,7 +231,7 @@ var GroupStore = Reflux.createStore({
       this.clearStatus(itemId, 'merge');
     });
     AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
-    this.trigger();
+    this.trigger(new Set(itemIds));
   },
 
   onUpdate(changeId, itemIds, data) {
@@ -235,7 +240,7 @@ var GroupStore = Reflux.createStore({
       this.addStatus(itemId, 'update');
       this.pendingChanges.push(changeId, itemId, data);
     });
-    this.trigger();
+    this.trigger(new Set(itemIds));
   },
 
   onUpdateError(changeId, itemIds, error, failSilently) {
@@ -246,7 +251,7 @@ var GroupStore = Reflux.createStore({
     if (failSilently) {
       AlertActions.addAlert(ERR_UPDATE, 'error');
     }
-    this.trigger();
+    this.trigger(new Set(itemIds));
   },
 
   onUpdateSuccess(changeId, itemIds, response) {
@@ -261,7 +266,7 @@ var GroupStore = Reflux.createStore({
       }
     });
     this.pendingChanges.remove(changeId);
-    this.trigger();
+    this.trigger(new Set(itemIds));
   }
 });
 
