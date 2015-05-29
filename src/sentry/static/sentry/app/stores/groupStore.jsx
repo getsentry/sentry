@@ -15,7 +15,7 @@ var ERR_UPDATE = 'Unable to update events. Please try again.';
 var OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.';
 var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
-var GroupListStore = Reflux.createStore({
+var GroupStore = Reflux.createStore({
   init() {
     this.items = [];
     this.statuses = {};
@@ -56,7 +56,7 @@ var GroupListStore = Reflux.createStore({
 
     for (var i = 0, item; (item = this.items[i]); i++) {
       if (itemsById[item.id]) {
-        jQuery.extend(true, this.items[i], itemsById[item.id]);
+        this.items[i] = jQuery.extend(true, {}, this.items[i], itemsById[item.id]);
         delete itemsById[item.id];
       }
     }
@@ -122,10 +122,10 @@ var GroupListStore = Reflux.createStore({
         var rItem = this.items[i];
         if (pendingForId.length) {
           // copy the object so dirty state doesnt mutate original
-          rItem = $.extend(true, {}, rItem);
+          rItem = jQuery.extend(true, {}, rItem);
 
           for (var c = 0; c < pendingForId.length; c++) {
-            rItem = $.extend(true, rItem, pendingForId[c].params);
+            rItem = jQuery.extend(true, rItem, pendingForId[c].params);
           }
         }
         return rItem;
@@ -151,9 +151,9 @@ var GroupListStore = Reflux.createStore({
       var rItem = item;
       if (typeof pendingById[item.id] !== 'undefined') {
         // copy the object so dirty state doesnt mutate original
-        rItem = $.extend(true, {}, rItem);
+        rItem = jQuery.extend(true, {}, rItem);
         pendingById[item.id].forEach(change => {
-          rItem = $.extend(true, rItem, change.params);
+          rItem = jQuery.extend(true, rItem, change.params);
         });
       }
       return rItem;
@@ -254,8 +254,9 @@ var GroupListStore = Reflux.createStore({
       itemIds = this.items.map(item => item.id);
     }
     this.items.forEach(item => {
-      if (itemIds.indexOf(item.id) !== -1) {
-        $.extend(true, item, response);
+      var idx = itemIds.indexOf(item.id);
+      if (idx !== -1) {
+        this.items[idx] = jQuery.extend(true, {}, item, response);
         this.clearStatus(item.id, 'update');
       }
     });
@@ -264,4 +265,4 @@ var GroupListStore = Reflux.createStore({
   }
 });
 
-module.exports = GroupListStore;
+module.exports = GroupStore;

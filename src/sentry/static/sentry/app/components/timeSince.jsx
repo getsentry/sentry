@@ -25,6 +25,10 @@ var TimeSince = React.createClass({
     this.forceUpdate();
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.date !== nextProps.date;
+  },
+
   render() {
     var date = this.props.date;
 

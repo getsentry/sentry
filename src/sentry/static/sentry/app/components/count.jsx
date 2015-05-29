@@ -12,12 +12,12 @@ var Count = React.createClass({
       [1000, 'k']
   ],
 
-  floatFormat: function(number, places) {
+  floatFormat(number, places) {
       var multi = Math.pow(10, places);
       return parseInt(number * multi, 10) / multi;
   },
 
-  formatNumber: function(number){
+  formatNumber(number){
       var b, x, y, o, p;
 
       number = parseInt(number, 10);
@@ -36,7 +36,11 @@ var Count = React.createClass({
       return '' + number;
   },
 
-  render: function() {
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.value !== nextProps.value;
+  },
+
+  render() {
     return (
       <span>{this.formatNumber(this.props.value)}</span>
     );
