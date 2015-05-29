@@ -19,10 +19,10 @@ module.exports = {
       "react-router",
       "react-bootstrap",
       "reflux",
-      "vendor/jquery-flot/jquery.flot",
-      "vendor/jquery-flot/jquery.flot.stack",
-      "vendor/jquery-flot/jquery.flot.time",
-      "vendor/jquery-flot-tooltip/jquery.flot.tooltip",
+      "flot/jquery.flot",
+      "flot/jquery.flot.stack",
+      "flot/jquery.flot.time",
+      "flot-tooltip/jquery.flot.tooltip",
       "vendor/simple-slider/simple-slider"
     ]
   },
@@ -50,6 +50,8 @@ module.exports = {
   resolve: {
     alias: {
       "app": path.join(__dirname, staticPrefix, "app"),
+      "flot": path.join(__dirname, staticPrefix, "vendor", "jquery-flot"),
+      "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip"),
       "vendor": path.join(__dirname, staticPrefix, "vendor")
     },
     modulesDirectories: ["node_modules"],
