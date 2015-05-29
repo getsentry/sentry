@@ -134,9 +134,9 @@ var SlimTeamList = React.createClass({
               <a className="leave-team btn btn-default btn-sm"
                  onClick={this.leaveTeam.bind(this, team)}>Leave Team</a>
             : (team.isPending ?
-              <a className="join-team btn btn-default btn-sm btn btn-default btn-sm btn btn-default btn-sm">Request Pending</a>
+              <a className="join-team btn btn-default btn-sm">Request Pending</a>
             : (this.props.openMembership ?
-              <a className="join-team btn btn-default btn-sm btn btn-default btn-sm"
+              <a className="join-team btn btn-default btn-sm"
                  onClick={this.joinTeam.bind(this, team)}>Join Team</a>
             :
               <a className="join-team btn btn-default btn-sm"
