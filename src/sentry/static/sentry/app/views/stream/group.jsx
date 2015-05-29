@@ -30,7 +30,7 @@ var StreamGroup = React.createClass({
 
   getInitialState() {
     return {
-      isSelected: false,
+      isSelected: SelectedGroupStore.isSelected(this.props.id),
       data: GroupStore.getItem(this.props.id)
     };
   },
