@@ -3,7 +3,7 @@
 var api = require('../api');
 var parseLinkHeader = require('./parseLinkHeader');
 
-class StreamPoller {
+class CursorPoller {
   constructor(options) {
     this.options = options;
     this._timeoutId = null;
@@ -70,4 +70,4 @@ class StreamPoller {
   }
 }
 
-module.exports = StreamPoller;
+module.exports = CursorPoller;
