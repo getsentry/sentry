@@ -1,5 +1,19 @@
 /*** @jsx React.DOM */
 
+var instanceListMatches = function(arr1, arr2) {
+  for (var i = 0; i < Math.max(arr1.length, arr2.length); i++) {
+    if (!arr1[i]) {
+      return true;
+    }
+    if (!arr2[i]) {
+      return true;
+    }
+    if (arr1[i].id != arr2[i].id) {
+      return true;
+    }
+  }
+};
+
 
 var objectMatchesSubset = function(obj, other, deep){
   var k;
@@ -131,6 +145,7 @@ module.exports = {
 
   arrayIsEqual: arrayIsEqual,
   objectMatchesSubset: objectMatchesSubset,
+  instanceListMatches: instanceListMatches,
   parseLinkHeader: require('./utils/parseLinkHeader'),
 
   Collection: require('./utils/collection'),
