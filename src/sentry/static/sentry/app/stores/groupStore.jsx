@@ -258,10 +258,11 @@ var GroupStore = Reflux.createStore({
     if (typeof itemIds === 'undefined') {
       itemIds = this.items.map(item => item.id);
     }
-    this.items.forEach(item => {
-      var idx = itemIds.indexOf(item.id);
-      if (idx !== -1) {
+    this.items.forEach((item, idx) => {
+      if (itemIds.indexOf(item.id) !== -1) {
         this.items[idx] = jQuery.extend(true, {}, item, response);
+        console.log(response);
+        console.log(this.items[idx].status);
         this.clearStatus(item.id, 'update');
       }
     });

@@ -6,6 +6,7 @@ var Router = require("react-router");
 var api = require("../../api");
 var DropdownLink = require("../../components/dropdownLink");
 var GroupState = require("../../mixins/groupState");
+var IndicatorStore = require("../../stores/indicatorStore");
 var MenuItem = require("../../components/menuItem");
 var LinkWithConfirmation = require("../../components/linkWithConfirmation");
 
@@ -20,11 +21,16 @@ var GroupActions = React.createClass({
     var group = this.getGroup();
     var project = this.getProject();
     var org = this.getOrganization();
+    var loadingIndicator = IndicatorStore.add('Delete event..');
 
     api.bulkDelete({
       orgId: org.slug,
       projectId: project.slug,
       itemIds: [group.id]
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
     });
 
     this.context.router.transitionTo('stream', {
@@ -37,6 +43,7 @@ var GroupActions = React.createClass({
     var group = this.getGroup();
     var project = this.getProject();
     var org = this.getOrganization();
+    var loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -45,6 +52,10 @@ var GroupActions = React.createClass({
       data: {
         status: group.status === 'muted' ? 'unresolved' : 'muted'
       }
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
     });
   },
 
@@ -52,6 +63,7 @@ var GroupActions = React.createClass({
     var group = this.getGroup();
     var project = this.getProject();
     var org = this.getOrganization();
+    var loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -60,6 +72,10 @@ var GroupActions = React.createClass({
       data: {
         status: group.status === 'resolved' ? 'unresolved' : 'resolved'
       }
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
     });
   },
 
@@ -67,6 +83,7 @@ var GroupActions = React.createClass({
     var group = this.getGroup();
     var project = this.getProject();
     var org = this.getOrganization();
+    var loadingIndicator = IndicatorStore.add('Saving changes..');
 
     api.bulkUpdate({
       orgId: org.slug,
@@ -74,6 +91,10 @@ var GroupActions = React.createClass({
       itemIds: [group.id],
       data: {
         isBookmarked: !group.isBookmarked
+      }
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
       }
     });
   },
