@@ -95,11 +95,10 @@ class Client {
         funcs.push(arguments[i]);
       }
     }
-
-    return () => {
-      funcs.forEach((func) => {
-        func.apply(this, arguments);
-      });
+    return function() {
+      for (var i = 0; i < funcs.length; i++ ) {
+        funcs[i].apply(funcs[i], arguments);
+      }
     };
   }
 

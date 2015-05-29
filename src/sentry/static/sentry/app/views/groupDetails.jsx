@@ -18,7 +18,7 @@ var GroupDetails = React.createClass({
 
   mixins: [
     BreadcrumbMixin,
-    Reflux.listenTo(GroupListStore, "onAggListChange")
+    Reflux.listenTo(GroupListStore, "onGroupChange")
   ],
 
   propTypes: {
@@ -58,12 +58,13 @@ var GroupDetails = React.createClass({
     });
   },
 
-  onAggListChange() {
+  onGroupChange(itemIds) {
     var id = this.context.router.getCurrentParams().groupId;
-
-    this.setState({
-      group: GroupListStore.getItem(id)
-    });
+    if (itemIds.has(id)) {
+      this.setState({
+        group: GroupListStore.getItem(id)
+      });
+    }
   },
 
   getGroupDetailsEndpoint() {
