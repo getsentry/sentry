@@ -16,10 +16,7 @@ class CursorPoller {
 
   getDelay() {
     var delay = this._baseDelay * (this._reqsWithoutData + 1);
-    if (delay > this._maxDelay) {
-      delay = this._maxDelay;
-    }
-    return delay;
+    return Math.min(delay, this._maxDelay);
   }
 
   enable(){
