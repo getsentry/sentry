@@ -48,7 +48,7 @@ var Stream = React.createClass({
     this.props.setProjectNavSection('stream');
 
     this._streamManager = new utils.StreamManager(GroupListStore);
-    this._poller = new utils.StreamPoller({
+    this._poller = new utils.CursorPoller({
       success: this.onRealtimePoll,
       endpoint: this.getGroupListEndpoint()
     });

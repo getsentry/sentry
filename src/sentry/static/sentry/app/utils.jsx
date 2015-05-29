@@ -136,5 +136,5 @@ module.exports = {
   Collection: require('./utils/collection'),
   PendingChangeQueue: require('./utils/pendingChangeQueue'),
   StreamManager: require('./utils/streamManager'),
-  StreamPoller: require('./utils/streamPoller')
+  CursorPoller: require('./utils/cursorPoller')
 };
