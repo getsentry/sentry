@@ -136,13 +136,6 @@ So in this case, it would end up as:
     'https://example.com/sentry/api/project-id/store/'
 
 
-The protocol value may also include a transport option. For example, in the Python client several
-transports are available on top of HTTP:
-
-* ``gevent+http``
-* ``threaded+http``
-* ``zmq+tcp``
-
 Building the JSON Packet
 ------------------------
 
