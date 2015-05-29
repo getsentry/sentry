@@ -44,6 +44,20 @@ var Stream = React.createClass({
     };
   },
 
+  shouldComponentUpdate(nextProps, nextState) {
+    var curState = this.state;
+    if (!utils.objectMatchesSubset(curState, nextState)) {
+      return true;
+    }
+    if (curState.groupList.length != nextState.groupList.length) {
+      return true;
+    }
+    if (!utils.instanceListMatches(curState.groupList, nextState.groupList)) {
+      return true;
+    }
+    return false;
+  },
+
   componentWillMount() {
     this.props.setProjectNavSection('stream');
 
@@ -124,9 +138,11 @@ var Stream = React.createClass({
   },
 
   handleSelectStatsPeriod(period) {
-    this.setState({
-      statsPeriod: period
-    });
+    if (period !== this.state.statsPeriod) {
+      this.setState({
+        statsPeriod: period
+      });
+    }
   },
 
   onRealtimePoll(data) {

@@ -51,9 +51,12 @@ var StreamGroup = React.createClass({
 
   onSelectedGroupChange() {
     var id = this.props.data.id;
-    this.setState({
-      isSelected: SelectedGroupStore.isSelected(id),
-    });
+    var isSelected = SelectedGroupStore.isSelected(id);
+    if (isSelected !== this.state.isSelected) {
+      this.setState({
+        isSelected: SelectedGroupStore.isSelected(id),
+      });
+    }
   },
 
   onSelect() {
