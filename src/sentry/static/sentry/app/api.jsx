@@ -88,14 +88,41 @@ class Client {
     return this.activeRequests[id];
   }
 
-  bulkDelete(params) {
+  _chain() {
+    var funcs = [];
+    for (var i = 0; i < arguments.length; i++) {
+      if (typeof arguments[i] !== "undefined") {
+        funcs.push(arguments[i]);
+      }
+    }
+
+    return () => {
+      funcs.forEach((func) => {
+        funcs[i].apply(this, arguments);
+      });
+    };
+  }
+
+  _wrapRequest(path, options, extraParams) {
+    if (typeof extraParams === "undefined") {
+      extraParams = {};
+    }
+
+    options.success = this._chain(options.success, extraParams.success);
+    options.error = this._chain(options.error, extraParams.error);
+    options.complete = this._chain(options.complete, extraParams.complete);
+
+    return this.request(path, options);
+  }
+
+  bulkDelete(params, options) {
     var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
     var query = (params.itemIds ? {id: params.itemIds} : undefined);
     var id = this.uniqueId();
 
     GroupActions.delete(id, params.itemIds);
 
-    return this.request(path, {
+    return this._wrapRequest(path, {
       query: query,
       method: "DELETE",
       success: (response) => {
@@ -104,17 +131,17 @@ class Client {
       error: (error) => {
         GroupActions.deleteError(id, params.itemIds, error);
       }
-    });
+    }, options);
   }
 
-  bulkUpdate(params) {
+  bulkUpdate(params, options) {
     var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
     var query = (params.itemIds ? {id: params.itemIds} : undefined);
     var id = this.uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
 
-    return this.request(path, {
+    return this._wrapRequest(path, {
       query: query,
       method: "PUT",
       data: params.data,
@@ -124,17 +151,17 @@ class Client {
       error: (error) => {
         GroupActions.updateError(id, params.itemIds, error, params.failSilently);
       }
-    });
+    }, options);
   }
 
-  merge(params) {
+  merge(params, options) {
     var path = "/projects/" + params.orgId + "/" + params.projectId + "/groups/";
     var query = (params.itemIds ? {id: params.itemIds} : undefined);
     var id = this.uniqueId();
 
     GroupActions.merge(id, params.itemIds);
 
-    return this.request(path, {
+    return this._wrapRequest(path, {
       query: query,
       method: "PUT",
       data: {merge: 1},
@@ -144,16 +171,16 @@ class Client {
       error: (error) => {
         GroupActions.mergeError(id, params.itemIds, error);
       }
-    });
+    }, options);
   }
 
-  assignTo(params) {
+  assignTo(params, options) {
     var path = "/groups/" + params.id + "/";
     var id = this.uniqueId();
 
     GroupActions.assignTo(id, params.id, {email: params.email});
 
-    return this.request(path, {
+    return this._wrapRequest(path, {
       method: "PUT",
       data: {assignedTo: params.email},
       success: (response) => {
@@ -162,16 +189,16 @@ class Client {
       error: (error) => {
         GroupActions.assignToError(id, params.id, error);
       }
-    });
+    }, options);
   }
 
-  joinTeam(params) {
+  joinTeam(params, options) {
     var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
     var id = this.uniqueId();
 
     TeamActions.update(id, params.teamId);
 
-    return this.request(path, {
+    return this._wrapRequest(path, {
       method: "POST",
       success: (response) => {
         TeamActions.updateSuccess(id, params.teamId, response);
@@ -179,16 +206,16 @@ class Client {
       error: (error) => {
         TeamActions.updateError(id, params.teamId, error);
       }
-    });
+    }, options);
   }
 
-  leaveTeam(params) {
+  leaveTeam(params, options) {
     var path = "/organizations/" + params.orgId + "/members/" + (params.memberId || 'me') + "/teams/" + params.teamId + "/";
     var id = this.uniqueId();
 
     TeamActions.update(id, params.teamId);
 
-    return this.request(path, {
+    return this._wrapRequest(path, {
       method: "DELETE",
       success: (response) => {
         TeamActions.updateSuccess(id, params.teamId, response);
@@ -196,7 +223,7 @@ class Client {
       error: (error) => {
         TeamActions.updateError(id, params.teamId, error);
       }
-    });
+    }, options);
   }
 }
 

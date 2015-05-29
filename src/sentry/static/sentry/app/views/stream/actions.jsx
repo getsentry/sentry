@@ -8,6 +8,7 @@ var api = require("../../api");
 var GroupListStore = require("../../stores/groupStore");
 var DateTimeField = require("../../modules/datepicker/DateTimeField");
 var DropdownLink = require("../../components/dropdownLink");
+var IndicatorStore = require("../../stores/indicatorStore");
 var MenuItem = require("../../components/menuItem");
 var Modal = require("react-bootstrap/Modal");
 var OverlayMixin = require("react-bootstrap/OverlayMixin");
@@ -365,6 +366,8 @@ var StreamActions = React.createClass({
   },
   onResolve(groupList, event) {
     this.actionSelectedGroups((itemIds) => {
+      var loadingIndicator = IndicatorStore.add('Saving changes..');
+
       api.bulkUpdate({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
@@ -372,11 +375,17 @@ var StreamActions = React.createClass({
         data: {
           status: 'resolved'
         }
+      }, {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       });
     });
   },
   onBookmark(groupList, event) {
     this.actionSelectedGroups((itemIds) => {
+      var loadingIndicator = IndicatorStore.add('Saving changes..');
+
       api.bulkUpdate({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
@@ -384,10 +393,16 @@ var StreamActions = React.createClass({
         data: {
           isBookmarked: true
         }
+      }, {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       });
     });
   },
   onRemoveBookmark(groupList, event) {
+    var loadingIndicator = IndicatorStore.add('Saving changes..');
+
     this.actionSelectedGroups((itemIds) => {
       api.bulkUpdate({
         orgId: this.props.orgId,
@@ -396,24 +411,40 @@ var StreamActions = React.createClass({
         data: {
           isBookmarked: false
         }
+      }, {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       });
     });
   },
   onDelete(groupList, event) {
+    var loadingIndicator = IndicatorStore.add('Removing events..');
+
     this.actionSelectedGroups((itemIds) => {
       api.bulkDelete({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds
+      }, {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       });
     });
   },
   onMerge(groupList, event) {
+    var loadingIndicator = IndicatorStore.add('Merging events..');
+
     this.actionSelectedGroups((itemIds) => {
       api.merge({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds,
+      }, {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       });
     });
   },
