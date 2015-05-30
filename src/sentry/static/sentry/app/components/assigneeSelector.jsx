@@ -34,7 +34,7 @@ var AssigneeSelector = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    var loading = GroupStore.hasStatus(nextProps.group.id, 'assignTo');
+    var loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id != this.props.id || loading != this.state.loading) {
       var group = GroupStore.getItem(this.props.id);
       this.setState({
