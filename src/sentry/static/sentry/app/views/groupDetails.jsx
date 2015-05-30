@@ -5,9 +5,11 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
+var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var GroupHeader = require("./groupDetails/header");
 var GroupStore = require("../stores/groupStore");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
+var LoadingError = require("../components/loadingError");
+var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 var utils = require("../utils");
 
@@ -40,20 +42,39 @@ var GroupDetails = React.createClass({
 
   getInitialState() {
     return {
-      group: null
+      group: null,
+      loading: true,
+      error: false
     };
   },
 
   componentWillMount() {
     this.props.setProjectNavSection('stream');
+    this.fetchData();
+  },
+
+  fetchData() {
+    this.setState({
+      loading: true,
+      error: false
+    });
 
     api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
-        GroupStore.loadInitialData([data]);
+        this.setState({
+          loading: false
+        });
 
         this.setBreadcrumbs([
           {name: data.title, to: 'groupDetails'}
         ]);
+
+        GroupStore.loadInitialData([data]);
+      }, error: () => {
+        this.setState({
+          loading: false,
+          error: true
+        });
       }
     });
   },
@@ -62,7 +83,7 @@ var GroupDetails = React.createClass({
     var id = this.context.router.getCurrentParams().groupId;
     if (itemIds.has(id)) {
       this.setState({
-        group: GroupStore.get(id)
+        group: GroupStore.get(id),
       });
     }
   },
@@ -77,9 +98,10 @@ var GroupDetails = React.createClass({
     var group = this.state.group;
     var params = this.context.router.getCurrentParams();
 
-    if (!group) {
-      return <div />;
-    }
+    if (this.state.loading || !group)
+      return <LoadingIndicator />;
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
 
     return (
       <div className={this.props.className}>
