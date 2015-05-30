@@ -56,7 +56,7 @@ class CursorPoller {
 
         this._pollingEndpoint = links.previous.href;
 
-        this.options.success(data);
+        this.options.success(data, jqXHR.getResponseHeader('Link'));
       },
       complete: () => {
         if (this._active) {
