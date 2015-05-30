@@ -17,7 +17,7 @@ var utils = require("../utils");
 
 var Stream = React.createClass({
   mixins: [
-    Reflux.listenTo(GroupStore, "onAggListChange"),
+    Reflux.listenTo(GroupStore, "onGroupChange"),
     RouteMixin
   ],
 
@@ -140,10 +140,13 @@ var Stream = React.createClass({
     this._streamManager.unshift(data);
   },
 
-  onAggListChange() {
-    this.setState({
-      groupIds: this._streamManager.getAllItems().map((item) => item.id)
-    });
+  onGroupChange() {
+    var groupIds = this._streamManager.getAllItems().map((item) => item.id);
+    if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
+      this.setState({
+        groupIds: groupIds
+      });
+    }
   },
 
   onPage(cursor) {
