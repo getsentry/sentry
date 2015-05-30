@@ -61,6 +61,7 @@ var Stream = React.createClass({
   },
 
   routeDidChange() {
+    this._poller.disable();
     this.fetchData();
   },
 
