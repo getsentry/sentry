@@ -136,8 +136,13 @@ var Stream = React.createClass({
     }
   },
 
-  onRealtimePoll(data) {
+  onRealtimePoll(data, links) {
     this._streamManager.unshift(data);
+    if (!utils.valueIsEqual(this.state.pageLinks, links, true)) {
+      this.setState({
+        pageLinks: links,
+      });
+    }
   },
 
   onGroupChange() {
