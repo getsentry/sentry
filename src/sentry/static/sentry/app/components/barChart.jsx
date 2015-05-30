@@ -1,4 +1,6 @@
 /*** @jsx React.DOM */
+
+var jQuery = require("jquery");
 var moment = require("moment");
 var React = require("react");
 
@@ -17,12 +19,20 @@ var BarChart = React.createClass({
     label: React.PropTypes.string
   },
 
-  getDefaultProps(){
+  getDefaultProps() {
     return {
       placement: "bottom",
       points: [],
       label: "events"
     };
+  },
+
+  componentDidUpdate() {
+    this.renderChart();
+  },
+
+  componentDidMount() {
+    this.renderChart();
   },
 
   floatFormat(number, places) {
@@ -79,10 +89,10 @@ var BarChart = React.createClass({
     return !equal;
   },
 
-  render(){
+  renderChart() {
     var points = this.props.points;
     var maxval = 10;
-    points.forEach(function(point){
+    points.forEach((point) => {
       if (point.y > maxval) {
         maxval = point.y;
       }
@@ -120,16 +130,29 @@ var BarChart = React.createClass({
         title += <div>({point.label})</div>;
       }
 
-      return (
-        <TooltipTrigger
-            placement={this.props.placement}
-            key={point.x}
-            title={title}>
-          <a style={{width: pointWidth}}>
-            <span style={{height: pct}}>{point.y}</span>
-          </a>
-        </TooltipTrigger>
+      var dom = (
+        <a style={{width: pointWidth}}>
+          <span style={{height: pct}}>{point.y}</span>
+        </a>
       );
+
+      return jQuery(React.renderToString(dom)).tooltip({
+        html: true,
+        placement: this.props.placement,
+        title: React.renderToString(title),
+        viewport: this.props.viewport
+      });
+    });
+
+    jQuery(this.refs.chartPoints.getDOMNode()).html(children);
+  },
+
+  render() {
+    var maxval = 10;
+    this.props.points.forEach((point) => {
+      if (point.y > maxval) {
+        maxval = point.y;
+      }
     });
 
     return (
@@ -138,7 +161,7 @@ var BarChart = React.createClass({
               width={this.props.width}>
         <span className="max-y" key="max-y">{maxval}</span>
         <span className="min-y" key="min-y">{0}</span>
-        {children}
+        <span ref="chartPoints" />
       </figure>
     );
   }
