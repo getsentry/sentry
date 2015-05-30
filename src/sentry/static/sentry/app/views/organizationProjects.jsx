@@ -51,6 +51,7 @@ var OrganizationProjects = React.createClass({
     return '/organizations/' + params.orgId + '/stats/';
   },
 
+  // TODO(dcramer): handle updating project stats when items change
   fetchStats() {
     api.request(this.getOrganizationStatsEndpoint(), {
       query: {
