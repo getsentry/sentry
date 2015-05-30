@@ -45,10 +45,10 @@ var BarChart = React.createClass({
     var nextMoment = timeMoment.clone().add(59, "minute");
 
     return (
-      <span>
-        {timeMoment.format("LL")}<br />
-        {timeMoment.format("LT")} &mdash;&rsaquo; {nextMoment.format("LT")}
-      </span>
+      '<span>' +
+        timeMoment.format("LL") + '<br />' +
+        timeMoment.format("LT") + ' &mdash;&rsaquo; ' + nextMoment.format("LT") +
+      '</span>'
     );
   },
 
@@ -57,9 +57,9 @@ var BarChart = React.createClass({
     var nextMoment = timeMoment.clone().add(59, "minute");
 
     return (
-      <span>
-        {timeMoment.format("LL")}
-      </span>
+      '<span>' +
+        timeMoment.format("LL") +
+      '</span>'
     );
   },
 
@@ -68,10 +68,10 @@ var BarChart = React.createClass({
     var nextMoment = timeMoment.clone().add(interval - 1, "second");
 
     return (
-      <span>
-        {timeMoment.format("lll")}<br />
-        &mdash;&rsaquo; {nextMoment.format("lll")}
-      </span>
+      '<span>' +
+        timeMoment.format("lll") + '<br />' +
+        '&mdash;&rsaquo; ' + nextMoment.format("lll") +
+      '</span>'
     );
   },
 
@@ -118,28 +118,27 @@ var BarChart = React.createClass({
 
     var children = points.map((point, pointIdx) => {
       var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
-      var timeLabel = timeLabelFunc(point);
 
-      var title = (
-        <div style={{minWidth: 130}}>
-          {point.y} {this.props.label}<br/>
-          {timeLabel}
-        </div>
-      );
-      if (point.label) {
-        title += <div>({point.label})</div>;
-      }
-
-      var dom = (
-        <a style={{width: pointWidth}}>
-          <span style={{height: pct}}>{point.y}</span>
-        </a>
-      );
-
-      return jQuery(React.renderToString(dom)).tooltip({
+      return jQuery(
+        '<a style="width:' + pointWidth + '">' +
+          '<span style="height:' + pct + '">' + point.y + '</span>' +
+        '</a>'
+      ).tooltip({
         html: true,
         placement: this.props.placement,
-        title: React.renderToString(title),
+        title: () => {
+          var timeLabel = timeLabelFunc(point);
+          var title = (
+            '<div style="width:130px">' +
+              point.y + ' ' + this.props.label + '<br/>' +
+              timeLabel +
+            '</div>'
+          );
+          if (point.label) {
+            title += '<div>(' + point.label + ')</div>';
+          }
+          return title;
+        },
         viewport: this.props.viewport
       });
     });
