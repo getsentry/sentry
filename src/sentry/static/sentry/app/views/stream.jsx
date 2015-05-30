@@ -5,7 +5,7 @@ var $ = require("jquery");
 
 var api = require("../api");
 var GroupActions = require("../actions/groupActions");
-var GroupListStore = require("../stores/groupStore");
+var GroupStore = require("../stores/groupStore");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var Pagination = require("../components/pagination");
@@ -17,7 +17,7 @@ var utils = require("../utils");
 
 var Stream = React.createClass({
   mixins: [
-    Reflux.listenTo(GroupListStore, "onAggListChange"),
+    Reflux.listenTo(GroupStore, "onAggListChange"),
     RouteMixin
   ],
 
@@ -50,7 +50,7 @@ var Stream = React.createClass({
   componentWillMount() {
     this.props.setProjectNavSection('stream');
 
-    this._streamManager = new utils.StreamManager(GroupListStore);
+    this._streamManager = new utils.StreamManager(GroupStore);
     this._poller = new utils.CursorPoller({
       success: this.onRealtimePoll,
       endpoint: this.getGroupListEndpoint()
@@ -66,6 +66,7 @@ var Stream = React.createClass({
 
   componentWillUnmount() {
     this._poller.disable();
+    GroupStore.loadInitialData([]);
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -79,7 +80,7 @@ var Stream = React.createClass({
   },
 
   fetchData() {
-    GroupListStore.loadInitialData([]);
+    GroupStore.loadInitialData([]);
 
     this.setState({
       loading: true,
