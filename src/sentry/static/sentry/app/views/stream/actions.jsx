@@ -15,6 +15,11 @@ var OverlayMixin = require("react-bootstrap/OverlayMixin");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var SelectedGroupStore = require("../../stores/selectedGroupStore");
 
+var ActionTypes = {
+  ALL: 'all',
+  SELECTED: 'selected'
+};
+
 var ActionLink = React.createClass({
   mixins: [OverlayMixin, PureRenderMixin],
 
@@ -55,14 +60,14 @@ var ActionLink = React.createClass({
   },
 
   handleActionAll(event) {
-    this.props.onAction(event, StreamActions.ALL);
+    this.props.onAction(event, ActionTypes.ALL);
     this.setState({
       isModalOpen: false
     });
   },
 
   handleActionSelected(event) {
-    this.props.onAction(event, StreamActions.SELECTED);
+    this.props.onAction(event, ActionTypes.SELECTED);
     this.setState({
       isModalOpen: false
     });
@@ -347,9 +352,9 @@ var StreamActions = React.createClass({
   actionSelectedGroups(actionType, callback, data) {
     var selectedIds;
 
-    if (actionType === StreamActions.ALL) {
+    if (actionType === ActionTypes.ALL) {
       selectedIds = this.props.groupIds;
-    } else if (actionType === StreamActions.SELECTED) {
+    } else if (actionType === ActionTypes.SELECTED) {
       itemIdSet = SelectedGroupStore.getSelectedIds();
       selectedIds = this.props.groupIds.filter(
         (itemId) => itemIdSet.has(itemId)
