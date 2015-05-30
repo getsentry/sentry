@@ -529,9 +529,6 @@ SENTRY_METRICS_SAMPLE_RATE = 1.0
 
 SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
-# Project ID for recording frontend (javascript) exceptions
-SENTRY_FRONTEND_PROJECT = None
-
 SENTRY_CACHE_BACKEND = 'default'
 
 SENTRY_FEATURES = {
@@ -572,6 +569,9 @@ SENTRY_LOGIN_URL = None
 
 # Default project ID (for internal errors)
 SENTRY_PROJECT = 1
+
+# Project ID for recording frontend (javascript) exceptions
+SENTRY_FRONTEND_PROJECT = None
 
 # Only store a portion of all messages per unique group.
 SENTRY_SAMPLE_DATA = True
