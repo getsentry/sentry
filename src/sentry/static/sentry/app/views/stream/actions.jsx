@@ -227,18 +227,11 @@ var DateSelector = React.createClass({
     PureRenderMixin
   ],
 
-  onToggle() {
-    this.setState({
-      isOpen: !this.state.isOpen
-    });
-  },
-
   getInitialState() {
     return {
       dateFrom: null,
       dateTo: null,
-      dateType: "last_seen",
-      isOpen: false
+      dateType: "last_seen"
     };
   },
 
@@ -268,6 +261,10 @@ var DateSelector = React.createClass({
     });
   },
 
+  componentDidMount() {
+    $(this.getDOMNode()).find('.dropdown-toggle').dropdown();
+  },
+
   onApply(e) {
     e.preventDefault();
     var router = this.context.router;
@@ -277,17 +274,17 @@ var DateSelector = React.createClass({
     queryParams.date_type = this.state.dateType;
     // TODO(dcramer): ideally we wouldn't hardcode stream here
     router.transitionTo('stream', router.getCurrentParams(), queryParams);
+    $(this.getDOMNode()).find('.dropdown-toggle').dropdown('toggle');
   },
 
   render() {
     return (
-      <div className="btn-group">
-        <a className="btn btn-sm" onClick={this.onToggle}>
+      <div className="dropdown btn-group">
+        <a className="btn btn-sm dropdown-toggle" data-toggle="dropdown">
           All time
           <span className="icon-arrow-down"></span>
         </a>
-        <div className="datepicker-box dropdown-menu" id="daterange"
-             style={{display: this.state.isOpen ? 'block': 'none'}}>
+        <div className="datepicker-box dropdown-menu" id="daterange">
           <form method="GET">
             <div className="input">
               <DateTimeField onChange={this.onDateFromChange} />
