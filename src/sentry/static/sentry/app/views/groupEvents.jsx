@@ -61,10 +61,11 @@ var GroupEvents = React.createClass({
   },
 
   onPage(cursor) {
-    var queryParams = this.context.router.getCurrentQuery();
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('groupEvents', this.context.router.getCurrentParams(), queryParams);
+    router.transitionTo('groupEvents', this.context.router.getCurrentParams(), queryParams);
   },
 
   render() {
