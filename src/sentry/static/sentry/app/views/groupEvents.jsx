@@ -93,8 +93,14 @@ var GroupEvents = React.createClass({
             })}</small>
           </td>
           <td className="event-user table-user-info">
-            <Gravatar email={event.user.email} size={84} className="avatar" />
-            <p>{event.user.email}</p>
+            {event.user ?
+              <div>
+                <Gravatar email={event.user.email} size={84} className="avatar" />
+                {event.user.email}
+              </div>
+            :
+              <span>&mdash;</span>
+            }
           </td>
           <td className="align-right">
             <TimeSince date={event.dateCreated} />
