@@ -35,6 +35,10 @@ var MemberListStore = Reflux.createStore({
       }
     }
     return null;
+  },
+
+  getAll() {
+    return this.items;
   }
 });
 
