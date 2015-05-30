@@ -73,7 +73,6 @@ var StreamGroup = React.createClass({
 
   propTypes: {
     id: React.PropTypes.string.isRequired,
-    memberList: React.PropTypes.instanceOf(Array).isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
   },
 
@@ -98,10 +97,7 @@ var StreamGroup = React.createClass({
     if (!valueIsEqual(this.state.data, nextState.data, true)) {
       return true;
     }
-    var memberListEqual = compareArrays(this.props.memberList, nextProps.memberList, (obj, other) => {
-      return obj.email === other.email;
-    });
-    return !memberListEqual;
+    return false;
   },
 
   onGroupChange(itemIds) {

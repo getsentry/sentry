@@ -26,13 +26,12 @@ var Stream = React.createClass({
   },
 
   propTypes: {
-    memberList: React.PropTypes.instanceOf(Array).isRequired,
     setProjectNavSection: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
     return {
-      groupList: [],
+      groupIds: [],
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
@@ -45,21 +44,7 @@ var Stream = React.createClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    var curState = this.state;
-    var keys = ['selectAllActive', 'multiSelected', 'anySelected', 'statsPeriod',
-                'realtimeActive', 'pageLinks', 'loading', 'error'];
-    for (var i = 0; i < keys.length; i++) {
-      if (curState[keys[i]] !== nextState[keys[i]]) {
-        return true;
-      }
-    }
-    if (curState.groupList.length != nextState.groupList.length) {
-      return true;
-    }
-    var equal = utils.compareArrays(curState.groupList, nextState.groupList, (obj, other) => {
-      return obj.id === other.id;
-    });
-    return !equal;
+    return !utils.valueIsEqual(this.state, nextState, true);
   },
 
   componentWillMount() {
@@ -155,7 +140,7 @@ var Stream = React.createClass({
 
   onAggListChange() {
     this.setState({
-      groupList: this._streamManager.getAllItems()
+      groupIds: this._streamManager.getAllItems().map((item) => item.id)
     });
   },
 
@@ -171,11 +156,10 @@ var Stream = React.createClass({
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var groupNodes = this.state.groupList.map((node) => {
+    var groupNodes = this.state.groupIds.map((id) => {
       return <StreamGroup
-          key={node.id}
-          id={node.id}
-          memberList={this.props.memberList}
+          key={id}
+          id={id}
           statsPeriod={this.state.statsPeriod} />;
     });
 
@@ -190,7 +174,7 @@ var Stream = React.createClass({
             onRealtimeChange={this.handleRealtimeChange}
             realtimeActive={this.state.realtimeActive}
             statsPeriod={this.state.statsPeriod}
-            groupList={this.state.groupList} />
+            groupIds={this.state.groupIds} />
         </div>
         {this.state.loading ?
           <LoadingIndicator />
