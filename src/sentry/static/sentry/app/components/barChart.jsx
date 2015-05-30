@@ -28,11 +28,27 @@ var BarChart = React.createClass({
   },
 
   componentDidUpdate() {
-    window.setTimeout(this.renderChart);
+    if (this._asyncRender) return;
+    this._asyncRender = window.setTimeout(this.renderChart);
   },
 
   componentDidMount() {
-    window.setTimeout(this.renderChart);
+    this._asyncRender = window.setTimeout(this.renderChart);
+  },
+
+  componentWillUnmount() {
+    if (this._asyncRender) {
+      window.clearTimeout(this._asyncRender);
+    }
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    var curPoints = this.props.points || [];
+    var nextPoints = nextProps.points || [];
+    var equal = compareArrays(this.props.points, nextProps.points, (obj, other) => {
+      return (obj.x === other.x && obj.y === other.y);
+    });
+    return !equal;
   },
 
   floatFormat(number, places) {
@@ -80,16 +96,11 @@ var BarChart = React.createClass({
     return timeMoment.format("lll");
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    var curPoints = this.props.points || [];
-    var nextPoints = nextProps.points || [];
-    var equal = compareArrays(this.props.points, nextProps.points, (obj, other) => {
-      return (obj.x === other.x && obj.y === other.y);
-    });
-    return !equal;
-  },
-
   renderChart() {
+    var ref = this.refs.chartPoints;
+    if (!ref) {
+      return;
+    }
     var points = this.props.points;
     var maxval = 10;
     points.forEach((point) => {
@@ -142,7 +153,7 @@ var BarChart = React.createClass({
       });
     });
 
-    jQuery(this.refs.chartPoints.getDOMNode()).html(children);
+    jQuery(ref.getDOMNode()).html(children);
   },
 
   render() {
