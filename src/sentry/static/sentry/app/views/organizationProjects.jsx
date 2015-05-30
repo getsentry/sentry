@@ -4,7 +4,9 @@ var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
 
+var api = require("../api");
 var AppState = require("../mixins/appState");
+var BarChart = require("../components/barChart");
 var TeamStore = require("../stores/teamStore");
 var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
@@ -15,6 +17,10 @@ var OrganizationProjects = React.createClass({
     OrganizationState,
     Reflux.listenTo(TeamStore, "onTeamListChange")
   ],
+
+  contextTypes: {
+    router: React.PropTypes.func
+  },
 
   getInitialState() {
     return {
@@ -39,8 +45,34 @@ var OrganizationProjects = React.createClass({
     return projectList;
   },
 
+  getOrganizationStatsEndpoint() {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    return '/organizations/' + params.orgId + '/stats/';
+  },
+
+  fetchStats() {
+    api.request(this.getOrganizationStatsEndpoint(), {
+      query: {
+        since: new Date().getTime() / 1000 - 3600 * 24,
+        stat: 'received',
+        group: 'project'
+      },
+      success: (data) => {
+        this.setState({
+          projectStats: data
+        });
+      }
+    });
+  },
+
+  componentWillMount() {
+    this.fetchStats();
+  },
+
   render() {
     var org = this.getOrganization();
+    var projectStats = this.state.projectStats;
 
     return (
       <OrganizationHomeContainer>
@@ -55,6 +87,12 @@ var OrganizationProjects = React.createClass({
                   orgId: org.slug,
                   projectId: project.slug
                 };
+                var chartData = null;
+                if (projectStats) {
+                  chartData = projectStats[project.id].map((point) => {
+                    return {x: point[0], y: point[1]};
+                  });
+                }
                 return (
                   <tr>
                     <td>
@@ -65,7 +103,9 @@ var OrganizationProjects = React.createClass({
                       </Router.Link>
                     </td>
                     <td className="align-right">
-                      (graph)
+                      {chartData &&
+                        <BarChart points={chartData} className="sparkline" />
+                      }
                     </td>
                   </tr>
                 );
