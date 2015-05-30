@@ -28,11 +28,11 @@ var BarChart = React.createClass({
   },
 
   componentDidUpdate() {
-    this.renderChart();
+    window.setTimeout(this.renderChart);
   },
 
   componentDidMount() {
-    this.renderChart();
+    window.setTimeout(this.renderChart);
   },
 
   floatFormat(number, places) {
