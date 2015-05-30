@@ -30,35 +30,42 @@ var ProjectHeader = React.createClass({
     var urlPrefix = ConfigStore.get('urlPrefix');
 
     return (
-      <header>
-        <div className="container">
-          <div className="pull-right">
-            <ul className="nav nav-tabs">
-              <li className={navSection == 'dashboard' ? 'active': ''}>
-                <Router.Link to="projectDashboard" params={routeParams}>
-                  Dashboard
-                </Router.Link>
-              </li>
-              <li className={navSection == 'stream' ? 'active': ''}>
-                <Router.Link to="stream" params={routeParams}>
-                  Stream
-                </Router.Link>
-              </li>
-              <li className={navSection == 'releases' ? 'active': ''}>
-                <Router.Link to="projectReleases" params={routeParams}>
-                  Releases
-                </Router.Link>
-              </li>
-              <li className={navSection == 'settings' ? 'active': ''}>
-                <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
-                  Settings
-                </a>
-              </li>
-            </ul>
+      <div>
+        <header>
+          <div className="container">
+            <a href="#">Sentry</a>
           </div>
-          <Breadcrumbs />
-         </div>
-      </header>
+        </header>
+        <div className="sub-header">
+          <div className="container">
+            <div className="pull-right">
+              <ul className="nav nav-tabs">
+                <li className={navSection == 'dashboard' ? 'active': ''}>
+                  <Router.Link to="projectDashboard" params={routeParams}>
+                    Dashboard
+                  </Router.Link>
+                </li>
+                <li className={navSection == 'stream' ? 'active': ''}>
+                  <Router.Link to="stream" params={routeParams}>
+                    Stream
+                  </Router.Link>
+                </li>
+                <li className={navSection == 'releases' ? 'active': ''}>
+                  <Router.Link to="projectReleases" params={routeParams}>
+                    Releases
+                  </Router.Link>
+                </li>
+                <li className={navSection == 'settings' ? 'active': ''}>
+                  <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
+                    Settings
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <Breadcrumbs />
+           </div>
+        </div>
+      </div>
     );
   }
 });

@@ -11,11 +11,16 @@ var OrganizationHeader = React.createClass({
 
   render() {
     return (
-      <header>
-        <div className="container">
-          <Breadcrumbs />
-         </div>
-      </header>
+      <div>
+        <header>
+          <div className="container">Sup</div>
+        </header>
+        <div className="sub-header">
+          <div className="container">
+            <Breadcrumbs />
+           </div>
+        </div>
+      </div>
     );
   }
 });
