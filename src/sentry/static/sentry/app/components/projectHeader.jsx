@@ -34,6 +34,11 @@ var ProjectHeader = React.createClass({
         <div className="container">
           <div className="pull-right">
             <ul className="nav nav-tabs">
+              <li className={navSection == 'dashboard' ? 'active': ''}>
+                <Router.Link to="projectDashboard" params={routeParams}>
+                  Dashboard
+                </Router.Link>
+              </li>
               <li className={navSection == 'stream' ? 'active': ''}>
                 <Router.Link to="stream" params={routeParams}>
                   Stream

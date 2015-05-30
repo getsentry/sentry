@@ -17,6 +17,7 @@ var OrganizationDetails = require("./views/organizationDetails");
 var OrganizationStats = require("./views/organizationStats");
 var OrganizationTeams = require("./views/organizationTeams");
 var OrganizationProjects = require("./views/organizationProjects");
+var ProjectDashboard = require("./views/projectDashboard");
 var ProjectDetails = require("./views/projectDetails");
 var ProjectReleases = require("./views/projectReleases");
 var PropTypes = require("./proptypes");
@@ -28,12 +29,12 @@ var routes = (
   <Route name="app" path="/" handler={App}>
     <Route name="organizationDetails" path="/:orgId/" handler={OrganizationDetails}>
       <DefaultRoute name="organizationTeams" handler={OrganizationTeams} />
-      <Route name="organizationProjects" path="my-projects/" handler={OrganizationProjects} />
       <Route name="teamDetails" path="teams/:teamId/" handler={TeamDetails}>
         <DefaultRoute name="teamDashboard" handler={TeamDashboard} />
       </Route>
       <Route name="projectDetails" path=":projectId/" handler={ProjectDetails}>
         <DefaultRoute name="stream" handler={Stream} />
+        <Route name="projectDashboard" path="dashboard/" handler={ProjectDashboard} />
         <Route name="projectReleases" path="releases/" handler={ProjectReleases} />
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>
@@ -48,6 +49,7 @@ var routes = (
     </Route>
     <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
       <Route name="organizationStats" path="stats/" handler={OrganizationStats} />
+      <Route name="organizationProjects" path="projects/" handler={OrganizationProjects} />
     </Route>
   </Route>
 );
