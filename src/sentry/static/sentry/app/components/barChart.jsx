@@ -119,6 +119,17 @@ var BarChart = React.createClass({
     var children = points.map((point, pointIdx) => {
       var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
 
+      var timeLabel = timeLabelFunc(point);
+      var title = (
+        '<div style="width:130px">' +
+          point.y + ' ' + this.props.label + '<br/>' +
+          timeLabel +
+        '</div>'
+      );
+      if (point.label) {
+        title += '<div>(' + point.label + ')</div>';
+      }
+
       return jQuery(
         '<a style="width:' + pointWidth + '">' +
           '<span style="height:' + pct + '">' + point.y + '</span>' +
@@ -126,19 +137,7 @@ var BarChart = React.createClass({
       ).tooltip({
         html: true,
         placement: this.props.placement,
-        title: () => {
-          var timeLabel = timeLabelFunc(point);
-          var title = (
-            '<div style="width:130px">' +
-              point.y + ' ' + this.props.label + '<br/>' +
-              timeLabel +
-            '</div>'
-          );
-          if (point.label) {
-            title += '<div>(' + point.label + ')</div>';
-          }
-          return title;
-        },
+        title: title,
         viewport: this.props.viewport
       });
     });
