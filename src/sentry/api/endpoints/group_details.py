@@ -271,9 +271,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
             else:
                 affected = GroupAssignee.objects.filter(
                     group=group,
+                )[:1].count()
+                GroupAssignee.objects.filter(
+                    group=group,
                 ).delete()
 
-                if affected:
+                if affected > 0:
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
