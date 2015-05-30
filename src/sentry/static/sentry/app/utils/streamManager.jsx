@@ -1,7 +1,7 @@
 /*** @jsx React.DOM */
 
 class StreamManager {
-  // TODO(dcramer): this should listen to changes on GroupListStore and remove
+  // TODO(dcramer): this should listen to changes on GroupStore and remove
   // items that are removed there
   constructor(store, options) {
     if (typeof options === "undefined") {

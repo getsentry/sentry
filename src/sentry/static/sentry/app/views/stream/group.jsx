@@ -78,14 +78,14 @@ var StreamGroup = React.createClass({
 
   getInitialState() {
     return {
-      data: GroupStore.getItem(this.props.id)
+      data: GroupStore.get(this.props.id)
     };
   },
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.id != this.props.id) {
       this.setState({
-        data: GroupStore.getItem(this.props.id)
+        data: GroupStore.get(this.props.id)
       });
     }
   },
@@ -105,7 +105,7 @@ var StreamGroup = React.createClass({
       return;
     }
     var id = this.props.id;
-    var data = GroupStore.getItem(id);
+    var data = GroupStore.get(id);
     this.setState({
       data: data,
     });

@@ -5,7 +5,7 @@ var Reflux = require("reflux");
 var utils = require("../../utils");
 
 var api = require("../../api");
-var GroupListStore = require("../../stores/groupStore");
+var GroupStore = require("../../stores/groupStore");
 var DateTimeField = require("../../modules/datepicker/DateTimeField");
 var DropdownLink = require("../../components/dropdownLink");
 var IndicatorStore = require("../../stores/indicatorStore");
