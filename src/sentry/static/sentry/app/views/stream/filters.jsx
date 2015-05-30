@@ -79,7 +79,7 @@ var SearchBar = React.createClass({
 
     this.refs.searchInput.getDOMNode().blur();
 
-    this.transitionTo('stream', this.getParams(), queryParams);
+    router.transitionTo('stream', this.getParams(), queryParams);
   },
 
   onQueryFocus() {

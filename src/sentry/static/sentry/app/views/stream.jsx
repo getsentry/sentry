@@ -160,7 +160,7 @@ var Stream = React.createClass({
     var queryParams = router.getCurrentQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('stream', params, queryParams);
+    router.transitionTo('stream', params, queryParams);
   },
 
   render() {

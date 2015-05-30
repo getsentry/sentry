@@ -80,7 +80,7 @@ var GroupTagValues = React.createClass({
     var queryParams = router.getCurrentQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('groupTagValues', router.getCurrentParams(), queryParams);
+    router.transitionTo('groupTagValues', router.getCurrentParams(), queryParams);
   },
 
   render() {

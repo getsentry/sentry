@@ -86,7 +86,7 @@ var ProjectReleases = React.createClass({
     var queryParams = router.getCurrentQuery();
     queryParams.cursor = cursor;
 
-    this.transitionTo('projectReleases', params, queryParams);
+    router.transitionTo('projectReleases', params, queryParams);
   },
 
   render() {
