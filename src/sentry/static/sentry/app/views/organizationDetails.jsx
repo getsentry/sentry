@@ -8,7 +8,7 @@ var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
 var OrganizationState = require("../mixins/organizationState");
-var OrganizationSidebar = require("../components/organizationSidebar");
+// var OrganizationSidebar = require("../components/organizationSidebar");
 var Footer = require("../components/footer");
 var RouteMixin = require("../mixins/routeMixin");
 var TeamStore = require("../stores/teamStore");
@@ -89,7 +89,6 @@ var OrganizationDetails = React.createClass({
     }
     return (
       <div>
-        <OrganizationSidebar />
         <div className="app">
           <Router.RouteHandler />
           <Footer />
