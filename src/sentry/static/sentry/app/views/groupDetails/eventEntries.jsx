@@ -68,8 +68,8 @@ var GroupEventEntries = React.createClass({
       try {
         var Component = this.interfaces[entry.type];
         if (!Component) {
-          throw new Error('Unregistered interface: ' + entry.type);
-
+          console.error('Unregistered interface: ' + entry.type);
+          return;
         }
         return <Component
                   key={"entry-" + entryIdx}
