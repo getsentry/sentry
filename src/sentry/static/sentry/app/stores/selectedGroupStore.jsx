@@ -41,9 +41,6 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   isSelected(itemId) {
-    if (this.allSelected) {
-      return true;
-    }
     return this.selected.has(itemId);
   },
 
@@ -66,6 +63,13 @@ var SelectedGroupStore = Reflux.createStore({
 
   toggleSelectAll() {
     this.allSelected = !this.allSelected;
+    GroupListStore.getAllItemIds().forEach((itemId) => {
+      if (this.allSelected) {
+        this.selected.add(itemId);
+      } else {
+        this.selected.delete(itemId);
+      }
+    });
     this.refresh();
     this.trigger();
   },
