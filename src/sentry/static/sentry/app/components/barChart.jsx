@@ -111,7 +111,7 @@ var BarChart = React.createClass({
       var timeLabel = timeLabelFunc(point);
 
       var title = (
-        <div style={{minWidth: 120}}>
+        <div style={{minWidth: 130}}>
           {point.y} {this.props.label}<br/>
           {timeLabel}
         </div>
