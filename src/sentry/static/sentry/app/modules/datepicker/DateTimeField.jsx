@@ -55,7 +55,7 @@ var DateTimeField = React.createClass({
       this.setState({
         inputValue: event.target.value
       });
-      console.log("This is not a valid date");
+      console.log("Invalid date ignored: " + event.target.value);
     }
     if (this.props.onChange) {
       return this.props.onChange(this.state.selectedDate.format(this.props.format));
