@@ -5,35 +5,75 @@ var Reflux = require("reflux");
 
 var api = require("../api");
 var Gravatar = require("../components/gravatar");
-var GroupListStore = require("../stores/groupStore");
+var GroupStore = require("../stores/groupStore");
 var DropdownLink = require("./dropdownLink");
+var MemberListStore = require("../stores/memberListStore");
 var MenuItem = require("./menuItem");
 var PropTypes = require("../proptypes");
 var LoadingIndicator = require("../components/loadingIndicator");
-var {compareArrays} = require("../utils");
+var {compareArrays, valueIsEqual} = require("../utils");
 
 var AssigneeSelector = React.createClass({
-  mixins: [Reflux.ListenerMixin],
+  mixins: [
+    Reflux.listenTo(GroupStore, "onGroupChange")
+  ],
 
   propTypes: {
-    group: PropTypes.Group.isRequired,
-    memberList: React.PropTypes.instanceOf(Array).isRequired,
+    id: React.PropTypes.string.isRequired
   },
 
   getInitialState() {
+    var group = GroupStore.getItem(this.props.id);
+
     return {
+      assignedTo: group.assignedTo,
+      memberList: MemberListStore.getAll(),
       filterQuery: '',
       loading: false
     };
   },
 
+  componentWillReceiveProps(nextProps) {
+    var loading = GroupStore.hasStatus(nextProps.group.id, 'assignTo');
+    if (nextProps.id != this.props.id || loading != this.state.loading) {
+      var group = GroupStore.getItem(this.props.id);
+      this.setState({
+        assignedTo: group.assignedTo,
+        memberList: MemberListStore.getAll(),
+        loading: loading
+      });
+    }
+  },
+
+  // TODO(dcramer): this should check changes in member list
+  shouldComponentUpdate(nextProps, nextState) {
+    if (nextState.filterQuery !== this.state.filterQuery) {
+      return true;
+    }
+    if (nextState.loading !== this.state.loading) {
+      return true;
+    }
+    return valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
+  },
+
+  onGroupChange(itemIds) {
+    if (!itemIds.has(this.props.id)) {
+      return;
+    }
+    var group = GroupStore.getItem(this.props.id);
+    this.setState({
+      assignedTo: group.assignedTo,
+      loading: GroupStore.hasStatus(this.props.id, 'assignTo')
+    });
+  },
+
   assignTo(member) {
-    api.assignTo({id: this.props.group.id, email: member.email});
+    api.assignTo({id: this.props.id, email: member.email});
     this.setState({filterQuery: '', loading: true});
   },
 
   clearAssignTo() {
-    api.assignTo({id: this.props.group.id, email: ''});
+    api.assignTo({id: this.props.id, email: ''});
     this.setState({filterQuery: '', loading: true});
   },
 
@@ -53,50 +93,17 @@ var AssigneeSelector = React.createClass({
     });
   },
 
-  componentWillReceiveProps(nextProps) {
-    var loading = GroupListStore.hasStatus(nextProps.group.id, 'assignTo');
-    if (this.state.loading != loading) {
-      this.setState({loading: loading});
-    }
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    if (nextProps.group.assignedTo !== this.props.group.assignedTo) {
-      return true;
-    }
-    if (!nextProps.group.assignedTo && this.props.group.assignedTo) {
-      return true;
-    }
-    if (nextProps.group.assignedTo && this.props.group.assignedTo) {
-      if (nextProps.group.assignedTo.email !== this.props.group.assignedTo) {
-        return true;
-      }
-    } else if (!nextProps.group.assignedTo || !this.props.group.assignedTo) {
-      return true;
-    }
-    if (nextState.filterQuery !== this.state.filterQuery) {
-      return true;
-    }
-    if (nextState.loading !== this.state.loading) {
-      return true;
-    }
-    var memberListEqual = compareArrays(this.props.memberList, nextProps.memberList, (obj, other) => {
-      return obj.email === other.email;
-    });
-    return !memberListEqual;
-  },
-
   render() {
-    var group = this.props.group;
     var loading = this.state.loading;
+    var assignedTo = this.state.assignedTo;
 
     var className = "assignee-selector anchor-right";
-    if (!group.assignedTo) {
+    if (!assignedTo) {
       className += " unassigned";
     }
 
     var memberNodes = [];
-    this.props.memberList.forEach(function(item){
+    this.state.memberList.forEach(function(item){
       memberNodes.push(
         <MenuItem key={item.id}
                   disabled={!loading}
@@ -117,8 +124,8 @@ var AssigneeSelector = React.createClass({
             className="assignee-selector-toggle"
             onOpen={this.onDropdownOpen}
             onClose={this.onDropdownClose}
-            title={group.assignedTo ?
-              <Gravatar email={group.assignedTo.email} className="avatar"
+            title={assignedTo ?
+              <Gravatar email={assignedTo.email} className="avatar"
                         size={48} />
               :
               <span className="icon-user" />
@@ -127,7 +134,7 @@ var AssigneeSelector = React.createClass({
               <input type="text" className="form-control input-sm"
                      placeholder="Filter people" ref="filter" />
             </MenuItem>
-            {group.assignedTo ?
+            {assignedTo ?
               <MenuItem key="clear"
                         className="clear-assignee"
                         disabled={!loading}

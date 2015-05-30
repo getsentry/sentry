@@ -69,9 +69,7 @@ var GroupHeader = React.createClass({
           <div className="col-sm-4 stats">
             <div className="row">
               <div className="col-xs-4 assigned-to">
-                <AssigneeSelector
-                    group={group}
-                    memberList={this.props.memberList} />
+                <AssigneeSelector id={group.id} />
                 <div className="is-assigned"><span className="hidden-sm">is</span> assigned</div>
               </div>
               <div className="col-xs-4 count align-right">

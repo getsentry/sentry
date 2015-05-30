@@ -177,9 +177,7 @@ var StreamGroup = React.createClass({
           </span>
         </div>
         <div className="event-assignee col-md-1 hidden-xs hidden-sm">
-          <AssigneeSelector
-            group={data}
-            memberList={this.props.memberList} />
+          <AssigneeSelector id={data.id} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
           <BarChart points={chartData} className="sparkline" />
