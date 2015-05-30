@@ -105,7 +105,7 @@ var GroupStore = Reflux.createStore({
   },
 
   addActivity(id, data) {
-    var group = this.getItem(id);
+    var group = this.get(id);
     if (!group) {
       return;
     }
@@ -113,7 +113,7 @@ var GroupStore = Reflux.createStore({
     this.trigger(new Set([id]));
   },
 
-  getItem(id) {
+  get(id) {
     var pendingForId = [];
     this.pendingChanges.forEach(change => {
       if (change.id === id) {
@@ -176,7 +176,7 @@ var GroupStore = Reflux.createStore({
   },
 
   onAssignToSuccess(changeId, itemId, response) {
-    var item = this.getItem(itemId);
+    var item = this.get(itemId);
     if (!item) {
       return;
     }

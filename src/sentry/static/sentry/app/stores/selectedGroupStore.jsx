@@ -2,11 +2,11 @@
 
 var Reflux = require("reflux");
 
-var GroupListStore = require("./groupStore");
+var GroupStore = require("./groupStore");
 
 var SelectedGroupStore = Reflux.createStore({
   init() {
-    this.listenTo(GroupListStore, this.onAggListChange);
+    this.listenTo(GroupStore, this.onAggListChange);
 
     this.allSelected = false;
     this.anySelected = false;
@@ -16,7 +16,7 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   onAggListChange() {
-    var existingIds = new Set(GroupListStore.getAllItemIds());
+    var existingIds = new Set(GroupStore.getAllItemIds());
     // prune ids that no longer exist
     this.selected.forEach((itemId) => {
       if (!existingIds.has(itemId)) {
@@ -35,7 +35,7 @@ var SelectedGroupStore = Reflux.createStore({
 
   getSelectedIds() {
     if (this.allSelected) {
-      return new Set(GroupListStore.getAllItemIds());
+      return new Set(GroupStore.getAllItemIds());
     }
     return this.selected;
   },
@@ -63,7 +63,7 @@ var SelectedGroupStore = Reflux.createStore({
 
   toggleSelectAll() {
     this.allSelected = !this.allSelected;
-    GroupListStore.getAllItemIds().forEach((itemId) => {
+    GroupStore.getAllItemIds().forEach((itemId) => {
       if (this.allSelected) {
         this.selected.add(itemId);
       } else {

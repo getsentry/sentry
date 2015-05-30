@@ -5,7 +5,7 @@ var $ = require("jquery");
 
 var api = require("../api");
 var GroupActions = require("../actions/groupActions");
-var GroupListStore = require("../stores/groupStore");
+var GroupStore = require("../stores/groupStore");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var Pagination = require("../components/pagination");

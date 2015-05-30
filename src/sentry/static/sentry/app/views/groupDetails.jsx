@@ -6,7 +6,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var GroupHeader = require("./groupDetails/header");
-var GroupListStore = require("../stores/groupStore");
+var GroupStore = require("../stores/groupStore");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var PropTypes = require("../proptypes");
 var utils = require("../utils");
@@ -18,7 +18,7 @@ var GroupDetails = React.createClass({
 
   mixins: [
     BreadcrumbMixin,
-    Reflux.listenTo(GroupListStore, "onGroupChange")
+    Reflux.listenTo(GroupStore, "onGroupChange")
   ],
 
   propTypes: {
@@ -49,7 +49,7 @@ var GroupDetails = React.createClass({
 
     api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
-        GroupListStore.loadInitialData([data]);
+        GroupStore.loadInitialData([data]);
 
         this.setBreadcrumbs([
           {name: data.title, to: 'groupDetails'}
@@ -62,7 +62,7 @@ var GroupDetails = React.createClass({
     var id = this.context.router.getCurrentParams().groupId;
     if (itemIds.has(id)) {
       this.setState({
-        group: GroupListStore.getItem(id)
+        group: GroupStore.get(id)
       });
     }
   },

@@ -23,7 +23,7 @@ var AssigneeSelector = React.createClass({
   },
 
   getInitialState() {
-    var group = GroupStore.getItem(this.props.id);
+    var group = GroupStore.get(this.props.id);
 
     return {
       assignedTo: group.assignedTo,
@@ -36,7 +36,7 @@ var AssigneeSelector = React.createClass({
   componentWillReceiveProps(nextProps) {
     var loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id != this.props.id || loading != this.state.loading) {
-      var group = GroupStore.getItem(this.props.id);
+      var group = GroupStore.get(this.props.id);
       this.setState({
         assignedTo: group.assignedTo,
         memberList: MemberListStore.getAll(),
@@ -60,7 +60,7 @@ var AssigneeSelector = React.createClass({
     if (!itemIds.has(this.props.id)) {
       return;
     }
-    var group = GroupStore.getItem(this.props.id);
+    var group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group.assignedTo,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo')
