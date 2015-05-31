@@ -5,8 +5,10 @@ var React = require("react");
 var api = require("../api");
 var Alerts = require("../components/alerts");
 var ConfigStore = require("../stores/configStore");
+var Header = require("../components/header");
 var Indicators = require("../components/indicators");
 var LoadingIndicator = require("../components/loadingIndicator");
+var OrganizationStore = require("../stores/organizationStore");
 var PropTypes = require("../proptypes");
 
 var App = React.createClass({
@@ -14,21 +16,10 @@ var App = React.createClass({
     config: React.PropTypes.object.isRequired
   },
 
-  childContextTypes: {
-    organizationList: React.PropTypes.arrayOf(PropTypes.Organization).isRequired,
-  },
-
-  getChildContext() {
-    return {
-      organizationList: this.state.organizationList
-    };
-  },
-
   getInitialState() {
     return {
       loading: false,
-      error: false,
-      organizationList: []
+      error: false
     };
   },
 
@@ -37,9 +28,9 @@ var App = React.createClass({
 
     api.request('/organizations/', {
       success: (data) => {
+        OrganizationStore.load(data);
         this.setState({
           loading: false,
-          organizationList: data
         });
       },
       error: () => {
@@ -49,6 +40,10 @@ var App = React.createClass({
         });
       }
     });
+  },
+
+  componentWillUnmount() {
+    OrganizationStore.load([]);
   },
 
   render() {
