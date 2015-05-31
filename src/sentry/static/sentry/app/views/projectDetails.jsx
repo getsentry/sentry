@@ -6,12 +6,43 @@ var Router = require("react-router");
 
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
+var DropdownLink = require("../components/dropdownLink");
 var MemberListStore = require("../stores/memberListStore");
+var MenuItem = require("../components/menuItem");
 var LoadingIndicator = require("../components/loadingIndicator");
 var ProjectHeader = require("../components/projectHeader");
 var OrganizationState = require("../mixins/organizationState");
 var RouteMixin = require("../mixins/routeMixin");
 var PropTypes = require("../proptypes");
+
+var ProjectSelector = React.createClass({
+  render() {
+    var projectId = this.props.projectId;
+    var org = this.props.organization;
+    var projectList = [];
+    org.teams.forEach((team) => {
+      team.projects.forEach((project) => {
+        if (project.slug == this.props.projectId) {
+          activeTeam = team;
+          activeProject = project;
+        }
+        projectList.push([team, project]);
+      });
+    });
+
+    var title = <span>{activeTeam.name} / {activeProject.name}</span>;
+
+    return (
+      <DropdownLink title={title}>
+        {projectList.map((item) => {
+          return (
+            <MenuItem key={item[1].slug}>{item[0].name} / {item[1].name}</MenuItem>
+          );
+        })}
+      </DropdownLink>
+    );
+  }
+});
 
 var ProjectDetails = React.createClass({
   mixins: [
@@ -21,7 +52,7 @@ var ProjectDetails = React.createClass({
     RouteMixin
   ],
 
-  crumbReservations: 2,
+  crumbReservations: 1,
 
   childContextTypes: {
     project: PropTypes.Project,
@@ -71,24 +102,22 @@ var ProjectDetails = React.createClass({
     var params = router.getCurrentParams();
     var projectSlug = params.projectId;
     var activeProject;
-    var activeTeam;
     org.teams.forEach((team) => {
       team.projects.forEach((project) => {
         if (project.slug == projectSlug) {
           activeProject = project;
-          activeTeam = team;
         }
       });
     });
 
     this.setState({
-      team: activeTeam,
       project: activeProject,
       loading: false,
       error: typeof activeProject !== "undefined"
     });
 
     if (typeof activeProject !== "undefined") {
+      // TODO(dcramer): move member list to organization level
       api.request(this.getMemberListEndpoint(), {
         success: (data) => {
           MemberListStore.loadInitialData(data);
@@ -96,11 +125,10 @@ var ProjectDetails = React.createClass({
       });
 
       this.setBreadcrumbs([
-        {name: activeTeam.name, to: "teamDetails", params: {
-          orgId: org.slug,
-          teamId: activeTeam.slug
-        }},
-        {name: activeProject.name, to: "projectDetails"}
+        {
+          name: <ProjectSelector organization={org} projectId={projectSlug} />,
+          to: "projectDetails"
+        }
       ]);
     }
   },
