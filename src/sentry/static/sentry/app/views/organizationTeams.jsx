@@ -147,14 +147,15 @@ var SlimTeamList = React.createClass({
       );
     });
 
-    return (
-      <div>
-        {teamNodes.length ?
+    if (teamNodes.length !== 0) {
+      return (
+        <table className="table">
           {teamNodes}
-        :
-          <p>You dont have any teams for this organization yet. Get started by <a href={urlPrefix + '/teams/new/'}>creating your first team</a>.</p>
-        }
-      </div>
+        </table>
+      );
+    }
+    return (
+      <p>You dont have any teams for this organization yet. Get started by <a href={urlPrefix + '/teams/new/'}>creating your first team</a>.</p>
     );
   }
 });
@@ -216,11 +217,9 @@ var OrganizationTeams = React.createClass({
             <ExpandedTeamList
                 organization={org} teamList={activeTeams} />
           :
-            <table className="table">
-              <SlimTeamList
-                organization={org} teamList={allTeams}
-                openMembership={features.has('open-membership') || access.has('org:write')} />
-            </table>
+            <SlimTeamList
+              organization={org} teamList={allTeams}
+              openMembership={features.has('open-membership') || access.has('org:write')} />
           }
         </div>
       </OrganizationHomeContainer>
