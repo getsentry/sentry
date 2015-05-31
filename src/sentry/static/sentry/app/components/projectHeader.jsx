@@ -5,6 +5,11 @@ var Router = require("react-router");
 
 var Breadcrumbs = require("./breadcrumbs");
 var ConfigStore = require("../stores/configStore");
+var DropdownLink = require("./dropdownLink");
+var Gravatar = require("./gravatar");
+var MenuItem = require("./menuItem");
+var PropTypes = require("../proptypes");
+var UserInfo = require("./userInfo");
 
 var DateRangePicker = React.createClass({
   render() {
@@ -19,6 +24,39 @@ var DateRangePicker = React.createClass({
   }
 });
 
+
+var UserNav = React.createClass({
+  propTypes: {
+    user: PropTypes.User.isRequired
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return nextProps.user.id !== this.props.user.id;
+  },
+
+  render() {
+    var user = this.props.user;
+    var urlPrefix = ConfigStore.get('urlPrefix');
+
+    var title = (
+      <span>
+        <Gravatar email={user.email} className="avatar" />
+        <UserInfo user={user} className="user-name" />
+      </span>
+    );
+
+    return (
+      <DropdownLink
+          topLevelClasses={this.props.className}
+          menuClasses="dropdown-menu-right"
+          title={title}>
+        <MenuItem href={urlPrefix + '/account/settings/'}>Account</MenuItem>
+        <MenuItem href={urlPrefix + '/auth/logout/'}>Sign out</MenuItem>
+      </DropdownLink>
+    );
+  }
+});
+
 var ProjectHeader = React.createClass({
   contextTypes: {
     router: React.PropTypes.func
@@ -28,16 +66,15 @@ var ProjectHeader = React.createClass({
     var routeParams = this.context.router.getCurrentParams();
     var navSection = this.props.activeSection;
     var urlPrefix = ConfigStore.get('urlPrefix');
+    var user = ConfigStore.get('user');
 
     return (
       <div>
         <header>
           <div className="container">
-            <div className="pull-right">
-              <div className="dropdown user-nav">
-                <a className="dropdown-toggle" href="#">Dcramer <span className="icon-arrow-down"></span></a>
-              </div>
-            </div>
+            {user &&
+              <UserNav user={user} className="pull-right" />
+            }
             <a href="/"><span className="icon-sentry-logo"></span></a>
             <div className="dropdown org-selector">
               <a className="dropdown-toggle" href="#">Sentry <span className="icon-arrow-down"></span></a>
