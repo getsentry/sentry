@@ -3,13 +3,15 @@
 var React = require("react");
 
 var Breadcrumbs = require("./breadcrumbs");
-var Header = require("../components/header");
 
 var OrganizationHeader = React.createClass({
+  shouldComponentUpdate(nextProps, nextState) {
+    return false;
+  },
+
   render() {
     return (
       <div>
-        <Header />
         <div className="sub-header">
           <div className="container">
             <Breadcrumbs />

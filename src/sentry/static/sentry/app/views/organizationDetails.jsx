@@ -6,6 +6,7 @@ var Router = require("react-router");
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
+var Header = require("../components/header");
 var PropTypes = require("../proptypes");
 var OrganizationState = require("../mixins/organizationState");
 // var OrganizationSidebar = require("../components/organizationSidebar");
@@ -90,6 +91,7 @@ var OrganizationDetails = React.createClass({
     return (
       <div>
         <div className="app">
+          <Header />
           <Router.RouteHandler />
           <Footer />
         </div>

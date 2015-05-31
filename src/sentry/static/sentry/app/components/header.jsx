@@ -9,6 +9,7 @@ var DropdownLink = require("./dropdownLink");
 var Gravatar = require("./gravatar");
 var MenuItem = require("./menuItem");
 var OrganizationState = require("../mixins/organizationState");
+var OrganizationStore = require("../stores/organizationStore");
 var UserInfo = require("./userInfo");
 
 var UserNav = React.createClass({
@@ -47,23 +48,25 @@ var UserNav = React.createClass({
 var OrganizationSelector = React.createClass({
   mixins: [
     AppState,
-    OrganizationState
   ],
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return (nextProps.organization || {}).id !== (this.props.organization || {}).id;
+  },
+
   render() {
-    var activeOrg = this.getOrganization();
     var urlPrefix = ConfigStore.get('urlPrefix');
     var features = ConfigStore.get('features');
+    var activeOrg = this.props.organization;
 
     if (!activeOrg) {
-      // TODO
       return <div />;
     }
 
     return (
       <DropdownLink
           title={activeOrg.name}>
-        {this.getOrganizationList().map((org) => {
+        {OrganizationStore.getAll().map((org) => {
           var iconStyle = {
             backgroundImage: 'url(https://github.com/getsentry.png)' //TODO(dcramer) use actual org avatar
           };
@@ -87,13 +90,15 @@ var OrganizationSelector = React.createClass({
 
 
 var Header = React.createClass({
+  mixins: [OrganizationState],
+
   render() {
     return (
       <header>
         <div className="container">
           <UserNav className="pull-right" />
           <a href="/"><span className="icon-sentry-logo"></span></a>
-          <OrganizationSelector />
+          <OrganizationSelector organization={this.getOrganization()} />
         </div>
       </header>
     );
