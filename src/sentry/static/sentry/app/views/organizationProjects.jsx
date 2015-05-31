@@ -95,7 +95,7 @@ var OrganizationProjects = React.createClass({
                   });
                 }
                 return (
-                  <tr>
+                  <tr key={project.id}>
                     <td>
                       <Router.Link
                           to="projectDetails"
