@@ -2,15 +2,12 @@
 
 var React = require("react");
 
+var OrganizationStore = require("../stores/organizationStore");
 var PropTypes = require("../proptypes");
 
 var AppState = {
-  contextTypes: {
-    organizationList: React.PropTypes.arrayOf(PropTypes.Organization).isRequired,
-  },
-
   getOrganizationList() {
-    return this.context.organizationList;
+    return OrganizationStore.getAll();
   }
 };
 
