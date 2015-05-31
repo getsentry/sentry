@@ -604,18 +604,7 @@ table.integrations {
 */
 
 .org-selector {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: @sidebar-width;
-  background: @grayDark;
-  padding: 0;
-  margin: 0 0 5px;
-  height: 66px;
-  z-index: 10;
-  .transition(.1s left ease-in-out);
-  font-size: 16px;
-  font-weight: 500;
+  float: left;
 
   a {
     color: #fff;
@@ -627,23 +616,8 @@ table.integrations {
     top: 23px;
   }
 
-  .active-org {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1;
-    padding: 25px 20px;
-    display: block;
-    position: relative;
-  }
-
   .dropdown-toggle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    padding: 23px 20px;
-    z-index: 10;
-    .transition(.1s color linear);
+    font-weight: 500;
   }
 
   .dropdown-menu {
