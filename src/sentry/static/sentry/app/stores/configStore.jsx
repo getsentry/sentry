@@ -11,14 +11,21 @@ var ConfigStore = Reflux.createStore({
     return this.config[key];
   },
 
+  set(key, value) {
+    this.config[key] = value;
+    var out = {};
+    out[key] = value;
+    this.trigger(out);
+  },
+
   getConfig() {
     return this.config;
   },
 
   loadInitialData(config) {
     config.features = new Set(config.features || []);
-
     this.config = config;
+    this.trigger(config);
   }
 });
 
