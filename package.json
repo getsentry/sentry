@@ -6,7 +6,7 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "bootstrap": "^3.1.1",
+    "bootstrap": "^3.3.4",
     "chai": "1.7.x",
     "crypto-js": "^3.1.2-5",
     "gulp": "^3.8.11",
