@@ -58,7 +58,7 @@ body.auth {
 header {
   background: @grayDark;
   color: #fff;
-  padding: 13px 0 12px;
+  padding: 12px 0 11px;
   .clearfix();
   font-size: 15px;
 
@@ -152,13 +152,13 @@ header {
           }
 
           &:hover:before {
-            background: rgba(246, 247, 248, 0.6);
+            color: @grayDark;
           }
         }
       }
 
       &:last-child {
-        a {
+        a, a:hover {
           font-weight: 400;
           color: lighten(@gray, 15);
         }
@@ -260,11 +260,6 @@ header {
 */
 
 .rightbar {
-  display: none;
-  position: absolute;
-  width: 220px;
-  right: -20px;
-  top: -11px;
 
   .nav-stacked {
     li, li+li {

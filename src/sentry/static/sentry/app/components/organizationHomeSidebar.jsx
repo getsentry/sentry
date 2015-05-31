@@ -28,7 +28,7 @@ var OrganizationHomeSidebar = React.createClass({
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     return (
-      <div className="rightbar">
+      <div>
         <ul className="nav nav-stacked">
           <ListLink to="organizationTeams" params={orgParams}>Teams</ListLink>
           <ListLink to="organizationProjects" params={orgParams}>Projects</ListLink>
