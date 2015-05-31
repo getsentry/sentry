@@ -16,9 +16,13 @@ var OrganizationHomeContainer = React.createClass({
       <div>
         <OrganizationHeader />
         <div className="container">
-          <div className="content">
-            <OrganizationHomeSidebar />
-            {this.props.children}
+          <div className="content row">
+            <div className="col-md-2">
+              <OrganizationHomeSidebar />
+            </div>
+            <div className="col-md-10">
+              {this.props.children}
+            </div>
           </div>
         </div>
       </div>
