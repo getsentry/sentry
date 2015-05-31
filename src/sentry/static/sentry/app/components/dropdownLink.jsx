@@ -46,7 +46,7 @@ var DropdownLink = React.createClass({
             <i className="icon-arrow-down" />
           }
         </a>
-        <ul className="dropdown-menu" ref="menu">
+        <ul className={joinClasses(this.props.menuClasses, "dropdown-menu")} ref="menu">
           {this.props.children}
         </ul>
       </span>
