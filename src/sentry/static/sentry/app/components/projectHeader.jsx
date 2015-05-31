@@ -3,13 +3,10 @@
 var React = require("react");
 var Router = require("react-router");
 
+var AppState = require("../mixins/appState");
 var Breadcrumbs = require("./breadcrumbs");
 var ConfigStore = require("../stores/configStore");
-var DropdownLink = require("./dropdownLink");
-var Gravatar = require("./gravatar");
-var MenuItem = require("./menuItem");
-var PropTypes = require("../proptypes");
-var UserInfo = require("./userInfo");
+var Header = require("../components/header");
 
 var DateRangePicker = React.createClass({
   render() {
@@ -20,39 +17,6 @@ var DateRangePicker = React.createClass({
           <span className="icon-arrow-down"></span>
         </a>
       </div>
-    );
-  }
-});
-
-
-var UserNav = React.createClass({
-  propTypes: {
-    user: PropTypes.User.isRequired
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return nextProps.user.id !== this.props.user.id;
-  },
-
-  render() {
-    var user = this.props.user;
-    var urlPrefix = ConfigStore.get('urlPrefix');
-
-    var title = (
-      <span>
-        <Gravatar email={user.email} className="avatar" />
-        <UserInfo user={user} className="user-name" />
-      </span>
-    );
-
-    return (
-      <DropdownLink
-          topLevelClasses={this.props.className}
-          menuClasses="dropdown-menu-right"
-          title={title}>
-        <MenuItem href={urlPrefix + '/account/settings/'}>Account</MenuItem>
-        <MenuItem href={urlPrefix + '/auth/logout/'}>Sign out</MenuItem>
-      </DropdownLink>
     );
   }
 });
@@ -70,23 +34,7 @@ var ProjectHeader = React.createClass({
 
     return (
       <div>
-        <header>
-          <div className="container">
-            {user &&
-              <UserNav user={user} className="pull-right" />
-            }
-            <a href="/"><span className="icon-sentry-logo"></span></a>
-            <div className="dropdown org-selector">
-              <a className="dropdown-toggle" href="#">Sentry <span className="icon-arrow-down"></span></a>
-              <ul className="dropdown-menu">
-                <li><a href="#">Default</a></li>
-                <li><a href="#">Sentry</a></li>
-                <li className="divider"></li>
-                <li><a href="#">New Organization</a></li>
-              </ul>
-            </div>
-          </div>
-        </header>
+        <Header />
         <div className="sub-header">
           <div className="container">
             <div className="pull-right">
