@@ -6,7 +6,6 @@ var Router = require("react-router");
 var AppState = require("../mixins/appState");
 var Breadcrumbs = require("./breadcrumbs");
 var ConfigStore = require("../stores/configStore");
-var Header = require("../components/header");
 
 var DateRangePicker = React.createClass({
   render() {
@@ -34,7 +33,6 @@ var ProjectHeader = React.createClass({
 
     return (
       <div>
-        <Header />
         <div className="sub-header">
           <div className="container">
             <div className="pull-right">
