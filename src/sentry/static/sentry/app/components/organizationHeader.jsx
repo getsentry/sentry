@@ -14,8 +14,12 @@ var OrganizationHeader = React.createClass({
       <div>
         <header>
           <div className="container">
+            <div className="pull-right">
+              <div className="dropdown user-nav">
+                <a className="dropdown-toggle" href="#">Dcramer <span className="icon-arrow-down"></span></a>
+              </div>
+            </div>
             <a href="/"><span className="icon-sentry-logo"></span></a>
-
             <div className="dropdown org-selector">
               <a className="dropdown-toggle" href="#">Sentry <span className="icon-arrow-down"></span></a>
               <ul className="dropdown-menu">

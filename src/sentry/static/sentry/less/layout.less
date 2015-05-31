@@ -58,12 +58,17 @@ body.auth {
 header {
   background: @grayDark;
   color: #fff;
-  padding: 12px 0;
+  padding: 13px 0 12px;
   .clearfix();
   font-size: 15px;
 
   a {
     color: #fff;
+
+    &:hover, &:focus, &:active {
+      color: #fff;
+      text-shadow: 0 0 2px rgba(255,255,255, .5);
+    }
   }
 
   .icon-sentry-logo {
