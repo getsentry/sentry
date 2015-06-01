@@ -58,23 +58,51 @@ body.auth {
 header {
   background: @grayDark;
   color: #fff;
-  padding: 12px 0 11px;
   .clearfix();
   font-size: 15px;
 
   a {
-    color: #fff;
+    color: #CBD4E1;
 
     &:hover, &:focus, &:active {
       color: #fff;
-      text-shadow: 0 0 2px rgba(255,255,255, .5);
     }
   }
 
-  .icon-sentry-logo {
+  .logo {
+    .square(40px);
+    display: block;
     float: left;
-    line-height: 21px;
-    margin-right: 8px;
+    text-align: center;
+    font-size: 16px;
+    border-left: 1px solid rgba(0,0,0, .3);
+    color: #fff;
+  }
+
+  .icon-sentry-logo {
+    line-height: 40px;
+  }
+
+  .dropdown-toggle {
+    display: block;
+    float: left;
+    height: 40px;
+    line-height: 40px;
+    padding: 0 15px;
+    border-right: 1px solid rgba(0,0,0, .3);
+    border-left: 1px solid rgba(0,0,0, .3);
+
+    .icon-arrow-down {
+      color: #676976;
+      margin-left: 4px;
+    }
+
+    .avatar {
+      border-radius: 50%;
+      margin-right: 6px;
+      position: relative;
+      top: -1px;
+    }
   }
 
 }
@@ -141,12 +169,12 @@ header {
             content: "\e620";
             font-size: 17px;
             position: absolute;
-            left: -20px;
-            top: -25px;
+            left: -16px;
+            top: -2px;
             opacity: .85;
-            height: 65px;
-            width: 60px;
-            line-height: 66px;
+            height: 20px;
+            width: 57px;
+            line-height: 20px;
             text-align: center;
             border-right: 1px solid lighten(@trim, 2);
           }
