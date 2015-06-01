@@ -126,8 +126,7 @@ var ProjectDetails = React.createClass({
 
       this.setBreadcrumbs([
         {
-          name: <ProjectSelector organization={org} projectId={projectSlug} />,
-          to: "projectDetails"
+          name: <ProjectSelector organization={org} projectId={projectSlug} />
         }
       ]);
     }
