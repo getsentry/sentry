@@ -27,6 +27,7 @@ module.exports = {
   },
 
   goToRoute(node) {
+    if (!node.to) return;
     return this.context.router.transitionTo(node.to, node.params, node.query);
   },
 
