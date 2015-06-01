@@ -83,6 +83,15 @@ header {
     line-height: 40px;
   }
 
+  .dropdown {
+    display: block;
+
+    .dropdown-menu {
+      top: 38px;
+      left: 41px;
+    }
+  }
+
   .dropdown-toggle {
     display: block;
     float: left;
@@ -105,6 +114,12 @@ header {
     }
   }
 
+  .dropdown.open {
+    .dropdown-toggle {
+      color: #fff;
+      background: rgba(0,0,0, .3);
+    }
+  }
 }
 
 .sub-header {

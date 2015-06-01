@@ -64,26 +64,28 @@ var OrganizationSelector = React.createClass({
     }
 
     return (
-      <DropdownLink
-          title={activeOrg.name}>
-        {OrganizationStore.getAll().map((org) => {
-          var iconStyle = {
-            backgroundImage: 'url(https://github.com/getsentry.png)' //TODO(dcramer) use actual org avatar
-          };
-          return (
-            <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}} iconUrl="http://github.com/getsentry.png">
-              <span className="org-avatar" style={iconStyle} />
-              {org.name}
-            </MenuItem>
-          );
-        })}
-        {features.has('organizations:create') &&
-          <div>
-            <div className="divider"></div>
-            <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
-          </div>
-        }
-      </DropdownLink>
+      <div className="org-selector">
+        <DropdownLink
+            title={activeOrg.name}>
+          {OrganizationStore.getAll().map((org) => {
+            var iconStyle = {
+              backgroundImage: 'url(https://github.com/getsentry.png)' //TODO(dcramer) use actual org avatar
+            };
+            return (
+              <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}} iconUrl="http://github.com/getsentry.png">
+                <span className="org-avatar" style={iconStyle} />
+                {org.name}
+              </MenuItem>
+            );
+          })}
+          {features.has('organizations:create') &&
+            <div>
+              <div className="divider"></div>
+              <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
+            </div>
+          }
+        </DropdownLink>
+      </div>
     );
   }
 });

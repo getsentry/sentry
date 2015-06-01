@@ -604,17 +604,6 @@ table.integrations {
 */
 
 .org-selector {
-  float: left;
-
-  a {
-    color: #fff;
-  }
-
-  i {
-    position: absolute;
-    right: 20px;
-    top: 23px;
-  }
 
   .dropdown-toggle {
     font-weight: 500;
@@ -625,8 +614,8 @@ table.integrations {
     border-radius: 2px;
     top: 62px;
     width: @sidebar-width - 10;
-    margin: 0 5px;
     padding: 0 0 5px;
+    left: 0;
 
     .divider {
       margin: 5px 0 0;
@@ -659,26 +648,6 @@ table.integrations {
       background-size: cover;
       .square(22px);
       border-radius: 2px;
-    }
-  }
-
-  .orgs {
-    line-height: 1;
-    .list-unstyled();
-    margin-bottom: 0;
-
-    li {
-      a {
-        display: block;
-        padding: 20px;
-        font-size: 18px;
-        box-shadow: inset -1px 0 0 rgba(0,0,0, .12);
-
-        &:hover {
-          background: @blue;
-          color: #fff;
-        }
-      }
     }
   }
 }
