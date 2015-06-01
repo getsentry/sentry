@@ -97,7 +97,7 @@ var Header = React.createClass({
       <header>
         <div className="container">
           <UserNav className="pull-right" />
-          <a href="/"><span className="icon-sentry-logo"></span></a>
+          <a href="/" className="logo"><span className="icon-sentry-logo"></span></a>
           <OrganizationSelector organization={this.getOrganization()} />
         </div>
       </header>
