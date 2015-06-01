@@ -176,12 +176,16 @@ class Team(Model):
 
     @property
     def member_set(self):
+        from sentry.models import OrganizationMember
         return self.organization.member_set.filter(
             Q(organizationmemberteam__team=self) |
             Q(has_global_access=True),
-            ~Q(organizationmemberteam__is_active=False,
-               organizationmemberteam__team=self),
             user__is_active=True,
+        ).exclude(
+            id__in=OrganizationMember.objects.filter(
+                organizationmemberteam__is_active=False,
+                organizationmemberteam__team=self,
+            ).values('id')
         ).distinct()
 
     def has_access(self, user, access=None):
