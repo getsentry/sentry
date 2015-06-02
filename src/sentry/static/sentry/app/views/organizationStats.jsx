@@ -82,7 +82,7 @@ var ProjectTable = React.createClass({
     }
 
     return (
-      <table className="table table-bordered simple-list table-striped project-list">
+      <table className="table simple-list project-list">
         <thead>
           <tr>
             <th>Project</th>
@@ -366,7 +366,7 @@ var OrganizationStats = React.createClass({
         <h3>Events by Project</h3>
 
         {this.state.projectsLoading ?
-          <LoadingIndicator />
+          <div className="box"><LoadingIndicator /></div>
         : (this.state.projectsError ?
           <LoadingError onRetry={this.fetchData} />
         :
