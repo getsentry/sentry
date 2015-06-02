@@ -1643,21 +1643,26 @@ header ~ #messages {
   margin-bottom: 6px;
 
   > a {
-    background: lighten(#f1f2f3, 2);
-    font-weight: 600;
-    padding: 8px 14px;
-    border-radius: 4px;
-    color: @gray;
+    font-size: 15px;
+    padding: 4px 14px;
+    border: 0;
+    background: none;
+    color: rgba(52, 60, 69, .5);
 
-    &:hover {
-    background: #f1f2f3;
+    &:hover, &:active, &:focus {
+      background: none;
+      color: rgba(52, 60, 69, 1);
     }
   }
 
   &.active {
-    a, a:hover {
-    color: #fff;
-    background: @blue;
+    a, a:hover, a:focus {
+      border: 0;
+      border-left: 3px solid @blue;
+      padding-left: 11px;
+      background: none;
+      color: rgba(52, 60, 69, 1);
+      font-weight: 600;
     }
   }
 }
