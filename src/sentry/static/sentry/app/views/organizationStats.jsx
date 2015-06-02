@@ -351,13 +351,17 @@ var OrganizationStats = React.createClass({
         <h3>Stats</h3>
         <p>The chart below reflects events the system has received across your entire organization. Events are broken down into two categories: Accepted and Rejected. Rejected events are entries that the system threw away due to quotas being hit.</p>
 
-        {this.state.statsLoading ?
-          <LoadingIndicator />
-        : (this.state.statsError ?
-          <LoadingError onRetry={this.fetchData} />
-        :
-          <FlotChart plotData={this.getChartPlotData()} className="chart" />
-        )}
+        <div className="box">
+          <div className="box-content with-padding">
+            {this.state.statsLoading ?
+              <LoadingIndicator />
+            : (this.state.statsError ?
+              <LoadingError onRetry={this.fetchData} />
+            :
+              <FlotChart plotData={this.getChartPlotData()} className="chart" />
+            )}
+          </div>
+        </div>
 
         <h3>Events by Project</h3>
 
