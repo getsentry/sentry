@@ -5,7 +5,6 @@ var moment = require("moment");
 var React = require("react");
 
 var api = require("../api");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var ConfigStore = require("../stores/configStore");
 var Count = require("../components/count");
 var FlotChart = require("../components/flotChart");
@@ -116,12 +115,9 @@ var ProjectTable = React.createClass({
 
 var OrganizationStats = React.createClass({
   mixins: [
-    BreadcrumbMixin,
     OrganizationState,
     RouteMixin
   ],
-
-  crumbReservations: 1,
 
   contextTypes: {
     router: React.PropTypes.func
@@ -166,10 +162,6 @@ var OrganizationStats = React.createClass({
   },
 
   fetchData() {
-    this.setBreadcrumbs([
-      {name: 'Stats', to: 'organizationStats'}
-    ]);
-
     this.setState({
       statsError: false,
       statsLoading: true,
