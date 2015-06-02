@@ -32,7 +32,7 @@
             </h3>
         </div>
         <div class="box-content with-padding">
-            <form action="" method="post">
+            <form action="" method="post" autocomplete="off">
                 {% csrf_token %}
 
                 {% if form.password.errors %}
