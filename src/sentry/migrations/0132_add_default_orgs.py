@@ -2,7 +2,6 @@
 import datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.conf import settings
 from django.db import models, transaction
 
 class Migration(DataMigration):
@@ -12,40 +11,20 @@ class Migration(DataMigration):
 
         Organization = orm['sentry.Organization']
         Team = orm['sentry.Team']
-        User = orm['sentry.User']
 
         queryset = Team.objects.filter(
             organization__isnull=True,
         )
 
-        single_org = getattr(settings, 'SENTRY_SINGLE_ORGANIZATION', False)
-        if single_org:
-            try:
-                user = User.objects.filter(is_superuser=True)[0]
-            except IndexError:
-                user, _ = User.objects.get_or_create(
-                    username='sentry',
-                    defaults={
-                        'email': 'sentry@localhost',
-                    }
-                )
-
-            org = Organization.objects.create(
-                name='Default',
-                owner=user,
-            )
-
         user_orgs = {}
         for team in RangeQuerySetWrapperWithProgressBar(queryset):
-            if single_org:
-                team.organization = org
-            else:
-                if team.owner_id not in user_orgs:
-                    user_orgs[team.owner_id] = Organization.objects.create(
-                        name=team.name.strip() or 'Default',
-                        owner_id=team.owner_id,
-                    )
-                team.organization = user_orgs[team.owner_id]
+            if team.owner_id not in user_orgs:
+                user_orgs[team.owner_id] = Organization.objects.create(
+                    name=team.name.strip() or 'Default',
+                    owner_id=team.owner_id,
+                )
+
+            team.organization = user_orgs[team.owner_id]
             team.save()
             transaction.commit()
 
