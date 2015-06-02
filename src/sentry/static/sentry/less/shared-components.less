@@ -1643,7 +1643,7 @@ header ~ #messages {
   margin-bottom: 8px;
   text-transform: uppercase;
   font-size: 12px;
-  color: darken(#e4e8ed, 30%);
+  color: lighten(@grayDark, 25%);
   letter-spacing: 0.1px;
 }
 .nav-stacked li  {
@@ -1651,12 +1651,13 @@ header ~ #messages {
 
   > a {
     font-size: 15px;
-    padding: 2px 14px;
+    padding: 2px 16px;
     margin: 4px 0;
     display: block;
     border: 0;
     background: none;
     color: rgba(52, 60, 69, .5);
+    position: relative;
 
     &:hover, &:active, &:focus {
       background: none;
@@ -1667,11 +1668,20 @@ header ~ #messages {
   &.active {
     a, a:hover, a:focus {
       border: 0;
-      border-left: 3px solid @blue;
-      padding-left: 11px;
       background: none;
       color: rgba(52, 60, 69, 1);
       font-weight: 600;
+
+      &:after {
+        position: absolute;
+        display: block;
+        content: "";
+        top: 2px;
+        bottom: 3px;
+        left: 1px;
+        width: 3px;
+        background: @blue;
+      }
     }
   }
 }
