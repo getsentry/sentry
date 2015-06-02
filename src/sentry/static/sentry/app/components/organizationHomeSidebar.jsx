@@ -29,28 +29,36 @@ var OrganizationHomeSidebar = React.createClass({
 
     return (
       <div>
+        <h6>Organization</h6>
         <ul className="nav nav-stacked">
           <ListLink to="organizationTeams" params={orgParams}>Teams</ListLink>
           <ListLink to="organizationProjects" params={orgParams}>Projects</ListLink>
           {access.has('org:read') &&
             <ListLink to="organizationStats" params={orgParams}>Stats</ListLink>
           }
-          {access.has('org:write') &&
-            <li><a href={urlPrefix + '/audit-log/'}>Audit Log</a></li>
-          }
-          {access.has('org:read') &&
-            <li><a href={urlPrefix + '/members/'}>Members</a></li>
-          }
-          {features.has('sso') && access.has('org:write') &&
-            <li><a href={urlPrefix + '/auth/'}>Auth</a></li>
-          }
-          {access.has('org:write') &&
-            <li><a href={urlPrefix + '/api-keys/'}>API Keys</a></li>
-          }
-          {access.has('org:write') &&
-            <li><a href={urlPrefix + '/settings/'}>Settings</a></li>
-          }
         </ul>
+        {access.has('org:read') &&
+          <div>
+            <h6>Admin</h6>
+            <ul className="nav nav-stacked">
+              {access.has('org:write') &&
+                <li><a href={urlPrefix + '/audit-log/'}>Audit Log</a></li>
+              }
+              {features.has('sso') && access.has('org:write') &&
+                <li><a href={urlPrefix + '/auth/'}>Auth</a></li>
+              }
+              {access.has('org:write') &&
+                <li><a href={urlPrefix + '/api-keys/'}>API Keys</a></li>
+              }
+              {access.has('org:read') &&
+                <li><a href={urlPrefix + '/members/'}>Members</a></li>
+              }
+              {access.has('org:write') &&
+                <li><a href={urlPrefix + '/settings/'}>Settings</a></li>
+              }
+            </ul>
+          </div>
+        }
       </div>
     );
   }
