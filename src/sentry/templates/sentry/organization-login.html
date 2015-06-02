@@ -15,7 +15,7 @@
 
 {% block main %}
   <section class="body org-login">
-    <form class="form-stacked" action="" method="post">
+    <form class="form-stacked" action="" method="post" autocomplete="off">
       {% csrf_token %}
 
       <img src="{% url 'sentry-media' "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
