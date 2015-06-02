@@ -816,6 +816,79 @@ table.integrations {
 }
 
 /**
+* Project Dropdown
+* ============================================================================
+*/
+
+.project-dropdown + .dropdown-menu {
+  width: 460px;
+  padding-bottom: 0;
+
+  .project-filter {
+    width: 100%;
+    float: none;
+    padding: 0;
+    margin-bottom: 10px;
+
+    input {
+      .form-control();
+      width: 100%;
+      border-radius: 3px 3px 0 0;
+      font-size: 15px;
+      border: 0;
+      border-bottom: 1px solid @trim;
+      margin-top: -5px;
+      box-shadow: none;
+      padding-left: 15px;
+    }
+  }
+
+  .team-name {
+    width: 100%;
+    padding: 5px 15px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+  }
+
+  .new-project {
+    width: 100%;
+    border-top: 1px solid @trim;
+    padding: 4px 3px;
+    margin-top: 3px;
+    .align-right();
+
+    a {
+      color: #fff !important;
+      display: inline-block;
+
+      &:hover {
+        background: darken(@blue, 10);
+      }
+
+      .icon-plus {
+        position: relative;
+        top: 1px;
+        left: -1px;
+      }
+    }
+  }
+
+  li {
+    font-size: 15px;
+    width: 50%;
+    float: left;
+    padding: 3px;
+
+    > a {
+      padding: 5px 12px;
+      .truncate();
+      border-radius: 2px;
+    }
+  }
+}
+
+/**
 * Charts
 * ============================================================================
 */

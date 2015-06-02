@@ -33,12 +33,19 @@ var ProjectSelector = React.createClass({
     var title = <span>{activeTeam.name} / {activeProject.name}</span>;
 
     return (
-      <DropdownLink title={title}>
+      <DropdownLink title={title} className="project-dropdown">
+        <li className="project-filter">
+          <input type="text" placeholder="Filter projects" />
+        </li>
+        <li className="team-name">Captain Planet</li>
         {projectList.map((item) => {
           return (
             <MenuItem key={item[1].slug}>{item[0].name} / {item[1].name}</MenuItem>
           );
         })}
+        <li className="new-project">
+          <a className="btn btn-primary"><span className="icon-plus"></span> Create Project</a>
+        </li>
       </DropdownLink>
     );
   }
