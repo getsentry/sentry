@@ -25,7 +25,7 @@
 
 {% block main %}
     <section class="body">
-        <form class="form-inline" action="" method="post">
+        <form class="form-inline" action="" method="post" autocomplete="off">
             {% csrf_token %}
 
             {% if form.password.errors %}
