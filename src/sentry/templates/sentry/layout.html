@@ -1,6 +1,7 @@
 {% load i18n %}
 {% load sentry_api %}
 {% load sentry_dsn %}
+{% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_permissions %}
 
@@ -76,6 +77,28 @@
         {% block logo %}
         <a href="/" class="logo"><span class="icon-sentry-logo"></span></a>
         {% endblock %}
+
+        {% if organization %}
+        {% block org_selector %}
+        <div class="org-selector">
+          <div class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown">
+              {{ organization.name }}
+              <i class="icon-arrow-down"></i>
+            </a>
+            <ul class="dropdown-menu">
+              {% for org in request.user|list_organizations %}
+                <li><a href="{% url 'sentry-organization-home' org.slug %}">{{ org.name }}</a></li>
+              {% endfor %}
+              {% feature organizations:create %}
+                <li class="divider"></li>
+                <li><a href="{% url 'sentry-create-organization' %}">New Organization</a></li>
+              {% endfeature %}
+            </ul>
+          </div>
+        </div>
+        {% endblock %}
+        {% endif %}
       </div>
     </header>
     {% endblock %}

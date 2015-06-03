@@ -79,10 +79,10 @@ var OrganizationSelector = React.createClass({
             );
           })}
           {features.has('organizations:create') &&
-            <div>
-              <div className="divider"></div>
-              <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
-            </div>
+            <MenuItem divider={true} />
+          }
+          {features.has('organizations:create') &&
+            <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
           }
         </DropdownLink>
       </div>
