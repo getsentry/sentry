@@ -81,7 +81,7 @@ var ExpandedTeamList = React.createClass({
                           {project.name}
                         </Router.Link>
                       </td>
-                      <td className="align-right">
+                      <td className="align-right project-chart">
                         {chartData &&
                           <BarChart points={chartData} className="sparkline" />
                         }

@@ -178,13 +178,17 @@ table.project-list {
     border: 0;
     padding: 15px 20px !important;
     height: 50px;
+    width: 150px;
 
-    &:last-child {
-      width: 250px;
+    &:first-child {
+      width: auto;
     }
 
-    .sparkline a {
-      height: 20px;
+    &.project-chart {
+      width: 250px;
+      .sparkline a {
+        height: 20px;
+      }
     }
   }
 
