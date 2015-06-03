@@ -7,6 +7,11 @@ This releases entirely removes Access Groups. If you're upgrading form an instal
 - Access groups have been permanently removed.
 - Added 'access_token' to data blacklist.
 
+Version 7.5.4
+-------------
+
+- Yet another case where valid team membership was being excluded.
+
 Version 7.5.3
 -------------
 
