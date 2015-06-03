@@ -12,41 +12,57 @@
   <li><a>Settings</a></li>
 {% endblock %}
 
-
 {% block content %}
   <div class="page-header">
-    <h2>Settings for {{ team.name }}</h2>
+    <h2>
+      {% trans "Team Settings" %}
+      <small>{{ team.name }}</small>
+    </h2>
   </div>
 
-  <form class="form-stacked" action="" method="post">
-    {% csrf_token %}
+  <div class="box">
+    <div class="box-content with-padding">
+      <form class="form-stacked" action="" method="post">
+        {% csrf_token %}
 
-    {% if form.errors %}
-      <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-    {% endif %}
+        {% if form.errors %}
+          <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+        {% endif %}
 
-    {{ form|as_crispy_errors }}
+        {{ form|as_crispy_errors }}
 
-    <fieldset>
-      {% for field in form %}
-        {{ field|as_crispy_field }}
-      {% endfor %}
-    </fieldset>
+        <fieldset>
+          {% for field in form %}
+            {{ field|as_crispy_field }}
+          {% endfor %}
+        </fieldset>
 
-    {% if form.owner %}
-      <fieldset>
-        <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
-          {{ form.owner|as_crispy_field }}
+        {% if form.owner %}
+          <fieldset>
+            <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
+              {{ form.owner|as_crispy_field }}
+          </fieldset>
+        {% endif %}
+
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+      </form>
+    </div>
+  </div>
+
+  {% if ACCESS.team_delete %}
+  <div class="box">
+    <div class="box-header">
+      <h3>{% trans "Remove Team" %}</h3>
+    </div>
+    <div class="box-content with-padding">
+      <p>Removing this team will delete associated projects and events.</p>
+
+      <fieldset class="form-actions">
+        <a href="{% url 'sentry-remove-team' organization.slug team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
       </fieldset>
-    {% endif %}
-
-    <fieldset class="form-actions">
-      <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-      {% if can_remove_team %}
-          <a href="{% url 'sentry-remove-team' organization.slug team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
-      {% else %}
-          <a class="btn btn-danger disabled tip" title="{% trans "You do not have the required permission to remove this team." %}">{% trans "Remove Team" %}</a>
-      {% endif %}
-    </fieldset>
-  </form>
+    </div>
+  </div>
+  {% endif %}
 {% endblock %}
