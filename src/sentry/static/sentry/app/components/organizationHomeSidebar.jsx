@@ -44,7 +44,7 @@ var OrganizationHomeSidebar = React.createClass({
                 <li>
                   <a href={urlPrefix + '/members/'}>
                     Members&nbsp;
-                    {access.has('org:write') && org.pendingAccessRequests &&
+                    {access.has('org:write') && org.pendingAccessRequests > 0 &&
                       <span className="badge">{org.pendingAccessRequests}</span>
                     }
                   </a>
