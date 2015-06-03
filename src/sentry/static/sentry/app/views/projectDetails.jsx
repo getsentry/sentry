@@ -6,6 +6,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
+var ConfigStore = require("../stores/configStore");
 var DropdownLink = require("../components/dropdownLink");
 var MemberListStore = require("../stores/memberListStore");
 var MenuItem = require("../components/menuItem");
@@ -16,6 +17,16 @@ var RouteMixin = require("../mixins/routeMixin");
 var PropTypes = require("../proptypes");
 
 var ProjectSelector = React.createClass({
+  childContextTypes: {
+    router: React.PropTypes.func
+  },
+
+  getChildContext() {
+    return {
+      router: this.props.router
+    };
+  },
+
   render() {
     var projectId = this.props.projectId;
     var org = this.props.organization;
@@ -29,22 +40,34 @@ var ProjectSelector = React.createClass({
         projectList.push([team, project]);
       });
     });
-
+    var urlPrefix = ConfigStore.get('urlPrefix');
     var title = <span>{activeTeam.name} / {activeProject.name}</span>;
 
     return (
       <DropdownLink title={title} className="project-dropdown">
-        <li className="project-filter">
+        <li className="project-filter" key="filter">
           <input type="text" placeholder="Filter projects" />
         </li>
         <li className="team-name">Captain Planet</li>
         {projectList.map((item) => {
+          var team = item[0];
+          var project = item[1];
+          var projectRouteParams = {
+            orgId: org.slug,
+            projectId: project.slug
+          };
           return (
-            <MenuItem key={item[1].slug}>{item[0].name} / {item[1].name}</MenuItem>
+            <MenuItem key={project.slug} to="projectDetails"
+                      params={projectRouteParams}>
+              {team.name} / {project.name}
+            </MenuItem>
           );
         })}
-        <li className="new-project">
-          <a className="btn btn-primary"><span className="icon-plus"></span> Create Project</a>
+        <li className="new-project" key="new-project">
+          <a className="btn btn-primary"
+             href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>
+            <span className="icon-plus" /> Create Project
+          </a>
         </li>
       </DropdownLink>
     );
@@ -132,9 +155,7 @@ var ProjectDetails = React.createClass({
       });
 
       this.setBreadcrumbs([
-        {
-          name: <ProjectSelector organization={org} projectId={projectSlug} />
-        }
+        <ProjectSelector organization={org} projectId={projectSlug} router={this.context.router} />
       ]);
     }
   },

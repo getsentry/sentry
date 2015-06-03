@@ -10,6 +10,10 @@ var Breadcrumbs = React.createClass({
     Reflux.listenTo(BreadcrumbStore, "onBreadcrumbChange", "onBreadcrumbChange")
   ],
 
+  contextTypes: {
+    router: React.PropTypes.func.isRequired
+  },
+
   getInitialState() {
     return {
       nodes: BreadcrumbStore.getNodes()

@@ -23,6 +23,10 @@ var MenuItem = React.createClass({
     query:     React.PropTypes.object,
   },
 
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   handleClick(e) {
     if (this.props.onSelect) {
       e.preventDefault();
@@ -51,7 +55,7 @@ var MenuItem = React.createClass({
     );
   },
 
-  render: function () {
+  render() {
     var classes = {
       "dropdown-header": this.props.header,
       "divider": this.props.divider,
