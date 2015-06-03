@@ -2,11 +2,8 @@
 
 {% load i18n %}
 
-{% block wrapperclass %} {{block.super }} narrow hide-sidebar{% endblock %}
+{% block wrapperclass %}{{ block.super }} narrow hide-sidebar{% endblock %}
 
-{% block page_header_block %}
-{% endblock %}
-
-{% block main %}
-    {% block main %}{% endblock %}
+{% block content %}
+  {% block main %}{% endblock %}
 {% endblock %}
