@@ -190,11 +190,13 @@ var Stream = React.createClass({
           <LoadingIndicator />
         : (this.state.error ?
           <LoadingError onRetry={this.fetchData} />
-        :
+        : (groupNodes.length > 0 ?
           <ul className="group-list">
             {groupNodes}
           </ul>
-        )}
+        :
+          <p>No events match your filters.</p>
+        ))}
 
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
