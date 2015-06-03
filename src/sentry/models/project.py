@@ -47,19 +47,10 @@ class ProjectManager(BaseManager):
                 logging.info('User does not have access to team: %s', team.id)
                 return []
 
-        # Identify access groups
-        if getattr(team, 'is_access_group', False):
-            logging.warning('Team is using deprecated access groups: %s', team.id)
-            base_qs = Project.objects.filter(
-                accessgroup__team=team,
-                accessgroup__members=user,
-                status=ProjectStatus.VISIBLE,
-            )
-        else:
-            base_qs = self.filter(
-                team=team,
-                status=ProjectStatus.VISIBLE,
-            )
+        base_qs = self.filter(
+            team=team,
+            status=ProjectStatus.VISIBLE,
+        )
 
         project_list = []
         for project in base_qs:

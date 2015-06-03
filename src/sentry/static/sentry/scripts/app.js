@@ -511,15 +511,6 @@
                 }, this)
             });
         }
-
-    });
-
-    app.AccessGroupMembersPage = BasePage.extend({
-        initialize: function(){
-            BasePage.prototype.initialize.apply(this, arguments);
-
-            app.utils.makeSearchableUsersInput('form input[name=user]');
-        }
     });
 
     app.TeamDetailsPage = BasePage.extend({
