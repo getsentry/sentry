@@ -4,12 +4,11 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{% trans "Manage Tags" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Tags" %} | {{ block.super }}{% endblock %}
 
-{% block content %}
-  <div class="page-header">
-    <h2>{% trans "Manage Tags" %}</h2>
-  </div>
+{% block main %}
+  <h2>{% trans "Tags" %}</h2>
+
   {% if tag_list %}
     <p>{% blocktrans %}Each event in Sentry may be annotated with various tags (key and value pairs). For more information on how send additional tags, see your client's documentation.{% endblocktrans %}</p>
     <form action="" method="post">

@@ -27,8 +27,8 @@
   </ul>
 {% endblock %}
 
-{% block content %}
-  <h3>{% trans "Project Settings" %}</h3>
+{% block main %}
+  <h2>{% trans "Project Settings" %}</h2>
   <form class="form-stacked" action="" method="post" id="project_settings">
     {% csrf_token %}
 
@@ -153,8 +153,8 @@
   </script>
 {% endblock %}
 
-{% block rightbar %}
-  <h6>{% trans "Configuration" %}</h6>
+{% block sidebar %}
+  <h6 class="nav-header">{% trans "Configuration" %}</h6>
   <ul class="nav nav-stacked">
     <li{% if not page %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "Project Settings" %}</a>
@@ -185,22 +185,23 @@
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys" %}</a>
     </li>
   </ul>
-  <h6>{% trans "Help" %}</h6>
+  <h6 class="nav-header">{% trans "Help" %}</h6>
   <ul class="nav nav-stacked">
     <li>
         <a href="{% url 'sentry-help-platform-list' %}?pid={{ project.id }}">{% trans "Setup &amp; Installation" %}</a>
     </li>
-    {% with project|get_plugins as plugins %}
-      <h6>{% trans "Integrations" %}</h6>
-      <ul class="nav nav-stacked">
-        <li class="{% if page == 'plugins' %} active{% endif %}">
-          <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "Manage Integrations" %} ({{ PLUGINS|length }})</a>
-        </li>
-      {% for p in plugins %}
-        <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-            <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
-        </li>
-      {% endfor %}
-    {% endwith %}
   </ul>
+  {% with project|get_plugins as plugins %}
+    <h6 class="nav-header">{% trans "Integrations" %}</h6>
+    <ul class="nav nav-stacked">
+      <li class="{% if page == 'plugins' %} active{% endif %}">
+        <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "All Integrations" %} ({{ PLUGINS|length }})</a>
+      </li>
+    {% for p in plugins %}
+      <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
+          <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug p.slug %}">{{ p.get_title }}</a>
+      </li>
+    {% endfor %}
+    </ul>
+  {% endwith %}
 {% endblock %}

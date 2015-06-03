@@ -3,21 +3,21 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block content %}
-    <div class="page-header">
-        <div class="pull-right">
-            {% if plugin.can_disable %}
-                {% if not plugin_is_enabled %}
-                    <a href="{% url 'sentry-enable-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-default">{% trans "Enable Plugin" %}</a>
-                {% else %}
-                    <a href="{% url 'sentry-disable-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-danger">{% trans "Disable Plugin" %}</a>
-                {% endif %}
+{% block title %}{{ plugin.get_title }}{% endblock %}
+
+{% block main %}
+    <div class="pull-right">
+        {% if plugin.can_disable %}
+            {% if not plugin_is_enabled %}
+                <a href="{% url 'sentry-enable-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-default">{% trans "Enable Plugin" %}</a>
+            {% else %}
+                <a href="{% url 'sentry-disable-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-danger">{% trans "Disable Plugin" %}</a>
             {% endif %}
-            <a href="{% url 'sentry-reset-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-default"
-                onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
-        </div>
-        <h2>{% blocktrans with plugin.get_title as name %}Configure {{ name }}{% endblocktrans %}</h2>
+        {% endif %}
+        <a href="{% url 'sentry-reset-project-plugin' project.organization.slug project.slug plugin.slug %}" class="btn btn-default"
+            onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
     </div>
+    <h2>{{ plugin.get_title }}</h2>
     <div class="row">
         <div class="col-md-8">
             {% if request.GET.success %}
