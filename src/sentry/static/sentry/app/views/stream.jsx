@@ -187,7 +187,9 @@ var Stream = React.createClass({
             groupIds={this.state.groupIds} />
         </div>
         {this.state.loading ?
-          <LoadingIndicator />
+          <div className="box">
+            <LoadingIndicator />
+          </div>
         : (this.state.error ?
           <LoadingError onRetry={this.fetchData} />
         : (groupNodes.length > 0 ?
@@ -195,7 +197,7 @@ var Stream = React.createClass({
             {groupNodes}
           </ul>
         :
-          <div className="empty-stream">
+          <div className="box empty-stream">
             <span className="icon icon-exclamation"></span>
             <p>Sorry, no events match your filters.</p>
           </div>
