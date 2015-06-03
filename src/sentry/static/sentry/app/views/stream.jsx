@@ -195,7 +195,10 @@ var Stream = React.createClass({
             {groupNodes}
           </ul>
         :
-          <p>No events match your filters.</p>
+          <div className="empty-stream">
+            <span className="icon icon-exclamation"></span>
+            <p>Sorry, no events match your filters.</p>
+          </div>
         ))}
 
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
