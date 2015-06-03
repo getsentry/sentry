@@ -6,7 +6,7 @@
 
 {% block title %}Explore Code | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
     <ul class="nav nav-tabs">
         <li{% if selection == 'filenames' %} class="active"{% endif %}>
             <a href="{% url 'sentry-explore-code' organization.slug project.slug %}">Files</a></li>

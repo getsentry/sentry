@@ -6,7 +6,7 @@
 
 {% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
     <form action="" method="post">
         {% csrf_token %}
         {{ form|as_crispy_errors }}

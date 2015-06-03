@@ -22,89 +22,49 @@
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
-        <!--[if lt IE 9]>
-        <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
-        <![endif]-->
-        {% block scripts %}
-        <script src="{% url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
-        <script src="{% url 'sentry-media' "sentry" "dist/app.js" %}"></script>
+  <!--[if lt IE 9]>
+  <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
+  <![endif]-->
+  {% block scripts %}
+  <script src="{% url 'sentry-media' "sentry" "dist/vendor.js" %}"></script>
+  <script src="{% url 'sentry-media' "sentry" "dist/app.js" %}"></script>
 
-        <script>
-          (function(){
-            for (var n in window.exports) {
-              window[n] = window.exports[n];
-            }
-            window.$ = window.jQuery;
+  <script>
+    (function(){
+      for (var n in window.exports) {
+        window[n] = window.exports[n];
+      }
+      window.$ = window.jQuery;
 
-            window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
-          }());
-        </script>
+      window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
+    }());
+  </script>
 
-        {% include "sentry/includes/ravenjs.html" %}
-        {% endblock %}
+  {% include "sentry/includes/ravenjs.html" %}
+  {% endblock %}
 
-        {% block meta %}
-        {% endblock %}
-      </head>
+  {% block meta %}
+  {% endblock %}
+</head>
 
-      <body class="{% block wrapperclass %}{% endblock %}">
-        {% block body %}
-        <div class="app-sidebar">
-          {% if request.user.is_authenticated %}
-          {% if organization %}
-          <div class="org-selector dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown" onclick="$(this).parent('.dropdown').toggleClass('open');">
-              <span>{{ organization.name }}</span>
-              <i class="icon-arrow-down"></i>
-            </a>
-            {% if list_organizations|length > 1 %}
-            <div class="dropdown-menu">
-              <ul class="orgs">
-                {% for o in request.user|list_organizations %}
-                {% if o.id != organization.id %}
-                <li>
-                  <a href="{% url 'sentry-organization-home' o.slug %}">
-                    {{ o.name }}
-                  </a>
-                </li>
-                {% endif %}
-                {% endfor %}
-                <li class="divider"></li>
-                <li><a href="#">New Organization</a></li>
-              </ul>
-            </div>
-            {% endif %}
-          </div>
-          {% endif %}
-          {% endif %}
-          <div class="app-sidebar-content">
-            {% block app-sidebar %}{% endblock %}
-            <div class="teams">
-              {% if TEAM_LIST %}
-              {% for t, p_list in TEAM_LIST %}
-              <div class="team">
-                <h6>
-                  <a href="{% url 'sentry-team-dashboard' t.organization.slug t.slug %}">{{ t.name }}</a>
-                </h6>
-                <ul class="project-list list-unstyled truncate">
-                  {% for p in p_list %}
-                  <li{% if p.id == project.id %} class="active"{% endif %}>
-                  <strong><a href="{% url 'sentry-stream' t.organization.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a></strong>
-                </li>
-                {% endfor %}
-              </ul>
-            </div>
-            {% endfor %}
-            {% endif %}
-          </div>
-        </div>
+<body class="{% block wrapperclass %}{% endblock %}">
+  {% block body %}
+  <div class="app">
+    {% block header %}
+    <header>
+      <div class="container">
         {% if request.user.is_authenticated %}
         {% block account_nav %}
-        <div class="user-nav">
-          <img src="{% gravatar_url user.email size 72 %}" class="avatar">
-          <div class="user-details">
-            <span class="user-name">{{ request.user|format_userinfo }}</span>
-            <ul>
+        <div class="pull-right">
+          <div class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown">
+              <span>
+                <img src="{% gravatar_url user.email size 72 %}" class="avatar">
+                <span class="user-name">{{ request.user|format_userinfo }}</span>
+              </span>
+              <i class="icon-arrow-down"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-right">
               <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
               <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
             </ul>
@@ -112,114 +72,86 @@
         </div>
         {% endblock %}
         {% endif %}
+
+        {% block logo %}
+        <a href="/" class="logo"><span class="icon-sentry-logo"></span></a>
+        {% endblock %}
       </div>
-      <div class="app">
-        {% block header %}
-        <header>
-          <div class="container">
-            {% block menu_toggle %}
-            {% if not request.user.is_authenticated %}
-            {% block logo %}
-            <a href="/"><span class="icon-sentry-logo-full"></span></a>
-            {% endblock %}
-            {% endif %}
-            {% endblock %}
-            <div class="pull-right">
-              {% block header_action %}
-              {% if not request.user.is_authenticated %}
-              <a href="{% url 'sentry-login' %}">{% trans "Sign in" %}</a>
-              {% endif %}
-              {% endblock %}
-            </div>
-            {% block breadcrumb_outer %}
-            {% if request.user.is_authenticated %}
-            <ul class="breadcrumb">
-              {% block breadcrumb_inner %}
-              {% if organization %}
+    </header>
+    {% endblock %}
+
+    {% block breadcrumb_outer %}
+    {% if request.user.is_authenticated %}
+    <div class="sub-header">
+      <div class="container">
+        <ul class="breadcrumb">
+          {% block breadcrumb_inner %}
+          {% if organization %}
+            <li>
+              <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
+            </li>
+            {% if team %}
+              <li>
+                <a href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">{{ team.name }}</a>
+              </li>
+              {% if project %}
                 <li>
-                  <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
+                  <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
                 </li>
-                {% if team %}
-                  <li>
-                    <a href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">{{ team.name }}</a>
-                  </li>
-                  {% if project %}
-                    <li>
-                      <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
-                    </li>
-                  {% endif %}
-                {% endif %}
-              {% else %}
-                <li>{% block heading %}{% endblock %}</li>
               {% endif %}
-              {% endblock %}
-            </ul>
             {% endif %}
-            {% endblock %}
-          </div>
-        </header>
-        {% endblock %}
-
-        {% block alerts %}
-        {% include "sentry/partial/alerts.html" %}
-        {% endblock %}
-
-        {% block page_header_block %}
-        <div class="toolbar">
-          <div class="container">
-            {% block page_header %}{% endblock %}
-          </div>
-        </div>
-        {% endblock %}
-
-        <section id="content"
-        ng-controller="{% block controller %}DefaultCtrl{% endblock %}"
-        class="{% block bodyclass %}{% endblock %}">
-        <div class="container">
-          {% block above_content %}{% endblock %}
-          <div class="content">
-            {% block content_before %}
-            {% endblock %}
-
-            {% block content %}
-            <div class="row" id="blk_content">
-              <div class="col-sm-3 sidebar">
-                {% block sidebar %}
-                {% endblock %}
-              </div>
-              <div class="col-sm-9" id="blk_main">
-                {% block main %}
-                {% endblock %}
-              </div>
-            </div>
-            {% endblock %}
-
-            {% block content_after %}
-            {% endblock %}
-
-            <div class="rightbar">
-             {% block rightbar %}
-             {% endblock %}
-           </div>
-         </div>
-       </div>
-       <footer>
-        <div class="container">
-          {% block footer %}
-          <div class="pull-right">
-            {% if request.user.is_staff %}
-            <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
-            {% endif %}
-            {% block support_link %}{% endblock %}
-            <a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a>
-            <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
-          </div>
-          <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
-          <a href="/" class="icon-sentry-logo"></a>
+          {% else %}
+            <li>{% block heading %}{% endblock %}</li>
+          {% endif %}
           {% endblock %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+    {% endblock %}
+
+    {% block alerts %}
+    {% include "sentry/partial/alerts.html" %}
+    {% endblock %}
+
+    <div class="container">
+      {% block above_content %}{% endblock %}
+      <div class="content">
+        {% block content_before %}
+        {% endblock %}
+        {% block content %}
+        <div class="row" id="blk_content">
+          <div class="col-md-2">
+            {% block sidebar %}
+            {% endblock %}
+          </div>
+          <div class="col-md-10" id="blk_main">
+            {% block main %}
+            {% endblock %}
+          </div>
         </div>
-      </footer>
-    </section>
+        {% endblock %}
+
+        {% block content_after %}
+        {% endblock %}
+     </div>
+    </div>
+    <footer>
+      <div class="container">
+        {% block footer %}
+        <div class="pull-right">
+          {% if request.user.is_staff %}
+          <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
+          {% endif %}
+          {% block support_link %}{% endblock %}
+          <a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a>
+          <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
+        </div>
+        <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
+        <a href="/" class="icon-sentry-logo"></a>
+        {% endblock %}
+      </div>
+    </footer>
 
     <div class="welcome-modal modal fade in" style="display: none">
       <div class="modal-dialog">

@@ -8,7 +8,7 @@
     <h1>Sentry</h1>
 {% endblock %}
 
-{% block inner %}
+{% block main %}
     <h2>
         {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
         {% if group.times_seen == 1 %}

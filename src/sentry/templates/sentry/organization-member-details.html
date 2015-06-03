@@ -6,7 +6,7 @@
 
 {% block title %}{% trans "Member Details" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
   <div class="page-header">
     <div class="pull-right">
       <a href="{% url 'sentry-organization-members' organization.slug %}">Back to Organization Members</a>
