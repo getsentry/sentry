@@ -74,6 +74,7 @@ def get_default_context(request, existing_context=None, team=None):
     context = {
         'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
         'URL_PREFIX': settings.SENTRY_URL_PREFIX,
+        'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,
         'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
         'SENTRY_RAVEN_JS_URL': settings.SENTRY_RAVEN_JS_URL,

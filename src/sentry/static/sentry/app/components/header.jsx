@@ -55,13 +55,15 @@ var OrganizationSelector = React.createClass({
   },
 
   render() {
-    var urlPrefix = ConfigStore.get('urlPrefix');
-    var features = ConfigStore.get('features');
+    var singleOrganization = ConfigStore.get('singleOrganization');
     var activeOrg = this.props.organization;
 
-    if (!activeOrg) {
+    if (singleOrganization || !activeOrg) {
       return <div />;
     }
+
+    var urlPrefix = ConfigStore.get('urlPrefix');
+    var features = ConfigStore.get('features');
 
     return (
       <div className="org-selector">
