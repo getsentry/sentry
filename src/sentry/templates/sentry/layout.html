@@ -103,30 +103,26 @@
     </header>
     {% endblock %}
 
+    {% if organization and request.user.is_authenticated %}
     {% block breadcrumb_outer %}
-    {% if request.user.is_authenticated %}
     <div class="sub-header">
       <div class="container">
         <ul class="breadcrumb">
           {% block breadcrumb_inner %}
-          {% if organization %}
+          <li>
+            <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
+          </li>
+          {% if project %}
             <li>
-              <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
+              <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
             </li>
-            {% if project %}
-              <li>
-                <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
-              </li>
-            {% endif %}
-          {% else %}
-            <li>{% block heading %}{% endblock %}</li>
           {% endif %}
           {% endblock %}
         </ul>
       </div>
     </div>
-    {% endif %}
     {% endblock %}
+    {% endif %}
 
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
