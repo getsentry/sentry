@@ -113,15 +113,10 @@
             <li>
               <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
             </li>
-            {% if team %}
+            {% if project %}
               <li>
-                <a href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">{{ team.name }}</a>
+                <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
               </li>
-              {% if project %}
-                <li>
-                  <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
-                </li>
-              {% endif %}
             {% endif %}
           {% else %}
             <li>{% block heading %}{% endblock %}</li>

@@ -71,11 +71,6 @@ var TeamDetails = React.createClass({
       loading: false,
       error: typeof team !== "undefined"
     });
-    if (typeof team !== "undefined") {
-      this.setBreadcrumbs([
-        {name: team.name, to: "teamDetails"}
-      ]);
-    }
   },
 
   render() {

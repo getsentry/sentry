@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import warnings
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -21,7 +20,6 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.http import absolute_uri
 
 
 class TeamManager(BaseManager):
@@ -158,12 +156,6 @@ class Team(Model):
         if not self.slug:
             slugify_instance(self, self.name, organization=self.organization)
         super(Team, self).save(*args, **kwargs)
-
-    def get_absolute_url(self):
-        return absolute_uri(reverse('sentry-team-dashboard', args=[
-            self.organization.slug,
-            self.slug,
-        ]))
 
     def get_owner_name(self):
         if not self.owner:
