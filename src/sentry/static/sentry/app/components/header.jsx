@@ -27,16 +27,14 @@ var UserNav = React.createClass({
     }
 
     var title = (
-      <span>
-        <Gravatar email={user.email} className="avatar" />
-        <UserInfo user={user} className="user-name" />
-      </span>
+      <Gravatar email={user.email} className="avatar" />
     );
 
     return (
       <DropdownLink
           topLevelClasses={this.props.className}
           menuClasses="dropdown-menu-right"
+          openOnHover={true}
           title={title}>
         <MenuItem href={urlPrefix + '/account/settings/'}>Account</MenuItem>
         <MenuItem href={urlPrefix + '/auth/logout/'}>Sign out</MenuItem>
@@ -68,6 +66,7 @@ var OrganizationSelector = React.createClass({
     return (
       <div className="org-selector">
         <DropdownLink
+            openOnHover={true}
             title={activeOrg.name}>
           {OrganizationStore.getAll().map((org) => {
             return (
