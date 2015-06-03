@@ -86,9 +86,9 @@ var ProjectTable = React.createClass({
         <thead>
           <tr>
             <th>Project</th>
-            <th>Accepted</th>
-            <th>Rejected</th>
-            <th>Total</th>
+            <th className="align-right">Accepted</th>
+            <th className="align-right">Rejected</th>
+            <th className="align-right">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -100,10 +100,21 @@ var ProjectTable = React.createClass({
 
             return (
               <tr key={item.id}>
-                <td><a href={urlPrefix + '/' + project.slug + '/'}>{project.team.name}/{project.name}</a></td>
-                <td><Count value={item.accepted} /><br/><small>{getPercent(item.accepted, orgTotal.accepted)}</small></td>
-                <td><Count value={item.rejected} /><br/><small>{getPercent(item.rejected, orgTotal.rejected)}</small></td>
-                <td><Count value={item.received} /><br/><small>{getPercent(item.received, orgTotal.received)}</small></td>
+                <td>
+                  <a href={urlPrefix + '/' + project.slug + '/'}>{project.team.name} / {project.name}</a>
+                </td>
+                <td className="align-right">
+                  <Count value={item.accepted} /><br/>
+                  <small>{getPercent(item.accepted, orgTotal.accepted)}</small>
+                </td>
+                <td className="align-right">
+                  <Count value={item.rejected} /><br/>
+                  <small>{getPercent(item.rejected, orgTotal.rejected)}</small>
+                </td>
+                <td className="align-right">
+                  <Count value={item.received} /><br/>
+                  <small>{getPercent(item.received, orgTotal.received)}</small>
+                </td>
               </tr>
             );
           })}
@@ -363,19 +374,24 @@ var OrganizationStats = React.createClass({
           </div>
         </div>
 
-        <h3>Events by Project</h3>
-
-        {this.state.projectsLoading ?
-          <div className="box"><LoadingIndicator /></div>
-        : (this.state.projectsError ?
-          <LoadingError onRetry={this.fetchData} />
-        :
-          <ProjectTable
-              projectTotals={this.state.projectTotals}
-              orgTotal={this.state.orgTotal}
-              organization={this.getOrganization()}
-              projectMap={this.state.projectMap} />
-        )}
+        <div className="box">
+          <div className="box-header">
+            <h3>Events by Project</h3>
+          </div>
+          <div className="box-content">
+            {this.state.projectsLoading ?
+              <LoadingIndicator />
+            : (this.state.projectsError ?
+              <LoadingError onRetry={this.fetchData} />
+            :
+              <ProjectTable
+                  projectTotals={this.state.projectTotals}
+                  orgTotal={this.state.orgTotal}
+                  organization={this.getOrganization()}
+                  projectMap={this.state.projectMap} />
+            )}
+          </div>
+        </div>
       </OrganizationHomeContainer>
     );
   }
