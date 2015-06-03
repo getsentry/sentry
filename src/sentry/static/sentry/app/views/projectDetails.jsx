@@ -27,42 +27,76 @@ var ProjectSelector = React.createClass({
     };
   },
 
+  getInitialState() {
+    return {
+      filter: ''
+    };
+  },
+
+  onFilterChange(e) {
+    this.setState({
+      filter: e.target.value
+    });
+  },
+
+  getProjectNode(team, project) {
+    var org = this.props.organization;
+    var projectRouteParams = {
+      orgId: org.slug,
+      projectId: project.slug
+    };
+    return (
+      <MenuItem key={project.slug} to="projectDetails"
+                params={projectRouteParams}>
+        {project.name}
+      </MenuItem>
+    );
+  },
+
+  onOpen(event) {
+    $(event.target).find('input[type=text]').focus();
+  },
+
+  onClose(event) {
+    this.setState({
+      filter: ''
+    });
+    $(this.refs.filter.getDOMNode()).val('');
+  },
+
   render() {
     var projectId = this.props.projectId;
     var org = this.props.organization;
-    var projectList = [];
+    var urlPrefix = ConfigStore.get('urlPrefix');
+    var children = [];
     org.teams.forEach((team) => {
+      var hasTeam = false;
       team.projects.forEach((project) => {
         if (project.slug == this.props.projectId) {
           activeTeam = team;
           activeProject = project;
         }
-        projectList.push([team, project]);
+        var fullName = team.name + ' ' + project.name + ' ' + team.slug + ' ' + project.slug;
+        if (this.state.filter && fullName.indexOf(this.state.filter) === -1) {
+          return;
+        }
+        if (!hasTeam) {
+          children.push(<li className="team-name">{team.name}</li>);
+          hasTeam = true;
+        }
+        children.push(this.getProjectNode(team, project));
       });
     });
-    var urlPrefix = ConfigStore.get('urlPrefix');
     var title = <span>{activeTeam.name} / {activeProject.name}</span>;
 
     return (
-      <DropdownLink title={title} className="project-dropdown">
+      <DropdownLink title={title} className="project-dropdown"
+          onOpen={this.onOpen} onClose={this.onClose}>
         <li className="project-filter" key="filter">
-          <input type="text" placeholder="Filter projects" />
+          <input type="text" placeholder="Filter projects"
+                 onKeyUp={this.onFilterChange} ref="filter" />
         </li>
-        <li className="team-name">Captain Planet</li>
-        {projectList.map((item) => {
-          var team = item[0];
-          var project = item[1];
-          var projectRouteParams = {
-            orgId: org.slug,
-            projectId: project.slug
-          };
-          return (
-            <MenuItem key={project.slug} to="projectDetails"
-                      params={projectRouteParams}>
-              {team.name} / {project.name}
-            </MenuItem>
-          );
-        })}
+        {children}
         <li className="new-project" key="new-project">
           <a className="btn btn-primary"
              href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>

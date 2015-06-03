@@ -11,7 +11,9 @@ var DropdownLink = React.createClass({
   propTypes: {
     title:     React.PropTypes.node,
     caret:     React.PropTypes.bool,
-    disabled:  React.PropTypes.bool
+    disabled:  React.PropTypes.bool,
+    onOpen:    React.PropTypes.func,
+    onClose:   React.PropTypes.func,
   },
 
   getDefaultProps() {
@@ -24,9 +26,12 @@ var DropdownLink = React.createClass({
   componentDidMount() {
     var $container = $(this.refs.container.getDOMNode());
     var $menu = $(this.refs.menu.getDOMNode());
-    $container.on('shown.bs.dropdown', () => {
-      $menu.find('input[type=text]').focus();
-    });
+    if (this.props.onOpen) {
+      $container.on('shown.bs.dropdown', this.props.onOpen);
+    }
+    if (this.props.onClose) {
+      $container.on('hidden.bs.dropdown', this.props.onClose);
+    }
     $(this.refs.toggle.getDOMNode()).dropdown();
   },
 
