@@ -14,7 +14,7 @@
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
 
   {% if request_list %}
-  <table class="table" style="margin-bottom: 20px">
+  <table class="table" style="margin-bottom: 20px" id="access_request_list">
     <thead>
       <tr>
         <th colspan="2">Pending Access Requests</th>
@@ -122,7 +122,7 @@
 
     var $this = $(this);
     $.ajax({
-      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $this.data('member-id') + '/',
+      url: '{{ URL_PREFIX }}/api/0/organizations/{{ organization.slug }}/members/' + $this.data('member-id') + '/',
       method: 'DELETE',
       success: function() {
         $this.parents('tr').remove();
@@ -144,7 +144,7 @@
     $link.replaceWith($loader);
 
     $.ajax({
-      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/members/' + $link.data('member-id') + '/',
+      url: '{{ URL_PREFIX }}/api/0/organizations/{{ organization.slug }}/members/' + $link.data('member-id') + '/',
       data: JSON.stringify({
         reinvite: 1,
       }),
@@ -160,9 +160,9 @@
     });
   });
 
-  $('.access-request-list li a').click(function(e){
+  $('#access_request_list a').click(function(e){
     var $el = $(this),
-        $row = $el.parents('li');
+        $row = $el.parents('tr');
     if (!$el.data('action')) {
       return;
     }
@@ -173,15 +173,15 @@
 
     $.ajax({
       method: 'PUT',
-      url: app.config.urlPrefix + '/api/0/organizations/' + app.config.organizationId + '/access-requests/' + $el.data('id') + '/',
+      url: '{{ URL_PREFIX }}/api/0/organizations/{{ organization.slug }}/access-requests/' + $el.data('id') + '/',
       contentType: 'application/json',
       data: JSON.stringify({
         isApproved: $el.data('action') === 'approve'
       }),
       success: function() {
         $row.remove();
-        if (!$('.access-request-list li').length) {
-          $('.access-request-list').remove();
+        if (!$('#access_request_list tr').length) {
+          $('#access_request_list').remove();
         }
       },
       error: function() {
