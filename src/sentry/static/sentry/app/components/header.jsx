@@ -70,12 +70,8 @@ var OrganizationSelector = React.createClass({
         <DropdownLink
             title={activeOrg.name}>
           {OrganizationStore.getAll().map((org) => {
-            var iconStyle = {
-              backgroundImage: 'url(https://github.com/getsentry.png)' //TODO(dcramer) use actual org avatar
-            };
             return (
-              <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}} iconUrl="http://github.com/getsentry.png">
-                <span className="org-avatar" style={iconStyle} />
+              <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}}>
                 {org.name}
               </MenuItem>
             );
