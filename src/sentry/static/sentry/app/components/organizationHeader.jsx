@@ -15,7 +15,7 @@ var OrganizationHeader = React.createClass({
         <div className="sub-header">
           <div className="container">
             <Breadcrumbs />
-           </div>
+          </div>
         </div>
       </div>
     );

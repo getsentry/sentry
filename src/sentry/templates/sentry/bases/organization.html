@@ -12,21 +12,15 @@
 
 {% block heading %}<a href="/">Organization Overview</a>{% endblock %}
 
-{% block rightbar %}
+{% block sidebar %}
+  <h6 class="nav-header">General</h6>
   <ul class="nav nav-stacked">
     <!-- <li class="nav-header"><h6>{{ organization.name }}</h6></li> -->
     <li class="{% block org_teams_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-home' organization.slug %}">
-        {% trans "Teams" %}
-      </a>
-    </li>
-    {% if ACCESS.org_read %}
-    <li class="{% block org_projects_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-home' organization.slug %}my-projects/">
         {% trans "Projects" %}
       </a>
     </li>
-    {% endif %}
     {% if ACCESS.org_read %}
     <li class="{% block org_stats_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-stats' organization.slug %}">
@@ -34,6 +28,9 @@
       </a>
     </li>
     {% endif %}
+  </ul>
+  <h6 class="nav-header">Manage</h6>
+  <ul class="nav nav-stacked">
     {% if ACCESS.org_write %}
     <li class="{% block org_auditlog_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
@@ -89,8 +86,4 @@
     <p>You have access groups that need to be migrated into the new organization structure. <a href="{% url 'sentry-organization-access-group-migration' organization.slug %}">Get Started</a></p>
   </div>
   {% endif %}
-{% endblock %}
-
-{% block content %}
-  {% block inner %}{% endblock %}
 {% endblock %}

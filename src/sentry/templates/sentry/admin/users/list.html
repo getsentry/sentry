@@ -7,7 +7,7 @@
 
 {% block admin-nav-users %} class="active"{% endblock %}
 
-{% block inner %}
+{% block main %}
     {% paginator user_list from request as user_list per_page 50 %}
 
     <form class="btn-toolbar" method="GET" action="">

@@ -6,7 +6,7 @@
 
 {% block title %}Users | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
     {% paginator tag_list from request as tag_list %}
     {% querystring from request without sort as sort_querystring %}
 

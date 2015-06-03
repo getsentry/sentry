@@ -3,7 +3,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block inner %}
+{% block main %}
     {% paginate unique_tags from request as tag_list per_page 25 %}
 
     {% if tag_list.objects %}
