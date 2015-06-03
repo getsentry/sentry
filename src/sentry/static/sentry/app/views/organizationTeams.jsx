@@ -56,11 +56,7 @@ var ExpandedTeamList = React.createClass({
                 Team Settings
               </a>
             </div>
-            <h3>
-              <Router.Link
-                to="teamDetails"
-                params={teamRouteParams}>{team.name}</Router.Link>
-            </h3>
+            <h3>{team.name}</h3>
           </div>
           <div className="box-content">
             <table className="table project-list">

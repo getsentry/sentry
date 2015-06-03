@@ -42,7 +42,6 @@
                         <tr>
                             <td>
                                 <a href="{% url 'sentry-manage-team' team.organization.slug team.slug %}"><strong>{{ team.slug }}</strong></a>
-                                <a href="{% url 'sentry-team-dashboard' team.organization.slug team.slug %}">[dashboard]</a><br/>
                             </td>
                             <td style="text-align:center; vertical-align:middle;">
                                 <em>{{ team.num_projects }}</em>

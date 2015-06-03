@@ -21,16 +21,12 @@ var ProjectDetails = require("./views/projectDetails");
 var ProjectReleases = require("./views/projectReleases");
 var PropTypes = require("./proptypes");
 var Stream = require("./views/stream");
-var TeamDashboard = require("./views/teamDashboard");
 var TeamDetails = require("./views/teamDetails");
 
 var routes = (
   <Route name="app" path="/" handler={App}>
     <Route name="organizationDetails" path="/:orgId/" handler={OrganizationDetails}>
       <DefaultRoute name="organizationTeams" handler={OrganizationTeams} />
-      <Route name="teamDetails" path="teams/:teamId/" handler={TeamDetails}>
-        <DefaultRoute name="teamDashboard" handler={TeamDashboard} />
-      </Route>
       <Route name="projectDetails" path=":projectId/" handler={ProjectDetails}>
         <DefaultRoute name="stream" handler={Stream} />
         <Route name="projectDashboard" path="dashboard/" handler={ProjectDashboard} />
