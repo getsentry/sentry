@@ -26,7 +26,7 @@ var GroupSeenBy = React.createClass({
     return (
       <div className="seen-by">
         <ul>
-          <li><span className="icon-eye"></span> 23</li>
+          <li><span className="icon-eye" /></li>
           {seenByNodes}
         </ul>
       </div>
