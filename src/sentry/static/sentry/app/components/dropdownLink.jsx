@@ -14,25 +14,34 @@ var DropdownLink = React.createClass({
     disabled:  React.PropTypes.bool,
     onOpen:    React.PropTypes.func,
     onClose:   React.PropTypes.func,
+    openOnHover: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
       disabled: false,
-      caret: true
+      caret: true,
+      openOnHover: false
     };
   },
 
   componentDidMount() {
     var $container = $(this.refs.container.getDOMNode());
-    var $menu = $(this.refs.menu.getDOMNode());
+    var $toggle = $(this.refs.toggle.getDOMNode());
     if (this.props.onOpen) {
       $container.on('shown.bs.dropdown', this.props.onOpen);
     }
     if (this.props.onClose) {
       $container.on('hidden.bs.dropdown', this.props.onClose);
     }
-    $(this.refs.toggle.getDOMNode()).dropdown();
+    $toggle.dropdown();
+    if (this.props.openOnHover) {
+      $container.hover(() => {
+        $toggle.dropdown('toggle');
+      }, () => {
+        $toggle.dropdown('toggle');
+      });
+    }
   },
 
   render() {
