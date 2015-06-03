@@ -4,6 +4,7 @@ var React = require("react");
 var Reflux = require("reflux");
 
 var api = require("../api");
+var BarChart = require("../components/barChart");
 var ConfigStore = require("../stores/configStore");
 var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
@@ -14,7 +15,12 @@ var TeamStore = require("../stores/teamStore");
 var ExpandedTeamList = React.createClass({
   propTypes: {
     organization: PropTypes.Organization.isRequired,
-    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired
+    teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
+    projectStats: React.PropTypes.object
+  },
+
+  contextTypes: {
+    router: React.PropTypes.func
   },
 
   leaveTeam(team) {
@@ -29,6 +35,7 @@ var ExpandedTeamList = React.createClass({
     var org = this.props.organization;
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
+    var projectStats = this.props.projectStats;
     var teamNodes = this.props.teamList.map((team, teamIdx) => {
       var teamRouteParams = {
         orgId: org.slug,
@@ -55,26 +62,39 @@ var ExpandedTeamList = React.createClass({
                 params={teamRouteParams}>{team.name}</Router.Link>
             </h3>
           </div>
-          <div className="box-content with-padding">
-            <ul className="projects">
-              {team.projects.map((project) => {
-                // <p>There are no projects in this team. Would you like to <a href="#">create a project</a>?</p>
-                var projectRouteParams = {
-                  orgId: org.slug,
-                  projectId: project.slug
-                };
-
-                return (
-                  <li key={project.slug}>
-                    <Router.Link
-                        to="projectDetails"
-                        params={projectRouteParams}>
-                      {project.name}
-                    </Router.Link>
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="box-content">
+            <table className="table project-list">
+              <tbody>
+                {team.projects.map((project) => {
+                  var projectRouteParams = {
+                    orgId: org.slug,
+                    projectId: project.slug
+                  };
+                  var chartData = null;
+                  if (projectStats[project.id]) {
+                    chartData = projectStats[project.id].map((point) => {
+                      return {x: point[0], y: point[1]};
+                    });
+                  }
+                  return (
+                    <tr key={project.id}>
+                      <td>
+                        <Router.Link
+                            to="projectDetails"
+                            params={projectRouteParams}>
+                          {project.name}
+                        </Router.Link>
+                      </td>
+                      <td className="align-right">
+                        {chartData &&
+                          <BarChart points={chartData} className="sparkline" />
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       );
@@ -166,11 +186,42 @@ var OrganizationTeams = React.createClass({
     Reflux.listenTo(TeamStore, "onTeamListChange")
   ],
 
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   getInitialState() {
     return {
       activeNav: 'your-teams',
-      teamList: TeamStore.getAll()
+      teamList: TeamStore.getAll(),
+      projectStats: {}
     };
+  },
+
+  componentWillMount() {
+    this.fetchStats();
+  },
+
+  // TODO(dcramer): handle updating project stats when items change
+  fetchStats() {
+    api.request(this.getOrganizationStatsEndpoint(), {
+      query: {
+        since: new Date().getTime() / 1000 - 3600 * 24,
+        stat: 'received',
+        group: 'project'
+      },
+      success: (data) => {
+        this.setState({
+          projectStats: data
+        });
+      }
+    });
+  },
+
+  getOrganizationStatsEndpoint() {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    return '/organizations/' + params.orgId + '/stats/';
   },
 
   onTeamListChange() {
@@ -179,6 +230,7 @@ var OrganizationTeams = React.createClass({
     this.setState({
       teamList: newTeamList
     });
+    this.fetchStats();
   },
 
   toggleTeams(nav) {
@@ -215,7 +267,8 @@ var OrganizationTeams = React.createClass({
           </ul>
           {activeNav == 'your-teams' ?
             <ExpandedTeamList
-                organization={org} teamList={activeTeams} />
+                organization={org} teamList={activeTeams}
+                projectStats={this.state.projectStats} />
           :
             <SlimTeamList
               organization={org} teamList={allTeams}
