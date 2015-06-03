@@ -34,12 +34,15 @@ var DropdownLink = React.createClass({
     if (this.props.onClose) {
       $container.on('hidden.bs.dropdown', this.props.onClose);
     }
-    $toggle.dropdown();
     if (this.props.openOnHover) {
       $container.hover(() => {
+        // forceibly ensure that dropdown works as expected
+        $container.removeClass('open');
         $toggle.dropdown('toggle');
       }, () => {
-        $toggle.dropdown('toggle');
+        if ($container.hasClass('open')) {
+          $toggle.dropdown('toggle');
+        }
       });
     }
   },
