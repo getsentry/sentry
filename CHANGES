@@ -1,7 +1,10 @@
 Version 7.6.0
 -------------
 
+This releases entirely removes Access Groups. If you're upgrading form an installation that had yet to migrate away from this system you should first upgrade to a previous version, run the migration wizard, and then continue the upgrade.
+
 - The project-wide Alert system has been removed (to be re-implemented in the future).
+- Access groups have been permanently removed.
 
 Version 7.5.3
 -------------

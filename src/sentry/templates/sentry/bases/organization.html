@@ -91,11 +91,6 @@
 
 {% block main %}
   <section class="body">
-    {% if request.user|needs_access_group_migration:organization %}
-      <div class="alert alert-block alert-info">
-        <p>You have access groups that need to be migrated into the new organization structure. <a href="{% url 'sentry-organization-access-group-migration' organization.slug %}">Get Started</a></p>
-      </div>
-    {% endif %}
     {% block inner %}{% endblock %}
   </section>
 {% endblock %}

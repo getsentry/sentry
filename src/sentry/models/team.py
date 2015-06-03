@@ -25,8 +25,7 @@ from sentry.utils.http import absolute_uri
 
 
 class TeamManager(BaseManager):
-    def get_for_user(self, organization, user, access=None, access_groups=True,
-                     with_projects=False):
+    def get_for_user(self, organization, user, access=None, with_projects=False):
         """
         Returns a list of all teams a user has some level of access to.
 
@@ -34,7 +33,7 @@ class TeamManager(BaseManager):
         OrganizationMemberType value.
         """
         from sentry.models import (
-            AccessGroup, OrganizationMember, OrganizationMemberTeam,
+            OrganizationMember, OrganizationMemberTeam,
             OrganizationMemberType, Project
         )
 
@@ -84,24 +83,6 @@ class TeamManager(BaseManager):
                     team.access_type = om.type
 
             team_list = set(team_qs)
-
-            # TODO(dcramer): remove all of this junk when access groups are
-            # killed
-            ag_qs = AccessGroup.objects.filter(
-                members=user,
-                team__organization=organization,
-                team__status=TeamStatus.VISIBLE,
-            ).select_related('team')
-            if access is not None:
-                ag_qs = ag_qs.filter(type__lte=access)
-
-            for ag in ag_qs:
-                if ag.team in team_list:
-                    continue
-
-                ag.team.is_access_group = True
-                ag.team.access_type = ag.type
-                team_list.add(ag.team)
 
         results = sorted(team_list, key=lambda x: x.name.lower())
 

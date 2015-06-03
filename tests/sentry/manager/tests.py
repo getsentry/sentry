@@ -3,9 +3,7 @@
 from __future__ import absolute_import
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import (
-    Group, Team, User, AccessGroup, GroupTagValue
-)
+from sentry.models import Group, GroupTagValue, Team, User
 from sentry.testutils import TestCase
 
 
@@ -48,8 +46,6 @@ class TeamManagerTest(TestCase):
         user3 = User.objects.create(username='baz')
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org, name='Test')
-        group = AccessGroup.objects.create(name='Test', type=MEMBER_USER, team=team)
-        group.members.add(user2)
 
         result = Team.objects.get_for_user(
             organization=org,
