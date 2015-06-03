@@ -22,8 +22,12 @@ var DropdownLink = React.createClass({
   },
 
   componentDidMount() {
-    // These can be configured via options; this is just a demo
-    $(this.getDOMNode()).find('.dropdown-toggle').dropdown();
+    var $container = $(this.refs.container.getDOMNode());
+    var $menu = $(this.refs.menu.getDOMNode());
+    $container.on('shown.bs.dropdown', () => {
+      $menu.find('input[type=text]').focus();
+    });
+    $(this.refs.toggle.getDOMNode()).dropdown();
   },
 
   render() {
@@ -38,7 +42,8 @@ var DropdownLink = React.createClass({
     });
 
     return (
-      <span className={joinClasses(this.props.topLevelClasses, topLevelClasses)}>
+      <span className={joinClasses(this.props.topLevelClasses, topLevelClasses)}
+            ref="container">
         <a className={joinClasses(this.props.className, className)} ref="toggle"
            data-toggle="dropdown">
           {this.props.title}

@@ -32,6 +32,7 @@ module.exports = {
   },
 
   breadcrumbFromNode(node) {
+    if (node.name === undefined) return node;
     if (typeof node.params === 'undefined') {
       node.params = this.context.router.getCurrentParams();
     }
