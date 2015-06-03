@@ -249,7 +249,7 @@ var OrganizationTeams = React.createClass({
       <OrganizationHomeContainer>
         <div className="team-list">
           <div className="pull-right">
-            <a href={urlPrefix + '/teams/new/'} className="new-team">
+            <a href={urlPrefix + '/teams/new/'} className="new-team btn btn-primary btn-sm">
               <span className="icon-plus"></span> Create Team
             </a>
           </div>
