@@ -204,16 +204,22 @@
 }
 
 // Project list
-
-.my-projects {
-  .divider {
-    color: @gray-light;
-    padding: 0 4px;
-  }
+table.project-list {
+  border: 0;
+  margin-bottom: 0;
 
   tbody tr td {
-    padding: 25px 20px 23px !important;
-    height: 70px;
+    border: 0;
+    padding: 15px 20px !important;
+    height: 50px;
+
+    &:last-child {
+      width: 250px;
+    }
+
+    .sparkline a {
+      height: 20px;
+    }
   }
 
   a {

@@ -31,8 +31,7 @@ var OrganizationHomeSidebar = React.createClass({
       <div>
         <h6 className="nav-header">General</h6>
         <ul className="nav nav-stacked">
-          <ListLink to="organizationProjects" params={orgParams}>Projects</ListLink>
-          <ListLink to="organizationTeams" params={orgParams}>Teams</ListLink>
+          <ListLink to="organizationTeams" params={orgParams}>Projects</ListLink>
           {access.has('org:read') &&
             <ListLink to="organizationStats" params={orgParams}>Stats</ListLink>
           }
