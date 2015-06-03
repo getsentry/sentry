@@ -78,7 +78,7 @@
         <a href="/" class="logo"><span class="icon-sentry-logo"></span></a>
         {% endblock %}
 
-        {% if request.user.is_authenticated and organization %}
+        {% if not SINGLE_ORGANIZATION and request.user.is_authenticated and organization %}
         {% block org_selector %}
         <div class="org-selector">
           <div class="dropdown">

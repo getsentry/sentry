@@ -9,6 +9,7 @@
     Router.run(routes, Router.HistoryLocation, function(Handler) {
       React.render(React.createFactory(Handler)({
         config: {
+          singleOrganization: {% if SINGLE_ORGANIZATION %}true{% else %}false{% endif %},
           urlPrefix: '{{ URL_PREFIX }}',
           version: {
             current: '{{ sentry_version.current }}',
