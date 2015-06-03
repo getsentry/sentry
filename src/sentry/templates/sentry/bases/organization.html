@@ -31,13 +31,6 @@
   </ul>
   <h6 class="nav-header">Manage</h6>
   <ul class="nav nav-stacked">
-    {% if ACCESS.org_write %}
-    <li class="{% block org_auditlog_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
-        {% trans "Audit Log" %}
-      </a>
-    </li>
-    {% endif %}
     {% if ACCESS.org_read %}
     <li class="{% block org_members_nav %}{% endblock %}">
       {% with pending_requests=organization|count_pending_access_requests %}
@@ -63,6 +56,13 @@
     <li class="{% block org_apikeys_nav %}{% endblock %}">
       <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
         {% trans "API Keys" %}
+      </a>
+    </li>
+    {% endif %}
+    {% if ACCESS.org_write %}
+    <li class="{% block org_auditlog_nav %}{% endblock %}">
+      <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
+        {% trans "Audit Log" %}
       </a>
     </li>
     {% endif %}
