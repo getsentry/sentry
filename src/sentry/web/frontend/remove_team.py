@@ -54,6 +54,7 @@ class RemoveTeamView(TeamView):
 
         context = {
             'form': form,
+            'project_list': organization.project_set.all(),
         }
 
         return self.respond('sentry/teams/remove.html', context)

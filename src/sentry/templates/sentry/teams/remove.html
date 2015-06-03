@@ -13,14 +13,28 @@
     </h2>
   </div>
   <form action="" method="post">
-    <p>{% trans "Are you sure you wish to remove this team? This change is permanent and cannot be undone!" %}</p>
     {% csrf_token %}
+
+    <p><strong>{% trans "Removing this team is permanent and cannot be undone!" %}</strong></p>
+
+    {% if project_list %}
+      <p>{% trans "This will also remove all associated projects and events:" %}</p>
+
+      <ul>
+        {% for project in project_list %}
+          <li>{{ project.name }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
     {{ form|as_crispy_errors }}
+
     {% for field in form %}
       {{ field|as_crispy_field }}
     {% endfor %}
+
     <fieldset class="form-actions">
-      <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button>
+      <button type="submit" class="btn btn-danger">{% trans "Remove Team" %}</button>
       <a href="{% url 'sentry-manage-team' organization.slug team.slug %}" class="btn btn-default">{% trans "Cancel" %}</a>
     </fieldset>
   </form>
