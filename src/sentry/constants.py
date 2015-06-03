@@ -233,6 +233,7 @@ DEFAULT_SCRUBBED_FIELDS = (
     'authorization',
     'api_key',
     'apikey',
+    'access_token',
 )
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")

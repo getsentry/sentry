@@ -30,7 +30,6 @@ import sentry.web.frontend.projects.tags
 __all__ = ('urlpatterns',)
 
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
-from sentry.web.frontend.access_group_migration import AccessGroupMigrationView
 from sentry.web.frontend.auth_link_identity import AuthLinkIdentityView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
@@ -201,8 +200,6 @@ urlpatterns += patterns('',
         name='sentry-organization-home'),
     url(r'^organizations/new/$', CreateOrganizationView.as_view(),
         name='sentry-create-organization'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/access-groups/$', AccessGroupMigrationView.as_view(),
-        name='sentry-organization-access-group-migration'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/$', OrganizationApiKeysView.as_view(),
         name='sentry-organization-api-keys'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)$', OrganizationApiKeySettingsView.as_view(),
