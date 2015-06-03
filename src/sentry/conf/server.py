@@ -360,7 +360,6 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
     'sentry.tasks.beacon',
-    'sentry.tasks.check_alerts',
     'sentry.tasks.check_auth',
     'sentry.tasks.cleanup',
     'sentry.tasks.deletion',
@@ -407,14 +406,6 @@ CELERYBEAT_SCHEDULE = {
         'options': {
             'expires': 60,
             'queue': 'auth',
-        }
-    },
-    'check-alerts': {
-        'task': 'sentry.tasks.check_alerts',
-        'schedule': timedelta(minutes=1),
-        'options': {
-            'expires': 60,
-            'queue': 'alerts',
         }
     },
     'send-beacon': {

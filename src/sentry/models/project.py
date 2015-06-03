@@ -55,19 +55,10 @@ class ProjectManager(BaseManager):
                 logging.info('User does not have access to team: %s', team.id)
                 return []
 
-        # Identify access groups
-        if getattr(team, 'is_access_group', False):
-            logging.warning('Team is using deprecated access groups: %s', team.id)
-            base_qs = Project.objects.filter(
-                accessgroup__team=team,
-                accessgroup__members=user,
-                status=ProjectStatus.VISIBLE,
-            )
-        else:
-            base_qs = self.filter(
-                team=team,
-                status=ProjectStatus.VISIBLE,
-            )
+        base_qs = self.filter(
+            team=team,
+            status=ProjectStatus.VISIBLE,
+        )
 
         project_list = []
         for project in base_qs:
@@ -198,12 +189,16 @@ class Project(Model):
 
     @property
     def member_set(self):
+        from sentry.models import OrganizationMember
         return self.organization.member_set.filter(
             Q(organizationmemberteam__team=self.team) |
             Q(has_global_access=True),
-            ~Q(organizationmemberteam__is_active=False,
-               organizationmemberteam__team=self.team),
             user__is_active=True,
+        ).exclude(
+            id__in=OrganizationMember.objects.filter(
+                organizationmemberteam__is_active=False,
+                organizationmemberteam__team=self.team,
+            ).values('id')
         ).distinct()
 
     def has_access(self, user, access=None):

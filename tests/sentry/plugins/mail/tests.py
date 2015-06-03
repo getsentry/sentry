@@ -10,7 +10,7 @@ from exam import fixture
 from mock import Mock
 
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import AccessGroup, Event, Group, Rule
+from sentry.models import Event, Group, Rule
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
@@ -173,12 +173,8 @@ class MailPluginTest(TestCase):
         organization.member_set.get_or_create(user=user)
         organization.member_set.get_or_create(user=user2)
 
-        ag = AccessGroup.objects.create(team=team)
-        ag.members.add(user3)
-        ag.projects.add(project)
-
         # all members
-        assert (sorted(set([user.pk, user2.pk, user3.pk])) ==
+        assert (sorted(set([user.pk, user2.pk])) ==
                 sorted(self.plugin.get_sendable_users(project)))
 
         # disabled user2
