@@ -64,25 +64,25 @@ var OrganizationSelector = React.createClass({
     var features = ConfigStore.get('features');
 
     return (
-      <div className="org-selector">
-        <DropdownLink
-            openOnHover={true}
-            title={activeOrg.name}>
-          {OrganizationStore.getAll().map((org) => {
-            return (
-              <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}}>
-                {org.name}
-              </MenuItem>
-            );
-          })}
-          {features.has('organizations:create') &&
-            <MenuItem divider={true} />
-          }
-          {features.has('organizations:create') &&
-            <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
-          }
-        </DropdownLink>
-      </div>
+      <DropdownLink
+          menuClasses="dropdown-menu-right"
+          topLevelClasses={(this.props.className || "") + " org-selector"}
+          openOnHover={true}
+          title={activeOrg.name}>
+        {OrganizationStore.getAll().map((org) => {
+          return (
+            <MenuItem key={org.slug} to="organizationDetails" params={{orgId: org.slug}}>
+              {org.name}
+            </MenuItem>
+          );
+        })}
+        {features.has('organizations:create') &&
+          <MenuItem divider={true} />
+        }
+        {features.has('organizations:create') &&
+          <MenuItem href={urlPrefix + '/organizations/new/'}>New Organization</MenuItem>
+        }
+      </DropdownLink>
     );
   }
 });
@@ -97,7 +97,7 @@ var Header = React.createClass({
         <div className="container">
           <UserNav className="pull-right" />
           <a href="/" className="logo"><span className="icon-sentry-logo"></span></a>
-          <OrganizationSelector organization={this.getOrganization()} />
+          <OrganizationSelector organization={this.getOrganization()} className="pull-right" />
         </div>
       </header>
     );
