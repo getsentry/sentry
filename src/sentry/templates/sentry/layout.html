@@ -61,7 +61,6 @@
             <a class="dropdown-toggle" data-toggle="dropdown">
               <span>
                 <img src="{% gravatar_url user.email size 72 %}" class="avatar">
-                <span class="user-name">{{ request.user|format_userinfo }}</span>
               </span>
               <i class="icon-arrow-down"></i>
             </a>
@@ -80,7 +79,7 @@
 
         {% if not SINGLE_ORGANIZATION and request.user.is_authenticated and organization %}
         {% block org_selector %}
-        <div class="org-selector">
+        <div class="org-selector pull-right">
           <div class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown">
               {{ organization.name }}
