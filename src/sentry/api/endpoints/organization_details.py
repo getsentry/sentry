@@ -11,7 +11,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.auth import access
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationStatus, Team, TeamStatus
+    AuditLogEntryEvent, Organization, OrganizationAccessRequest,
+    OrganizationStatus, Team, TeamStatus
 )
 from sentry.tasks.deletion import delete_organization
 
@@ -58,6 +59,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context['features'] = feature_list
         context['teams'] = serialize(
             team_list, request.user, TeamWithProjectsSerializer)
+        context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
+            team__organization=organization,
+        ).count()
         return Response(context)
 
     @sudo_required
