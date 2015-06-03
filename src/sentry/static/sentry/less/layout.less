@@ -61,6 +61,10 @@ header {
   .clearfix();
   font-size: 15px;
 
+  .container {
+    padding: 0;
+  }
+
   a {
     color: #CBD4E1;
 
@@ -71,11 +75,11 @@ header {
 
   .logo {
     .square(40px);
+    margin-left: 12px;
     display: block;
     float: left;
     text-align: center;
     font-size: 16px;
-    border-left: 1px solid rgba(0,0,0, .3);
     color: #fff;
   }
 
@@ -83,12 +87,18 @@ header {
     line-height: 40px;
   }
 
+  .org-selector {
+    .dropdown-menu {
+      top: 38px;
+      left: 53px;
+    }
+  }
+
   .dropdown {
     display: block;
 
     .dropdown-menu {
       top: 38px;
-      left: 41px;
     }
   }
 
@@ -98,8 +108,6 @@ header {
     height: 40px;
     line-height: 40px;
     padding: 0 15px;
-    border-right: 1px solid rgba(0,0,0, .3);
-    border-left: 1px solid rgba(0,0,0, .3);
 
     .icon-arrow-down {
       color: #676976;
