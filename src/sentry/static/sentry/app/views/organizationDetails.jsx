@@ -9,7 +9,6 @@ var LoadingIndicator = require("../components/loadingIndicator");
 var Header = require("../components/header");
 var PropTypes = require("../proptypes");
 var OrganizationState = require("../mixins/organizationState");
-// var OrganizationSidebar = require("../components/organizationSidebar");
 var Footer = require("../components/footer");
 var RouteMixin = require("../mixins/routeMixin");
 var TeamStore = require("../stores/teamStore");
