@@ -7,8 +7,8 @@
 
 {% block title %}{% trans "Notifications" %} | {{ block.super }}{% endblock %}
 
-{% block content %}
-  <h3>{% trans "Notifications" %}</h3>
+{% block main %}
+  <h2>{% trans "Notifications" %}</h2>
   <form action="" method="POST" class="form-stacked">
     {% csrf_token %}
     <input type="hidden" name="op" value="save-settings" />

@@ -4,17 +4,14 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{% trans "Manage Client Keys" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Client Keys" %} | {{ block.super }}{% endblock %}
 
-{% block content %}
-    <div class="page-header">
-        {% if can_add_key %}
-            <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
-        {% endif %}
-        <h3>
-            {% trans "Manage Client Keys" %}
-        </h3>
-    </div>
+{% block main %}
+    {% if can_add_key %}
+        <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
+    {% endif %}
+    <h2>{% trans "Client Keys" %}</h2>
+
     <table class="table table-bordered">
         <colgroup>
             <col/>
