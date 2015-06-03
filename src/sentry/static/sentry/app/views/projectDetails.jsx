@@ -81,7 +81,7 @@ var ProjectSelector = React.createClass({
           return;
         }
         if (!hasTeam) {
-          children.push(<li className="team-name">{team.name}</li>);
+          children.push(<li className="team-name" key={'_team' + team.slug}>{team.name}</li>);
           hasTeam = true;
         }
         children.push(this.getProjectNode(team, project));
@@ -92,12 +92,12 @@ var ProjectSelector = React.createClass({
     return (
       <DropdownLink title={title} className="project-dropdown"
           onOpen={this.onOpen} onClose={this.onClose}>
-        <li className="project-filter" key="filter">
+        <li className="project-filter" key="_filter">
           <input type="text" placeholder="Filter projects"
                  onKeyUp={this.onFilterChange} ref="filter" />
         </li>
         {children}
-        <li className="new-project" key="new-project">
+        <li className="new-project" key="_new-project">
           <a className="btn btn-primary"
              href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>
             <span className="icon-plus" /> Create Project
