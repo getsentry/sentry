@@ -85,7 +85,7 @@
               {{ organization.name }}
               <i class="icon-arrow-down"></i>
             </a>
-            <ul class="dropdown-menu">
+            <ul class="dropdown-menu dropdown-menu-right">
               {% for org in request.user|list_organizations %}
                 <li><a href="{% url 'sentry-organization-home' org.slug %}">{{ org.name }}</a></li>
               {% endfor %}
