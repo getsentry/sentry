@@ -18,8 +18,9 @@
             onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
     </div>
     <h2>{{ plugin.get_title }}</h2>
+    <hr>
     <div class="row">
-        <div class="col-md-8">
+        <div class="col-md-7">
             {% if request.GET.success %}
                 <div class="alert alert-success">
                     {% trans "Changes to your project were saved successfully." %}
@@ -28,8 +29,8 @@
             {% endif %}
             {{ view }}
         </div>
-        <div class="col-md-4">
-            <div class="well plugin-meta">
+        <div class="col-md-4 col-md-offset-1">
+            <div class="plugin-meta">
                 <h4>Plugin Information</h4>
                 <dl class="flat">
                     <dt>Name:</dt>
@@ -52,11 +53,11 @@
                 {% with plugin.get_resource_links as resource_links %}
                     {% if resource_links %}
                         <h4>Resources</h4>
-                        <ul class="nav nav-stacked" style="margin:0;">
+                        <dl class="flat">
                             {% for label, link in resource_links %}
-                                <li><a href="{{ link }}">{{ label }}</a></li>
+                                <dd><a href="{{ link }}">{{ label }}</a></dd>
                             {% endfor %}
-                        </ul>
+                        </dl>
                     {% endif %}
                 {% endwith %}
             </div>
