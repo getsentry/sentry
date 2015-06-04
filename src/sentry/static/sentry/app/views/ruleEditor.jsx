@@ -12,7 +12,7 @@ var RuleAction = React.createClass({
     type: React.PropTypes.string.isRequired
   },
 
-  render: function() {
+  render() {
     return (
       <tr>
         <td></td>
@@ -31,7 +31,7 @@ var RuleCondition = React.createClass({
     type: React.PropTypes.string.isRequired
   },
 
-  render: function() {
+  render() {
     return (
       <tr>
         <td></td>
@@ -45,8 +45,8 @@ var RuleCondition = React.createClass({
   }
 });
 
-var RuleConditonList = React.createClass({
-  render: function() {
+var RuleConditionList = React.createClass({
+  render() {
     var conditions = [];
 
     return (
@@ -79,7 +79,7 @@ var RuleConditonList = React.createClass({
 });
 
 var RuleActionList = React.createClass({
-  render: function() {
+  render() {
     var actions = [];
 
     return (
@@ -105,7 +105,7 @@ var RuleActionList = React.createClass({
 });
 
 var RuleLabel = React.createClass({
-  render: function() {
+  render() {
     return (
       <div className="box">
         <div className="box-header">
@@ -126,7 +126,9 @@ var RuleEditor = React.createClass({
     conditions: React.PropTypes.instanceOf(Array).isRequired
   },
 
-  render: function() {
+  render() {
+    var rule = this.props.rule;
+
     return (
       <form>
         <h3>
@@ -135,8 +137,8 @@ var RuleEditor = React.createClass({
         </h3>
 
         <RuleLabel />
-        <RuleConditionList />
-        <RuleActionList />
+        <RuleConditionList conditions={this.props.conditions} />
+        <RuleActionList actions={this.props.actions} />
         <div className="actions">
           <button className="btn btn-primary btn-lg">Save Rule</button>
         </div>
@@ -144,3 +146,5 @@ var RuleEditor = React.createClass({
     );
   }
 });
+
+module.exports = RuleEditor;

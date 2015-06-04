@@ -54,5 +54,6 @@ module.exports = {
   routes: require("./routes"),
 
   Alerts: require("./components/alerts"),
-  Breadcrumbs: require("./components/breadcrumbs")
+  Breadcrumbs: require("./components/breadcrumbs"),
+  RuleEditor: require("./views/ruleEditor")
 };

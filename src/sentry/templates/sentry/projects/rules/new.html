@@ -9,6 +9,7 @@
   <script>
   $(function(){
     React.render(React.createFactory(RuleEditor)({
+      rule: {% serialize rule %},
       actions: {{ action_list|safe }},
       conditions: {{ condition_list|safe }},
       // formData: {{ form_data|to_json|safe }},
