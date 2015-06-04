@@ -386,6 +386,20 @@ table.integrations {
     }
   }
 
+  .auto-tag-browsers,
+  .auto-tag-device,
+  .auto-tag-interface-types,
+  .auto-tag-operating-systems,
+  .auto-tag-urls {
+    .integration-icon {
+      background: @sentry-orange;
+
+      &:after {
+        content: "\e603";
+      }
+    }
+  }
+
   h5 {
     font-size: 16px;
     margin-bottom: 8px;
