@@ -3,41 +3,60 @@
 {% load i18n %}
 
 {% block main %}
-    <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "New Rule" %}</a>
+    <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm"><span class="icon-plus"></span> {% trans "New Rule" %}</a>
     <h2>{% trans "Rules" %}</h2>
 
     {% if rule_list %}
-        <table class="table table-bordered">
-            <colgroup>
-                <col />
-                <col style="width:60px;" />
-            </colgroup>
-            <tbody>
-                {% for rule in rule_list %}
-                    <tr>
-                        <td style="vertical-align: middle">
-                            <a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}">{{ rule.label }}</a><br /><br />
-                            {% if rule.conditions %}
-                                <div><small><strong>When</strong></small></div>
-                                {% for condition in rule.conditions %}
-                                    <code>{{ condition }}</code><br />
-                                {% endfor %}
-                            {% endif %}
-                            {% if rule.actions %}
-                                <div><small><strong>Do</strong></small></div>
-                                {% for action in rule.actions %}
-                                    <code>{{ action }}</code><br />
-                                {% endfor %}
-                            {% endif %}
-                        </td>
-                        <td style="text-align: right">
+        <div class="rules-list">
+            {% for rule in rule_list %}
+                <div class="box">
+                    <div class="box-header">
+                        <div class="pull-right">
                             <a href="{% url 'sentry-remove-project-rule' project.organization.slug project.slug rule.id %}" class="btn btn-sm btn-default"
-                               onclick="confirm('Are you sure you want to remove this rule?')"><span class="icon-trash" style="margin-right: 3px;"></span> Delete</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                           onclick="confirm('Are you sure you want to remove this rule?')"><span class="icon-trash" style="margin-right: 3px;"></span> Delete Rule</a>
+                        </div>
+                        <h3><a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}">{{ rule.label }}</a></h3>
+                    </div>
+                    <div class="box-content with-padding">
+                        {% if rule.conditions %}
+                            <h6>When
+                                <select>
+                                    <option>Any</option>
+                                    <option>All</option>
+                                    <option>None</option>
+                                </select>
+                                of these conditions are met:
+                            </h6>
+                            <table class="conditions table">
+                            {% for condition in rule.conditions %}
+                                <tr>
+                                    <td>{{ condition }}</td>
+                                    <td class="align-right">
+                                        <a href="#"><span class="icon-trash"></span></a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </table>
+                            <a class="add btn btn-primary btn-xs">Add a condition...</a>
+                        {% endif %}
+                        {% if rule.actions %}
+                            <h6>Take these actions:</h6>
+                            <table class="actions table">
+                            {% for action in rule.actions %}
+                                <tr>
+                                    <td>{{ action }}</td>
+                                    <td class="align-right">
+                                        <a href="#"><span class="icon-trash"></span></a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </table>
+                            <a class="add btn btn-primary btn-xs">Add an action...</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
     {% else %}
         <p>You have not yet created any rules. Rules allow you to tweak the behavior of Sentry in various situations, such as sending notifications.</p>
     {% endif %}
