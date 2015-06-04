@@ -106,6 +106,9 @@
     {% block breadcrumb_outer %}
     <div class="sub-header">
       <div class="container">
+        <div class="pull-right">
+          {% block header_action %}{% endblock %}
+        </div>
         <ul class="breadcrumb">
           {% block breadcrumb_inner %}
           <li>
