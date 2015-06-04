@@ -92,31 +92,6 @@ var GroupEventDetails = React.createClass({
     var evt = this.state.event;
     var params = this.context.router.getCurrentParams();
 
-    if (evt) {
-      var eventNavNodes = [
-        (evt.nextEventID ?
-          <Router.Link to="groupEventDetails"
-            params={{orgId: params.orgId,
-                     projectId: params.projectId,
-                     groupId: params.groupId,
-                     eventId: evt.nextEventID}}
-            className="btn btn-default btn-lg">Newer</Router.Link>
-        : <a class="btn btn-default btn-lg disabled">Newer</a>),
-        (evt.previousEventID ?
-          <Router.Link to="groupEventDetails"
-            params={{orgId: params.orgId,
-                     projectId: params.projectId,
-                     groupId: params.groupId,
-                     eventId: evt.previousEventID}}
-            className="btn btn-default btn-lg">Older</Router.Link>
-        : <a class="btn btn-default btn-lg disabled">Older</a>),
-      ];
-    }
-
-    var firstRelease = (group.firstRelease ?
-      group.firstRelease.version :
-      <span>&mdash;</span>);
-
     return (
       <div>
         <MutedBox status={group.status} />

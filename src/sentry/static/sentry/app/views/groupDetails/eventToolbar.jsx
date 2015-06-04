@@ -66,19 +66,17 @@ var GroupEventToolbar  = React.createClass({
     }
 
     return (
-      <Sticky>
-        <div className="event-toolbar">
-          <div className="pull-right">
-            <div className="btn-group">
-              {eventNavNodes}
-            </div>
+      <div className="event-toolbar">
+        <div className="pull-right">
+          <div className="btn-group">
+            {eventNavNodes}
           </div>
-          <ul className="nav nav-tabs">
-            <li className="active"><a href="#tags">Tags</a></li>
-            {entryLinks}
-          </ul>
         </div>
-      </Sticky>
+        <ul className="nav nav-tabs">
+          <li className="active"><a href="#tags">Tags</a></li>
+          {entryLinks}
+        </ul>
+      </div>
     );
   }
 });
