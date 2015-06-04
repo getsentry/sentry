@@ -6,6 +6,7 @@ This releases entirely removes Access Groups. If you're upgrading form an instal
 - The project-wide Alert system has been removed (to be re-implemented in the future).
 - Access groups have been permanently removed.
 - Added 'access_token' to data blacklist.
+- The legacy (unused) search tables have been removed.
 
 Version 7.5.4
 -------------
