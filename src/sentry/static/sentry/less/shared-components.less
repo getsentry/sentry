@@ -370,9 +370,20 @@ table.integrations {
     position: absolute;
     top: 15px;
     left: 16px;
-    background: #f1f2f3;
+    background: @teal;
     .square(48px);
     border-radius: 2px;
+    color: #fff;
+
+    &:after {
+      display: block;
+      font-family: "sentry-simple";
+      content: "\e622";
+      font-size: 24px;
+      .square(48px);
+      text-align: center;
+      line-height: 48px;
+    }
   }
 
   h5 {
