@@ -91,7 +91,6 @@ install_requires = [
     'markdown>=2.4.1,<2.5.0',
     'petname>=1.7,<1.8',
     'progressbar>=2.2,<2.4',
-    'Pygments>=1.6.0,<1.7.0',
     'pytest',
     'pytest-django',
     'python-dateutil>=2.0.0,<3.0.0',
