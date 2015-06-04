@@ -71,6 +71,7 @@ var RuleConditionList = React.createClass({
             </table>
             <div className="controls">
                 <select placeholder="add a condition">
+                  <option key="blank"/>
                   {this.props.conditions.map((condition) => {
                     return (
                       <option value={condition.id} key={condition.id}>{condition.label}</option>
@@ -85,6 +86,43 @@ var RuleConditionList = React.createClass({
 });
 
 var RuleActionList = React.createClass({
+  getInitialState() {
+    return {
+      items: []
+    };
+  },
+
+  componentWillMount() {
+    this._nodesById = {};
+    this.props.nodes.forEach((node) => {
+      this._nodesById[node.id] = node;
+    });
+  },
+
+  onAddRow(e) {
+    var $el = $(e.target);
+    var nodeId = $el.val();
+    if (!nodeId) return;
+    this.state.items.push({
+      id: nodeId
+    });
+    this.setState({
+      items: this.state.items
+    });
+    $el.val('');
+  },
+
+  onDeleteRow(idx) {
+    this.state.items.splice(idx, idx + 1);
+    this.setState({
+      items: this.state.items
+    });
+  },
+
+  getNode(id) {
+    return this._nodesById[id];
+  },
+
   render() {
     var actions = [];
 
@@ -98,14 +136,24 @@ var RuleActionList = React.createClass({
             <col />
             <col style={{width: '25%', textAlign: 'right'}} />
             <tbody>
-              {actions}
+              {this.state.items.map((item, idx) => {
+                return (
+                  <tr key={idx}>
+                    <td dangerouslySetInnerHTML={{__html: this.getNode(item.id).html}} />
+                    <td className="align-right">
+                      <a onClick={this.onDeleteRow.bind(this, idx)}><span className="icon-trash" /></a>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <div className="controls">
-            <select placeholder="add an action">
-              {this.props.actions.map((action) => {
+            <select placeholder="add an action" onChange={this.onAddRow}>
+              <option key="blank"/>
+              {this.props.nodes.map((node) => {
                 return (
-                  <option value={action.id} key={action.id}>{action.label}</option>
+                  <option value={node.id} key={node.id}>{node.label}</option>
                 );
               })}
             </select>
@@ -150,7 +198,7 @@ var RuleEditor = React.createClass({
 
         <RuleName value={rule.name} />
         <RuleConditionList conditions={this.props.conditions} />
-        <RuleActionList actions={this.props.actions} />
+        <RuleActionList nodes={this.props.actions} />
         <div className="actions">
           <button className="btn btn-primary btn-lg">Save Rule</button>
         </div>
