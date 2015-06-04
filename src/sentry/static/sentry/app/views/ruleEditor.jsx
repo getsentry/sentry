@@ -7,7 +7,7 @@ var $ = require("jquery");
 var api = require("../api");
 var utils = require("../utils");
 
-var RuleAction = React.createClass({
+var RuleNode = React.createClass({
   propTypes: {
     type: React.PropTypes.string.isRequired
   },
@@ -26,66 +26,7 @@ var RuleAction = React.createClass({
   }
 });
 
-var RuleCondition = React.createClass({
-  propTypes: {
-    type: React.PropTypes.string.isRequired
-  },
-
-  render() {
-    return (
-      <tr>
-        <td></td>
-        <td className="align-right">
-          <button className="btn btn-default btn-sm">
-            <span className="icon-trash"></span>
-          </button>
-        </td>
-      </tr>
-    );
-  }
-});
-
-var RuleConditionList = React.createClass({
-  render() {
-    var conditions = [];
-
-    return (
-      <div className="box">
-          <div className="box-header" style={{paddingTop: '5px', paddingBottom: 0, fontWeight: 500}}>
-              Every time
-              <select name="action_match" style={{width: '100px'}}
-                      className="select2-small select2-inline">
-                <option value="all">all of</option>
-                <option value="any">any of</option>
-                <option value="none">none of</option>
-              </select>
-              these conditions are met:
-          </div>
-          <div className="box-content" style={{padding: '0 10px 6px'}}>
-            <table className="condition-list table table-light" style={{marginBottom: '10px'}}>
-                <col />
-                <col style={{width: '10%', textAlign: 'right'}} />
-                <tbody>
-                  {conditions}
-                </tbody>
-            </table>
-            <div className="controls">
-                <select placeholder="add a condition">
-                  <option key="blank"/>
-                  {this.props.conditions.map((condition) => {
-                    return (
-                      <option value={condition.id} key={condition.id}>{condition.label}</option>
-                    );
-                  })}
-                </select>
-            </div>
-          </div>
-      </div>
-    );
-  }
-});
-
-var RuleActionList = React.createClass({
+var RuleNodeList = React.createClass({
   getInitialState() {
     return {
       items: []
@@ -127,38 +68,33 @@ var RuleActionList = React.createClass({
     var actions = [];
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <h3>Take these actions:</h3>
-        </div>
-        <div className="box-content" style={{padding: '0 10px 6px'}}>
-          <table className="action-list table table-light" style={{marginBottom: '10px'}}>
-            <col />
-            <col style={{width: '25%', textAlign: 'right'}} />
-            <tbody>
-              {this.state.items.map((item, idx) => {
-                return (
-                  <tr key={idx}>
-                    <td dangerouslySetInnerHTML={{__html: this.getNode(item.id).html}} />
-                    <td className="align-right">
-                      <a onClick={this.onDeleteRow.bind(this, idx)}><span className="icon-trash" /></a>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div className="controls">
-            <select placeholder="add an action" onChange={this.onAddRow}>
-              <option key="blank"/>
-              {this.props.nodes.map((node) => {
-                return (
-                  <option value={node.id} key={node.id}>{node.label}</option>
-                );
-              })}
-            </select>
-          </div>
-        </div>
+      <div>
+        <table className="action-list table table-light" style={{marginBottom: '10px'}}>
+          <col />
+          <col style={{width: '25%', textAlign: 'right'}} />
+          <tbody>
+            {this.state.items.map((item, idx) => {
+              return (
+                <tr key={idx}>
+                  <td dangerouslySetInnerHTML={{__html: this.getNode(item.id).html}} />
+                  <td className="align-right">
+                    <a onClick={this.onDeleteRow.bind(this, idx)}><span className="icon-trash" /></a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <fieldset className="form-actions">
+          <select onChange={this.onAddRow}>
+            <option key="blank"/>
+            {this.props.nodes.map((node) => {
+              return (
+                <option value={node.id} key={node.id}>{node.label}</option>
+              );
+            })}
+          </select>
+        </fieldset>
       </div>
     );
   }
@@ -197,8 +133,29 @@ var RuleEditor = React.createClass({
         </h3>
 
         <RuleName value={rule.name} />
-        <RuleConditionList conditions={this.props.conditions} />
-        <RuleActionList nodes={this.props.actions} />
+        <div className="box">
+          <div className="box-header">
+            Every time
+            <select name="action_match" style={{width: '100px'}}
+                    className="select2-small select2-inline">
+              <option value="all">all of</option>
+              <option value="any">any of</option>
+              <option value="none">none of</option>
+            </select>
+            these conditions are met:
+          </div>
+          <div className="box-content with-padding">
+            <RuleNodeList nodes={this.props.conditions} />
+          </div>
+        </div>
+        <div className="box">
+          <div className="box-header">
+            <h3>Take these actions:</h3>
+          </div>
+          <div className="box-content with-padding">
+            <RuleNodeList nodes={this.props.actions} />
+          </div>
+        </div>
         <div className="actions">
           <button className="btn btn-primary btn-lg">Save Rule</button>
         </div>
