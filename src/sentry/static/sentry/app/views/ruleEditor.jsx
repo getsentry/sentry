@@ -70,7 +70,13 @@ var RuleConditionList = React.createClass({
                 </tbody>
             </table>
             <div className="controls">
-                <select placeholder="add a condition"></select>
+                <select placeholder="add a condition">
+                  {this.props.conditions.map((condition) => {
+                    return (
+                      <option value={condition.id} key={condition.id}>{condition.label}</option>
+                    );
+                  })}
+                </select>
             </div>
           </div>
       </div>
@@ -96,7 +102,13 @@ var RuleActionList = React.createClass({
             </tbody>
           </table>
           <div className="controls">
-            <select placeholder="add an action"></select>
+            <select placeholder="add an action">
+              {this.props.actions.map((action) => {
+                return (
+                  <option value={action.id} key={action.id}>{action.label}</option>
+                );
+              })}
+            </select>
           </div>
         </div>
       </div>
@@ -104,16 +116,16 @@ var RuleActionList = React.createClass({
   }
 });
 
-var RuleLabel = React.createClass({
+var RuleName = React.createClass({
   render() {
     return (
       <div className="box">
         <div className="box-header">
-          <h3>Rule label:</h3>
+          <h3>Rule name:</h3>
         </div>
         <div className="box-content" style={{padding: '10px'}}>
           <input type="text" name="label" className="form-control"
-                 placeholder="e.g. My Rule Name" />
+                 placeholder="e.g. My Rule Name" defaultValue={this.props.value} />
         </div>
       </div>
     );
@@ -136,7 +148,7 @@ var RuleEditor = React.createClass({
           <small>Applying to Events</small>
         </h3>
 
-        <RuleLabel />
+        <RuleName value={rule.name} />
         <RuleConditionList conditions={this.props.conditions} />
         <RuleActionList actions={this.props.actions} />
         <div className="actions">
