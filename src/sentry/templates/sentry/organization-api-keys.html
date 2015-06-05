@@ -22,24 +22,29 @@
   <p>API keys grant access to the <a href="{% url 'sentry-api-0-help' %}">developer web API</a>. If you're looking to configure a Sentry client, you'll need a client key which is available in our <a href="{% url 'sentry-help-platform-list' %}">platform documentation</a> or your project's settings.</p>
 
       {% if key_list %}
-      <table class="table simple-list table-bordered member-list">
+      <table class="table api-key-list">
         <colgroup>
-          <col />
-          <col width="20%"/>
+          <col style="width: 40%"></col>
+          <col style="width: 40%"></col>
+          <col style="width: 20%"></col>
         </colgroup>
         <tbody>
         {% for key in key_list %}
           <tr>
             <td>
-              <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a><br />
-              <code class="clippy">{{ key.key }}</code>
+              <h5 style="margin: 0"><a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a></h5>
             </td>
             <td>
+              <input class="clippy form-control" value="{{ key.key }}" readonly style="width: 100%"
+                  onClick="$(this).select();">
+            </td>
+            <td class="align-right">
+              <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}" class="btn btn-default btn-sm" style="margin-right: 4px">Edit Key</a>
               <form class="pull-right" method="POST" action="" onsubmit="return confirm('Are you sure you want to remove this API key?');">
                 {% csrf_token %}
                 <input type="hidden" name="op" value="removekey" />
                 <input type="hidden" name="kid" value="{{ key.id }}" />
-                <button class="btn btn-default btn-small">Remove</button>
+                <button class="btn btn-default btn-sm"><span class="icon-trash"></span></button>
               </form>
             </td>
           </tr>
