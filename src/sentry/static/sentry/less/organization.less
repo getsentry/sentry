@@ -197,3 +197,42 @@ table.project-list {
     }
   }
 }
+
+/**
+* API Keys
+* ============================================================================
+*/
+
+.api-key-detail {
+  .scopes {
+    padding-bottom: 20px;
+    .clearfix();
+
+    label {
+      display: block;
+      width: 25%;
+      padding: 0 20px 0 30px;
+      float: left;
+      position: relative;
+
+      &.control-label {
+        font-size: 14px;
+        padding: 0 0 10px;
+        margin-bottom: 20px;
+        display: block;
+        width: 100%;
+        float: none;
+        border-bottom: 1px solid lighten(@trim, 6);
+      }
+    }
+
+    .checkbox {
+      left: -9px;
+    }
+
+    .checkbox, .checkbox + .checkbox {
+      margin: 0 0 15px;
+    }
+
+  }
+}
