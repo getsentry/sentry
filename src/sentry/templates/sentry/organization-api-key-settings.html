@@ -9,11 +9,10 @@
 {% block org_apikeys_nav %}active{% endblock %}
 
 {% block main %}
-  <div class="page-header">
-    <h2>{% trans "API Key Settings" %}</h2>
-  </div>
+  <h3>{% trans "API Key Settings" %}</h3>
 
-  <form class="form-stacked" action="" method="post">
+  <hr>
+  <form class="form-stacked api-key-detail" action="" method="post">
     {% csrf_token %}
 
     {% if form.errors %}
@@ -23,15 +22,27 @@
     {{ form|as_crispy_errors }}
 
     <fieldset>
-      <div class="control-group">
-        <label>{% trans "Key" %}</label>
-        <div class="controls">
-          <code class="clippy">{{ key.key }}</code>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="control-group">
+            {{ form.label|as_crispy_field }}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="control-group">
+            <label>{% trans "Key" %}</label>
+            <div class="controls">
+              <input class="clippy form-control" value="{{ key.key }}" readonly style="width: 100%"
+                  onClick="$(this).select();">
+            </div>
+          </div>
         </div>
       </div>
 
-      {{ form.label|as_crispy_field }}
-      {{ form.scopes|as_crispy_field }}
+      <div class="scopes">
+        {{ form.scopes|as_crispy_field }}
+      </div>
+
       {{ form.allowed_origins|as_crispy_field }}
 
     </fieldset>
