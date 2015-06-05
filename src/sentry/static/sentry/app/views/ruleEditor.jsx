@@ -69,9 +69,9 @@ var RuleNodeList = React.createClass({
 
     return (
       <div>
-        <table className="action-list table table-light" style={{marginBottom: '10px'}}>
+        <table className="actions-list table" style={{marginBottom: '10px'}}>
           <col />
-          <col style={{width: '25%', textAlign: 'right'}} />
+          <col style={{ textAlign: 'right'}} />
           <tbody>
             {this.state.items.map((item, idx) => {
               return (
@@ -85,7 +85,7 @@ var RuleNodeList = React.createClass({
             })}
           </tbody>
         </table>
-        <fieldset className="form-actions">
+        <fieldset>
           <select onChange={this.onAddRow}>
             <option key="blank"/>
             {this.props.nodes.map((node) => {
@@ -103,14 +103,11 @@ var RuleNodeList = React.createClass({
 var RuleName = React.createClass({
   render() {
     return (
-      <div className="box">
-        <div className="box-header">
-          <h3>Rule name:</h3>
-        </div>
-        <div className="box-content" style={{padding: '10px'}}>
-          <input type="text" name="label" className="form-control"
-                 placeholder="e.g. My Rule Name" defaultValue={this.props.value} />
-        </div>
+      <div>
+        <h6>Rule name:</h6>
+        <input type="text" name="label" className="form-control"
+               placeholder="My Rule Name" defaultValue={this.props.value} />
+        <hr/>
       </div>
     );
   }
@@ -127,37 +124,35 @@ var RuleEditor = React.createClass({
 
     return (
       <form>
-        <h3>
-          {rule.id ? 'Edit Rule' : 'New Rule'}
-          <small>Applying to Events</small>
-        </h3>
+        <div className="box rule-detail">
+          <div className="box-header">
+            <h3>
+              {rule.id ? 'Edit Rule' : 'New Rule'}
+            </h3>
+          </div>
+          <div className="box-content with-padding">
+            <RuleName value={rule.name} />
+            <h6>
+              Every time
+              <select name="action_match"
+                      className="select2-small select2-inline">
+                <option value="all">all</option>
+                <option value="any">any</option>
+                <option value="none">none</option>
+              </select>
+              of these conditions are met:
+            </h6>
 
-        <RuleName value={rule.name} />
-        <div className="box">
-          <div className="box-header">
-            Every time
-            <select name="action_match" style={{width: '100px'}}
-                    className="select2-small select2-inline">
-              <option value="all">all of</option>
-              <option value="any">any of</option>
-              <option value="none">none of</option>
-            </select>
-            these conditions are met:
-          </div>
-          <div className="box-content with-padding">
             <RuleNodeList nodes={this.props.conditions} />
-          </div>
-        </div>
-        <div className="box">
-          <div className="box-header">
-            <h3>Take these actions:</h3>
-          </div>
-          <div className="box-content with-padding">
+
+            <h6>Take these actions:</h6>
+
             <RuleNodeList nodes={this.props.actions} />
+
+            <div className="actions">
+              <button className="btn btn-primary btn-lg">Save Rule</button>
+            </div>
           </div>
-        </div>
-        <div className="actions">
-          <button className="btn btn-primary btn-lg">Save Rule</button>
         </div>
       </form>
     );
