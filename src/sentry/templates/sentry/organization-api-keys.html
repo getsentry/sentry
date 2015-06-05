@@ -21,15 +21,13 @@
 
   <p>API keys grant access to the <a href="{% url 'sentry-api-0-help' %}">developer web API</a>. If you're looking to configure a Sentry client, you'll need a client key which is available in our <a href="{% url 'sentry-help-platform-list' %}">platform documentation</a> or your project's settings.</p>
 
-  <br />
-
-  <table class="table simple-list table-bordered member-list">
-    <colgroup>
-      <col />
-      <col width="20%"/>
-    </colgroup>
-    <tbody>
       {% if key_list %}
+      <table class="table simple-list table-bordered member-list">
+        <colgroup>
+          <col />
+          <col width="20%"/>
+        </colgroup>
+        <tbody>
         {% for key in key_list %}
           <tr>
             <td>
@@ -45,14 +43,13 @@
               </form>
             </td>
           </tr>
+          </tbody>
+        </table>
         {% endfor %}
       {% else %}
-        <tr>
-          <td colspan="2">
-            <p class="alert-block">You haven't yet created any API keys for this organization.</p>
-          </td>
-        </tr>
+        <div class="blankslate well">
+          There are no API keys for this organization.
+        </div>
       {% endif %}
-    </tbody>
-  </table>
+
 {% endblock %}
