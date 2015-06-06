@@ -1,8 +1,8 @@
 body {
   margin: 0;
   font-family: @font-family-base;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 16px;
+  line-height: 24px;
   color: @gray;
   -webkit-font-smoothing: antialiased;
   .transition(.1s padding ease-in-out);
@@ -60,10 +60,11 @@ header {
   color: #fff;
   .clearfix();
   font-size: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  padding: 3px 0;
 
   .container {
-    padding: 0;
+    padding-right: 0;
   }
 
   a {
@@ -75,12 +76,10 @@ header {
   }
 
   .logo {
-    .square(40px);
-    margin-left: 12px;
     display: block;
     float: left;
     text-align: center;
-    font-size: 16px;
+    font-size: 20px;
     color: #fff;
   }
 
@@ -133,13 +132,13 @@ header {
 }
 
 .sub-header {
-  background: #fff;
-  color: @gray;
-  border-bottom: 1px solid @trim;
+  background: #4b5267;
+  color: #fff;
+  // border-bottom: 1px solid @trim;
   position: relative;
   height: 66px;
   padding: 25px 0 0;
-  margin: -20px 0 20px;
+  margin: -30px 0 30px;
   line-height: 1;
   font-size: 16px;
   .clearfix;
@@ -194,26 +193,29 @@ header {
             content: "\e620";
             font-size: 17px;
             position: absolute;
-            left: -16px;
+            left: -17px;
             top: -2px;
-            opacity: .85;
             height: 20px;
             width: 57px;
             line-height: 20px;
             text-align: center;
-            border-right: 1px solid lighten(@trim, 2);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
           }
 
           &:hover:before {
-            color: @grayDark;
+            color: #fff;
           }
         }
       }
 
       &:last-child {
-        a, a:hover {
+        a {
           font-weight: 400;
-          color: lighten(@gray, 15);
+          color: rgba(255,255,255, .9);
+
+          &:hover {
+            color: rgba(255,255,255, 1);
+          }
         }
       }
 
@@ -250,9 +252,9 @@ header {
   }
 
   a {
-    color: @gray;
+    color: rgba(255,255,255, .9);
     &:hover, &:active, &:focus {
-      color: darken(@gray, 10);
+      color: rgba(255,255,255, 1);
       text-decoration: none;
     }
   }
@@ -275,12 +277,18 @@ header {
   }
 
   .nav-tabs {
-    margin-top: -2px;
+    margin-top: -3px;
+
     li {
       margin: 0 0 0 20px;
 
       a {
+        color: rgba(255, 255, 255, .8);
         padding-bottom: 19px;
+      }
+
+      &.active a {
+        color: rgba(255, 255, 255, 1);
       }
     }
   }
@@ -316,21 +324,6 @@ header {
   float: right;
 }
 
-/**
-* Reset Grid
-* ============================================================================
-*/
-
-.row {
-  margin-left: -10px;
-  margin-right: -10px;
-}
-
-.col-xs-1, .col-sm-1, .col-md-1, .col-lg-1, .col-xs-2, .col-sm-2, .col-md-2, .col-lg-2, .col-xs-3, .col-sm-3, .col-md-3, .col-lg-3, .col-xs-4, .col-sm-4, .col-md-4, .col-lg-4, .col-xs-5, .col-sm-5, .col-md-5, .col-lg-5, .col-xs-6, .col-sm-6, .col-md-6, .col-lg-6, .col-xs-7, .col-sm-7, .col-md-7, .col-lg-7, .col-xs-8, .col-sm-8, .col-md-8, .col-lg-8, .col-xs-9, .col-sm-9, .col-md-9, .col-lg-9, .col-xs-10, .col-sm-10, .col-md-10, .col-lg-10, .col-xs-11, .col-sm-11, .col-md-11, .col-lg-11, .col-xs-12, .col-sm-12, .col-md-12, .col-lg-12 {
-  padding-right: 10px;
-  padding-left: 10px;
-}
-
 
 /**
 * Footer
@@ -344,7 +337,7 @@ footer {
   font-weight: 500;
   border-top: 1px solid lighten(@trim, 3);
   margin-top: 20px;
-  padding: 22px 0;
+  padding: 28px 0;
 
   .pull-right {
     a {

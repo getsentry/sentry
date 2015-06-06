@@ -200,7 +200,7 @@
 table.table {
   table-layout: auto;
   margin-bottom: 0;
-  border: 1px solid #e5e7e8;
+  border: 1px solid @trim;
   border-radius: 2px;
   border-spacing: 0;
   border-collapse: separate !important;
@@ -234,11 +234,11 @@ table.table {
 
   th {
     border: none !important;
-    border-bottom: 1px solid #e5e7e8 !important;
+    border-bottom: 1px solid @trim !important;
   }
 
   td {
-    border-top: 1px solid lighten(#e5e7e8, 5) !important;
+    border-top: 1px solid lighten(@trim, 8) !important;
   }
 
   .squash {
@@ -791,6 +791,9 @@ table.integrations {
 */
 
 .project-dropdown {
+  font-weight: 500 !important;
+  color: #fff !important;
+
   .icon-arrow-down {
     margin-left: 4px;
     font-size: 14px !important;
@@ -802,6 +805,14 @@ table.integrations {
 .project-dropdown + .dropdown-menu {
   width: 460px;
   padding-bottom: 0;
+  color: @gray;
+
+  a {
+    color: @gray !important;
+    &:hover {
+      color: @grayDark !important;
+    }
+  }
 
   .project-filter {
     width: 100%;
@@ -1000,7 +1011,7 @@ table.integrations {
       bottom: 0;
       left: 1px;
       right: 1px;
-      background: rgba(52, 60, 69, .015);
+      background: rgba(38, 73, 112, 0.03);
     }
 
     > span {
@@ -1400,11 +1411,11 @@ legend {
   background: #fff;
   border: 1px solid @trim;
   border-radius: 2px;
-  margin: 0 0 20px;
+  margin: 0 0 30px;
   box-shadow: 0 1px 0 rgba(52, 60, 69, .02);
 
   .box-header {
-    background: @bgColor;
+    background: #F8F9FA;
     color: @grayDark;
     line-height: 1;
     padding: 20px 20px 19px;
@@ -1758,7 +1769,7 @@ header ~ #messages {
     }
 
     > a {
-      font-size: 15px;
+      font-size: 16px;
       padding: 0 0 10px;
       border: 0;
       background: none;
@@ -2240,9 +2251,9 @@ header ~ #messages {
   padding-bottom: 5px;
 
   h6 {
-    opacity: .6;
+    opacity: .9;
     font-weight: 400;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
   }
 
   h3 {
