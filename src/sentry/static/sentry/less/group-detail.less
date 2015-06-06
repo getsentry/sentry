@@ -158,10 +158,12 @@
     .list-unstyled;
 
     li:first-child {
-      padding: 4px 5px 2px;
-      border: 1px solid @trim;
-      color: lighten(@gray, 15);
+      background: @bgColor;
+      color: darken(@gray, 3);
       border-radius: 2px;
+      .square(28px);
+      line-height: 28px;
+      text-align: center;
 
       .icon-eye {
         font-size: 10px;
@@ -236,7 +238,7 @@
       bottom: 0;
       right: 0;
       text-align: right;
-      border-top: 1px solid lighten(@trim, 4);
+      border-top: 1px solid @trim;
       opacity: 0;
       visibility: hidden;
       .transition(opacity .2s ease-in-out);
@@ -279,7 +281,7 @@
 
       .activity-bubble {
         background: #fff;
-        border: 1px solid darken(@trim, 2);
+        border: 1px solid @trim;
         margin-left: 42px;
         border-radius: 2px;
         font-size: 13px;
@@ -293,7 +295,7 @@
           height: 0;
           border-top: 7px solid transparent;
           border-bottom: 7px solid transparent;
-          border-right: 7px solid darken(@trim, 2);;
+          border-right: 7px solid @trim;
           position: absolute;
           left: -7px;
           top: 9px;
@@ -329,7 +331,7 @@
 
     .activity-item {
       padding: 15px 0;
-      border-top: 1px solid rgba(226, 231, 236, .4);
+      border-top: 1px solid lighten(@trim, 6);
       position: relative;
       font-size: 13px;
       color: lighten(@gray, 20);
