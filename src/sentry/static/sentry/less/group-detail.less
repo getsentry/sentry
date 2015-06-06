@@ -583,6 +583,10 @@
   .context {
     margin-top: -5px;
     margin-bottom: 15px;
+
+    dl.vars {
+      margin-top: 20px;
+    }
   }
 
   .tag-app {
@@ -742,7 +746,7 @@ ol.context {
 }
 
 dl.vars {
-  margin-top: 20px;
+  margin-top: 0;
 
   dt, dd {
     margin-bottom: 10px;
@@ -754,6 +758,8 @@ dl.vars {
     float: left;
     font-weight: 500;
     color: @grayDark;
+    word-wrap: break-all;
+    padding-left: 10px;
   }
 
   pre {
@@ -836,7 +842,7 @@ div.commands {
   position: relative;
   margin-left: -20px;
   margin-right: -20px;
-  padding: 20px;
+  padding: 20px 20px 0;
   border-top: 1px solid #f1f2f3;
   .transition(all .5s ease-in-out);
   max-height: 5000px;
