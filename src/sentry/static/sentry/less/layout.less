@@ -285,9 +285,12 @@ header {
       a {
         color: rgba(255, 255, 255, .8);
         padding-bottom: 19px;
+        &:hover, &:active, &:focus {
+          color: rgba(255, 255, 255, 1);
+        }
       }
 
-      &.active a {
+      &.active a, &.active a:active {
         color: rgba(255, 255, 255, 1);
       }
     }
