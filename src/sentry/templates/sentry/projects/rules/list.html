@@ -3,7 +3,10 @@
 {% load i18n %}
 
 {% block main %}
-    <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm"><span class="icon-plus"></span> {% trans "New Rule" %}</a>
+    <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm">
+        <span class="icon-plus"></span>
+        {% trans "New Rule" %}
+    </a>
     <h2>{% trans "Rules" %}</h2>
 
     {% if rule_list %}
@@ -12,7 +15,7 @@
                 <div class="box">
                     <div class="box-header">
                         <div class="pull-right">
-                            <a href="{% url 'sentry-new-project-rule' project.organization.slug project.slug %}"class="btn btn-sm btn-default">Edit Rule</a>
+                            <a href="{% url 'sentry-edit-project-rule' project.organization.slug project.slug rule.id %}"class="btn btn-sm btn-default">Edit Rule</a>
                             <a href="{% url 'sentry-remove-project-rule' project.organization.slug project.slug rule.id %}" class="btn btn-sm btn-default"
                            onclick="confirm('Are you sure you want to remove this rule?')"><span class="icon-trash" style="margin-right: 3px;"></span></a>
                         </div>
