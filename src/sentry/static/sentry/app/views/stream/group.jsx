@@ -5,8 +5,8 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var AssigneeSelector = require("../../components/assigneeSelector");
-var BarChart = require("../../components/barChart");
 var Count = require("../../components/count");
+var GroupChart = require("./groupChart");
 var GroupStore = require("../../stores/groupStore");
 var SelectedGroupStore = require("../../stores/selectedGroupStore");
 var TimeSince = require("../../components/timeSince");
@@ -116,19 +116,6 @@ var StreamGroup = React.createClass({
     var params = router.getCurrentParams();
     var data = this.state.data;
     var userCount = 0;
-    var points;
-
-    switch(this.props.statsPeriod) {
-      case '24h':
-        points = data.stats['24h'].slice(-24);
-        break;
-      default:
-        points = data.stats[this.props.statsPeriod];
-    }
-
-    var chartData = points.map((point) => {
-      return {x: point[0], y: point[1]};
-    });
 
     if (data.tags["sentry:user"] !== undefined) {
       userCount = data.tags["sentry:user"].count;
@@ -176,7 +163,7 @@ var StreamGroup = React.createClass({
           <AssigneeSelector id={data.id} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
-          <BarChart points={chartData} className="sparkline" />
+          <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} />
         </div>
         <div className="col-md-1 hidden-xs event-occurrences align-right">
           <Count value={data.count} />
