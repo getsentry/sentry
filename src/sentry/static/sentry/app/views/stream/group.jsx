@@ -117,6 +117,8 @@ var StreamGroup = React.createClass({
     jQuery(el.getDOMNode()).click((event) => {
       if (event.target.tagName === 'A')
         return;
+      if (event.target.tagName === 'INPUT')
+        return;
       if (jQuery(event.target).parents('a').length !== 0)
         return;
       SelectedGroupStore.toggleSelect(this.state.data.id);
