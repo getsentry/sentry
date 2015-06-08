@@ -111,6 +111,18 @@ var StreamGroup = React.createClass({
     });
   },
 
+  componentDidMount() {
+    var el = this.refs.element;
+    if (!el) return;
+    jQuery(el.getDOMNode()).click((event) => {
+      if (event.target.tagName === 'A')
+        return;
+      if (jQuery(event.target).parents('a').length !== 0)
+        return;
+      SelectedGroupStore.toggleSelect(this.state.data.id);
+    });
+  },
+
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
@@ -133,7 +145,7 @@ var StreamGroup = React.createClass({
     }
 
     return (
-      <li className={className}>
+      <li className={className} ref="element">
         <div className="col-md-6 event-details">
           <div className="checkbox">
             <GroupCheckBox id={data.id} />
