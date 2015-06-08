@@ -62,8 +62,6 @@ var objectMatchesSubset = function(obj, other, deep){
 var valueIsEqual = function(value, other, deep) {
   if (value === other) {
     return true;
-  } else if (!deep) {
-    return false;
   } else if (value instanceof Array || other instanceof Array) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
