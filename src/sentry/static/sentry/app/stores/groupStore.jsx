@@ -40,7 +40,7 @@ var GroupStore = Reflux.createStore({
     this.pendingChanges.clear();
 
     var itemIds = new Set();
-    items.forEach(item => {
+    items.forEach((item) => {
       itemIds.add(item.id);
       this.items.push(item);
     });
@@ -53,8 +53,10 @@ var GroupStore = Reflux.createStore({
     }
 
     var itemsById = {};
+    var itemIds = new Set();
     items.forEach((item) => {
       itemsById[item.id] = item;
+      itemIds.add(item.id);
     });
 
     items.forEach((item, idx) => {
@@ -64,10 +66,8 @@ var GroupStore = Reflux.createStore({
       }
     });
 
-    var itemIds = new Set();
     for (var itemId in itemsById) {
       this.items.push(itemsById[itemId]);
-      itemIds.add(itemId);
     }
 
     this.trigger(itemIds);
