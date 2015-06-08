@@ -16,6 +16,7 @@ module.exports = {
       "moment",
       "raven-js",
       "react/addons",
+      "react-document-title",
       "react-router",
       "react-bootstrap",
       "reflux",

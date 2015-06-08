@@ -34,6 +34,7 @@
     "raven-js": "^1.1.11",
     "react": "^0.13.3",
     "react-bootstrap": "^0.13.0",
+    "react-document-title": "^1.0.2",
     "react-router": "^0.13.3",
     "react-sticky": "^2.1.0",
     "reflux": "^0.2.2",
