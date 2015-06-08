@@ -5,11 +5,13 @@ var Router = require("react-router");
 
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
-var LoadingIndicator = require("../components/loadingIndicator");
-var Header = require("../components/header");
-var PropTypes = require("../proptypes");
-var OrganizationState = require("../mixins/organizationState");
+var DocumentTitle = require("react-document-title");
 var Footer = require("../components/footer");
+var Header = require("../components/header");
+var LoadingError = require("../components/loadingError");
+var LoadingIndicator = require("../components/loadingIndicator");
+var OrganizationState = require("../mixins/organizationState");
+var PropTypes = require("../proptypes");
 var RouteMixin = require("../mixins/routeMixin");
 var TeamStore = require("../stores/teamStore");
 
@@ -37,7 +39,7 @@ var OrganizationDetails = React.createClass({
 
   getInitialState() {
     return {
-      loading: false,
+      loading: true,
       error: false,
       organization: null
     };
@@ -73,6 +75,12 @@ var OrganizationDetails = React.createClass({
         this.setBreadcrumbs([
           {name: data.name, to: 'organizationDetails'}
         ]);
+      },
+      error: () => {
+        this.setState({
+          loading: false,
+          error: true
+        });
       }
     });
   },
@@ -83,18 +91,26 @@ var OrganizationDetails = React.createClass({
     return '/organizations/' + params.orgId + '/';
   },
 
+  getTitle() {
+    if (this.state.organization)
+      return this.state.organization.name + ' | Sentry';
+    return 'Sentry';
+  },
+
   render() {
-    if (this.state.loading) {
+    if (this.state.loading)
       return <LoadingIndicator />;
-    }
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
+
     return (
-      <div>
+      <DocumentTitle title={this.getTitle()}>
         <div className="app">
           <Header />
           <Router.RouteHandler />
           <Footer />
         </div>
-      </div>
+      </DocumentTitle>
     );
   }
 });
