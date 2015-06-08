@@ -171,6 +171,15 @@ class Frame(Interface):
         if isinstance(extra_data, (list, tuple)):
             extra_data = dict(enumerate(extra_data))
 
+        # XXX: handle lines which were sent as 'null'
+        pre_context = data.get('pre_context', None)
+        if pre_context:
+            pre_context = [c or '' for c in pre_context]
+
+        post_context = data.get('post_context', None)
+        if post_context:
+            post_context = [c or '' for c in post_context]
+
         kwargs = {
             'abs_path': trim(abs_path, 256),
             'filename': trim(filename, 256),
@@ -179,8 +188,8 @@ class Frame(Interface):
             'in_app': validate_bool(data.get('in_app'), False),
             'context_line': trim(data.get('context_line'), 256),
             # TODO(dcramer): trim pre/post_context
-            'pre_context': data.get('pre_context'),
-            'post_context': data.get('post_context'),
+            'pre_context': pre_context,
+            'post_context': post_context,
             'vars': context_locals,
             'data': extra_data,
             'errors': data.get('errors'),
