@@ -1,6 +1,12 @@
 /*** @jsx React.DOM */
 
-var modelCompare = function(obj1, obj2) {
+var modelsEqual = function(obj1, obj2) {
+  if (!obj1 && !obj2)
+    return true;
+  if (obj1.id && !obj2)
+    return false;
+  if (obj2.id && !obj1)
+    return false;
   return obj1.id === obj2.id;
 };
 
@@ -167,6 +173,7 @@ module.exports = {
   arrayIsEqual: arrayIsEqual,
   objectMatchesSubset: objectMatchesSubset,
   compareArrays: compareArrays,
+  modelsEqual: modelsEqual,
   valueIsEqual: valueIsEqual,
   parseLinkHeader: require('./utils/parseLinkHeader'),
 

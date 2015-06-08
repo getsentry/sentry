@@ -115,9 +115,31 @@
             <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
           </li>
           {% if project %}
-            <li>
-              <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{{ project.name }}</a>
-            </li>
+          <li class="dropdown project-dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown"
+                href="{% url 'sentry-stream' project.organization.slug project.slug %}">
+              <span>{{ project.team.name }} / {{ project.name }}</span>
+              <i class="icon-arrow-down"></i>
+            </a>
+            <ul class="dropdown-menu">
+              <li class="project-filter" key="_filter">
+                <input type="text" placeholder="Filter projects"
+                       ref="filter" />
+              </li>
+              {% for n_team, n_project_list in TEAM_LIST %}
+                <li class="team-name">{{ team.name }}</li>
+                {% for n_project in n_project_list %}
+                  <li><a href="{% url 'sentry-stream' organization.slug n_project.slug %}">{{ n_project.name }}</a></li>
+                {% endfor %}
+              {% endfor %}
+              <li class="new-project" key="_new-project">
+                <a class="btn btn-primary"
+                   href="{% url 'sentry-create-project' organization.slug %}">
+                  <span class="icon-plus" /> Create Project
+                </a>
+              </li>
+            </ul>
+          </li>
           {% endif %}
           {% endblock %}
         </ul>
@@ -279,6 +301,12 @@
       </div>
     </div>
     <script type="text/javascript">
+    $(function() {
+      // This is duplicated from <ProjectSelector>
+      $('.project-dropdown').on('shown.bs.dropdown', function(event){
+        $(event.target).find('input[type=text]').focus();
+      });
+    });
     $(function() {
 
       var slideShow = function() {
