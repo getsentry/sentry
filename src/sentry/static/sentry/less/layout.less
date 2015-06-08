@@ -165,12 +165,17 @@ header {
       font-weight: 600;
 
       &+li {
-        padding-left: 23px;
+        padding-left: 17px;
+        margin-left: 15px;
 
         &:before {
           position: absolute;
-          left: 9px;
+          left: 0;
+          top: -2px;
+          height: 20px;
           padding: 0;
+          content: "";
+          border-left: 1px solid rgba(79, 87, 96, 0.15);
         }
       }
 
@@ -220,7 +225,7 @@ header {
       }
 
       &:nth-child(2) {
-        padding-left: 38px;
+        padding-left: 24px;
         &:before {
           display: none;
         }
