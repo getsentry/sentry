@@ -1,12 +1,12 @@
-<h6>Guides</h6>
-<ul class="list-unstyled">
+<h6 class="nav-header">Guides</h6>
+<ul class="nav nav-stacked">
   {% for page in page_list %}
       <li><a href="{% url 'sentry-help-page' page.id page.slug %}">{{ page.title }}</a></li>
   {% endfor %}
 </ul>
 
-<h6>Clients</h6>
-<ul class="list-unstyled">
+<h6 class="nav-header">Clients</h6>
+<ul class="nav nav-stacked">
   <li class="{% block client_overview_class %}{% endblock %}"><a href="{% url 'sentry-help-platform-list' %}">Overview</a></li>
   <li class="{% ifequal platform "python" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'python' %}">Python</a></li>
   <li class="{% ifequal platform "php" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'php' %}">PHP</a></li>
@@ -17,8 +17,8 @@
   <li class="{% ifequal platform "go" %}active{% endifequal %}"><a href="{% url 'sentry-help-platform' 'go' %}">Go</a></li>
 </ul>
 
-<h6>API Reference</h6>
-<ul class="list-unstyled">
+<h6 class="nav-header">API Reference</h6>
+<ul class="nav nav-stacked">
     <li><a href="{% url 'sentry-api-0-help' %}">Overview</a></li>
     {% for section in api_sections %}
       <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
