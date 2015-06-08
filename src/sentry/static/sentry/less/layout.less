@@ -132,9 +132,9 @@ header {
 }
 
 .sub-header {
-  background: #4b5267;
-  color: #fff;
-  // border-bottom: 1px solid @trim;
+  background: #fff;
+  color: @grayDark;
+  border-bottom: 1px solid @trim;
   position: relative;
   height: 66px;
   padding: 25px 0 0;
@@ -203,7 +203,7 @@ header {
           }
 
           &:hover:before {
-            color: #fff;
+            color: @grayDark;
           }
         }
       }
@@ -211,10 +211,10 @@ header {
       &:last-child {
         a {
           font-weight: 400;
-          color: rgba(255,255,255, .9);
+          color: lighten(@grayDark, 20);
 
           &:hover {
-            color: rgba(255,255,255, 1);
+            color: @grayDark;
           }
         }
       }
@@ -252,9 +252,9 @@ header {
   }
 
   a {
-    color: rgba(255,255,255, .9);
+    color: lighten(@grayDark, 20);
     &:hover, &:active, &:focus {
-      color: rgba(255,255,255, 1);
+      color: @grayDark;
       text-decoration: none;
     }
   }
@@ -283,15 +283,7 @@ header {
       margin: 0 0 0 20px;
 
       a {
-        color: rgba(255, 255, 255, .8);
         padding-bottom: 19px;
-        &:hover, &:active, &:focus {
-          color: rgba(255, 255, 255, 1) !important;
-        }
-      }
-
-      &.active a, &.active a:active, &.active a:hover {
-        color: rgba(255, 255, 255, 1);
       }
     }
   }
