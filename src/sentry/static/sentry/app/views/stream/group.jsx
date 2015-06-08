@@ -94,7 +94,7 @@ var StreamGroup = React.createClass({
     if (nextProps.statsPeriod !== this.props.statsPeriod) {
       return true;
     }
-    if (!valueIsEqual(this.state.data, nextState.data, true)) {
+    if (!valueIsEqual(this.state.data, nextState.data)) {
       return true;
     }
     return false;
