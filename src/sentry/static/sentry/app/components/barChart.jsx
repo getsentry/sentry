@@ -4,7 +4,7 @@ var jQuery = require("jquery");
 var moment = require("moment");
 var React = require("react");
 
-var TooltipTrigger = require("./TooltipTrigger");
+var TooltipTrigger = require("./tooltipTrigger");
 var {valueIsEqual} = require("../utils");
 
 var BarChart = React.createClass({
