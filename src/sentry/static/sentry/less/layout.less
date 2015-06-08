@@ -143,6 +143,12 @@ header {
   font-size: 16px;
   .clearfix;
 
+  .container {
+    overflow-x: hidden;
+    overflow-y: visible;
+    height: 100vh;
+  }
+
   .logo-logged-in {
     position: relative;
     padding-left: 38px;
@@ -157,7 +163,6 @@ header {
     padding: 0;
     margin-bottom: 0;
     white-space: nowrap;
-    float: left;
     position: relative;
 
     > li {
@@ -284,10 +289,38 @@ header {
   }
 
   .nav-tabs {
+    position: relative;
     margin-top: -3px;
+    z-index: 2;
+
+    &:before {
+      display: block;
+      content: "";
+      position: absolute;
+      background: #fff;
+      top: -19px;
+      bottom: -40px;
+      right: -20px;
+      left: 0;
+      z-index: 1;
+    }
+
+    &:after {
+      display: block;
+      content: "";
+      position: absolute;
+      width: 90px;
+      height: 35px;
+      top: -5px;
+      left: -90px;
+      z-index: 2;
+      #gradient > .horizontal(rgba(255,255,255, 0), rgba(255,255,255, 1));
+    }
 
     li {
       margin: 0 0 0 20px;
+      position: relative;
+      z-index: 2;
 
       a {
         padding-bottom: 19px;
