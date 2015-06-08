@@ -6,23 +6,29 @@ var GroupStore = require("./groupStore");
 
 var SelectedGroupStore = Reflux.createStore({
   init() {
-    this.listenTo(GroupStore, this.onAggListChange);
-
     this.allSelected = false;
     this.anySelected = false;
     this.multiSelected = false;
 
-    this.selected = new Set();
+    this.records = {};
+
+    this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange);
   },
 
-  onAggListChange() {
+  onGroupChange(itemIds) {
     var existingIds = new Set(GroupStore.getAllItemIds());
     // prune ids that no longer exist
-    this.selected.forEach((itemId) => {
+    for (var itemId in this.records) {
       if (!existingIds.has(itemId)) {
-        this.selected.delete(itemId);
+        delete this.records[itemId];
+      }
+    }
+    itemIds.forEach((itemId) => {
+      if (typeof this.records[itemId] === "undefined") {
+        this.records[itemId] = this.allSelected;
       }
     });
+    this.refresh();
     this.trigger();
   },
 
@@ -34,42 +40,37 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   getSelectedIds() {
-    if (this.allSelected) {
-      return new Set(GroupStore.getAllItemIds());
+    var selected = new Set();
+    for (var itemId in this.records) {
+      if (this.records[itemId] === true) {
+        selected.add(itemId);
+      }
     }
-    return this.selected;
+    return selected;
   },
 
   isSelected(itemId) {
-    return this.selected.has(itemId);
+    return this.records[itemId] === true;
   },
 
   clearAll() {
-    this.selected.clear();
+    this.records = {};
     this.allSelected = false;
     this.refresh();
     this.trigger();
   },
 
   toggleSelect(itemId) {
-    if (this.selected.has(itemId)) {
-      this.selected.delete(itemId);
-    } else {
-      this.selected.add(itemId);
-    }
+    this.records[itemId] = !this.records[itemId];
     this.refresh();
     this.trigger();
   },
 
   toggleSelectAll() {
     this.allSelected = !this.allSelected;
-    GroupStore.getAllItemIds().forEach((itemId) => {
-      if (this.allSelected) {
-        this.selected.add(itemId);
-      } else {
-        this.selected.delete(itemId);
-      }
-    });
+    for (var itemId in this.records) {
+      this.records[itemId] = this.allSelected;
+    }
     this.refresh();
     this.trigger();
   },
