@@ -90,7 +90,7 @@ var ProjectSelector = React.createClass({
     var title = <span>{activeTeam.name} / {activeProject.name}</span>;
 
     return (
-      <DropdownLink title={title} className="project-dropdown"
+      <DropdownLink title={title} topLevelClasses="project-dropdown"
           onOpen={this.onOpen} onClose={this.onClose}>
         <li className="project-filter" key="_filter">
           <input type="text" placeholder="Filter projects"
