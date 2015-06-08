@@ -13,19 +13,15 @@
   </div>
 
   <h3>Event Throughput</h3>
-  <div id="chart" class="chart"></div>
+  <div id="blk_chart"></div>
 
   <script>
   $(function(){
-    var $chart = $('#chart');
-    var $projectData = $('#project_data');
     var rawData = {"events.total": null, "events.dropped": null};
-    var statsEndpoint = app.config.urlPrefix + '/api/0/internal/stats/';
+    var statsEndpoint = '{{ URL_PREFIX }}/api/0/internal/stats/';
     var stats = {received: [], rejected: []};
     var systemTotal = {received: 0, rejected: 0, accepted: 0};
     var pendingRequests = 2;
-
-    $chart.height('250px');
 
     $.each(rawData, function(statName, _) {
       // query the organization stats via a separate call as its possible the project stats
@@ -114,56 +110,10 @@
         }
       ];
 
-      var options = {
-        xaxis: {
-          mode: "time",
-          minTickSize: [1, "day"],
-          tickFormatter: Sentry.charts.tickFormatter
-        },
-        yaxis: {
-          min: 0,
-          tickFormatter: function(value) {
-            if (value > 999999) {
-              return (value / 1000000) + 'mm';
-            }
-            if (value > 999) {
-              return (value / 1000) + 'k';
-            }
-            return value;
-          }
-        },
-        tooltip: true,
-        tooltipOpts: {
-          content: function(label, xval, yval, flotItem) {
-            xval = parseInt(xval, 10);
-            if(typeof yval.toLocaleString == "function") {
-                return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
-            }
-            return yval + ' events<br>' + moment(xval).format('llll');
-          },
-          defaultTheme: false
-        },
-        grid: {
-          show: true,
-          hoverable: true,
-          backgroundColor: '#ffffff',
-          borderColor: '#DEE3E9',
-          borderWidth: 2,
-          tickColor: '#f0f0f0'
-        },
-        hoverable: false,
-        legend: {
-            noColumns: 2,
-            position: 'nw'
-        },
-        lines: { show: false }
-      };
-
-      $.plot($chart, points, options);
-
-      $(window).resize(function(){
-        $.plot($chart, points, options);
-      });
+      React.render(React.createFactory(FlotChart)({
+         className: "chart",
+         plotData: points
+      }), document.getElementById('blk_chart'));
     }
   });
   </script>
