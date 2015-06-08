@@ -8,8 +8,11 @@ var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var ConfigStore = require("../stores/configStore");
 var DropdownLink = require("../components/dropdownLink");
+var DocumentTitle = require("react-document-title");
 var MemberListStore = require("../stores/memberListStore");
 var MenuItem = require("../components/menuItem");
+var {modelsEqual} = require("../utils");
+var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var ProjectHeader = require("../components/projectHeader");
 var OrganizationState = require("../mixins/organizationState");
@@ -90,7 +93,7 @@ var ProjectSelector = React.createClass({
     var title = <span>{activeTeam.name} / {activeProject.name}</span>;
 
     return (
-      <DropdownLink title={title} className="project-dropdown"
+      <DropdownLink title={title} topLevelClasses="project-dropdown"
           onOpen={this.onOpen} onClose={this.onClose}>
         <li className="project-filter" key="_filter">
           <input type="text" placeholder="Filter projects"
@@ -136,6 +139,8 @@ var ProjectDetails = React.createClass({
 
   getInitialState() {
     return {
+      loading: true,
+      error: false,
       memberList: [],
       project: null,
       team: null,
@@ -145,6 +150,17 @@ var ProjectDetails = React.createClass({
 
   componentWillMount() {
     this.fetchData();
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (!modelsEqual(prevState.project, this.state.project)) {
+      var project = this.state.project;
+      var org = this.getOrganization();
+      this.setBreadcrumbs([
+        <ProjectSelector organization={org} projectId={this.project.slug}
+                         router={this.context.router} />
+      ]);
+    }
   },
 
   routeDidChange(nextPath, nextParams) {
@@ -162,25 +178,26 @@ var ProjectDetails = React.createClass({
       return;
     }
 
+    this.setState({
+      loading: true,
+      error: false
+    });
+
     var router = this.context.router;
     var params = router.getCurrentParams();
     var projectSlug = params.projectId;
-    var activeProject;
+    var activeProject = null;
+    var activeTeam = null;
     org.teams.forEach((team) => {
       team.projects.forEach((project) => {
         if (project.slug == projectSlug) {
           activeProject = project;
+          activeTeam = team;
         }
       });
     });
 
-    this.setState({
-      project: activeProject,
-      loading: false,
-      error: typeof activeProject !== "undefined"
-    });
-
-    if (typeof activeProject !== "undefined") {
+    if (activeProject) {
       // TODO(dcramer): move member list to organization level
       api.request(this.getMemberListEndpoint(), {
         success: (data) => {
@@ -188,9 +205,16 @@ var ProjectDetails = React.createClass({
         }
       });
 
-      this.setBreadcrumbs([
-        <ProjectSelector organization={org} projectId={projectSlug} router={this.context.router} />
-      ]);
+      this.setState({
+        project: activeProject,
+        team: activeTeam,
+        loading: false
+      });
+    } else {
+      this.setState({
+        loading: false,
+        error: true
+      });
     }
   },
 
@@ -206,22 +230,32 @@ var ProjectDetails = React.createClass({
     });
   },
 
+  getTitle() {
+    if (this.state.project)
+      return this.state.team.name + ' / ' + this.state.project.name + ' | Sentry';
+    return 'Sentry';
+  },
+
   render() {
-    if (!this.state.project) {
+    if (this.state.loading)
       return <LoadingIndicator />;
-    }
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
+
     return (
-      <div>
-        <ProjectHeader activeSection={this.state.projectNavSection} />
-        <div className="container">
-          <div className="content">
-            <Router.RouteHandler
-                memberList={this.state.memberList}
-                setProjectNavSection={this.setProjectNavSection}
-                {...this.props} />
+      <DocumentTitle title={this.getTitle()}>
+        <div>
+          <ProjectHeader activeSection={this.state.projectNavSection} />
+          <div className="container">
+            <div className="content">
+              <Router.RouteHandler
+                  memberList={this.state.memberList}
+                  setProjectNavSection={this.setProjectNavSection}
+                  {...this.props} />
+            </div>
           </div>
         </div>
-      </div>
+      </DocumentTitle>
     );
   }
 });
