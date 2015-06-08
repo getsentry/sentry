@@ -653,7 +653,7 @@ msgstr ""
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
-msgstr "Сторунку не знайдено"
+msgstr "Сторінку не знайдено"
 
 #: templates/sentry/404.html:12
 msgid "The page you are looking for was not found."
