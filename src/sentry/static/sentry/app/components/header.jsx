@@ -34,7 +34,6 @@ var UserNav = React.createClass({
       <DropdownLink
           topLevelClasses={this.props.className}
           menuClasses="dropdown-menu-right"
-          openOnHover={true}
           title={title}>
         <MenuItem href={urlPrefix + '/account/settings/'}>Account</MenuItem>
         <MenuItem href={urlPrefix + '/auth/logout/'}>Sign out</MenuItem>
@@ -67,7 +66,6 @@ var OrganizationSelector = React.createClass({
       <DropdownLink
           menuClasses="dropdown-menu-right"
           topLevelClasses={(this.props.className || "") + " org-selector"}
-          openOnHover={true}
           title={activeOrg.name}>
         {OrganizationStore.getAll().map((org) => {
           return (
