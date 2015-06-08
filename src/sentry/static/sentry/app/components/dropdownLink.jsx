@@ -14,14 +14,12 @@ var DropdownLink = React.createClass({
     disabled:  React.PropTypes.bool,
     onOpen:    React.PropTypes.func,
     onClose:   React.PropTypes.func,
-    openOnHover: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
       disabled: false,
       caret: true,
-      openOnHover: false
     };
   },
 
@@ -33,17 +31,6 @@ var DropdownLink = React.createClass({
     }
     if (this.props.onClose) {
       $container.on('hidden.bs.dropdown', this.props.onClose);
-    }
-    if (this.props.openOnHover) {
-      $container.hover(() => {
-        // forceibly ensure that dropdown works as expected
-        $container.removeClass('open');
-        $toggle.dropdown('toggle');
-      }, () => {
-        if ($container.hasClass('open')) {
-          $toggle.dropdown('toggle');
-        }
-      });
     }
   },
 
