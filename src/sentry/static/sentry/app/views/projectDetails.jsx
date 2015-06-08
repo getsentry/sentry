@@ -153,14 +153,12 @@ var ProjectDetails = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (!modelsEqual(prevState.project, this.state.project)) {
-      var project = this.state.project;
-      var org = this.getOrganization();
-      this.setBreadcrumbs([
-        <ProjectSelector organization={org} projectId={this.project.slug}
-                         router={this.context.router} />
-      ]);
-    }
+    var project = this.state.project;
+    var org = this.getOrganization();
+    this.setBreadcrumbs([
+      <ProjectSelector organization={org} projectId={this.state.project.slug}
+                       router={this.context.router} />
+    ]);
   },
 
   routeDidChange(nextPath, nextParams) {
