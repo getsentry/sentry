@@ -7,9 +7,9 @@ function renderValue(value) {
   function walk(value) {
     var i = 0, children = [];
     if (value === null) {
-      return <span className="val-null">null</span>;
+      return <span className="val-null">None</span>;
     } else if (value === true || value === false) {
-      return <span className="val-bool">{value + ''}</span>;
+      return <span className="val-bool">{value ? 'True' : 'False'}</span>;
     } else if (typeof value === 'string' || value instanceof String) {
       // consider auto quoting?
       return <span className="val-string">{value}</span>;
