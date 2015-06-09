@@ -20,7 +20,7 @@ var ExceptionContent = React.createClass({
                 <span>{exc.type}</span>
               </h4>
               {exc.value &&
-                <div className="exc-message">{exc.value}</div>
+                <pre className="exc-message">{exc.value}</pre>
               }
               <StacktraceContent data={exc.stacktrace} />
             </div>
@@ -43,7 +43,7 @@ var RawExceptionContent = React.createClass({
                 <span>{exc.type}</span>
               </h4>
               {exc.value &&
-                <div className="exc-message">{exc.value}</div>
+                <pre className="exc-message">{exc.value}</pre>
               }
               <RawStacktraceContent data={exc.stacktrace} />
             </div>
