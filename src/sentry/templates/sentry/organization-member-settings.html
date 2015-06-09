@@ -8,7 +8,7 @@
 
 {% block main %}
   <div class="page-header">
-    <div class="pull-right">
+    <div class="pull-right" style="margin-top: 5px">
       <a href="{% url 'sentry-organization-members' organization.slug %}">Back to Organization Members</a>
     </div>
     <h2>
@@ -26,15 +26,15 @@
 
     {{ form|as_crispy_errors }}
 
-    <fieldset>
-      <div class="control-group">
+    <fieldset class="row">
+      <div class="control-group col-md-6">
         <label>{% trans "Email" %}</label>
         <div class="controls">
           <a href="mailto:{{ member.get_email }}">{{ member.get_email }}</a>
         </div>
       </div>
 
-      <div class="control-group">
+      <div class="control-group col-md-6">
         <label>{% trans "Status" %}</label>
         <div class="controls">
           {% if member.is_pending %}
@@ -44,28 +44,34 @@
           {% endif %}
         </div>
       </div>
-
+      <div style="padding: 0 15px;">
       {{ form.type|as_crispy_field }}
+      </div>
     </fieldset>
 
+    <hr>
+
     <fieldset>
-      <h2>{% trans "Teams" %}</h2>
+      <div class="pull-right" style="margin-top: -7px">{{ form.has_global_access|as_crispy_field }}</div>
+      <h3>
+        {% trans "Teams" %}
+      </h3>
 
-      {{ form.has_global_access|as_crispy_field }}
-
-      <fieldset class="team-choices">
-        {% for team_id, team_name in form.teams.field.choices %}
-          <div class="control-group">
-            <div class="controls">
-              <label class="checkbox">
-                <input type="checkbox" name="teams" value="{{ team_id }}"
-                       class="checkboxinput"{% if team_id in form.teams.value %} checked="checked"{% endif %}>
-                  {{ team_name }}
-                </label>
+      <div class="box" style="padding: 15px 20px 0">
+        <fieldset class="team-choices row">
+          {% for team_id, team_name in form.teams.field.choices %}
+            <div class="control-group col-md-4">
+              <div class="controls">
+                <label class="checkbox">
+                  <input type="checkbox" name="teams" value="{{ team_id }}"
+                         class="checkboxinput"{% if team_id in form.teams.value %} checked="checked"{% endif %}>
+                    {{ team_name }}
+                  </label>
+              </div>
             </div>
-          </div>
-        {% endfor %}
-      </fieldset>
+          {% endfor %}
+        </fieldset>
+      </div>
     </fieldset>
 
     <div class="form-actions">
