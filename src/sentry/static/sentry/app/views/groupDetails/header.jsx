@@ -85,6 +85,14 @@ var GroupHeader = React.createClass({
         </div>
         <GroupSeenBy />
         <GroupActions />
+        <div className="pull-right">
+          <div className="group-notifications">
+            <a href="#"><span className="icon"></span>Turn notifications off</a>
+          </div>
+          <div className="group-privacy">
+            <a href="#"><span className="icon"></span>Make this event public</a>
+          </div>
+        </div>
         <ul className="nav nav-tabs">
           <ListLink to="groupOverview" params={groupRouteParams}>
             Overview
