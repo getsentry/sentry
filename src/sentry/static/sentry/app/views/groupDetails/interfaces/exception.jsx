@@ -81,7 +81,7 @@ var ExceptionInterface = React.createClass({
 
     var title = (
       <span>
-        Stacktrace
+        Exception
         <label className="pull-right">
           <input type="checkbox" onChange={this.toggleRaw} checked={this.state.raw} />
           Raw
