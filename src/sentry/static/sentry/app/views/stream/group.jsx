@@ -152,7 +152,7 @@ var StreamGroup = React.createClass({
           <div className="checkbox">
             <GroupCheckBox id={data.id} />
           </div>
-          <h3>
+          <h3 className="truncate">
             <Router.Link to="groupDetails"
                   params={{orgId: params.orgId, projectId: params.projectId, groupId: data.id}}>
               <span className="icon icon-bookmark"></span>
