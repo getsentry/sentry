@@ -49,11 +49,7 @@ var GroupOverview = React.createClass({
   },
 
   fetchData() {
-    var eventId = this.context.router.getCurrentParams().eventId || 'latest';
-
-    var url = (eventId === 'latest' ?
-      '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
-      '/events/' + eventId + '/');
+    var url = '/groups/' + this.getGroup().id + '/events/latest/';
 
     this.setState({
       loading: true,
@@ -88,29 +84,6 @@ var GroupOverview = React.createClass({
   render() {
     var group = this.getGroup();
     var evt = this.state.event;
-    var params = this.context.router.getCurrentParams();
-
-    if (evt) {
-      var eventNavNodes = [
-        (evt.nextEventID ?
-          <Router.Link to="groupEventDetails"
-            params={{orgId: params.orgId,
-                     projectId: params.projectId,
-                     groupId: params.groupId,
-                     eventId: evt.nextEventID}}
-            className="btn btn-default btn-lg">Newer</Router.Link>
-        : <a class="btn btn-default btn-lg disabled">Newer</a>),
-        (evt.previousEventID ?
-          <Router.Link to="groupEventDetails"
-            params={{orgId: params.orgId,
-                     projectId: params.projectId,
-                     groupId: params.groupId,
-                     eventId: evt.previousEventID}}
-            className="btn btn-default btn-lg">Older</Router.Link>
-        : <a class="btn btn-default btn-lg disabled">Older</a>),
-      ];
-    }
-
     var firstRelease = (group.firstRelease ?
       group.firstRelease.version :
       <span>&mdash;</span>);
