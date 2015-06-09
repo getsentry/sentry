@@ -149,6 +149,14 @@ module.exports = {
     return true;
   },
 
+  trim(str) {
+    return str.replace(/^\s+|\s+$/g,'');
+  },
+
+  defined(item) {
+    return typeof item !== "undefined" && item !== null;
+  },
+
   nl2br(str) {
     return str.replace(/\r?\n/, '<br />');
   },

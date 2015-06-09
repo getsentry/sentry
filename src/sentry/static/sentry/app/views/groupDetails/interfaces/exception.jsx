@@ -5,7 +5,54 @@ var classSet = require("react/lib/cx");
 
 var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
+var RawStacktraceContent = require("./rawStacktraceContent");
 var StacktraceContent = require("./stacktraceContent");
+
+var ExceptionContent = React.createClass({
+  render() {
+    // TODO(dcramer): implement exceptions omitted
+    return (
+      <div>
+        {this.props.values.map((exc, excIdx) => {
+          return (
+            <div key={excIdx}>
+              <h4>
+                <span>{exc.type}</span>
+              </h4>
+              {exc.value &&
+                <div className="exc-message">{exc.value}</div>
+              }
+              <StacktraceContent data={exc.stacktrace} />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+});
+
+var RawExceptionContent = React.createClass({
+  render() {
+    // TODO(dcramer): implement exceptions omitted
+    return (
+      <div>
+        {this.props.values.map((exc, excIdx) => {
+          return (
+            <div key={excIdx}>
+              <h4>
+                <span>{exc.type}</span>
+              </h4>
+              {exc.value &&
+                <div className="exc-message">{exc.value}</div>
+              }
+              <RawStacktraceContent data={exc.stacktrace} />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+});
 
 var ExceptionInterface = React.createClass({
   propTypes: {
@@ -15,33 +62,44 @@ var ExceptionInterface = React.createClass({
     data: React.PropTypes.object.isRequired
   },
 
+  getInitialState() {
+    return {
+      raw: false
+    };
+  },
+
+  toggleRaw() {
+    this.setState({
+      raw: !this.state.raw
+    });
+  },
+
   render() {
     var group = this.props.group;
     var evt = this.props.event;
     var data = this.props.data;
 
-    // TODO(dcramer): implement exceptions omitted
-    var children = data.values.map((exc, excIdx) => {
-      return (
-        <div key={excIdx}>
-          <h4>
-            <span>{exc.type}</span>
-          </h4>
-          {exc.value &&
-            <div className="exc-message">{exc.value}</div>
-          }
-          <StacktraceContent data={exc.stacktrace} />
-        </div>
-      );
-    });
+    var title = (
+      <span>
+        Stacktrace
+        <label className="pull-right">
+          <input type="checkbox" onChange={this.toggleRaw} checked={this.state.raw} />
+          Raw
+        </label>
+      </span>
+    );
 
     return (
       <GroupEventDataSection
           group={group}
           event={evt}
           type={this.props.type}
-          title="Exception">
-        {children}
+          title={title}>
+        {this.state.raw ?
+          <RawExceptionContent values={data.values} />
+        :
+          <ExceptionContent values={data.values} />
+        }
       </GroupEventDataSection>
     );
   }
