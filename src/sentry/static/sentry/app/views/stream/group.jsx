@@ -159,7 +159,7 @@ var StreamGroup = React.createClass({
               {data.title}
             </Router.Link>
           </h3>
-          <div className="event-message">
+          <div className="event-message truncate">
             <span className="message">{data.culprit}</span>
           </div>
           <div className="event-meta">
