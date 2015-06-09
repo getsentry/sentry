@@ -6,6 +6,7 @@ var Sticky = require("react-sticky");
 var GroupEventDataSection = require("./eventDataSection");
 var PropTypes = require("../../proptypes");
 var utils = require("../../utils");
+var ContextData = require("../../components/contextData");
 
 var GroupEventExtraData = React.createClass({
   propTypes: {
@@ -24,7 +25,7 @@ var GroupEventExtraData = React.createClass({
       children.push(<dt key={'dt-' + key}>{key}</dt>);
       children.push((
         <dd key={'dd-' + key}>
-          <pre>{JSON.stringify(context[key], null, 2)}</pre>
+          <ContextData data={context[key]} />
         </dd>
       ));
     }

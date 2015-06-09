@@ -7,9 +7,17 @@ var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
 var {defined} = require("../../../utils");
 
+var ContextData = require("../../../components/contextData");
+
 var FrameVariables = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
+  },
+
+  // make sure that clicking on the variables does not actually do
+  // anything on the containing element.
+  preventToggling(event) {
+    event.stopPropagation();
   },
 
   render() {
@@ -21,12 +29,14 @@ var FrameVariables = React.createClass({
       children.push(<dt key={'dt-' + key}>{key}</dt>);
       children.push((
         <dd key={'dd-' + key}>
-          <pre>{JSON.stringify(value, null, 2)}</pre>
+          <ContextData data={value} />
         </dd>
       ));
     }
 
-    return <dl className="vars expandable">{children}</dl>;
+    return (
+      <dl className="vars expandable" onClick={this.preventToggling}>{children}</dl>
+    );
   }
 });
 

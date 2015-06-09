@@ -1052,3 +1052,53 @@ div.commands {
     }
   }
 }
+
+pre.val, span.val {
+  span {
+    display: inline;
+  }
+}
+
+.val-string {
+  color: @green;
+}
+
+.val-number {
+  color: @pink;
+}
+
+.val-bool, .val-null {
+  color: @blue;
+  font-weight: bold;
+}
+
+.val-dict {
+  display: block;
+
+  .val-dict-items {
+    display: block;
+    padding: 0 0 0 15px;
+
+    .val-dict-pair {
+      display: block;
+
+    }
+  }
+
+  .val-dict-key, .val-dict-key .val-string {
+    color: @red;
+  }
+}
+
+.val-array {
+  display: block;
+
+  .val-array-items {
+    display: block;
+    padding: 0 0 0 15px;
+
+    .val-array-item {
+      display: block;
+    }
+  }
+}
