@@ -5,6 +5,7 @@ var classSet = require("react/lib/cx");
 
 var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
+var {defined} = require("../../../utils");
 
 var FrameVariables = React.createClass({
   propTypes: {
@@ -40,10 +41,6 @@ var Frame = React.createClass({
     };
   },
 
-  isDefined(item) {
-    return typeof item !== "undefined" && item !== null;
-  },
-
   isUrl(filename) {
     if (!filename) {
       return false;
@@ -68,25 +65,25 @@ var Frame = React.createClass({
 
     var title = [];
 
-    if (this.isDefined(data.filename || data.module)) {
+    if (defined(data.filename || data.module)) {
       title.push(<code key="filename">{data.filename || data.module}</code>);
       if (this.isUrl(data.absPath)) {
         title.push(<a href={data.absPath} className="icon-share" key="share" />);
       }
-      if (this.isDefined(data.function)) {
+      if (defined(data.function)) {
         title.push(<span className="in-at" key="in"> in </span>);
       }
     }
 
-    if (this.isDefined(data.function)) {
+    if (defined(data.function)) {
         title.push(<code key="function">{data.function}</code>);
     }
 
-    if (this.isDefined(data.lineNo)) {
+    if (defined(data.lineNo)) {
       // TODO(dcramer): we need to implement source mappings
       // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
       title.push(<span className="in-at" key="at"> at line </span>);
-      if (this.isDefined(data.colNo)) {
+      if (defined(data.colNo)) {
         title.push(<code key="line">{data.lineNo}:{data.colNo}</code>);
       } else {
         title.push(<code key="line">{data.lineNo}</code>);
@@ -99,12 +96,12 @@ var Frame = React.createClass({
     }
 
     var context = '';
-    if (this.isDefined(data.context) && data.context.length) {
+    if (defined(data.context) && data.context.length) {
       var startLineNo = data.context[0][0];
       context = (
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
-        {this.isDefined(data.errors) &&
+        {defined(data.errors) &&
           <li className="expandable error"
               key="errors">{data.errors.join(", ")}</li>
         }
@@ -119,7 +116,7 @@ var Frame = React.createClass({
             lineWs}</span><span className="contextline">{lineCode
             }</span> <span className="icon-plus"></span></li>;
         })}
-        {this.isDefined(data.vars) &&
+        {defined(data.vars) &&
           <FrameVariables data={data.vars} key="vars" />
         }
         </ol>
