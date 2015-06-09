@@ -95,7 +95,7 @@ var GroupTags = React.createClass({
                 <span className="pull-right">
                   <Link to="groupTagValues" params={routeParams}>More Details</Link>
                 </span>
-                <h5>{tag.name} (<Count value={tag.totalValues} />)</h5>
+                <h5>{tag.name} (<Count value={tag.uniqueValues} />)</h5>
               </div>
               <div className="box-content with-padding">
                 <ul className="list-unstyled">
