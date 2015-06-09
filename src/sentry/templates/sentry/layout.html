@@ -98,6 +98,11 @@
         </div>
         {% endblock %}
         {% endif %}
+        <ul class="global-nav pull-right">
+          {% block global_nav %}
+          <li><a href="{% url 'sentry-help' %}">Docs</a></li>
+          {% endblock %}
+        </ul>
       </div>
     </header>
     {% endblock %}
