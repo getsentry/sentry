@@ -1,28 +1,3 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/modal.html" %}
 
-{% load i18n %}
-{% load sentry_permissions %}
-
-{% block title %}{{ project.name }} | {{ team.name }} | {{ block.super }}{% endblock %}
-
-{% block wrapperclass %}stream{% endblock %}
-
-{% block page_header %}
-    {{ block.super }}
-    <ul class="nav nav-tabs project-nav hidden-xs" style="margin-bottom: 20px;">
-        <li class="active">
-            <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{% trans "Stream" %}</a>
-        </li>
-        {% if ACCESS.project_write %}
-            <li>
-                <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}" title="{% trans "Project Settings" %}">
-                    <span class="icon-settings"></span>
-                    {% trans "Project Settings" %}
-                </a>
-            </li>
-        {% endif %}
-        <li class="pull-right hidden-xs broadcast">
-            <broadcast></broadcast>
-        </li>
-    </ul>
-{% endblock %}
+{% block title %}{{ team.name }} / {{ project.name }} | {{ block.super }}{% endblock %}
