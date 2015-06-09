@@ -2,6 +2,7 @@
 
 var React = require("react");
 
+var ConfigStore = require("../../../stores/configStore");
 var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../../proptypes");
 var utils = require("../../../utils");
@@ -83,6 +84,11 @@ var RequestInterface = React.createClass({
     data: React.PropTypes.object.isRequired
   },
 
+  contextTypes: {
+    organization: PropTypes.Organization.isRequired,
+    project: PropTypes.Project.isRequired
+  },
+
   render: function(){
     var group = this.props.group;
     var evt = this.props.event;
@@ -106,10 +112,21 @@ var RequestInterface = React.createClass({
     var parsedUrl = document.createElement("a");
     parsedUrl.href = fullUrl;
 
+    var org = this.context.organization;
+    var project = this.context.project;
+    var urlPrefix = (
+      ConfigStore.get('urlPrefix') + '/' + org.slug + '/' +
+      project.slug + '/group/' + group.id
+    );
+
     var title = (
       <h3>
         <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
-        <div className="pull-right">{parsedUrl.hostname}</div>
+        <div className="pull-right">
+          {parsedUrl.hostname}
+          <a href={urlPrefix + '/events/' + evt.id + '/replay/'}
+             className="btn btn-sm btn-default">Replay Request</a>
+        </div>
       </h3>
     );
 
