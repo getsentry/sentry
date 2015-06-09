@@ -183,6 +183,80 @@
   }
 }
 
+.group-notifications, .group-privacy {
+  float: left;
+  margin: 22px 0 0 22px;
+  font-size: 14px;
+
+  a {
+    color: lighten(@gray, 6);
+    &:hover {
+      color: darken(@gray, 16);
+    }
+  }
+
+  .icon {
+    color: lighten(@gray, 30);
+    font-size: 16px;
+    margin-right: 7px;
+    position: relative;
+    top: 1px;
+  }
+
+  &.on, &.on a:hover {
+    .icon {
+      color: @red;
+      &:after {
+        border-color: @red !important;
+      }
+    }
+  }
+}
+
+.group-notifications {
+  .icon {
+    position: relative;
+    &:before {
+      content: "\e006";
+    }
+  }
+
+  &.on, a:hover {
+    .icon {
+      &:after {
+        display: block;
+        content: "";
+        position: absolute;
+        height: 20px;
+        width: 3px;
+        border-left: 2px solid lighten(@gray, 30);
+        top: -2px;
+        left: 7px;
+        background: #fff;
+        -ms-transform: rotate(26deg); /* IE 9 */
+        -webkit-transform: rotate(26deg); /* Chrome, Safari, Opera */
+        transform: rotate(26deg);
+      }
+    }
+  }
+}
+
+.group-privacy {
+  .icon {
+    &:before {
+      content: "\e007";
+    }
+  }
+
+  &.on, a:hover {
+    .icon {
+      &:before {
+        content: "\e008";
+      }
+    }
+  }
+}
+
 // Group Overview
 
 .group-overview {
