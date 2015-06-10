@@ -34,7 +34,7 @@ var formatActivity = function(item) {
     case "set_regression":
       return "marked this event as a regression";
     case "create_issue":
-      return `created an issue on ${data.provider} titled <a href="${data.location}">${data.title}</a>`;
+      return <span>created an issue on {data.provider} titled <a href={data.location}>{data.title}</a></span>;
     case "first_seen":
       return "first saw this event";
     case "assigned":
