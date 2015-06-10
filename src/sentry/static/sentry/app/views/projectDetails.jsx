@@ -75,6 +75,9 @@ var ProjectSelector = React.createClass({
     org.teams.forEach((team) => {
       var hasTeam = false;
       team.projects.forEach((project) => {
+        if (!team.isMember) {
+          return;
+        }
         if (project.slug == this.props.projectId) {
           activeTeam = team;
           activeProject = project;
