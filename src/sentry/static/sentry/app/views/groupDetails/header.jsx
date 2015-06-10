@@ -128,7 +128,7 @@ var GroupHeader = React.createClass({
         <GroupSeenBy />
         <GroupActions />
         <div className="pull-right">
-          <div className="group-notifications">
+          <div className={(group.status === 'muted' ? 'on ' : '') + 'group-notifications'}>
             <a onClick={this.onToggleMute}>
               <span className="icon" />
               {group.status !== 'muted' ?
@@ -138,7 +138,7 @@ var GroupHeader = React.createClass({
               }
             </a>
           </div>
-          <div className="group-privacy">
+          <div className={(group.isPublic ? 'on ' : '') + 'group-privacy'}>
             <a onClick={this.onTogglePublic}>
               <span className="icon" />
               {!group.isPublic ?
