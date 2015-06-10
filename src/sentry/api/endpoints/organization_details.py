@@ -42,16 +42,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             {method} {path}
 
         """
-        if request.user.is_authenticated():
-            team_list = list(Team.objects.get_for_user(
-                organization=organization,
-                user=request.user,
-            ))
-        else:
-            team_list = list(Team.objects.filter(
-                organization=organization,
-                status=TeamStatus.VISIBLE,
-            ))
+        team_list = list(Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ))
 
         feature_list = []
         if features.has('organizations:sso', organization, actor=request.user):
