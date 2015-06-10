@@ -1102,3 +1102,48 @@ pre.val, span.val {
     }
   }
 }
+
+.val-toggle {
+  > a.val-toggle-link:before {
+    content: "+";
+  }
+
+  > .val-array-items, > .val-dict-items {
+    display: none;
+  }
+
+  &.val-toggle-open {
+    > a.val-toggle-link:before {
+      content: "-";
+    }
+
+    > .val-array-items, > .val-dict-items {
+      display: block;
+    }
+  }
+
+  a.val-toggle-link {
+    background: @linkColor;
+    border-radius: 2px;
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    line-height: 11px;
+    text-align: center;
+    height: 11px;
+    width: 11px;
+    display: inline-block;
+
+    &:hover {
+      background: @linkColorHover;
+    }
+  }
+
+  &.val-toggle-open > a.val-toggle-link {
+    background: @gray-light;
+  }
+
+  &.val-toggle-open > a.val-toggle-link:hover {
+    background: @gray;
+  }
+}
