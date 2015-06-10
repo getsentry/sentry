@@ -48,6 +48,9 @@ def load_data(platform, default=None):
         'emptyList': [],
         'emptyMap': {},
     }
+    data['modules'] = {
+        'my.package': '1.0.0',
+    }
     data['sentry.interfaces.Http'] = {
         "cookies": {},
         "url": "http://example.com/foo",
