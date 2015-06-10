@@ -21,7 +21,10 @@ var ContextData = React.createClass({
       event.preventDefault();
     }
 
-    function makeToggle(collapsed, children) {
+    function makeToggle(collapsed, childCount, children) {
+      if (childCount === 0) {
+        return null;
+      }
       var className = "val-toggle";
       if (!collapsed) {
         className += " val-toggle-open";
@@ -59,7 +62,8 @@ var ContextData = React.createClass({
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            {makeToggle(collapsed, <span className="val-array-items">{children}</span>)}
+            {makeToggle(collapsed, children.length,
+                        <span className="val-array-items">{children}</span>)}
             <span className="val-array-marker">{']'}</span>
           </span>
         );
@@ -83,7 +87,8 @@ var ContextData = React.createClass({
         return (
           <span className="val-dict">
             <span className="val-dict-marker">{'{'}</span>
-            {makeToggle(collapsed, <span className="val-dict-items">{children}</span>)}
+            {makeToggle(collapsed, children.length,
+                        <span className="val-dict-items">{children}</span>)}
             <span className="val-dict-marker">{'}'}</span>
           </span>
         );
