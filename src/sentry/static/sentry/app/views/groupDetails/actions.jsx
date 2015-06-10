@@ -39,26 +39,6 @@ var GroupActions = React.createClass({
     });
   },
 
-  onToggleMute() {
-    var group = this.getGroup();
-    var project = this.getProject();
-    var org = this.getOrganization();
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
-
-    api.bulkUpdate({
-      orgId: org.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data: {
-        status: group.status === 'muted' ? 'unresolved' : 'muted'
-      }
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
-  },
-
   onToggleResolve() {
     var group = this.getGroup();
     var project = this.getProject();
@@ -132,26 +112,21 @@ var GroupActions = React.createClass({
             <span className="icon-trash"></span>
           </LinkWithConfirmation>
         </div>
-        <div className="btn-group more">
-          <DropdownLink
-              className="btn btn-default btn-sm"
-              title="More">
-            <MenuItem onSelect={this.onToggleMute} key="mute">
-              {group.status !== 'muted' ?
-                'Mute this event'
-              :
-                'Unmute this event'
-              }
-            </MenuItem>
-            {group.pluginActions.map((action, actionIdx) => {
-              return (
-                <MenuItem key={actionIdx} href={action[1]}>
-                  {action[0]}
-                </MenuItem>
-              );
-            })}
-          </DropdownLink>
-        </div>
+        {group.pluginActions.length !== 0 &&
+          <div className="btn-group more">
+            <DropdownLink
+                className="btn btn-default btn-sm"
+                title="More">
+              {group.pluginActions.map((action, actionIdx) => {
+                return (
+                  <MenuItem key={actionIdx} href={action[1]}>
+                    {action[0]}
+                  </MenuItem>
+                );
+              })}
+            </DropdownLink>
+          </div>
+        }
         <div className="severity">
           <span className="severity-indicator-bg">
             <span className="severity-indicator"></span>

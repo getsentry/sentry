@@ -8,17 +8,19 @@ var AssigneeSelector = require("../../components/assigneeSelector");
 var Count = require("../../components/count");
 var GroupActions = require("./actions");
 var GroupSeenBy = require("./seenBy");
-var GroupState = require("../../mixins/groupState");
+var IndicatorStore = require("../../stores/indicatorStore");
 var ListLink = require("../../components/listLink");
+var ProjectState = require("../../mixins/projectState");
 var PropTypes = require("../../proptypes");
 
 var GroupHeader = React.createClass({
+  mixins: [ProjectState],
+
   contextTypes: {
     router: React.PropTypes.func.isRequired
   },
 
   propTypes: {
-    group: PropTypes.Group.isRequired,
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
@@ -31,6 +33,26 @@ var GroupHeader = React.createClass({
   componentWillReceiveProps(nextProps) {
     this.setState({
       activityCount: nextProps.group.activity.length
+    });
+  },
+
+  onToggleMute() {
+    var group = this.props.group;
+    var project = this.getProject();
+    var org = this.getOrganization();
+    var loadingIndicator = IndicatorStore.add('Saving changes..');
+
+    api.bulkUpdate({
+      orgId: org.slug,
+      projectId: project.slug,
+      itemIds: [group.id],
+      data: {
+        status: group.status === 'muted' ? 'unresolved' : 'muted'
+      }
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
     });
   },
 
@@ -87,7 +109,14 @@ var GroupHeader = React.createClass({
         <GroupActions />
         <div className="pull-right">
           <div className="group-notifications">
-            <a href="#"><span className="icon"></span>Turn notifications off</a>
+            <a onClick={this.onToggleMute}>
+              <span className="icon"></span>
+              {group.status !== 'muted' ?
+                'Turn notifications off'
+              :
+                'Turn notifications on'
+              }
+            </a>
           </div>
           <div className="group-privacy">
             <a href="#"><span className="icon"></span>Make this event public</a>
