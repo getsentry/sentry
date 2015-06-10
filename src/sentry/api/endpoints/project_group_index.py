@@ -30,6 +30,7 @@ class GroupSerializer(serializers.Serializer):
     ))
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
+    isPublic = serializers.BooleanField()
     merge = serializers.BooleanField()
 
 
@@ -168,6 +169,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         - status: resolved, unresolved, muted
         - hasSeen: true, false
         - isBookmarked: true, false
+        - isPublic: true, false
         - merge: true, false
 
         If any ids are out of scope this operation will succeed without any data
@@ -281,6 +283,35 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 group__in=group_ids,
                 user=request.user,
             ).delete()
+
+        if result.get('isPublic'):
+            Group.objects.filter(
+                id__in=group_ids,
+            ).update(is_public=True)
+            for group in group_list:
+                if group.is_public:
+                    continue
+                group.is_public = True
+                Activity.objects.create(
+                    project=group.project,
+                    group=group,
+                    type=Activity.SET_PUBLIC,
+                    user=request.user,
+                )
+        elif result.get('isPublic') is False:
+            Group.objects.filter(
+                id__in=group_ids,
+            ).update(is_public=False)
+            for group in group_list:
+                if not group.is_public:
+                    continue
+                group.is_public = False
+                Activity.objects.create(
+                    project=group.project,
+                    group=group,
+                    type=Activity.SET_PRIVATE,
+                    user=request.user,
+                )
 
         # XXX(dcramer): this feels a bit shady like it should be its own
         # endpoint
