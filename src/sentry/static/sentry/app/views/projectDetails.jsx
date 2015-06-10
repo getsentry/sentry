@@ -73,11 +73,11 @@ var ProjectSelector = React.createClass({
     var urlPrefix = ConfigStore.get('urlPrefix');
     var children = [];
     org.teams.forEach((team) => {
+      if (!team.isMember) {
+        return;
+      }
       var hasTeam = false;
       team.projects.forEach((project) => {
-        if (!team.isMember) {
-          return;
-        }
         if (project.slug == this.props.projectId) {
           activeTeam = team;
           activeProject = project;
@@ -190,6 +190,9 @@ var ProjectDetails = React.createClass({
     var activeProject = null;
     var activeTeam = null;
     org.teams.forEach((team) => {
+      if (!team.isMember) {
+        return;
+      }
       team.projects.forEach((project) => {
         if (project.slug == projectSlug) {
           activeProject = project;
