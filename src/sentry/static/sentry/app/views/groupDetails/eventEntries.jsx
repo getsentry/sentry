@@ -55,12 +55,18 @@ var EventPackageData = React.createClass({
   },
 
   render() {
-    var children = [];
     var packages = this.props.event.packages;
+    var packageKeys = [];
     for (var key in packages) {
+      packageKeys.push(key);
+    }
+    packageKeys.sort();
+
+    var children = [];
+    packageKeys.forEach((key) => {
       children.push(<dt key={'dt-' + key}>{key}</dt>);
       children.push(<dd key={'dd-' + key}>{packages[key]}</dd>);
-    }
+    });
 
     return (
       <EventDataSection
