@@ -31,7 +31,7 @@
                         {% else %}
                             <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a></h5>
                         {% endif %}<br>
-                        <input class="form-control" value="{{ key.dsn_private }}">
+                        <input class="form-control" value="{{ key.dsn_private }}" onclick="this.select()" />
                     </td>
                     <td style="text-align:right; vertical-align:bottom !important;">
                         {% if key.can_edit %}
