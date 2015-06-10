@@ -3,12 +3,12 @@
 var React = require("react");
 var Sticky = require("react-sticky");
 
-var GroupEventDataSection = require("./eventDataSection");
+var EventDataSection = require("./eventDataSection");
 var PropTypes = require("../../proptypes");
 var utils = require("../../utils");
 var ContextData = require("../../components/contextData");
 
-var GroupEventExtraData = React.createClass({
+var EventExtraData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
@@ -31,7 +31,7 @@ var GroupEventExtraData = React.createClass({
     }
 
     return (
-      <GroupEventDataSection
+      <EventDataSection
           group={this.props.group}
           event={this.props.event}
           type="extra"
@@ -39,12 +39,44 @@ var GroupEventExtraData = React.createClass({
         <dl className="vars">
           {children}
         </dl>
-      </GroupEventDataSection>
+      </EventDataSection>
     );
   }
 });
 
-var GroupEventEntries = React.createClass({
+var EventPackageData = React.createClass({
+  propTypes: {
+    group: PropTypes.Group.isRequired,
+    event: PropTypes.Event.isRequired
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.event.id !== nextProps.event.id;
+  },
+
+  render() {
+    var children = [];
+    var packages = this.props.event.packages;
+    for (var key in packages) {
+      children.push(<dt key={'dt-' + key}>{key}</dt>);
+      children.push(<dd key={'dd-' + key}>{packages[key]}</dd>);
+    }
+
+    return (
+      <EventDataSection
+          group={this.props.group}
+          event={this.props.event}
+          type="packages"
+          title="Packages">
+        <dl className="vars">
+          {children}
+        </dl>
+      </EventDataSection>
+    );
+  }
+});
+
+var EventEntries = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
@@ -81,13 +113,13 @@ var GroupEventEntries = React.createClass({
       } catch (ex) {
         // TODO(dcramer): this should log to Sentry
         return (
-          <GroupEventDataSection
+          <EventDataSection
               group={group}
               event={evt}
               type={entry.type}
               title={entry.type}>
             <p>There was an error rendering this data.</p>
-          </GroupEventDataSection>
+          </EventDataSection>
         );
       }
     });
@@ -96,7 +128,12 @@ var GroupEventEntries = React.createClass({
       <div>
         {entries}
         {!utils.objectIsEmpty(evt.context) &&
-          <GroupEventExtraData
+          <EventExtraData
+              group={group}
+              event={evt} />
+        }
+        {!utils.objectIsEmpty(evt.packages) &&
+          <EventPackageData
               group={group}
               event={evt} />
         }
@@ -105,4 +142,4 @@ var GroupEventEntries = React.createClass({
   }
 });
 
-module.exports = GroupEventEntries;
+module.exports = EventEntries;
