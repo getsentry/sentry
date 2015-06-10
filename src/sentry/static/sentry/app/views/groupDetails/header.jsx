@@ -56,6 +56,26 @@ var GroupHeader = React.createClass({
     });
   },
 
+  onTogglePublic() {
+    var group = this.props.group;
+    var project = this.getProject();
+    var org = this.getOrganization();
+    var loadingIndicator = IndicatorStore.add('Saving changes..');
+
+    api.bulkUpdate({
+      orgId: org.slug,
+      projectId: project.slug,
+      itemIds: [group.id],
+      data: {
+        isPublic: !group.isPublic
+      }
+    }, {
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
   render() {
     var group = this.props.group,
         userCount = 0;
@@ -110,7 +130,7 @@ var GroupHeader = React.createClass({
         <div className="pull-right">
           <div className="group-notifications">
             <a onClick={this.onToggleMute}>
-              <span className="icon"></span>
+              <span className="icon" />
               {group.status !== 'muted' ?
                 'Turn notifications off'
               :
@@ -119,7 +139,14 @@ var GroupHeader = React.createClass({
             </a>
           </div>
           <div className="group-privacy">
-            <a href="#"><span className="icon"></span>Make this event public</a>
+            <a onClick={this.onTogglePublic}>
+              <span className="icon" />
+              {!group.isPublic ?
+                'Make this event public'
+              :
+                'Revoke public access to event'
+              }
+            </a>
           </div>
         </div>
         <ul className="nav nav-tabs">
