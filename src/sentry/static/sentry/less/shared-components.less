@@ -1347,9 +1347,11 @@ pre.clippy {
     background: #F8F9FA;
     color: @grayDark;
     line-height: 1;
-    padding: 20px 20px 19px;
+    padding: 0 20px;
     border-radius: 2px 2px 0 0;
     border-bottom: 1px solid @trim;
+    height: 54px;
+    line-height: 54px;
 
     a {
       color: @gray;
@@ -1362,16 +1364,13 @@ pre.clippy {
       font-size: 14px;
       margin: 0;
       font-weight: 600;
+      line-height: inherit;
     }
 
-    .btn {
-      position: relative;
-      top: -2px;
-      right: -6px;
-    }
-
-    .btn-sm {
-      top: -7px;
+    .pull-right {
+      a, .btn {
+        margin-left: 10px;
+      }
     }
 
     .nav-pills {
