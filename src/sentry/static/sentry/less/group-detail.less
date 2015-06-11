@@ -342,13 +342,15 @@
     margin-bottom: 0;
 
     .activity-note {
+      border-top: 1px solid lighten(@trim, 9);
       position: relative;
       margin-bottom: 15px;
+      padding-top: 15px;
 
       .avatar {
         position: absolute;
         left: 0;
-        top: 0;
+        top: 15px;
         .square(32px);
       }
 
@@ -403,23 +405,22 @@
     }
 
     .activity-item {
-      padding: 15px 0;
-      border-top: 1px solid lighten(@trim, 6);
+      padding: 10px 0;
+      border-top: 1px solid lighten(@trim, 9);
       position: relative;
       font-size: 13px;
-      color: lighten(@gray, 20);
+      color: lighten(@gray, 10);
 
       .avatar {
         width: 20px;
         height: 20px;
-        display: inline-block;
+        position: absolute;
         background-size: 20px 20px;
         background-repeat: no-repeat;
         background-position: center center;
         border-radius: 2px;
-        position: relative;
-        top: -1px;
-        margin-right: 4px;
+        top: 10px;
+        left: 0;
 
         &.sentry {
           color: @gray;
@@ -434,7 +435,12 @@
 
       .activity-author {
         font-weight: 600;
-        color: lighten(@gray, 10);
+        color: @gray;
+      }
+
+      .activity-item-content {
+        padding-left: 42px;
+        margin-right: 100px;
       }
     }
   }
