@@ -121,7 +121,7 @@ var Frame = React.createClass({
             className += " active";
           }
 
-          var [_, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/);
+          var [_, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
           return <li className={className} key={line[0]}><span className="ws">{
             lineWs}</span><span className="contextline">{lineCode
             }</span> <span className="icon-plus"></span></li>;
