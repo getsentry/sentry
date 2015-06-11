@@ -178,7 +178,11 @@ var GroupActivity = React.createClass({
       } else {
         return (
           <li className="activity-item" key={itemIdx}>
-            {avatar} <span className="activity-author">{authorName}</span> {label} <TimeSince date={item.dateCreated} />
+            {avatar}
+            <TimeSince date={item.dateCreated} />
+            <div className="activity-item-content">
+              <span className="activity-author">{authorName}</span> {label}
+            </div>
           </li>
         );
       }
