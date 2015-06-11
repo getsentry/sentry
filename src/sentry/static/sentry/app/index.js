@@ -56,5 +56,6 @@ module.exports = {
   Alerts: require("./components/alerts"),
   Breadcrumbs: require("./components/breadcrumbs"),
   FlotChart: require("./components/flotChart"),
+  HookStore: require("./stores/hookStore"),
   RuleEditor: require("./views/ruleEditor")
 };
