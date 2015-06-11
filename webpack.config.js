@@ -1,10 +1,22 @@
 var path = require("path"),
-    webpack = require("webpack");
+    webpack = require("webpack"),
+    exec = require("sync-exec");
 
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
-module.exports = {
+var getExtensionData = function() {
+  // TODO(dcramer): runserver needs to enforce SENTRY_CONF
+  var result = exec("sentry dump_webpack_config");
+  if (result.status) {
+    console.error('Unable to generate dynamic webpack config:\n' + result.stderr);
+    process.exit(result.status);
+  }
+  return JSON.parse(result.stdout);
+}
+
+var extensionData = getExtensionData();
+var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
     "app": "app",
@@ -65,4 +77,11 @@ module.exports = {
     library: "exports"
   },
   devtool: 'source-map'
+};
+
+// TODO(dcramer): handle paths
+for (var key in extensionData.entry) {
+  config.entry[key] = extensionData.entry[key];
 }
+
+module.exports = config;
