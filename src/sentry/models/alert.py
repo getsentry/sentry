@@ -26,6 +26,8 @@ class AlertStatus(object):
 
 
 class Alert(Model):
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group', null=True)
     datetime = models.DateTimeField(default=timezone.now)

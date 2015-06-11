@@ -17,6 +17,8 @@ class GroupBookmark(Model):
     Identifies a bookmark relationship between a user and an
     aggregated event (Group).
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project', related_name="bookmark_set")
     group = FlexibleForeignKey('sentry.Group', related_name="bookmark_set")
     # namespace related_name on User since we don't own the model

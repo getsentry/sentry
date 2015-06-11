@@ -23,6 +23,8 @@ class TagValue(Model):
     """
     Stores references to available filters.
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)

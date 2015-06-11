@@ -19,6 +19,8 @@ from sentry.utils.http import absolute_uri
 
 
 class LostPasswordHash(Model):
+    __core__ = False
+
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
     hash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)

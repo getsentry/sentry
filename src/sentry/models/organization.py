@@ -29,6 +29,9 @@ class OrganizationStatus(object):
 
 
 class OrganizationManager(BaseManager):
+    # def get_by_natural_key(self, slug):
+    #     return self.get(slug=slug)
+
     def get_for_user(self, user, access=None):
         """
         Returns a set of all organizations a user has access to.
