@@ -29,18 +29,28 @@ class Command(RunserverCommand):
 
     gulp_bin = os.path.join(cwd, 'node_modules', '.bin', 'gulp')
 
+    def get_env(self):
+        from sentry.app import env
+        result = os.environ.copy()
+        result.update({
+            'SENTRY_CONF': env.data['config'],
+        })
+        return result
+
     def run_watcher(self, verbosity, **options):
         if self.verbosity:
             self.stdout.write(self.style.HTTP_INFO('>> Running [gulp watch]'))
             stdout = None
         else:
             stdout = open('/dev/null', 'w')
-        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd, stdout=stdout)
+        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd, stdout=stdout,
+                     env=self.get_env())
 
     def run_server(self, verbosity, **options):
         if self.verbosity:
             self.stdout.write(self.style.HTTP_INFO('>> Launching webserver..'))
-        return Popen(sys.argv + ['--nowatcher'], env=os.environ, cwd=self.cwd)
+        return Popen(sys.argv + ['--nowatcher'], cwd=self.cwd,
+                     env=self.get_env())
 
     def run(self, *args, **options):
         self.style = color_style()
@@ -52,7 +62,8 @@ class Command(RunserverCommand):
                 stdout = None
             else:
                 stdout = open('/dev/null', 'w')
-            Popen([self.gulp_bin, 'dist'], cwd=self.cwd, stdout=stdout).wait()
+            Popen([self.gulp_bin, 'dist'], cwd=self.cwd, stdout=stdout,
+                  env=self.get_env()).wait()
 
             watcher = self.run_watcher(**options)
             server = self.run_server(**options)
