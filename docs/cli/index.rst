@@ -4,10 +4,10 @@ Command Line Usage
 Sentry installs a command line script under the name ``sentry``. This will allow you to
 perform most required operations that are unachievable within the web UI.
 
-If you're using a non-standard configuration location, you'll need to prefix every command with
---config (excluding init, which is a special case). For example::
+If you're using a non-standard configuration location you'll need to use the SENTRY_CONF environment
+variable to specify the path:
 
-    sentry --config=/etc/sentry.conf.py help
+    SENTRY_CONF=/etc/sentry.conf.py sentry help
 
 For a list of commands, you can also use ``sentry help``, or ``sentry [command] --help``
 for help on a specific command.
@@ -29,7 +29,7 @@ Builtin Commands
         sentry init /etc/sentry.conf.py
 
     .. note:: The init command requires you to pass the configuration value as the parameter whereas other
-              commands require you to use --config for passing the location of this file.
+              commands require you to use SENTRY_CONF for passing the location of this file.
 
 .. data:: start [service]
 
