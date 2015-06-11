@@ -4,21 +4,12 @@ var jQuery = require("jquery");
 var React = require("react");
 
 var ConfigStore = require("../stores/configStore");
+var HookStore = require("../stores/hookStore");
 var ListLink = require("../components/listLink");
 var OrganizationState = require("../mixins/organizationState");
 
 var OrganizationHomeSidebar = React.createClass({
   mixins: [OrganizationState],
-
-  componentWillMount() {
-    // Handle out of scope classes with jQuery
-    jQuery(document.body).addClass("show-rightbar");
-  },
-
-  componentWillUnmount() {
-    // Handle out of scope classes with jQuery
-    jQuery(document.body).removeClass("show-rightbar");
-  },
 
   render() {
     var access = this.getAccess();
@@ -26,6 +17,14 @@ var OrganizationHomeSidebar = React.createClass({
     var org = this.getOrganization();
     var orgParams = {orgId: org.slug};
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
+
+    // Allow injection via getsentry et all
+    var children = [];
+    HookStore.get('organization:sidebar').forEach((cb) => {
+      cb().forEach((c) => {
+        children.push(c);
+      });
+    });
 
     return (
       <div>
@@ -65,6 +64,7 @@ var OrganizationHomeSidebar = React.createClass({
             </ul>
           </div>
         }
+        {children}
       </div>
     );
   }
