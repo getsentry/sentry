@@ -86,7 +86,7 @@ like the following:
 .. code-block:: bash
 
   $ sentry
-  usage: sentry [--config=/path/to/settings.py] [command] [options]
+  usage: [SENTRY_CONF=/path/to/settings.py] sentry [command] [options]
 
 
 Using MySQL or Postgres
@@ -237,14 +237,14 @@ Once done, you can create the initial schema using the ``upgrade`` command:
 
 .. code-block:: python
 
-    $ sentry --config=/etc/sentry.conf.py upgrade
+    $ SENTRY_CONF=/etc/sentry.conf.py sentry upgrade
 
 Next up you'll need to create the first user, which will act as a superuser:
 
 .. code-block:: bash
 
     # create a new user
-    $ sentry --config=/etc/sentry.conf.py createuser
+    $ SENTRY_CONF=/etc/sentry.conf.py sentry createuser
 
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
@@ -258,13 +258,13 @@ Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get y
 also you can setup Sentry as WSGI application, in that case skip to section `Running Sentry as WSGI application`.
 
 To start the webserver, you simply use ``sentry start``. If you opted to use an alternative configuration path
-you can pass that via the --config option.
+you can pass that via the SENTRY_CONF parameter.
 
 ::
 
   # Sentry's server runs on port 9000 by default. Make sure your client reflects
   # the correct host and port!
-  sentry --config=/etc/sentry.conf.py start
+  $ SENTRY_CONF=/etc/sentry.conf.py sentry start
 
 You should now be able to test the web service by visiting `http://localhost:9000/`.
 
@@ -282,7 +282,7 @@ So do not forget to run the workers!
 
 ::
 
-  sentry --config=/etc/sentry.conf.py celery worker -B
+  $ SENTRY_CONF=/etc/sentry.conf.py sentry celery worker -B
 
 Technically there is a way to run sentry without the queues by setting ``CELERY_ALWAYS_EAGER`` to `True`
 but this is heavily discouraged and not supported.
