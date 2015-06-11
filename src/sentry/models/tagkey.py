@@ -48,6 +48,8 @@ class TagKey(Model):
     """
     Stores references to available filters keys.
     """
+    __core__ = False
+
     DEFAULT_URL_NAME = 'sentry-explore-tag'
     URL_NAMES = {
         'sentry:user': 'sentry-users',

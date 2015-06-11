@@ -19,6 +19,8 @@ class GroupAssignee(Model):
     Identifies an assignment relationship between a user and an
     aggregated event (Group).
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project', related_name="assignee_set")
     group = FlexibleForeignKey('sentry.Group', related_name="assignee_set", unique=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_assignee_set")

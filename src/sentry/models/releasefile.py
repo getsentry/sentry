@@ -20,6 +20,8 @@ class ReleaseFile(Model):
 
     The ident of the file should be sha1(name) and must be unique per release.
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project')
     release = FlexibleForeignKey('sentry.Release')
     file = FlexibleForeignKey('sentry.File')

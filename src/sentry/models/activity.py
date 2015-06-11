@@ -19,6 +19,8 @@ from sentry.db.models import (
 
 
 class Activity(Model):
+    __core__ = False
+
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
     SET_MUTED = 3
