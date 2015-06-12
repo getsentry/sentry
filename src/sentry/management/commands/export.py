@@ -4,7 +4,7 @@ import sys
 
 from django.core import serializers
 from django.core.management.base import BaseCommand
-from django.db.models import get_app
+from django.db.models import get_apps
 
 
 def sort_dependencies(app_list):
@@ -90,10 +90,10 @@ class Command(BaseCommand):
     help = 'Exports core metadata for the Sentry installation.'
 
     def yield_objects(self):
-        app = get_app('sentry')
+        app_list = [(a, None) for a in get_apps()]
 
         # Collate the objects to be serialized.
-        for model in sort_dependencies([(app, None)]):
+        for model in sort_dependencies(app_list):
             if not getattr(model, '__core__', True):
                 sys.stderr.write(">> Skipping model <%s>\n" % (model.__name__,))
                 continue
