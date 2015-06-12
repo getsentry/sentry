@@ -19,5 +19,5 @@ class Command(BaseCommand):
         else:
             src = open(src, 'rb')
 
-        for obj in serializers.deserialize("json", src, stream=True):
+        for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
             obj.save()

@@ -117,4 +117,5 @@ class Command(BaseCommand):
             dest = open(dest, 'wb')
 
         sys.stderr.write('>> Beggining export\n')
-        serializers.serialize("json", self.yield_objects(), indent=2, stream=dest)
+        serializers.serialize("json", self.yield_objects(), indent=2, stream=dest,
+                              use_natural_keys=True)
