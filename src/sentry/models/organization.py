@@ -125,3 +125,21 @@ class Organization(Model):
             'status': self.status,
             'flags': self.flags,
         }
+
+    def merge_to(from_org, to_org):
+        from sentry.models import (
+            AuditLogEntry, OrganizationMember, Project, Team
+        )
+
+        for member in OrganizationMember.objects.filter(organization=from_org):
+            member_qs = OrganizationMember.objects.filter(
+                organization=to_org,
+                user=member.user,
+            )
+            if not member_qs.exists():
+                member.update(organization=to_org)
+
+        for model in (Team, Project, AuditLogEntry):
+            model.objects.filter(
+                organization=from_org,
+            ).update(organization=to_org)
