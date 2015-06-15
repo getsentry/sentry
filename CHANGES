@@ -7,6 +7,7 @@ This releases entirely removes Access Groups. If you're upgrading form an instal
 - Access groups have been permanently removed.
 - Added 'access_token' to data blacklist.
 - The legacy (unused) search tables have been removed.
+- Upgrades must now be applied manually via ``sentry upgrade`` or with ``sentry start --upgrade``.
 
 Version 7.5.4
 -------------
