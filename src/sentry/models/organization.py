@@ -128,7 +128,7 @@ class Organization(Model):
 
     def merge_to(from_org, to_org):
         from sentry.models import (
-            AuditLogEntry, OrganizationMember, Project, Team
+            ApiKey, AuditLogEntry, OrganizationMember, Project, Team
         )
 
         for member in OrganizationMember.objects.filter(organization=from_org):
@@ -139,7 +139,7 @@ class Organization(Model):
             if not member_qs.exists():
                 member.update(organization=to_org)
 
-        for model in (Team, Project, AuditLogEntry):
+        for model in (Team, Project, ApiKey, AuditLogEntry):
             model.objects.filter(
                 organization=from_org,
             ).update(organization=to_org)
