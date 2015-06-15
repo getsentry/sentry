@@ -22,6 +22,8 @@ class GroupTagKey(Model):
 
     An example key might be "url" or "server_name".
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project', null=True)
     group = FlexibleForeignKey('sentry.Group')
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)

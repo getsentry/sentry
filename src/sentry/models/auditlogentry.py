@@ -57,6 +57,8 @@ class AuditLogEntryEvent(object):
 
 
 class AuditLogEntry(Model):
+    __core__ = False
+
     organization = FlexibleForeignKey('sentry.Organization')
     actor_label = models.CharField(max_length=64, null=True, blank=True)
     # if the entry was created via a user

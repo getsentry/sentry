@@ -25,6 +25,8 @@ class GroupTagValue(Model):
     Stores the total number of messages seen by a group matching
     the given filter.
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project', null=True, related_name='grouptag')
     group = FlexibleForeignKey('sentry.Group', related_name='grouptag')
     times_seen = BoundedPositiveIntegerField(default=0)

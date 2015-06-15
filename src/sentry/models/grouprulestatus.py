@@ -14,6 +14,8 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class GroupRuleStatus(Model):
+    __core__ = False
+
     ACTIVE = 0
     INACTIVE = 1
 

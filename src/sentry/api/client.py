@@ -22,7 +22,8 @@ class ApiClient(object):
 
     ApiError = ApiError
 
-    def request(self, method, path, user, auth=None, params=None, data=None):
+    def request(self, method, path, user, auth=None, params=None, data=None,
+                is_sudo=False):
         full_path = self.prefix + path
 
         resolver_match = resolve(full_path)
@@ -36,6 +37,7 @@ class ApiClient(object):
         mock_request = getattr(rf, method.lower())(full_path, data)
         mock_request.auth = auth
         mock_request.user = user
+        mock_request.is_sudo = lambda: is_sudo
 
         if params:
             mock_request.GET._mutable = True

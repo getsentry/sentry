@@ -12,10 +12,9 @@ from logan.runner import run_app, configure_app
 
 import base64
 import os
+import sys
 import pkg_resources
 import warnings
-
-import sys
 
 USE_GEVENT = os.environ.get('USE_GEVENT') == '1'
 

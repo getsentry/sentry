@@ -14,6 +14,8 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class EventMapping(Model):
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group')
     event_id = models.CharField(max_length=32)
