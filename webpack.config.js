@@ -17,7 +17,7 @@ var getExtensionData = function() {
 }
 
 var extensionData = (
-  process.env.ALLOW_EXTERNAL_DEPS === '1' ? getExtensionData() : {}
+  process.env.SENTRY_EXTERNAL_DEPS === '1' ? getExtensionData() : {}
 );
 
 var config = {
