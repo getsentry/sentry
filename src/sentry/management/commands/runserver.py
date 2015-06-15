@@ -33,7 +33,7 @@ class Command(RunserverCommand):
         from sentry.app import env
         result = os.environ.copy()
         result.update({
-            'ALLOW_EXTERNAL_DEPS': '1',
+            'SENTRY_EXTERNAL_DEPS': '1',
             'SENTRY_CONF': env.data['config'],
         })
         return result
