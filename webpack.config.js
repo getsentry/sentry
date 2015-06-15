@@ -7,7 +7,8 @@ var staticPrefix = "src/sentry/static/sentry",
 
 var getExtensionData = function() {
   // TODO(dcramer): runserver needs to enforce SENTRY_CONF
-  var result = exec("sentry dump_webpack_config");
+  console.log("Fetching extension data for Webpack");
+  var result = exec("sentry dump_webpack_extensions");
   if (result.status) {
     console.error('Unable to generate dynamic webpack config:\n' + result.stderr);
     process.exit(result.status);
@@ -15,7 +16,10 @@ var getExtensionData = function() {
   return JSON.parse(result.stdout);
 }
 
-var extensionData = getExtensionData();
+var extensionData = (
+  process.env.ALLOW_EXTERNAL_DEPS === '1' ? getExtensionData() : {}
+);
+
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
