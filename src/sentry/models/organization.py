@@ -127,6 +127,9 @@ class Organization(Model):
         }
 
     def merge_to(from_org, to_org):
+        # TODO(dcramer): merging global members is not always desired as
+        # generally you only want to remain a member of the same teams you were
+        # previously (to avoid notifications etc)
         from sentry.models import (
             ApiKey, AuditLogEntry, OrganizationMember, Project, Team
         )
