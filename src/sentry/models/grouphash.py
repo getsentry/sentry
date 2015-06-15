@@ -13,6 +13,8 @@ from sentry.db.models import FlexibleForeignKey, Model
 
 
 class GroupHash(Model):
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project', null=True)
     hash = models.CharField(max_length=32, db_index=True)
     group = FlexibleForeignKey('sentry.Group', null=True)

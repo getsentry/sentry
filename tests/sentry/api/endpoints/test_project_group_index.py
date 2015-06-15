@@ -211,6 +211,60 @@ class GroupUpdateTest(APITestCase):
         bookmark4 = GroupBookmark.objects.filter(group=group4, user=self.user)
         assert not bookmark4.exists()
 
+    def test_set_public(self):
+        group1 = self.create_group(checksum='a' * 32, is_public=False)
+        group2 = self.create_group(checksum='b' * 32, is_public=False)
+
+        self.login_as(user=self.user)
+        url = '{url}?id={group1.id}&id={group2.id}'.format(
+            url=reverse('sentry-api-0-project-group-index', kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }),
+            group1=group1,
+            group2=group2,
+        )
+        response = self.client.put(url, data={
+            'isPublic': 'true',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'isPublic': True,
+        }
+
+        new_group1 = Group.objects.get(id=group1.id)
+        assert new_group1.is_public
+
+        new_group2 = Group.objects.get(id=group2.id)
+        assert new_group2.is_public
+
+    def test_set_private(self):
+        group1 = self.create_group(checksum='a' * 32, is_public=True)
+        group2 = self.create_group(checksum='b' * 32, is_public=True)
+
+        self.login_as(user=self.user)
+        url = '{url}?id={group1.id}&id={group2.id}'.format(
+            url=reverse('sentry-api-0-project-group-index', kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }),
+            group1=group1,
+            group2=group2,
+        )
+        response = self.client.put(url, data={
+            'isPublic': 'false',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'isPublic': False,
+        }
+
+        new_group1 = Group.objects.get(id=group1.id)
+        assert not new_group1.is_public
+
+        new_group2 = Group.objects.get(id=group2.id)
+        assert not new_group2.is_public
+
     def test_set_has_seen(self):
         project = self.project
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)

@@ -19,6 +19,8 @@ class Release(Model):
     A release is generally created when a new version is pushed into a
     production state.
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
     # ref might be the branch name being released

@@ -89,6 +89,8 @@ class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project', null=True)
     logger = models.CharField(
         max_length=64, blank=True, default=DEFAULT_LOGGER_NAME, db_index=True)

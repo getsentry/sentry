@@ -107,6 +107,8 @@ class GroupMeta(Model):
     Generally useful for things like storing metadata
     provided by plugins.
     """
+    __core__ = False
+
     group = FlexibleForeignKey('sentry.Group')
     key = models.CharField(max_length=64)
     value = models.TextField()

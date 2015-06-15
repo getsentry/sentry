@@ -587,7 +587,7 @@ class SourceProcessor(object):
             for source in sourcemap_idx.sources:
                 next_filename = urljoin(sourcemap_url, source)
                 if next_filename not in done_file_list:
-                    if sourcemap_idx.content:
+                    if source in sourcemap_idx.content:
                         cache.add(next_filename, sourcemap_idx.content[source])
                         done_file_list.add(next_filename)
                     else:

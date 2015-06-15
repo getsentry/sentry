@@ -22,6 +22,8 @@ ONE_DAY = 60 * 60 * 24
 
 
 class File(Model):
+    __core__ = False
+
     name = models.CharField(max_length=128)
     storage = models.CharField(max_length=128, null=True)
     storage_options = JSONField()

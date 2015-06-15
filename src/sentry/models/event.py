@@ -28,6 +28,8 @@ class Event(Model):
     """
     An individual event.
     """
+    __core__ = False
+
     group = FlexibleForeignKey('sentry.Group', blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project = FlexibleForeignKey('sentry.Project', null=True)

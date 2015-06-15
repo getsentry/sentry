@@ -18,6 +18,8 @@ class GroupSeen(Model):
     """
     Track when a group is last seen by a user.
     """
+    __core__ = False
+
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group')
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, db_index=False)
