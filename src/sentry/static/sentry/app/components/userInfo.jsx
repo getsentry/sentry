@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var React = require("react");
 
 function getUserDisplayName(name) {
@@ -16,7 +14,16 @@ var UserInfo = React.createClass({
   },
 
   render() {
-    var {user, ...other} = this.props;
+    // XXX(dcramer): not supported by babel
+    // var {user, ...other} = this.props;
+    var user = this.props.user;
+    var other = {};
+    for (var key in this.props) {
+      if (key !== 'user') {
+        other[key] = this.props[key];
+      }
+    }
+
     var name = user.name || user.email;
     var displayName = getUserDisplayName(name);
 

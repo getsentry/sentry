@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var $ = require("jquery");
 var GroupActions = require("./actions/groupActions");
 var TeamActions = require("./actions/teamActions");

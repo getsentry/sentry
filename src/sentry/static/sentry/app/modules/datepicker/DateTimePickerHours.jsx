@@ -1,5 +1,4 @@
 
-/** @jsx React.DOM */
 var DateTimePickerHours, React;
 
 React = require('react');

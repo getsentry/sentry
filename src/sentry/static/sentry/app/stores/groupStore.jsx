@@ -1,4 +1,3 @@
-/** @jsx React.DOM */
 
 var jQuery = require("jquery");
 var Reflux = require("reflux");

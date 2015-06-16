@@ -1,7 +1,6 @@
-/** @jsx React.DOM */
-
 class PendingChangeQueue extends Array {
   constructor() {
+    super();
     this.changes = [];
   }
 

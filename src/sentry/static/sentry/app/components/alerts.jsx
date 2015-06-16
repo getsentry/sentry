@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var React = require("react");
 var Reflux = require("reflux");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;

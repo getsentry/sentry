@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var BreadcrumbStore = require("../stores/breadcrumbStore");
 
 var React = require("react");

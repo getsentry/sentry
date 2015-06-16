@@ -1,4 +1,3 @@
-/** @jsx React.DOM */
 var React = require('react');
 var DateTimePickerDate = require('./DateTimePickerDate');
 var DateTimePickerTime = require('./DateTimePickerTime');

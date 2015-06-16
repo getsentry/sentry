@@ -1,5 +1,4 @@
 
-/** @jsx React.DOM */
 var DateTimePickerMonths, React, moment;
 
 React = require('react');

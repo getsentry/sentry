@@ -1,4 +1,3 @@
-/*** @jsx React.DOM */
 var joinClasses = require("react/lib/joinClasses");
 var classSet = require("react/lib/cx");
 var React = require("react");

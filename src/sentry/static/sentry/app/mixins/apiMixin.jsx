@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var api = require("../api");
 
 var ApiMixin = {
