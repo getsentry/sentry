@@ -49,11 +49,14 @@ module.exports = {
   React: require("react"),
   Router: require("react-router"),
 
-  routes: require("./routes"),
+  Sentry: {
+    routes: require("./routes"),
 
-  Alerts: require("./components/alerts"),
-  Breadcrumbs: require("./components/breadcrumbs"),
-  FlotChart: require("./components/flotChart"),
-  HookStore: require("./stores/hookStore"),
-  RuleEditor: require("./views/ruleEditor")
+    Alerts: require("./components/alerts"),
+    Breadcrumbs: require("./components/breadcrumbs"),
+    ConfigStore: require("./stores/configStore"),
+    FlotChart: require("./components/flotChart"),
+    HookStore: require("./stores/hookStore"),
+    RuleEditor: require("./views/ruleEditor")
+  }
 };
