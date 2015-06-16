@@ -9,10 +9,12 @@ from __future__ import absolute_import
 
 import progressbar
 
-from django.db import IntegrityError, transaction
+from django.db import connections, IntegrityError, transaction
 from django.db.models import ForeignKey
 from django.db.models.deletion import Collector
 from django.db.models.signals import pre_delete, pre_save, post_save, post_delete
+
+from sentry.utils import db
 
 
 class InvalidQuerySetError(ValueError):
@@ -263,3 +265,55 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
 
             if send_signals:
                 post_save.send(created=True, **signal_kwargs)
+
+
+def bulk_delete_objects(model, limit=10000, logger=None, using='default',
+                        **filters):
+    connection = connections[using]
+    quote_name = connection.ops.quote_name
+
+    query = []
+    params = []
+    for column, value in filters.items():
+        query.append('%s = %%s' % (quote_name(column),))
+        params.append(value)
+
+    if logger is not None:
+        logger.info('Removing %r objects where %s=%r', model, column, value)
+
+    if db.is_postgres():
+        query = """
+            delete from %(table)s
+            where id = any(array(
+                select id
+                from %(table)s
+                where (%(query)s)
+                limit %(limit)d
+            ))
+        """ % dict(
+            query=' AND '.join(query),
+            table=model._meta.db_table,
+            limit=limit,
+        )
+    elif db.is_mysql():
+        query = """
+            delete from %(table)s
+            where (%(query)s)
+            limit %(limit)d
+        """ % dict(
+            query=' AND '.join(query),
+            table=model._meta.db_table,
+            limit=limit,
+        )
+    else:
+        if logger is not None:
+            logger.warning('Using slow deletion strategy due to unknown database')
+        has_more = False
+        for obj in model.objects.filter(**filters)[:limit]:
+            obj.delete()
+            has_more = True
+        return has_more
+
+    cursor = connection.cursor()
+    cursor.execute(query, params)
+    return cursor.rowcount > 0
