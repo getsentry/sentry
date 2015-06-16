@@ -54,7 +54,7 @@ class Command(RunserverCommand):
     def run_server(self, verbosity, **options):
         if self.verbosity:
             self.stdout.write(self.style.HTTP_INFO('>> Launching webserver..'))
-        return Popen(sys.argv + ['--no-watcher'], cwd=self.cwd,
+        return Popen(sys.argv + ['--no-watchers'], cwd=self.cwd,
                      env=self.get_env())
 
     def run(self, *args, **options):
