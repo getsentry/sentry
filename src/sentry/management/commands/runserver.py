@@ -50,6 +50,7 @@ class Command(RunserverCommand):
             if self.verbosity:
                 self.stdout.write(self.style.HTTP_INFO('>> Running {0}'.format(watcher)))
             result.append(Popen(watcher, cwd=self.cwd, stdout=stdout, env=env))
+        return result
 
     def run_server(self, verbosity, **options):
         if self.verbosity:
