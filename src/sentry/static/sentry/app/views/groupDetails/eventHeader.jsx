@@ -14,7 +14,7 @@ var GroupEventHeader = React.createClass({
     var event = this.props.event;
 
     if (!event) {
-      return <div />;
+      return null;
     }
 
     // TODO(dcramer): put this at the overview level

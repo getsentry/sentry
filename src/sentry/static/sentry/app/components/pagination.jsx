@@ -15,7 +15,7 @@ var Pagination = React.createClass({
 
   render(){
     if (!this.props.pageLinks) {
-      return <div />;
+      return null;
     }
 
     var links = utils.parseLinkHeader(this.props.pageLinks);
