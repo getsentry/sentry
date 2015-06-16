@@ -16,7 +16,7 @@ class GroupHash(Model):
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', null=True)
-    hash = models.CharField(max_length=32, db_index=True)
+    hash = models.CharField(max_length=32)
     group = FlexibleForeignKey('sentry.Group', null=True)
 
     class Meta:
