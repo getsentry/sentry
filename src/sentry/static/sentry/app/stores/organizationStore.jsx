@@ -1,4 +1,3 @@
-
 var Reflux = require("reflux");
 
 var OrganizationStore = Reflux.createStore({

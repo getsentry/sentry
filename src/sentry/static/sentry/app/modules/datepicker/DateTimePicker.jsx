@@ -2,7 +2,7 @@ var React = require('react');
 var DateTimePickerDate = require('./DateTimePickerDate');
 var DateTimePickerTime = require('./DateTimePickerTime');
 
-DateTimePicker = React.createClass({
+var DateTimePicker = React.createClass({
   propTypes: {
     showDatePicker: React.PropTypes.bool,
     showTimePicker: React.PropTypes.bool,

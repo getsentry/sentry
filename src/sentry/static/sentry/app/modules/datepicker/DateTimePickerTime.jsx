@@ -1,9 +1,8 @@
-
 var React = require('react');
 var DateTimePickerMinutes = require('./DateTimePickerMinutes');
 var DateTimePickerHours = require('./DateTimePickerHours');
 
-DateTimePickerTime = React.createClass({
+var DateTimePickerTime = React.createClass({
   propTypes: {
     setSelectedHour: React.PropTypes.func.isRequired,
     setSelectedMinute: React.PropTypes.func.isRequired,
