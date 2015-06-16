@@ -126,7 +126,6 @@
 
 .group-list {
   background: #fff;
-  padding-top: 1px;
   border: 1px solid darken(@trim, 2);
   box-shadow: 0 1px 0 rgba(52, 60, 69, 0.02);
   border-radius: 2px;
@@ -141,6 +140,7 @@
     margin: 0;
     padding-right: 10px;
     background: #fff;
+    .transition(all .3s ease-in-out);
 
     .icon-bookmark {
       display: none;
@@ -197,9 +197,30 @@
       }
     }
 
-    &.ng-enter, &.new {
-      .event-cell{
-        opacity: 0;
+    &.updated {
+      background: #fffff8;
+      color: #786E43 !important;
+      border-color: #ECEADE;
+
+      a {
+        color: darken(#786E43, 5) !important;
+      }
+
+      .event-details:after {
+        position: absolute;
+        content: "";
+        top: -1px;
+        right: 0;
+        bottom: -1px;
+        left: 0;
+        width: 4px;
+        z-index: 100;
+        .transition(all .2s ease-in-out);
+        background: @yellow;
+      }
+
+      .event-message {
+        color: #786E43;
       }
     }
 
