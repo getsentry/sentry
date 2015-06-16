@@ -255,7 +255,7 @@ var DateTimeField = React.createClass({
     if (this.state.showPicker) {
       return (<div style={styles} onClick={this.closePicker} />);
     } else {
-      return <div />;
+      return null;
     }
   },
   render: function() {

@@ -18,7 +18,7 @@ var GroupSeenBy = React.createClass({
     });
 
     if (!seenByNodes) {
-      return <div />;
+      return null;
     }
 
     return (

@@ -21,7 +21,7 @@ var UserNav = React.createClass({
 
     if (!user) {
       // TODO
-      return <div />;
+      return null;
     }
 
     var title = (
@@ -54,7 +54,7 @@ var OrganizationSelector = React.createClass({
     var activeOrg = this.props.organization;
 
     if (singleOrganization || !activeOrg) {
-      return <div />;
+      return null;
     }
 
     var urlPrefix = ConfigStore.get('urlPrefix');

@@ -111,7 +111,7 @@ var ActionLink = React.createClass({
     if (!shouldConfirm) {
       this.handleActionSelected();
       this.state.isModalOpen = false;
-      return <span />;
+      return null;
     }
 
     var confirmLabel = this.props.confirmLabel;

@@ -6,7 +6,7 @@ var MutedBox = React.createClass({
 
   render() {
     if (this.props.status !== 'muted') {
-      return <div />;
+      return null;
     }
     return (
       <div className="alert alert-info">
