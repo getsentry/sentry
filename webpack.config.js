@@ -5,21 +5,6 @@ var path = require("path"),
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
 
-var getExtensionData = function() {
-  // TODO(dcramer): runserver needs to enforce SENTRY_CONF
-  console.log("Fetching extension data for Webpack");
-  var result = exec("sentry dump_webpack_extensions");
-  if (result.status) {
-    console.error('Unable to generate dynamic webpack config:\n' + result.stderr);
-    process.exit(result.status);
-  }
-  return JSON.parse(result.stdout);
-}
-
-var extensionData = (
-  process.env.SENTRY_EXTERNAL_DEPS === '1' ? getExtensionData() : {}
-);
-
 var config = {
   context: path.join(__dirname, staticPrefix),
   entry: {
@@ -67,12 +52,11 @@ var config = {
   ],
   resolve: {
     alias: {
-      "app": path.join(__dirname, staticPrefix, "app"),
       "flot": path.join(__dirname, staticPrefix, "vendor", "jquery-flot"),
       "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip"),
       "vendor": path.join(__dirname, staticPrefix, "vendor")
     },
-    modulesDirectories: ["node_modules"],
+    modulesDirectories: [path.join(__dirname, staticPrefix), "node_modules"],
     extensions: ["", ".jsx", ".js", ".json"]
   },
   output: {
@@ -82,10 +66,5 @@ var config = {
   },
   devtool: 'source-map'
 };
-
-// TODO(dcramer): handle paths
-for (var key in extensionData.entry) {
-  config.entry[key] = extensionData.entry[key];
-}
 
 module.exports = config;
