@@ -6,7 +6,7 @@
   <div id="blk_router"></div>
   <script>
   $(function(){
-    Router.run(routes, Router.HistoryLocation, function(Handler) {
+    Router.run(Sentry.routes, Router.HistoryLocation, function(Handler) {
       React.render(React.createFactory(Handler)({
         config: {
           singleOrganization: {% if SINGLE_ORGANIZATION %}true{% else %}false{% endif %},
