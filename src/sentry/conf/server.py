@@ -39,6 +39,8 @@ APPEND_SLASH = True
 
 PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
+NODE_MODULES_ROOT = os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules')
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 CACHES = {
@@ -758,3 +760,8 @@ SENTRY_USE_BIG_INTS = False
 
 # Delay (in ms) to induce on API responses
 SENTRY_API_RESPONSE_DELAY = 0
+
+# Watchers for various application purposes (such as compiling static media)
+SENTRY_WATCHERS = (
+    [os.path.join(NODE_MODULES_ROOT, '.bin', 'gulp'), 'dist', 'watch'],
+)
