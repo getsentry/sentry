@@ -20,14 +20,12 @@ class Command(RunserverCommand):
 
     option_list = RunserverCommand.option_list + (
         make_option(
-            '--nowatcher', action='store_false', dest='use_watcher',
+            '--no-watchers', action='store_false', dest='use_watcher',
             default=settings.DEBUG,
             help='Tells Sentry to NOT automatically recompile static distributions.'),
     )
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
-
-    gulp_bin = os.path.join(cwd, 'node_modules', '.bin', 'gulp')
 
     def get_env(self):
         from sentry.app import env
@@ -37,19 +35,25 @@ class Command(RunserverCommand):
         })
         return result
 
-    def run_watcher(self, verbosity, **options):
+    def get_watchers(self):
+        return settings.SENTRY_WATCHERS
+
+    def run_watchers(self, verbosity, **options):
         if self.verbosity:
-            self.stdout.write(self.style.HTTP_INFO('>> Running [gulp watch]'))
+            self.stdout.write(self.style.HTTP_INFO('>> Running watchers'))
             stdout = None
         else:
             stdout = open('/dev/null', 'w')
-        return Popen([self.gulp_bin, 'watch'], cwd=self.cwd, stdout=stdout,
-                     env=self.get_env())
+
+        env = self.get_env()
+        result = []
+        for watcher in self.get_watchers():
+            result.append(Popen(watcher, cwd=self.cwd, stdout=stdout, env=env))
 
     def run_server(self, verbosity, **options):
         if self.verbosity:
             self.stdout.write(self.style.HTTP_INFO('>> Launching webserver..'))
-        return Popen(sys.argv + ['--nowatcher'], cwd=self.cwd,
+        return Popen(sys.argv + ['--no-watcher'], cwd=self.cwd,
                      env=self.get_env())
 
     def run(self, *args, **options):
@@ -62,17 +66,16 @@ class Command(RunserverCommand):
                 stdout = None
             else:
                 stdout = open('/dev/null', 'w')
-            Popen([self.gulp_bin, 'dist'], cwd=self.cwd, stdout=stdout,
-                  env=self.get_env()).wait()
 
-            watcher = self.run_watcher(**options)
+            watcher_list = self.run_watchers(**options)
             server = self.run_server(**options)
             try:
                 server.wait()
             finally:
                 if server.poll() is None:
                     server.kill()
-                if watcher.poll() is None:
-                    watcher.kill()
+                for watcher in watcher_list:
+                    if watcher.poll() is None:
+                        watcher.kill()
         else:
             super(Command, self).run(*args, **options)
