@@ -40,7 +40,6 @@ class Command(RunserverCommand):
 
     def run_watchers(self, verbosity, **options):
         if self.verbosity:
-            self.stdout.write(self.style.HTTP_INFO('>> Running watchers'))
             stdout = None
         else:
             stdout = open('/dev/null', 'w')
@@ -48,6 +47,8 @@ class Command(RunserverCommand):
         env = self.get_env()
         result = []
         for watcher in self.get_watchers():
+            if self.verbosity:
+                self.stdout.write(self.style.HTTP_INFO('>> Running {0}'.format(watcher)))
             result.append(Popen(watcher, cwd=self.cwd, stdout=stdout, env=env))
 
     def run_server(self, verbosity, **options):
@@ -61,12 +62,6 @@ class Command(RunserverCommand):
         self.verbosity = int(options['verbosity'])
 
         if options['use_watcher']:
-            if self.verbosity:
-                self.stdout.write(self.style.HTTP_INFO('>> Running [gulp dist]'))
-                stdout = None
-            else:
-                stdout = open('/dev/null', 'w')
-
             watcher_list = self.run_watchers(**options)
             server = self.run_server(**options)
             try:
