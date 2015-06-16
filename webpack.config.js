@@ -32,9 +32,9 @@ var config = {
     loaders: [
       {
         test: /\.jsx$/,
-        loader: "jsx-loader?insertPragma=React.DOM&harmony",
+        loader: "babel",
         include: path.join(__dirname, staticPrefix),
-        exclude: /vendor/
+        exclude: /(vendor|node_modules)/
       }
     ]
   },

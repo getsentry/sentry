@@ -16,11 +16,11 @@ var ApiMixin = {
     var self = this;
 
     var completeFunc = options.complete;
-    options.complete = function() {
+    options.complete = function(...params) {
       self._pendingRequests.delete(this);
 
       if (typeof completeFunc !== "undefined") {
-        completeFunc.apply(this, arguments);
+        completeFunc.apply(this, params);
       }
     };
 
