@@ -44,8 +44,8 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
 
     create_default_project(
         id=settings.SENTRY_PROJECT,
-        name='Backend',
-        slug='backend',
+        name='Internal',
+        slug='internal',
         verbosity=verbosity,
         platform='django',
     )
