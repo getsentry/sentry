@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var React = require("react");
 var $ = require("jquery");
 var MD5 = require("crypto-js/md5");

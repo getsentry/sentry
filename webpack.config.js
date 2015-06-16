@@ -1,6 +1,5 @@
 var path = require("path"),
-    webpack = require("webpack"),
-    exec = require("sync-exec");
+    webpack = require("webpack");
 
 var staticPrefix = "src/sentry/static/sentry",
     distPath = staticPrefix + "/dist";
@@ -33,7 +32,7 @@ var config = {
     loaders: [
       {
         test: /\.jsx$/,
-        loader: "jsx-loader?insertPragma=React.DOM&harmony",
+        loader: "babel",
         include: path.join(__dirname, staticPrefix),
         exclude: /vendor/
       }
@@ -54,7 +53,6 @@ var config = {
     alias: {
       "flot": path.join(__dirname, staticPrefix, "vendor", "jquery-flot"),
       "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip"),
-      "vendor": path.join(__dirname, staticPrefix, "vendor")
     },
     modulesDirectories: [path.join(__dirname, staticPrefix), "node_modules"],
     extensions: ["", ".jsx", ".js", ".json"]

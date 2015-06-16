@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 module.exports = function(header) {
   if (header === null) {
     return {};

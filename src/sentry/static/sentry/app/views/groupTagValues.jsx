@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var $ = require("jquery");
 var React = require("react");
 

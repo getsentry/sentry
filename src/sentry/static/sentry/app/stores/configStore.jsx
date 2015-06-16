@@ -1,4 +1,3 @@
-/** @jsx React.DOM */
 
 var Reflux = require("reflux");
 

@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var React = require('react');
 var jQuery = require('jquery');
 
@@ -104,7 +102,16 @@ var ContextData = React.createClass({
   },
 
   render() {
-    var {data, className, ...other} = this.props;
+    // XXX(dcramer): babel does not support this yet
+    // var {data, className, ...other} = this.props;
+    var data = this.props.data;
+    var className = this.props.className;
+    var other = {};
+    for (var key in this.props) {
+      if (key !== 'data' && key !== 'className') {
+        other[key] = this.props[key];
+      }
+    }
     other.className = 'val ' + (className || '');
 
     return (

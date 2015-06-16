@@ -1,5 +1,4 @@
 
-/** @jsx React.DOM */
 var DateTimePickerDays, React, moment;
 
 React = require('react');

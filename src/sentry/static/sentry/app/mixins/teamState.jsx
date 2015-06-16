@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var PropTypes = require("../proptypes");
 var OrganizationState = require("./organizationState");
 

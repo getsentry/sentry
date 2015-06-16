@@ -1,4 +1,3 @@
-/** @jsx React.DOM */
 var React = require('react');
 var DateTimePicker = require('./DateTimePicker');
 var moment = require('moment');

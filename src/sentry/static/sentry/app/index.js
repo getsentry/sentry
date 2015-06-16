@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var jQuery = require("jquery");
 
 // setup jquery for CSRF tokens

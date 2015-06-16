@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 class StreamManager {
   // TODO(dcramer): this should listen to changes on GroupStore and remove
   // items that are removed there

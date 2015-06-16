@@ -1,5 +1,4 @@
 
-/** @jsx React.DOM */
 
 /* global describe, beforeEach, afterEach, it, assert */
 var DateTimePickerHours, React, ReactTestUtils;

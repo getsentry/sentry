@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var defaults = {
   limit: null,
   key: function(item) {

@@ -1,5 +1,3 @@
-/*** @jsx React.DOM */
-
 var React = require("react");
 var AlertActions = require('../actions/alertActions');
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
