@@ -38,13 +38,13 @@ class Client {
       return;
     }
 
-    return () => {
+    return (...args) => {
       var req = this.activeRequests[id];
       if (cleanup === true) {
         delete this.activeRequests[id];
       }
       if (req.alive) {
-        return func.apply(req, arguments);
+        return func.apply(req, args);
       }
     };
   }
@@ -86,17 +86,12 @@ class Client {
     return this.activeRequests[id];
   }
 
-  _chain() {
-    var funcs = [];
-    for (var i = 0; i < arguments.length; i++) {
-      if (typeof arguments[i] !== "undefined" && arguments[i]) {
-        funcs.push(arguments[i]);
-      }
-    }
-    return function() {
-      for (var i = 0; i < funcs.length; i++ ) {
-        funcs[i].apply(funcs[i], arguments);
-      }
+  _chain(...funcs) {
+    funcs = funcs.filter((f) => typeof f !== "undefined" && f);
+    return (...args) => {
+      funcs.forEach((func) => {
+        func.apply(funcs, args);
+      });
     };
   }
 

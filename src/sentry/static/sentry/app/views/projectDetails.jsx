@@ -70,6 +70,8 @@ var ProjectSelector = React.createClass({
     var org = this.props.organization;
     var urlPrefix = ConfigStore.get('urlPrefix');
     var children = [];
+    var activeTeam;
+    var activeProject;
     org.teams.forEach((team) => {
       if (!team.isMember) {
         return;
