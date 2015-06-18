@@ -126,7 +126,6 @@ class Project(Model):
             try:
                 other = Group.objects.get(
                     project=project,
-                    checksum=group.checksum,
                 )
             except Group.DoesNotExist:
                 group.update(project=project)
