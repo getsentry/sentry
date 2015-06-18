@@ -434,10 +434,10 @@ class EventManager(object):
         # should be better tested/reviewed
         if existing_group_id is None:
             kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
-            group, group_is_new = Group.objects.get_or_create(
+            group, group_is_new = Group.objects.create(
                 project=project,
-                defaults=kwargs,
-            )
+                **kwargs
+            ), True
         else:
             group = Group.objects.get(id=existing_group_id)
 
