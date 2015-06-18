@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture
 
-from sentry.models import GroupSeen, Group
+from sentry.models import GroupSeen
 from sentry.testutils import TestCase
 
 
@@ -51,16 +51,14 @@ class GroupListTest(TestCase):
         now = later - timedelta(hours=1)
         past = now - timedelta(hours=1)
 
-        self.group1 = Group.objects.create(
+        self.group1 = self.create_group(
             project=self.project,
-            checksum='a' * 32,
             last_seen=now,
             first_seen=now,
             times_seen=5,
         )
-        self.group2 = Group.objects.create(
+        self.group2 = self.create_group(
             project=self.project,
-            checksum='b' * 32,
             last_seen=later,
             first_seen=past,
             times_seen=50,
