@@ -11,6 +11,7 @@ import logging
 import math
 import six
 import time
+import warnings
 
 from datetime import timedelta
 from django.core.urlresolvers import reverse
@@ -39,9 +40,6 @@ class GroupStatus(object):
 
 class GroupManager(BaseManager):
     use_for_related_fields = True
-
-    def get_by_natural_key(self, project, checksum):
-        return self.get(project=project, checksum=checksum)
 
     def from_kwargs(self, project, **kwargs):
         from sentry.event_manager import EventManager
@@ -101,7 +99,6 @@ class Group(Model):
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
         db_column='view')
-    checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(default=0, choices=(
@@ -126,14 +123,13 @@ class Group(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupedmessage'
-        unique_together = (('project', 'checksum'),)
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
         permissions = (
             ("can_view", "Can view"),
         )
 
-    __repr__ = sane_repr('project_id', 'checksum')
+    __repr__ = sane_repr('project_id')
 
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
@@ -159,9 +155,6 @@ class Group(Model):
         if not self.time_spent_count:
             return
         return float(self.time_spent_total) / self.time_spent_count
-
-    def natural_key(self):
-        return (self.project, self.checksum)
 
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
@@ -281,6 +274,11 @@ class Group(Model):
     @property
     def team(self):
         return self.project.team
+
+    @property
+    def checksum(self):
+        warnings.warn('Group.checksum is no longer used', DeprecationWarning)
+        return ''
 
     def get_email_subject(self):
         return '[%s %s] %s: %s' % (

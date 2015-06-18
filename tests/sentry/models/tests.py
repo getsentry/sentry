@@ -110,10 +110,10 @@ class EventNodeStoreTest(TestCase):
         data = {'key': 'value'}
 
         query_bits = [
-            "INSERT INTO sentry_message (group_id, project_id, data, message, checksum, datetime)",
-            "VALUES(%s, %s, %s, %s, %s, %s)",
+            "INSERT INTO sentry_message (group_id, project_id, data, message, datetime)",
+            "VALUES(%s, %s, %s, %s, %s)",
         ]
-        params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
+        params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', timezone.now()]
 
         # This is pulled from SQLInsertCompiler
         if connection.features.can_return_id_from_insert:
