@@ -128,16 +128,31 @@ class Organization(Model):
 
     def merge_to(from_org, to_org):
         from sentry.models import (
-            ApiKey, AuditLogEntry, OrganizationMember, Project, Team
+            ApiKey, AuditLogEntry, OrganizationMember, OrganizationMemberTeam,
+            Project, Team
         )
 
-        for member in OrganizationMember.objects.filter(organization=from_org):
-            member_qs = OrganizationMember.objects.filter(
-                organization=to_org,
-                user=member.user,
-            )
-            if not member_qs.exists():
-                member.update(organization=to_org)
+        team_list = list(Team.objects.filter(
+            organization=to_org,
+        ))
+
+        for from_member in OrganizationMember.objects.filter(organization=from_org):
+            try:
+                to_member = OrganizationMember.objects.get(
+                    organization=to_org,
+                    user=from_member.user,
+                )
+            except OrganizationMember.DoesNotExist:
+                from_member.update(organization=to_org)
+                to_member = from_member
+
+            if to_member.has_global_access:
+                for team in team_list:
+                    OrganizationMemberTeam.objects.create(
+                        organizationmember=to_member,
+                        team=team,
+                        is_active=False,
+                    )
 
         for model in (Team, Project, ApiKey, AuditLogEntry):
             model.objects.filter(

@@ -302,9 +302,6 @@ class EventManager(object):
         else:
             hashes = get_hashes_for_event(event)
 
-        # TODO(dcramer): remove checksum usage
-        event.checksum = hashes[0]
-
         group_kwargs = kwargs.copy()
         group_kwargs.update({
             'culprit': culprit,
@@ -349,6 +346,14 @@ class EventManager(object):
         safe_execute(Group.objects.add_tags, group, tags,
                      _with_transaction=False)
 
+        try:
+            with transaction.atomic():
+                EventMapping.objects.create(
+                    project=project, group=group, event_id=event_id)
+        except IntegrityError:
+            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
+            return event
+
         # save the event unless its been sampled
         if not is_sample:
             try:
@@ -357,14 +362,6 @@ class EventManager(object):
             except IntegrityError:
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
-
-        try:
-            with transaction.atomic():
-                EventMapping.objects.create(
-                    project=project, group=group, event_id=event_id)
-        except IntegrityError:
-            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
-            return event
 
         if not raw:
             post_process_group.delay(
@@ -439,8 +436,6 @@ class EventManager(object):
             kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
             group, group_is_new = Group.objects.get_or_create(
                 project=project,
-                # TODO(dcramer): remove checksum from Group/Event
-                checksum=hashes[0],
                 defaults=kwargs,
             )
         else:

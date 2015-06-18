@@ -8,6 +8,7 @@ sentry.testutils.fixtures
 from __future__ import absolute_import, print_function, unicode_literals
 
 import six
+import warnings
 
 from django.utils.text import slugify
 from exam import fixture
@@ -151,9 +152,10 @@ class Fixtures(object):
             **kwargs
         )
 
-    def create_group(self, project=None, **kwargs):
+    def create_group(self, project=None, checksum=None, **kwargs):
+        if checksum:
+            warnings.warn('Checksum passed to create_group', DeprecationWarning)
         kwargs.setdefault('message', 'Hello world')
-        kwargs.setdefault('checksum', uuid4().hex)
         return Group.objects.create(
             project=project or self.project,
             **kwargs
