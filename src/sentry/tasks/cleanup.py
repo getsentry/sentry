@@ -77,6 +77,8 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
 
         count = 0
         while qs.exists():
+            # TODO(dcramer): change this to delete by chunks of IDs and utilize
+            # bulk_delete_objects
             logger.info("Removing %s chunk %d", model.__name__, count)
             if concurrency > 1:
                 worker_pool = ThreadPool(workers=concurrency)
@@ -94,6 +96,18 @@ def cleanup(days=30, project=None, chunk_size=1000, concurrency=1, **kwargs):
     # won't need a reference to an event for nearly as long
     if days > 7:
         logger.info("Removing expired values for EventMapping")
-        EventMapping.objects.filter(
+        qs = EventMapping.objects.filter(
             date_added__lte=timezone.now() - datetime.timedelta(days=7)
-        ).delete()
+        )
+        while qs.exists():
+            if concurrency > 1:
+                worker_pool = ThreadPool(workers=concurrency)
+                for obj in qs[:chunk_size].iterator():
+                    worker_pool.add(obj.id, delete_object, [obj])
+                    count += 1
+                worker_pool.join()
+                del worker_pool
+            else:
+                for obj in qs[:chunk_size].iterator():
+                    delete_object(obj)
+                    count += 1

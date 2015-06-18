@@ -10,10 +10,9 @@ from __future__ import absolute_import
 
 
 from celery.utils.log import get_task_logger
-from django.db import connections
 
+from sentry.utils.query import bulk_delete_objects
 from sentry.tasks.base import instrumented_task, retry
-from sentry.utils import db
 
 logger = get_task_logger(__name__)
 
@@ -225,54 +224,3 @@ def delete_objects(models, relation, limit=1000, logger=None):
         if has_more:
             return True
     return has_more
-
-
-def bulk_delete_objects(model, limit=10000,
-                        logger=None, **filters):
-    connection = connections['default']
-    quote_name = connection.ops.quote_name
-
-    query = []
-    params = []
-    for column, value in filters.items():
-        query.append('%s = %%s' % (quote_name(column),))
-        params.append(value)
-
-    if logger is not None:
-        logger.info('Removing %r objects where %s=%r', model, column, value)
-
-    if db.is_postgres():
-        query = """
-            delete from %(table)s
-            where id = any(array(
-                select id
-                from %(table)s
-                where (%(query)s)
-                limit %(limit)d
-            ))
-        """ % dict(
-            query=' AND '.join(query),
-            table=model._meta.db_table,
-            limit=limit,
-        )
-    elif db.is_mysql():
-        query = """
-            delete from %(table)s
-            where (%(query)s)
-            limit %(limit)d
-        """ % dict(
-            query=' AND '.join(query),
-            table=model._meta.db_table,
-            limit=limit,
-        )
-    else:
-        logger.warning('Using slow deletion strategy due to unknown database')
-        has_more = False
-        for obj in model.objects.filter(**filters)[:limit]:
-            obj.delete()
-            has_more = True
-        return has_more
-
-    cursor = connection.cursor()
-    cursor.execute(query, params)
-    return cursor.rowcount > 0

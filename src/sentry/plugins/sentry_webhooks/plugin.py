@@ -51,7 +51,6 @@ class WebHooksPlugin(notify.NotificationPlugin):
     def get_group_data(self, group, event):
         data = {
             'id': str(group.id),
-            'checksum': group.checksum,
             'project': group.project.slug,
             'project_name': group.project.name,
             'logger': group.logger,

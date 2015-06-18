@@ -8,8 +8,8 @@ sentry.models.event
 from __future__ import absolute_import
 
 import warnings
-from collections import OrderedDict
 
+from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -34,7 +34,6 @@ class Event(Model):
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project = FlexibleForeignKey('sentry.Project', null=True)
     message = models.TextField()
-    checksum = models.CharField(max_length=32, db_index=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
@@ -51,7 +50,7 @@ class Event(Model):
         unique_together = (('project', 'event_id'),)
         index_together = (('group', 'datetime'),)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'checksum')
+    __repr__ = sane_repr('project_id', 'group_id')
 
     def error(self):
         message = strip(self.message)
@@ -181,7 +180,6 @@ class Event(Model):
         data['platform'] = self.platform
         data['culprit'] = self.group.culprit
         data['message'] = self.message
-        data['checksum'] = self.checksum
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
@@ -229,3 +227,8 @@ class Event(Model):
     def culprit(self):
         warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
         return self.group.culprit
+
+    @property
+    def checksum(self):
+        warnings.warn('Event.checksum is no longer used', DeprecationWarning)
+        return ''

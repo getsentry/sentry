@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.models import OrganizationMember, OrganizationMemberType, Team
+from sentry.models import (
+    OrganizationMember, OrganizationMemberTeam, OrganizationMemberType, Team
+)
 from sentry.testutils import TestCase
 
 
@@ -9,6 +11,9 @@ class OrganizationTest(TestCase):
         from_owner = self.create_user('foo@example.com')
         from_org = self.create_organization(owner=from_owner)
         from_team = self.create_team(organization=from_org)
+        from_user = self.create_user('baz@example.com')
+        self.create_member(organization=from_org, user=from_user,
+                           has_global_access=True)
 
         to_owner = self.create_user('bar@example.com')
         to_org = self.create_organization(owner=to_owner)
@@ -25,3 +30,14 @@ class OrganizationTest(TestCase):
 
         team = Team.objects.get(id=from_team.id)
         assert team.organization == to_org
+
+        member = OrganizationMember.objects.get(
+            user=from_user,
+            organization=to_org,
+        )
+        assert member.has_global_access
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member,
+            team=to_team,
+            is_active=False,
+        ).exists()

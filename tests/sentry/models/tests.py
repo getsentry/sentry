@@ -10,35 +10,10 @@ from django.utils import timezone
 from exam import fixture
 
 from sentry.db.models.fields.node import NodeData
-from sentry.models import (
-    Project, ProjectKey, Group, Event,
-    GroupTagValue, TagValue, LostPasswordHash
-)
+from sentry.models import ProjectKey, Event, LostPasswordHash
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
 from sentry.utils.strings import compress
-
-
-class ProjectTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
-
-    def setUp(self):
-        self.project = Project.objects.get(id=1)
-
-    def test_migrate(self):
-        project2 = self.create_project(name='Test')
-        self.project.merge_to(project2)
-
-        self.assertFalse(Project.objects.filter(pk=1).exists())
-        self.assertFalse(Group.objects.filter(project__isnull=True).exists())
-        self.assertFalse(Event.objects.filter(project__isnull=True).exists())
-        self.assertFalse(GroupTagValue.objects.filter(project__isnull=True).exists())
-        self.assertFalse(TagValue.objects.filter(project__isnull=True).exists())
-
-        self.assertEquals(project2.group_set.count(), 4)
-        self.assertEquals(project2.event_set.count(), 10)
-        assert not GroupTagValue.objects.filter(project=project2).exists()
-        assert not TagValue.objects.filter(project=project2).exists()
 
 
 class ProjectKeyTest(TestCase):
@@ -110,10 +85,10 @@ class EventNodeStoreTest(TestCase):
         data = {'key': 'value'}
 
         query_bits = [
-            "INSERT INTO sentry_message (group_id, project_id, data, message, checksum, datetime)",
-            "VALUES(%s, %s, %s, %s, %s, %s)",
+            "INSERT INTO sentry_message (group_id, project_id, data, message, datetime)",
+            "VALUES(%s, %s, %s, %s, %s)",
         ]
-        params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
+        params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', timezone.now()]
 
         # This is pulled from SQLInsertCompiler
         if connection.features.can_return_id_from_insert:
