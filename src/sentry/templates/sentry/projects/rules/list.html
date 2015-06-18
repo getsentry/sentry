@@ -34,7 +34,7 @@
                         <td>
                             <a href="{% url 'sentry-remove-project-rule' project.organization.slug project.slug rule.id %}"
                                class="btn btn-danger"
-                               onclick="confirm('Are you sure you want to remove this rule?')">Delete</a>
+                               onclick="return confirm('Are you sure you want to remove this rule?')">Delete</a>
                         </td>
                     </tr>
                 {% endfor %}
