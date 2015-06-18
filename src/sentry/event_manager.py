@@ -349,6 +349,14 @@ class EventManager(object):
         safe_execute(Group.objects.add_tags, group, tags,
                      _with_transaction=False)
 
+        try:
+            with transaction.atomic():
+                EventMapping.objects.create(
+                    project=project, group=group, event_id=event_id)
+        except IntegrityError:
+            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
+            return event
+
         # save the event unless its been sampled
         if not is_sample:
             try:
@@ -357,14 +365,6 @@ class EventManager(object):
             except IntegrityError:
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
-
-        try:
-            with transaction.atomic():
-                EventMapping.objects.create(
-                    project=project, group=group, event_id=event_id)
-        except IntegrityError:
-            self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
-            return event
 
         if not raw:
             post_process_group.delay(
