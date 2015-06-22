@@ -4,6 +4,7 @@ from sentry.utils.runner import configure
 configure()
 
 from datetime import datetime, timedelta
+from django.conf import settings
 from pytz import utc
 from random import randint
 
@@ -70,13 +71,16 @@ def main():
         ('Captain Planet', ('Earth', 'Fire', 'Wind', 'Water', 'Heart')),
     )
 
-    print('Mocking org {}'.format('Default'))
-    org, _ = Organization.objects.get_or_create(
-        name='Default',
-        defaults={
-            'owner': user,
-        },
-    )
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        org = Organization.objects.all()[0]
+    else:
+        print('Mocking org {}'.format('Default'))
+        org, _ = Organization.objects.get_or_create(
+            name='Default',
+            defaults={
+                'owner': user,
+            },
+        )
 
     dummy_member, _ = OrganizationMember.objects.get_or_create(
         user=dummy_user,
