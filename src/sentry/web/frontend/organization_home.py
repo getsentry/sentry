@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 
 from sentry.api import client
-from sentry.models import OrganizationMember, Team
+from sentry.models import OrganizationMember, Team, TeamStatus
 from sentry.web.frontend.base import OrganizationView
 
 
@@ -22,8 +22,13 @@ class OrganizationHomeView(OrganizationView):
 
         active_team_set = set([t.id for t, _ in active_teams])
 
+        all_team_qs = Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ).order_by('name')
+
         all_teams = []
-        for team in Team.objects.filter(organization=organization).order_by('name'):
+        for team in all_teams:
             all_teams.append((team, team.id in active_team_set))
 
         if request.access.is_global:
