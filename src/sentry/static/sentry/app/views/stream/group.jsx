@@ -147,7 +147,7 @@ var StreamGroup = React.createClass({
 
     return (
       <li className={className} ref="element">
-        <div className="col-md-7 event-details">
+        <div className="col-md-7 col-xs-8 event-details">
           <div className="checkbox">
             <GroupCheckBox id={data.id} />
           </div>
@@ -167,16 +167,16 @@ var StreamGroup = React.createClass({
             <span className="first-seen">from <TimeSince date={data.firstSeen} /></span>
           </div>
         </div>
-        <div className="event-assignee col-md-1 hidden-xs hidden-sm">
+        <div className="event-assignee col-md-1 hidden-sm hidden-xs">
           <AssigneeSelector id={data.id} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} />
         </div>
-        <div className="col-md-1 hidden-xs event-occurrences align-right">
+        <div className="col-md-1 col-xs-2 event-occurrences align-right">
           <Count value={data.count} />
         </div>
-        <div className="col-md-1 hidden-xs event-users align-right">
+        <div className="col-md-1 col-xs-2 event-users align-right">
           <Count value={userCount} />
         </div>
       </li>
