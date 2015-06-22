@@ -42,7 +42,7 @@ var ExpandedTeamList = React.createClass({
       return (
         <div className="box" key={team.slug}>
           <div className="box-header">
-            <div className="pull-right actions">
+            <div className="pull-right actions hidden-xs">
               <a className="new-project" href={urlPrefix + '/projects/new/?team=' + team.slug}>
                 New Project
               </a>
