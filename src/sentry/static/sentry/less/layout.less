@@ -462,6 +462,24 @@ footer {
 * Responsive small screens
 * ============================================================================
 */
+
+@media(max-width:400px) {
+  .breadcrumb {
+    display: none;
+  }
+
+  .sub-header .pull-right {
+    float: left !important;
+
+    li {
+      margin: 0 15px 0 0px;
+      &:last-child {
+        margin: 0;
+      }
+    }
+  }
+}
+
 @media(max-width:767px) {
   body {
     overflow-x: hidden;
