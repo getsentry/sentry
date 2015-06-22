@@ -279,7 +279,7 @@ var DateSelector = React.createClass({
   render() {
     return (
       <div className="dropdown btn-group">
-        <a className="btn btn-sm dropdown-toggle" data-toggle="dropdown">
+        <a className="btn btn-sm dropdown-toggle hidden-xs" data-toggle="dropdown">
           All time
           <span className="icon-arrow-down"></span>
         </a>
