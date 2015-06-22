@@ -22,6 +22,7 @@ Resources
 * `Documentation <http://sentry.readthedocs.org/>`_
 * `Bug Tracker <http://github.com/getsentry/sentry/issues>`_
 * `Code <http://github.com/getsentry/sentry>`_
+* `Stack Overflow <http://stackoverflow.com/questions/ask?tags=appharbor>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 * `Transifex <https://www.transifex.com/projects/p/sentry/>`_ (Translate Sentry!)
