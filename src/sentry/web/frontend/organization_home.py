@@ -28,7 +28,7 @@ class OrganizationHomeView(OrganizationView):
         ).order_by('name')
 
         all_teams = []
-        for team in all_teams:
+        for team in all_team_qs:
             all_teams.append((team, team.id in active_team_set))
 
         if request.access.is_global:
