@@ -89,18 +89,7 @@ var GroupOverview = React.createClass({
     return (
       <div>
         <div className="row group-overview">
-          <div className="col-md-9">
-            {this.state.loading ?
-              <LoadingIndicator />
-            : (this.state.error ?
-              <LoadingError onRetry={this.fetchData} />
-            :
-              <GroupEventEntries
-                  group={group}
-                  event={evt} />
-            )}
-          </div>
-          <div className="col-md-3">
+          <div className="col-md-3 group-stats-column">
             <div className="group-stats">
               <GroupChart statsPeriod="24h" group={group}
                           title="Last 24 Hours" />
@@ -119,6 +108,17 @@ var GroupOverview = React.createClass({
               <h6>Status</h6>
               <h3>{group.status}</h3>
             </div>
+          </div>
+          <div className="col-md-9">
+            {this.state.loading ?
+              <LoadingIndicator />
+            : (this.state.error ?
+              <LoadingError onRetry={this.fetchData} />
+            :
+              <GroupEventEntries
+                  group={group}
+                  event={evt} />
+            )}
           </div>
         </div>
       </div>
