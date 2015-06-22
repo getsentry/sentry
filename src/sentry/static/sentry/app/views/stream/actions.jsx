@@ -460,7 +460,7 @@ var StreamActions = React.createClass({
   render() {
     return (
       <div className="stream-actions row">
-        <div className="stream-actions-left col-md-7">
+        <div className="stream-actions-left col-md-7 col-sm-8 col-xs-8">
           <div className="checkbox">
             <input type="checkbox" className="chk-select-all"
                    onChange={this.onSelectAll}
@@ -553,7 +553,7 @@ var StreamActions = React.createClass({
           <SortOptions />
           <DateSelector />
         </div>
-        <div className="hidden-sm hidden-xs stream-actions-assignee col-md-1">
+        <div className="hidden-sm stream-actions-assignee col-md-1">
         </div>
         <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
           <ul className="toggle-graph">
@@ -565,8 +565,8 @@ var StreamActions = React.createClass({
             </li>
           </ul>
         </div>
-        <div className="stream-actions-occurrences align-right hidden-xs col-md-1"> events</div>
-        <div className="stream-actions-users align-right hidden-xs col-md-1"> users</div>
+        <div className="stream-actions-occurrences align-right col-md-1 col-sm-2 col-xs-2"> events</div>
+        <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2"> users</div>
       </div>
     );
   }
