@@ -10,7 +10,10 @@
 
 {% block inner %}
   <div class="page-header">
-    <h2>Stats</h2>
+    <h2>
+      Stats
+      <small id="rate" class="pull-right"></small>
+    </h2>
   </div>
 
   <p>The chart below reflects events the system has received across your entire organization. Events are broken down into two categories: Accepted and Rejected. Rejected events are entries that the system threw away due to quotas being hit.</p>
@@ -146,6 +149,7 @@
       var oRejected = 0;
       var sReceived = {};
       var sRejected = {};
+      var aReceived = [0, 0]; // received, points
       $.each(rawOrgData.received, function(idx, point){
         var dReceived = point[1];
         var dRejected = rawOrgData.rejected[idx][1];
@@ -159,10 +163,15 @@
         }
         oReceived += dReceived;
         oRejected += dRejected;
+        if (dReceived > 0) {
+          aReceived[0] += dReceived;
+          aReceived[1] += 1;
+        }
       });
       orgTotal.received = oReceived;
       orgTotal.rejected = oRejected;
       orgTotal.accepted = oReceived - oRejected;
+      orgTotal.avgRate = parseInt((aReceived[0] / aReceived[1]) / 60, 10);
 
       stats.rejected = $.map(sRejected, function(value, ts) { return [[ts, value || null]]; });
       stats.accepted = $.map(sReceived, function(value, ts) {
@@ -299,6 +308,8 @@
       $(window).resize(function(){
         $.plot($sparkline, points, options);
       });
+
+      $('#rate').text(orgTotal.avgRate + ' avg EPM');
     }
   });
   </script>
