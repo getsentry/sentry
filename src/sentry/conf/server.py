@@ -763,5 +763,5 @@ SENTRY_API_RESPONSE_DELAY = 0
 
 # Watchers for various application purposes (such as compiling static media)
 SENTRY_WATCHERS = (
-    [os.path.join(NODE_MODULES_ROOT, '.bin', 'gulp'), 'dist', 'watch'],
+    [os.path.join(NODE_MODULES_ROOT, '.bin', 'gulp'), 'watch'],
 )

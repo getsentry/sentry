@@ -84,13 +84,13 @@ gulp.task("dist:webpack", function(callback){
 
 gulp.task("dist", ["dist:css", "dist:webpack"]);
 
-gulp.task("watch:css:sentry", function(){
+gulp.task("watch:css:sentry", ["dist:css:sentry"], function(){
   return gp_watch(file("less/**/*.less"), function(){
     gulp.start("dist:css:sentry");
   });
 });
 
-gulp.task("watch:css:wall", function(){
+gulp.task("watch:css:wall", ["dist:css:wall"], function(){
   return gp_watch(file("less/wall.less"), function(){
     gulp.start("dist:css:wall");
   });
