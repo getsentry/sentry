@@ -64,7 +64,7 @@ class Command(BaseCommand):
             days = self.days
 
         if self.project:
-            where_extra = 'and project = %d' % (self.project,)
+            where_extra = 'and project_id = %d' % (self.project,)
         else:
             where_extra = ''
 
