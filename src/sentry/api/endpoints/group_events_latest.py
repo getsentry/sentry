@@ -10,9 +10,9 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
 
     def get(self, request, group):
         """
-        Retrieve the latest event
+        Retrieve the latest sample for an aggregate
 
-        Return details on the latest event for this group.
+        Return details on the latest sample for this aggregate.
 
             {method} {path}
 
