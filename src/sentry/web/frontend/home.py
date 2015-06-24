@@ -14,7 +14,7 @@ class HomeView(BaseView):
         if organization:
             url = reverse('sentry-organization-home', args=[organization.slug])
         elif not features.has('organizations:create'):
-            return self.respond('sentry/no-organization-access.html')
+            return self.respond('sentry/no-organization-access.html', status=403)
         else:
             url = reverse('sentry-create-organization')
         return HttpResponseRedirect(url)
