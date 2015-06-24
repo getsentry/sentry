@@ -161,10 +161,28 @@ var StreamGroup = React.createClass({
           <div className="event-message truncate">
             <span className="message">{data.culprit}</span>
           </div>
-          <div className="event-meta">
-            <span className="last-seen"><TimeSince date={data.lastSeen} /></span>
-            &nbsp;&mdash;&nbsp;
-            <span className="first-seen">from <TimeSince date={data.firstSeen} /></span>
+          <div className="event-extra">
+            <ul>
+              <li>
+                <span className="icon icon-clock"></span>
+                <TimeSince date={data.lastSeen} />
+                &nbsp;&mdash;&nbsp;
+                <TimeSince date={data.firstSeen} />
+              </li>
+              <li>
+                <a href="#" className="comments">
+                  <span className="icon icon-comments"></span><span className="tag-count">3</span>
+                </a>
+              </li>
+              <li>
+                <a href="#" className="github">
+                  <span className="icon icon-mark-github"></span><span className="tag-count">#132</span>
+                </a>
+              </li>
+              <li><span className="tag-label">releases:</span><span className="tag-count">1</span></li>
+              <li><span className="tag-label">users:</span><span className="tag-count">33</span></li>
+              <li><span className="tag-label">urls:</span><span className="tag-count">4</span></li>
+            </ul>
           </div>
         </div>
         <div className="event-assignee col-md-1 hidden-sm hidden-xs">

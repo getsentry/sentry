@@ -263,7 +263,7 @@
   }
 
   .event-details {
-    padding: 15px 0 15px 44px;
+    padding: 15px 0 13px 44px;
 
     h3 {
       font-size: 16px;
@@ -276,20 +276,68 @@
       }
     }
 
-    .event-message, .event-meta {
-      color: lighten(#79858C, 10);
+    .event-message, .event-extra {
       line-height: 1.2;
+      color: lighten(@gray, 12);
     }
 
     .event-message {
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
+      font-size: 90%;
+    }
+
+    .event-extra {
+      margin-top: 7px;
+
+      ul {
+        .list-unstyled;
+        margin-left: -9px;
+
+        li {
+          float: left;
+          margin: 0 0 5px 9px;
+          font-size: 13px;
+          line-height: 1;
+          border-right: 1px solid lighten(@trim, 6);
+          padding-right: 9px;
+          height: 13px;
+
+          &:last-child {
+            border: 0;
+            padding: 0;
+          }
+
+          a {
+            display: block;
+            color: lighten(@gray, 10);
+
+            &:hover {
+              color: @gray;
+            }
+          }
+
+          .icon {
+            margin-right: 4px;
+            font-size: 12px;
+          }
+
+          .icon-comments {
+            font-size: 11px;
+          }
+
+          .tag-label {
+            margin-right: 4px;
+          }
+        }
+      }
     }
 
     .event-meta {
       font-size: 80%;
       margin-top: 6px;
+      clear: both;
     }
 
     p {
