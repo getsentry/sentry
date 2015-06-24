@@ -361,7 +361,6 @@ CELERY_CREATE_MISSING_QUEUES = True
 CELERY_IMPORTS = (
     'sentry.tasks.beacon',
     'sentry.tasks.check_auth',
-    'sentry.tasks.cleanup',
     'sentry.tasks.deletion',
     'sentry.tasks.email',
     'sentry.tasks.index',
