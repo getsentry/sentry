@@ -68,7 +68,6 @@ class Command(BaseCommand):
         else:
             where_extra = ''
 
-        self.stdout.write(">> Cleaning up %s\n" % (model.__name__,))
         keep_it_going = True
         while keep_it_going:
             cursor.execute("""
