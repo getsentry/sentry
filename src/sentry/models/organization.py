@@ -158,7 +158,9 @@ class Organization(Model):
                     OrganizationMemberTeam.objects.get_or_create(
                         organizationmember=to_member,
                         team=team,
-                        is_active=False,
+                        defaults={
+                            'is_active': False,
+                        },
                     )
 
         for model in (Team, Project, ApiKey, AuditLogEntry):
