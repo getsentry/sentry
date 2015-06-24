@@ -64,7 +64,7 @@ class Command(BaseCommand):
             days = self.days
 
         if self.project:
-            where_extra = 'and project = %(project)d'
+            where_extra = 'and project = %d' % (self.project,)
         else:
             where_extra = ''
 
@@ -84,7 +84,6 @@ class Command(BaseCommand):
                 dtfield=quote_name(dtfield),
                 days=days,
                 where_extra=where_extra,
-                project=self.project,
                 chunk_size=chunk_size,
             ))
             keep_it_going = cursor.rowcount > 0
