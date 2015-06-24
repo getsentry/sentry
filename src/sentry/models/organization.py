@@ -155,7 +155,7 @@ class Organization(Model):
 
             if to_member.has_global_access:
                 for team in team_list:
-                    OrganizationMemberTeam.objects.create(
+                    OrganizationMemberTeam.objects.get_or_create(
                         organizationmember=to_member,
                         team=team,
                         is_active=False,
