@@ -11,6 +11,7 @@ This releases entirely removes Access Groups. If you're upgrading form an instal
 - ``Event.checksum`` and ``Group.checksum`` have been removed.
 - The ``cleanup`` task has been removed (the command is still available).
 - Various optimizations to ``cleanup`` for Postgres users.
+- Within single organization mode users will automatically be added to the default organization.
 
 Version 7.5.4
 -------------
