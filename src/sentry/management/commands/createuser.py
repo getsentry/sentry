@@ -101,7 +101,7 @@ class Command(BaseCommand):
 
         # TODO(dcramer): kill this when we improve flows
         if settings.SENTRY_SINGLE_ORGANIZATION:
-            org = Organization.objects.all()[0]
+            org = Organization.get_default()
             OrganizationMember.objects.create(
                 organization=org,
                 user=user,

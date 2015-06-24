@@ -66,7 +66,7 @@ class AuthLoginView(BaseView):
 
     def handle(self, request):
         if settings.SENTRY_SINGLE_ORGANIZATION:
-            org = Organization.objects.all()[0]
+            org = Organization.get_default()
             next_uri = reverse('sentry-auth-organization',
                                args=[org.slug])
             return HttpResponseRedirect(next_uri)
