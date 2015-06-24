@@ -103,6 +103,13 @@ class Organization(Model):
 
     __repr__ = sane_repr('owner_id', 'name', 'slug')
 
+    @classmethod
+    def get_default(cls):
+        """
+        Return the organization used in single organization mode.
+        """
+        return cls.objects.all()[0]
+
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
 
