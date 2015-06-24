@@ -1,0 +1,16 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "No Organization Access" %} | {{ block.super }}{% endblock %}
+
+{% block wrapperclass %}windowed-small{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="page-header">
+      <h2>{% trans "No Organization Access" %}</h2>
+    </div>
+    <p>{% trans "You don't have access to any organizations within Sentry. Talk to a Sentry administrator about getting access." %}</p>
+  </section>
+{% endblock %}

@@ -22,7 +22,8 @@ from sudo.decorators import sudo_required
 
 from sentry import features
 from sentry.models import (
-    LostPasswordHash, Organization, Project, Team, UserOption
+    AuthProvider, LostPasswordHash, Organization, OrganizationMemberType,
+    Project, Team, UserOption
 )
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
@@ -48,6 +49,32 @@ def register(request):
                             captcha=bool(request.session.get('needs_captcha')))
     if form.is_valid():
         user = form.save()
+
+        # TODO(dcramer): ideally this would be handled by a special view
+        # specifically for organization registration
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            org = Organization.get_default()
+
+            defaults = {
+                'has_global_access': True,
+                'type': OrganizationMemberType.MEMBER,
+            }
+            try:
+                auth_provider = AuthProvider.objects.get(
+                    organization=org.id,
+                )
+            except AuthProvider.DoesNotExist:
+                pass
+            else:
+                defaults.update({
+                    'has_global_access': auth_provider.default_global_access,
+                    'type': auth_provider.default_role,
+                })
+
+            org.member_set.create(
+                user=user,
+                **defaults
+            )
 
         # can_register should only allow a single registration
         request.session.pop('can_register', None)
