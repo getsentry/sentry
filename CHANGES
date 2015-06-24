@@ -8,6 +8,7 @@ This releases entirely removes Access Groups. If you're upgrading form an instal
 - Added 'access_token' to data blacklist.
 - The legacy (unused) search tables have been removed.
 - Upgrades must now be applied manually via ``sentry upgrade`` or with ``sentry start --upgrade``.
+  (Don't forget to use ``--noinput`` if you're doing this via automated tooling!)
 - ``Event.checksum`` and ``Group.checksum`` have been removed.
 - The ``cleanup`` task has been removed (the command is still available).
 - Various optimizations to ``cleanup`` for Postgres users.
