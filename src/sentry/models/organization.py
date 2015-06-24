@@ -108,7 +108,9 @@ class Organization(Model):
         """
         Return the organization used in single organization mode.
         """
-        return cls.objects.all()[0]
+        return cls.objects.filter(
+            status=OrganizationStatus.VISIBLE,
+        )[0]
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
