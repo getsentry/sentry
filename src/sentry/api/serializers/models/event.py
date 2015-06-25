@@ -41,6 +41,7 @@ class EventSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
             'id': str(obj.id),
+            'groupID': obj.group.id,
             'eventID': str(obj.event_id),
             'entries': attrs['entries'],
             'message': obj.message,
