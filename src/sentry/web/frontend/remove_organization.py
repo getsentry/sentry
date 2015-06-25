@@ -9,6 +9,7 @@ from sentry.models import OrganizationMemberType, OrganizationStatus
 from sentry.tasks.deletion import delete_organization
 from sentry.web.frontend.base import OrganizationView
 
+ERR_DEFAULT_ORG = _('You cannot remove the default organization.')
 
 MSG_REMOVE_SUCCESS = _('The %s organization has been scheduled for removal.')
 
@@ -27,6 +28,12 @@ class RemoveOrganizationView(OrganizationView):
         return RemoveOrganizationForm()
 
     def handle(self, request, organization):
+        if organization.is_default:
+            messages.add_message(request, messages.ERROR, ERR_DEFAULT_ORG)
+            return self.redirect(reverse('sentry-organization-home', args=[
+                organization.slug
+            ]))
+
         form = self.get_form(request, organization)
         if form.is_valid():
             if organization.status != OrganizationStatus.PENDING_DELETION:

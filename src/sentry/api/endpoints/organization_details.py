@@ -17,6 +17,9 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_organization
 
 
+ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
+
+
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
@@ -105,6 +108,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         However once deletion has begun the state of a project changes and will
         be hidden from most public views.
         """
+        if organization.is_default:
+            return Response({'detail': ERR_DEFAULT_ORG}, status=400)
+
         updated = Organization.objects.filter(
             id=organization.id,
             status=OrganizationStatus.VISIBLE,
