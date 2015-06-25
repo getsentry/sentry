@@ -26,7 +26,7 @@
     </fieldset>
 
     <fieldset class="form-actions">
-      {% if ACCESS.org_delete %}
+      {% if ACCESS.org_delete and not org.is_default %}
         <a href="{% url 'sentry-remove-organization' organization.slug %}" class="btn btn-danger">{% trans "Remove Organization" %}</a>
       {% endif %}
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>

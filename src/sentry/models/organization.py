@@ -11,6 +11,7 @@ from bitfield import BitField
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -119,6 +120,13 @@ class Organization(Model):
         if not self.slug:
             slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
         super(Organization, self).save(*args, **kwargs)
+
+    @cached_property
+    def is_default(self):
+        if not settings.SENTRY_SINGLE_ORGANIZATION:
+            return False
+
+        return self == type(self).get_default()
 
     def has_access(self, user, access=None):
         queryset = self.member_set.filter(user=user)
