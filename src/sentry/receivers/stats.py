@@ -21,7 +21,7 @@ post_save.connect(
 
 
 def _get_task_name(task):
-    return '%s.%s' % (task.__module__, task.__name__)
+    return '{0}.{1}'.format(task.__module__, task.__name__)
 
 
 def record_task_signal(signal, name):
