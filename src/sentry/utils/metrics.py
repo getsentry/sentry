@@ -15,7 +15,7 @@ def _get_key(key):
 
 
 def incr(key, amount=1):
-    from sentry.app import tsdb
+    from sentry import tsdb
 
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
 

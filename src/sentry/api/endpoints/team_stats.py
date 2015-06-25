@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 from six.moves import range
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.models import Project

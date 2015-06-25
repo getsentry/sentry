@@ -22,7 +22,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from sentry import app
+from sentry import search
 from sentry.auth import access
 from sentry.constants import (
     SORT_OPTIONS, MEMBER_USER, DEFAULT_SORT_OPTION, EVENTS_PER_PAGE
@@ -118,7 +118,7 @@ def _get_group_list(request, project):
         if query_result.get('tags'):
             query_kwargs['tags'].update(query_result['tags'])
 
-    results = app.search.query(**query_kwargs)
+    results = search.query(**query_kwargs)
 
     return {
         'event_list': results[:EVENTS_PER_PAGE],

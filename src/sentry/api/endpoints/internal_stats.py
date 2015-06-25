@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.api.base import Endpoint, StatsMixin
 from sentry.api.permissions import SuperuserPermission
 

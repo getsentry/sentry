@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.fields import UserField

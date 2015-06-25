@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 
 import hashlib
 import logging
+import six
 import threading
 import weakref
 
@@ -20,8 +21,7 @@ from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_str
 
-import six
-
+from sentry import nodestore
 from sentry.utils.cache import cache
 
 from .query import create_or_update
@@ -238,8 +238,6 @@ class BaseManager(Manager):
         return create_or_update(self.model, **kwargs)
 
     def bind_nodes(self, object_list, *node_names):
-        from sentry import app
-
         object_node_list = []
         for name in node_names:
             object_node_list.extend((getattr(i, name) for i in object_list if getattr(i, name).id))
@@ -248,7 +246,7 @@ class BaseManager(Manager):
         if not node_ids:
             return
 
-        node_results = app.nodestore.get_multi(node_ids)
+        node_results = nodestore.get_multi(node_ids)
 
         for node in object_node_list:
             node.bind_data(node_results.get(node.id) or {})

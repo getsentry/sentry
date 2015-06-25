@@ -41,7 +41,7 @@ class SentryInternalClient(DjangoClient):
     def send(self, **kwargs):
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
-        from sentry.app import tsdb
+        from sentry import tsdb
         from sentry.coreapi import insert_data_to_database
         from sentry.event_manager import EventManager
         from sentry.models import Project

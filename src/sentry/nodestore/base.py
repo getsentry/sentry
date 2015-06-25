@@ -14,6 +14,9 @@ from uuid import uuid4
 
 
 class NodeStorage(local):
+    __all__ = ('create', 'delete', 'delete_multi', 'get', 'get_multi', 'set',
+               'set_multi', 'generate_id', 'cleanup')
+
     def create(self, data):
         """
         >>> key = nodestore.create({'foo': 'bar'})

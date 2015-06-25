@@ -30,9 +30,8 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from raven.contrib.django.models import client as Raven
 
-from sentry import app
+from sentry import quotas, tsdb
 from sentry.api.base import LINK_HEADER
-from sentry.app import tsdb
 from sentry.constants import MEMBER_USER, EVENTS_PER_PAGE
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
@@ -313,24 +312,24 @@ class StoreView(APIView):
         event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
-        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
+        rate_limit = safe_execute(quotas.is_rate_limited, project=project,
                                   _with_transaction=False)
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
 
         if rate_limit is not None and rate_limit.is_limited:
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.project_total_rejected, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
-                (app.tsdb.models.organization_total_rejected, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_rejected, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.organization_total_rejected, project.organization_id),
             ])
             metrics.incr('events.dropped', 1)
             raise APIRateLimited(rate_limit.retry_after)
         else:
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
             ])
 
         result = plugins.first('has_perm', request.user, 'create_event', project,

@@ -1,6 +1,6 @@
 from django.core.urlresolvers import reverse
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.testutils import APITestCase
 
 

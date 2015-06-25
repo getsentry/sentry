@@ -10,9 +10,10 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 from django import forms
+from django.utils import timezone
 from pytz import utc
 
-from django.utils import timezone
+from sentry import tsdb
 from sentry.rules.conditions.base import EventCondition
 
 
@@ -37,8 +38,6 @@ class EventFrequencyCondition(EventCondition):
     label = 'An event is seen more than {value} times in {interval}'
 
     def __init__(self, *args, **kwargs):
-        from sentry.app import tsdb
-
         self.tsdb = kwargs.pop('tsdb', tsdb)
 
         super(EventFrequencyCondition, self).__init__(*args, **kwargs)

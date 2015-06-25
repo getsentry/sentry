@@ -43,6 +43,9 @@ class TSDBModel(Enum):
 
 
 class BaseTSDB(object):
+    __all__ = ('models', 'incr', 'incr_multi', 'get_range', 'get_sums',
+               'get_rollups')
+
     models = TSDBModel
 
     def __init__(self, rollups=settings.SENTRY_TSDB_ROLLUPS):
@@ -119,3 +122,6 @@ class BaseTSDB(object):
             for (key, points) in range_set.iteritems()
         )
         return sum_set
+
+    def get_rollups(self):
+        return self.rollups

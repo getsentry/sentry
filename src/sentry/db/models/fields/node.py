@@ -17,6 +17,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from south.modelsinspector import add_introspection_rules
 
+from sentry import nodestore
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
@@ -57,14 +58,12 @@ class NodeData(collections.MutableMapping):
 
     @memoize
     def data(self):
-        from sentry import app
-
         if self._node_data is not None:
             return self._node_data
 
         elif self.id:
             warnings.warn('You should populate node data before accessing it.')
-            return app.nodestore.get(self.id) or {}
+            return nodestore.get(self.id) or {}
 
         return {}
 
@@ -87,13 +86,11 @@ class NodeField(GzippedDictField):
             weak=False)
 
     def on_delete(self, instance, **kwargs):
-        from sentry import app
-
         value = getattr(instance, self.name)
         if not value.id:
             return
 
-        app.nodestore.delete(value.id)
+        nodestore.delete(value.id)
 
     def to_python(self, value):
         if isinstance(value, six.string_types) and value:
@@ -115,8 +112,6 @@ class NodeField(GzippedDictField):
         return NodeData(node_id, data)
 
     def get_prep_value(self, value):
-        from sentry import app
-
         if not value and self.null:
             # save ourselves some storage
             return None
@@ -124,9 +119,9 @@ class NodeField(GzippedDictField):
         # TODO(dcramer): we should probably do this more intelligently
         # and manually
         if not value.id:
-            value.id = app.nodestore.create(value.data)
+            value.id = nodestore.create(value.data)
         else:
-            app.nodestore.set(value.id, value.data)
+            nodestore.set(value.id, value.data)
 
         return compress(pickle.dumps({
             'node_id': value.id

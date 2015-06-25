@@ -17,7 +17,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import is_valid_origin
@@ -193,7 +193,7 @@ class StatsMixin(object):
         if resolution:
             resolution = self._parse_resolution(resolution)
 
-            assert any(r for r in tsdb.rollups if r[0] == resolution)
+            assert any(r for r in tsdb.get_rollups() if r[0] == resolution)
 
         end = request.GET.get('until')
         if end:

@@ -11,6 +11,7 @@ from __future__ import absolute_import
 
 from celery.utils.log import get_task_logger
 
+from sentry import nodestore
 from sentry.utils.query import bulk_delete_objects
 from sentry.tasks.base import instrumented_task, retry
 
@@ -192,7 +193,6 @@ def delete_tag_key(object_id, continuous=True, **kwargs):
 
 
 def delete_events(relation, limit=1000, logger=None):
-    from sentry.app import nodestore
     from sentry.models import Event
 
     has_more = False

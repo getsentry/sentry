@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pytz import utc
 from random import randint
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.models import (
     Activity, User, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Team

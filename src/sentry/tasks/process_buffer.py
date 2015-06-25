@@ -17,9 +17,9 @@ def process_pending():
     """
     Process pending buffers.
     """
-    from sentry import app
+    from sentry import buffer
 
-    app.buffer.process_pending()
+    buffer.process_pending()
 
 
 @instrumented_task(
@@ -28,6 +28,6 @@ def process_incr(**kwargs):
     """
     Processes a buffer event.
     """
-    from sentry import app
+    from sentry import buffer
 
-    app.buffer.process(**kwargs)
+    buffer.process(**kwargs)

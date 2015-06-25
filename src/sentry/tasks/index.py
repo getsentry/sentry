@@ -13,6 +13,6 @@ from sentry.tasks.base import instrumented_task
 
 @instrumented_task(name='sentry.tasks.index.index_event', queue='search')
 def index_event(event, **kwargs):
-    from sentry import app
+    from sentry import search
 
-    app.search.index(event)
+    search.index(event)

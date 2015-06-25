@@ -12,13 +12,13 @@ import datetime
 from django import template
 from django.utils import timezone
 
+from sentry import tsdb
+
 register = template.Library()
 
 
 @register.filter
 def with_event_counts(project_list):
-    from sentry.app import tsdb
-
     end = timezone.now()
     start = end - datetime.timedelta(days=1)
 

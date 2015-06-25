@@ -109,8 +109,9 @@ def pytest_configure(config):
 
 
 def pytest_runtest_teardown(item):
-    from sentry.app import tsdb
-    tsdb.flush()
+    from sentry import tsdb
+    # TODO(dcramer): this only works if this is the correct tsdb backend
+    tsdb.backend.flush()
 
     from redis import StrictRedis
     client = StrictRedis(db=9)

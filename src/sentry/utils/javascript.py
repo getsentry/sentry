@@ -13,7 +13,8 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.html import escape
 
-from sentry.app import env, tsdb
+from sentry import tsdb
+from sentry.app import env
 from sentry.constants import TAG_LABELS
 from sentry.models import (
     Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus,

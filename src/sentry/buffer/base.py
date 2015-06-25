@@ -26,6 +26,8 @@ class Buffer(object):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
+    __all__ = ('incr', 'process', 'process_pending')
+
     def incr(self, model, columns, filters, extra=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})

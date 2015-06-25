@@ -5,8 +5,8 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
+from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.app import tsdb
 from sentry.constants import TAG_LABELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus

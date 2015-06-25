@@ -12,7 +12,7 @@ import logging
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import ratelimiter
+from sentry import ratelimits
 from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption
 
@@ -96,7 +96,7 @@ class NotificationPlugin(Plugin):
 
         project = group.project
 
-        rate_limited = ratelimiter.is_limited(
+        rate_limited = ratelimits.is_limited(
             project=project,
             key=self.get_conf_key(),
             limit=15,

@@ -19,7 +19,7 @@ from hashlib import md5
 from raven.utils.encoding import to_string
 from uuid import uuid4
 
-from sentry.app import buffer, tsdb
+from sentry import buffer, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH,
     MAX_TAG_VALUE_LENGTH

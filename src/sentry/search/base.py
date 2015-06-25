@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 
 class SearchBackend(object):
+    __all__ = ('index', 'query', 'upgrade')
+
     def __init__(self, **options):
         pass
 

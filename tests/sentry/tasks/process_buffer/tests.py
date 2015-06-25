@@ -9,7 +9,7 @@ from sentry.testutils import TestCase
 
 
 class ProcessIncrTest(TestCase):
-    @mock.patch('sentry.app.buffer.process')
+    @mock.patch('sentry.buffer.backend.process')
     def test_calls_process(self, process):
         model = mock.Mock()
         columns = {'times_seen': 1}

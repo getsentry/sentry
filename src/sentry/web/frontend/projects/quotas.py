@@ -12,7 +12,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import app, features
+from sentry import features, quotas
 from sentry.constants import MEMBER_ADMIN
 from sentry.quotas.base import Quota
 from sentry.web.decorators import has_access
@@ -50,9 +50,9 @@ def manage_project_quotas(request, organization, project):
         'team': project.team,
         'page': 'quotas',
         # TODO(dcramer): has_quotas is an awful hack
-        'has_quotas': type(app.quotas) != Quota,
-        'system_quota': int(app.quotas.get_system_quota()),
-        'team_quota': int(app.quotas.get_team_quota(project.team)),
+        'has_quotas': type(quotas.backend) != Quota,
+        'system_quota': int(quotas.get_system_quota()),
+        'team_quota': int(quotas.get_team_quota(project.team)),
         'project': project,
         'form': form,
     }

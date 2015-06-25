@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.app import search
+from sentry import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize

@@ -14,7 +14,7 @@ from django.utils import timezone
 from nydus.utils import ThreadPool
 from optparse import make_option
 
-from sentry.app import nodestore
+from sentry import nodestore
 from sentry.models import (
     Activity, Alert, Event, EventMapping, Group, GroupRuleStatus, GroupTagValue,
     LostPasswordHash, TagValue
