@@ -218,6 +218,7 @@ class ProjectSettingsView(ProjectView):
 
         context = {
             'form': form,
+            'page': 'details',
         }
 
         return self.respond('sentry/projects/manage.html', context)
