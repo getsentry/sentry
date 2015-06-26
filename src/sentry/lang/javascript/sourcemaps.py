@@ -128,12 +128,17 @@ def sourcemap_to_index(sourcemap):
             # Ensure we handle null files that may be specified outside of
             # sourcesContent
             try:
-                # Apply the root to the source before shoving into the index
-                # so we can look it up correctly later
-                source = urljoin(sourceRoot, source)
-                content[source] = smap['sourcesContent'][idx].splitlines()
+                value = smap['sourcesContent'][idx]
             except IndexError:
-                pass
+                continue
+
+            if value is None:
+                continue
+
+            # Apply the root to the source before shoving into the index
+            # so we can look it up correctly later
+            source = urljoin(sourceRoot, source)
+            content[source] = value.splitlines()
 
     for state in parse_sourcemap(smap):
         state_list.append(state)
