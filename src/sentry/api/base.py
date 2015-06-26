@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 __all__ = ['DocSection', 'Endpoint', 'StatsMixin']
 
-import logging
 import time
 
 from datetime import datetime, timedelta
@@ -17,7 +16,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry.app import tsdb
+from sentry.app import raven, tsdb
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.http import is_valid_origin
@@ -81,10 +80,11 @@ class Endpoint(APIView):
         try:
             return super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
-            logging.error(unicode(exc), extra={'request': request}, exc_info=True)
-            context = {'detail': 'Internal Error'}
-            if hasattr(request, 'sentry'):
-                context['errorId'] = request.sentry['id']
+            event_id = raven.get_ident(raven.captureException(request=request))
+            context = {
+                'detail': 'Internal Error',
+                'errorId': event_id,
+            }
             return Response(context, status=500)
 
     def create_audit_entry(self, request, **kwargs):

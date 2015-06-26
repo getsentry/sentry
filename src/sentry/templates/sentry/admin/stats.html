@@ -12,7 +12,10 @@
     <h2>{% trans "System Overview" %}</h2>
   </div>
 
-  <h3>Event Throughput</h3>
+  <h3>
+    Event Throughput
+    <small id="rate" class="pull-right"></small>
+  </h3>
   <div id="blk_chart"></div>
 
   <script>
@@ -57,6 +60,7 @@
       var oRejected = 0;
       var sReceived = {};
       var sRejected = {};
+      var aReceived = [0, 0]; // received, points
       $.each(rawData['events.total'], function(idx, point){
         var dReceived = point[1];
         var dRejected = rawData['events.dropped'][idx][1];
@@ -70,10 +74,15 @@
         }
         oReceived += dReceived;
         oRejected += dRejected;
+        if (dReceived > 0) {
+          aReceived[0] += dReceived;
+          aReceived[1] += 1;
+        }
       });
       systemTotal.received = oReceived;
       systemTotal.rejected = oRejected;
       systemTotal.accepted = oReceived - oRejected;
+      systemTotal.avgRate = parseInt((aReceived[0] / aReceived[1]) / 60, 10);
 
       stats.rejected = $.map(sRejected, function(value, ts) { return [[ts, value || null]]; });
       stats.accepted = $.map(sReceived, function(value, ts) {
@@ -114,6 +123,8 @@
          className: "chart",
          plotData: points
       }), document.getElementById('blk_chart'));
+
+      $('#rate').text(systemTotal.avgRate + ' avg EPM');
     }
   });
   </script>

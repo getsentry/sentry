@@ -34,3 +34,4 @@ class EventDetailsTest(APITestCase):
         assert response.data['id'] == str(cur_event.id)
         assert response.data['nextEventID'] == str(next_event.id)
         assert response.data['previousEventID'] == str(prev_event.id)
+        assert response.data['groupID'] == group.id

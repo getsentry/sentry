@@ -179,6 +179,7 @@ class IssueTrackingPlugin(Plugin):
                 'title': form.cleaned_data['title'],
                 'provider': self.get_title(),
                 'location': self.get_issue_url(group, issue_id),
+                'label': self.get_issue_label(group=group, issue_id=issue_id),
             }
             Activity.objects.create(
                 project=group.project,

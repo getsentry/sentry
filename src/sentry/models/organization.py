@@ -11,6 +11,7 @@ from bitfield import BitField
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -103,6 +104,15 @@ class Organization(Model):
 
     __repr__ = sane_repr('owner_id', 'name', 'slug')
 
+    @classmethod
+    def get_default(cls):
+        """
+        Return the organization used in single organization mode.
+        """
+        return cls.objects.filter(
+            status=OrganizationStatus.VISIBLE,
+        )[0]
+
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
 
@@ -110,6 +120,13 @@ class Organization(Model):
         if not self.slug:
             slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
         super(Organization, self).save(*args, **kwargs)
+
+    @cached_property
+    def is_default(self):
+        if not settings.SENTRY_SINGLE_ORGANIZATION:
+            return False
+
+        return self == type(self).get_default()
 
     def has_access(self, user, access=None):
         queryset = self.member_set.filter(user=user)
@@ -148,10 +165,12 @@ class Organization(Model):
 
             if to_member.has_global_access:
                 for team in team_list:
-                    OrganizationMemberTeam.objects.create(
+                    OrganizationMemberTeam.objects.get_or_create(
                         organizationmember=to_member,
                         team=team,
-                        is_active=False,
+                        defaults={
+                            'is_active': False,
+                        },
                     )
 
         for model in (Team, Project, ApiKey, AuditLogEntry):

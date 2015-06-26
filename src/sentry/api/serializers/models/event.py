@@ -44,6 +44,7 @@ class EventSerializer(Serializer):
 
         d = {
             'id': str(obj.id),
+            'groupID': obj.group.id,
             'eventID': str(obj.event_id),
             'size': obj.size,
             'entries': attrs['entries'],

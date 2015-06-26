@@ -39,15 +39,30 @@ class SentryInternalClient(DjangoClient):
         return super(SentryInternalClient, self).capture(*args, **kwargs)
 
     def send(self, **kwargs):
-        from sentry.coreapi import insert_data_to_database
-        from sentry.event_manager import EventManager
-
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
-        kwargs['project'] = settings.SENTRY_PROJECT
+        from sentry.app import tsdb
+        from sentry.coreapi import insert_data_to_database
+        from sentry.event_manager import EventManager
+        from sentry.models import Project
+
+        try:
+            project = Project.objects.get_from_cache(id=settings.SENTRY_PROJECT)
+        except Project.DoesNotExist:
+            self.error_logger.error('Internal project (id=%s) does not exist',
+                                    settings.SENTRY_PROJECT)
+            return
+
+        metrics.incr('events.total', 1)
+
+        kwargs['project'] = project.id
         try:
             manager = EventManager(kwargs)
             data = manager.normalize()
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
+            ])
             insert_data_to_database(data)
         except Exception as e:
             if self.raise_send_errors:
