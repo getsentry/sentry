@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from django.conf import settings
 from sentry.utils.imports import import_string
 from threading import local
+from raven.contrib.django.models import client
 
 
 class State(local):
@@ -34,3 +35,4 @@ ratelimiter = get_instance(
     settings.SENTRY_RATELIMITER, settings.SENTRY_RATELIMITER_OPTIONS)
 search = get_instance(settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
 tsdb = get_instance(settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS)
+raven = client
