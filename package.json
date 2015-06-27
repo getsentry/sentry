@@ -30,7 +30,7 @@
     "mocha": "1.9.x",
     "moment": "^2.8.4",
     "node-libs-browser": "^0.5.2",
-    "raven-js": "^1.1.11",
+    "raven-js": "^1.1.19",
     "react": "^0.13.3",
     "react-bootstrap": "^0.13.0",
     "react-document-title": "^1.0.2",
