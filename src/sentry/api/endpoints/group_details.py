@@ -115,6 +115,24 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 'dateCreated': first_release.first_seen,
             }
 
+        if first_release is not None:
+            # find last seen release
+            try:
+                last_release = GroupTagValue.objects.filter(
+                    group=group,
+                    key='sentry:release',
+                ).order_by('-last_seen')[0]
+            except IndexError:
+                last_release = None
+            else:
+                last_release = {
+                    'version': last_release.value,
+                    # TODO(dcramer): this should look it up in Release
+                    'dateCreated': last_release.first_seen,
+                }
+        else:
+            last_release = None
+
         action_list = self._get_actions(request, group)
 
         now = timezone.now()
@@ -135,6 +153,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         data.update({
             'firstRelease': first_release,
+            'lastRelease': last_release,
             'activity': serialize(activity, request.user),
             'seenBy': serialize(seen_by, request.user),
             'pluginActions': action_list,
