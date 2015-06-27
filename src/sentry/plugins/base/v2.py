@@ -237,7 +237,7 @@ class IPlugin2(local):
         """
         return []
 
-    def get_annotations(self, request, group, **kwargs):
+    def get_annotations(self, group, **kwargs):
         """
         Return a list of annotations to append to this aggregate.
 
@@ -246,7 +246,7 @@ class IPlugin2(local):
         The properties of each tag must match the constructor for
         :class:`sentry.plugins.Annotation`
 
-        >>> def get_annotations(self, request, group, **kwargs):
+        >>> def get_annotations(self, group, **kwargs):
         >>>     task_id = GroupMeta.objects.get_value(group, 'myplugin:tid')
         >>>     if not task_id:
         >>>         return []

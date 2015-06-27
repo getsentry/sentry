@@ -13,8 +13,8 @@ from sentry.api.serializers import serialize
 from sentry.constants import STATUS_CHOICES
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupSeen,
-    GroupStatus, GroupTagValue
+    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
+    GroupTagValue
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -94,8 +94,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             {method} {path}
 
         """
-        GroupMeta.objects.populate_cache([group])
-
         data = serialize(group, request.user)
 
         # TODO: these probably should be another endpoint
