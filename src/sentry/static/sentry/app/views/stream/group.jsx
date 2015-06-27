@@ -174,11 +174,12 @@ var StreamGroup = React.createClass({
                   <span className="icon icon-comments"></span><span className="tag-count">3</span>
                 </a>
               </li>
-              <li>
-                <a href="#" className="github">
-                  <span className="icon icon-mark-github"></span><span className="tag-count">#132</span>
-                </a>
-              </li>
+              {data.annotations.map((annotation) => {
+                return (
+                  <li className="event-annotation"
+                      dangerouslySetInnerHTML={{__html: annotation}} />
+                );
+              })}
               <li><span className="tag-label">releases:</span><span className="tag-count">1</span></li>
               <li><span className="tag-label">users:</span><span className="tag-count">33</span></li>
               <li><span className="tag-label">urls:</span><span className="tag-count">4</span></li>
