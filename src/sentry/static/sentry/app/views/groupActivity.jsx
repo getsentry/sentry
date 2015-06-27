@@ -18,7 +18,7 @@ var formatActivity = function(item) {
 
   switch(item.type) {
     case "note":
-      return "left a note";
+      return "left a comment";
     case "set_resolved":
       return "marked this event as resolved";
     case "set_unresolved":
@@ -69,7 +69,7 @@ var NoteInput = React.createClass({
       error: false
     });
 
-    var loadingIndicator = IndicatorStore.add('Posting note..');
+    var loadingIndicator = IndicatorStore.add('Posting comment..');
 
     api.request('/groups/' + this.props.group.id + '/notes/', {
       method: 'POST',
@@ -131,7 +131,7 @@ var NoteInput = React.createClass({
                     value={this.state.value} />
           <div className="activity-actions">
             <button className="btn btn-default" type="submit"
-                    disabled={this.state.loading}>Leave note</button>
+                    disabled={this.state.loading}>Leave comment</button>
           </div>
         </div>
       </form>
