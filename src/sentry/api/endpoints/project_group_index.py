@@ -16,7 +16,7 @@ from sentry.constants import (
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupBookmark, GroupMeta, GroupSeen, GroupStatus, TagKey
+    Activity, Group, GroupBookmark, GroupSeen, GroupStatus, TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -128,8 +128,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         cursor_result = search.query(**query_kwargs)
 
         context = list(cursor_result)
-
-        GroupMeta.objects.populate_cache(context)
 
         response = Response(serialize(context, request.user, StreamGroupSerializer))
         response['Link'] = ', '.join([

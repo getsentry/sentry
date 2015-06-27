@@ -9,15 +9,21 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.constants import TAG_LABELS
 from sentry.models import (
-    Group, GroupAssignee, GroupBookmark, GroupTagKey, GroupSeen, GroupStatus
+    Group, GroupAssignee, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen,
+    GroupStatus
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
+from sentry.utils.safe import safe_execute
 
 
 @register(Group)
 class GroupSerializer(Serializer):
     def get_attrs(self, item_list, user):
+        from sentry.plugins import plugins
+
+        GroupMeta.objects.populate_cache(item_list)
+
         attach_foreignkey(item_list, Group.project, ['team'])
 
         if user.is_authenticated() and item_list:
@@ -63,11 +69,18 @@ class GroupSerializer(Serializer):
                     'count': value,
                 }
 
+            annotations = []
+            for plugin in plugins.for_project(project=item.project, version=1):
+                safe_execute(plugin.tags, None, item, annotations)
+            for plugin in plugins.for_project(project=item.project, version=2):
+                annotations.extend(safe_execute(plugin.get_annotations, item) or ())
+
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'tags': tags,
+                'annotations': annotations,
             }
         return result
 
@@ -106,6 +119,7 @@ class GroupSerializer(Serializer):
             'isBookmarked': attrs['is_bookmarked'],
             'hasSeen': attrs['has_seen'],
             'tags': attrs['tags'],
+            'annotations': attrs['annotations'],
         }
         return d
 
