@@ -80,6 +80,9 @@ class Endpoint(APIView):
         try:
             return super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
+            import sys
+            import traceback
+            sys.stderr.write(traceback.format_exc())
             event_id = raven.get_ident(raven.captureException(request=request))
             context = {
                 'detail': 'Internal Error',
