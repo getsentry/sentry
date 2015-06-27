@@ -83,7 +83,11 @@ class Endpoint(APIView):
             import sys
             import traceback
             sys.stderr.write(traceback.format_exc())
-            event_id = raven.get_ident(raven.captureException(request=request))
+            event = raven.captureException(request=request)
+            if event:
+                event_id = raven.get_ident(event)
+            else:
+                event_id = None
             context = {
                 'detail': 'Internal Error',
                 'errorId': event_id,
