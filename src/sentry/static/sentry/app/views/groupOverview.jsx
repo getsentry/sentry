@@ -82,9 +82,6 @@ var GroupOverview = React.createClass({
   render() {
     var group = this.getGroup();
     var evt = this.state.event;
-    var firstRelease = (group.firstRelease ?
-      group.firstRelease.version :
-      <span>&mdash;</span>);
 
     return (
       <div>
@@ -97,13 +94,20 @@ var GroupOverview = React.createClass({
                           title="Last 30 Days"
                           className="bar-chart-small" />
               <h6>First seen</h6>
-              <h3><TimeSince date={group.firstSeen} /></h3>
+              <h3>
+                <TimeSince date={group.firstSeen} />
+                {group.firstRelease &&
+                  <small> {group.firstRelease.version}</small>
+                }
+              </h3>
 
               <h6>Last seen</h6>
-              <h3><TimeSince date={group.lastSeen} /></h3>
-
-              <h6>In release</h6>
-              <h3 className="truncate">{firstRelease}</h3>
+              <h3>
+                <TimeSince date={group.lastSeen} />
+                {group.lastRelease &&
+                  <small> {group.lastRelease.version}</small>
+                }
+              </h3>
 
               <h6>Status</h6>
               <h3>{group.status}</h3>
