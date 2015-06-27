@@ -145,6 +145,12 @@ var StreamGroup = React.createClass({
       className += " isResolved";
     }
 
+    var routeParams = {
+      orgId: params.orgId,
+      projectId: params.projectId,
+      groupId: data.id
+    };
+
     return (
       <li className={className} ref="element">
         <div className="col-md-7 col-xs-8 event-details">
@@ -152,8 +158,7 @@ var StreamGroup = React.createClass({
             <GroupCheckBox id={data.id} />
           </div>
           <h3 className="truncate">
-            <Router.Link to="groupDetails"
-                  params={{orgId: params.orgId, projectId: params.projectId, groupId: data.id}}>
+            <Router.Link to="groupDetails" params={routeParams}>
               <span className="icon icon-bookmark"></span>
               {data.title}
             </Router.Link>
@@ -169,11 +174,14 @@ var StreamGroup = React.createClass({
                 &nbsp;&mdash;&nbsp;
                 <TimeSince date={data.firstSeen} />
               </li>
-              <li>
-                <a href="#" className="comments">
-                  <span className="icon icon-comments"></span><span className="tag-count">3</span>
-                </a>
-              </li>
+              {data.numComments !== 0 &&
+                <li>
+                  <Router.Link to="groupActivity" params={routeParams} className="comments">
+                    <span className="icon icon-comments"></span>
+                    <span className="tag-count">{data.numComments}</span>
+                  </Router.Link>
+                </li>
+              }
               {data.annotations.map((annotation) => {
                 return (
                   <li className="event-annotation"
