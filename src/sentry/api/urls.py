@@ -35,6 +35,8 @@ from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
+from .endpoints.project_searches import ProjectSearchesEndpoint
+from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
 from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
@@ -149,6 +151,12 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$',
         ReleaseFileDetailsEndpoint.as_view(),
         name='sentry-api-0-release-file-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/$',
+        ProjectSearchesEndpoint.as_view(),
+        name='sentry-api-0-project-searches'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$',
+        ProjectSearchDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-search-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$',
         ProjectStatsEndpoint.as_view(),
         name='sentry-api-0-project-stats'),
