@@ -24,10 +24,12 @@ you can send the key 'exception'.
 The mapping is as follows::
 
 * 'exception' => 'sentry.interfaces.Exception'
+* 'logentry' => 'sentry.interfaces.Message'
 * 'request' => 'sentry.interfaces.Http'
-* 'user' => 'sentry.interfaces.User'
 * 'stacktrace' => 'sentry.interfaces.Stacktrace'
 * 'template' => 'sentry.interfaces.Template'
+* 'query' => 'sentry.interfaces.Query'
+* 'user' => 'sentry.interfaces.User'
 
 For the canonical names, please see the ``get_path`` method on each individual Interface.
 
