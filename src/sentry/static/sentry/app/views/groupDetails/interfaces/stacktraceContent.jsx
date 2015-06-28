@@ -121,7 +121,7 @@ var Frame = React.createClass({
 
           var lineWs;
           var lineCode;
-          if (line) {
+          if (defined(line)) {
             [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
           } else {
             lineWs = '';
