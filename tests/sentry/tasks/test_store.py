@@ -34,10 +34,4 @@ class PreprocessEventTest(PluginTestCase):
 
         preprocess_event(data=data)
 
-        mock_save_event.delay.assert_called_once_with(
-            cache_key=None,
-            data={
-                'project': project.id,
-                'message': 'test',
-            },
-        )
+        mock_save_event.delay.assert_called_once()
