@@ -88,7 +88,7 @@
         {% else %}
         <p class="clearfix">
           <a href="{% url 'sentry-remove-project' project.organization.slug project.slug %}" class="btn btn-danger pull-right">{% trans "Remove Project" %}</a>
-          Remove the <strong>{{ project.slug }}</strong> project from <strong>{{ project.team.slug }}</strong>. </br>
+          Remove the <strong>{{ project.slug }}</strong> project and all related data. </br>
           Careful, this action cannot be undone.
         </p>
         {% endif %}
@@ -156,7 +156,7 @@
 {% block sidebar %}
   <h6 class="nav-header">{% trans "Configuration" %}</h6>
   <ul class="nav nav-stacked">
-    <li{% if not page %} class="active"{% endif %}>
+    <li{% if page == 'details' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "Project Settings" %}</a>
     </li>
     <li{% if page == 'notifications' %} class="active"{% endif %}>
