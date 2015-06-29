@@ -172,7 +172,7 @@ var StreamGroup = React.createClass({
                 <span className="icon icon-clock"></span>
                 <TimeSince date={data.lastSeen} />
                 &nbsp;&mdash;&nbsp;
-                <TimeSince date={data.firstSeen} />
+                <TimeSince date={data.firstSeen} suffix="old" />
               </li>
               {data.numComments !== 0 &&
                 <li>
