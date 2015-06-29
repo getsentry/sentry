@@ -226,7 +226,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 group=group,
                 user=request.user,
                 project=group.project,
-                defaults={
+                values={
                     'last_seen': timezone.now(),
                 }
             )

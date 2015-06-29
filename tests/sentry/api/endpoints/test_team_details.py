@@ -84,7 +84,7 @@ class TeamDeleteTest(APITestCase):
         team.organization.member_set.create_or_update(
             organization=org,
             user=user,
-            defaults={
+            values={
                 'type': OrganizationMemberType.ADMIN,
             }
         )

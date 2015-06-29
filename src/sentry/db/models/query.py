@@ -54,10 +54,11 @@ def create_or_update(model, using=None, **kwargs):
     The result will be (rows affected, False), if the row was not created,
     or (instance, True) if the object is new.
 
-    >>> create_or_update(MyModel, key='value', defaults={
+    >>> create_or_update(MyModel, key='value', values={
     >>>     'value': F('value') + 1,
-    >>> })
+    >>> }, defaults={'created_at': timezone.now()})
     """
+    values = kwargs.pop('values', {})
     defaults = kwargs.pop('defaults', {})
 
     if not using:
@@ -66,21 +67,27 @@ def create_or_update(model, using=None, **kwargs):
     objects = model.objects.using(using)
 
     # TODO(dcramer): support _id shortcut on filter kwargs
-    affected = objects.filter(**kwargs).update(**defaults)
+    affected = objects.filter(**kwargs).update(**values)
     if affected:
         return affected, False
 
     create_kwargs = kwargs.copy()
     inst = objects.model()
+    for k, v in values.iteritems():
+        if isinstance(v, ExpressionNode):
+            create_kwargs[k] = resolve_expression_node(inst, v)
+        else:
+            create_kwargs[k] = v
     for k, v in defaults.iteritems():
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
             create_kwargs[k] = v
+
     try:
         with transaction.atomic():
             return objects.create(**create_kwargs), True
     except IntegrityError:
-        affected = objects.filter(**kwargs).update(**defaults)
+        affected = objects.filter(**kwargs).update(**values)
 
     return affected, False
