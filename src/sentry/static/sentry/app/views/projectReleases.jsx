@@ -13,6 +13,7 @@ var Sticky = require('react-sticky');
 var StreamGroup = require('./stream/group');
 var StreamActions = require('./stream/actions');
 var StreamFilters = require('./stream/filters');
+var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
 
 var ProjectReleases = React.createClass({
@@ -136,7 +137,7 @@ var ProjectReleases = React.createClass({
                           </Router.Link>
                           </h4>
                           <div className="release-meta">
-                            <span className="icon icon-clock"></span> {release.dateReleased || <span>&mdash;</span>} by <a>dcramer</a>
+                            <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a>dcramer</a>
                           </div>
                         </div>
                         <div className="col-md-5 col-sm-6 col-xs-6 release-stats">
