@@ -1,9 +1,9 @@
 var React = require("react");
 var Reflux = require("reflux");
 
-var BarChart = require("../../components/barChart");
-var GroupStore = require("../../stores/groupStore");
-var {valueIsEqual} = require("../../utils");
+var BarChart = require("./barChart");
+var GroupStore = require("../stores/groupStore");
+var {valueIsEqual} = require("../utils");
 
 var GroupChart = React.createClass({
   mixins: [

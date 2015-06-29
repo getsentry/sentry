@@ -3,16 +3,10 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var GroupActions = require("../actions/groupActions");
-var GroupStore = require("../stores/groupStore");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var Pagination = require("../components/pagination");
 var RouteMixin = require("../mixins/routeMixin");
-var Sticky = require('react-sticky');
-var StreamGroup = require('./stream/group');
-var StreamActions = require('./stream/actions');
-var StreamFilters = require('./stream/filters');
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
 
