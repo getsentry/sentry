@@ -326,6 +326,7 @@ class EventManager(object):
             tags.append(('sentry:release', release))
 
             group_kwargs['first_release'] = Release.objects.get_or_create(
+                project=project,
                 version=release,
             )[0]
 
