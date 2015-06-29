@@ -129,6 +129,9 @@ class Group(Model):
         permissions = (
             ("can_view", "Can view"),
         )
+        index_together = (
+            ('project', 'first_release'),
+        )
 
     __repr__ = sane_repr('project_id')
 
