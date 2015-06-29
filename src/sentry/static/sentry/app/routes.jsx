@@ -19,6 +19,7 @@ var ProjectDetails = require("./views/projectDetails");
 var ProjectReleases = require("./views/projectReleases");
 var PropTypes = require("./proptypes");
 var ReleaseDetails = require("./views/releaseDetails");
+var SharedGroupDetails = require("./views/sharedGroupDetails");
 var Stream = require("./views/stream");
 var TeamDetails = require("./views/teamDetails");
 
@@ -45,6 +46,7 @@ var routes = (
     <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
       <Route name="organizationStats" path="stats/" handler={OrganizationStats} />
     </Route>
+    <Route path="/share/group/:shareId/" handler={SharedGroupDetails} />
   </Route>
 );
 

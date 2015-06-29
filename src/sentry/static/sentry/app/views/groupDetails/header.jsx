@@ -54,6 +54,10 @@ var GroupHeader = React.createClass({
     });
   },
 
+  onShare() {
+    alert(this.props.group.shareId);
+  },
+
   onTogglePublic() {
     var group = this.props.group;
     var project = this.getProject();
@@ -136,14 +140,9 @@ var GroupHeader = React.createClass({
               }
             </a>
           </div>
-          <div className={(group.isPublic ? 'on ' : '') + 'group-privacy'}>
-            <a onClick={this.onTogglePublic}>
-              <span className="icon" />
-              {!group.isPublic ?
-                'Make this event public'
-              :
-                'Revoke public access to event'
-              }
+          <div className="group-privacy">
+            <a onClick={this.onShare}>
+              <span className="icon" /> Share this event
             </a>
           </div>
         </div>

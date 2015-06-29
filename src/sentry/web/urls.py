@@ -56,7 +56,7 @@ from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_notifications import ProjectNotificationsView
 from sentry.web.frontend.project_release_tracking import ProjectReleaseTrackingView
 from sentry.web.frontend.project_settings import ProjectSettingsView
-from sentry.web.frontend.react_page import ReactPageView
+from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
@@ -346,6 +346,9 @@ urlpatterns += patterns('',
         name='sentry-api-search-users'),
     url(r'^api/(?P<organization_slug>[\w_-]+)/projects/search/$', api.search_projects,
         name='sentry-api-search-projects'),
+
+    url(r'^share/group/(?P<share_id>[\w_-]+)/$', GenericReactPageView.as_view(auth_required=False),
+        name='sentry-group-shared'),
 
     # TV dashboard
     url(r'^(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
