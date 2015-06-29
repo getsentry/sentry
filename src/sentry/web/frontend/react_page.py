@@ -1,16 +1,14 @@
 from __future__ import absolute_import
 
 from sentry import features
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import BaseView, OrganizationView
 from sentry.utils import json
 from sentry.utils.functional import extract_lazy_object
 from django.utils.safestring import mark_safe
 
 
-# TODO(dcramer): once we implement basic auth hooks in React we can make this
-# generic
-class ReactPageView(OrganizationView):
-    def handle(self, request, **kwargs):
+class ReactMixin(object):
+    def handle_react(self, request):
         if request.user.is_authenticated():
             # remove lazy eval
             request.user = extract_lazy_object(request.user)
@@ -26,3 +24,15 @@ class ReactPageView(OrganizationView):
         }
 
         return self.respond('sentry/bases/react.html', context)
+
+
+# TODO(dcramer): once we implement basic auth hooks in React we can make this
+# generic
+class ReactPageView(OrganizationView, ReactMixin):
+    def handle(self, request, **kwargs):
+        return self.handle_react(request)
+
+
+class GenericReactPageView(BaseView, ReactMixin):
+    def handle(self, request, **kwargs):
+        return self.handle_react(request)
