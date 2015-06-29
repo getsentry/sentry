@@ -3,21 +3,59 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var GroupHeader = require("./groupDetails/header");
-var GroupStore = require("../stores/groupStore");
+var Count = require("../components/count");
+var DocumentTitle = require("react-document-title");
+var Footer = require("../components/footer");
+var Header = require("../components/header");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
-var utils = require("../utils");
+
+var SharedGroupHeader = React.createClass({
+  render() {
+    var group = this.props.group,
+        userCount = 0;
+
+    if (group.tags["sentry:user"] !== undefined) {
+      userCount = group.tags["sentry:user"].count;
+    }
+
+    return (
+      <div className="group-detail">
+        <div className="row">
+          <div className="col-sm-9 details">
+            <h3>
+              {group.title}
+            </h3>
+            <div className="event-message">
+              <span className="message">{group.culprit}</span>
+            </div>
+          </div>
+          <div className="col-sm-3 stats">
+            <div className="row">
+              <div className="col-xs-6 count align-right">
+                <Count value={group.count} />
+                <span className="count-label">events</span>
+              </div>
+              <div className="col-xs-6 count align-right">
+                <Count value={userCount} />
+                <span className="count-label">users</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ul className="nav nav-tabs">
+          <li className="active"><a>Overview</a></li>
+        </ul>
+      </div>
+    );
+  }
+});
 
 var SharedGroupDetails = React.createClass({
   contextTypes: {
     router: React.PropTypes.func
   },
-
-  mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
-  ],
 
   childContextTypes: {
     group: PropTypes.Group,
@@ -37,6 +75,12 @@ var SharedGroupDetails = React.createClass({
     };
   },
 
+  getTitle() {
+    if (this.state.group)
+      return this.state.group.title + ' | Sentry';
+    return 'Sentry';
+  },
+
   componentWillMount() {
     this.fetchData();
   },
@@ -50,9 +94,9 @@ var SharedGroupDetails = React.createClass({
     api.request(this.getGroupDetailsEndpoint(), {
       success: (data) => {
         this.setState({
-          loading: false
+          loading: false,
+          group: data
         });
-        GroupStore.loadInitialData([data]);
       }, error: () => {
         this.setState({
           loading: false,
@@ -60,15 +104,6 @@ var SharedGroupDetails = React.createClass({
         });
       }
     });
-  },
-
-  onGroupChange(itemIds) {
-    var id = this.context.router.getCurrentParams().groupId;
-    if (itemIds.has(id)) {
-      this.setState({
-        group: GroupStore.get(id),
-      });
-    }
   },
 
   getGroupDetailsEndpoint() {
@@ -81,15 +116,25 @@ var SharedGroupDetails = React.createClass({
     var group = this.state.group;
     var params = this.context.router.getCurrentParams();
 
-    if (this.state.loading)
+    if (this.state.loading || !group)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <div className={this.props.className}>
-        Group Details
-      </div>
+      <DocumentTitle title={this.getTitle()}>
+        <div className="app">
+          <Header />
+          <div className="container">
+            <div className="content">
+              <SharedGroupHeader group={group} />
+              <div className="group-overview">
+              </div>
+            </div>
+          </div>
+          <Footer />
+        </div>
+      </DocumentTitle>
     );
   }
 });
