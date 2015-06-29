@@ -101,6 +101,7 @@ class GroupSerializer(Serializer):
 
         d = {
             'id': str(obj.id),
+            'shareId': obj.get_share_id(),
             'count': str(obj.times_seen),
             'title': obj.message_short,
             'culprit': obj.culprit,

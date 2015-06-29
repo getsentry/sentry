@@ -13,6 +13,7 @@ import six
 import time
 import warnings
 
+from base64 import b16decode, b16encode
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -176,6 +177,17 @@ class Group(Model):
         if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
             return GroupStatus.RESOLVED
         return self.status
+
+    def get_share_id(self):
+        return b16encode('{}.{}'.format(self.project_id, self.id)).lower()
+
+    @classmethod
+    def from_share_id(cls, share_id):
+        try:
+            project_id, group_id = b16decode(share_id.upper()).split('.')
+        except ValueError:
+            raise cls.DoesNotExist
+        return cls.objects.get(project=project_id, id=group_id)
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
