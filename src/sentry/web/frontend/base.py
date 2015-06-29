@@ -123,6 +123,13 @@ class BaseView(View, OrganizationMixin):
     # TODO(dcramer): change sudo so it can be required only on POST
     sudo_required = False
 
+    def __init__(self, auth_required=None, sudo_required=None, *args, **kwargs):
+        if auth_required is not None:
+            self.auth_required = auth_required
+        if sudo_required is not None:
+            self.sudo_required = sudo_required
+        super(BaseView, self).__init__(*args, **kwargs)
+
     @method_decorator(csrf_protect)
     def dispatch(self, request, *args, **kwargs):
         if self.is_auth_required(request, *args, **kwargs):
