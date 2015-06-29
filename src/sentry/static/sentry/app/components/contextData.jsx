@@ -1,6 +1,21 @@
 var React = require('react');
 var jQuery = require('jquery');
 
+function looksLikeRepr(value) {
+  var a = value[0];
+  var z = value[value.length - 1];
+  if (a == '<' && z == '>') {
+    return true;
+  } else if (a == '[' && z == ']') {
+    return true;
+  } else if (a == '(' && z == ')') {
+    return true;
+  } else if (z == ')' && value.match(/^[\w\d._-]+\(/)) {
+    return true;
+  }
+  return false;
+}
+
 
 var ContextData = React.createClass({
   propTypes: {
@@ -43,8 +58,7 @@ var ContextData = React.createClass({
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
       } else if (typeof value === 'string' || value instanceof String) {
-        // consider auto quoting?
-        return <span className="val-string">{value}</span>;
+        return <span className={looksLikeRepr(value) ? 'val-repr' : 'val-string'}>{value}</span>;
       } else if (typeof value === 'number' || value instanceof Number) {
         return <span className="val-number">{value}</span>;
       } else if (value instanceof Array) {
