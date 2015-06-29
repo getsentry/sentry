@@ -109,6 +109,7 @@ class Group(Model):
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    first_release = FlexibleForeignKey('sentry.Release', null=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
@@ -127,6 +128,9 @@ class Group(Model):
         verbose_name = _('grouped message')
         permissions = (
             ("can_view", "Can view"),
+        )
+        index_together = (
+            ('project', 'first_release'),
         )
 
     __repr__ = sane_repr('project_id')

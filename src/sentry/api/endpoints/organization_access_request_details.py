@@ -44,7 +44,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
             affected, _ = OrganizationMemberTeam.objects.create_or_update(
                 organizationmember=access_request.member,
                 team=access_request.team,
-                defaults={
+                values={
                     'is_active': is_approved,
                 }
             )

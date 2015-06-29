@@ -40,7 +40,7 @@ class Command(BaseCommand):
             page, created = create_or_update(
                 HelpPage,
                 key=filename,
-                defaults={
+                values={
                     'title': options['title'],
                     'priority': options.get('priority', 50),
                     'content': body,
