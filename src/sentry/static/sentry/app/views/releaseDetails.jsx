@@ -7,6 +7,7 @@ var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var PropTypes = require("../proptypes");
+var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
 
 var GroupDetails = React.createClass({
@@ -87,6 +88,8 @@ var GroupDetails = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
+    var release = this.state.release;
+
     return (
       <div className={this.props.className}>
         <div className="release-details">
@@ -94,7 +97,7 @@ var GroupDetails = React.createClass({
             <div className="col-md-7">
               <h2>Release <strong>7.7.0.dev0</strong></h2>
               <div className="release-meta">
-                <span className="icon icon-clock"></span> <time>2 hours ago</time> by <a href="#">dcramer</a>
+                <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a href="#">dcramer</a>
               </div>
             </div>
             <div className="col-md-5">
