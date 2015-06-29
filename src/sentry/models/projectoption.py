@@ -59,7 +59,7 @@ class ProjectOptionManager(BaseManager):
         self.create_or_update(
             project=project,
             key=key,
-            defaults={
+            values={
                 'value': value,
             },
         )

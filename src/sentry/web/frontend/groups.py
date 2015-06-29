@@ -381,7 +381,7 @@ def group_details(request, organization, project, group, event_id=None):
             group=group,
             user=request.user,
             project=project,
-            defaults={
+            values={
                 'last_seen': timezone.now(),
             }
         )

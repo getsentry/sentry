@@ -84,7 +84,7 @@ class Migration(DataMigration):
                     group=group,
                     key=key,
                     value=value,
-                    defaults=defaults
+                    values=values,
                 )
 
             orm['sentry.MessageFilterValue'].objects.filter(group__in=matches).delete()
@@ -95,7 +95,7 @@ class Migration(DataMigration):
                     project=group.project,
                     group=group,
                     date=date,
-                    defaults={
+                    values={
                         'times_seen': F('times_seen') + data['times_seen'],
                         'time_spent_total': F('time_spent_total') + data['time_spent_total'],
                         'time_spent_count': F('time_spent_count') + data['time_spent_count'],

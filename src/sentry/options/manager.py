@@ -74,7 +74,7 @@ class OptionsManager(object):
         create_or_update(
             model=Option,
             key=key,
-            defaults={
+            values={
                 'value': value,
                 'last_updated': timezone.now(),
             }
