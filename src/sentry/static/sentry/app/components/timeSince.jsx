@@ -3,7 +3,14 @@ var moment = require("moment");
 
 var TimeSince = React.createClass({
   propTypes: {
-    date: React.PropTypes.any.isRequired
+    date: React.PropTypes.any.isRequired,
+    suffix: React.PropTypes.string
+  },
+
+  getDefaultProps() {
+    return {
+      suffix: 'ago'
+    };
   },
 
   componentDidMount() {
@@ -36,7 +43,7 @@ var TimeSince = React.createClass({
     }
 
     return (
-      <time>{moment.utc(date).fromNow()}</time>
+      <time>{moment.utc(date).fromNow(true)} {this.props.suffix || ''}</time>
     );
   }
 });
