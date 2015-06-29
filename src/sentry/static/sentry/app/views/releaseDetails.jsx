@@ -46,7 +46,7 @@ var GroupDetails = React.createClass({
   componentWillMount() {
     var params = this.context.router.getCurrentParams();
     this.setBreadcrumbs([
-      {name: params.version, to: 'releaseDetails'}
+      {name: 'Release ' + params.version, to: 'releaseDetails'}
     ]);
     this.props.setProjectNavSection('releases');
     this.fetchData();
