@@ -107,7 +107,7 @@ var ReleaseDetails = React.createClass({
           <div className="release-details">
             <div className="row">
               <div className="col-md-9">
-                <h2>Release <strong>7.7.0.dev0</strong></h2>
+                <h2>Release <strong>{release.version}</strong></h2>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a href="#">dcramer</a>
                 </div>
