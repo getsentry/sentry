@@ -26,7 +26,7 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Event, EventMapping, Group, GroupHash, GroupStatus, Project
+    Event, EventMapping, Group, GroupHash, GroupStatus, Project, Release
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -324,6 +324,10 @@ class EventManager(object):
         if release:
             # TODO(dcramer): we should ensure we create Release objects
             tags.append(('sentry:release', release))
+
+            group_kwargs['first_release'] = Release.objects.get_or_create(
+                version=release,
+            )[0]
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
