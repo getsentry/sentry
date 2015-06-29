@@ -4,8 +4,10 @@ var Router = require("react-router");
 
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
+var DocumentTitle = require("react-document-title");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
+var ProjectState = require("../mixins/projectState");
 var PropTypes = require("../proptypes");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
@@ -16,7 +18,8 @@ var GroupDetails = React.createClass({
   },
 
   mixins: [
-    BreadcrumbMixin
+    BreadcrumbMixin,
+    ProjectState
   ],
 
   propTypes: {
@@ -50,6 +53,13 @@ var GroupDetails = React.createClass({
     ]);
     this.props.setProjectNavSection('releases');
     this.fetchData();
+  },
+
+  getTitle() {
+    var project = this.getProject();
+    var team = this.getTeam();
+    var params = this.context.router.getCurrentParams();
+    return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name + ' | Sentry';
   },
 
   fetchData() {
@@ -91,39 +101,41 @@ var GroupDetails = React.createClass({
     var release = this.state.release;
 
     return (
-      <div className={this.props.className}>
-        <div className="release-details">
-          <div className="row">
-            <div className="col-md-7">
-              <h2>Release <strong>7.7.0.dev0</strong></h2>
-              <div className="release-meta">
-                <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a href="#">dcramer</a>
-              </div>
-            </div>
-            <div className="col-md-5">
-              <div className="row release-stats">
-                <div className="col-md-4">
-                  <h6 className="nav-header">events</h6>
-                  <div className="release-count">123</div>
-                </div>
-                <div className="col-md-4">
-                  <h6 className="nav-header">users</h6>
-                  <div className="release-count">123</div>
-                </div>
-                <div className="col-md-4">
-                  <h6 className="nav-header">servers</h6>
-                  <div className="release-count">123</div>
+      <DocumentTitle title={this.getTitle()}>
+        <div className={this.props.classname}>
+          <div className="release-details">
+            <div className="row">
+              <div className="col-md-7">
+                <h2>Release <strong>7.7.0.dev0</strong></h2>
+                <div className="release-meta">
+                  <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a href="#">dcramer</a>
                 </div>
               </div>
+              <div className="col-md-5">
+                <div className="row release-stats">
+                  <div className="col-md-4">
+                    <h6 className="nav-header">events</h6>
+                    <div className="release-count">123</div>
+                  </div>
+                  <div className="col-md-4">
+                    <h6 className="nav-header">users</h6>
+                    <div className="release-count">123</div>
+                  </div>
+                  <div className="col-md-4">
+                    <h6 className="nav-header">servers</h6>
+                    <div className="release-count">123</div>
+                  </div>
+                </div>
+              </div>
             </div>
+            <ul className="nav nav-tabs">
+              <li className="active"><a>Caused by this release</a></li>
+              <li><a>Seen in this release</a></li>
+            </ul>
           </div>
-          <ul className="nav nav-tabs">
-            <li className="active"><a>Caused by this release</a></li>
-            <li><a>Seen in this release</a></li>
-          </ul>
+          <div className="well blankslate">grouped results</div>
         </div>
-        <div className="well blankslate">grouped results</div>
-      </div>
+      </DocumentTitle>
     );
   }
 });
