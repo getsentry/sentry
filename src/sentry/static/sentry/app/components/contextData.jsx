@@ -51,8 +51,6 @@ var ContextData = React.createClass({
 
     function walk(value, depth) {
       var i = 0, children = [];
-      // XXX: where do we hide?
-      var highUp = depth <= 1;
       if (value === null) {
         return <span className="val-null">None</span>;
       } else if (value === true || value === false) {
@@ -73,7 +71,7 @@ var ContextData = React.createClass({
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            {makeToggle(highUp, children.length,
+            {makeToggle(depth <= 2, children.length,
                         <span className="val-array-items">{children}</span>)}
             <span className="val-array-marker">{']'}</span>
           </span>
@@ -98,7 +96,7 @@ var ContextData = React.createClass({
         return (
           <span className="val-dict">
             <span className="val-dict-marker">{'{'}</span>
-            {makeToggle(highUp, children.length,
+            {makeToggle(depth <= 1, children.length,
                         <span className="val-dict-items">{children}</span>)}
             <span className="val-dict-marker">{'}'}</span>
           </span>
