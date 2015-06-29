@@ -9,10 +9,11 @@ var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var ProjectState = require("../mixins/projectState");
 var PropTypes = require("../proptypes");
+var StreamGroup = require("../components/streamGroup");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
 
-var GroupDetails = React.createClass({
+var ReleaseDetails = React.createClass({
   contextTypes: {
     router: React.PropTypes.func
   },
@@ -29,12 +30,12 @@ var GroupDetails = React.createClass({
   crumbReservations: 1,
 
   childContextTypes: {
-    release: PropTypes.AnyModel,
+    release: PropTypes.AnyModel
   },
 
   getChildContext() {
     return {
-      release: this.state.release,
+      release: this.state.release
     };
   },
 
@@ -105,24 +106,20 @@ var GroupDetails = React.createClass({
         <div className={this.props.classname}>
           <div className="release-details">
             <div className="row">
-              <div className="col-md-7">
+              <div className="col-md-9">
                 <h2>Release <strong>7.7.0.dev0</strong></h2>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a href="#">dcramer</a>
                 </div>
               </div>
-              <div className="col-md-5">
+              <div className="col-md-3">
                 <div className="row release-stats">
-                  <div className="col-md-4">
-                    <h6 className="nav-header">events</h6>
+                  <div className="col-md-6">
+                    <h6 className="nav-header">New Events</h6>
                     <div className="release-count">123</div>
                   </div>
-                  <div className="col-md-4">
-                    <h6 className="nav-header">users</h6>
-                    <div className="release-count">123</div>
-                  </div>
-                  <div className="col-md-4">
-                    <h6 className="nav-header">servers</h6>
+                  <div className="col-md-6">
+                    <h6 className="nav-header">New Rollups</h6>
                     <div className="release-count">123</div>
                   </div>
                 </div>
@@ -133,11 +130,11 @@ var GroupDetails = React.createClass({
               <li><a>Seen in this release</a></li>
             </ul>
           </div>
-          <div className="well blankslate">grouped results</div>
+          <Router.RouteHandler />
         </div>
       </DocumentTitle>
     );
   }
 });
 
-module.exports = GroupDetails;
+module.exports = ReleaseDetails;

@@ -3,13 +3,13 @@ var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
 
-var AssigneeSelector = require("../../components/assigneeSelector");
-var Count = require("../../components/count");
-var GroupChart = require("./groupChart");
-var GroupStore = require("../../stores/groupStore");
-var SelectedGroupStore = require("../../stores/selectedGroupStore");
-var TimeSince = require("../../components/timeSince");
-var {compareArrays, valueIsEqual} = require("../../utils");
+var AssigneeSelector = require("./assigneeSelector");
+var Count = require("./count");
+var GroupChart = require("./streamGroupChart");
+var GroupStore = require("../stores/groupStore");
+var SelectedGroupStore = require("../stores/selectedGroupStore");
+var TimeSince = require("./timeSince");
+var {compareArrays, valueIsEqual} = require("../utils");
 
 var GroupCheckBox = React.createClass({
   mixins: [
@@ -73,6 +73,13 @@ var StreamGroup = React.createClass({
   propTypes: {
     id: React.PropTypes.string.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
+    canSelect: React.PropTypes.bool
+  },
+
+  getDefaultProps() {
+    return {
+      canSelect: true
+    };
   },
 
   getInitialState() {
@@ -154,9 +161,11 @@ var StreamGroup = React.createClass({
     return (
       <li className={className} ref="element">
         <div className="col-md-7 col-xs-8 event-details">
-          <div className="checkbox">
-            <GroupCheckBox id={data.id} />
-          </div>
+          {this.props.canSelect &&
+            <div className="checkbox">
+              <GroupCheckBox id={data.id} />
+            </div>
+          }
           <h3 className="truncate">
             <Router.Link to="groupDetails" params={routeParams}>
               <span className="icon icon-bookmark"></span>
