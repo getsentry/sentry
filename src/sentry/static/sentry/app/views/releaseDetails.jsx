@@ -3,7 +3,6 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var DocumentTitle = require("react-document-title");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
@@ -19,15 +18,12 @@ var ReleaseDetails = React.createClass({
   },
 
   mixins: [
-    BreadcrumbMixin,
     ProjectState
   ],
 
   propTypes: {
     setProjectNavSection: React.PropTypes.func.isRequired
   },
-
-  crumbReservations: 1,
 
   childContextTypes: {
     release: PropTypes.AnyModel
@@ -49,9 +45,6 @@ var ReleaseDetails = React.createClass({
 
   componentWillMount() {
     var params = this.context.router.getCurrentParams();
-    this.setBreadcrumbs([
-      {name: 'Release ' + params.version, to: 'releaseDetails'}
-    ]);
     this.props.setProjectNavSection('releases');
     this.fetchData();
   },
