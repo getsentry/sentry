@@ -89,7 +89,37 @@ var GroupDetails = React.createClass({
 
     return (
       <div className={this.props.className}>
-
+        <div className="release-details">
+          <div className="row">
+            <div className="col-md-7">
+              <h2>Release <strong>7.7.0.dev0</strong></h2>
+              <div className="release-meta">
+                <span className="icon icon-clock"></span> <time>2 hours ago</time>
+              </div>
+            </div>
+            <div className="col-md-5">
+              <div className="row release-stats">
+                <div className="col-md-4">
+                  <h6 className="nav-header">events</h6>
+                  <div className="count">123</div>
+                </div>
+                <div className="col-md-4">
+                  <h6 className="nav-header">users</h6>
+                  <div className="count">123</div>
+                </div>
+                <div className="col-md-4">
+                  <h6 className="nav-header">servers</h6>
+                  <div className="count">123</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ul className="nav nav-tabs">
+            <li className="active"><a>Caused by this release</a></li>
+            <li><a>Seen in this release</a></li>
+          </ul>
+        </div>
+        <div className="well blankslate">grouped results</div>
       </div>
     );
   }
