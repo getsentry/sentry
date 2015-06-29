@@ -57,7 +57,7 @@ class Buffer(object):
             update_kwargs.update(extra)
 
         _, created = model.objects.create_or_update(
-            defaults=update_kwargs,
+            values=update_kwargs,
             **filters
         )
 

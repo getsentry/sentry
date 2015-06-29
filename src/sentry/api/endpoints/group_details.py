@@ -101,19 +101,22 @@ class GroupDetailsEndpoint(GroupEndpoint):
         seen_by = self._get_seen_by(request, group)
 
         # find first seen release
-        try:
-            first_release = GroupTagValue.objects.filter(
-                group=group,
-                key='sentry:release',
-            ).order_by('first_seen')[0]
-        except IndexError:
-            first_release = None
+        if group.first_release is None:
+            try:
+                first_release = GroupTagValue.objects.filter(
+                    group=group,
+                    key='sentry:release',
+                ).order_by('first_seen')[0]
+            except IndexError:
+                first_release = None
+            else:
+                first_release = {
+                    'version': first_release.value,
+                    # TODO(dcramer): this should look it up in Release
+                    'dateCreated': first_release.first_seen,
+                }
         else:
-            first_release = {
-                'version': first_release.value,
-                # TODO(dcramer): this should look it up in Release
-                'dateCreated': first_release.first_seen,
-            }
+            first_release = group.first_release.version
 
         if first_release is not None:
             # find last seen release
@@ -226,7 +229,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 group=group,
                 user=request.user,
                 project=group.project,
-                defaults={
+                values={
                     'last_seen': timezone.now(),
                 }
             )

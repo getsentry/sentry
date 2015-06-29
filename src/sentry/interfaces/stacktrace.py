@@ -172,13 +172,17 @@ class Frame(Interface):
             extra_data = dict(enumerate(extra_data))
 
         # XXX: handle lines which were sent as 'null'
-        pre_context = data.get('pre_context', None)
-        if pre_context:
-            pre_context = [c or '' for c in pre_context]
+        context_line = trim(data.get('context_line'), 256)
+        if context_line is not None:
+            pre_context = data.get('pre_context', None)
+            if pre_context:
+                pre_context = [c or '' for c in pre_context]
 
-        post_context = data.get('post_context', None)
-        if post_context:
-            post_context = [c or '' for c in post_context]
+            post_context = data.get('post_context', None)
+            if post_context:
+                post_context = [c or '' for c in post_context]
+        else:
+            pre_context, post_context = None, None
 
         kwargs = {
             'abs_path': trim(abs_path, 256),
@@ -186,7 +190,7 @@ class Frame(Interface):
             'module': trim(data.get('module'), 256),
             'function': trim(data.get('function'), 256),
             'in_app': validate_bool(data.get('in_app'), False),
-            'context_line': trim(data.get('context_line'), 256),
+            'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
             'pre_context': pre_context,
             'post_context': post_context,

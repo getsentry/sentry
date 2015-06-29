@@ -37,7 +37,7 @@ class DjangoNodeStorage(NodeStorage):
         create_or_update(
             Node,
             id=id,
-            defaults={
+            values={
                 'data': data,
                 'timestamp': timezone.now(),
             },
