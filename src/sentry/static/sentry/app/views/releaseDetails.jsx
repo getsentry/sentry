@@ -94,7 +94,7 @@ var GroupDetails = React.createClass({
             <div className="col-md-7">
               <h2>Release <strong>7.7.0.dev0</strong></h2>
               <div className="release-meta">
-                <span className="icon icon-clock"></span> <time>2 hours ago</time>
+                <span className="icon icon-clock"></span> <time>2 hours ago</time> by <a href="#">dcramer</a>
               </div>
             </div>
             <div className="col-md-5">
