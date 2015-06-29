@@ -51,6 +51,8 @@ def parse_query(query, user):
                     # XXX(dcramer): hacky way to avoid showing any results when
                     # an invalid user is entered
                     results['assigned_to'] = User(id=0)
+        elif key == 'first-release':
+            results['first_release'] = value
         else:
             results['tags'][key] = value
 
