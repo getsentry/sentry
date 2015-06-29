@@ -1,6 +1,6 @@
 var React = require("react");
 var Reflux = require("reflux");
-var $ = require("jquery");
+var Router = require("react-router");
 
 var api = require("../api");
 var GroupActions = require("../actions/groupActions");
@@ -74,9 +74,8 @@ var ProjectReleases = React.createClass({
     var params = router.getCurrentParams();
     var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
-    var querystring = $.param(queryParams);
 
-    return '/projects/' + params.orgId + '/' + params.projectId + '/releases/?' + querystring;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/releases/';
   },
 
   onPage(cursor) {
@@ -108,9 +107,19 @@ var ProjectReleases = React.createClass({
             </thead>
             <tbody>
               {this.state.releaseList.map((release) => {
+                var routeParams = {
+                  orgId: params.orgId,
+                  projectId: params.projectId,
+                  version: release.version
+                };
+
                 return (
                   <tr>
-                    <td>{release.version}</td>
+                    <td>
+                      <Router.Link to="releaseDetails" params={routeParams}>
+                        {release.version}
+                      </Router.Link>
+                    </td>
                     <td>{release.dateReleased || <span>&mdash;</span>}</td>
                   </tr>
                 );
