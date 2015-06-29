@@ -5,7 +5,7 @@ from django.conf.urls import patterns, url
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
-from .endpoints.event_details import EventDetailsEndpoint
+from .endpoints.event_details import EventDetailsEndpoint, ProjectEventDetailsEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
@@ -123,6 +123,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
         ProjectDetailsEndpoint.as_view(),
         name='sentry-api-0-project-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/$',
+        ProjectEventDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-event-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/groups/$',
         ProjectGroupIndexEndpoint.as_view(),
         name='sentry-api-0-project-group-index'),
