@@ -13,6 +13,18 @@
   }
 }
 
+.organization-home {
+  .count {
+    font-size: 36px;
+    color: lighten(@gray, 30);
+    margin: 20px 0 30px;
+
+    &.rejected {
+      color: @red;
+    }
+  }
+}
+
 /**
 * Team list
 * ============================================================================
@@ -255,5 +267,22 @@ table.project-list {
 .member-list {
   .status {
     font-size: 13px;
+  }
+}
+
+/**
+* Stats Column
+* ============================================================================
+*/
+
+.stats-column {
+  padding-left: 30px;
+
+
+
+  .stats-link {
+    display: block;
+    margin-top: -15px;
+    font-size: 85%;
   }
 }
