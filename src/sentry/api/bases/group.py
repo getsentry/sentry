@@ -24,7 +24,7 @@ class GroupEndpoint(Endpoint):
 
     def convert_args(self, request, group_id, *args, **kwargs):
         try:
-            group = Group.objects.get_from_cache(
+            group = Group.objects.get(
                 id=group_id,
             )
         except Group.DoesNotExist:
