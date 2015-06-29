@@ -242,6 +242,7 @@ var OrganizationTeams = React.createClass({
     var activeNav = this.state.activeNav;
     var allTeams = this.state.teamList;
     var activeTeams = this.state.teamList.filter((team) => team.isMember);
+    var orgParams = {orgId: org.slug};
 
     return (
       <OrganizationHomeContainer>
@@ -277,7 +278,9 @@ var OrganizationTeams = React.createClass({
             <p className="count">346</p>
             <h6 className="nav-header">Rejected in last 24h</h6>
             <p className="count rejected">346</p>
-            <a href="#" className="stats-link">View all stats</a>
+            {access.has('org:read') &&
+              <Router.Link to="organizationStats" params={orgParams} className="stats-link">View all stats</Router.Link>
+            }
           </div>
         </div>
       </OrganizationHomeContainer>
