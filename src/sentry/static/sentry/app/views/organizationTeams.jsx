@@ -245,6 +245,8 @@ var OrganizationTeams = React.createClass({
 
     return (
       <OrganizationHomeContainer>
+      <div className="row">
+        <div className="col-md-9">
         <div className="team-list">
           <div className="pull-right">
             <a href={urlPrefix + '/teams/new/'} className="new-team btn btn-primary btn-sm">
@@ -268,6 +270,15 @@ var OrganizationTeams = React.createClass({
               organization={org} teamList={allTeams}
               openMembership={features.has('open-membership') || access.has('org:write')} />
           }
+        </div>
+        </div>
+        <div className="col-md-3 stats-column">
+              <h6 className="nav-header">Events Per Minute</h6>
+              <p className="count">346</p>
+              <h6 className="nav-header">Rejected in last 24h</h6>
+              <p className="count rejected">346</p>
+              <a href="#" className="stats-link">View all stats</a>
+            </div>
         </div>
       </OrganizationHomeContainer>
     );

@@ -11,7 +11,7 @@ var OrganizationHomeContainer = React.createClass({
 
   render() {
     return (
-      <div>
+      <div className="organization-home">
         <OrganizationHeader />
         <div className="container">
           <div className="content row">
