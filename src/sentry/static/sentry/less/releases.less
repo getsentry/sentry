@@ -1,0 +1,47 @@
+.release-details {
+  position: relative;
+  margin: -5px 0 30px;
+
+  &:before {
+    position: absolute;
+    content: "";
+    display: block;
+    top: -25px;
+    left: -1000px;
+    right: -1000px;
+    bottom: -1px;
+    background: #fff;
+    border-bottom: 1px solid #cfd5e0;
+    z-index: -1;
+  }
+
+  h2 {
+    margin-bottom: 6px;
+  }
+
+  .release-meta {
+    color: lighten(@gray, 30);
+    margin-bottom: 20px;
+
+    .icon {
+      font-size: 13px;
+    }
+  }
+
+  .release-stats {
+    text-align: right;
+
+    h6 {
+      margin-bottom: 10px;
+    }
+
+    .count {
+      font-size: 30px;
+      color: lighten(@gray, 30);
+    }
+  }
+
+  .release-meta {
+
+  }
+}
