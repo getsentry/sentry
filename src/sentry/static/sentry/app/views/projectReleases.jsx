@@ -98,34 +98,66 @@ var ProjectReleases = React.createClass({
         : (this.state.error ?
           <LoadingError onRetry={this.fetchData} />
         :
-          <table className="release-list">
-            <thead>
-              <tr>
-                <th>Version</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {this.state.releaseList.map((release) => {
-                var routeParams = {
-                  orgId: params.orgId,
-                  projectId: params.projectId,
-                  version: release.version
-                };
+          <div>
+            <h2>Releases</h2>
+            <div className="release-header">
+              <div className="row">
+                <div className="col-md-7">Version</div>
+                <div className="col-md-5 release-stats align-right">
+                  <div className="row">
+                    <div className="col-md-4">
+                      Events
+                    </div>
+                    <div className="col-md-4">
+                      Users
+                    </div>
+                    <div className="col-md-4">
+                      Servers
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ul className="release-list">
+                {this.state.releaseList.map((release) => {
+                  var routeParams = {
+                    orgId: params.orgId,
+                    projectId: params.projectId,
+                    version: release.version
+                  };
 
-                return (
-                  <tr>
-                    <td>
-                      <Router.Link to="releaseDetails" params={routeParams}>
-                        {release.version}
-                      </Router.Link>
-                    </td>
-                    <td>{release.dateReleased || <span>&mdash;</span>}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <li className="release">
+                      <div className="row">
+                        <div className="col-md-7">
+                          <h4>
+                          <Router.Link to="releaseDetails" params={routeParams}>
+                            {release.version}
+                          </Router.Link>
+                          </h4>
+                          <div className="release-meta">
+                            <span className="icon icon-clock"></span> {release.dateReleased || <span>&mdash;</span>} by <a>dcramer</a>
+                          </div>
+                        </div>
+                        <div className="col-md-5 release-stats">
+                          <div className="row">
+                            <div className="col-md-4">
+                              <span className="release-count">123</span>
+                            </div>
+                            <div className="col-md-4">
+                              <span className="release-count">123</span>
+                            </div>
+                            <div className="col-md-4">
+                              <span className="release-count">123</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
         )}
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>

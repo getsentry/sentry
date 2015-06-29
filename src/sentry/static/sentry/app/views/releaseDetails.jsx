@@ -101,15 +101,15 @@ var GroupDetails = React.createClass({
               <div className="row release-stats">
                 <div className="col-md-4">
                   <h6 className="nav-header">events</h6>
-                  <div className="count">123</div>
+                  <div className="release-count">123</div>
                 </div>
                 <div className="col-md-4">
                   <h6 className="nav-header">users</h6>
-                  <div className="count">123</div>
+                  <div className="release-count">123</div>
                 </div>
                 <div className="col-md-4">
                   <h6 className="nav-header">servers</h6>
-                  <div className="count">123</div>
+                  <div className="release-count">123</div>
                 </div>
               </div>
             </div>
