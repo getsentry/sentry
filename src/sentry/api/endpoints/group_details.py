@@ -94,7 +94,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             {method} {path}
 
         """
-        # TODO(dcramer): handle unauthenticated/public response
         data = serialize(group, request.user)
 
         # TODO: these probably should be another endpoint
