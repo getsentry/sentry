@@ -78,7 +78,8 @@ var StreamGroup = React.createClass({
 
   getDefaultProps() {
     return {
-      canSelect: true
+      canSelect: true,
+      statsPeriod: '24h'
     };
   },
 

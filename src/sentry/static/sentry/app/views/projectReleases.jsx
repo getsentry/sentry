@@ -99,17 +99,7 @@ var ProjectReleases = React.createClass({
               <div className="row">
                 <div className="col-md-7 col-sm-6 col-xs-6">Version</div>
                 <div className="col-md-5 col-sm-6 col-xs-6 release-stats align-right">
-                  <div className="row">
-                    <div className="col-sm-4 col-xs-6">
-                      Events
-                    </div>
-                    <div className="col-sm-4 col-xs-6">
-                      Users
-                    </div>
-                    <div className="col-md-4 col-sm-4 hidden-xs">
-                      Servers
-                    </div>
-                  </div>
+                  New Events
                 </div>
               </div>
             </div>
@@ -135,17 +125,7 @@ var ProjectReleases = React.createClass({
                           </div>
                         </div>
                         <div className="col-md-5 col-sm-6 col-xs-6 release-stats">
-                          <div className="row">
-                            <div className="col-sm-4 col-xs-6">
-                              <span className="release-count">123</span>
-                            </div>
-                            <div className="col-sm-4 col-xs-6">
-                              <span className="release-count">123</span>
-                            </div>
-                            <div className="col-md-4 col-sm-4 hidden-xs">
-                              <span className="release-count">123</span>
-                            </div>
-                          </div>
+                          <span className="release-count">N</span>
                         </div>
                       </div>
                     </li>
