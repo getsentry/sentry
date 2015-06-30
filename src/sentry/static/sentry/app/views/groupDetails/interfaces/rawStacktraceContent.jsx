@@ -13,7 +13,7 @@ var RawStacktraceContent = React.createClass({
   },
 
   getDefaultFrame(frame) {
-    result = '';
+    var result = '';
     if (defined(frame.filename)) {
       result += '  File "' + frame.filename + '"';
     } else if (defined(frame.module)) {
