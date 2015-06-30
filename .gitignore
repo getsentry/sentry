@@ -15,6 +15,7 @@ celerybeat-schedule
 /cover
 /build
 /dist
+/env
 /node_modules/
 /docs/html
 /docs/doctrees
@@ -22,4 +23,3 @@ example/db.sqlite
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/
 /wheelhouse
-/dist
