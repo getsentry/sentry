@@ -80,6 +80,17 @@ var SearchBar = React.createClass({
     router.transitionTo('stream', router.getCurrentParams(), queryParams);
   },
 
+  clearSearch() {
+    var router = this.context.router;
+    var queryParams = router.getCurrentQuery();
+
+    queryParams.query = '';
+
+    router.transitionTo('stream', router.getCurrentParams(), queryParams);
+
+    this.setState({query: ''});
+  },
+
   onQueryFocus() {
     this.setState({
       dropdownVisible: true
@@ -111,8 +122,10 @@ var SearchBar = React.createClass({
                    onFocus={this.onQueryFocus}
                    onBlur={this.onQueryBlur}
                    onChange={this.onQueryChange} />
-            <span className="icon-search"></span>
-            <a href="#" className="search-clear-form"><span className="icon-close"></span></a>
+            <span className="icon-search" />
+            <a className="search-clear-form" onClick={this.clearSearch}>
+              <span className="icon-close" />
+            </a>
           </div>
           <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
         </form>
