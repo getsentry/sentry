@@ -15,6 +15,7 @@ celerybeat-schedule
 /cover
 /build
 /dist
+/env
 /node_modules/
 /docs/html
 /docs/doctrees
