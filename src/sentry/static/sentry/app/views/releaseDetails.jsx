@@ -106,15 +106,9 @@ var ReleaseDetails = React.createClass({
                 </div>
               </div>
               <div className="col-md-3">
-                <div className="row release-stats">
-                  <div className="col-md-6">
-                    <h6 className="nav-header">New Events</h6>
-                    <div className="release-count">123</div>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="nav-header">New Rollups</h6>
-                    <div className="release-count">123</div>
-                  </div>
+                <div className="release-stats">
+                  <h6 className="nav-header">New Events</h6>
+                  <div className="release-count">N</div>
                 </div>
               </div>
             </div>
