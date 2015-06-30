@@ -17,9 +17,6 @@
         <li class="active">
             <a href="{% url 'sentry-stream' project.organization.slug project.slug %}">{% trans "Stream" %}</a>
         </li>
-        <li>
-            <a href="{% url 'sentry-explore' project.organization.slug project.slug %}">{% trans "Explore" %}</a>
-        </li>
         {% if ACCESS.project_write %}
         <li>
             <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">
