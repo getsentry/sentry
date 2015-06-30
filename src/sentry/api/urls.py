@@ -9,7 +9,6 @@ from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
-from .endpoints.group_index import GroupIndexEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -44,6 +43,7 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
+from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -169,9 +169,6 @@ urlpatterns = patterns(
         name='sentry-api-0-project-tagkey-values'),
 
     # Groups
-    url(r'^groups/$',
-        GroupIndexEndpoint.as_view(),
-        name='sentry-api-group-index'),
     url(r'^groups/(?P<group_id>\d+)/$',
         GroupDetailsEndpoint.as_view(),
         name='sentry-api-0-group-details'),
@@ -196,6 +193,10 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/values/$',
         GroupTagKeyValuesEndpoint.as_view(),
         name='sentry-api-0-group-tagkey-values'),
+
+    url(r'^shared/groups/(?P<share_id>[^\/]+)/$',
+        SharedGroupDetailsEndpoint.as_view(),
+        name='sentry-api-0-shared-group-details'),
 
     # Events
     url(r'^events/(?P<event_id>\d+)/$',
