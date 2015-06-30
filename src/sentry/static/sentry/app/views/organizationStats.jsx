@@ -265,6 +265,7 @@ var OrganizationStats = React.createClass({
     var oRejected = 0;
     var sReceived = {};
     var sRejected = {};
+    var aReceived = [0, 0]; // received, points
     var rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
       var dReceived = point[1];
@@ -279,6 +280,10 @@ var OrganizationStats = React.createClass({
       }
       oReceived += dReceived;
       oRejected += dRejected;
+      if (dReceived > 0) {
+        aReceived[0] += dReceived;
+        aReceived[1] += 1;
+      }
     });
     this.setState({
       orgStats: {
@@ -292,7 +297,8 @@ var OrganizationStats = React.createClass({
       orgTotal: {
         received: oReceived,
         rejected: oRejected,
-        accepted: oReceived - oRejected
+        accepted: oReceived - oRejected,
+        avgRate: parseInt((aReceived[0] / aReceived[1]) / 60, 10)
       },
       statsLoading: false
     });
@@ -362,10 +368,12 @@ var OrganizationStats = React.createClass({
           <div className="col-md-9">
             <p>The chart below reflects events the system has received across your entire organization. Events are broken down into two categories: Accepted and Rejected. Rejected events are entries that the system threw away due to quotas being hit.</p>
           </div>
-          <div className="col-md-3 stats-column">
-            <h6 className="nav-header">Events per minute</h6>
-            <p className="count">612</p>
-          </div>
+          {!this.state.statsLoading &&
+            <div className="col-md-3 stats-column">
+              <h6 className="nav-header">Events per minute</h6>
+              <p className="count">{this.state.orgTotal.avgRate}</p>
+            </div>
+          }
         </div>
         <div className="box">
           <div className="box-content with-padding">
