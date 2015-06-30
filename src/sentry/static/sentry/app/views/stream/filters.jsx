@@ -123,9 +123,11 @@ var SearchBar = React.createClass({
                    onBlur={this.onQueryBlur}
                    onChange={this.onQueryChange} />
             <span className="icon-search" />
-            <a className="search-clear-form" onClick={this.clearSearch}>
-              <span className="icon-close" />
-            </a>
+            {this.state.query !== '' &&
+              <a className="search-clear-form" onClick={this.clearSearch}>
+                <span className="icon-close" />
+              </a>
+            }
           </div>
           <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
         </form>
