@@ -678,10 +678,25 @@ table.integrations {
     left: 15px;
   }
 
+  .search-save-search {
+    position: absolute;
+    right: 34px;
+    top: 12px;
+    font-size: 12px;
+    padding: 1px 5px 0;
+    color: lighten(@gray, 10);
+    border-radius: 3px;
+
+    &:focus, &:active {
+      position: absolute;
+      top: 13px;
+    }
+  }
+
   .search-clear-form {
     position: absolute;
     top: 12px;
-    right: 15px;
+    right: 10px;
     color: lighten(@gray, 30);
 
     &:hover {
@@ -690,7 +705,7 @@ table.integrations {
   }
 
   .search-input {
-    padding: 8px 40px 7px 40px;
+    padding: 8px 76px 7px 40px;
     font-size: 15px;
     background: #fff;
     height: 44px;
@@ -723,14 +738,6 @@ table.integrations {
   background: #fff;
   z-index: 100;
   overflow: hidden;
-
-  .search-save-search {
-    position: absolute;
-    right: 3px;
-    top: 4px;
-    font-size: 12px;
-    padding: 2px 6px;
-  }
 
   .nav-tabs {
     border-bottom: 1px solid lighten(@trim, 6);
