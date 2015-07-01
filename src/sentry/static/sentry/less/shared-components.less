@@ -678,10 +678,25 @@ table.integrations {
     left: 15px;
   }
 
+  .search-save-search {
+    position: absolute;
+    right: 34px;
+    top: 12px;
+    font-size: 12px;
+    padding: 1px 5px 0;
+    color: lighten(@gray, 10);
+    border-radius: 3px;
+
+    &:focus, &:active {
+      position: absolute;
+      top: 13px;
+    }
+  }
+
   .search-clear-form {
     position: absolute;
     top: 12px;
-    right: 15px;
+    right: 10px;
     color: lighten(@gray, 30);
 
     &:hover {
@@ -690,16 +705,16 @@ table.integrations {
   }
 
   .search-input {
-    padding: 8px 40px 7px 40px;
+    padding: 8px 76px 7px 40px;
     font-size: 15px;
     background: #fff;
     height: 44px;
     border-radius: 2px;
     box-shadow: inset 0 1px 0 rgba(52, 60, 69, 0.04);
+    .transition(none);
 
     &:focus {
       border-radius: 2px 2px 0 0;
-      border-bottom-color: transparent
     }
   }
 
@@ -713,15 +728,26 @@ table.integrations {
 }
 
 .search-dropdown {
-  box-shadow: 0 0 0 1px rgba(70, 82, 98, .15), 0 1px 3px rgba(70, 82, 98, .2);
+  box-shadow: 0 1px 3px rgba(70, 82, 98, .2);
+  border: 1px solid darken(@trim, 6) !important;
   border-radius: 0 0 4px 4px;
   position: absolute;
-  top: 44px;
-  right: 1px;
-  left: 1px;
+  top: 43px;
+  right: 0;
+  left: 0;
   background: #fff;
   z-index: 100;
   overflow: hidden;
+
+  .nav-tabs {
+    border-bottom: 1px solid lighten(@trim, 6);
+    margin: 0;
+    padding-left: 13px;
+
+    li {
+      margin-right: 12px;
+    }
+  }
 
   .form-group {
     padding: 10px 0;
@@ -791,6 +817,20 @@ table.integrations {
 
       & + li {
         border-color: #e5ecf0;
+      }
+    }
+
+    .remove-saved-search {
+      margin-top: -5px;
+      color: lighten(@gray, 30);
+      &:hover {
+        color: lighten(@gray, 10);
+      }
+
+      .icon-trash {
+        position: static;
+        font-size: 13px;
+        color: inherit;
       }
     }
   }
@@ -1145,7 +1185,7 @@ table.integrations {
     .icon-user {
       margin-right: 3px;
       position: relative;
-      top: 4px;
+      top: 3px;
       font-size: 18px;
     }
   }
@@ -1648,10 +1688,10 @@ header ~ #messages {
   }
 }
 
-.nav-tabs-mini {
+.nav-tabs-xs {
   a {
-    font-size: 14px !important;
-    padding-bottom: 6px !important;
+    font-size: 13px !important;
+    padding: 6px 0 5px !important;
   }
 }
 
