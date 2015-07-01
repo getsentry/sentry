@@ -69,4 +69,5 @@ class SharedEventSerializer(EventSerializer):
         result = super(SharedEventSerializer, self).serialize(obj, attrs, user)
         del result['context']
         del result['user']
+        del result['tags']
         return result
