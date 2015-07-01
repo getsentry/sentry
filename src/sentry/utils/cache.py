@@ -92,6 +92,7 @@ class memoize(object):
         if n not in d:
             value = self.func(obj)
             d[n] = value
+        value = d[n]
         return value
 
 
