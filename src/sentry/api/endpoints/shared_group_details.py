@@ -1,8 +1,12 @@
 from __future__ import absolute_import, print_function
 
-from sentry.api import client
+from rest_framework.response import Response
+
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import (
+    serialize, SharedEventSerializer, SharedGroupSerializer
+)
 from sentry.models import Group
 
 
@@ -27,6 +31,11 @@ class SharedGroupDetailsEndpoint(Endpoint):
         except Group.DoesNotExist:
             raise ResourceDoesNotExist
 
+        event = group.get_latest_event()
+
+        context = serialize(group, request.user, SharedGroupSerializer)
+        context['latestEvent'] = serialize(event, request.user, SharedEventSerializer)
+
         # TODO(dcramer): use specific serializer for public group and embed
         # event details as part of api response
-        return client.get('/groups/{}/'.format(group.id), request.user, request.auth)
+        return Response(context)
