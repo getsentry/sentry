@@ -26,10 +26,10 @@ var SearchDropdown = React.createClass({
       <div className="search-dropdown" style={style}>
         <a className="search-save-search btn btn-xs btn-default">Save Search</a>
         <ul className="nav nav-tabs nav-tabs-xs">
-          <li><a href="#">Search Options</a></li>
-          <li className="active"><a href="#">Saved Searches</a></li>
+          <li className="active"><a href="#">Search Options</a></li>
+          <li><a href="#">Saved Searches</a></li>
         </ul>
-        <ul className="search-helper search-autocomplete-list hidden">
+        <ul className="search-helper search-autocomplete-list">
           <li className="search-autocomplete-item">
             <span className="icon icon-tag"></span>
             <h4>Tag - <span className="search-description">key/value pair associated to an event</span></h4>
@@ -45,8 +45,12 @@ var SearchDropdown = React.createClass({
             <h4>Assigned - <span className="search-description">team member assigned to an event</span></h4>
             <p className="search-example">assigned:[me|user@example.com]</p>
           </li>
+          <li className="search-autocomplete-item">
+            <span className="icon"><strong>#</strong></span>
+            <h4><span className="search-description">or paste an <strong>event id</strong> to jump straight to it</span></h4>
+          </li>
         </ul>
-        <ul className="search-saved-searches search-autocomplete-list">
+        <ul className="search-saved-searches search-autocomplete-list hidden">
           <li className="search-autocomplete-item">
             <a className="pull-right remove-saved-search">
               <span className="icon icon-trash"></span>
