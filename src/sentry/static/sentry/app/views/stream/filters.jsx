@@ -24,6 +24,10 @@ var SearchDropdown = React.createClass({
 
     return (
       <div className="search-dropdown" style={style}>
+        <ul className="nav nav-tabs nav-tabs-xs">
+          <li className="active"><a href="#">Search Options</a></li>
+          <li><a href="#">Saved Searches</a></li>
+        </ul>
         <ul className="search-helper search-autocomplete-list">
           <li className="search-autocomplete-item">
             <span className="icon icon-tag"></span>
