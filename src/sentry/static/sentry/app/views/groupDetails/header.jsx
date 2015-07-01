@@ -113,16 +113,16 @@ var GroupHeader = React.createClass({
           <div className="col-sm-4 stats">
             <div className="row">
               <div className="col-xs-4 assigned-to">
+                <h6 className="nav-header">Assigned</h6>
                 <AssigneeSelector id={group.id} />
-                <div className="is-assigned"><span className="hidden-sm">is</span> assigned</div>
               </div>
               <div className="col-xs-4 count align-right">
-                <Count value={group.count} />
-                <span className="count-label">events</span>
+                <h6 className="nav-header">Events</h6>
+                <Count className="count" value={group.count} />
               </div>
               <div className="col-xs-4 count align-right">
-                <Count value={userCount} />
-                <span className="count-label">users</span>
+                <h6 className="nav-header">Users</h6>
+                <Count className="count" value={userCount} />
               </div>
             </div>
           </div>
