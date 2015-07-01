@@ -135,8 +135,7 @@ class Event(Model):
 
         return None
 
-    @memoize
-    def interfaces(self):
+    def get_interfaces(self):
         result = []
         for key, data in self.data.iteritems():
             try:
@@ -151,6 +150,8 @@ class Event(Model):
             result.append((key, value))
 
         return OrderedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
+
+    interfaces = memoize(get_interfaces)
 
     def get_tags(self, with_internal=True):
         try:
