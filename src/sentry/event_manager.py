@@ -296,6 +296,27 @@ class EventManager(object):
             **kwargs
         )
 
+        tags = data.get('tags') or []
+        tags.append(('level', LOG_LEVELS[level]))
+        if logger_name:
+            tags.append(('logger', logger_name))
+        if server_name:
+            tags.append(('server_name', server_name))
+        if site:
+            tags.append(('site', site))
+        if release:
+            # TODO(dcramer): we should ensure we create Release objects
+            tags.append(('sentry:release', release))
+
+        for plugin in plugins.for_project(project, version=None):
+            added_tags = safe_execute(plugin.get_tags, event,
+                                      _with_transaction=False)
+            if added_tags:
+                tags.extend(added_tags)
+        # XXX(dcramer): we're relying on mutation of the data object to ensure
+        # this propagates into Event
+        data['tags'] = tags
+
         # Calculate the checksum from the first highest scoring interface
         if checksum:
             hashes = [checksum]
@@ -346,24 +367,6 @@ class EventManager(object):
             except IntegrityError:
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
-
-        tags = data['tags']
-        tags.append(('level', LOG_LEVELS[level]))
-        if logger_name:
-            tags.append(('logger', logger_name))
-        if server_name:
-            tags.append(('server_name', server_name))
-        if site:
-            tags.append(('site', site))
-        if release:
-            # TODO(dcramer): we should ensure we create Release objects
-            tags.append(('sentry:release', release))
-
-        for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event,
-                                      _with_transaction=False)
-            if added_tags:
-                tags.extend(added_tags)
 
         safe_execute(Group.objects.add_tags, group, tags,
                      _with_transaction=False)
