@@ -1,9 +1,9 @@
 var React = require("react");
 
-var ConfigStore = require("../../../stores/configStore");
+var ConfigStore = require("../../stores/configStore");
 var GroupEventDataSection = require("../eventDataSection");
-var PropTypes = require("../../../proptypes");
-var utils = require("../../../utils");
+var PropTypes = require("../../proptypes");
+var utils = require("../../utils");
 
 var ClippedBox = React.createClass({
   propTypes: {
