@@ -69,9 +69,9 @@ class SingleException(Interface):
             'stacktrace': stacktrace,
         }
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         if self.stacktrace:
-            stacktrace = self.stacktrace.get_api_context()
+            stacktrace = self.stacktrace.get_api_context(is_public=is_public)
         else:
             stacktrace = None
 
@@ -190,9 +190,12 @@ class Exception(Interface):
             'exc_omitted': self.exc_omitted,
         }
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         return {
-            'values': [v.get_api_context() for v in self.values],
+            'values': [
+                v.get_api_context(is_public=is_public)
+                for v in self.values
+            ],
             'excOmitted': self.exc_omitted,
         }
 

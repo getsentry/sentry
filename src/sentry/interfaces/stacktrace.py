@@ -214,8 +214,8 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def get_api_context(self):
-        return {
+    def get_api_context(self, is_public=False):
+        data = {
             'filename': self.filename,
             'absPath': self.abs_path,
             'module': self.module,
@@ -231,9 +231,10 @@ class Frame(Interface):
             'colNo': self.colno,
             'inApp': self.in_app,
             'errors': self.errors,
-            'vars': self.vars,
-
         }
+        if not is_public:
+            data['vars'] = self.vars
+        return data
 
     def is_url(self):
         if not self.abs_path:
@@ -473,9 +474,9 @@ class Stacktrace(Interface):
 
         return cls(**kwargs)
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         return {
-            'frames': [f.get_api_context() for f in self.frames],
+            'frames': [f.get_api_context(is_public=is_public) for f in self.frames],
             'framesOmitted': self.frames_omitted,
         }
 
