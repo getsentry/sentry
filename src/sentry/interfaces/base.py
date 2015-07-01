@@ -65,7 +65,7 @@ class Interface(object):
     def to_python(cls, data):
         return cls(data)
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         return self.to_json()
 
     def to_json(self):

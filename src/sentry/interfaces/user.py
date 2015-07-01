@@ -59,7 +59,7 @@ class User(Interface):
         kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         return {
             'id': self.id,
             'email': self.email,
