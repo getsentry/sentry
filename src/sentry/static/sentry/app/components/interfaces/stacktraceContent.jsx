@@ -2,10 +2,10 @@ var React = require("react");
 var classSet = require("react/lib/cx");
 
 var GroupEventDataSection = require("../eventDataSection");
-var PropTypes = require("../../../proptypes");
-var {defined} = require("../../../utils");
+var PropTypes = require("../../proptypes");
+var {defined} = require("../../utils");
 
-var ContextData = require("../../../components/contextData");
+var ContextData = require("../contextData");
 
 var FrameVariables = React.createClass({
   propTypes: {

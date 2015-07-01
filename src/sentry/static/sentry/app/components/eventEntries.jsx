@@ -2,9 +2,9 @@ var React = require("react");
 var Sticky = require("react-sticky");
 
 var EventDataSection = require("./eventDataSection");
-var PropTypes = require("../../proptypes");
-var utils = require("../../utils");
-var ContextData = require("../../components/contextData");
+var PropTypes = require("../proptypes");
+var utils = require("../utils");
+var ContextData = require("./contextData");
 
 var EventExtraData = React.createClass({
   propTypes: {

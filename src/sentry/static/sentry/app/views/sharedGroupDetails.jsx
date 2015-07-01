@@ -5,6 +5,7 @@ var Router = require("react-router");
 var api = require("../api");
 var Count = require("../components/count");
 var DocumentTitle = require("react-document-title");
+var EventEntries = require("../components/eventEntries");
 var Footer = require("../components/footer");
 var Header = require("../components/header");
 var LoadingError = require("../components/loadingError");
@@ -114,12 +115,13 @@ var SharedGroupDetails = React.createClass({
 
   render() {
     var group = this.state.group;
-    var params = this.context.router.getCurrentParams();
 
     if (this.state.loading || !group)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
+
+    var evt = this.state.group.latestEvent;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -129,6 +131,7 @@ var SharedGroupDetails = React.createClass({
             <div className="content">
               <SharedGroupHeader group={group} />
               <div className="group-overview">
+                <EventEntries group={group} event={evt} />
               </div>
             </div>
           </div>

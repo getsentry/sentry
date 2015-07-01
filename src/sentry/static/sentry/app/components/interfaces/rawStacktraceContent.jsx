@@ -1,7 +1,7 @@
 var React = require("react");
 
-var PropTypes = require("../../../proptypes");
-var {defined, trim} = require("../../../utils");
+var PropTypes = require("../../proptypes");
+var {defined, trim} = require("../../utils");
 
 var RawStacktraceContent = React.createClass({
   propTypes: {

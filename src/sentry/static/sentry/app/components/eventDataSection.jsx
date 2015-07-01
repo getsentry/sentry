@@ -1,6 +1,6 @@
 var React = require("react");
 
-var PropTypes = require("../../proptypes");
+var PropTypes = require("../proptypes");
 
 var GroupEventDataSection = React.createClass({
   propTypes: {
