@@ -340,7 +340,7 @@ class EventManager(object):
                 project=project,
                 version=release,
                 defaults={
-                    'date_created': date,
+                    'date_added': date,
                 },
             )
 
