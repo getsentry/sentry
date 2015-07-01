@@ -62,7 +62,7 @@ def md5_from_hash(hash_bits):
 
 
 def get_hashes_for_event(event):
-    interfaces = event.interfaces
+    interfaces = event.get_interfaces()
     for interface in interfaces.itervalues():
         result = interface.compute_hashes(event.platform)
         if not result:
