@@ -32,6 +32,7 @@ class Activity(Model):
     FIRST_SEEN = 9
     RELEASE = 10
     ASSIGNED = 11
+    UNASSIGNED = 12
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -46,6 +47,7 @@ class Activity(Model):
         (FIRST_SEEN, 'first_seen'),
         (RELEASE, 'release'),
         (ASSIGNED, 'assigned'),
+        (UNASSIGNED, 'unassigned'),
     )
 
     project = FlexibleForeignKey('sentry.Project')
