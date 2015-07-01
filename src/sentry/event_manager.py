@@ -26,7 +26,8 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Event, EventMapping, Group, GroupHash, GroupStatus, Project, Release
+    Activity, Event, EventMapping, Group, GroupHash, GroupStatus, Project,
+    Release
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -335,10 +336,21 @@ class EventManager(object):
         })
 
         if release:
-            group_kwargs['first_release'] = Release.objects.get_or_create(
+            group_kwargs['first_release'], created = Release.objects.get_or_create(
                 project=project,
                 version=release,
-            )[0]
+                defaults={
+                    'date_created': date,
+                },
+            )
+
+            Activity.objects.create(
+                type=Activity.RELEASE,
+                project=project,
+                ident=release,
+                data={'version': release},
+                datetime=date,
+            )
 
         group, is_new, is_regression, is_sample = safe_execute(
             self._save_aggregate,
