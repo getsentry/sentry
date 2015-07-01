@@ -145,6 +145,7 @@ var SearchBar = React.createClass({
                    placeholder="Search for events, users, tags, and everything else."
                    name="query"
                    ref="searchInput"
+                   autoComplete="off"
                    value={this.state.query}
                    onFocus={this.onQueryFocus}
                    onBlur={this.onQueryBlur}
