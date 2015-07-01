@@ -164,3 +164,7 @@ class StreamGroupSerializer(GroupSerializer):
         }
 
         return result
+
+
+class SharedGroupSerializer(GroupSerializer):
+    pass
