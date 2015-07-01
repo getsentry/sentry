@@ -151,7 +151,9 @@ class Event(Model):
 
         return OrderedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
 
-    interfaces = memoize(get_interfaces)
+    @memoize
+    def interfaces(self):
+        return self.get_interfaces()
 
     def get_tags(self, with_internal=True):
         try:
