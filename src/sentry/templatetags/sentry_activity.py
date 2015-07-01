@@ -30,6 +30,8 @@ ACTIVITY_ACTION_STRINGS = {
     Activity.SET_REGRESSION: 'marked this event as a regression',
     Activity.CREATE_ISSUE: u'created an issue on {provider:s} titled <a href="{location:s}">{title:s}</a>',
     Activity.FIRST_SEEN: 'first saw this event',
+    Activity.ASSIGNED: 'assigned this event to {user:s}',
+    Activity.UNASSIGNED: 'unassigned this event',
     Activity.RELEASE: 'saw a new release: {version:s}',
 }
 
