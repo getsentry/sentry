@@ -109,7 +109,7 @@ var SharedGroupDetails = React.createClass({
   getGroupDetailsEndpoint() {
     var id = this.context.router.getCurrentParams().shareId;
 
-    return '/groups/?shareId=' + id;
+    return '/shared/groups/' + id + '/';
   },
 
   render() {
