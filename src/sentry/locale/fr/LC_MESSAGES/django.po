@@ -1107,7 +1107,7 @@ msgstr "Identité"
 
 #: templates/sentry/account/notifications.html:7
 msgid "Notification Settings"
-msgstr "Pramètres de notification"
+msgstr "Paramètres de notification"
 
 #: templates/sentry/account/notifications.html:41
 msgid ""
