@@ -24,6 +24,7 @@ var SearchDropdown = React.createClass({
 
     return (
       <div className="search-dropdown" style={style}>
+        <a className="search-save-search btn btn-xs btn-default">Save Search</a>
         <ul className="nav nav-tabs nav-tabs-xs">
           <li><a href="#">Search Options</a></li>
           <li className="active"><a href="#">Saved Searches</a></li>
