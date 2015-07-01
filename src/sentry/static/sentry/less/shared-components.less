@@ -700,7 +700,6 @@ table.integrations {
 
     &:focus {
       border-radius: 2px 2px 0 0;
-      border-bottom-color: transparent
     }
   }
 
@@ -714,12 +713,13 @@ table.integrations {
 }
 
 .search-dropdown {
-  box-shadow: 0 0 0 1px rgba(70, 82, 98, .15), 0 1px 3px rgba(70, 82, 98, .2);
+  box-shadow: 0 1px 3px rgba(70, 82, 98, .2);
+  border: 1px solid darken(@trim, 6) !important;
   border-radius: 0 0 4px 4px;
   position: absolute;
-  top: 44px;
-  right: 1px;
-  left: 1px;
+  top: 43px;
+  right: 0;
+  left: 0;
   background: #fff;
   z-index: 100;
   overflow: hidden;
