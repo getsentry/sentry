@@ -24,7 +24,6 @@ var SearchDropdown = React.createClass({
 
     return (
       <div className="search-dropdown" style={style}>
-        <a className="search-save-search btn btn-xs btn-default">Save Search</a>
         <ul className="nav nav-tabs nav-tabs-xs">
           <li className="active"><a href="#">Search Options</a></li>
           <li><a href="#">Saved Searches</a></li>
@@ -157,9 +156,12 @@ var SearchBar = React.createClass({
                    onChange={this.onQueryChange} />
             <span className="icon-search" />
             {this.state.query !== '' &&
-              <a className="search-clear-form" onClick={this.clearSearch}>
-                <span className="icon-close" />
-              </a>
+              <div>
+                <a className="search-save-search btn btn-xs btn-default">Save</a>
+                <a className="search-clear-form" onClick={this.clearSearch}>
+                  <span className="icon-close" />
+                </a>
+              </div>
             }
           </div>
           <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
