@@ -6,9 +6,7 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "babel-loader": "^5.1.4",
     "bootstrap": "^3.3.4",
-    "chai": "1.7.x",
     "crypto-js": "^3.1.2-5",
     "gulp": "^3.8.11",
     "gulp-clean": "^0.3.1",
@@ -21,13 +19,10 @@
     "jshint": "~2.5.0",
     "jsxhint": "^0.9.0",
     "karma": "^0.12.19",
-    "karma-chai": "^0.1.0",
     "karma-mocha": "^0.1.6",
     "karma-phantomjs-launcher": "^0.1.4",
-    "karma-sinon": "^1.0.3",
     "karma-sourcemap-loader": "^0.3.3",
     "less": "1.7.0",
-    "mocha": "1.9.x",
     "moment": "^2.8.4",
     "node-libs-browser": "^0.5.2",
     "raven-js": "^1.1.19",
@@ -37,7 +32,6 @@
     "react-router": "^0.13.3",
     "react-sticky": "^2.1.0",
     "reflux": "^0.2.8",
-    "sinon": "^1.10.3",
     "sync-exec": "^0.5.0",
     "webpack": "^1.9.10"
   },
@@ -45,7 +39,16 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "pretest": "npm install && webpack",
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run"
+  },
+  "devDependencies": {
+    "babel-core": "^5.6.15",
+    "babel-loader": "^5.2.2",
+    "chai": "^3.0.0",
+    "karma-chai": "^0.1.0",
+    "karma-sinon": "^1.0.4",
+    "karma-webpack": "^1.5.1",
+    "sinon": "^1.15.4",
+    "sinon-chai": "^2.8.0"
   }
 }
