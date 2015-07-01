@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Release
+from sentry.models import Activity, Release
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -74,6 +74,14 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                     return Response({
                         'detail': 'Release with version already exists'
                     }, status=400)
+                else:
+                    Activity.objects.create(
+                        type=Activity.RELEASE,
+                        project=project,
+                        ident=result['version'],
+                        data={'version': result['version']},
+                        datetime=release.date_released,
+                    )
 
             return Response(serialize(release, request.user), status=201)
         return Response(serializer.errors, status=400)
