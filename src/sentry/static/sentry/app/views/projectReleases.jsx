@@ -94,7 +94,7 @@ var ProjectReleases = React.createClass({
           <LoadingError onRetry={this.fetchData} />
         :
           <div>
-            <h2>Releases</h2>
+            <h3>Releases</h3>
             <div className="release-header">
               <div className="row">
                 <div className="col-md-7 col-sm-6 col-xs-6">Version</div>
