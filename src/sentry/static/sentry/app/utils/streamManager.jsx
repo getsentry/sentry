@@ -1,75 +1,52 @@
+var removeFromList = (item, list) => {
+  var idx = list.indexOf(item);
+
+  if (idx !== -1) {
+    list.splice(idx, 1);
+  }
+};
+
 class StreamManager {
   // TODO(dcramer): this should listen to changes on GroupStore and remove
   // items that are removed there
-  constructor(store, options) {
-    if (typeof options === "undefined") {
-      options = {};
-    }
-
+  constructor(store, options={}) {
     this.idList = [];
     this.store = store;
     this.limit = options.limit || 1000;
-    this.length = 0;
-
-    return this;
   }
 
   trim() {
-    for (var i = this.limit; i < this.length; i++) {
-      this.store.remove(this.idList[i]);
-    }
-    this.idList.splice(this.limit, this.length - this.limit);
+    var excess = this.idList.splice(this.limit, this.idList.length - this.limit);
+    excess.forEach(this.store.remove);
   }
 
-  push(items) {
-    if (!items instanceof Array) {
-      items = [items];
-    }
-    items.forEach((item) => {
-      var idx = this.idList.indexOf(item.id);
-      if (idx !== -1) {
-        this.idList.splice(idx, 1);
-      }
-      this.length += 1;
-      this.idList.push(item.id);
-    });
+  push(items=[]) {
+    items = [].concat(items);
+    if (items.length === 0) return this;
+
+    items.forEach((item) => removeFromList(item.id, this.idList));
+    var ids = items.map((item) => item.id);
+    this.idList = [].concat(this.idList, ids);
+
     this.trim();
     this.store.add(items);
     return this;
   }
 
   getAllItems() {
-    var items = this.store.getAllItems();
-    var itemsById = {};
-    items.forEach((item) => {
-      itemsById[item.id] = item;
+    return this.store.getAllItems().slice().sort((a, b) => {
+      return this.idList.indexOf(a.id) - this.idList.indexOf(b.id);
     });
-
-    var ordered = [];
-    this.idList.forEach((itemId) => {
-      if (itemsById[itemId]) {
-        ordered.push(itemsById[itemId]);
-      }
-    });
-
-    return ordered;
   }
 
-  unshift(items) {
-    if (!items instanceof Array) {
-      items = [items];
-    } else {
-      items = items.reverse();
-    }
+  unshift(items=[]) {
+    items = [].concat(items);
+    if (items.length === 0) return this;
 
-    items.forEach((item) => {
-      var idx = this.idList.indexOf(item.id);
-      if (idx !== -1) {
-        this.idList.splice(idx, 1);
-      }
-      this.length += 1;
-      this.idList.unshift(item.id);
-    });
+    items.forEach((item) => removeFromList(item.id, this.idList));
+    var ids = items.map((item) => item.id);
+    this.idList = [].concat(ids.reverse(), this.idList);
+
     this.trim();
     this.store.add(items);
     return this;

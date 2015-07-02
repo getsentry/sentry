@@ -78,6 +78,8 @@ test-cli:
 
 test-js:
 	@echo "--> Running JavaScript tests"
+	@npm install
+	@webpack
 	@npm run test
 	@echo ""
 
