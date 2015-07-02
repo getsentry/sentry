@@ -55,7 +55,9 @@ var GroupHeader = React.createClass({
   },
 
   onShare() {
-    alert(this.props.group.shareId);
+    return this.context.router.transitionTo('sharedGroupDetails', {
+      shareId: this.props.group.shareId
+    });
   },
 
   onTogglePublic() {
