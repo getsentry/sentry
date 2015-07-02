@@ -36,14 +36,12 @@ class ApiClientHandler(ForceAuthClientHandler):
 
 class RequestClient(DefaultRequestClient):
     def __init__(self, enforce_csrf_checks=False, is_sudo=False, **defaults):
-        super(RequestClient, self).__init__(
-            enforce_csrf_checks=enforce_csrf_checks,
-            **defaults
-        )
+        super(DefaultRequestClient, self).__init__(**defaults)
         self.handler = ApiClientHandler(
             enforce_csrf_checks=enforce_csrf_checks,
             is_sudo=is_sudo,
         )
+        self._credentials = {}
 
 
 class ApiClient(object):
@@ -53,6 +51,12 @@ class ApiClient(object):
 
     def request(self, method, path, user, auth=None, params=None, data=None,
                 is_sudo=False, content_type='application/json'):
+
+        assert not (params and data)
+
+        if method.lower() == 'get':
+            data = params
+
         full_path = self.prefix + path
 
         # TODO(dcramer): implement is_sudo
@@ -72,7 +76,7 @@ class ApiClient(object):
         if response['Content-Type'] == 'application/json' and response.content:
             data = json.loads(response.content)
         else:
-            data = response.content
+            data = ''
 
         raise self.ApiError(response.status_code, data)
 
