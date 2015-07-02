@@ -20,11 +20,11 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         om.type = OrganizationMemberType.MEMBER
 
         try:
-            existing = OrganizationMember.objects.get(
+            existing = OrganizationMember.objects.filter(
                 organization=organization,
                 user__email__iexact=om.email,
-            )
-        except OrganizationMember.DoesNotExist:
+            )[0]
+        except IndexError:
             pass
         else:
             return existing, False
