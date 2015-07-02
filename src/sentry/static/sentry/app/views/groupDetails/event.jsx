@@ -1,7 +1,7 @@
 var React = require("react");
 var Sticky = require("react-sticky");
 
-var GroupEventEntries = require("./eventEntries");
+var GroupEventEntries = require("../../components/eventEntries");
 var GroupEventHeader = require("./eventHeader");
 var GroupEventTags = require("./eventTags");
 var GroupState = require("../../mixins/groupState");

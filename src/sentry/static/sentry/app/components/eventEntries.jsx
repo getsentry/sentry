@@ -2,9 +2,9 @@ var React = require("react");
 var Sticky = require("react-sticky");
 
 var EventDataSection = require("./eventDataSection");
-var PropTypes = require("../../proptypes");
-var utils = require("../../utils");
-var ContextData = require("../../components/contextData");
+var PropTypes = require("../proptypes");
+var utils = require("../utils");
+var ContextData = require("./contextData");
 
 var EventExtraData = React.createClass({
   propTypes: {
@@ -83,7 +83,16 @@ var EventPackageData = React.createClass({
 var EventEntries = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
+    // TODO(dcramer): ideally isShare would be replaced with simple permission
+    // checks
+    isShare: React.PropTypes.bool
+  },
+
+  getDefaultProps() {
+    return {
+      isShare: false
+    };
   },
 
   // TODO(dcramer): make this extensible
@@ -100,6 +109,7 @@ var EventEntries = React.createClass({
   render(){
     var group = this.props.group;
     var evt = this.props.event;
+    var isShare = this.props.isShare;
 
     var entries = evt.entries.map((entry, entryIdx) => {
       try {
@@ -113,7 +123,8 @@ var EventEntries = React.createClass({
                   group={group}
                   event={evt}
                   type={entry.type}
-                  data={entry.data} />;
+                  data={entry.data}
+                  isShare={isShare} />;
       } catch (ex) {
         // TODO(dcramer): this should log to Sentry
         return (

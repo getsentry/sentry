@@ -32,6 +32,7 @@ ACTIVITY_ACTION_STRINGS = {
     Activity.FIRST_SEEN: 'first saw this event',
     Activity.ASSIGNED: 'assigned this event to {user:s}',
     Activity.UNASSIGNED: 'unassigned this event',
+    Activity.RELEASE: 'saw a new release: {version:s}',
 }
 
 

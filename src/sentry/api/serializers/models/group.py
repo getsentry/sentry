@@ -164,3 +164,10 @@ class StreamGroupSerializer(GroupSerializer):
         }
 
         return result
+
+
+class SharedGroupSerializer(GroupSerializer):
+    def serialize(self, obj, attrs, user):
+        result = super(SharedGroupSerializer, self).serialize(obj, attrs, user)
+        del result['annotations']
+        return result

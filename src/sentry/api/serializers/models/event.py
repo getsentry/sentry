@@ -6,7 +6,7 @@ from sentry.models import Event
 
 @register(Event)
 class EventSerializer(Serializer):
-    def _get_entries(self, event, user):
+    def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
         interface_list = []
         for key, interface in event.interfaces.iteritems():
@@ -15,7 +15,7 @@ class EventSerializer(Serializer):
                 continue
 
             entry = {
-                'data': interface.get_api_context(),
+                'data': interface.get_api_context(is_public=is_public),
                 'type': interface.get_alias(),
             }
             interface_list.append((interface, entry))
@@ -23,7 +23,7 @@ class EventSerializer(Serializer):
 
         return [i[1] for i in interface_list]
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
         results = {}
@@ -35,13 +35,12 @@ class EventSerializer(Serializer):
                 user_data = None
 
             results[item] = {
-                'entries': self._get_entries(item, user),
+                'entries': self._get_entries(item, user, is_public=is_public),
                 'user': user_data,
             }
         return results
 
     def serialize(self, obj, attrs, user):
-
         d = {
             'id': str(obj.id),
             'groupID': obj.group.id,
@@ -58,3 +57,17 @@ class EventSerializer(Serializer):
             'timeSpent': obj.time_spent,
         }
         return d
+
+
+class SharedEventSerializer(EventSerializer):
+    def get_attrs(self, item_list, user):
+        return super(SharedEventSerializer, self).get_attrs(
+            item_list, user, is_public=True
+        )
+
+    def serialize(self, obj, attrs, user):
+        result = super(SharedEventSerializer, self).serialize(obj, attrs, user)
+        del result['context']
+        del result['user']
+        del result['tags']
+        return result

@@ -1,10 +1,12 @@
 var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
+var jQuery = require("jquery");
 
 var api = require("../api");
 var Count = require("../components/count");
 var DocumentTitle = require("react-document-title");
+var EventEntries = require("../components/eventEntries");
 var Footer = require("../components/footer");
 var Header = require("../components/header");
 var LoadingError = require("../components/loadingError");
@@ -34,12 +36,12 @@ var SharedGroupHeader = React.createClass({
           <div className="col-sm-3 stats">
             <div className="row">
               <div className="col-xs-6 count align-right">
+                <h6 className="nav-header">events</h6>
                 <Count value={group.count} />
-                <span className="count-label">events</span>
               </div>
               <div className="col-xs-6 count align-right">
+                <h6 className="nav-header">users</h6>
                 <Count value={userCount} />
-                <span className="count-label">users</span>
               </div>
             </div>
           </div>
@@ -83,6 +85,11 @@ var SharedGroupDetails = React.createClass({
 
   componentWillMount() {
     this.fetchData();
+    jQuery(document.body).addClass("shared-group");
+  },
+
+  componentWillUnmount() {
+    jQuery(document.body).removeClass("shared-group");
   },
 
   fetchData() {
@@ -114,12 +121,13 @@ var SharedGroupDetails = React.createClass({
 
   render() {
     var group = this.state.group;
-    var params = this.context.router.getCurrentParams();
 
     if (this.state.loading || !group)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
+
+    var evt = this.state.group.latestEvent;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -129,6 +137,7 @@ var SharedGroupDetails = React.createClass({
             <div className="content">
               <SharedGroupHeader group={group} />
               <div className="group-overview">
+                <EventEntries group={group} event={evt} isShare={true} />
               </div>
             </div>
           </div>
