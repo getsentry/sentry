@@ -28,6 +28,12 @@ USER_AGENT = 'sentry/{version} (https://getsentry.com)'.format(
 DISALLOWED_IPS = set((IPNetwork(i) for i in settings.SENTRY_DISALLOWED_IPS))
 
 
+def get_server_hostname():
+    # TODO(dcramer): Ideally this would parse at runtime, but we currently
+    # change the URL prefix when runner initializes which may be post-import
+    return urlparse(settings.SENTRY_URL_PREFIX).hostname
+
+
 def is_valid_url(url):
     """
     Tests a URL to ensure it doesn't appear to be a blacklisted IP range.
@@ -36,10 +42,18 @@ def is_valid_url(url):
     if not parsed.hostname:
         return False
 
+    server_hostname = get_server_hostname()
+
+    if parsed.hostname == server_hostname:
+        return True
+
     try:
         ip_address = socket.gethostbyname(parsed.hostname)
     except socket.gaierror:
         return False
+
+    if ip_address == server_hostname:
+        return True
 
     ip_network = IPNetwork(ip_address)
     for addr in DISALLOWED_IPS:

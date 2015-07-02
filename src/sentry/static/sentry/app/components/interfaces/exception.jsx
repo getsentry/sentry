@@ -2,7 +2,7 @@ var React = require("react");
 var classSet = require("react/lib/cx");
 
 var GroupEventDataSection = require("../eventDataSection");
-var PropTypes = require("../../../proptypes");
+var PropTypes = require("../../proptypes");
 var RawStacktraceContent = require("./rawStacktraceContent");
 var StacktraceContent = require("./stacktraceContent");
 

@@ -26,7 +26,8 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Event, EventMapping, Group, GroupHash, GroupStatus, Project, Release
+    Activity, Event, EventMapping, Group, GroupHash, GroupStatus, Project,
+    Release
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -62,7 +63,7 @@ def md5_from_hash(hash_bits):
 
 
 def get_hashes_for_event(event):
-    interfaces = event.interfaces
+    interfaces = event.get_interfaces()
     for interface in interfaces.itervalues():
         result = interface.compute_hashes(event.platform)
         if not result:
@@ -296,6 +297,27 @@ class EventManager(object):
             **kwargs
         )
 
+        tags = data.get('tags') or []
+        tags.append(('level', LOG_LEVELS[level]))
+        if logger_name:
+            tags.append(('logger', logger_name))
+        if server_name:
+            tags.append(('server_name', server_name))
+        if site:
+            tags.append(('site', site))
+        if release:
+            # TODO(dcramer): we should ensure we create Release objects
+            tags.append(('sentry:release', release))
+
+        for plugin in plugins.for_project(project, version=None):
+            added_tags = safe_execute(plugin.get_tags, event,
+                                      _with_transaction=False)
+            if added_tags:
+                tags.extend(added_tags)
+        # XXX(dcramer): we're relying on mutation of the data object to ensure
+        # this propagates into Event
+        data['tags'] = tags
+
         # Calculate the checksum from the first highest scoring interface
         if checksum:
             hashes = [checksum]
@@ -313,33 +335,26 @@ class EventManager(object):
             'time_spent_count': time_spent and 1 or 0,
         })
 
-        tags = data['tags']
-        tags.append(('level', LOG_LEVELS[level]))
-        if logger_name:
-            tags.append(('logger', logger_name))
-        if server_name:
-            tags.append(('server_name', server_name))
-        if site:
-            tags.append(('site', site))
         if release:
-            # TODO(dcramer): we should ensure we create Release objects
-            tags.append(('sentry:release', release))
-
-            group_kwargs['first_release'] = Release.objects.get_or_create(
+            group_kwargs['first_release'], created = Release.objects.get_or_create(
                 project=project,
                 version=release,
-            )[0]
+                defaults={
+                    'date_added': date,
+                },
+            )
 
-        for plugin in plugins.for_project(project, version=None):
-            added_tags = safe_execute(plugin.get_tags, event,
-                                      _with_transaction=False)
-            if added_tags:
-                tags.extend(added_tags)
+            Activity.objects.create(
+                type=Activity.RELEASE,
+                project=project,
+                ident=release,
+                data={'version': release},
+                datetime=date,
+            )
 
         group, is_new, is_regression, is_sample = safe_execute(
             self._save_aggregate,
             event=event,
-            tags=tags,
             hashes=hashes,
             **group_kwargs
         )
@@ -347,9 +362,6 @@ class EventManager(object):
         using = group._state.db
 
         event.group = group
-
-        safe_execute(Group.objects.add_tags, group, tags,
-                     _with_transaction=False)
 
         try:
             with transaction.atomic():
@@ -367,6 +379,9 @@ class EventManager(object):
             except IntegrityError:
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
+
+        safe_execute(Group.objects.add_tags, group, tags,
+                     _with_transaction=False)
 
         if not raw:
             post_process_group.delay(
@@ -422,7 +437,7 @@ class EventManager(object):
             group=group,
         )
 
-    def _save_aggregate(self, event, tags, hashes, **kwargs):
+    def _save_aggregate(self, event, hashes, **kwargs):
         time_spent = event.time_spent
         project = event.project
 

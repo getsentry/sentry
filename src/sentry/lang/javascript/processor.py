@@ -197,6 +197,7 @@ def fetch_release_file(filename, release):
         except ReleaseFile.DoesNotExist:
             logger.debug('Release artifact %r not found in database (release_id=%s)',
                          filename, release.id)
+            cache.set(cache_key, -1, 60)
             return None
 
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
@@ -205,6 +206,8 @@ def fetch_release_file(filename, release):
             body = fp.read()
         result = (releasefile.file.headers, body, 200)
         cache.set(cache_key, result, 60)
+    elif result == -1:
+        result = None
 
     return result
 

@@ -212,3 +212,20 @@ class Http(Interface):
 
     def get_title(self):
         return _('Request')
+
+    def get_api_context(self, is_public=False):
+        data = {
+            'method': self.method,
+            'url': self.url,
+            'query_string': self.query_string,
+            'fragment': self.fragment,
+            'data': self.data,
+            # TODO(dcramer): scrub headers for IPs/etc when is_public
+            'headers': self.headers,
+        }
+        if not is_public:
+            data.update({
+                'cookies': self.cookies,
+                'env': self.env,
+            })
+        return data
