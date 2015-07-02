@@ -41,7 +41,13 @@ class ApiClient(object):
 
         if 200 <= response.status_code < 400:
             return response
-        raise self.ApiError(response.status_code, getattr(response, 'data', ''))
+
+        if response.content_type == 'application/json' and response.body:
+            data = json.loads(response.body)
+        else:
+            data = response.body
+
+        raise self.ApiError(response.status_code, data)
 
     def get(self, *args, **kwargs):
         return self.request('GET', *args, **kwargs)
