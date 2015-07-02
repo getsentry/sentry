@@ -1,6 +1,7 @@
 var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
+var jQuery = require("jquery");
 
 var api = require("../api");
 var Count = require("../components/count");
@@ -35,12 +36,12 @@ var SharedGroupHeader = React.createClass({
           <div className="col-sm-3 stats">
             <div className="row">
               <div className="col-xs-6 count align-right">
+                <h6 className="nav-header">events</h6>
                 <Count value={group.count} />
-                <span className="count-label">events</span>
               </div>
               <div className="col-xs-6 count align-right">
+                <h6 className="nav-header">users</h6>
                 <Count value={userCount} />
-                <span className="count-label">users</span>
               </div>
             </div>
           </div>
@@ -84,6 +85,11 @@ var SharedGroupDetails = React.createClass({
 
   componentWillMount() {
     this.fetchData();
+    jQuery(document.body).addClass("shared-group");
+  },
+
+  componentWillUnmount() {
+    jQuery(document.body).removeClass("shared-group");
   },
 
   fetchData() {
