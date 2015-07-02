@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 __all__ = ('ApiClient',)
 
-from rest_framework.test import APIClient as DefaultAPIClient
+from rest_framework.test import (
+    APIClient as DefaultRequestClient, ForceAuthClientHandler
+)
 
 from sentry.utils import json
 
@@ -20,32 +22,57 @@ class ApiError(Exception):
         return self.status_code
 
 
+class ApiClientHandler(ForceAuthClientHandler):
+    def __init__(self, is_sudo=False, *args, **kwargs):
+        self.is_sudo = is_sudo
+        super(ApiClientHandler, self).__init__(*args, **kwargs)
+
+    def get_response(self, request):
+        # This is the simplest place we can hook into to patch the
+        # request object.
+        request._is_sudo = self.is_sudo
+        return super(ApiClientHandler, self).get_response(request)
+
+
+class RequestClient(DefaultRequestClient):
+    def __init__(self, enforce_csrf_checks=False, is_sudo=False, **defaults):
+        super(RequestClient, self).__init__(
+            enforce_csrf_checks=enforce_csrf_checks,
+            **defaults
+        )
+        self.handler = ApiClientHandler(
+            enforce_csrf_checks=enforce_csrf_checks,
+            is_sudo=is_sudo,
+        )
+
+
 class ApiClient(object):
     prefix = '/api/0'
 
     ApiError = ApiError
 
     def request(self, method, path, user, auth=None, params=None, data=None,
-                is_sudo=False):
+                is_sudo=False, content_type='application/json'):
         full_path = self.prefix + path
 
-        if data:
-            # we encode to ensure compatibility
-            data = json.loads(json.dumps(data))
-
         # TODO(dcramer): implement is_sudo
-        client = DefaultAPIClient()
+        client = RequestClient(is_sudo=is_sudo)
         client.force_authenticate(user, auth)
 
-        response = getattr(client, method.lower())(full_path, data)
+        handler = getattr(client, method.lower())
+
+        response = handler(
+            full_path, data,
+            content_type=content_type
+        )
 
         if 200 <= response.status_code < 400:
             return response
 
-        if response.content_type == 'application/json' and response.body:
-            data = json.loads(response.body)
+        if response['Content-Type'] == 'application/json' and response.content:
+            data = json.loads(response.content)
         else:
-            data = response.body
+            data = response.content
 
         raise self.ApiError(response.status_code, data)
 
