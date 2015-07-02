@@ -30,7 +30,7 @@ class ApiClientHandler(ForceAuthClientHandler):
     def get_response(self, request):
         # This is the simplest place we can hook into to patch the
         # request object.
-        request._is_sudo = self.is_sudo
+        request._sudo = self.is_sudo
         return super(ApiClientHandler, self).get_response(request)
 
 
