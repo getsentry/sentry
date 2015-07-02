@@ -31,8 +31,8 @@ var config = {
   module: {
     loaders: [
       {
-        test: /\.jsx$/,
-        loader: "babel",
+        test: /\.jsx?$/,
+        loader: "babel-loader",
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules)/
       }
