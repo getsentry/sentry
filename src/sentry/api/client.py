@@ -17,6 +17,9 @@ class ApiError(Exception):
     def __unicode__(self):
         return u'status=%s body=%s' % (self.status_code, self.body)
 
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
     @property
     def status(self):
         return self.status_code
