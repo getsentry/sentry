@@ -23,6 +23,13 @@ describe('SelectedGroupStore', function() {
       expect(SelectedGroupStore.records).to.eql({ 3: true });
     });
 
+    it("doesn't have any effect when already in sync", function() {
+      this.sandbox.stub(GroupStore, "getAllItemIds", () => ["1", "2", "3"]);
+      SelectedGroupStore.records = { 1: true, 2: true, 3: true };
+      SelectedGroupStore.prune();
+      expect(SelectedGroupStore.records).to.eql({ 1: true, 2: true, 3: true });
+    });
+
   });
 
   describe('add()', function() {
