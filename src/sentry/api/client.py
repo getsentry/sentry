@@ -15,7 +15,7 @@ class ApiError(Exception):
         self.body = body
 
     def __unicode__(self):
-        return 'status=%s body=%s' % (self.status_code, self.body)
+        return u'status=%s body=%s' % (self.status_code, self.body)
 
     @property
     def status(self):
