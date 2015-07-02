@@ -26,6 +26,10 @@ var TeamDetails = require("./views/teamDetails");
 
 var routes = (
   <Route name="app" path="/" handler={App}>
+    <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
+      <Route name="organizationStats" path="stats/" handler={OrganizationStats} />
+    </Route>
+    <Route name="sharedGroupDetails" path="/share/group/:shareId/" handler={SharedGroupDetails} />
     <Route name="organizationDetails" path="/:orgId/" handler={OrganizationDetails}>
       <DefaultRoute name="organizationTeams" handler={OrganizationTeams} />
       <Route name="projectDetails" path=":projectId/" handler={ProjectDetails}>
@@ -46,10 +50,6 @@ var routes = (
         </Route>
       </Route>
     </Route>
-    <Route path="/organizations/:orgId/" handler={OrganizationDetails}>
-      <Route name="organizationStats" path="stats/" handler={OrganizationStats} />
-    </Route>
-    <Route path="/share/group/:shareId/" handler={SharedGroupDetails} />
   </Route>
 );
 
