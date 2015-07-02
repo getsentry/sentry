@@ -131,7 +131,7 @@ var SharedGroupDetails = React.createClass({
             <div className="content">
               <SharedGroupHeader group={group} />
               <div className="group-overview">
-                <EventEntries group={group} event={evt} />
+                <EventEntries group={group} event={evt} isShare={true} />
               </div>
             </div>
           </div>

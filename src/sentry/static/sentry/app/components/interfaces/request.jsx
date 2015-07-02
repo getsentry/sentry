@@ -74,17 +74,36 @@ var DefinitionList = React.createClass({
   }
 });
 
+var RequestActions = React.createClass({
+  render(){
+    var org = this.props.organization;
+    var project = this.props.project;
+    var group = this.props.group;
+    var evt = this.props.event;
+    var urlPrefix = (
+      ConfigStore.get('urlPrefix') + '/' + org.slug + '/' +
+      project.slug + '/group/' + group.id
+    );
+
+    return (
+      <a href={urlPrefix + '/events/' + evt.id + '/replay/'}
+         className="btn btn-sm btn-default">Replay Request</a>
+    );
+  }
+});
+
 var RequestInterface = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
     type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
+    isShare: React.PropTypes.bool
   },
 
   contextTypes: {
-    organization: PropTypes.Organization.isRequired,
-    project: PropTypes.Project.isRequired
+    organization: PropTypes.Organization,
+    project: PropTypes.Project
   },
 
   render: function(){
@@ -110,20 +129,17 @@ var RequestInterface = React.createClass({
     var parsedUrl = document.createElement("a");
     parsedUrl.href = fullUrl;
 
-    var org = this.context.organization;
-    var project = this.context.project;
-    var urlPrefix = (
-      ConfigStore.get('urlPrefix') + '/' + org.slug + '/' +
-      project.slug + '/group/' + group.id
-    );
-
     var title = (
       <h3>
         <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
         <div className="pull-right">
           {parsedUrl.hostname}
-          <a href={urlPrefix + '/events/' + evt.id + '/replay/'}
-             className="btn btn-sm btn-default">Replay Request</a>
+          {!this.props.isShare &&
+            <RequestActions organization={this.context.organization}
+                            project={this.context.project}
+                            group={group}
+                            event={evt} />
+          }
         </div>
       </h3>
     );
