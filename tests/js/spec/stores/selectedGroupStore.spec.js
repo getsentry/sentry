@@ -14,12 +14,12 @@ describe('SelectedGroupStore', function() {
     this.sandbox.restore();
   });
 
-  describe('pruneRecords()', function() {
+  describe('prune()', function() {
 
     it("removes records no longer in the GroupStore", function() {
       this.sandbox.stub(GroupStore, 'getAllItemIds', () => ["3"]);
       SelectedGroupStore.records = { 1: true, 2: true, 3: true };
-      SelectedGroupStore.pruneRecords();
+      SelectedGroupStore.prune();
       expect(SelectedGroupStore.records).to.eql({ 3: true });
     });
 
@@ -44,7 +44,7 @@ describe('SelectedGroupStore', function() {
   describe('onGroupChange()', function() {
 
     beforeEach(function() {
-      this.pruneRecords = this.sandbox.stub(SelectedGroupStore, "pruneRecords");
+      this.prune = this.sandbox.stub(SelectedGroupStore, "prune");
       this.add = this.sandbox.stub(SelectedGroupStore, "add");
     });
 
@@ -55,7 +55,7 @@ describe('SelectedGroupStore', function() {
 
     it("prunes stale records", function() {
       SelectedGroupStore.onGroupChange([]);
-      expect(this.pruneRecords.called).to.be.true;
+      expect(this.prune.called).to.be.true;
     });
 
     it("triggers an update", function() {

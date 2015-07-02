@@ -10,7 +10,7 @@ var SelectedGroupStore = Reflux.createStore({
   },
 
   onGroupChange(itemIds) {
-    this.pruneRecords();
+    this.prune();
     this.add(itemIds);
     this.trigger();
   },
@@ -24,7 +24,7 @@ var SelectedGroupStore = Reflux.createStore({
     });
   },
 
-  pruneRecords() {
+  prune() {
     var existingIds = new Set(GroupStore.getAllItemIds());
 
     // Remove ids that no longer exist
@@ -38,7 +38,7 @@ var SelectedGroupStore = Reflux.createStore({
   allSelected() {
     var itemIds = this.getSelectedIds();
     var numRecords = Object.keys(this.records).length;
-    return !!itemIds.size && itemIds.size === numRecords;
+    return itemIds.size > 0 && itemIds.size === numRecords;
   },
 
   anySelected() {
