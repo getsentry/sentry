@@ -15,7 +15,8 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'tests/js/vendor/**/*.js',
+      'node_modules/es5-shim/es5-shim.min.js',
+      'node_modules/es6-shim/es6-shim.min.js',
       'tests/tests.webpack.js'
     ],
 
