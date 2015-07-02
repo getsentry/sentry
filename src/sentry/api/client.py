@@ -15,6 +15,10 @@ class ApiError(Exception):
     def __unicode__(self):
         return 'status=%s body=%s' % (self.status_code, self.body)
 
+    @property
+    def status(self):
+        return self.status_code
+
 
 class ApiClient(object):
     prefix = '/api/0'
