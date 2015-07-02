@@ -1,47 +1,60 @@
-
 var Reflux = require("reflux");
 
 var GroupStore = require("./groupStore");
 
 var SelectedGroupStore = Reflux.createStore({
   init() {
-    this.allSelected = false;
-    this.anySelected = false;
-    this.multiSelected = false;
-
     this.records = {};
 
     this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange);
   },
 
   onGroupChange(itemIds) {
+    this.pruneRecords();
+    this.add(itemIds);
+    this.trigger();
+  },
+
+  add(ids) {
+    var allSelected = this.allSelected();
+    ids.forEach((id) => {
+      if (!this.records.hasOwnProperty(id)) {
+        this.records[id] = allSelected;
+      }
+    });
+  },
+
+  pruneRecords() {
     var existingIds = new Set(GroupStore.getAllItemIds());
-    // prune ids that no longer exist
+
+    // Remove ids that no longer exist
     for (var itemId in this.records) {
       if (!existingIds.has(itemId)) {
         delete this.records[itemId];
       }
     }
-    itemIds.forEach((itemId) => {
-      if (typeof this.records[itemId] === "undefined") {
-        this.records[itemId] = this.allSelected;
-      }
-    });
-    this.refresh();
-    this.trigger();
   },
 
-  refresh() {
+  allSelected() {
     var itemIds = this.getSelectedIds();
+    var numRecords = Object.keys(this.records).length;
+    return !!itemIds.size && itemIds.size === numRecords;
+  },
 
-    this.anySelected = itemIds.size > 0;
-    this.multiSelected = itemIds.size > 1;
+  anySelected() {
+    var itemIds = this.getSelectedIds();
+    return itemIds.size > 0;
+  },
+
+  multiSelected() {
+    var itemIds = this.getSelectedIds();
+    return itemIds.size > 1;
   },
 
   getSelectedIds() {
     var selected = new Set();
     for (var itemId in this.records) {
-      if (this.records[itemId] === true) {
+      if (this.records[itemId]) {
         selected.add(itemId);
       }
     }
@@ -54,26 +67,24 @@ var SelectedGroupStore = Reflux.createStore({
 
   clearAll() {
     this.records = {};
-    this.allSelected = false;
-    this.refresh();
     this.trigger();
   },
 
   toggleSelect(itemId) {
+    if (!this.records.hasOwnProperty(itemId)) return;
     this.records[itemId] = !this.records[itemId];
-    this.refresh();
     this.trigger();
   },
 
   toggleSelectAll() {
-    this.allSelected = !this.allSelected;
-    for (var itemId in this.records) {
-      this.records[itemId] = this.allSelected;
-    }
-    this.refresh();
-    this.trigger();
-  },
+    var allSelected = !this.allSelected();
 
+    for (var itemId in this.records) {
+      this.records[itemId] = allSelected;
+    }
+
+    this.trigger();
+  }
 });
 
 module.exports = SelectedGroupStore;

@@ -449,9 +449,9 @@ var StreamActions = React.createClass({
   },
   onSelectedGroupChange() {
     this.setState({
-      selectAllActive: SelectedGroupStore.allSelected,
-      multiSelected: SelectedGroupStore.multiSelected,
-      anySelected: SelectedGroupStore.anySelected
+      selectAllActive: SelectedGroupStore.allSelected(),
+      multiSelected: SelectedGroupStore.multiSelected(),
+      anySelected: SelectedGroupStore.anySelected()
     });
   },
   onSelectAll() {
