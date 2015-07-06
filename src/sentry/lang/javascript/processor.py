@@ -160,15 +160,16 @@ def discover_sourcemap(result):
         # are generous and assume it's somewhere either in the first or last 5 lines.
         # If it's somewhere else in the document, you're probably doing it wrong.
         if len(parsed_body) > 10:
-            possibilities = set(parsed_body[:5] + parsed_body[-5:])
+            possibilities = parsed_body[:5] + parsed_body[-5:]
         else:
-            possibilities = set(parsed_body)
+            possibilities = parsed_body
 
+        # We want to scan each line sequentially, and the last one found wins
+        # This behavior is undocumented, but matches what Chrome and Firefox do.
         for line in possibilities:
-            if line.startswith('//@ sourceMappingURL=') or line.startswith('//# sourceMappingURL='):
+            if line[:21] in ('//# sourceMappingURL=', '//@ sourceMappingURL='):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
-                break
 
     if sourcemap:
         # fix url so its absolute
