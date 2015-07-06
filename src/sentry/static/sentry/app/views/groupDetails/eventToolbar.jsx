@@ -67,7 +67,9 @@ var GroupEventToolbar  = React.createClass({
       <div className="event-toolbar">
         <div className="pull-right">
           <div className="btn-group">
+            <a className="btn btn-default disabled"><span className="icon-skip-back"></span></a>
             {eventNavNodes}
+            <a className="btn btn-default"><span className="icon-skip-forward"></span></a>
           </div>
         </div>
         <ul className="nav nav-tabs">
