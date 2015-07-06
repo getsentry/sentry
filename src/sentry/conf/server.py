@@ -729,7 +729,6 @@ SENTRY_SOURCE_FETCH_TIMEOUT = 5
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
 SENTRY_DISALLOWED_IPS = (
     '0.0.0.0/8',
-    '10.0.0.0/8',
     '100.64.0.0/10',
     '127.0.0.0/8',
     '169.254.0.0/16',
