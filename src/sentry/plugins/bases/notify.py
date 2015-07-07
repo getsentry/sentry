@@ -99,7 +99,7 @@ class NotificationPlugin(Plugin):
         rate_limited = ratelimiter.is_limited(
             project=project,
             key=self.get_conf_key(),
-            limit=15,
+            limit=10,
         )
 
         if rate_limited:
