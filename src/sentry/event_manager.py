@@ -260,7 +260,7 @@ class EventManager(object):
         return data
 
     def _ensure_release(self, project, version, date):
-        cache_key = 'release:%s:%s' % (project.id, version)
+        cache_key = 'release:%s:%s' % (project.id, md5(version).hexdigest())
 
         release_id = cache.get(cache_key)
         if release_id is None:
