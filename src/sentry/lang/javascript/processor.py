@@ -3,13 +3,13 @@ from __future__ import absolute_import, print_function
 __all__ = ['SourceProcessor']
 
 import logging
-import hashlib
 import re
 import base64
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
+from hashlib import md5
 from OpenSSL.SSL import ZeroReturnError
 from os.path import splitext
 from requests.exceptions import RequestException
@@ -178,9 +178,9 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release):
-    cache_key = 'release:%s:%s' % (
+    cache_key = 'releasefile:%s:%s' % (
         release.id,
-        hashlib.sha1(filename.encode('utf-8')).hexdigest(),
+        md5(filename.encode('utf-8')).hexdigest(),
     )
     logger.debug('Checking cache for release artfiact %r (release_id=%s)',
                  filename, release.id)
@@ -205,7 +205,7 @@ def fetch_release_file(filename, release):
         with releasefile.file.getfile() as fp:
             body = fp.read()
         result = (releasefile.file.headers, body, 200)
-        cache.set(cache_key, result, 60)
+        cache.set(cache_key, result, 300)
     elif result == -1:
         result = None
 
@@ -219,7 +219,8 @@ def fetch_url(url, project=None, release=None):
     Attempts to fetch from the cache.
     """
     cache_key = 'source:cache:v2:%s' % (
-        hashlib.md5(url.encode('utf-8')).hexdigest(),)
+        md5(url.encode('utf-8')).hexdigest(),
+    )
 
     if release:
         result = fetch_release_file(url, release)
@@ -234,7 +235,7 @@ def fetch_url(url, project=None, release=None):
         # lock down domains that are problematic
         domain = urlparse(url).netloc
         domain_key = 'source:blacklist:%s' % (
-            hashlib.md5(domain.encode('utf-8')).hexdigest(),
+            md5(domain.encode('utf-8')).hexdigest(),
         )
         domain_result = cache.get(domain_key)
         if domain_result:
