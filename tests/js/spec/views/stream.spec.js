@@ -1,12 +1,12 @@
 var React = require("react/addons");
 
-var Stream = require("app/views/stream");
 var Api = require("app/api");
 var LoadingError = require("app/components/loadingError");
 var LoadingIndicator = require("app/components/loadingIndicator");
+var Stream = require("app/views/stream");
+var StreamGroup = require("app/components/streamGroup");
 var stubReactComponents = require("../../helpers/stubReactComponent");
 var stubRouterContext = require("../../helpers/stubRouterContext");
-var StreamGroup = require("app/components/streamGroup");
 
 var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;

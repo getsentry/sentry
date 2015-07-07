@@ -1,23 +1,22 @@
+// Inspired by TimothyRHuertas
 // https://gist.github.com/TimothyRHuertas/d7d06313c5411fe242bb
 
-var React = require('react');
-var divFactory = React.createFactory('div');
+var React = require("react");
+var divFactory = React.createFactory("div");
 var originalCreateElement = React.createElement;
 
 module.exports = function(stubber, stubbedComponents) {
-  stubber.stub(React, 'createElement', function(component, props) {
+  stubber.stub(React, "createElement", function(component, props) {
     if (stubbedComponents.indexOf(component) === -1) {
       return originalCreateElement.apply(React, arguments);
-    }
-    else {
+    } else {
       var componentFactory = React.createFactory(component);
-      var displayName =  componentFactory().type.displayName;
+      var displayName = componentFactory().type.displayName;
 
       if (displayName) {
         if (props.className) {
           props.className = props.className + " " + displayName;
-        }
-        else {
+        } else {
           props.className = displayName;
         }
       }
