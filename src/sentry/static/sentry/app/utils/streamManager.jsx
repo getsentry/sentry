@@ -45,7 +45,7 @@ class StreamManager {
 
     items.forEach((item) => removeFromList(item.id, this.idList));
     var ids = items.map((item) => item.id);
-    this.idList = [].concat(ids.reverse(), this.idList);
+    this.idList = [].concat(ids, this.idList);
 
     this.trim();
     this.store.add(items);
