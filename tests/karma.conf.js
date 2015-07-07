@@ -1,6 +1,8 @@
 // Karma configuration
 // Generated on Sat Jul 26 2014 13:49:45 GMT+0200 (CEST)
 var path = require('path');
+var webpack = require("webpack");
+
 var appPrefix = path.join(__dirname, "../src/sentry/static/sentry/app");
 
 module.exports = function(config) {
@@ -39,6 +41,14 @@ module.exports = function(config) {
         ]
       },
       devtool: 'inline-source-map',
+      plugins: [
+        new webpack.ProvidePlugin({
+          $: 'jquery',
+          jQuery: 'jquery',
+          "window.jQuery": "jquery",
+          "root.jQuery": "jquery"
+        })
+      ],
     },
 
     webpackMiddleware: {
