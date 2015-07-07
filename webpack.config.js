@@ -9,8 +9,6 @@ var config = {
   entry: {
     "app": "app",
     "vendor": [
-      "es5-shim",
-      "es6-shim",
       "bootstrap/js/dropdown",
       "bootstrap/js/tab",
       "bootstrap/js/tooltip",
