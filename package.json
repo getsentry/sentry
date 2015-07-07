@@ -8,8 +8,6 @@
   "dependencies": {
     "bootstrap": "^3.3.4",
     "crypto-js": "^3.1.2-5",
-    "es5-shim": "^4.1.7",
-    "es6-shim": "^0.32.2",
     "gulp": "^3.8.11",
     "gulp-clean": "^0.3.1",
     "gulp-concat": "^2.4.2",
