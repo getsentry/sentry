@@ -13,6 +13,7 @@ import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from hashlib import md5
@@ -258,6 +259,29 @@ class EventManager(object):
 
         return data
 
+    def _ensure_release(self, project, version, date):
+        cache_key = 'release:%s:%s' % (project.id, version)
+
+        release_id = cache.get(cache_key)
+        if release_id is None:
+            release = Release.objects.get_or_create(
+                project=project,
+                version=version,
+                defaults={
+                    'date_added': date,
+                },
+            )[0]
+            release_id = release.id
+            cache.set(cache_key, release_id, 3600)
+
+        # fake an instance to ensure Django doesnt complain when we try
+        # to use this as a relation
+        return Release(
+            id=release_id,
+            project=project,
+            version=version,
+        )
+
     @suppress_exceptions
     def save(self, project, raw=False):
         # TODO: culprit should default to "most recent" frame in stacktraces when
@@ -336,12 +360,10 @@ class EventManager(object):
         })
 
         if release:
-            group_kwargs['first_release'], created = Release.objects.get_or_create(
+            group_kwargs['first_release'] = self._ensure_release(
                 project=project,
                 version=release,
-                defaults={
-                    'date_added': date,
-                },
+                date=date,
             )
 
             Activity.objects.create(
