@@ -79,34 +79,14 @@ var StreamGroup = React.createClass({
   getDefaultProps() {
     return {
       canSelect: true,
-      id: "",
       statsPeriod: '24h'
     };
   },
 
   getInitialState() {
     return {
-      data: {
-        annotations: [],
-        count: 0,
-        culprit: "",
-        firstSeen: new Date(),
-        hasSeen: false,
-        id: "0",
-        isBookmarked: false,
-        lastSeen: new Date(),
-        numComments: 0,
-        status: "resolved",
-        tags: {},
-        title: ""
-      }
-    };
-  },
-
-  componentWillMount() {
-    this.setState({
       data: GroupStore.get(this.props.id)
-    });
+    };
   },
 
   componentWillReceiveProps(nextProps) {

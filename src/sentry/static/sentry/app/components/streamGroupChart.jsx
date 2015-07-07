@@ -16,19 +16,10 @@ var GroupChart = React.createClass({
   },
 
   getInitialState() {
-    return {
-      stats: []
-    };
-  },
-
-  componentWillMount() {
     var data = GroupStore.get(this.props.id);
-
-    if (data && data.stats) {
-      this.setState({
-        stats: data.stats[this.props.statsPeriod]
-      });
-    }
+    return {
+      stats: data ? data.stats[this.props.statsPeriod] : null
+    };
   },
 
   componentWillReceiveProps(nextProps) {
