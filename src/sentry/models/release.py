@@ -73,7 +73,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            release = Release.objects.get_or_create(
+            release = cls.objects.get_or_create(
                 project=project,
                 version=version,
                 defaults={
