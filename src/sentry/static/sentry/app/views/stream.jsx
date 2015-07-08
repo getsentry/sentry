@@ -1,6 +1,7 @@
 var React = require("react");
 var Reflux = require("reflux");
 var $ = require("jquery");
+var Cookies = require("js-cookie");
 
 var api = require("../api");
 var GroupActions = require("../actions/groupActions");
@@ -55,6 +56,14 @@ var Stream = React.createClass({
       endpoint: this.getGroupListEndpoint()
     });
     this._poller.enable();
+
+    var realtime = Cookies.get("realtimeActive");
+
+    if (realtime) {
+      this.setState({
+        realtimeActive: realtime === "true"
+      });
+    }
 
     this.fetchData();
   },
@@ -121,9 +130,10 @@ var Stream = React.createClass({
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
   },
 
-  handleRealtimeChange(event) {
+  onRealtimeChange(realtime) {
+    Cookies.set("realtimeActive", realtime.toString());
     this.setState({
-      realtimeActive: !this.state.realtimeActive
+      realtimeActive: realtime
     });
   },
 
@@ -215,7 +225,7 @@ var Stream = React.createClass({
             orgId={params.orgId}
             projectId={params.projectId}
             onSelectStatsPeriod={this.handleSelectStatsPeriod}
-            onRealtimeChange={this.handleRealtimeChange}
+            onRealtimeChange={this.onRealtimeChange}
             realtimeActive={this.state.realtimeActive}
             statsPeriod={this.state.statsPeriod}
             groupIds={this.state.groupIds} />
