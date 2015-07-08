@@ -23,4 +23,7 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
         if not event:
             return Response({'detail': 'No events found'}, status=404)
 
-        return client.get('/events/{}/'.format(event.id), request.user, request.auth)
+        try:
+            return client.get('/events/{}/'.format(event.id), request.user, request.auth)
+        except client.ApiError as e:
+            return Response(e.body, status=e.status)
