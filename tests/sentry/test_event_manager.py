@@ -208,6 +208,19 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert data['version'] == '6'
 
+    def test_first_release(self):
+        manager = EventManager(self.make_event(release='1.0'))
+        event = manager.save(1)
+
+        group = event.group
+        assert group.first_release.version == '1.0'
+
+        manager = EventManager(self.make_event(release='2.0'))
+        event = manager.save(1)
+
+        group = event.group
+        assert group.first_release.version == '1.0'
+
 
 class GetHashesFromEventTest(TestCase):
     @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')

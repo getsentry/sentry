@@ -9,9 +9,11 @@ from __future__ import absolute_import, print_function
 
 from django.db import models
 from django.utils import timezone
+from hashlib import md5
 from jsonfield import JSONField
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.utils.cache import cache
 
 
 class Release(Model):
@@ -38,3 +40,46 @@ class Release(Model):
         unique_together = (('project', 'version'),)
 
     __repr__ = sane_repr('project_id', 'version')
+
+    @classmethod
+    def get_cache_key(cls, project_id, version):
+        return 'release:2:%s:%s' % (project_id, md5(version).hexdigest())
+
+    @classmethod
+    def get(cls, project, version):
+        cache_key = cls.get_cache_key(project.id, version)
+
+        release = cache.get(cache_key)
+        if release is None:
+            try:
+                release = cls.objects.get(
+                    project=project,
+                    version=version,
+                )
+            except cls.DoesNotExist:
+                release = -1
+            cache.set(cache_key, release, 300)
+
+        if release == -1:
+            return
+
+        return release
+
+    @classmethod
+    def get_or_create(cls, project, version, date_added):
+        cache_key = cls.get_cache_key(project.id, version)
+
+        release = cache.get(cache_key)
+        if release in (None, -1):
+            # TODO(dcramer): if the cache result is -1 we could attempt a
+            # default create here instead of default get
+            release = cls.objects.get_or_create(
+                project=project,
+                version=version,
+                defaults={
+                    'date_added': date_added,
+                },
+            )[0]
+            cache.set(cache_key, release, 3600)
+
+        return release
