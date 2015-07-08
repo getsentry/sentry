@@ -45,6 +45,7 @@
     "babel-core": "^5.6.15",
     "babel-loader": "^5.2.2",
     "chai": "^3.0.0",
+    "js-cookie": "^2.0.2",
     "karma-chai": "^0.1.0",
     "karma-sinon": "^1.0.4",
     "karma-webpack": "^1.5.1",

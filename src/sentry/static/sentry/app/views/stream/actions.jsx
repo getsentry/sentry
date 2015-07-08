@@ -342,9 +342,11 @@ var StreamActions = React.createClass({
       multiSelected: false,
     };
   },
+
   selectStatsPeriod(period) {
     return this.props.onSelectStatsPeriod(period);
   },
+
   actionSelectedGroups(actionType, callback, data) {
     var selectedIds;
 
@@ -363,6 +365,7 @@ var StreamActions = React.createClass({
 
     SelectedGroupStore.clearAll();
   },
+
   onResolve(event, actionType) {
     this.actionSelectedGroups(actionType, (itemIds) => {
       var loadingIndicator = IndicatorStore.add('Saving changes..');
@@ -381,6 +384,7 @@ var StreamActions = React.createClass({
       });
     });
   },
+
   onBookmark(event, actionType) {
     this.actionSelectedGroups(actionType, (itemIds) => {
       var loadingIndicator = IndicatorStore.add('Saving changes..');
@@ -399,6 +403,7 @@ var StreamActions = React.createClass({
       });
     });
   },
+
   onRemoveBookmark(event, actionType) {
     var loadingIndicator = IndicatorStore.add('Saving changes..');
 
@@ -417,6 +422,7 @@ var StreamActions = React.createClass({
       });
     });
   },
+
   onDelete(event, actionType) {
     var loadingIndicator = IndicatorStore.add('Removing events..');
 
@@ -432,6 +438,7 @@ var StreamActions = React.createClass({
       });
     });
   },
+
   onMerge(event, actionType) {
     var loadingIndicator = IndicatorStore.add('Merging events..');
 
@@ -447,6 +454,7 @@ var StreamActions = React.createClass({
       });
     });
   },
+
   onSelectedGroupChange() {
     this.setState({
       selectAllActive: SelectedGroupStore.allSelected(),
@@ -454,9 +462,15 @@ var StreamActions = React.createClass({
       anySelected: SelectedGroupStore.anySelected()
     });
   },
+
   onSelectAll() {
     SelectedGroupStore.toggleSelectAll();
   },
+
+  onRealtimeChange(event) {
+    this.props.onRealtimeChange(!this.props.realtimeActive);
+  },
+
   render() {
     return (
       <div className="stream-actions row">
@@ -542,7 +556,7 @@ var StreamActions = React.createClass({
 
           <div className="btn-group">
             <a className="btn btn-default btn-sm hidden-xs realtime-control"
-               onClick={this.props.onRealtimeChange}>
+               onClick={this.onRealtimeChange}>
               {(this.props.realtimeActive ?
                 <span className="icon icon-pause"></span>
                 :
