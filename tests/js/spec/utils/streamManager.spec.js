@@ -145,6 +145,14 @@ describe('StreamManager', function() {
       expect(mgr.idList).to.eql([1, 2]);
     });
 
+    it('moves a duplicate array to the start of the list and preserves order', function() {
+      var mgr = new StreamManager(this.store);
+      mgr.unshift([{ id: 3 }, { id: 2 }, { id: 1 }]);
+      mgr.unshift([{ id: 2 }, { id: 1 }]);
+
+      expect(mgr.idList).to.eql([2, 1, 3]);
+    });
+
     it('allows adding a single item', function() {
       var mgr = new StreamManager(this.store);
       mgr.unshift({ id: 1 });
