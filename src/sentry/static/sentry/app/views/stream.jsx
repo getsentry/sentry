@@ -162,15 +162,50 @@ var Stream = React.createClass({
     router.transitionTo('stream', params, queryParams);
   },
 
+  renderGroupNodes(ids, statsPeriod) {
+    var groupNodes = ids.map((id) => {
+      return <StreamGroup key={id} id={id} statsPeriod={statsPeriod} />;
+    });
+
+    return (<ul className="group-list">{groupNodes}</ul>);
+  },
+
+  renderEmpty() {
+    return (
+      <div className="box empty-stream">
+        <span className="icon icon-exclamation"></span>
+        <p>Sorry, no events match your filters.</p>
+      </div>
+    );
+  },
+
+  renderLoading() {
+    return (
+      <div className="box">
+        <LoadingIndicator />
+      </div>
+    );
+  },
+
+  renderStreamBody() {
+    var body;
+
+    if (this.state.loading) {
+      body = this.renderLoading();
+    } else if (this.state.error) {
+      body = (<LoadingError onRetry={this.fetchData} />);
+    } else if (this.state.groupIds.length > 0) {
+      body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
+    } else {
+      body = this.renderEmpty();
+    }
+
+    return body;
+  },
+
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var groupNodes = this.state.groupIds.map((id) => {
-      return <StreamGroup
-          key={id}
-          id={id}
-          statsPeriod={this.state.statsPeriod} />;
-    });
 
     return (
       <div>
@@ -185,23 +220,7 @@ var Stream = React.createClass({
             statsPeriod={this.state.statsPeriod}
             groupIds={this.state.groupIds} />
         </div>
-        {this.state.loading ?
-          <div className="box">
-            <LoadingIndicator />
-          </div>
-        : (this.state.error ?
-          <LoadingError onRetry={this.fetchData} />
-        : (groupNodes.length > 0 ?
-          <ul className="group-list">
-            {groupNodes}
-          </ul>
-        :
-          <div className="box empty-stream">
-            <span className="icon icon-exclamation"></span>
-            <p>Sorry, no events match your filters.</p>
-          </div>
-        ))}
-
+        {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );

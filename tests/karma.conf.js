@@ -1,6 +1,8 @@
 // Karma configuration
 // Generated on Sat Jul 26 2014 13:49:45 GMT+0200 (CEST)
 var path = require('path');
+var webpack = require("webpack");
+
 var appPrefix = path.join(__dirname, "../src/sentry/static/sentry/app");
 
 module.exports = function(config) {
@@ -15,8 +17,7 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'node_modules/es5-shim/es5-shim.min.js',
-      'node_modules/es6-shim/es6-shim.min.js',
+      'node_modules/babel-core/browser-polyfill.min.js',
       'tests/tests.webpack.js'
     ],
 
@@ -39,6 +40,14 @@ module.exports = function(config) {
         ]
       },
       devtool: 'inline-source-map',
+      plugins: [
+        new webpack.ProvidePlugin({
+          $: 'jquery',
+          jQuery: 'jquery',
+          "window.jQuery": "jquery",
+          "root.jQuery": "jquery"
+        })
+      ],
     },
 
     webpackMiddleware: {

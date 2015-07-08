@@ -1,4 +1,5 @@
 var React = require("react");
+var Router = require("react-router");
 var $ = require("jquery");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
