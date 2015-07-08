@@ -9,6 +9,7 @@ var config = {
   entry: {
     "app": "app",
     "vendor": [
+      "babel-core/polyfill",
       "bootstrap/js/dropdown",
       "bootstrap/js/tab",
       "bootstrap/js/tooltip",
