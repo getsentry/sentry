@@ -1,6 +1,6 @@
 import pytz
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
@@ -19,19 +19,6 @@ class RedisTSDBTest(TestCase):
             (ONE_DAY, 30),  # 30 days at 1 day
         ), vnodes=64)
         self.db.conn.flushdb()
-
-    def test_normalize_to_epoch(self):
-        timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
-        normalize_to_epoch = self.db.normalize_to_epoch
-
-        result = normalize_to_epoch(timestamp, 60)
-        assert result == 1368889980
-        result = normalize_to_epoch(timestamp + timedelta(seconds=20), 60)
-        assert result == 1368890040
-        result = normalize_to_epoch(timestamp + timedelta(seconds=30), 60)
-        assert result == 1368890040
-        result = normalize_to_epoch(timestamp + timedelta(seconds=70), 60)
-        assert result == 1368890100
 
     def test_make_key(self):
         result = self.db.make_key(TSDBModel.project, 1368889980, 1)
