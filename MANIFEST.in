@@ -1,4 +1,4 @@
-include setup.py README.rst MANIFEST.in LICENSE AUTHORS
+include setup.py README.rst MANIFEST.in LICENSE AUTHORS bower.json package.json
 recursive-include src/sentry/templates *
 recursive-include src/sentry/locale *
 recursive-include src/sentry/data *

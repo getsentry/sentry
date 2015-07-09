@@ -23,10 +23,13 @@ any application.
 """
 from __future__ import absolute_import
 
+import datetime
+import json
 import os.path
 
 from distutils import log
 from distutils.core import Command
+from setuptools.command.install import install
 from setuptools.command.develop import develop
 from setuptools.command.sdist import sdist
 from setuptools import setup, find_packages
@@ -128,24 +131,62 @@ class DevelopWithBuildStatic(develop):
 
 
 class SdistWithBuildStatic(sdist):
-    def make_distribution(self):
+    def make_release_tree(self, *a, **kw):
+        dist_path = self.distribution.get_fullname()
+
+        sdist.make_release_tree(self, *a, **kw)
+
+        self.reinitialize_command('build_static', work_path=dist_path)
         self.run_command('build_static')
-        return sdist.make_distribution(self)
+
+        with open(os.path.join(dist_path, 'sentry-package.json'), 'w') as fp:
+            json.dump({
+                'createdAt': datetime.datetime.utcnow().isoformat() + 'Z',
+            }, fp)
 
 
 class BuildStatic(Command):
+    user_options = [
+        ('work-path=', 'w',
+         "The working directory for source files. Defaults to ."),
+    ]
+
     def initialize_options(self):
-        pass
+        self.work_path = None
 
     def finalize_options(self):
-        pass
+        if self.work_path is None:
+            self.work_path = ROOT
 
     def run(self):
+        work_path = self.work_path
+
+        log.info("initializing git submodules")
+        check_output(['git', 'submodule', 'init'], cwd=work_path)
+        check_output(['git', 'submodule', 'update'], cwd=work_path)
+
         log.info("running [npm install --quiet]")
-        check_output(['npm', 'install', '--quiet'], cwd=ROOT)
+        check_output(['npm', 'install', '--quiet'], cwd=work_path)
 
         log.info("running [gulp dist]")
-        check_output([os.path.join(ROOT, 'node_modules', '.bin', 'gulp'), 'dist'], cwd=ROOT)
+        check_output([os.path.join('node_modules', '.bin', 'gulp'), 'dist'],
+                     cwd=work_path)
+
+
+class SmartInstall(install):
+    """
+    Installs Sentry into the Python environment.
+
+    If the package indicator is missing, this will also force a run of
+    `build_static` which is required for JavaScript assets and other things.
+    """
+    def _needs_static(self):
+        return not os.path.exists(os.path.join(ROOT, 'sentry-package.json'))
+
+    def run(self):
+        if self._needs_static():
+            self.run_command('build_static')
+        install.run(self)
 
 
 setup(
@@ -171,6 +212,7 @@ setup(
         'build_static': BuildStatic,
         'develop': DevelopWithBuildStatic,
         'sdist': SdistWithBuildStatic,
+        'install': SmartInstall,
     },
     license='BSD',
     include_package_data=True,
