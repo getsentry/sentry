@@ -140,20 +140,18 @@ class GroupDetailsEndpoint(GroupEndpoint):
         action_list = self._get_actions(request, group)
 
         now = timezone.now()
-        hourly_stats = tsdb.get_range(
+        hourly_stats = tsdb.rollup(tsdb.get_range(
             model=tsdb.models.group,
             keys=[group.id],
             end=now,
             start=now - timedelta(days=1),
-            rollup=3600,
-        )[group.id]
-        daily_stats = tsdb.get_range(
+        ), 3600)[group.id]
+        daily_stats = tsdb.rollup(tsdb.get_range(
             model=tsdb.models.group,
             keys=[group.id],
             end=now,
             start=now - timedelta(days=30),
-            rollup=3600 * 24,
-        )[group.id]
+        ), 3600 * 24)[group.id]
 
         data.update({
             'firstRelease': first_release,
