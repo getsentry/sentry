@@ -50,8 +50,7 @@ class BaseTSDB(object):
 
     def normalize_to_epoch(self, timestamp, seconds):
         """
-        Given a ``timestamp`` (datetime object) normalize the datetime object
-        ``timestamp`` to an epoch timestmap (integer).
+        Given a ``timestamp`` (datetime object) normalize to an epoch timestamp.
 
         i.e. if the rollup is minutes, the resulting timestamp would have
         the seconds and microseconds rounded down.
@@ -59,12 +58,23 @@ class BaseTSDB(object):
         epoch = int(timestamp.strftime('%s'))
         return epoch - (epoch % seconds)
 
+    def normalize_ts_to_epoch(self, epoch, seconds):
+        """
+        Given a ``epoch`` normalize to an epoch rollup.
+        """
+        return epoch - (epoch % seconds)
+
     def normalize_to_rollup(self, timestamp, seconds):
         """
-        Given a ``timestamp`` (datetime object) normalize the datetime object
-        ``timestamp`` to an epoch rollup (integer).
+        Given a ``timestamp`` (datetime object) normalize to an epoch rollup.
         """
         epoch = int(timestamp.strftime('%s'))
+        return int(epoch / seconds)
+
+    def normalize_ts_to_rollup(self, epoch, seconds):
+        """
+        Given a ``epoch`` normalize to an epoch rollup.
+        """
         return int(epoch / seconds)
 
     def get_optimal_rollup(self, start_timestamp, end_timestamp):
@@ -119,3 +129,22 @@ class BaseTSDB(object):
             for (key, points) in range_set.iteritems()
         )
         return sum_set
+
+    def rollup(self, values, rollup):
+        """
+        Given a set of values (as returned from ``get_range``), roll them up
+        using the ``rollup`` time (in seconds).
+        """
+        normalize_ts_to_epoch = self.normalize_ts_to_epoch
+        result = {}
+        for key, points in values.iteritems():
+            result[key] = []
+            last_new_ts = None
+            for (ts, count) in points:
+                new_ts = normalize_ts_to_epoch(ts, rollup)
+                if new_ts == last_new_ts:
+                    result[key][-1][1] += count
+                else:
+                    result[key].append([new_ts, count])
+                    last_new_ts = new_ts
+        return result
