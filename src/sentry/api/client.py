@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 __all__ = ('ApiClient',)
 
-from rest_framework.test import APIClient as DefaultAPIClient
+from django.core.urlresolvers import resolve
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from sentry.utils import json
 
@@ -25,15 +26,31 @@ class ApiClient(object):
                 is_sudo=False):
         full_path = self.prefix + path
 
+        resolver_match = resolve(full_path)
+        callback, callback_args, callback_kwargs = resolver_match
+
         if data:
             # we encode to ensure compatibility
             data = json.loads(json.dumps(data))
 
-        # TODO(dcramer): implement is_sudo
-        client = DefaultAPIClient()
-        client.force_authenticate(user, auth)
+        rf = APIRequestFactory()
+        mock_request = getattr(rf, method.lower())(full_path, data)
+        mock_request.auth = auth
+        mock_request.user = user
+        mock_request.is_sudo = lambda: is_sudo
+        force_authenticate(mock_request, user, auth)
 
-        response = getattr(client, method.lower())(full_path, data)
+        if params:
+            mock_request.GET._mutable = True
+            mock_request.GET.update(params)
+            mock_request.GET._mutable = False
+
+        if data:
+            mock_request.POST._mutable = True
+            mock_request.POST.update(data)
+            mock_request.POST._mutable = False
+
+        response = callback(mock_request, *callback_args, **callback_kwargs)
 
         if 200 <= response.status_code < 400:
             return response
