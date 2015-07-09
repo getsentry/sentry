@@ -133,20 +133,18 @@ class StreamGroupSerializer(GroupSerializer):
         # we need to compute stats at 1d (1h resolution), and 14d
         group_ids = [g.id for g in item_list]
         now = timezone.now()
-        hourly_stats = tsdb.get_range(
+        hourly_stats = tsdb.rollup(tsdb.get_range(
             model=tsdb.models.group,
             keys=group_ids,
             end=now,
             start=now - timedelta(days=1),
-            rollup=3600,
-        )
-        daily_stats = tsdb.get_range(
+        ), 3600)
+        daily_stats = tsdb.rollup(tsdb.get_range(
             model=tsdb.models.group,
             keys=group_ids,
             end=now,
             start=now - timedelta(days=14),
-            rollup=3600 * 24,
-        )
+        ), 3600 * 24)
 
         for item in item_list:
             attrs[item].update({
