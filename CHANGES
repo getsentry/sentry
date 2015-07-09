@@ -32,6 +32,12 @@ This releases entirely removes Access Groups. If you're upgrading from an instal
 - New ``import`` and ``export`` commands now exist for creating backups of critical metadata
   (i.e. api keys, projects, user settings)
 
+Version 7.5.5
+-------------
+
+- [Security] An XSS vulnerability was addressed with low cardinality tags and the stream filter box:
+  https://github.com/getsentry/sentry/commit/364b959811561de83f29893e105cc590224edbee
+
 Version 7.5.4
 -------------
 
