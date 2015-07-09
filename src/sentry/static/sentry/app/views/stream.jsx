@@ -29,6 +29,12 @@ var Stream = React.createClass({
     setProjectNavSection: React.PropTypes.func.isRequired
   },
 
+  getDefaultProps() {
+    return {
+      defaultQuery: "is:unresolved"
+    };
+  },
+
   getInitialState() {
     return {
       groupIds: [],
@@ -125,6 +131,9 @@ var Stream = React.createClass({
     var params = router.getCurrentParams();
     var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
+    if (!queryParams.hasOwnProperty("query")) {
+      queryParams.query = this.props.defaultQuery;
+    }
     var querystring = $.param(queryParams);
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
@@ -216,10 +225,15 @@ var Stream = React.createClass({
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
+    var query = this.props.defaultQuery;
+
+    if (params.hasOwnProperty("query")) {
+      query = params.query;
+    }
 
     return (
       <div>
-        <StreamFilters />
+        <StreamFilters defaultQuery={query} />
         <div className="group-header">
           <StreamActions
             orgId={params.orgId}
