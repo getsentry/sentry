@@ -66,7 +66,7 @@ class ChoiceWidget(TextWidget):
                 active=value == key and ' selected="selected"' or '',
                 column=column,
                 key=key,
-                value=val,
+                value=escape(val),
                 query_string=query_string,
             ))
         output.append(u'</select>')
