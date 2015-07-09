@@ -6,6 +6,12 @@ Version 7.7.0
 - Added ``SavedSearch`` model for future features.
 - The explore feature is now deprecated and links have been hidden.
 
+Version 7.6.1
+-------------
+
+- [Security] An XSS vulnerability was addressed with low cardinality tags and the stream filter box:
+  https://github.com/getsentry/sentry/commit/364b959811561de83f29893e105cc590224edbee
+
 Version 7.6.0
 -------------
 
