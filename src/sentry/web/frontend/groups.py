@@ -111,12 +111,7 @@ def _get_group_list(request, project):
 
     query = request.GET.get('query', '')
     if query is not None:
-        query_result = parse_query(query, request.user)
-        # Disclaimer: the following code is disgusting
-        if query_result.get('query'):
-            query_kwargs['query'] = query_result['query']
-        if query_result.get('tags'):
-            query_kwargs['tags'].update(query_result['tags'])
+        query_kwargs.update(parse_query(query, request.user))
 
     results = app.search.query(**query_kwargs)
 
