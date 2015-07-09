@@ -6,6 +6,11 @@ Version 7.7.0
 - Added ``SavedSearch`` model for future features.
 - The explore feature is now deprecated and links have been hidden.
 
+Version 7.6.2
+-------------
+
+- Improved (fixed?) static bundling in various conditions.
+
 Version 7.6.1
 -------------
 
