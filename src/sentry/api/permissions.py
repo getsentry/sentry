@@ -21,6 +21,7 @@ class ScopedPermission(permissions.BasePermission):
     - APIKeys specify their scope, and work as expected.
     """
     scope_map = {
+        'HEAD': (),
         'GET': (),
         'POST': (),
         'PUT': (),
@@ -32,6 +33,7 @@ class ScopedPermission(permissions.BasePermission):
     # does not enforce organization-level (i.e. has_global-access) vs project
     # level so that should be done per subclass
     access_map = {
+        'HEAD': None,
         'GET': None,
         'POST': OrganizationMemberType.ADMIN,
         'PUT': OrganizationMemberType.ADMIN,

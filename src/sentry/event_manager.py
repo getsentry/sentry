@@ -336,12 +336,10 @@ class EventManager(object):
         })
 
         if release:
-            group_kwargs['first_release'], created = Release.objects.get_or_create(
+            group_kwargs['first_release'] = Release.get_or_create(
                 project=project,
                 version=release,
-                defaults={
-                    'date_added': date,
-                },
+                date_added=date,
             )
 
             Activity.objects.create(

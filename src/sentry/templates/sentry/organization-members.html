@@ -73,10 +73,10 @@
           </td>
           <td class="status">
             {% if needs_sso or member.is_pending %}
-              {% if needs_sso %}
-                <strong>Missing SSO Link</strong>
-              {% else %}
+              {% if member.is_pending %}
                 <strong>Invited</strong>
+              {% else %}
+                <strong>Missing SSO Link</strong>
               {% endif %}
               <br>
               <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
