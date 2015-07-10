@@ -15,15 +15,17 @@ var StreamFilters = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: ""
+      filter: "",
+      query: "",
+      onFilterChange: function() {},
+      onQueryChange: function() {},
+      onSearch: function() {}
     };
   },
 
   getInitialState() {
     return {
-      activeButton: null,
-      query: this.props.defaultQuery,
-      filter: ""
+      activeButton: null
     };
   },
 
@@ -56,34 +58,8 @@ var StreamFilters = React.createClass({
     return activeButton;
   },
 
-  onSearch(query) {
-    this.setState({
-      query: query
-    }, function() {
-      this.transitionTo();
-    });
-  },
-
   onFilterChange(filter) {
-    this.setState({
-      filter: filter
-    }, function() {
-      this.transitionTo();
-    });
-  },
-
-  transitionTo() {
-    var router = this.context.router;
-    var queryParams = {};
-
-    for (var prop in this.state.filter) {
-      queryParams[prop] = this.state.filter[prop];
-    }
-    if (this.state.query !== this.props.defaultQuery) {
-      queryParams.query = this.state.query;
-    }
-
-    router.transitionTo('stream', router.getCurrentParams(), queryParams);
+    this.props.onFilterChange(filter);
   },
 
   render() {
@@ -94,21 +70,23 @@ var StreamFilters = React.createClass({
           <div className="col-sm-4 primary-filters">
             <div className="btn-group btn-group-justified">
               <FilterSelectLink label="All Events"
-                                isActive={activeButton === 'all'}
-                                onSelect={this.onFilterChange.bind(this, {})}
-                                extraClass="btn-all-events" />
+                isActive={activeButton === 'all'}
+                onSelect={this.onFilterChange.bind(this, {})}
+                extraClass="btn-all-events" />
               <FilterSelectLink label="Bookmarks"
-                                isActive={activeButton === 'bookmarks'}
-                                onSelect={this.onFilterChange.bind(this, {bookmarks: "1"})}
-                                extraClass="btn-middle btn-bookmarks" />
+                isActive={activeButton === 'bookmarks'}
+                onSelect={this.onFilterChange.bind(this, {bookmarks: "1"})}
+                extraClass="btn-middle btn-bookmarks" />
               <FilterSelectLink label="Assigned"
-                                isActive={activeButton === 'assigned'}
-                                onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
-                                extraClass="btn-assigned" />
+                isActive={activeButton === 'assigned'}
+                onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
+                extraClass="btn-assigned" />
             </div>
           </div>
           <div className="col-sm-8">
-            <SearchBar onSearch={this.onSearch} defaultQuery={this.state.query} />
+            <SearchBar query={this.props.query}
+              onQueryChange={this.props.onQueryChange}
+              onSearch={this.props.onSearch} />
           </div>
         </div>
       </div>
