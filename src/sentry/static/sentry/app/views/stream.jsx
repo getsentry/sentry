@@ -45,7 +45,9 @@ var Stream = React.createClass({
       realtimeActive: true,
       pageLinks: '',
       loading: true,
-      error: false
+      error: false,
+      query: this.props.defaultQuery,
+      filter: {}
     };
   },
 
@@ -75,8 +77,24 @@ var Stream = React.createClass({
   },
 
   routeDidChange() {
-    this._poller.disable();
-    this.fetchData();
+    var currentQuery = this.context.router.getCurrentQuery();
+
+    var filter = {};
+    if (currentQuery.bookmarks) {
+      filter = { bookmarks: "1" };
+    } else if (currentQuery.assigned) {
+      filter = { assigned: "1" };
+    }
+
+    var query = (currentQuery.hasOwnProperty("query")) ? currentQuery.query : this.props.defaultQuery;
+
+    this.setState({
+      filter: filter,
+      query: query
+    }, function() {
+      this._poller.disable();
+      this.fetchData();
+    });
   },
 
   componentWillUnmount() {
@@ -181,6 +199,39 @@ var Stream = React.createClass({
     router.transitionTo('stream', params, queryParams);
   },
 
+  onSearch() {
+    this.transitionTo();
+  },
+
+  onQueryChange(query) {
+    this.setState({
+      query: query
+    });
+  },
+
+  onFilterChange(filter) {
+    this.setState({
+      filter: filter
+    }, function() {
+      this.transitionTo();
+    });
+  },
+
+  transitionTo() {
+    var router = this.context.router;
+    var queryParams = {};
+
+    for (var prop in this.state.filter) {
+      queryParams[prop] = this.state.filter[prop];
+    }
+
+    if (this.state.query !== this.props.defaultQuery) {
+      queryParams.query = this.state.query;
+    }
+
+    router.transitionTo('stream', router.getCurrentParams(), queryParams);
+  },
+
   renderGroupNodes(ids, statsPeriod) {
     var groupNodes = ids.map((id) => {
       return <StreamGroup key={id} id={id} statsPeriod={statsPeriod} />;
@@ -225,7 +276,7 @@ var Stream = React.createClass({
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var query = this.props.defaultQuery;
+    var query = this.state.query;
 
     if (params.hasOwnProperty("query")) {
       query = params.query;
@@ -233,7 +284,10 @@ var Stream = React.createClass({
 
     return (
       <div>
-        <StreamFilters defaultQuery={query} />
+        <StreamFilters query={query}
+          onQueryChange={this.onQueryChange}
+          onFilterChange={this.onFilterChange}
+          onSearch={this.onSearch} />
         <div className="group-header">
           <StreamActions
             orgId={params.orgId}

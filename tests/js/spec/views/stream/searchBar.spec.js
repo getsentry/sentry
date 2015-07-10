@@ -19,28 +19,20 @@ describe("SearchBar", function() {
     this.sandbox.restore();
   });
 
-  describe("getInitialState()", function() {
-
-    it("inherits the query state from props", function() {
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar defaultQuery={"is:unresolved"} />);
-      var expected = wrapper.state.query; expect(expected).to.be.eql("is:unresolved");
-    });
-
-  });
-
   describe("clearSearch()", function() {
 
     it("clears the query", function() {
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar defaultQuery={"is:unresolved"} />);
+      var stubbedOnQueryChange = this.sandbox.spy();
+      var wrapper = TestUtils.renderIntoDocument(<SearchBar query={"is:unresolved"} onQueryChange={stubbedOnQueryChange} />);
       wrapper.clearSearch();
-      expect(wrapper.state.query).to.eql("");
+      expect(stubbedOnQueryChange.calledWith("")).to.be.true;
     });
 
     it("calls onSearch()", function() {
       var stubbedOnSearch = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar defaultQuery={"is:unresolved"} onSearch={stubbedOnSearch}/>);
+      var wrapper = TestUtils.renderIntoDocument(<SearchBar query={"is:unresolved"} onSearch={stubbedOnSearch}/>);
       wrapper.clearSearch();
-      expect(stubbedOnSearch.calledWith("")).to.be.true;
+      expect(stubbedOnSearch.called).to.be.true;
     });
 
   });
@@ -53,6 +45,7 @@ describe("SearchBar", function() {
       wrapper.onQueryFocus();
       expect(wrapper.state.dropdownVisible).to.be.true;
     });
+
   });
 
   describe("onQueryBlur()", function() {
@@ -67,41 +60,27 @@ describe("SearchBar", function() {
 
   });
 
-  describe("onQueryChange()", function() {
-
-    it("sets the query", function() {
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar />);
-      wrapper.state.query = "is:resolved";
-
-      wrapper.onQueryChange({ target: { value: "java" } });
-      expect(wrapper.state.query).to.eql("java");
-    });
-
-  });
-
   describe("render()", function() {
 
-    it("invokes onSearch() when search input changes", function() {
+    it("invokes onSearch() when submitting the form", function() {
       var stubOnSearch = this.sandbox.spy();
       var wrapper = TestUtils.renderIntoDocument(<SearchBar onSearch={stubOnSearch} />);
 
-      TestUtils.Simulate.change(wrapper.refs.searchInput, { target: { value: "java" } });
       TestUtils.Simulate.submit(wrapper.refs.searchForm, { preventDefault() {} });
 
-      expect(stubOnSearch.calledWith("java")).to.be.true;
+      expect(stubOnSearch.called).to.be.true;
     });
 
     it("invokes onSearch() when search is cleared", function() {
       var stubOnSearch = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar onSearch={stubOnSearch} />);
-      wrapper.setState({
-        query: "this-is-not-empty"
-      });
+      var stubOnQueryChange = this.sandbox.spy();
+      var wrapper = TestUtils.renderIntoDocument(<SearchBar onSearch={stubOnSearch} query={"not blank"} onQueryChange={stubOnQueryChange}/>);
 
       var cancelButton = findWithClass(wrapper, "search-clear-form");
       TestUtils.Simulate.click(cancelButton);
 
-      expect(stubOnSearch.calledWith("")).to.be.true;
+      expect(stubOnSearch.called).to.be.true;
+      expect(stubOnQueryChange.calledWith("")).to.be.true;
     });
 
   });

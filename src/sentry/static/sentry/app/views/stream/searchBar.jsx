@@ -12,30 +12,27 @@ var SearchBar = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: "",
-      onSearch: function() {}
+      query: "",
+      onSearch: function() {},
+      onQueryChange: function() {}
     };
   },
 
   getInitialState() {
     return {
-      dropdownVisible: false,
-      query: this.props.defaultQuery
+      dropdownVisible: false
     };
   },
 
   onSubmit(event) {
     event.preventDefault();
     this.refs.searchInput.getDOMNode().blur();
-    this.props.onSearch(this.state.query);
+    this.props.onSearch();
   },
 
   clearSearch() {
-    this.setState({
-      query: ''
-    }, function() {
-      this.props.onSearch(this.state.query);
-    });
+    this.props.onQueryChange("");
+    this.props.onSearch();
   },
 
   onQueryFocus() {
@@ -51,9 +48,7 @@ var SearchBar = React.createClass({
   },
 
   onQueryChange(event) {
-    this.setState({
-      query: event.target.value
-    });
+    this.props.onQueryChange(event.target.value);
   },
 
   render() {
@@ -62,16 +57,16 @@ var SearchBar = React.createClass({
         <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
           <div>
             <input type="text" className="search-input form-control"
-                   placeholder="Search for events, users, tags, and everything else."
-                   name="query"
-                   ref="searchInput"
-                   autoComplete="off"
-                   value={this.state.query}
-                   onFocus={this.onQueryFocus}
-                   onBlur={this.onQueryBlur}
-                   onChange={this.onQueryChange} />
+              placeholder="Search for events, users, tags, and everything else."
+              name="query"
+              ref="searchInput"
+              autoComplete="off"
+              value={this.props.query}
+              onFocus={this.onQueryFocus}
+              onBlur={this.onQueryBlur}
+              onChange={this.onQueryChange} />
             <span className="icon-search" />
-            {this.state.query !== '' &&
+            {this.props.query !== '' &&
               <div>
                 <a className="search-save-search btn btn-xs btn-default">Save</a>
                 <a className="search-clear-form" onClick={this.clearSearch}>
