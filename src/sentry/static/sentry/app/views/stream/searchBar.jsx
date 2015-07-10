@@ -31,8 +31,7 @@ var SearchBar = React.createClass({
   },
 
   clearSearch() {
-    this.props.onQueryChange("");
-    this.props.onSearch();
+    this.props.onQueryChange("", this.props.onSearch);
   },
 
   onQueryFocus() {
