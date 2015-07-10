@@ -2,6 +2,7 @@ var React = require("react/addons");
 var Cookies = require("js-cookie");
 
 var Api = require("app/api");
+var CursorPoller = require("app/utils/cursorPoller");
 var LoadingError = require("app/components/loadingError");
 var LoadingIndicator = require("app/components/loadingIndicator");
 var Stream = require("app/views/stream");
@@ -18,8 +19,7 @@ describe("Stream", function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.sandbox.stub(Api, "request");
-    this.sandbox.stub(Stream.prototype, "fetchData");
+    this.stubbedApiRequest = this.sandbox.stub(Api, "request");
     stubReactComponents(this.sandbox, [StreamGroup]);
 
     this.Element = stubRouterContext(Stream, {
@@ -41,46 +41,67 @@ describe("Stream", function() {
 
   afterEach(function() {
     this.sandbox.restore();
+    React.unmountComponentAtNode(document.body);
+  });
+
+  describe("fetchData()", function() {
+
+    it("resets the poller endpoint", function() {
+      var expectedUrl;
+      this.stubbedApiRequest.restore();
+      this.sandbox.stub(Api, "request", function(url, options) {
+        expectedUrl = url;
+        options.complete();
+      });
+
+      var stubbedSetEndpoint = this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
+
+      var wrapper = React.render(<this.Element />, document.body);
+      wrapper.refs.stub.fetchData();
+
+      expect(stubbedSetEndpoint.calledWith(expectedUrl)).to.be.true;
+    });
+
   });
 
   describe("render()", function() {
 
-    beforeEach(function() {
-      this.wrapper = TestUtils.renderIntoDocument(<this.Element />);
-    });
-
     it("displays a loading indicator when component is loading", function() {
-      this.wrapper.refs.stub.setState({ loading: true });
-      var expected = findWithType(this.wrapper, LoadingIndicator);
+      var wrapper = React.render(<this.Element />, document.body);
+      wrapper.refs.stub.setState({ loading: true });
+      var expected = findWithType(wrapper, LoadingIndicator);
       expect(expected).to.be.ok;
     });
 
     it("displays an error when component has errored", function() {
-      this.wrapper.refs.stub.setState({
+      var wrapper = React.render(<this.Element />, document.body);
+      wrapper.refs.stub.setState({
         error: true,
         loading: false
       });
-      var expected = findWithType(this.wrapper, LoadingError);
+      var expected = findWithType(wrapper, LoadingError);
       expect(expected).to.be.ok;
     });
 
     it("displays the group list", function() {
-      this.wrapper.refs.stub.setState({
+      var wrapper = React.render(<this.Element />, document.body);
+      wrapper.refs.stub.setState({
         error: false,
         groupIds: ["1"],
         loading: false
       });
-      var expected = findWithClass(this.wrapper, "group-list");
+      var expected = findWithClass(wrapper, "group-list");
       expect(expected).to.be.ok;
     });
 
     it("displays empty with no ids", function() {
-      this.wrapper.refs.stub.setState({
+      var wrapper = React.render(<this.Element />, document.body);
+      wrapper.refs.stub.setState({
         error: false,
         groupIds: [],
         loading: false
       });
-      var expected = findWithClass(this.wrapper, "empty-stream");
+      var expected = findWithClass(wrapper, "empty-stream");
       expect(expected).to.be.ok;
     });
 
@@ -94,15 +115,15 @@ describe("Stream", function() {
 
     it("reads the realtimeActive state from a cookie", function() {
       Cookies.set("realtimeActive", "false");
-      this.wrapper = TestUtils.renderIntoDocument(<this.Element />);
-      var expected = findWithClass(this.wrapper, "icon-play");
+      var wrapper = React.render(<this.Element />, document.body);
+      var expected = findWithClass(wrapper, "icon-play");
       expect(expected).to.be.ok;
     });
 
     it("reads the true realtimeActive state from a cookie", function() {
       Cookies.set("realtimeActive", "true");
-      this.wrapper = TestUtils.renderIntoDocument(<this.Element />);
-      var expected = findWithClass(this.wrapper, "icon-pause");
+      var wrapper = React.render(<this.Element />, document.body);
+      var expected = findWithClass(wrapper, "icon-pause");
       expect(expected).to.be.ok;
     });
 
@@ -111,15 +132,14 @@ describe("Stream", function() {
   describe("onRealtimeChange", function() {
 
     it("sets the realtimeActive state", function() {
-      this.wrapper = TestUtils.renderIntoDocument(<this.Element />);
-
-      this.wrapper.refs.stub.state.realtimeActive = false;
-      this.wrapper.refs.stub.onRealtimeChange(true);
-      expect(this.wrapper.refs.stub.state.realtimeActive).to.eql(true);
+      var wrapper = React.render(<this.Element />, document.body);
+      wrapper.refs.stub.state.realtimeActive = false;
+      wrapper.refs.stub.onRealtimeChange(true);
+      expect(wrapper.refs.stub.state.realtimeActive).to.eql(true);
       expect(Cookies.get("realtimeActive")).to.eql("true");
 
-      this.wrapper.refs.stub.onRealtimeChange(false);
-      expect(this.wrapper.refs.stub.state.realtimeActive).to.eql(false);
+      wrapper.refs.stub.onRealtimeChange(false);
+      expect(wrapper.refs.stub.state.realtimeActive).to.eql(false);
       expect(Cookies.get("realtimeActive")).to.eql("false");
     });
 
@@ -128,8 +148,6 @@ describe("Stream", function() {
   describe("getInitialState", function() {
 
     it("sets the right defaults", function() {
-      this.wrapper = TestUtils.renderIntoDocument(<this.Element />);
-
       var expected = {
         groupIds: [],
         selectAllActive: false,
@@ -141,7 +159,8 @@ describe("Stream", function() {
         loading: true,
         error: false
       }
-      var actual = this.wrapper.refs.stub.getInitialState();
+      var wrapper = React.render(<this.Element />, document.body);
+      var actual = wrapper.refs.stub.getInitialState();
 
       for (var property in expected) {
         expect(actual[property]).to.eql(expected[property]);
