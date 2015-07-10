@@ -28,11 +28,19 @@ describe("SearchBar", function() {
       expect(stubbedOnQueryChange.calledWith("")).to.be.true;
     });
 
-    it("calls onSearch()", function() {
-      var stubbedOnSearch = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar query={"is:unresolved"} onSearch={stubbedOnSearch}/>);
+    it("calls onSearch()", function(done) {
+      var props = {
+        query: "is:unresolved",
+        onSearch: this.sandbox.spy(),
+        onQueryChange: (query, callback) => callback()
+      };
+      var wrapper = TestUtils.renderIntoDocument(<SearchBar {...props} />);
       wrapper.clearSearch();
-      expect(stubbedOnSearch.called).to.be.true;
+
+      setTimeout(() => {
+        expect(props.onSearch.called).to.be.true;
+        done();
+      });
     });
 
   });
@@ -71,16 +79,22 @@ describe("SearchBar", function() {
       expect(stubOnSearch.called).to.be.true;
     });
 
-    it("invokes onSearch() when search is cleared", function() {
-      var stubOnSearch = this.sandbox.spy();
-      var stubOnQueryChange = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar onSearch={stubOnSearch} query={"not blank"} onQueryChange={stubOnQueryChange}/>);
+    it("invokes onSearch() when search is cleared", function(done) {
+      var props = {
+        query: "is:unresolved",
+        onSearch: this.sandbox.spy(),
+        onQueryChange: this.sandbox.spy()
+      };
+      var wrapper = TestUtils.renderIntoDocument(<SearchBar {...props} />);
 
       var cancelButton = findWithClass(wrapper, "search-clear-form");
       TestUtils.Simulate.click(cancelButton);
 
-      expect(stubOnSearch.called).to.be.true;
-      expect(stubOnQueryChange.calledWith("")).to.be.true;
+      setTimeout(() => {
+        // expect(props.onSearch.called).to.be.true;
+        expect(props.onQueryChange.calledWith("", props.onSearch)).to.be.true;
+        done();
+      });
     });
 
   });

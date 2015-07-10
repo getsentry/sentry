@@ -73,10 +73,11 @@ var Stream = React.createClass({
       });
     }
 
+    this.syncStateWithRoute();
     this.fetchData();
   },
 
-  routeDidChange() {
+  syncStateWithRoute() {
     var currentQuery = this.context.router.getCurrentQuery();
 
     var filter = {};
@@ -91,10 +92,13 @@ var Stream = React.createClass({
     this.setState({
       filter: filter,
       query: query
-    }, function() {
-      this._poller.disable();
-      this.fetchData();
     });
+  },
+
+  routeDidChange() {
+    this.syncStateWithRoute();
+    this._poller.disable();
+    this.fetchData();
   },
 
   componentWillUnmount() {
@@ -203,10 +207,10 @@ var Stream = React.createClass({
     this.transitionTo();
   },
 
-  onQueryChange(query) {
+  onQueryChange(query, callback) {
     this.setState({
       query: query
-    });
+    }, callback);
   },
 
   onFilterChange(filter) {
@@ -276,15 +280,10 @@ var Stream = React.createClass({
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var query = this.state.query;
-
-    if (params.hasOwnProperty("query")) {
-      query = params.query;
-    }
 
     return (
       <div>
-        <StreamFilters query={query}
+        <StreamFilters query={this.state.query}
           onQueryChange={this.onQueryChange}
           onFilterChange={this.onFilterChange}
           onSearch={this.onSearch} />
