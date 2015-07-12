@@ -9,7 +9,7 @@ from .base import MetricsBackend
 
 class StatsdMetricsBackend(MetricsBackend):
     def __init__(self, host='localhost', port=8125, **kwargs):
-        self.client = statsd.client(host=host, port=port)
+        self.client = statsd.StatsClient(host=host, port=port)
         super(StatsdMetricsBackend, self).__init__(**kwargs)
 
     def incr(self, key, amount=1, sample_rate=1):

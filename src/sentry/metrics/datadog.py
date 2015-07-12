@@ -48,7 +48,7 @@ class DatadogMetricsBackend(MetricsBackend):
         super(DatadogMetricsBackend, self).__init__(**kwargs)
 
     def incr(self, key, amount=1, sample_rate=1):
-        self.client.incr(self._get_key(key), amount, sample_rate=sample_rate)
+        self.client.increment(self._get_key(key), amount, sample_rate=sample_rate)
 
     def timing(self, key, value, sample_rate=1):
         self.client.timing(self._get_key(key), value, sample_rate=sample_rate)
