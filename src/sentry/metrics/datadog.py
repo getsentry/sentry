@@ -47,11 +47,11 @@ class DatadogMetricsBackend(MetricsBackend):
         self.client = DogStatsd(host=host, port=port)
         super(DatadogMetricsBackend, self).__init__(**kwargs)
 
-    def incr(self, key, amount=1, rate=1):
-        self.client.incr(self._get_key(key), amount, rate)
+    def incr(self, key, amount=1, sample_rate=1):
+        self.client.incr(self._get_key(key), amount, sample_rate=sample_rate)
 
-    def timing(self, key, value, rate=1):
-        self.client.timing(self._get_key(key), value, rate)
+    def timing(self, key, value, sample_rate=1):
+        self.client.timing(self._get_key(key), value, sample_rate=sample_rate)
 
 
 class DogStatsd(object):

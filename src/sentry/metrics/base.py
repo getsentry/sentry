@@ -18,11 +18,11 @@ class MetricsBackend(local):
             return '{}{}'.format(self.prefix, key)
         return key
 
-    def _should_sample(self, rate):
-        return rate >= 1 or random() >= 1 - rate
+    def _should_sample(self, sample_rate):
+        return sample_rate >= 1 or random() >= 1 - sample_rate
 
-    def incr(self, key, amount=1, rate=1):
+    def incr(self, key, amount=1, sample_rate=1):
         raise NotImplementedError
 
-    def timing(self, key, value, rate=1):
+    def timing(self, key, value, sample_rate=1):
         raise NotImplementedError
