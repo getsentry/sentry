@@ -9,8 +9,7 @@ from __future__ import absolute_import
 
 from django import forms
 from django.conf import settings
-from django.utils.html import escape, format_html
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 from social_auth.models import UserSocialAuth
 
 from sentry.models import GroupMeta, Activity
