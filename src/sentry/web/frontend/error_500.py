@@ -14,7 +14,7 @@ from sentry.utils import json
 
 class Error500View(View):
     def get_embed_config(self, request):
-        if not getattr(request, 'sentry'):
+        if not hasattr(request, 'sentry'):
             return
 
         try:
