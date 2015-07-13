@@ -59,6 +59,8 @@ def pytest_configure(config):
     middleware[sudo] = 'sentry.testutils.middleware.SudoMiddleware'
     settings.MIDDLEWARE_CLASSES = tuple(middleware)
 
+    settings.SENTRY_URL_PREFIX = 'http://example.com'
+
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True

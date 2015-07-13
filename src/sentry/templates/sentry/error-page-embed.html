@@ -1,0 +1,237 @@
+<style>
+/** Wrapper class name is provided by JS **/
+.sentry-error-embed-wrapper {
+  display: block;
+  outline: none;
+  position: fixed;
+  z-index: 999;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.6);
+  overflow: auto;
+}
+.sentry-error-embed * {
+  margin: 0;
+  padding: 0;
+}
+.sentry-error-embed {
+  background: #fff;
+  margin: 0 auto;
+  max-height: 80%;
+  margin-top: 4%;
+  text-align: left;
+  border: 1px solid #fff;
+  padding: 30px;
+  max-width: 600px;
+  overflow: auto;
+}
+.sentry-error-embed .clearfix {
+  *zoom: 1;
+}
+.sentry-error-embed .clearfix:before,
+.sentry-error-embed .clearfix:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.sentry-error-embed .clearfix:after {
+  clear: both;
+}
+.sentry-error-embed a,
+.sentry-error-embed a:visited {
+  color: #000;
+  font-weight: 500;
+  text-decoration: none;
+}
+.sentry-error-embed * {
+  -webkit-font-smoothing: antialiased;
+  font-family: "Helvetica Neue", helvetica, sans-serif;
+}
+.sentry-error-embed p {
+  margin: 0 0 20px;
+}
+.sentry-error-embed form {
+  margin: 0;
+}
+.sentry-error-embed a:active,
+.sentry-error-embed a:focus, a:hover {
+  color: #0666b8;
+  text-decoration: underline;
+}
+.sentry-error-embed h2 {
+  font-size: 28px;
+  font-weight: 500;
+  margin: 0;
+}
+.sentry-error-embed header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.sentry-error-embed header p {
+  color: #999;
+  font-size: 16px;
+}
+.sentry-error-embed .form-field {
+  margin-bottom: 20px;
+  position: relative;
+  width: 100%;
+}
+.sentry-error-embed .form-field label {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 5px;
+}
+.sentry-error-embed .form-field input,
+.sentry-error-embed .form-field textarea {
+  font-size: 15px;
+  padding: 8px;
+  border: 1px solid #fcfcfc;
+  background: #fcfcfc;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+  height: auto;
+  -webkit-box-sizing : border-box;‌​
+  -moz-box-sizing : border-box;
+  box-sizing : border-box;
+}
+.sentry-error-embed .form-errors input,
+.sentry-error-embed .form-errors textarea {
+  border-color: red;
+}
+.sentry-error-embed .form-field textarea {
+  height: 100px;
+}
+.sentry-error-embed .form-submit .btn {
+  border: none;
+  color: #fff;
+  background: #1791F8;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  float: left;
+}
+.sentry-error-embed .form-submit .close {
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  float: left;
+}
+.sentry-error-embed .form-submit .btn:hover {
+  background: #0666b8;
+}
+.sentry-error-embed .form-submit .powered-by {
+  padding: 10px 0;
+  margin: 0;
+  float: right;
+  font-size: 12px;
+}
+.sentry-error-embed .message-success,
+.sentry-error-embed .message-error {
+  text-align: center;
+  font-size: 14px;
+}
+.sentry-error-embed .message-success {
+  color: green;
+}
+.sentry-error-embed .message-error {
+  color: red;
+}
+.sentry-error-embed .error-wrapper p:last-child {
+  margin-bottom: 0;
+}
+@media screen and (max-height: 570px) {
+  .sentry-error-embed {
+    max-height: none;
+    margin-top: 0;
+  }
+}
+
+@media screen and (max-width: 660px) {
+  .sentry-error-embed {
+    padding: 10px;
+    max-width: none;
+  }
+  .sentry-error-embed h2 {
+    font-size: 22px;
+  }
+  .sentry-error-embed header p {
+    font-size: 14px;
+  }
+}
+@media screen and (max-width: 480px) {
+  .sentry-error-embed {
+    padding: 10px;
+    margin-top: 0;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    height: 100%;
+    max-height: none;
+  }
+  .sentry-error-embed h2 {
+    font-size: 20px;
+    line-height: 24px;
+  }
+  .sentry-error-embed header p {
+    font-size: 13px;
+  }
+  .sentry-error-embed .hide-tiny {
+    display: none;
+  }
+  .sentry-error-embed .form-submit {
+    text-align: center;
+  }
+  .sentry-error-embed .form-submit .btn,
+  .sentry-error-embed .form-submit .close,
+  .sentry-error-embed .form-submit .powered-by {
+    float: none;
+    display: block;
+    margin: 0 auto;
+  }
+  .sentry-error-embed .form-submit .powered-by {
+    margin-top: 10px;
+    font-size: 10px;
+  }
+}
+</style>
+
+<div class="sentry-error-embed clearfix">
+  <header>
+    <h2>It looks like we're having <span class="hide-tiny">some internal</span> issues.</h2>
+    <p><span class="hide-tiny">Our team has been notified.</span> If you'd like to help, tell us what happened below.</p>
+  </header>
+  <form>
+    <div class="error-wrapper"></div>
+    <div class="form-content">
+      <div class="form-field clearfix">
+        <label>Name</label>
+        {{ form.name }}
+      </div>
+      <div class="form-field clearfix">
+        <label>Email</label>
+        {{ form.email }}
+      </div>
+      <div class="form-field clearfix">
+        <label>What happened?</label>
+        {{ form.comments }}
+      </div>
+    </div>
+    <div class="form-submit clearfix">
+      <button type="submit" class="btn">Submit Crash Report</button>
+      <a class="close">Close</a>
+      <p class="powered-by">
+        Crash reports powered by <a href="https://getsentry.com">Sentry</a>
+      </p>
+    </div>
+  </form>
+</div>
