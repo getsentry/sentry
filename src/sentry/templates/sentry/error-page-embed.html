@@ -11,17 +11,34 @@
   top: 0;
   left: 0;
   background: rgba(0, 0, 0, 0.6);
+  overflow: auto;
+}
+.sentry-error-embed * {
+  margin: 0;
+  padding: 0;
 }
 .sentry-error-embed {
   background: #fff;
   margin: 0 auto;
-  max-width: 90%;
   max-height: 80%;
   margin-top: 4%;
   text-align: left;
   border: 1px solid #fff;
   padding: 30px;
   max-width: 600px;
+  overflow: auto;
+}
+.sentry-error-embed .clearfix {
+  *zoom: 1;
+}
+.sentry-error-embed .clearfix:before,
+.sentry-error-embed .clearfix:after {
+  display: table;
+  content: "";
+  line-height: 0;
+}
+.sentry-error-embed .clearfix:after {
+  clear: both;
 }
 .sentry-error-embed a,
 .sentry-error-embed a:visited {
@@ -33,8 +50,7 @@
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
 }
-.sentry-error-embed p,
-.sentry-error-embed h2 {
+.sentry-error-embed p {
   margin: 0 0 20px;
 }
 .sentry-error-embed form {
@@ -60,6 +76,8 @@
 }
 .sentry-error-embed .form-field {
   margin-bottom: 20px;
+  position: relative;
+  width: 100%;
 }
 .sentry-error-embed .form-field label {
   font-size: 11px;
@@ -71,14 +89,16 @@
 .sentry-error-embed .form-field input,
 .sentry-error-embed .form-field textarea {
   font-size: 15px;
-  padding: 8px 5px;
+  padding: 8px;
   border: 0;
   background: #fcfcfc;
-  display: block;
-  max-width: 590px;
-  width: 100%;
   border-radius: 0;
   box-shadow: none;
+  width: 100%;
+  height: auto;
+  -webkit-box-sizing : border-box;‌​
+  -moz-box-sizing : border-box;
+  box-sizing : border-box;
 }
 .sentry-error-embed .form-errors input,
 .sentry-error-embed .form-errors textarea {
@@ -95,41 +115,106 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
+  float: left;
+}
+.sentry-error-embed .form-submit .close {
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  float: left;
 }
 .sentry-error-embed .form-submit .btn:hover {
   background: #0666b8;
 }
 .sentry-error-embed .form-submit .powered-by {
   padding: 10px 0;
+  margin: 0;
   float: right;
   font-size: 12px;
 }
+@media screen and (max-height: 570px) {
+  .sentry-error-embed {
+    max-height: none;
+    margin-top: 0;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .sentry-error-embed {
+    padding: 10px;
+    max-width: none;
+  }
+  .sentry-error-embed h2 {
+    font-size: 22px;
+  }
+  .sentry-error-embed header p {
+    font-size: 14px;
+  }
+}
+@media screen and (max-width: 480px) {
+  .sentry-error-embed {
+    padding: 10px;
+    margin-top: 0;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    height: 100%;
+    max-height: none;
+  }
+  .sentry-error-embed h2 {
+    font-size: 20px;
+    line-height: 24px;
+  }
+  .sentry-error-embed header p {
+    font-size: 13px;
+  }
+  .sentry-error-embed .hide-tiny {
+    display: none;
+  }
+  .sentry-error-embed .form-submit {
+    text-align: center;
+  }
+  .sentry-error-embed .form-submit .btn,
+  .sentry-error-embed .form-submit .powered-by {
+    float: none;
+    display: block;
+    margin: 0 auto;
+  }
+  .sentry-error-embed .form-submit .powered-by {
+    margin-top: 10px;
+    font-size: 10px;
+  }
+}
 </style>
 
-<div class="sentry-error-embed">
+<div class="sentry-error-embed clearfix">
   <header>
-    <h2>It looks like we're having some internal issues.</h2>
-    <p>Our team has been notified. If you'd like to help, tell us what happened below.</p>
+    <h2>It looks like we're having <span class="hide-tiny">some internal</span> issues.</h2>
+    <p><span class="hide-tiny">Our team has been notified.</span> If you'd like to help, tell us what happened below.</p>
   </header>
   <form>
     {{ form.dsn }}
-    <div class="form-field{% if form.name.errors %} form-errors{% endif %}">
+    <div class="form-field clearfix{% if form.name.errors %} form-errors{% endif %}">
       <label>Name</label>
       {{ form.name }}
     </div>
-    <div class="form-field{% if form.email.errors %} form-errors{% endif %}">
+    <div class="form-field clearfix{% if form.email.errors %} form-errors{% endif %}">
       <label>Email</label>
       {{ form.email }}
     </div>
-    <div class="form-field{% if form.comments.errors %} form-errors{% endif %}">
+    <div class="form-field clearfix{% if form.comments.errors %} form-errors{% endif %}">
       <label>What happened?</label>
       {{ form.comments }}
     </div>
-    <div class="form-submit">
+    <div class="form-submit clearfix">
+      <input type="submit" class="btn" value="Submit Crash Report" />
+      <a class="close" data-toggle="close">Close</a>
       <p class="powered-by">
         Crash reports powered by <a href="https://getsentry.com">Sentry</a>
       </p>
-      <input type="submit" class="btn" value="Submit Crash Report" />
     </div>
   </form>
 </div>
