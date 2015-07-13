@@ -13,16 +13,20 @@
 
     {% if request.sentry.id %}
       <script>
-      window.sentryConfig = {
-        eventId: '{{ request.sentry.id }}',
-        dsn: '{{ public_dsn }}'
-      };
+      window.sentryConfig = {{ embed_config }};
+      // TODO(dcramer): This snippet will be moved in to the generated "installation code"
       (function(document, window){
         var config = window.sentryConfig;
         var escape = window.encodeURIComponent;
         var endpoint = '{% url 'sentry-error-page-embed' %}';
-        endpoint += '?eventId=' + escape(config.eventId);
-        endpoint += '&dsn=' + escape(config.dsn);
+        endpoint += '?eventId=' + escape(config.eventId || '');
+        endpoint += '&dsn=' + escape(config.dsn || '');
+        if (config.userName) {
+          endpoint += '&name=' + escape(config.userName);
+        }
+        if (config.userEmail) {
+          endpoint += '&email=' + escape(config.userEmail);
+        }
         var script = document.createElement('script');
         script.type = 'text/javascript';
         script.async = true;
