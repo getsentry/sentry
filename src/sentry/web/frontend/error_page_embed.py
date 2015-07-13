@@ -47,6 +47,11 @@ class ErrorPageEmbedView(View):
     def dispatch(self, request):
         # TODO(dcramer): since we cant use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
+        initial = {
+            'name': request.GET.get('name'),
+            'email': request.GET.get('email'),
+        }
+
         try:
             event_id = request.GET['eventId']
         except KeyError:
