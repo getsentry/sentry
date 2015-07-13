@@ -1,21 +1,19 @@
 from __future__ import absolute_import
 
 from django import forms
-from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.views.generic import View
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
+from django.views.decorators.csrf import csrf_exempt
 
 from sentry.models import Group, ProjectKey, UserReport
 from sentry.web.helpers import render_to_response
 from sentry.utils import json
-from sentry.utils.http import absolute_uri, is_valid_origin
+from sentry.utils.http import is_valid_origin
 
 
 class UserReportForm(forms.ModelForm):
-    event_id = forms.CharField(max_length=32, widget=forms.HiddenInput)
-    dsn = forms.CharField(max_length=128, widget=forms.HiddenInput)
     name = forms.CharField(max_length=128, widget=forms.TextInput(attrs={
         'placeholder': 'Jane Doe',
     }))
@@ -29,7 +27,7 @@ class UserReportForm(forms.ModelForm):
 
     class Meta:
         model = UserReport
-        fields = ('name', 'email', 'comments', 'event_id')
+        fields = ('name', 'email', 'comments')
 
 
 class ErrorPageEmbedView(View):
@@ -45,7 +43,10 @@ class ErrorPageEmbedView(View):
     def _get_origin(self, request):
         return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
 
+    @csrf_exempt
     def dispatch(self, request):
+        # TODO(dcramer): since we cant use a csrf cookie we should at the very
+        # least sign the request / add some kind of nonce
         try:
             initial = {
                 'dsn': request.GET['dsn'],
@@ -65,11 +66,12 @@ class ErrorPageEmbedView(View):
         if not is_valid_origin(origin, key.project):
             return HttpResponse(status=403)
 
-        form = UserReportForm(request.POST or None, initial=initial)
+        form = UserReportForm(request.POST if request.method == 'POST' else None,
+                              initial=initial)
         if form.is_valid():
             report = form.save(commit=False)
             report.project = key.project
-            report.event_id = form.cleaned_data['event_id']
+            report.event_id = request.GET['eventId']
             try:
                 report.group = Group.objects.get(
                     eventmapping__event_id=report.event_id,
@@ -79,10 +81,11 @@ class ErrorPageEmbedView(View):
                 # XXX(dcramer): the system should fill this in later
                 pass
             report.save()
-
             return HttpResponse(status=200)
         elif request.method == 'POST':
-            return HttpResponse(status=400)
+            return HttpResponse(json.dumps({
+                "errors": dict(form.errors),
+            }), status=400, content_type='application/json')
 
         form = UserReportForm(initial=initial)
 
@@ -91,7 +94,7 @@ class ErrorPageEmbedView(View):
         })
 
         context = {
-            'endpoint': mark_safe(json.dumps(absolute_uri(reverse('sentry-error-page-embed')))),
+            'endpoint': mark_safe(json.dumps(request.get_full_path())),
             'template': mark_safe(json.dumps(template)),
         }
 
