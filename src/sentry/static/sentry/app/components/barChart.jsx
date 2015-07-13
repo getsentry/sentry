@@ -1,9 +1,9 @@
-var jQuery = require("jquery");
+var $ = require("jquery");
 var moment = require("moment");
 var React = require("react");
 
 var TooltipTrigger = require("./tooltipTrigger");
-var {valueIsEqual} = require("../utils");
+var { valueIsEqual } = require("../utils");
 
 var BarChart = React.createClass({
   propTypes: {
@@ -19,34 +19,44 @@ var BarChart = React.createClass({
 
   getDefaultProps() {
     return {
+      className: "",
+      height: null,
+      label: "events",
       placement: "bottom",
       points: [],
-      label: "events"
+      width: null,
+      viewport: null
     };
   },
 
-  componentDidUpdate() {
-    if (this._asyncRender) return;
-    this._asyncRender = window.setTimeout(this.renderChart);
-  },
-
   componentDidMount() {
-    this._asyncRender = window.setTimeout(this.renderChart);
+    this.attachTooltips();
   },
 
   componentWillUnmount() {
-    if (this._asyncRender) {
-      window.clearTimeout(this._asyncRender);
-    }
+    this.removeTooltips();
   },
 
   shouldComponentUpdate(nextProps, nextState) {
     return !valueIsEqual(this.props, nextProps, true);
   },
 
+  attachTooltips() {
+    $(this.getDOMNode()).tooltip({
+      html: true,
+      placement: this.props.placement,
+      selector: ".chart-column",
+      viewport: this.props.viewport
+    });
+  },
+
+  removeTooltips() {
+    $(this.getDOMNode()).tooltip("destroy");
+  },
+
   floatFormat(number, places) {
-      var multi = Math.pow(10, places);
-      return parseInt(number * multi, 10) / multi;
+    var multi = Math.pow(10, places);
+    return parseInt(number * multi, 10) / multi;
   },
 
   timeLabelAsHour(point) {
@@ -89,19 +99,18 @@ var BarChart = React.createClass({
     return timeMoment.format("lll");
   },
 
-  renderChart() {
-    var ref = this.refs.chartPoints;
-    if (!ref) {
-      return;
-    }
-    var points = this.props.points;
+  maxPointValue() {
     var maxval = 10;
-    points.forEach((point) => {
+    this.props.points.forEach((point) => {
       if (point.y > maxval) {
         maxval = point.y;
       }
     });
+    return maxval;
+  },
 
+  renderChart() {
+    var points = this.props.points;
     var pointWidth = this.floatFormat(100.0 / points.length, 2) + "%";
 
     var interval = (points.length > 1 ? points[1].x - points[0].x : null);
@@ -120,50 +129,42 @@ var BarChart = React.createClass({
         timeLabelFunc = this.timeLabelAsRange.bind(this, interval);
     }
 
-    var children = points.map((point, pointIdx) => {
-      var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
+    var maxval = this.maxPointValue();
 
-      var timeLabel = timeLabelFunc(point);
-      var title = (
-        '<div style="width:130px">' +
-          point.y + ' ' + this.props.label + '<br/>' +
-          timeLabel +
-        '</div>'
-      );
-      if (point.label) {
-        title += '<div>(' + point.label + ')</div>';
-      }
-
-      return jQuery(
-        '<a style="width:' + pointWidth + '">' +
-          '<span style="height:' + pct + '">' + point.y + '</span>' +
-        '</a>'
-      ).tooltip({
-        html: true,
-        placement: this.props.placement,
-        title: title,
-        viewport: this.props.viewport
-      });
+    return points.map((point) => {
+      return this.renderChartColumn(point, maxval, timeLabelFunc, pointWidth);
     });
+  },
 
-    jQuery(ref.getDOMNode()).html(children);
+  renderChartColumn(point, maxval, timeLabelFunc, pointWidth) {
+    var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
+    var timeLabel = timeLabelFunc(point);
+    var title = (
+      '<div style="width:130px">' +
+        point.y + ' ' + this.props.label + '<br/>' +
+        timeLabel +
+      '</div>'
+    );
+    if (point.label) {
+      title += '<div>(' + point.label + ')</div>';
+    }
+
+    return (
+      <a key={point.x} className="chart-column" data-title={title} style={{ width: pointWidth }}>
+        <span style={{ height: pct }}>{point.y}</span>
+      </a>
+    );
   },
 
   render() {
-    var maxval = 10;
-    this.props.points.forEach((point) => {
-      if (point.y > maxval) {
-        maxval = point.y;
-      }
-    });
+    var figureClass = [this.props.className, 'barchart'].join(" ");
+    var maxval = this.maxPointValue();
 
     return (
-      <figure className={this.props.className || '' + ' barchart'}
-              height={this.props.height}
-              width={this.props.width}>
-        <span className="max-y" key="max-y">{maxval}</span>
-        <span className="min-y" key="min-y">{0}</span>
-        <span ref="chartPoints" />
+      <figure className={figureClass} height={this.props.height} width={this.props.width}>
+        <span className="max-y">{maxval}</span>
+        <span className="min-y">0</span>
+        <span>{this.renderChart()}</span>
       </figure>
     );
   }
