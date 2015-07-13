@@ -10,27 +10,24 @@
   text-align: center;
   top: 0;
   left: 0;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.6);
 }
 .sentry-error-embed {
   background: #fff;
   margin: 0 auto;
   max-width: 90%;
   max-height: 80%;
-  margin-top: 2%;
+  margin-top: 4%;
   text-align: left;
-  border-radius: 4px;
+  border: 1px solid #fff;
+  padding: 30px;
+  max-width: 600px;
 }
 .sentry-error-embed a,
 .sentry-error-embed a:visited {
   color: #000;
   font-weight: 500;
   text-decoration: none;
-}
-.sentry-error-embed {
-  border: 1px solid #ccc;
-  padding: 20px;
-  max-width: 600px;
 }
 .sentry-error-embed * {
   -webkit-font-smoothing: antialiased;
@@ -74,9 +71,14 @@
 .sentry-error-embed .form-field input,
 .sentry-error-embed .form-field textarea {
   font-size: 15px;
-  padding: 5px;
-  border: 1px solid #ccc;
+  padding: 8px 5px;
+  border: 0;
+  background: #fcfcfc;
+  display: block;
+  max-width: 590px;
   width: 100%;
+  border-radius: 0;
+  box-shadow: none;
 }
 .sentry-error-embed .form-errors input,
 .sentry-error-embed .form-errors textarea {
