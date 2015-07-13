@@ -12,7 +12,8 @@
     "moment": "~2.8.4",
     "simple-slider": "https://github.com/loopj/jquery-simple-slider.git",
     "platformicons": "1.0.2",
-    "raven-js": "~1.1.16"
+    "raven-js": "~1.1.16",
+    "fontawesome": "~4.3.0"
   },
   "resolutions": {
     "bootstrap": "~2.3.2",
