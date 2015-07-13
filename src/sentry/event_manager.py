@@ -27,7 +27,7 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Event, EventMapping, Group, GroupHash, GroupStatus, Project,
-    Release
+    Release, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import regression_signal
@@ -368,6 +368,10 @@ class EventManager(object):
         except IntegrityError:
             self.logger.info('Duplicate EventMapping found for event_id=%s', event_id)
             return event
+
+        UserReport.objects.filter(
+            project=project, event_id=event_id,
+        ).update(group=group)
 
         # save the event unless its been sampled
         if not is_sample:
