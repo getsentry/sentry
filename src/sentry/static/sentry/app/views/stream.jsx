@@ -29,6 +29,12 @@ var Stream = React.createClass({
     setProjectNavSection: React.PropTypes.func.isRequired
   },
 
+  getDefaultProps() {
+    return {
+      defaultQuery: "is:unresolved"
+    };
+  },
+
   getInitialState() {
     return {
       groupIds: [],
@@ -39,7 +45,9 @@ var Stream = React.createClass({
       realtimeActive: true,
       pageLinks: '',
       loading: true,
-      error: false
+      error: false,
+      query: this.props.defaultQuery,
+      filter: {}
     };
   },
 
@@ -65,10 +73,30 @@ var Stream = React.createClass({
       });
     }
 
+    this.syncStateWithRoute();
     this.fetchData();
   },
 
+  syncStateWithRoute() {
+    var currentQuery = this.context.router.getCurrentQuery();
+
+    var filter = {};
+    if (currentQuery.bookmarks) {
+      filter = { bookmarks: "1" };
+    } else if (currentQuery.assigned) {
+      filter = { assigned: "1" };
+    }
+
+    var query = (currentQuery.hasOwnProperty("query")) ? currentQuery.query : this.props.defaultQuery;
+
+    this.setState({
+      filter: filter,
+      query: query
+    });
+  },
+
   routeDidChange() {
+    this.syncStateWithRoute();
     this._poller.disable();
     this.fetchData();
   },
@@ -125,6 +153,9 @@ var Stream = React.createClass({
     var params = router.getCurrentParams();
     var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
+    if (!queryParams.hasOwnProperty("query")) {
+      queryParams.query = this.props.defaultQuery;
+    }
     var querystring = $.param(queryParams);
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
@@ -170,6 +201,39 @@ var Stream = React.createClass({
     queryParams.cursor = cursor;
 
     router.transitionTo('stream', params, queryParams);
+  },
+
+  onSearch() {
+    this.transitionTo();
+  },
+
+  onQueryChange(query, callback) {
+    this.setState({
+      query: query
+    }, callback);
+  },
+
+  onFilterChange(filter) {
+    this.setState({
+      filter: filter
+    }, function() {
+      this.transitionTo();
+    });
+  },
+
+  transitionTo() {
+    var router = this.context.router;
+    var queryParams = {};
+
+    for (var prop in this.state.filter) {
+      queryParams[prop] = this.state.filter[prop];
+    }
+
+    if (this.state.query !== this.props.defaultQuery) {
+      queryParams.query = this.state.query;
+    }
+
+    router.transitionTo('stream', router.getCurrentParams(), queryParams);
   },
 
   renderGroupNodes(ids, statsPeriod) {
@@ -219,7 +283,10 @@ var Stream = React.createClass({
 
     return (
       <div>
-        <StreamFilters />
+        <StreamFilters query={this.state.query}
+          onQueryChange={this.onQueryChange}
+          onFilterChange={this.onFilterChange}
+          onSearch={this.onSearch} />
         <div className="group-header">
           <StreamActions
             orgId={params.orgId}
