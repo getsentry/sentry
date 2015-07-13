@@ -19,7 +19,7 @@ class Error500View(View):
 
         try:
             projectkey = ProjectKey.objects.filter(
-                id=settings.SENTRY_PROJECT,
+                project=settings.SENTRY_PROJECT,
             )[0]
         except Exception:
             logging.exception('Unable to fetch ProjectKey for internal project')
