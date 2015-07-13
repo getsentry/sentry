@@ -90,7 +90,7 @@
 .sentry-error-embed .form-field textarea {
   font-size: 15px;
   padding: 8px;
-  border: 0;
+  border: 1px solid #fcfcfc;
   background: #fcfcfc;
   border-radius: 0;
   box-shadow: none;
@@ -132,6 +132,20 @@
   margin: 0;
   float: right;
   font-size: 12px;
+}
+.sentry-error-embed .message-success,
+.sentry-error-embed .message-error {
+  text-align: center;
+  font-size: 14px;
+}
+.sentry-error-embed .message-success {
+  color: green;
+}
+.sentry-error-embed .message-error {
+  color: red;
+}
+.sentry-error-embed .error-wrapper p:last-child {
+  margin-bottom: 0;
 }
 @media screen and (max-height: 570px) {
   .sentry-error-embed {
@@ -197,21 +211,23 @@
     <p><span class="hide-tiny">Our team has been notified.</span> If you'd like to help, tell us what happened below.</p>
   </header>
   <form>
-    {{ form.dsn }}
-    <div class="form-field clearfix{% if form.name.errors %} form-errors{% endif %}">
-      <label>Name</label>
-      {{ form.name }}
-    </div>
-    <div class="form-field clearfix{% if form.email.errors %} form-errors{% endif %}">
-      <label>Email</label>
-      {{ form.email }}
-    </div>
-    <div class="form-field clearfix{% if form.comments.errors %} form-errors{% endif %}">
-      <label>What happened?</label>
-      {{ form.comments }}
+    <div class="error-wrapper"></div>
+    <div class="form-content">
+      <div class="form-field clearfix">
+        <label>Name</label>
+        {{ form.name }}
+      </div>
+      <div class="form-field clearfix">
+        <label>Email</label>
+        {{ form.email }}
+      </div>
+      <div class="form-field clearfix">
+        <label>What happened?</label>
+        {{ form.comments }}
+      </div>
     </div>
     <div class="form-submit clearfix">
-      <input type="submit" class="btn" value="Submit Crash Report" />
+      <button type="submit" class="btn">Submit Crash Report</button>
       <a class="close">Close</a>
       <p class="powered-by">
         Crash reports powered by <a href="https://getsentry.com">Sentry</a>
