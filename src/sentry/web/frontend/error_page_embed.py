@@ -32,7 +32,7 @@ class UserReportForm(forms.ModelForm):
 
 class ErrorPageEmbedView(View):
     def _get_project_key(self, request):
-        dsn = request.POST.get('dsn', request.GET.get('dsn'))
+        dsn = request.GET.get('dsn')
         try:
             key = ProjectKey.from_dsn(dsn)
         except ProjectKey.DoesNotExist:
@@ -48,10 +48,7 @@ class ErrorPageEmbedView(View):
         # TODO(dcramer): since we cant use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
         try:
-            initial = {
-                'dsn': request.GET['dsn'],
-                'eventId': request.GET['eventId'],
-            }
+            event_id = request.GET['eventId']
         except KeyError:
             return HttpResponse(status=400)
 
@@ -71,7 +68,7 @@ class ErrorPageEmbedView(View):
         if form.is_valid():
             report = form.save(commit=False)
             report.project = key.project
-            report.event_id = request.GET['eventId']
+            report.event_id = event_id
             try:
                 report.group = Group.objects.get(
                     eventmapping__event_id=report.event_id,
