@@ -15,7 +15,7 @@ from sentry.utils import json
 class StoreViewTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-api-store', kwargs={'project_id': self.project.slug})
+        return reverse('sentry-api-store', kwargs={'project_id': self.project.id})
 
     @mock.patch('sentry.web.api.StoreView._parse_header')
     @mock.patch('sentry.web.api.project_from_auth_vars')
