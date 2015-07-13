@@ -89,8 +89,6 @@ class ErrorPageEmbedView(View):
                 "errors": dict(form.errors),
             }), status=400, content_type='application/json')
 
-        form = UserReportForm(initial=initial)
-
         template = render_to_string('sentry/error-page-embed.html', {
             'form': form,
         })

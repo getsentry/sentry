@@ -44,7 +44,7 @@
     xhr.onreadystatechange = function() {
       if (xhr.readyState === XMLHttpRequest.DONE) {
         if (xhr.status === 200) {
-          formContent.innerHTML = "<p class="message-success">Your report has been sent. Thank you!</p>";
+          formContent.innerHTML = '<p class="message-success">Your report has been sent. Thank you!</p>';
           submitBtn.parentNode.removeChild(submitBtn);
         } else if (xhr.status == 400) {
           var data = JSON.parse(xhr.responseText);
