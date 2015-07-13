@@ -11,18 +11,32 @@
       : f();
   };
 
+  var close = function() {
+    document.body.removeChild(child);
+  };
+
+  var child = document.createElement('div');
+  child.className = 'sentry-error-embed-wrapper';
+  child.innerHTML = template;
+  child.onclick = function(e){
+    if (e.target !== child) return;
+    close();
+  };
+  var form = child.getElementsByTagName('form')[0];
+  form.onsumbit = function(e) {
+    e.preventDefault();
+  };
+  var linkTags = child.getElementsByTagName('a');
+  for (var i = 0; i < linkTags.length; i++) {
+    if (linkTags[i].className === 'close') {
+      linkTags[i].onclick = function(e) {
+        e.preventDefault();
+        close();
+      }
+    }
+  }
+
   onReady(function(){
-    var child = document.createElement('div');
-    child.className = 'sentry-error-embed-wrapper';
-    child.innerHTML = template;
-    child.onclick = function(e){
-      if (e.target !== child) return;
-      document.body.removeChild(child);
-    };
-    var form = child.getElementsByTagName('form')[0];
-    form.onsubmit = function(e) {
-      e.preventDefault();
-    };
     document.body.appendChild(child);
   });
 }(window, document));
