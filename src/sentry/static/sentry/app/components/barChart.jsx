@@ -35,6 +35,7 @@ var BarChart = React.createClass({
 
   componentWillUnmount() {
     this.removeTooltips();
+    $(this.getDOMNode()).unbind();
   },
 
   shouldComponentUpdate(nextProps, nextState) {

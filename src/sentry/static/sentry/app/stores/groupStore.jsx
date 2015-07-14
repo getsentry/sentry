@@ -32,17 +32,22 @@ var GroupStore = Reflux.createStore({
     this.listenTo(GroupActions.updateSuccess, this.onUpdateSuccess);
   },
 
-  // TODO(dcramer): this should actually come from an action of some sorts
-  loadInitialData(items) {
+  reset() {
     this.items = [];
     this.statuses = {};
     this.pendingChanges.clear();
+  },
+
+  // TODO(dcramer): this should actually come from an action of some sorts
+  loadInitialData(items) {
+    this.reset();
 
     var itemIds = new Set();
     items.forEach((item) => {
       itemIds.add(item.id);
       this.items.push(item);
     });
+
     this.trigger(itemIds);
   },
 

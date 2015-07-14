@@ -10,6 +10,10 @@ var TeamStore = Reflux.createStore({
     this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
   },
 
+  reset() {
+    this.items = [];
+  },
+
   loadInitialData(items) {
     this.items = items;
     this.trigger(this.items, 'initial');
@@ -55,5 +59,7 @@ var TeamStore = Reflux.createStore({
     return this.items;
   }
 });
+
+window.TeamStore = TeamStore;
 
 module.exports = TeamStore;

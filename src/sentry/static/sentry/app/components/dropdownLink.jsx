@@ -1,9 +1,8 @@
 var joinClasses = require("react/lib/joinClasses");
-
 var classSet = require("react/lib/cx");
 var React = require("react");
-
 var $ = require("jquery");
+
 require("bootstrap/js/dropdown");
 
 var DropdownLink = React.createClass({
@@ -22,14 +21,15 @@ var DropdownLink = React.createClass({
     };
   },
 
-  componentDidMount() {
-    var $container = $(this.refs.container.getDOMNode());
-    var $toggle = $(this.refs.toggle.getDOMNode());
-    if (this.props.onOpen) {
-      $container.on('shown.bs.dropdown', this.props.onOpen);
-    }
-    if (this.props.onClose) {
-      $container.on('hidden.bs.dropdown', this.props.onClose);
+  isOpen() {
+    return this.getDOMNode().classList.contains("open");
+  },
+
+  onToggle(e) {
+    if (this.isOpen()) {
+      this.props.onOpen();
+    } else {
+      this.props.onClose();
     }
   },
 
@@ -45,16 +45,14 @@ var DropdownLink = React.createClass({
     });
 
     return (
-      <span className={joinClasses(this.props.topLevelClasses, topLevelClasses)}
-            ref="container">
-        <a className={joinClasses(this.props.className, className)} ref="toggle"
-           data-toggle="dropdown">
+      <span className={joinClasses(this.props.topLevelClasses, topLevelClasses)}>
+        <a className={joinClasses(this.props.className, className)} data-toggle="dropdown" onClick={this.onToggle}>
           {this.props.title}
           {this.props.caret &&
             <i className="icon-arrow-down" />
           }
         </a>
-        <ul className={joinClasses(this.props.menuClasses, "dropdown-menu")} ref="menu">
+        <ul className={joinClasses(this.props.menuClasses, "dropdown-menu")}>
           {this.props.children}
         </ul>
       </span>

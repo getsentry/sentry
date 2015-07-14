@@ -77,6 +77,11 @@ var Stream = React.createClass({
     this.fetchData();
   },
 
+  componentWillUnmount() {
+    this._poller.disable();
+    GroupStore.reset();
+  },
+
   syncStateWithRoute() {
     var currentQuery = this.context.router.getCurrentQuery();
 
@@ -99,11 +104,6 @@ var Stream = React.createClass({
     this.syncStateWithRoute();
     this._poller.disable();
     this.fetchData();
-  },
-
-  componentWillUnmount() {
-    this._poller.disable();
-    GroupStore.loadInitialData([]);
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -305,6 +305,7 @@ var Stream = React.createClass({
       </div>
     );
   }
+
 });
 
 module.exports = Stream;
