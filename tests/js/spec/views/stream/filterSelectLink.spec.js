@@ -11,39 +11,38 @@ describe("FilterSelectLink", function() {
 
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
-    this.wrapper = TestUtils.renderIntoDocument(<FilterSelectLink />);
   });
 
   afterEach(function() {
     this.sandbox.restore();
+    React.unmountComponentAtNode(document.body);
   });
 
   describe("render()", function() {
 
     it("shows a button", function(){
-      var expected = findWithClass(this.wrapper, "btn");
+      var wrapper = React.render(<FilterSelectLink />, document.body);
+      var expected = findWithClass(wrapper, "btn");
       expect(expected).to.be.ok;
     });
 
     it("shows active state when passed isActive=true", function(){
-      this.wrapper = TestUtils.renderIntoDocument(<FilterSelectLink isActive={true} />);
-      var expected = findWithClass(this.wrapper, "active");
+      var wrapper = React.render(<FilterSelectLink isActive={true} />, document.body);
+      var expected = findWithClass(wrapper, "active");
       expect(expected).to.be.ok;
     });
 
     it("doesn't show active state when passed isActive=false", function(){
-      var wrapper = TestUtils.renderIntoDocument(<FilterSelectLink isActive={false} />);
-      function findActive() {
-        findWithClass(wrapper, "active");
-      }
-      expect(findActive).to.throw();
+      var wrapper = React.render(<FilterSelectLink isActive={false} />, document.body);
+      expect(() => findWithClass(wrapper, "active")).to.throw();
     });
 
 
     it("calls onSelect() when clicked", function(){
       var onSelect = this.sandbox.spy();
-      this.wrapper = TestUtils.renderIntoDocument(<FilterSelectLink onSelect={onSelect} />);
-      TestUtils.Simulate.click(this.wrapper.getDOMNode());
+      var wrapper = React.render(<FilterSelectLink onSelect={onSelect} />, document.body);
+
+      TestUtils.Simulate.click(wrapper.getDOMNode());
 
       expect(onSelect.called).to.be.true;
     });

@@ -17,28 +17,35 @@ describe("SearchBar", function() {
 
   afterEach(function() {
     this.sandbox.restore();
+    React.unmountComponentAtNode(document.body);
   });
 
   describe("clearSearch()", function() {
 
     it("clears the query", function() {
-      var stubbedOnQueryChange = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar query={"is:unresolved"} onQueryChange={stubbedOnQueryChange} />);
+      var props = {
+        query: "is:unresolved",
+        onQueryChange: this.sandbox.spy()
+      };
+      var wrapper = React.render(<SearchBar {...props} />, document.body);
+
       wrapper.clearSearch();
-      expect(stubbedOnQueryChange.calledWith("")).to.be.true;
+
+      expect(props.onQueryChange.calledWith("")).to.be.true;
     });
 
     it("calls onSearch()", function(done) {
       var props = {
         query: "is:unresolved",
         onSearch: this.sandbox.spy(),
-        onQueryChange: (query, callback) => callback()
+        onQueryChange: this.sandbox.spy()
       };
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar {...props} />);
+      var wrapper = React.render(<SearchBar {...props} />, document.body);
+
       wrapper.clearSearch();
 
       setTimeout(() => {
-        expect(props.onSearch.called).to.be.true;
+        expect(props.onQueryChange.calledWith("", props.onSearch)).to.be.true;
         done();
       });
     });
@@ -48,9 +55,11 @@ describe("SearchBar", function() {
   describe("onQueryFocus()", function() {
 
     it("displays the drop down", function() {
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar />);
+      var wrapper = React.render(<SearchBar />, document.body);
       expect(wrapper.state.dropdownVisible).to.be.false;
+
       wrapper.onQueryFocus();
+
       expect(wrapper.state.dropdownVisible).to.be.true;
     });
 
@@ -59,10 +68,11 @@ describe("SearchBar", function() {
   describe("onQueryBlur()", function() {
 
     it("hides the drop down", function() {
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar />);
+      var wrapper = React.render(<SearchBar />, document.body);
       wrapper.state.dropdownVisible = true;
 
       wrapper.onQueryBlur();
+
       expect(wrapper.state.dropdownVisible).to.be.false;
     });
 
@@ -71,12 +81,12 @@ describe("SearchBar", function() {
   describe("render()", function() {
 
     it("invokes onSearch() when submitting the form", function() {
-      var stubOnSearch = this.sandbox.spy();
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar onSearch={stubOnSearch} />);
+      var stubbedOnSearch = this.sandbox.spy();
+      var wrapper = React.render(<SearchBar onSearch={stubbedOnSearch} />, document.body);
 
       TestUtils.Simulate.submit(wrapper.refs.searchForm, { preventDefault() {} });
 
-      expect(stubOnSearch.called).to.be.true;
+      expect(stubbedOnSearch.called).to.be.true;
     });
 
     it("invokes onSearch() when search is cleared", function(done) {
@@ -85,13 +95,12 @@ describe("SearchBar", function() {
         onSearch: this.sandbox.spy(),
         onQueryChange: this.sandbox.spy()
       };
-      var wrapper = TestUtils.renderIntoDocument(<SearchBar {...props} />);
+      var wrapper = React.render(<SearchBar {...props} />, document.body);
 
       var cancelButton = findWithClass(wrapper, "search-clear-form");
       TestUtils.Simulate.click(cancelButton);
 
       setTimeout(() => {
-        // expect(props.onSearch.called).to.be.true;
         expect(props.onQueryChange.calledWith("", props.onSearch)).to.be.true;
         done();
       });
