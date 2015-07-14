@@ -36,7 +36,7 @@ var TooltipTrigger = React.createClass({
   componentWillUnmount() {
     var node = $(this.getDOMNode());
     node.tooltip("destroy");
-    node.unbind("show.bs.tooltip", "shown.bs.tooltip", "hide.bs.tooltip", "hidden.bs.tooltip");
+    node.unbind();
   },
 
   render() {
