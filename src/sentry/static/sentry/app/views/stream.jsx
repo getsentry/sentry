@@ -124,7 +124,9 @@ var Stream = React.createClass({
       error: false
     });
 
-    api.request(this.getGroupListEndpoint(), {
+    var url = this.getGroupListEndpoint();
+
+    api.request(url, {
       success: (data, _, jqXHR) => {
         this._streamManager.push(data);
 
@@ -142,6 +144,7 @@ var Stream = React.createClass({
       },
       complete: () => {
         if (this.state.realtimeActive) {
+          this._poller.setEndpoint(url);
           this._poller.enable();
         }
       }

@@ -17,6 +17,10 @@ class CursorPoller {
     return Math.min(delay, this._maxDelay);
   }
 
+  setEndpoint(url) {
+    this._pollingEndpoint = url;
+  }
+
   enable(){
     this._active = true;
     if (!this._timeoutId) {
@@ -51,7 +55,6 @@ class CursorPoller {
         }
 
         var links = parseLinkHeader(jqXHR.getResponseHeader('Link'));
-
         this._pollingEndpoint = links.previous.href;
 
         this.options.success(data, jqXHR.getResponseHeader('Link'));
