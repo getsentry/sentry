@@ -6,6 +6,17 @@ Version 7.7.0
 - Added ``SavedSearch`` model for future features.
 - The explore feature is now deprecated and links have been hidden.
 
+Version 7.6.2
+-------------
+
+- Improved (fixed?) static bundling in various conditions.
+
+Version 7.6.1
+-------------
+
+- [Security] An XSS vulnerability was addressed with low cardinality tags and the stream filter box:
+  https://github.com/getsentry/sentry/commit/364b959811561de83f29893e105cc590224edbee
+
 Version 7.6.0
 -------------
 
@@ -25,6 +36,17 @@ This releases entirely removes Access Groups. If you're upgrading from an instal
   (i.e. in an on-premise install which wants to convert to a single organization)
 - New ``import`` and ``export`` commands now exist for creating backups of critical metadata
   (i.e. api keys, projects, user settings)
+
+Version 7.5.6
+-------------
+
+- Improved (fixed?) static bundling in various conditions.
+
+Version 7.5.5
+-------------
+
+- [Security] An XSS vulnerability was addressed with low cardinality tags and the stream filter box:
+  https://github.com/getsentry/sentry/commit/364b959811561de83f29893e105cc590224edbee
 
 Version 7.5.4
 -------------

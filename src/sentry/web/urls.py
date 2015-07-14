@@ -35,6 +35,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.help_index import HelpIndexView
 from sentry.web.frontend.help_page import HelpPageView
@@ -82,6 +83,8 @@ urlpatterns = patterns('')
 
 if settings.DEBUG:
     import sentry.web.frontend.debug.mail
+    from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
+    from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 
     urlpatterns += patterns('',
         url(r'^debug/mail/new-event/$',
@@ -92,6 +95,10 @@ if settings.DEBUG:
             sentry.web.frontend.debug.mail.request_access),
         url(r'^debug/mail/access-approved/$',
             sentry.web.frontend.debug.mail.access_approved),
+        url(r'^debug/embed/error-page/$',
+            DebugErrorPageEmbedView.as_view()),
+        url(r'^debug/trigger-error/$',
+            DebugTriggerErrorView.as_view()),
     )
 
 urlpatterns += patterns('',
@@ -112,6 +119,8 @@ urlpatterns += patterns('',
         name='sentry-mailgun-inbound-hook'),
     url(r'^api/hooks/release/(?P<plugin_id>[^/]+)/(?P<project_id>[^/]+)/(?P<signature>[^/]+)/', ReleaseWebhookView.as_view(),
         name='sentry-release-hook'),
+    url(r'^api/embed/error-page/$', ErrorPageEmbedView.as_view(),
+        name='sentry-error-page-embed'),
 
     # Auth
     url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthLinkIdentityView.as_view(),
