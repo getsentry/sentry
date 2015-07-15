@@ -150,13 +150,21 @@ var Frame = React.createClass({
 
 var StacktraceContent = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
+    includeSystemFrames: React.PropTypes.bool
+  },
+
+  getDefaultProps() {
+    return {
+      includeSystemFrames: true
+    };
   },
 
   render() {
     var data = this.props.data;
     var frames = [];
     var firstFrameOmitted, lastFrameOmitted;
+    var includeSystemFrames = this.props.includeSystemFrames;
 
     if (data.frames_omitted) {
       firstFrameOmitted = data.framesOmitted[0];
@@ -167,7 +175,9 @@ var StacktraceContent = React.createClass({
     }
 
     data.frames.forEach((frame, frameIdx) => {
-      frames.push(<Frame key={frameIdx} data={frame} />);
+      if (includeSystemFrames || frame.inApp) {
+        frames.push(<Frame key={frameIdx} data={frame} />);
+      }
       if (frameIdx === firstFrameOmitted) {
         frames.push((
           <li className="frames-omitted" key="omitted">
