@@ -31,6 +31,7 @@ var SeenInfo = React.createClass({
       <dl>
         <dt>When:</dt>
         <dd><TimeSince date={date} /></dd>
+        <dt>Date:</dt>
         <dd><DateTime date={date} /></dd>
         {utils.defined(release) && [
           <dt>Release:</dt>,

@@ -1059,7 +1059,7 @@ table.integrations {
       bottom: 0;
       left: 1px;
       right: 1px;
-      background: rgba(38, 73, 112, 0.03);
+      background: rgba(38, 73, 112, 0.04);
     }
 
     > span {
@@ -1359,6 +1359,29 @@ pre.clippy {
     .pull-right {
       a, .btn {
         margin-left: 10px;
+      }
+    }
+
+    .nav-tabs {
+      float: right;
+      line-height: inherit;
+
+      li {
+        margin: 0 0 0 20px;
+        font-weight: 400;
+
+        &.active a {
+          font-weight: 600;
+          border: 0;
+          box-shadow: inset 0 -3px 0 @blue;
+        }
+      }
+
+      a {
+        font-weight: 400;
+        padding: 0;
+        font-size: 14px;
+        line-height: inherit;
       }
     }
 
@@ -2160,25 +2183,6 @@ header ~ #messages {
       border-radius: 0;
       .box-shadow(none);
     }
-  }
-}
-
-/**
-* Group / Event stats
-* ============================================================================
-*/
-
-.group-stats, .event-stats {
-  padding-bottom: 5px;
-
-  h6 {
-    opacity: .9;
-    font-weight: 400;
-    margin-bottom: 15px;
-  }
-
-  h3 {
-    font-size: 18px;
   }
 }
 

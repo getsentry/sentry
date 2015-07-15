@@ -78,13 +78,15 @@ var ExceptionInterface = React.createClass({
     var data = this.props.data;
 
     var title = (
-      <span>
+      <div>
         Exception
-        <label className="raw-toggle pull-right">
-          <input type="checkbox" onChange={this.toggleRaw} checked={this.state.raw} />
-          Raw
-        </label>
-      </span>
+        <ul className="nav nav-tabs">
+          <li>Stacktrace:</li>
+          <li className="active"><a>App</a></li>
+          <li><a>Full</a></li>
+          <li><a onClick={this.toggleRaw}>Raw</a></li>
+        </ul>
+      </div>
     );
 
     return (
