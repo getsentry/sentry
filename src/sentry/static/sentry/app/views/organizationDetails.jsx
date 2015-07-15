@@ -47,6 +47,10 @@ var OrganizationDetails = React.createClass({
     this.fetchData();
   },
 
+  componentWillUnmount() {
+    TeamStore.reset();
+  },
+
   routeDidChange(nextPath, nextParams) {
     var router = this.context.router;
     var params = router.getCurrentParams();

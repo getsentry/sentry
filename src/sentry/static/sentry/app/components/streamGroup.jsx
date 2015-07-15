@@ -119,18 +119,15 @@ var StreamGroup = React.createClass({
     });
   },
 
-  componentDidMount() {
-    var el = this.refs.element;
-    if (!el) return;
-    jQuery(el.getDOMNode()).click((event) => {
-      if (event.target.tagName === 'A')
-        return;
-      if (event.target.tagName === 'INPUT')
-        return;
-      if (jQuery(event.target).parents('a').length !== 0)
-        return;
-      SelectedGroupStore.toggleSelect(this.state.data.id);
-    });
+  toggleSelect(event) {
+    if (event.target.tagName === 'A')
+      return;
+    if (event.target.tagName === 'INPUT')
+      return;
+    if (jQuery(event.target).parents('a').length !== 0)
+      return;
+
+    SelectedGroupStore.toggleSelect(this.state.data.id);
   },
 
   render() {
@@ -161,7 +158,7 @@ var StreamGroup = React.createClass({
     };
 
     return (
-      <li className={className} ref="element">
+      <li className={className} onClick={this.toggleSelect}>
         <div className="col-md-7 col-xs-8 event-details">
           {this.props.canSelect &&
             <div className="checkbox">
