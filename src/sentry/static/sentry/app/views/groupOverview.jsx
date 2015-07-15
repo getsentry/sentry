@@ -3,6 +3,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var ApiMixin = require("../mixins/apiMixin");
+var DateTime = require("../components/dateTime");
 var GroupChart = require("./groupDetails/chart");
 var GroupEventEntries = require("../components/eventEntries");
 var GroupState = require("../mixins/groupState");
@@ -13,6 +14,24 @@ var PropTypes = require("../proptypes");
 var RouteMixin = require("../mixins/routeMixin");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
+var Version = require("../components/version");
+
+var SeenInfo = React.createClass({
+  render() {
+    var {date,release} = this.props;
+    return (
+      <dl>
+        <dt>When:</dt>
+        <dd><TimeSince date={date} /></dd>
+        <dd><DateTime date={date} /></dd>
+        {release && [
+          <dt>Release:</dt>,
+          <dd><Version version={release.version} /></dd>
+        ]}
+      </dl>
+    );
+  }
+});
 
 var GroupOverview = React.createClass({
   contextTypes: {
@@ -82,6 +101,8 @@ var GroupOverview = React.createClass({
   render() {
     var group = this.getGroup();
     var evt = this.state.event;
+    var orgId = this.getOrganization().slug;
+    var projectId = this.getProject().slug;
 
     return (
       <div>
@@ -93,21 +114,20 @@ var GroupOverview = React.createClass({
               <GroupChart statsPeriod="30d" group={group}
                           title="Last 30 Days"
                           className="bar-chart-small" />
-              <h6>First seen</h6>
-              <h3>
-                <TimeSince date={group.firstSeen} />
-                {group.firstRelease &&
-                  <small> {group.firstRelease.version}</small>
-                }
-              </h3>
 
-              <h6>Last seen</h6>
-              <h3>
-                <TimeSince date={group.lastSeen} />
-                {group.lastRelease &&
-                  <small> {group.lastRelease.version}</small>
-                }
-              </h3>
+              <h6 className="first-seen">First seen</h6>
+              <SeenInfo
+                  orgId={orgId}
+                  projectId={projectId}
+                  date={group.firstSeen}
+                  release={group.firstRelease} />
+
+              <h6 className="last-seen">Last seen</h6>
+              <SeenInfo
+                  orgId={orgId}
+                  projectId={projectId}
+                  date={group.lastSeen}
+                  release={group.lastRelease} />
 
               <h6>Status</h6>
               <h3>{group.status}</h3>
