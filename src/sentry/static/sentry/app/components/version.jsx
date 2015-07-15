@@ -6,6 +6,10 @@ var Version = React.createClass({
     router: React.PropTypes.func
   },
 
+  propTypes: {
+    version: React.PropTypes.string.isRequired
+  },
+
   render() {
     var version = this.props.version;
     var shortVersion = version.length === 40 ? version.substr(0, 12) : version;
