@@ -43,30 +43,45 @@ class ErrorPageEmbedView(View):
     def _get_origin(self, request):
         return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
 
+    def _json_response(self, request, context=None, status=200):
+        if context:
+            content = json.dumps(context)
+        else:
+            content = ''
+        response = HttpResponse(content, status=status, content_type='application/json')
+        response['Access-Control-Allow-Origin'] = request.META.get('HTTP_ORIGIN', '')
+        response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        response['Access-Control-Max-Age'] = '1000'
+        response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        return response
+
     @csrf_exempt
     def dispatch(self, request):
+        try:
+            event_id = request.GET['eventId']
+        except KeyError:
+            return self._json_response(request, status=400)
+
+        key = self._get_project_key(request)
+        if not key:
+            return self._json_response(request, status=404)
+
+        origin = self._get_origin(request)
+        if not origin:
+            return self._json_response(request, status=403)
+
+        if not is_valid_origin(origin, key.project):
+            return HttpResponse(status=403)
+
+        if request.method == 'OPTIONS':
+            return self._json_response(request)
+
         # TODO(dcramer): since we cant use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
         initial = {
             'name': request.GET.get('name'),
             'email': request.GET.get('email'),
         }
-
-        try:
-            event_id = request.GET['eventId']
-        except KeyError:
-            return HttpResponse(status=400)
-
-        key = self._get_project_key(request)
-        if not key:
-            return HttpResponse(status=404)
-
-        origin = self._get_origin(request)
-        if not origin:
-            return HttpResponse(status=403)
-
-        if not is_valid_origin(origin, key.project):
-            return HttpResponse(status=403)
 
         form = UserReportForm(request.POST if request.method == 'POST' else None,
                               initial=initial)
@@ -85,9 +100,9 @@ class ErrorPageEmbedView(View):
             report.save()
             return HttpResponse(status=200)
         elif request.method == 'POST':
-            return HttpResponse(json.dumps({
+            return self._json_response(request, {
                 "errors": dict(form.errors),
-            }), status=400, content_type='application/json')
+            }, status=400)
 
         template = render_to_string('sentry/error-page-embed.html', {
             'form': form,
