@@ -306,7 +306,8 @@ def initialize_app(config):
     if settings.SENTRY_SINGLE_ORGANIZATION:
         settings.SENTRY_FEATURES['organizations:create'] = False
 
-    settings.SUDO_COOKIE_SECURE = settings.SESSION_COOKIE_SECURE
+    settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
 
     initialize_receivers()
 
