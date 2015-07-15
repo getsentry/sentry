@@ -20,10 +20,26 @@ var GroupChart = React.createClass({
     });
     var className = "bar-chart group-chart " + (this.props.className || '');
 
+    var markers = [
+      {
+        label: "First seen",
+        x: new Date(this.props.firstSeen).getTime() / 1000,
+        className: "first-seen"
+      },
+      {
+        label: "Last seen",
+        x: new Date(this.props.lastSeen).getTime() / 1000,
+        className: "last-seen"
+      }
+    ];
+
     return (
       <div className={className}>
         <h6>{this.props.title}</h6>
-        <BarChart points={points} className="sparkline" />
+        <BarChart
+            points={points}
+            markers={markers}
+            className="sparkline" />
       </div>
     );
   }
