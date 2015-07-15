@@ -29,6 +29,7 @@ var BarChart = React.createClass({
       label: "events",
       placement: "bottom",
       points: [],
+      markers: [],
       width: null,
       viewport: null
     };
