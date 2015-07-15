@@ -22,6 +22,7 @@ Additionally, the following third party/experimental clients are available:
 - Erlang (`raven-erlang <https://github.com/soundrop/raven-erlang>`_)
 - Go (`raven-go <https://github.com/getsentry/raven-go>`_)
 - Grails (`raven-grails <https://github.com/informant-army/raven-grails>`_)
+- Perl (`perl-raven <https://github.com/rentrak/perl-raven>`_)
 - PL/SQL (Oracle) (`raven-plsql <https://github.com/teopost/raven-plsql>`_)
 - R (`logging <http://logging.r-forge.r-project.org/>`_)
 - Server-Side ActionScript (`raven-ssas <https://github.com/seegno/raven-ssas>`_)
