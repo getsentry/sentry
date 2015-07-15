@@ -268,6 +268,34 @@
   float: right;
 }
 
+.group-stats {
+  font-size: 15px;
+
+  h6 {
+    font-size: 15px;
+    margin-bottom: 15px;
+  }
+
+  dl {
+    margin: 0 0 15px;
+
+    dt {
+      float: left;
+      font-weight: normal;
+      line-height: 1.7;
+    }
+
+    dd {
+      text-align: right;
+      line-height: 1.7;
+
+      &:last-child, &:nth-child(2) { //hacky
+        background-color: rgba(38, 73, 112, 0.03);
+      }
+    }
+  }
+}
+
 /**
 * Activity
 * ============================================================================
