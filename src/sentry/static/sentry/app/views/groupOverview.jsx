@@ -29,13 +29,13 @@ var SeenInfo = React.createClass({
     var {date, release} = this.props;
     return (
       <dl>
-        <dt>When:</dt>
-        <dd><TimeSince date={date} /></dd>
-        <dt>Date:</dt>
-        <dd><DateTime date={date} /></dd>
+        <dt key={0}>When:</dt>
+        <dd key={1}><TimeSince date={date} /></dd>
+        <dt key={2}>Date:</dt>
+        <dd key={3}><DateTime date={date} /></dd>
         {utils.defined(release) && [
-          <dt>Release:</dt>,
-          <dd><Version version={release.version} /></dd>
+          <dt key={4}>Release:</dt>,
+          <dd key={5}><Version version={release.version} /></dd>
         ]}
       </dl>
     );
