@@ -1078,6 +1078,36 @@ table.integrations {
       border-radius: 0;
     }
   }
+
+  .chart-marker {
+    display: block;
+    position: relative;
+    float: left;
+    width: 0;
+
+    &:hover {
+      > span {
+        background-color: gray;
+        border-color: #fff;
+      }
+    }
+
+    > span {
+      z-index: 2;
+      position: absolute;
+      bottom: -5px;
+      left: -5px;
+      border: 2px solid #fff;
+      .square(10px);
+      background: gray;
+      border-radius: 8px;
+    }
+
+    &.first-seen > span {
+    }
+    &.last-seen > span {
+    }
+  }
 }
 
 // Sparkline grid

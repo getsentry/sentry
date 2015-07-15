@@ -14,7 +14,12 @@ var BarChart = React.createClass({
     })),
     interval: React.PropTypes.string,
     placement: React.PropTypes.string,
-    label: React.PropTypes.string
+    label: React.PropTypes.string,
+    markers: React.PropTypes.arrayOf(React.PropTypes.shape({
+      x: React.PropTypes.number.isRequired,
+      y: React.PropTypes.number.isRequired,
+      label: React.PropTypes.string
+    }))
   },
 
   getDefaultProps() {
@@ -46,7 +51,7 @@ var BarChart = React.createClass({
     $(this.getDOMNode()).tooltip({
       html: true,
       placement: this.props.placement,
-      selector: ".chart-column",
+      selector: ".tip",
       viewport: this.props.viewport
     });
   },
@@ -110,6 +115,43 @@ var BarChart = React.createClass({
     return maxval;
   },
 
+  renderMarker(marker) {
+    var timeLabel = moment(marker.x * 1000).format("lll");
+    var title = (
+      '<div style="width:130px">' +
+        marker.label + '<br/>' +
+        timeLabel +
+      '</div>'
+    );
+    var className = "chart-marker tip " + (marker.className || '');
+
+    return (
+      <a key={'m' + marker.x} className={className} data-title={title}>
+        <span>{marker.label}</span>
+      </a>
+    );
+  },
+
+  renderChartColumn(point, maxval, timeLabelFunc, pointWidth) {
+    var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
+    var timeLabel = timeLabelFunc(point);
+    var title = (
+      '<div style="width:130px">' +
+        point.y + ' ' + this.props.label + '<br/>' +
+        timeLabel +
+      '</div>'
+    );
+    if (point.label) {
+      title += '<div>(' + point.label + ')</div>';
+    }
+
+    return (
+      <a key={point.x} className="chart-column tip" data-title={title} style={{ width: pointWidth }}>
+        <span style={{ height: pct }}>{point.y}</span>
+      </a>
+    );
+  },
+
   renderChart() {
     var points = this.props.points;
     var pointWidth = this.floatFormat(100.0 / points.length, 2) + "%";
@@ -132,29 +174,26 @@ var BarChart = React.createClass({
 
     var maxval = this.maxPointValue();
 
-    return points.map((point) => {
-      return this.renderChartColumn(point, maxval, timeLabelFunc, pointWidth);
+    var markers = this.props.markers.slice();
+
+    var children = [];
+    var lastX = 0;
+    points.forEach((point, pointIdx) => {
+      markers.forEach((marker, markerIdx) => {
+        if (marker.x > lastX && marker.x <= point.x) {
+          markers.splice(markerIdx, 1);
+          children.push(this.renderMarker(marker));
+        }
+      });
+      children.push(this.renderChartColumn(point, maxval, timeLabelFunc, pointWidth));
+      lastX = point.x;
     });
-  },
 
-  renderChartColumn(point, maxval, timeLabelFunc, pointWidth) {
-    var pct = this.floatFormat(point.y / maxval * 99, 2) + "%";
-    var timeLabel = timeLabelFunc(point);
-    var title = (
-      '<div style="width:130px">' +
-        point.y + ' ' + this.props.label + '<br/>' +
-        timeLabel +
-      '</div>'
-    );
-    if (point.label) {
-      title += '<div>(' + point.label + ')</div>';
-    }
+    markers.forEach((marker) => {
+      children.push(this.renderMarker(marker));
+    });
 
-    return (
-      <a key={point.x} className="chart-column" data-title={title} style={{ width: pointWidth }}>
-        <span style={{ height: pct }}>{point.y}</span>
-      </a>
-    );
+    return children;
   },
 
   render() {

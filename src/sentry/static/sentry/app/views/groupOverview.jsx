@@ -119,10 +119,14 @@ var GroupOverview = React.createClass({
           <div className="col-md-3 group-stats-column">
             <div className="group-stats">
               <GroupChart statsPeriod="24h" group={group}
-                          title="Last 24 Hours" />
+                          title="Last 24 Hours"
+                          firstSeen={group.firstSeen}
+                          lastSeen={group.lastSeen} />
               <GroupChart statsPeriod="30d" group={group}
                           title="Last 30 Days"
-                          className="bar-chart-small" />
+                          className="bar-chart-small"
+                          firstSeen={group.firstSeen}
+                          lastSeen={group.lastSeen} />
 
               <h6 className="first-seen">First seen</h6>
               <SeenInfo
