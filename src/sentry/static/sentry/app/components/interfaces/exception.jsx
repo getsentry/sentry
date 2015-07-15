@@ -7,30 +7,12 @@ var RawStacktraceContent = require("./rawStacktraceContent");
 var StacktraceContent = require("./stacktraceContent");
 
 var ExceptionContent = React.createClass({
-  render() {
-    // TODO(dcramer): implement exceptions omitted
-    return (
-      <div>
-        {this.props.values.map((exc, excIdx) => {
-          return (
-            <div key={excIdx}>
-              <h4>
-                <span>{exc.type}</span>
-              </h4>
-              {exc.value &&
-                <pre className="exc-message">{exc.value}</pre>
-              }
-              <StacktraceContent data={exc.stacktrace} />
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-});
+  propTypes: {
+    view: React.PropTypes.string.isRequired
+  },
 
-var RawExceptionContent = React.createClass({
   render() {
+    var stackView = this.props.view;
     // TODO(dcramer): implement exceptions omitted
     return (
       <div>
@@ -43,7 +25,13 @@ var RawExceptionContent = React.createClass({
               {exc.value &&
                 <pre className="exc-message">{exc.value}</pre>
               }
-              <RawStacktraceContent data={exc.stacktrace} />
+              {stackView === "raw" ?
+                <RawStacktraceContent data={exc.stacktrace} />
+              :
+                <StacktraceContent
+                    data={exc.stacktrace}
+                    includeSystemFrames={stackView === "full"} />
+              }
             </div>
           );
         })}
@@ -62,13 +50,13 @@ var ExceptionInterface = React.createClass({
 
   getInitialState() {
     return {
-      raw: false
+      stackView: "app"
     };
   },
 
-  toggleRaw() {
+  toggleStack(value) {
     this.setState({
-      raw: !this.state.raw
+      stackView: value
     });
   },
 
@@ -76,15 +64,22 @@ var ExceptionInterface = React.createClass({
     var group = this.props.group;
     var evt = this.props.event;
     var data = this.props.data;
+    var stackView = this.state.stackView;
 
     var title = (
       <div>
         Exception
         <ul className="nav nav-tabs">
           <li>Stacktrace:</li>
-          <li className="active"><a>App</a></li>
-          <li><a>Full</a></li>
-          <li><a onClick={this.toggleRaw}>Raw</a></li>
+          <li className={stackView === "app" && "active"}>
+            <a onClick={this.toggleStack.bind(this, "app")}>App</a>
+          </li>
+          <li className={stackView === "full" && "active"}>
+            <a onClick={this.toggleStack.bind(this, "full")}>Full</a>
+          </li>
+          <li className={stackView === "raw" && "active"}>
+            <a onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
+          </li>
         </ul>
       </div>
     );
@@ -95,11 +90,7 @@ var ExceptionInterface = React.createClass({
           event={evt}
           type={this.props.type}
           title={title}>
-        {this.state.raw ?
-          <RawExceptionContent values={data.values} />
-        :
-          <ExceptionContent values={data.values} />
-        }
+        <ExceptionContent view={stackView} values={data.values} />
       </GroupEventDataSection>
     );
   }
