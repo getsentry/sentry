@@ -18,6 +18,13 @@ var utils = require("../utils");
 var Version = require("../components/version");
 
 var SeenInfo = React.createClass({
+  propTypes: {
+    date: React.PropTypes.any.isRequired,
+    release: React.PropTypes.shape({
+      version: React.PropTypes.string.isRequired
+    })
+  },
+
   render() {
     var {date, release} = this.props;
     return (
