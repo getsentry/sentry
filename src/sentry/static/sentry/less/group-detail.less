@@ -274,6 +274,28 @@
   h6 {
     font-size: 15px;
     margin-bottom: 15px;
+
+    &.first-seen, &.last-seen {
+      position: relative;
+
+      &:after {
+        display: block;
+        position: absolute;
+        content: "";
+        border-radius: 60%;
+        .square(9px);
+        right: 0;
+        top: 4px;
+      }
+
+      &.first-seen:after {
+        background-color: @purple;
+      }
+
+      &.last-seen:after {
+        background-color: @green;
+      }
+    }
   }
 
   dl {
