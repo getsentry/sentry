@@ -17,7 +17,6 @@ var BarChart = React.createClass({
     label: React.PropTypes.string,
     markers: React.PropTypes.arrayOf(React.PropTypes.shape({
       x: React.PropTypes.number.isRequired,
-      y: React.PropTypes.number.isRequired,
       label: React.PropTypes.string
     }))
   },
