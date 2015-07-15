@@ -5,6 +5,7 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
+from sentry.app import raven
 from sentry.models import ApiKey, ProjectKey
 
 
@@ -25,6 +26,10 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
 
         if not key.is_active:
             raise AuthenticationFailed('Key is disabled')
+
+        raven.tags_context({
+            'api_key': userid,
+        })
 
         return (AnonymousUser(), key)
 
