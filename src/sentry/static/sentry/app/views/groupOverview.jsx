@@ -53,10 +53,6 @@ var GroupOverview = React.createClass({
     RouteMixin
   ],
 
-  propTypes: {
-    statsPeriod: React.PropTypes.string.isRequired
-  },
-
   getInitialState() {
     return {
       loading: true,
