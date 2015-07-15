@@ -67,7 +67,7 @@ var Frame = React.createClass({
 
     var className = classSet({
       "frame": true,
-      "system-frame": !data.in_app,
+      "system-frame": !data.inApp,
       "frame-errors": data.errors,
     });
 
