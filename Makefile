@@ -98,8 +98,7 @@ lint-python:
 lint-js:
 	@echo "--> Linting JavaScript files"
 	@npm install
-	@${NPM_ROOT}/.bin/jsxhint --jsx-only src
-	@${NPM_ROOT}/.bin/jshint src
+	@npm run lint
 	@echo ""
 
 coverage: develop

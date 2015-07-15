@@ -1,3 +1,4 @@
+/*jshint expr: true*/
 var React = require("react/addons");
 var Cookies = require("js-cookie");
 
@@ -158,7 +159,7 @@ describe("Stream", function() {
         pageLinks: '',
         loading: true,
         error: false
-      }
+      };
       var wrapper = React.render(<this.Element />, document.body);
       var actual = wrapper.refs.stub.getInitialState();
 
