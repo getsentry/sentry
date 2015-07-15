@@ -261,8 +261,8 @@ var DateTimeField = React.createClass({
   render: function() {
     return (
           <span>
-            {this.renderOverlay()}
-            <DateTimePicker ref="widget"
+            {/*this.renderOverlay()*/}
+            {/*<DateTimePicker ref="widget"
               widgetClasses={this.state.widgetClasses}
               widgetStyle={this.state.widgetStyle}
               showDatePicker={this.state.showDatePicker}
@@ -287,7 +287,7 @@ var DateTimeField = React.createClass({
               setSelectedHour={this.setSelectedHour}
               setSelectedMinute={this.setSelectedMinute}
               togglePicker={this.togglePicker}
-              togglePeriod={this.togglePeriod} />
+              togglePeriod={this.togglePeriod} />*/}
             <span className="input-group date" ref="datetimepicker">
               <input type="text" className="form-control" onChange={this.onChange} value={this.state.selectedDate.format(this.props.inputFormat)} />
               <span className="input-group-addon" onClick={this.onClick} onBlur={this.onBlur} ref="dtpbutton">
