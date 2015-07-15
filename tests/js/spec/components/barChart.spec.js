@@ -1,13 +1,6 @@
 var React = require("react/addons");
-var Cookies = require("js-cookie");
 
 var BarChart = require("app/components/barChart");
-var stubReactComponents = require("../../helpers/stubReactComponent");
-var stubRouterContext = require("../../helpers/stubRouterContext");
-
-var TestUtils = React.addons.TestUtils;
-var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
-var findWithType = TestUtils.findRenderedComponentWithType;
 
 describe("BarChart", function() {
 
