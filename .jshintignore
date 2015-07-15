@@ -1,4 +1,3 @@
-tests/
 src/sentry/templates/sentry/error-page-embed.js
 src/sentry/static/sentry/scripts/lib/
 src/sentry/static/sentry/dist/

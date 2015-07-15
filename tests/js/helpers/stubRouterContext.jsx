@@ -17,7 +17,7 @@ module.exports = (Component, props, stubs) => {
     isActive() {},
     getRouteAtDepth() {},
     setRouteComponentAtDepth() {}
-  }, stubs)
+  }, stubs);
 
   return React.createClass({
     childContextTypes: {
@@ -33,7 +33,7 @@ module.exports = (Component, props, stubs) => {
     },
 
     render() {
-      return <Component ref="stub" {...props} />
+      return <Component ref="stub" {...props} />;
     }
   });
 };

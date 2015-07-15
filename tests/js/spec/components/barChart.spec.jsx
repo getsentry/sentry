@@ -1,3 +1,4 @@
+/*jshint expr: true*/
 var React = require("react/addons");
 
 var BarChart = require("app/components/barChart");
