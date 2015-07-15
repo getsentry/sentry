@@ -21,10 +21,11 @@ var GroupChart = React.createClass({
     var className = "bar-chart group-chart " + (this.props.className || '');
 
     var markers = [];
-    if (this.props.firstSeen >= points[0].x) {
+    var firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
+    if (firstSeenX >= points[0].x) {
       markers.push({
         label: "First seen",
-        x: new Date(this.props.firstSeen).getTime() / 1000,
+        x: firstSeenX,
         className: "first-seen"
       });
     }
