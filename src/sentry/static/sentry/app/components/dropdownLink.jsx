@@ -27,9 +27,9 @@ var DropdownLink = React.createClass({
 
   onToggle(e) {
     if (this.isOpen()) {
-      this.props.onOpen();
+      this.props.onOpen(e);
     } else {
-      this.props.onClose();
+      this.props.onClose(e);
     }
   },
 

@@ -55,7 +55,7 @@ var ProjectSelector = React.createClass({
   },
 
   onOpen(event) {
-    $(event.target).find('input[type=text]').focus();
+    $(this.refs.filter.getDOMNode()).focus();
   },
 
   onClose(event) {
