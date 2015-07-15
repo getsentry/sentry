@@ -14,7 +14,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagValue
+    GroupTagValue, Release
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -85,6 +85,16 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return action_list
 
+    def _get_release_info(self, request, group, version):
+        try:
+            release = Release.objects.get(
+                project=group.project,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {'version': version}
+        return serialize(release, request.user)
+
     def get(self, request, group):
         """
         Retrieve an aggregate
@@ -111,11 +121,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             except IndexError:
                 first_release = None
             else:
-                first_release = {
-                    'version': first_release.value,
-                    # TODO(dcramer): this should look it up in Release
-                    'dateCreated': first_release.first_seen,
-                }
+                first_release = first_release.value
         else:
             first_release = group.first_release.version
 
@@ -129,11 +135,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             except IndexError:
                 last_release = None
             else:
-                last_release = {
-                    'version': last_release.value,
-                    # TODO(dcramer): this should look it up in Release
-                    'dateCreated': last_release.first_seen,
-                }
+                last_release = last_release.value
         else:
             last_release = None
 
@@ -152,6 +154,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
             end=now,
             start=now - timedelta(days=30),
         ), 3600 * 24)[group.id]
+
+        if first_release:
+            first_release = self._get_release_info(request, group, first_release)
+        if last_release:
+            last_release = self._get_release_info(request, group, last_release)
 
         data.update({
             'firstRelease': first_release,
