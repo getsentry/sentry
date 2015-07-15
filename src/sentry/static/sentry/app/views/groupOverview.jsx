@@ -3,6 +3,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var ApiMixin = require("../mixins/apiMixin");
+var Count = require("../components/count");
 var DateTime = require("../components/dateTime");
 var GroupChart = require("./groupDetails/chart");
 var GroupEventEntries = require("../components/eventEntries");
@@ -18,7 +19,7 @@ var Version = require("../components/version");
 
 var SeenInfo = React.createClass({
   render() {
-    var {date,release} = this.props;
+    var {date, release} = this.props;
     return (
       <dl>
         <dt>When:</dt>
@@ -104,6 +105,14 @@ var GroupOverview = React.createClass({
     var orgId = this.getOrganization().slug;
     var projectId = this.getProject().slug;
 
+    var tagList = [];
+    var tagData;
+    for (var key in group.tags) {
+      tagData = group.tags[key];
+      tagList.push([key, tagData.label, tagData.count]);
+    }
+    tagList.sort();
+
     return (
       <div>
         <div className="row group-overview">
@@ -131,6 +140,17 @@ var GroupOverview = React.createClass({
 
               <h6>Status</h6>
               <h3>{group.status}</h3>
+              {tagList.map((data) => {
+                // var {key, label, count} = data;
+                var key = data[0];
+                var label = data[1];
+                var count = data[2];
+
+                return [
+                  <h6>{label}</h6>,
+                  <Count value={count} />
+                ];
+              })}
             </div>
           </div>
           <div className="col-md-9">
