@@ -26,4 +26,4 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
         try:
             return client.get('/events/{}/'.format(event.id), request.user, request.auth)
         except client.ApiError as e:
-            return Response(e.body, status=e.status)
+            return Response(e.body, status=e.status_code)
