@@ -103,7 +103,7 @@ var CurlHttpContent = React.createClass({
     var data = this.props.data;
     var result = 'curl';
     if (defined(data.method) && data.method !== 'GET') {
-      result += ' \\\n -X ' + method;
+      result += ' \\\n -X ' + data.method;
     }
     if (defined(data.headers['Accept-Encoding']) && data.headers['Accept-Encoding'].indexOf('gzip') === 1) {
       result += ' \\\n --compressed';
