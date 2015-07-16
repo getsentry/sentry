@@ -50,7 +50,7 @@ var ExceptionInterface = React.createClass({
 
   getInitialState() {
     return {
-      stackView: "app"
+      stackView: (this.props.data.hasSystemFrames ? "app" : "full")
     };
   },
 
@@ -71,7 +71,9 @@ var ExceptionInterface = React.createClass({
         Exception
         <div className="btn-group">
           <a className="btn btn-sm">Stacktrace:</a>
-          <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App</a>
+          {data.hasSystemFrames &&
+            <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App</a>
+          }
           <a className={(stackView === "full" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "full")}>Full</a>
           <a className={(stackView === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
         </div>
