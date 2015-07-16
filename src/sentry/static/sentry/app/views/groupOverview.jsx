@@ -146,7 +146,7 @@ var GroupOverview = React.createClass({
                   date={group.lastSeen}
                   release={group.lastRelease} />
 
-              <h6>Status</h6>
+              <h6><span>Status</span></h6>
               <h3>{group.status}</h3>
               {tagList.map((data) => {
                 // var {key, label, count} = data;
@@ -155,7 +155,7 @@ var GroupOverview = React.createClass({
                 var count = data[2];
 
                 return [
-                  <h6>{label}</h6>,
+                  <h6><span>{label}</span></h6>,
                   <Count value={count} />
                 ];
               })}

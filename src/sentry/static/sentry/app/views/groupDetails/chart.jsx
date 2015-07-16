@@ -37,7 +37,7 @@ var GroupChart = React.createClass({
 
     return (
       <div className={className}>
-        <h6>{this.props.title}</h6>
+        <h6><span>{this.props.title}</span></h6>
         <BarChart
             points={points}
             markers={markers}
