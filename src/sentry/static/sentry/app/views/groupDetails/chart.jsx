@@ -22,6 +22,7 @@ var GroupChart = React.createClass({
 
     var markers = [];
     var firstSeenX = new Date(this.props.firstSeen).getTime() / 1000;
+    var lastSeenX = new Date(this.props.lastSeen).getTime() / 1000;
     if (firstSeenX >= points[0].x) {
       markers.push({
         label: "First seen",
@@ -29,11 +30,13 @@ var GroupChart = React.createClass({
         className: "first-seen"
       });
     }
-    markers.push({
-      label: "Last seen",
-      x: new Date(this.props.lastSeen).getTime() / 1000,
-      className: "last-seen"
-    });
+    if (lastSeenX >= points[0].x) {
+      markers.push({
+        label: "Last seen",
+        x: lastSeenX,
+        className: "last-seen"
+      });
+    }
 
     return (
       <div className={className}>
