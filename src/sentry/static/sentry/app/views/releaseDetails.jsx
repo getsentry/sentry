@@ -100,6 +100,7 @@ var ReleaseDetails = React.createClass({
           <div className="release-details">
             <div className="row">
               <div className="col-md-9">
+                <a className="back-arrow"><span className="icon-arrow-left"></span></a>
                 <h3>Release <strong>{release.version}</strong></h3>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a href="#">dcramer</a>
