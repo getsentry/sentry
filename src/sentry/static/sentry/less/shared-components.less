@@ -1132,8 +1132,10 @@ table.integrations {
   margin-bottom: 10px;
 
   h6 {
+    position: relative;
     font-size: 13px !important;
     margin-bottom: 8px !important;
+    z-index: 5;
 
     &:before {
       display: none !important;
@@ -1144,30 +1146,50 @@ table.integrations {
     height: 16px;
     display: inline-block;
 
+    &:hover {
+      background: @blue !important;
+
+      .tag-description {
+        display: block;
+        z-index: 2;
+      }
+    }
+
     .tag-description {
+      background-color: #fff;
       position: absolute;
       text-align: right;
-      top: 0;
+      top: -1px;
       right: 0;
       line-height: 1;
-      white-space: nowrap;
-      max-width: 60%;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      display: none;
+      z-index: 1;
+      width: 100%;
     }
 
     .tag-percentage {
       margin-right: 6px;
       color: lighten(@gray, 30%);
+      display: inline-block;
+      vertical-align: middle;
     }
 
     .tag-label {
-
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 45%;
+      vertical-align: middle;
     }
 
     &:first-child {
       border-top-left-radius: 2px;
       border-bottom-left-radius: 2px;
+
+      .tag-description {
+        display: block !important;
+      }
     }
 
     &:last-child {
@@ -1180,15 +1202,15 @@ table.integrations {
     }
 
     &:nth-child(2) {
-      background-color: lighten(@gray, 47%);
+      background-color: lighten(@gray, 45%);
     }
 
     &:nth-child(3) {
-      background-color: lighten(@gray, 43%);
+      background-color: lighten(@gray, 39%);
     }
 
     &:nth-child(4) {
-      background-color: lighten(@gray, 39%);
+      background-color: lighten(@gray, 33%);
     }
   }
 }
