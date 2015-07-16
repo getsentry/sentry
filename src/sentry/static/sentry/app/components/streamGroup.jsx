@@ -196,9 +196,6 @@ var StreamGroup = React.createClass({
                       dangerouslySetInnerHTML={{__html: annotation}} />
                 );
               })}
-              <li><span className="tag-label">releases:</span><span className="tag-count">1</span></li>
-              <li><span className="tag-label">users:</span><span className="tag-count">33</span></li>
-              <li><span className="tag-label">urls:</span><span className="tag-count">4</span></li>
             </ul>
           </div>
         </div>
