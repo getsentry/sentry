@@ -130,10 +130,10 @@ var RequestInterface = React.createClass({
     parsedUrl.href = fullUrl;
 
     var title = (
-      <h3>
+      <div>
         <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
+        <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
         <div className="pull-right">
-          {parsedUrl.hostname}
           {!this.props.isShare &&
             <RequestActions organization={this.context.organization}
                             project={this.context.project}
@@ -141,7 +141,12 @@ var RequestInterface = React.createClass({
                             event={evt} />
           }
         </div>
-      </h3>
+        <div className="btn-group">
+          <a className="btn btn-default btn-sm active">Rich</a>
+          <a className="btn btn-default btn-sm"><code>curl</code></a>
+          <a className="btn btn-default btn-sm">Raw</a>
+        </div>
+      </div>
     );
 
     return (
@@ -149,7 +154,6 @@ var RequestInterface = React.createClass({
           group={group}
           event={evt}
           type={this.props.type}
-          wrapTitle={false}
           title={title}>
         {data.query_string &&
           <ClippedBox title="Query String">
