@@ -187,7 +187,7 @@ class Http(Interface):
         data = {
             'method': self.method,
             'url': self.url,
-            'query_string': self.query_string,
+            'query': self.query_string,
             'fragment': self.fragment,
             'data': self.data,
             # TODO(dcramer): scrub headers for IPs/etc when is_public
