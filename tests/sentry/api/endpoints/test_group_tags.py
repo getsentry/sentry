@@ -1,5 +1,5 @@
 from django.core.urlresolvers import reverse
-from sentry.models import TagKey, GroupTagKey, GroupTagValue
+from sentry.models import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.testutils import APITestCase
 
 
@@ -13,6 +13,11 @@ class GroupTagsTest(APITestCase):
             TagKey.objects.create(
                 project=group.project,
                 key=key,
+            )
+            TagValue.objects.create(
+                project=group.project,
+                key=key,
+                value=value,
             )
             GroupTagKey.objects.create(
                 project=group.project,
