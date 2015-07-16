@@ -69,18 +69,12 @@ var ExceptionInterface = React.createClass({
     var title = (
       <div>
         Exception
-        <ul className="nav nav-tabs">
-          <li>Stacktrace:</li>
-          <li className={stackView === "app" && "active"}>
-            <a onClick={this.toggleStack.bind(this, "app")}>App</a>
-          </li>
-          <li className={stackView === "full" && "active"}>
-            <a onClick={this.toggleStack.bind(this, "full")}>Full</a>
-          </li>
-          <li className={stackView === "raw" && "active"}>
-            <a onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
-          </li>
-        </ul>
+        <div className="btn-group">
+          <a className="btn btn-sm">Stacktrace:</a>
+          <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App</a>
+          <a className={(stackView === "full" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "full")}>Full</a>
+          <a className={(stackView === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
+        </div>
       </div>
     );
 
