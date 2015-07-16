@@ -16,13 +16,13 @@ var StacktraceInterface = React.createClass({
 
   getInitialState() {
     return {
-      raw: false
+      stackView: (this.props.data.hasSystemFrames ? "app" : "full")
     };
   },
 
-  toggleRaw() {
+  toggleStack(value) {
     this.setState({
-      raw: !this.state.raw
+      stackView: value
     });
   },
 
@@ -30,14 +30,19 @@ var StacktraceInterface = React.createClass({
     var group = this.props.group;
     var evt = this.props.event;
     var data = this.props.data;
+    var stackView = this.state.stackView;
 
     var title = (
-      <span>
+      <div>
         Stacktrace
-        <label className="pull-right">
-          <input type="checkbox" onChange={this.toggleRaw} checked={this.state.raw} />
-        </label>
-      </span>
+        <div className="btn-group">
+          {data.hasSystemFrames &&
+            <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App Only</a>
+          }
+          <a className={(stackView === "full" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "full")}>Full</a>
+          <a className={(stackView === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
+        </div>
+      </div>
     );
 
     return (
@@ -46,10 +51,12 @@ var StacktraceInterface = React.createClass({
           event={evt}
           type={this.props.type}
           title={title}>
-        {this.state.raw ?
+        {stackView === "raw" ?
           <RawStacktraceContent data={data} />
         :
-          <StacktraceContent data={data} />
+          <StacktraceContent
+              data={data}
+              includeSystemFrames={stackView === "full"} />
         }
       </GroupEventDataSection>
     );
