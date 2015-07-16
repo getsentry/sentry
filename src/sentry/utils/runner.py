@@ -311,6 +311,19 @@ def initialize_app(config):
 
     initialize_receivers()
 
+    validate_backends()
+
+
+def validate_backends():
+    from sentry import app
+
+    app.buffer.validate()
+    app.nodestore.validate()
+    app.quotas.validate()
+    app.search.validate()
+    app.ratelimiter.validate()
+    app.tsdb.validate()
+
 
 def fix_south(settings):
     # South needs an adapter defined conditionally

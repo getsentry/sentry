@@ -7,12 +7,13 @@ sentry.quotas.redis
 """
 from __future__ import absolute_import
 
+import time
+
 from django.conf import settings
 from nydus.db import create_cluster
+
+from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import Quota, RateLimited, NotRateLimited
-
-
-import time
 
 
 class RedisQuota(Quota):
@@ -30,6 +31,12 @@ class RedisQuota(Quota):
             'router': options['router'],
             'hosts': options['hosts'],
         })
+
+    def validate(self):
+        try:
+            self.conn.ping()
+        except Exception as e:
+            raise InvalidConfiguration(unicode(e))
 
     def is_rate_limited(self, project):
         proj_quota = self.get_project_quota(project)

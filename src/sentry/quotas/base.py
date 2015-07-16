@@ -25,6 +25,14 @@ class Quota(object):
     def __init__(self, **options):
         pass
 
+    def validate(self):
+        """
+        Validates the settings for this backend (i.e. such as proper connection
+        info).
+
+        Raise ``InvalidConfiguration`` if there is a configuration error.
+        """
+
     def is_rate_limited(self, project):
         return NotRateLimited
 

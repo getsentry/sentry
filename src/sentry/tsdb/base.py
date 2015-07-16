@@ -48,6 +48,14 @@ class BaseTSDB(object):
     def __init__(self, rollups=settings.SENTRY_TSDB_ROLLUPS):
         self.rollups = rollups
 
+    def validate(self):
+        """
+        Validates the settings for this backend (i.e. such as proper connection
+        info).
+
+        Raise ``InvalidConfiguration`` if there is a configuration error.
+        """
+
     def normalize_to_epoch(self, timestamp, seconds):
         """
         Given a ``timestamp`` (datetime object) normalize to an epoch timestamp.
