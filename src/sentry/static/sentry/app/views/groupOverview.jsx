@@ -249,9 +249,7 @@ var GroupOverview = React.createClass({
                   date={group.lastSeen}
                   release={group.lastRelease} />
 
-              <h6><span>Status</span></h6>
-              <h4>{group.status}</h4>
-
+              <h6><span>Tags</span></h6>
               {tagList.map((data) => {
                 return <TagDistributionMeter
                     group={group}
