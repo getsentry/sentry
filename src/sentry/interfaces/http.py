@@ -217,15 +217,15 @@ class Http(Interface):
         data = {
             'method': self.method,
             'url': self.url,
-            'query_string': self.query_string,
-            'fragment': self.fragment,
-            'data': self.data,
+            'query_string': self.query_string or None,
+            'fragment': self.fragment or None,
+            'data': self.data or None,
             # TODO(dcramer): scrub headers for IPs/etc when is_public
-            'headers': self.headers,
+            'headers': self.headers or None,
         }
         if not is_public:
             data.update({
-                'cookies': self.cookies,
-                'env': self.env,
+                'cookies': self.cookies or None,
+                'env': self.env or None,
             })
         return data
