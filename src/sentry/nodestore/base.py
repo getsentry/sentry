@@ -14,6 +14,14 @@ from uuid import uuid4
 
 
 class NodeStorage(local):
+    def validate(self):
+        """
+        Validates the settings for this backend (i.e. such as proper connection
+        info).
+
+        Raise ``InvalidConfiguration`` if there is a configuration error.
+        """
+
     def create(self, data):
         """
         >>> key = nodestore.create({'foo': 'bar'})
