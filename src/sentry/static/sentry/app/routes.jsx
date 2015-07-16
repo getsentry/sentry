@@ -18,6 +18,7 @@ var ProjectDashboard = require("./views/projectDashboard");
 var ProjectDetails = require("./views/projectDetails");
 var ProjectReleases = require("./views/projectReleases");
 var PropTypes = require("./proptypes");
+var ReleaseAllEvents = require("./views/releaseAllEvents");
 var ReleaseDetails = require("./views/releaseDetails");
 var ReleaseNewEvents = require("./views/releaseNewEvents");
 var SharedGroupDetails = require("./views/sharedGroupDetails");
@@ -38,6 +39,7 @@ var routes = (
         <Route name="projectReleases" path="releases/" handler={ProjectReleases} />
         <Route name="releaseDetails" path="releases/:version/" handler={ReleaseDetails}>
           <DefaultRoute name="releaseNewEvents" handler={ReleaseNewEvents} />
+          <Route name="releaseAllEvents" path="all-events/" handler={ReleaseAllEvents} />
         </Route>
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>
