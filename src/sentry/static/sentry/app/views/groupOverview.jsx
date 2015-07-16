@@ -45,7 +45,8 @@ var SeenInfo = React.createClass({
 var TagDistributionMeter = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
-    tag: React.PropTypes.string.isRequired
+    tag: React.PropTypes.string.isRequired,
+    name: React.PropTypes.string
   },
 
   mixins: [
@@ -90,19 +91,36 @@ var TagDistributionMeter = React.createClass({
   },
 
   render() {
-    if (this.state.loading) return null;
+    if (this.state.loading)
+      return (
+        <div className="distribution-graph">
+          <h6><span>{this.props.name}</span></h6>
+        </div>
+      );
 
-    if (this.state.error) return null;
+    if (this.state.error)
+      return (
+        <div className="distribution-graph">
+          <h6><span>{this.props.name}</span></h6>
+        </div>
+      );
 
     var data = this.state.data;
     var totalValues = data.totalValues;
+    var totalVisible = 0;
+    data.topValues.forEach((value) => {
+      totalVisible += value.count;
+    });
+
+    var hasOther = (totalVisible < totalValues);
+    var otherPercentage = (totalValues - totalVisible) / totalValues * 100;
 
     return (
       <div className="distribution-graph">
-        <h6><span>{data.name}</span></h6>
+        <h6><span>{this.props.name}</span></h6>
         <div className="segments">
           {data.topValues.map((value) => {
-            var percentage = totalValues / value.count * 100 + "%";
+            var percentage = value.count / totalValues * 100 + "%";
 
             var sliceStyle = {
               width: percentage
@@ -117,6 +135,14 @@ var TagDistributionMeter = React.createClass({
               </div>
             );
           })}
+          {hasOther &&
+            <div className="segment" style={{width: otherPercentage + '%'}}>
+              <span className="tag-description">
+                <span className="tag-percentage">{otherPercentage}</span>
+                <span className="tag-label">Other</span>
+              </span>
+            </div>
+          }
         </div>
       </div>
     );
@@ -191,10 +217,8 @@ var GroupOverview = React.createClass({
     var projectId = this.getProject().slug;
 
     var tagList = [];
-    var tagData;
     for (var key in group.tags) {
-      tagData = group.tags[key];
-      tagList.push([key, tagData.label, tagData.count]);
+      tagList.push([group.tags[key].name, key]);
     }
     tagList.sort();
 
@@ -231,7 +255,10 @@ var GroupOverview = React.createClass({
               <h4>{group.status}</h4>
 
               {tagList.map((data) => {
-                return <TagDistributionMeter group={group} tag={data[0]} />;
+                return <TagDistributionMeter
+                    group={group}
+                    name={data[0]}
+                    tag={data[1]} />;
               })}
             </div>
           </div>
