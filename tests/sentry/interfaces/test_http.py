@@ -67,13 +67,6 @@ class HttpTest(TestCase):
         ))
         assert result.data == {'foo': 'bar'}
 
-    def test_data_as_list(self):
-        result = Http.to_python(dict(
-            url='http://example.com',
-            data=['foo', 'bar'],
-        ))
-        assert result.data == {0: 'foo', 1: 'bar'}
-
     def test_form_encoded_data(self):
         result = Http.to_python(dict(
             url='http://example.com',
@@ -122,32 +115,3 @@ class HttpTest(TestCase):
         ))
         assert result.url == 'http://example.com'
         assert result.full_url == 'http://example.com?foo=bar#fragment'
-
-    def test_to_curl_get(self):
-        result = Http.to_python(dict(
-            method='GET',
-            url='http://example.com',
-            query_string='foo=bar',
-            headers={'x-foo-bar': 'baz', 'accept-encoding': 'deflate, gzip'},
-            cookies={'foo': 'bar'},
-        ))
-        assert result.to_curl() == "curl 'http://example.com?foo=bar' -H 'X-Foo-Bar: baz' -H 'Cookie: foo=bar' -H 'Accept-Encoding: deflate, gzip' --compressed"
-
-    def test_to_curl_post(self):
-        result = Http.to_python(dict(
-            method='POST',
-            url='http://example.com',
-            query_string='foo=bar',
-            headers={'x-foo-bar': 'baz', 'accept-encoding': 'deflate, gzip'},
-            cookies={'foo': 'bar'},
-            data='foo=bar&a=b',
-        ))
-        assert result.to_curl() == "curl -XPOST --data 'foo=bar&a=b' 'http://example.com?foo=bar' -H 'X-Foo-Bar: baz' -H 'Cookie: foo=bar' -H 'Accept-Encoding: deflate, gzip' --compressed"
-
-    def test_to_curl_post_with_unicode(self):
-        result = Http.to_python(dict(
-            method='POST',
-            url='http://example.com',
-            data={u'föo': u'bär'},
-        ))
-        assert result.to_curl() == "curl -XPOST --data f%C3%B6o=b%C3%A4r http://example.com"
