@@ -74,15 +74,12 @@ class User(Interface):
     def get_hash(self):
         return []
 
-    def get_context(self):
-        return {
-            'user_ip_address': self.ip_address,
+    def to_email_html(self, event, **kwargs):
+        context = {
             'user_id': self.id,
-            'user_username': self.username,
             'user_email': self.email,
+            'user_username': self.username,
+            'user_ip_address': self.ip_address,
             'user_data': self.data,
         }
-
-    def to_email_html(self, event, **kwargs):
-        context = self.get_context()
         return render_to_string('sentry/partial/interfaces/user_email.html', context)
