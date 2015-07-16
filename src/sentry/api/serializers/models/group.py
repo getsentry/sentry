@@ -7,10 +7,9 @@ from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
-from sentry.constants import TAG_LABELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen,
-    GroupStatus
+    GroupStatus, TagKey
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -53,19 +52,28 @@ class GroupSerializer(Serializer):
             ).select_related('user')
         )
 
+        tagkeys = dict(
+            (t.key, t)
+            for t in TagKey.objects.filter(
+                project=item_list[0].project,
+                key__in=tag_counts.keys(),
+            )
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
 
             tags = {}
             for key in tag_counts.iterkeys():
-                label = TAG_LABELS.get(key, key.replace('_', ' ')).lower()
+                # TODO(dcramer): query for these
+                tagkey = tagkeys[key]
                 try:
                     value = tag_counts[key].get(item.id, 0)
                 except KeyError:
                     value = 0
                 tags[key] = {
-                    'name': label,
+                    'name': tagkey.get_label(),
                     'count': value,
                 }
 
