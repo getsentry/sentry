@@ -8,7 +8,8 @@ var StacktraceContent = require("./stacktraceContent");
 
 var ExceptionContent = React.createClass({
   propTypes: {
-    view: React.PropTypes.string.isRequired
+    view: React.PropTypes.string.isRequired,
+    platform: React.PropTypes.string
   },
 
   render() {
@@ -26,11 +27,14 @@ var ExceptionContent = React.createClass({
                 <pre className="exc-message">{exc.value}</pre>
               }
               {stackView === "raw" ?
-                <RawStacktraceContent data={exc.stacktrace} />
+                <RawStacktraceContent
+                    data={exc.stacktrace}
+                    platform={this.props.platform} />
               :
                 <StacktraceContent
                     data={exc.stacktrace}
-                    includeSystemFrames={stackView === "full"} />
+                    includeSystemFrames={stackView === "full"}
+                    platform={this.props.platform} />
               }
             </div>
           );
@@ -85,7 +89,10 @@ var ExceptionInterface = React.createClass({
           event={evt}
           type={this.props.type}
           title={title}>
-        <ExceptionContent view={stackView} values={data.values} />
+        <ExceptionContent
+            view={stackView}
+            values={data.values}
+            platform={evt.platform} />
       </GroupEventDataSection>
     );
   }
