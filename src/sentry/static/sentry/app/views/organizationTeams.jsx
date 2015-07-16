@@ -4,7 +4,6 @@ var Reflux = require("reflux");
 var api = require("../api");
 var BarChart = require("../components/barChart");
 var ConfigStore = require("../stores/configStore");
-var Count = require("../components/count");
 var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
 var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
@@ -254,9 +253,9 @@ var OrganizationStatOverview = React.createClass({
     return (
       <div className={this.props.className}>
         <h6 className="navheader">Events Per Minute</h6>
-        <p className="count"><Count value={this.state.epm} /></p>
+        <p className="count">{this.state.epm}</p>
         <h6 className="navheader">Rejected in last 24h</h6>
-        <p className="count rejected"><Count value={this.state.totalRejected} /></p>
+        <p className="count rejected">{this.state.totalRejected}</p>
         {access.has('org:read') &&
           <Router.Link to="organizationStats" params={router.getCurrentParams()}
                        className="stats-link">View all stats</Router.Link>
