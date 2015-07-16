@@ -16,7 +16,7 @@
     right: -1000px;
     bottom: -1px;
     background: #fff;
-    border-bottom: 1px solid @trim;
+    border-bottom: 1px solid lighten(@trim, 4);
     z-index: -1;
   }
 
@@ -311,8 +311,11 @@
       text-align: right;
       line-height: 1.7;
 
-      &:last-child, &:nth-child(2) { //hacky
+      &:nth-child(2), &:nth-child(6) { //hacky
         background-color: rgba(38, 73, 112, 0.03);
+        margin-left: -5px;
+        margin-right: -5px;
+        padding-right: 5px;
       }
     }
   }
