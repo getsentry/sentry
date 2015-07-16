@@ -1124,6 +1124,75 @@ table.integrations {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
 }
 
+// Distribution graph
+
+.distribution-graph {
+  position: relative;
+  font-size: 13px;
+  margin-bottom: 10px;
+
+  h6 {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+
+    &:before {
+      display: none !important;
+    }
+  }
+
+  .segment {
+    height: 16px;
+    display: inline-block;
+
+    .tag-description {
+      position: absolute;
+      text-align: right;
+      top: 0;
+      right: 0;
+      line-height: 1;
+      white-space: nowrap;
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tag-percentage {
+      margin-right: 6px;
+      color: lighten(@gray, 30%);
+    }
+
+    .tag-label {
+
+    }
+
+    &:first-child {
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+    }
+
+    &:last-child {
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+    }
+
+    &:nth-child(1) {
+      background-color: lighten(@gray, 40%);
+    }
+
+    &:nth-child(2) {
+      background-color: lighten(@gray, 44%);
+    }
+
+    &:nth-child(3) {
+      background-color: lighten(@gray, 48%);
+    }
+
+    &:nth-child(4) {
+      background-color: lighten(@gray, 52%);
+    }
+  }
+}
+
 /**
 * Assignee Selector
 * ============================================================================
