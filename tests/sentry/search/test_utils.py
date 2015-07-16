@@ -53,3 +53,11 @@ class ParseQueryTest(TestCase):
     def test_assigned_unknown_user(self):
         result = parse_query('assigned:fake@example.com', self.user)
         assert result['assigned_to'].id == 0
+
+    def test_first_release(self):
+        result = parse_query('first-release:bar', self.user)
+        assert result == {'first_release': 'bar', 'tags': {}, 'query': ''}
+
+    def test_release(self):
+        result = parse_query('release:bar', self.user)
+        assert result == {'tags': {'sentry:release': 'bar'}, 'query': ''}
