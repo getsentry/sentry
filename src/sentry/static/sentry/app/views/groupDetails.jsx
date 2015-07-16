@@ -4,6 +4,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
+var DocumentTitle = require("react-document-title");
 var GroupHeader = require("./groupDetails/header");
 var GroupStore = require("../stores/groupStore");
 var LoadingError = require("../components/loadingError");
@@ -92,6 +93,12 @@ var GroupDetails = React.createClass({
     return '/groups/' + id + '/';
   },
 
+  getTitle() {
+    if (this.state.group)
+      return this.state.group.title + ' | Sentry';
+    return 'Sentry';
+  },
+
   render() {
     var group = this.state.group;
     var params = this.context.router.getCurrentParams();
@@ -102,16 +109,18 @@ var GroupDetails = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <div className={this.props.className}>
-        <GroupHeader
-            orgId={params.orgId}
-            projectId={params.projectId}
-            group={group}
-            memberList={this.props.memberList} />
-        <Router.RouteHandler
-            memberList={this.props.memberList}
-            group={group} />
-      </div>
+      <DocumentTitle title={this.getTitle()}>
+        <div className={this.props.className}>
+          <GroupHeader
+              orgId={params.orgId}
+              projectId={params.projectId}
+              group={group}
+              memberList={this.props.memberList} />
+          <Router.RouteHandler
+              memberList={this.props.memberList}
+              group={group} />
+        </div>
+      </DocumentTitle>
     );
   }
 });
