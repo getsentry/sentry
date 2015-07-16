@@ -42,6 +42,72 @@ var SeenInfo = React.createClass({
   }
 });
 
+var TagDistributionMeter = React.createClass({
+  propTypes: {
+    group: PropTypes.Group.isRequired,
+    tag: React.PropTypes.string.isRequired
+  },
+
+  mixins: [
+    ApiMixin
+  ],
+
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+      data: null
+    };
+  },
+
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    var url = '/groups/' + this.props.group.id + '/tags/' + encodeURIComponent(this.props.tag) + '/';
+
+    this.setState({
+      loading: true,
+      error: false
+    });
+
+    this.apiRequest(url, {
+      success: (data, _, jqXHR) => {
+        this.setState({
+          data: data,
+          error: false,
+          loading: false
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+      }
+    });
+  },
+
+  render() {
+    if (this.state.loading) return null;
+
+    if (this.state.error) return null;
+
+    var data = this.state.data;
+    var totalValues = data.totalValues;
+
+    return (
+      <div>
+        <h6>{data.name}</h6>
+        {data.topValues.map((value) => {
+          return <span>{value.value} {value.count}</span>;
+        })}
+      </div>
+    );
+  }
+});
+
 var GroupOverview = React.createClass({
   contextTypes: {
     router: React.PropTypes.func
@@ -148,16 +214,9 @@ var GroupOverview = React.createClass({
 
               <h6><span>Status</span></h6>
               <h3>{group.status}</h3>
-              {tagList.map((data) => {
-                // var {key, label, count} = data;
-                var key = data[0];
-                var label = data[1];
-                var count = data[2];
 
-                return [
-                  <h6><span>{label}</span></h6>,
-                  <Count value={count} />
-                ];
+              {tagList.map((data) => {
+                return <TagDistributionMeter group={group} tag={data[0]} />;
               })}
             </div>
           </div>
