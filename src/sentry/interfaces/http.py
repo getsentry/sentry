@@ -217,9 +217,9 @@ class Http(Interface):
         data = {
             'method': self.method,
             'url': self.url,
-            'query_string': self.query_string or None,
-            'fragment': self.fragment or None,
-            'data': self.data or None,
+            'query_string': self.query_string,
+            'fragment': self.fragment,
+            'data': self.data,
             # TODO(dcramer): scrub headers for IPs/etc when is_public
             'headers': self.headers or None,
         }
