@@ -4,11 +4,13 @@ var Reflux = require("reflux");
 var api = require("../api");
 var BarChart = require("../components/barChart");
 var ConfigStore = require("../stores/configStore");
+var Count = require("../components/count");
 var OrganizationHomeContainer = require("../components/organizationHomeContainer");
 var OrganizationState = require("../mixins/organizationState");
 var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
 var PropTypes = require("../proptypes");
 var TeamStore = require("../stores/teamStore");
+var {defined} = require("../utils");
 
 var ExpandedTeamList = React.createClass({
   propTypes: {
@@ -182,6 +184,88 @@ var SlimTeamList = React.createClass({
   }
 });
 
+var OrganizationStatOverview = React.createClass({
+  mixins: [
+    OrganizationState
+  ],
+
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
+  getInitialState() {
+    return {
+      totalRejected: null,
+      epm: null
+    };
+  },
+
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  getOrganizationStatsEndpoint() {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+    return '/organizations/' + params.orgId + '/stats/';
+  },
+
+  fetchData() {
+    var statsEndpoint = this.getOrganizationStatsEndpoint();
+    api.request(statsEndpoint, {
+      query: {
+        since: new Date().getTime() / 1000 - 3600 * 24,
+        stat: 'rejected'
+      },
+      success: (data) => {
+        var totalRejected = 0;
+        data.forEach((point) => {
+          totalRejected += point[1];
+        });
+        this.setState({totalRejected: totalRejected});
+      }
+    });
+    api.request(statsEndpoint, {
+      query: {
+        since: new Date().getTime() / 1000 - 3600 * 3,
+        resolution: '1h',
+        stat: 'received'
+      },
+      success: (data) => {
+        var received = [0, 0];
+        data.forEach((point) => {
+          if (point[1] > 0) {
+            received[0] += point[1];
+            received[1] += 1;
+          }
+        });
+        this.setState({epm: parseInt((received[0] / received[1]) / 60, 10)});
+      }
+    });
+  },
+
+  render() {
+    if (!defined(this.state.epm) || !defined(this.state.totalRejected))
+      return null;
+
+    var router = this.context.router;
+    var access = this.getAccess();
+
+    return (
+      <div className={this.props.className}>
+        <h6 className="navheader">Events Per Minute</h6>
+        <p className="count"><Count value={this.state.epm} /></p>
+        <h6 className="navheader">Rejected in last 24h</h6>
+        <p className="count rejected"><Count value={this.state.totalRejected} /></p>
+        {access.has('org:read') &&
+          <Router.Link to="organizationStats" params={router.getCurrentParams()}
+                       className="stats-link">View all stats</Router.Link>
+        }
+      </div>
+    );
+  }
+});
+
 var OrganizationTeams = React.createClass({
   mixins: [
     OrganizationState,
@@ -196,7 +280,7 @@ var OrganizationTeams = React.createClass({
     return {
       activeNav: 'your-teams',
       teamList: TeamStore.getAll(),
-      projectStats: {}
+      projectStats: {},
     };
   },
 
@@ -250,7 +334,6 @@ var OrganizationTeams = React.createClass({
     var activeNav = this.state.activeNav;
     var allTeams = this.state.teamList;
     var activeTeams = this.state.teamList.filter((team) => team.isMember);
-    var orgParams = {orgId: org.slug};
 
     return (
       <OrganizationHomeContainer>
@@ -281,15 +364,7 @@ var OrganizationTeams = React.createClass({
               }
             </div>
           </div>
-          <div className="col-md-3 stats-column">
-            <h6 className="nav-header">Events Per Minute</h6>
-            <p className="count">346</p>
-            <h6 className="nav-header">Rejected in last 24h</h6>
-            <p className="count rejected">346</p>
-            {access.has('org:read') &&
-              <Router.Link to="organizationStats" params={orgParams} className="stats-link">View all stats</Router.Link>
-            }
-          </div>
+          <OrganizationStatOverview className="colmd3 statscolumn" />
         </div>
       </OrganizationHomeContainer>
     );
