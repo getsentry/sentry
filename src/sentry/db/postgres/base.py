@@ -33,6 +33,9 @@ class CursorWrapper(object):
     def __getattr__(self, attr):
         return getattr(self.cursor, attr)
 
+    def __iter__(self):
+        return iter(self.cursor)
+
     @capture_transaction_exceptions
     @auto_reconnect_cursor
     @less_shitty_error_messages
