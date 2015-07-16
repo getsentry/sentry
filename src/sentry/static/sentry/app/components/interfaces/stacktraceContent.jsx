@@ -162,11 +162,10 @@ var StacktraceContent = React.createClass({
 
   render() {
     var data = this.props.data;
-    var frames = [];
     var firstFrameOmitted, lastFrameOmitted;
     var includeSystemFrames = this.props.includeSystemFrames;
 
-    if (data.frames_omitted) {
+    if (data.framesOmitted) {
       firstFrameOmitted = data.framesOmitted[0];
       lastFrameOmitted = data.framesOmitted[1];
     } else {
@@ -174,6 +173,7 @@ var StacktraceContent = React.createClass({
       lastFrameOmitted = null;
     }
 
+    var frames = [];
     data.frames.forEach((frame, frameIdx) => {
       if (includeSystemFrames || frame.inApp) {
         frames.push(<Frame key={frameIdx} data={frame} />);
