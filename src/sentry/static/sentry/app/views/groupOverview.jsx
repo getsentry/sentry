@@ -98,11 +98,26 @@ var TagDistributionMeter = React.createClass({
     var totalValues = data.totalValues;
 
     return (
-      <div>
-        <h6>{data.name}</h6>
-        {data.topValues.map((value) => {
-          return <span>{value.value} {value.count}</span>;
-        })}
+      <div className="distribution-graph">
+        <h6><span>{data.name}</span></h6>
+        <div className="segments">
+          {data.topValues.map((value) => {
+            var percentage = totalValues / value.count * 100 + "%";
+
+            var sliceStyle = {
+              width: percentage
+            };
+
+            return (
+              <div className="segment" style={sliceStyle}>
+                <span className="tag-description">
+                  <span className="tag-percentage">{percentage}</span>
+                  <span className="tag-label">{value.value}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -213,7 +228,7 @@ var GroupOverview = React.createClass({
                   release={group.lastRelease} />
 
               <h6><span>Status</span></h6>
-              <h3>{group.status}</h3>
+              <h4>{group.status}</h4>
 
               {tagList.map((data) => {
                 return <TagDistributionMeter group={group} tag={data[0]} />;
