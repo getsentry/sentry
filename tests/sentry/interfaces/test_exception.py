@@ -101,10 +101,8 @@ ValueError: hello world
         event = self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
-        context = inst.get_context(event)
-        assert context['system_frames'] == 1
-        assert context['exceptions'][0]['stacktrace']['system_frames'] == 0
-        assert context['exceptions'][1]['stacktrace']['system_frames'] == 1
+        context = inst.get_api_context()
+        assert context['hasSystemFrames']
 
     def test_context_with_only_system_frames(self):
         inst = Exception.to_python(dict(values=[{
@@ -130,10 +128,8 @@ ValueError: hello world
         event = self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
-        context = inst.get_context(event)
-        assert context['system_frames'] == 0
-        assert context['exceptions'][0]['stacktrace']['system_frames'] == 0
-        assert context['exceptions'][1]['stacktrace']['system_frames'] == 0
+        context = inst.get_api_context()
+        assert not context['hasSystemFrames']
 
     def test_context_with_only_app_frames(self):
         inst = Exception.to_python(dict(values=[{
@@ -159,10 +155,8 @@ ValueError: hello world
         event = self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
-        context = inst.get_context(event)
-        assert context['system_frames'] == 0
-        assert context['exceptions'][0]['stacktrace']['system_frames'] == 0
-        assert context['exceptions'][1]['stacktrace']['system_frames'] == 0
+        context = inst.get_api_context()
+        assert not context['hasSystemFrames']
 
 
 class SingleExceptionTest(TestCase):

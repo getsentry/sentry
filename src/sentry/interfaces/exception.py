@@ -13,7 +13,7 @@ __all__ = ('Exception',)
 from django.conf import settings
 
 from sentry.interfaces.base import Interface
-from sentry.interfaces.stacktrace import Stacktrace, is_newest_frame_first
+from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
 
 
@@ -69,9 +69,12 @@ class SingleException(Interface):
             'stacktrace': stacktrace,
         }
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, has_system_frames=None):
         if self.stacktrace:
-            stacktrace = self.stacktrace.get_api_context(is_public=is_public)
+            stacktrace = self.stacktrace.get_api_context(
+                is_public=is_public,
+                has_system_frames=has_system_frames,
+            )
         else:
             stacktrace = None
 
@@ -97,35 +100,6 @@ class SingleException(Interface):
         if not output:
             output = filter(bool, [self.type, self.value])
         return output
-
-    def get_context(self, event, is_public=False, **kwargs):
-        last_frame = None
-        interface = event.interfaces.get('sentry.interfaces.Stacktrace')
-        if interface is not None and interface.frames:
-            last_frame = interface.frames[-1]
-
-        e_module = self.module
-        e_type = self.type
-        e_value = self.value
-
-        if self.module:
-            fullname = '%s.%s' % (e_module, e_type)
-        else:
-            fullname = e_type
-
-        if e_value and not e_type:
-            e_type = e_value
-            e_value = None
-
-        return {
-            'is_public': is_public,
-            'event': event,
-            'exception_type': e_type,
-            'exception_value': e_value,
-            'exception_module': e_module,
-            'fullname': fullname,
-            'last_frame': last_frame,
-        }
 
 
 class Exception(Interface):
@@ -160,6 +134,15 @@ class Exception(Interface):
 
     score = 2000
 
+    def __getitem__(self, key):
+        return self.values[key]
+
+    def __iter__(self):
+        return iter(self.values)
+
+    def __len__(self):
+        return len(self.values)
+
     @classmethod
     def to_python(cls, data):
         if 'values' not in data:
@@ -189,24 +172,6 @@ class Exception(Interface):
             'values': [v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
         }
-
-    def get_api_context(self, is_public=False):
-        return {
-            'values': [
-                v.get_api_context(is_public=is_public)
-                for v in self.values
-            ],
-            'excOmitted': self.exc_omitted,
-        }
-
-    def __getitem__(self, key):
-        return self.values[key]
-
-    def __iter__(self):
-        return iter(self.values)
-
-    def __len__(self):
-        return len(self.values)
 
     def get_alias(self):
         return 'exception'
@@ -245,9 +210,35 @@ class Exception(Interface):
 
         return output
 
-    def get_context(self, event, is_public=False, **kwargs):
-        newest_first = is_newest_frame_first(event)
+    def get_api_context(self, is_public=False):
+        has_system_frames = self.has_system_frames()
 
+        return {
+            'values': [
+                v.get_api_context(
+                    is_public=is_public,
+                    has_system_frames=has_system_frames,
+                )
+                for v in self.values
+            ],
+            'hasSystemFrames': has_system_frames,
+            'excOmitted': self.exc_omitted,
+        }
+
+    def to_string(self, event, is_public=False, **kwargs):
+        if not self.values:
+            return ''
+
+        output = []
+        for exc in self.values:
+            output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
+            if exc.stacktrace:
+                output.append(exc.stacktrace.get_stacktrace(
+                    event, system_frames=False, max_frames=5,
+                    header=False) + '\n\n')
+        return (''.join(output)).strip()
+
+    def has_system_frames(self):
         system_frames = 0
         app_frames = 0
         unknown_frames = 0
@@ -281,57 +272,7 @@ class Exception(Interface):
 
         # if there is a mix of frame styles then we indicate that system frames
         # are present and should be represented as a split
-        has_system_frames = app_frames and system_frames
-
-        context_kwargs = {
-            'event': event,
-            'is_public': is_public,
-            'newest_first': newest_first,
-            'has_system_frames': has_system_frames,
-        }
-
-        exceptions = []
-        last = len(self.values) - 1
-        for num, e in enumerate(self.values):
-            context = e.get_context(**context_kwargs)
-            if e.stacktrace:
-                context['stacktrace'] = e.stacktrace.get_context(
-                    with_stacktrace=False, **context_kwargs)
-            else:
-                context['stacktrace'] = {}
-            context['stack_id'] = 'exception_%d' % (num,)
-            context['is_root'] = num == last
-            exceptions.append(context)
-
-        if newest_first:
-            exceptions.reverse()
-
-        if self.exc_omitted:
-            first_exc_omitted, last_exc_omitted = self.exc_omitted
-        else:
-            first_exc_omitted, last_exc_omitted = None, None
-
-        return {
-            'newest_first': newest_first,
-            'system_frames': system_frames if has_system_frames else 0,
-            'exceptions': exceptions,
-            'stacktrace': self.get_stacktrace(event, newest_first=newest_first),
-            'first_exc_omitted': first_exc_omitted,
-            'last_exc_omitted': last_exc_omitted,
-        }
-
-    def to_string(self, event, is_public=False, **kwargs):
-        if not self.values:
-            return ''
-
-        output = []
-        for exc in self.values:
-            output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
-            if exc.stacktrace:
-                output.append(exc.stacktrace.get_stacktrace(
-                    event, system_frames=False, max_frames=5,
-                    header=False) + '\n\n')
-        return (''.join(output)).strip()
+        return bool(app_frames and system_frames)
 
     def get_stacktrace(self, *args, **kwargs):
         exc = self.values[0]

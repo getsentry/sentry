@@ -214,49 +214,6 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def get_api_context(self, is_public=False):
-        data = {
-            'filename': self.filename,
-            'absPath': self.abs_path,
-            'module': self.module,
-            'function': self.function,
-            'context': get_context(
-                lineno=self.lineno,
-                context_line=self.context_line,
-                pre_context=self.pre_context,
-                post_context=self.post_context,
-                filename=self.filename or self.module,
-            ),
-            'lineNo': self.lineno,
-            'colNo': self.colno,
-            'inApp': self.in_app,
-            'errors': self.errors,
-        }
-        if not is_public:
-            data['vars'] = self.vars
-        return data
-
-    def is_url(self):
-        if not self.abs_path:
-            return False
-        return is_url(self.abs_path)
-
-    def is_caused_by(self):
-        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
-        # text as it contains an exception value which may may contain dynamic
-        # values (see raven-java#125)
-        return self.filename.startswith('Caused by: ')
-
-    def is_unhashable_module(self):
-        # TODO(dcramer): this is Java specific
-        return '$$Lambda$' in self.module
-
-    def is_unhashable_function(self):
-        # TODO(dcramer): lambda$ is Java specific
-        # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
-        # queries and JSON data)
-        return self.function.startswith(('lambda$', '[Anonymous'))
-
     def get_hash(self):
         """
         The hash of the frame varies depending on the data available.
@@ -302,49 +259,60 @@ class Frame(Interface):
             output.append(self.lineno)
         return output
 
-    def get_context(self, event, is_public=False, **kwargs):
-        if (self.context_line and self.lineno is not None
-                and (self.pre_context or self.post_context)):
-            context = get_context(
+    def get_api_context(self, is_public=False):
+        data = {
+            'filename': self.filename,
+            'absPath': self.abs_path,
+            'module': self.module,
+            'function': self.function,
+            'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
                 filename=self.filename or self.module,
-            )
-            start_lineno = context[0][0]
-        else:
-            context = []
-            start_lineno = None
-
-        frame_data = {
-            'abs_path': self.abs_path,
-            'filename': self.filename,
-            'module': self.module,
-            'function': self.function,
-            'start_lineno': start_lineno,
-            'lineno': self.lineno,
-            'colno': self.colno,
-            'context': context,
-            'context_line': self.context_line,
-            'errors': self.errors or [],
-            'in_app': self.in_app,
-            'is_url': self.is_url(),
+            ),
+            'lineNo': self.lineno,
+            'colNo': self.colno,
+            'inApp': self.in_app,
+            'errors': self.errors,
         }
         if not is_public:
-            frame_data['vars'] = self.vars or {}
-
-        if event.platform == 'javascript' and self.data:
-            frame_data.update({
-                'sourcemap': self.data['sourcemap'].rsplit('/', 1)[-1],
-                'sourcemap_url': urljoin(self.abs_path, self.data['sourcemap']),
-                'orig_function': self.data.get('orig_function', '?'),
-                'orig_abs_path': self.data.get('orig_abs_path', '?'),
-                'orig_filename': self.data.get('orig_filename', '?'),
-                'orig_lineno': self.data.get('orig_lineno', '?'),
-                'orig_colno': self.data.get('orig_colno', '?'),
+            data['vars'] = self.vars
+        # TODO(dcramer): abstract out this API
+        if self.data:
+            data.update({
+                'map': self.data['sourcemap'].rsplit('/', 1)[-1],
+                'origFunction': self.data.get('orig_function', '?'),
+                'origAbsPath': self.data.get('orig_abs_path', '?'),
+                'origFilename': self.data.get('orig_filename', '?'),
+                'origLineNo': self.data.get('orig_lineno', '?'),
+                'origColNo': self.data.get('orig_colno', '?'),
             })
-        return frame_data
+            if self.is_url():
+                data['mapUrl'] = urljoin(self.abs_path, self.data['sourcemap'])
+        return data
+
+    def is_url(self):
+        if not self.abs_path:
+            return False
+        return is_url(self.abs_path)
+
+    def is_caused_by(self):
+        # XXX(dcramer): dont compute hash using frames containing the 'Caused by'
+        # text as it contains an exception value which may may contain dynamic
+        # values (see raven-java#125)
+        return self.filename.startswith('Caused by: ')
+
+    def is_unhashable_module(self):
+        # TODO(dcramer): this is Java specific
+        return '$$Lambda$' in self.module
+
+    def is_unhashable_function(self):
+        # TODO(dcramer): lambda$ is Java specific
+        # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
+        # queries and JSON data)
+        return self.function.startswith(('lambda$', '[Anonymous'))
 
     def to_string(self, event):
         if event.platform is not None:
@@ -474,9 +442,22 @@ class Stacktrace(Interface):
 
         return cls(**kwargs)
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, has_system_frames=None):
+        # if there are no system frames, pretend they're all part of the app
+        if has_system_frames is None:
+            has_system_frames = self.has_system_frames()
+
+        frame_list = []
+        for frame in self.frames:
+            frame_context = frame.get_api_context(is_public=is_public)
+            if not has_system_frames:
+                frame_context['inApp'] = True
+            elif frame_context.get('inApp') is None:
+                frame_context['inApp'] = False
+            frame_list.append(frame_context)
+
         return {
-            'frames': [f.get_api_context(is_public=is_public) for f in self.frames],
+            'frames': frame_list,
             'framesOmitted': self.frames_omitted,
         }
 
@@ -515,59 +496,19 @@ class Stacktrace(Interface):
             output.extend(frame.get_hash())
         return output
 
-    def get_context(self, event, is_public=False, newest_first=None,
-                    with_stacktrace=True, has_system_frames=None, **kwargs):
+    def to_string(self, event, is_public=False, **kwargs):
+        return self.get_stacktrace(event, system_frames=False, max_frames=10)
 
+    def has_system_frames(self):
         system_frames = 0
         frames = []
         for frame in self.frames:
-            frames.append(frame.get_context(event=event, is_public=is_public))
-
             if not frame.in_app:
                 system_frames += 1
 
-        if has_system_frames is None:
-            if len(frames) == system_frames:
-                system_frames = 0
-            has_system_frames = bool(system_frames)
-        elif not has_system_frames:
+        if len(frames) == system_frames:
             system_frames = 0
-
-        # if there are no system frames, pretend they're all part of the app
-        if not has_system_frames:
-            for frame in frames:
-                frame['in_app'] = True
-        else:
-            for frame in frames:
-                if frame.get('in_app') is None:
-                    frame['in_app'] = False
-
-        if newest_first is None:
-            newest_first = is_newest_frame_first(event)
-        if newest_first:
-            frames = frames[::-1]
-
-        if self.frames_omitted:
-            first_frame_omitted, last_frame_omitted = self.frames_omitted
-        else:
-            first_frame_omitted, last_frame_omitted = None, None
-
-        context = {
-            'is_public': is_public,
-            'newest_first': newest_first,
-            'system_frames': system_frames,
-            'event': event,
-            'frames': frames,
-            'stack_id': 'stacktrace_1',
-            'first_frame_omitted': first_frame_omitted,
-            'last_frame_omitted': last_frame_omitted,
-        }
-        if with_stacktrace:
-            context['stacktrace'] = self.get_traceback(event, newest_first=newest_first)
-        return context
-
-    def to_string(self, event, is_public=False, **kwargs):
-        return self.get_stacktrace(event, system_frames=False, max_frames=10)
+        return bool(system_frames)
 
     def get_stacktrace(self, event, system_frames=True, newest_first=None,
                        max_frames=None, header=True):
