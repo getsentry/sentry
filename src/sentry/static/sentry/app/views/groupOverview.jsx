@@ -132,14 +132,14 @@ var GroupOverview = React.createClass({
                           firstSeen={group.firstSeen}
                           lastSeen={group.lastSeen} />
 
-              <h6 className="first-seen">First seen</h6>
+              <h6 className="first-seen"><span>First seen</span></h6>
               <SeenInfo
                   orgId={orgId}
                   projectId={projectId}
                   date={group.firstSeen}
                   release={group.firstRelease} />
 
-              <h6 className="last-seen">Last seen</h6>
+              <h6 className="last-seen"><span>Last seen</span></h6>
               <SeenInfo
                   orgId={orgId}
                   projectId={projectId}
