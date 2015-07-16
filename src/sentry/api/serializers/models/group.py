@@ -65,7 +65,7 @@ class GroupSerializer(Serializer):
                 except KeyError:
                     value = 0
                 tags[key] = {
-                    'label': label,
+                    'name': label,
                     'count': value,
                 }
 
