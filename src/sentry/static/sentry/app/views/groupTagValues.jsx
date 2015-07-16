@@ -95,7 +95,7 @@ var GroupTagValues = React.createClass({
         <li key={tagValueIdx}>
           <a className="tag-bar" href="">
             <span className="tag-bar-background" style={{width: pct + '%'}}></span>
-            <span className="tag-bar-label">{tagValue.value}</span>
+            <span className="tag-bar-label">{tagValue.name}</span>
             <span className="tag-bar-count"><Count value={tagValue.count} /></span>
           </a>
         </li>

@@ -130,7 +130,7 @@ var TagDistributionMeter = React.createClass({
               <div className="segment" style={sliceStyle}>
                 <span className="tag-description">
                   <span className="tag-percentage">{percentage}</span>
-                  <span className="tag-label">{value.value}</span>
+                  <span className="tag-label">{value.name}</span>
                 </span>
               </div>
             );
