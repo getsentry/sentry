@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.serializers import serialize
 from sentry.models import GroupTagValue, TagKey, TagKeyStatus
 
 
@@ -31,12 +32,15 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         total_values = GroupTagValue.get_value_count(group.id, key)
 
+        top_values = GroupTagValue.get_top_values(group.id, key, limit=3)
+
         data = {
             'id': str(tag_key.id),
             'key': tag_key.key,
             'name': tag_key.get_label(),
             'uniqueValues': tag_key.values_seen,
             'totalValues': total_values,
+            'topValues': serialize(top_values, request.user),
         }
 
         return Response(data)

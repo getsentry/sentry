@@ -77,5 +77,30 @@ class GroupTagValue(Model):
             last_seen__gte=cutoff,
         ).aggregate(t=Sum('times_seen'))['t']
 
+    @classmethod
+    def get_top_values(cls, group_id, key, limit=3):
+        if db.is_postgres():
+            # This doesnt guarantee percentage is accurate, but it does ensure
+            # that the query has a maximum cost
+            return list(cls.objects.raw("""
+                SELECT *
+                FROM (
+                    SELECT *
+                    FROM sentry_messagefiltervalue
+                    WHERE group_id = %%s
+                    AND key = %%s
+                    AND last_seen > NOW() - INTERVAL '7 days'
+                    LIMIT 10000
+                ) as a
+                ORDER BY times_seen DESC
+                LIMIT %d
+            """ % limit, [group_id, key]))
+
+        cutoff = timezone.now() - timedelta(days=7)
+        return list(cls.objects.filter(
+            group=group_id,
+            key=key,
+            last_seen__gte=cutoff,
+        ).order_by('-times_seen')[:limit])
 
 GroupTag = GroupTagValue
