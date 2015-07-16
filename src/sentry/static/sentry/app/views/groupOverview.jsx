@@ -107,6 +107,16 @@ var TagDistributionMeter = React.createClass({
 
     var data = this.state.data;
     var totalValues = data.totalValues;
+
+    if (!totalValues) {
+      return (
+        <div className="distribution-graph">
+          <h6><span>{this.props.name}</span></h6>
+          <p>No recent data.</p>
+        </div>
+      );
+    }
+
     var totalVisible = 0;
     data.topValues.forEach((value) => {
       totalVisible += value.count;
