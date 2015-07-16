@@ -1,9 +1,10 @@
 var React = require("react");
+var jQuery = require("jquery");
 
 var ConfigStore = require("../../stores/configStore");
 var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../proptypes");
-var utils = require("../../utils");
+var {defined, objectIsEmpty} = require("../../utils");
 
 var ClippedBox = React.createClass({
   propTypes: {
@@ -92,32 +93,47 @@ var RequestActions = React.createClass({
   }
 });
 
-var RequestInterface = React.createClass({
-  propTypes: {
-    group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired,
-    type: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
-    isShare: React.PropTypes.bool
+var CurlHttpContent = React.createClass({
+  escapeQuotes(v) {
+    return v.replace(/"/g, '\\"');
   },
 
-  contextTypes: {
-    organization: PropTypes.Organization,
-    project: PropTypes.Project
-  },
-
-  render: function(){
-    var group = this.props.group;
-    var evt = this.props.event;
+  // TODO(dcramer): support cookies
+  getCurlCommand() {
     var data = this.props.data;
+    var result = 'curl';
+    if (defined(data.method) && data.method !== 'GET') {
+      result += ' \\\n -X ' + method;
+    }
+    if (defined(data.headers['Accept-Encoding']) && data.headers['Accept-Encoding'].indexOf('gzip') === 1) {
+      result += ' \\\n --compressed';
+    }
+    for (var key in data.headers) {
+      result += ' \\\n -H "' + key + ': ' + this.escapeQuotes(data.headers[key]) + '"';
+    }
+    if (typeof data.data === "string") {
+      result += ' \\\n  --data "' + this.escapeQuotes(data.data) + '"';
+    } else if (defined(data.data)) {
+      result += ' \\\n  --data "' + this.escapeQuotes(jQuery.param(data.data)) + '"';
+    }
+    result += ' \\\n ' + data.url;
+    return result;
+  },
 
-    var fullUrl = data.url;
-    if (data.query_string) {
-      fullUrl = fullUrl + '?' + data.query_string;
-    }
-    if (data.fragment) {
-      fullUrl = fullUrl + '#' + data.fragment;
-    }
+  render() {
+    return <pre>{this.getCurlCommand()}</pre>;
+  }
+});
+
+var RawHttpContent = React.createClass({
+  render() {
+    return null;
+  }
+});
+
+var RichHttpContent = React.createClass({
+  render(){
+    var data = this.props.data;
 
     var headers = [];
     for (var key in data.headers) {
@@ -125,36 +141,8 @@ var RequestInterface = React.createClass({
       headers.push(<dd key={'dd-' + key }><pre>{data.headers[key]}</pre></dd>);
     }
 
-    // lol
-    var parsedUrl = document.createElement("a");
-    parsedUrl.href = fullUrl;
-
-    var title = (
-      <div>
-        <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
-        <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
-        <div className="pull-right">
-          {!this.props.isShare &&
-            <RequestActions organization={this.context.organization}
-                            project={this.context.project}
-                            group={group}
-                            event={evt} />
-          }
-        </div>
-        <div className="btn-group">
-          <a className="btn btn-default btn-sm active">Rich</a>
-          <a className="btn btn-default btn-sm"><code>curl</code></a>
-          <a className="btn btn-default btn-sm">Raw</a>
-        </div>
-      </div>
-    );
-
     return (
-      <GroupEventDataSection
-          group={group}
-          event={evt}
-          type={this.props.type}
-          title={title}>
+      <div>
         {data.query_string &&
           <ClippedBox title="Query String">
             <pre>{data.query_string}</pre>
@@ -175,18 +163,103 @@ var RequestInterface = React.createClass({
             <pre>{JSON.stringify(data.cookies, null, 2)}</pre>
           </ClippedBox>
         }
-        {!utils.objectIsEmpty(data.headers) &&
+        {!objectIsEmpty(data.headers) &&
           <ClippedBox title="Headers">
             <DefinitionList data={data.headers} />
           </ClippedBox>
         }
-        {!utils.objectIsEmpty(data.env) &&
+        {!objectIsEmpty(data.env) &&
           <ClippedBox title="Environment" defaultCollapsed>
             <dl className="vars">
               <DefinitionList data={data.env} />
             </dl>
           </ClippedBox>
         }
+      </div>
+    );
+  }
+});
+
+var RequestInterface = React.createClass({
+  propTypes: {
+    group: PropTypes.Group.isRequired,
+    event: PropTypes.Event.isRequired,
+    type: React.PropTypes.string.isRequired,
+    data: React.PropTypes.object.isRequired,
+    isShare: React.PropTypes.bool
+  },
+
+  contextTypes: {
+    organization: PropTypes.Organization,
+    project: PropTypes.Project
+  },
+
+  getInitialState() {
+    return {
+      view: "rich"
+    };
+  },
+
+  toggleView(value) {
+    this.setState({
+      view: value
+    });
+  },
+
+  render() {
+    var group = this.props.group;
+    var evt = this.props.event;
+    var data = this.props.data;
+    var view = this.state.view;
+
+    var fullUrl = data.url;
+    if (data.query_string) {
+      fullUrl = fullUrl + '?' + data.query_string;
+    }
+    if (data.fragment) {
+      fullUrl = fullUrl + '#' + data.fragment;
+    }
+
+    // lol
+    var parsedUrl = document.createElement("a");
+    parsedUrl.href = fullUrl;
+
+    var title = (
+      <div>
+        <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
+        <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
+        <div className="pull-right">
+          {!this.props.isShare &&
+            <RequestActions organization={this.context.organization}
+                            project={this.context.project}
+                            group={group}
+                            event={evt} />
+          }
+        </div>
+        <div className="btn-group">
+          <a className={(view === "rich" ? "active" : "") + " btn btn-default btn-sm"}
+             onClick={this.toggleView.bind(this, "rich")}>Rich</a>
+          <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
+             onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
+          <a className={(view === "raw" ? "active" : "") + " btn btn-default btn-sm"}
+             onClick={this.toggleView.bind(this, "raw")}>Raw</a>
+        </div>
+      </div>
+    );
+
+    return (
+      <GroupEventDataSection
+          group={group}
+          event={evt}
+          type={this.props.type}
+          title={title}>
+        {view === "rich" ?
+          <RichHttpContent data={data} />
+        : (view === "curl" ?
+          <CurlHttpContent data={data} />
+        :
+          <RawHttpContent data={data} />
+        )}
       </GroupEventDataSection>
     );
   }

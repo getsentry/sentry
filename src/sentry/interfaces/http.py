@@ -10,10 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Http',)
 
-from Cookie import SmartCookie
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from pipes import quote
 from urllib import urlencode
 from urlparse import parse_qsl, urlsplit, urlunsplit
 
@@ -129,9 +127,7 @@ class Http(Interface):
 
         body = data.get('data')
         # TODO(dcramer): a list as a body is not even close to valid
-        if isinstance(body, (list, tuple)):
-            body = trim_dict(dict(enumerate(body)))
-        elif isinstance(body, dict):
+        if isinstance(body, dict):
             body = trim_dict(dict(
                 (k, v or '')
                 for k, v in body.iteritems()
@@ -180,32 +176,6 @@ class Http(Interface):
             'method': self.method,
             'query_string': self.query_string,
         })
-
-    def to_curl(self):
-        method = self.method.upper() if self.method else 'GET'
-        if self.cookies:
-            try:
-                cookies = SmartCookie(self.cookies)
-            except Exception:
-                pass
-            else:
-                # The Cookie header is already yanked out of the headers dict
-                # inside `to_python` so we can just safely re-set it.
-                self.headers['Cookie'] = ';'.join(c.output(attrs=[], header='') for c in cookies.values()).strip()
-        bits = []
-        if method != 'GET':
-            bits.append('-X' + method)
-            data = self.data
-            if isinstance(data, dict):
-                data = urlencode(format_body(data))
-            if isinstance(data, basestring):
-                bits.append('--data ' + quote(data))
-        bits.append(quote(self.full_url))
-        for header in self.headers.iteritems():
-            bits.append('-H ' + quote('%s: %s' % header))
-        if 'gzip' in self.headers.get('Accept-Encoding', ''):
-            bits.append('--compressed')
-        return 'curl ' + ' '.join(bits)
 
     def get_alias(self):
         return 'request'
