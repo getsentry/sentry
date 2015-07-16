@@ -117,6 +117,9 @@ var CurlHttpContent = React.createClass({
       result += ' \\\n  --data "' + this.escapeQuotes(jQuery.param(data.data)) + '"';
     }
     result += ' \\\n ' + data.url;
+    if (defined(data.query)) {
+      result += '?' + data.query;
+    }
     return result;
   },
 
@@ -143,9 +146,9 @@ var RichHttpContent = React.createClass({
 
     return (
       <div>
-        {data.query_string &&
+        {data.query &&
           <ClippedBox title="Query String">
-            <pre>{data.query_string}</pre>
+            <pre>{data.query}</pre>
           </ClippedBox>
         }
         {data.fragment &&
