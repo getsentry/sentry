@@ -163,8 +163,8 @@ module.exports = {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   },
 
-  percent(value, totalValue) {
-    return Math.round(value / totalValue * 100);
+  percent(value, totalValue, precise) {
+    return value / totalValue * 100;
   },
 
   urlize(str) {
