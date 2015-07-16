@@ -4,6 +4,7 @@ var Router = require("react-router");
 
 var api = require("../api");
 var DocumentTitle = require("react-document-title");
+var ListLink = require("../components/listLink");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var ProjectState = require("../mixins/projectState");
@@ -93,6 +94,7 @@ var ReleaseDetails = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     var release = this.state.release;
+    var params = this.context.router.getCurrentParams();
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -114,8 +116,8 @@ var ReleaseDetails = React.createClass({
               </div>
             </div>
             <ul className="nav nav-tabs">
-              <li className="active"><a>Caused by this release</a></li>
-              <li><a>Seen in this release</a></li>
+              <ListLink to="releaseNewEvents" params={params}>New Events</ListLink>
+              <ListLink to="releaseAllEvents" params={params}>All Events</ListLink>
             </ul>
           </div>
           <Router.RouteHandler />

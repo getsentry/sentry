@@ -4,7 +4,7 @@ var Router = require("react-router");
 var GroupList = require("../components/groupList");
 var PropTypes = require("../proptypes");
 
-var ReleaseNewEvents = React.createClass({
+var ReleaseAllEvents = React.createClass({
   contextTypes: {
     router: React.PropTypes.func,
     release: PropTypes.AnyModel
@@ -13,10 +13,10 @@ var ReleaseNewEvents = React.createClass({
   render() {
     return (
       <GroupList
-        query={'first-release:"' + this.context.release.version + '"'}
+        query={'sentry:release:"' + this.context.release.version + '"'}
         canSelectGroups={false} />
     );
   }
 });
 
-module.exports = ReleaseNewEvents;
+module.exports = ReleaseAllEvents;
