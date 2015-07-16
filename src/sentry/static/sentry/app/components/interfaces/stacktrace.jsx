@@ -52,11 +52,14 @@ var StacktraceInterface = React.createClass({
           type={this.props.type}
           title={title}>
         {stackView === "raw" ?
-          <RawStacktraceContent data={data} />
+          <RawStacktraceContent
+              data={data}
+              platform={evt.platform} />
         :
           <StacktraceContent
               data={data}
-              includeSystemFrames={stackView === "full"} />
+              includeSystemFrames={stackView === "full"}
+              platform={evt.platform} />
         }
       </GroupEventDataSection>
     );

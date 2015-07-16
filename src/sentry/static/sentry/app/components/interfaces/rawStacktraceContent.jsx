@@ -5,11 +5,39 @@ var {defined, trim} = require("../../utils");
 
 var RawStacktraceContent = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
+    platform: React.PropTypes.string
   },
 
   getFrame(frame) {
-    return this.getDefaultFrame(frame);
+    switch (this.props.platform) {
+      case "javascript":
+        return this.getJavaScriptFrame(frame);
+      default:
+        return this.getDefaultFrame(frame);
+    }
+  },
+
+  getJavaScriptFrame(frame) {
+    var result = '';
+    if (defined(frame.function)) {
+      result += '  at ' + frame.function + '(';
+    } else {
+      result += '  at ? (';
+    }
+    if (defined(frame.filename)) {
+      result += frame.filename;
+    } else if (defined(frame.module)) {
+      result += frame.module;
+    }
+    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+      result += ':' + frame.lineNo;
+    }
+    if (defined(frame.colNo) && frame.colNo >= 0) {
+      result += ':' + frame.colNo;
+    }
+    result += ')';
+    return result;
   },
 
   getDefaultFrame(frame) {
