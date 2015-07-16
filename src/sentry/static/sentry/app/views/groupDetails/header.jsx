@@ -104,7 +104,8 @@ var GroupHeader = React.createClass({
     return (
       <div className={className}>
         <div className="row">
-          <div className="col-sm-8 details">
+          <div className="col-sm-8">
+            <a className="back-arrow"><span className="icon-arrow-left"></span></a>
             <h3>
               {group.title}
             </h3>
