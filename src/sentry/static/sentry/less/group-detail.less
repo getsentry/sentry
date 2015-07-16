@@ -274,24 +274,27 @@
   h6 {
     font-size: 15px;
     margin-bottom: 15px;
+    position: relative;
+
+    > span {
+      background: #fff;
+      padding-right: 7px;
+    }
+
+    &:before {
+      display: block;
+      position: absolute;
+      content: "";
+      border-top: 1px solid lighten(@trim, 9);
+      left: 0;
+      right: 0;
+      top: 50%;
+      z-index: -1;
+    }
 
     &.first-seen, &.last-seen {
-      position: relative;
-
-      span {
-        background: #fff;
-        padding-right: 7px;
-      }
-
       &:before {
-        display: block;
-        position: absolute;
-        content: "";
-        border-top: 1px solid lighten(@trim, 6);
-        left: 0;
         right: 16px;
-        top: 50%;
-        z-index: -1;
       }
 
       &:after {
@@ -326,13 +329,6 @@
     dd {
       text-align: right;
       line-height: 1.7;
-
-      &:nth-child(2), &:nth-child(6) { //hacky
-        background-color: rgba(38, 73, 112, 0.025);
-        margin-left: -5px;
-        margin-right: -5px;
-        padding-right: 5px;
-      }
     }
   }
 }
