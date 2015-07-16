@@ -113,14 +113,14 @@ var TagDistributionMeter = React.createClass({
     });
 
     var hasOther = (totalVisible < totalValues);
-    var otherPercentage = (totalValues - totalVisible) / totalValues * 100;
+    var otherPercentage = utils.percent(totalValues - totalVisible, totalValues) + "%";
 
     return (
       <div className="distribution-graph">
         <h6><span>{this.props.name}</span></h6>
         <div className="segments">
           {data.topValues.map((value) => {
-            var percentage = value.count / totalValues * 100 + "%";
+            var percentage = utils.percent(value.count, totalValues) + "%";
 
             var sliceStyle = {
               width: percentage
@@ -136,7 +136,7 @@ var TagDistributionMeter = React.createClass({
             );
           })}
           {hasOther &&
-            <div className="segment" style={{width: otherPercentage + '%'}}>
+            <div className="segment" style={{width: otherPercentage}}>
               <span className="tag-description">
                 <span className="tag-percentage">{otherPercentage}</span>
                 <span className="tag-label">Other</span>
