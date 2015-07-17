@@ -43,6 +43,10 @@ var SeenInfo = React.createClass({
 });
 
 var TagDistributionMeter = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   propTypes: {
     group: PropTypes.Group.isRequired,
     tag: React.PropTypes.string.isRequired,
@@ -126,6 +130,9 @@ var TagDistributionMeter = React.createClass({
     var otherPct = utils.percent(totalValues - totalVisible, totalValues);
     var otherPctLabel = Math.floor(otherPct);
 
+    var params = this.context.router.getCurrentParams();
+    params.tagKey = this.props.tag;
+
     return (
       <div className="distribution-graph">
         <h6><span>{this.props.name}</span></h6>
@@ -135,21 +142,27 @@ var TagDistributionMeter = React.createClass({
             var pctLabel = Math.floor(pct);
 
             return (
-              <div className="segment" style={{width: pct + "%"}}>
+              <Router.Link
+                  className="segment" style={{width: pct + "%"}}
+                  to="groupTagValues"
+                  params={params}>
                 <span className="tag-description">
                   <span className="tag-percentage">{pctLabel}%</span>
                   <span className="tag-label">{value.name}</span>
                 </span>
-              </div>
+              </Router.Link>
             );
           })}
           {hasOther &&
-            <div className="segment" style={{width: otherPct + "%"}}>
+            <Router.Link
+                className="segment" style={{width: otherPct + "%"}}
+                to="groupTagValues"
+                params={params}>
               <span className="tag-description">
                 <span className="tag-percentage">{otherPctLabel}%</span>
                 <span className="tag-label">Other</span>
               </span>
-            </div>
+            </Router.Link>
           }
         </div>
       </div>
