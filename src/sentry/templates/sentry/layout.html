@@ -100,7 +100,7 @@
         {% endif %}
         <ul class="global-nav pull-right">
           {% block global_nav %}
-          <li><a href="{% url 'sentry-help' %}">Docs</a></li>
+          <li><a href="https://docs.getsentry.com">{% trans "Docs" %}</a></li>
           {% endblock %}
         </ul>
       </div>
@@ -187,7 +187,7 @@
           <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
           {% endif %}
           {% block support_link %}{% endblock %}
-          <a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a>
+          <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
         </div>
         <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
