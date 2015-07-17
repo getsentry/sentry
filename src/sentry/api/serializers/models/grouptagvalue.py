@@ -26,12 +26,16 @@ class GroupTagValueSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        d = {
+        if obj.key.startswith('sentry:'):
+            key = obj.key.split('sentry:', 1)[-1]
+        else:
+            key = obj.key
+
+        return {
             'name': attrs['name'],
-            'key': obj.key,
+            'key': key,
             'value': obj.value,
             'count': obj.times_seen,
             'lastSeen': obj.last_seen,
             'firstSeen': obj.first_seen,
         }
-        return d
