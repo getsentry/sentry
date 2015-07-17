@@ -183,7 +183,6 @@ header {
 
     > li {
       position: relative;
-      font-weight: 600;
 
       &+li {
         padding-left: 17px;
@@ -239,7 +238,7 @@ header {
       &:last-child {
         a {
           font-weight: 400;
-          color: lighten(@grayDark, 20);
+          color: lighten(@gray, 8);
 
           &:hover {
             color: @grayDark;
@@ -255,7 +254,6 @@ header {
       }
 
       &:first-child:last-child {
-
         &:after {
           font-weight: 400;
           content: "Home";
@@ -264,23 +262,10 @@ header {
         }
       }
     }
-
-    .icon-settings {
-      font-size: 15px;
-      color: rgba(79, 87, 96, 0.30);
-      margin-left: 2px;
-      position: relative;
-      top: 1px;
-    }
-
-    em {
-      color: #B5B9BD;
-      font-style: normal;
-    }
   }
 
   a {
-    color: lighten(@grayDark, 20);
+    color: @grayDark;
     &:hover, &:active, &:focus {
       color: @grayDark;
       text-decoration: none;
@@ -292,16 +277,6 @@ header {
     font-weight: 600;
     line-height: 1.5;
     margin: 0;
-  }
-
-  .icon-sentry-logo-full, .icon-sentry-logo {
-    font-size: 24px;
-    position: relative;
-    top: 0;
-  }
-
-  .icon-sentry-logo-full {
-    top: -4px;
   }
 
   .nav-tabs {
