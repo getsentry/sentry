@@ -61,6 +61,11 @@ var ProjectSelector = React.createClass({
     var children = [];
     var activeTeam;
     var activeProject;
+    var projectRouteParams = {
+      orgId: org.slug,
+      projectId: projectId
+    };
+
     org.teams.forEach((team) => {
       if (!team.isMember) {
         return;
@@ -85,7 +90,7 @@ var ProjectSelector = React.createClass({
 
     return (
       <div>
-        <span>{activeTeam.name} / {activeProject.name}</span>
+        <Router.Link to="stream" params={projectRouteParams}>{activeTeam.name} / {activeProject.name}</Router.Link>
         <DropdownLink title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
           <li className="project-filter" key="_filter">
