@@ -141,6 +141,8 @@
   }
 }
 
+// btn-group
+
 .btn-group {
   .btn:active {
     position: static;
@@ -150,11 +152,17 @@
     color: inherit;
     padding: 0;
   }
+  .btn {
+    position: relative;
+    z-index: 1 !important;
+  }
+
   .btn.active {
     color: #fff;
     box-shadow: none;
     background: @blue;
     border-color: darken(@blue, 15);
+    z-index: 2 !important;
     &:hover {
       color: #fff;
     }
