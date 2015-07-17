@@ -11,11 +11,26 @@
 
   <p>Configure release tracking for this project to automatically record new releases of your application.</p>
 
-  {% if enabled_plugins or other_plugins %}
+  <div class="box">
+    <div class="box-header">
+      <h3>{% trans "Client Configuration" %}</h3>
+    </div>
+    <div class="box-content with-padding">
+      <p>At the very minimum you will need to bind the <code>release</code> attribute in your application:</p>
 
+      <pre>// See SDK documentation for language specific usage.
+Raven.config({
+  release: '0e4fdef81448dcfa0e16ecc4433ff3997aa53572'
+});</pre>
+
+      <p>In addition, configuring a release hook (or other interaction) will ensure accurate metadata around a given release.</p>
+    </div>
+  </div>
+
+  {% if enabled_plugins or other_plugins %}
     <div class="box">
       <div class="box-header">
-        <h3>{% trans "General" %}</h3>
+        <h3>{% trans "Token" %}</h3>
       </div>
       <div class="box-content with-padding">
         <form method="POST">
