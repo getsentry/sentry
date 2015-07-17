@@ -141,6 +141,26 @@
   }
 }
 
+.btn-group {
+  .btn:active {
+    position: static;
+  }
+  .btn code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  .btn.active {
+    color: #fff;
+    box-shadow: none;
+    background: @blue;
+    border-color: darken(@blue, 15);
+    &:hover {
+      color: #fff;
+    }
+  }
+}
+
 /* Justified button group */
 
 .btn-group-justified {
@@ -183,12 +203,6 @@
         background: darken(@blue, 20);
       }
     }
-  }
-  .btn.active {
-    color: #fff;
-    box-shadow: none;
-    background: @blue;
-    border-color: darken(@blue, 15);
   }
 }
 
