@@ -3,12 +3,9 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var ConfigStore = require("../stores/configStore");
-var DropdownLink = require("../components/dropdownLink");
 var DocumentTitle = require("react-document-title");
 var MemberListStore = require("../stores/memberListStore");
-var MenuItem = require("../components/menuItem");
 var {modelsEqual} = require("../utils");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
@@ -17,112 +14,12 @@ var OrganizationState = require("../mixins/organizationState");
 var RouteMixin = require("../mixins/routeMixin");
 var PropTypes = require("../proptypes");
 
-var ProjectSelector = React.createClass({
-  childContextTypes: {
-    router: React.PropTypes.func
-  },
-
-  getChildContext() {
-    return {
-      router: this.props.router
-    };
-  },
-
-  getInitialState() {
-    return {
-      filter: ''
-    };
-  },
-
-  onFilterChange(e) {
-    this.setState({
-      filter: e.target.value
-    });
-  },
-
-  getProjectNode(team, project) {
-    var org = this.props.organization;
-    var projectRouteParams = {
-      orgId: org.slug,
-      projectId: project.slug
-    };
-    return (
-      <MenuItem key={project.slug} to="projectDetails"
-                params={projectRouteParams}>
-        {project.name}
-      </MenuItem>
-    );
-  },
-
-  onOpen(event) {
-    $(this.refs.filter.getDOMNode()).focus();
-  },
-
-  onClose(event) {
-    this.setState({
-      filter: ''
-    });
-    $(this.refs.filter.getDOMNode()).val('');
-  },
-
-  render() {
-    var projectId = this.props.projectId;
-    var org = this.props.organization;
-    var urlPrefix = ConfigStore.get('urlPrefix');
-    var children = [];
-    var activeTeam;
-    var activeProject;
-    org.teams.forEach((team) => {
-      if (!team.isMember) {
-        return;
-      }
-      var hasTeam = false;
-      team.projects.forEach((project) => {
-        if (project.slug == this.props.projectId) {
-          activeTeam = team;
-          activeProject = project;
-        }
-        var fullName = team.name + ' ' + project.name + ' ' + team.slug + ' ' + project.slug;
-        if (this.state.filter && fullName.indexOf(this.state.filter) === -1) {
-          return;
-        }
-        if (!hasTeam) {
-          children.push(<li className="team-name" key={'_team' + team.slug}>{team.name}</li>);
-          hasTeam = true;
-        }
-        children.push(this.getProjectNode(team, project));
-      });
-    });
-    var title = <span>{activeTeam.name} / {activeProject.name}</span>;
-
-    return (
-      <DropdownLink title={title} topLevelClasses="project-dropdown"
-          onOpen={this.onOpen} onClose={this.onClose}>
-        <li className="project-filter" key="_filter">
-          <input type="text" placeholder="Filter projects"
-                 onKeyUp={this.onFilterChange} ref="filter" />
-        </li>
-        {children}
-        <li className="new-project" key="_new-project">
-          <a className="btn btn-primary"
-             href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>
-            <span className="icon-plus" /> Create Project
-          </a>
-        </li>
-      </DropdownLink>
-    );
-  }
-});
-
 var ProjectDetails = React.createClass({
   mixins: [
-    BreadcrumbMixin,
     Reflux.connect(MemberListStore, "memberList"),
     OrganizationState,
     RouteMixin
   ],
-
-  crumbReservations: 1,
 
   childContextTypes: {
     project: PropTypes.Project,
@@ -153,15 +50,6 @@ var ProjectDetails = React.createClass({
 
   componentWillMount() {
     this.fetchData();
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    var project = this.state.project;
-    var org = this.getOrganization();
-    this.setBreadcrumbs([
-      <ProjectSelector organization={org} projectId={this.state.project.slug}
-                       router={this.context.router} />
-    ]);
   },
 
   routeDidChange(nextPath, nextParams) {
@@ -249,7 +137,10 @@ var ProjectDetails = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
-          <ProjectHeader activeSection={this.state.projectNavSection} />
+          <ProjectHeader
+            activeSection={this.state.projectNavSection}
+            project={this.state.project}
+            organization={this.getOrganization()} />
           <div className="container">
             <div className="content">
               <Router.RouteHandler

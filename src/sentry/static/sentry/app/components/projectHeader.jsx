@@ -2,18 +2,103 @@ var React = require("react");
 var Router = require("react-router");
 
 var AppState = require("../mixins/appState");
-var Breadcrumbs = require("./breadcrumbs");
 var ConfigStore = require("../stores/configStore");
+var DropdownLink = require("../components/dropdownLink");
+var MenuItem = require("../components/menuItem");
 
-var DateRangePicker = React.createClass({
-  render() {
+var ProjectSelector = React.createClass({
+  childContextTypes: {
+    router: React.PropTypes.func
+  },
+
+  getChildContext() {
+    return {
+      router: this.props.router
+    };
+  },
+
+  getInitialState() {
+    return {
+      filter: ''
+    };
+  },
+
+  onFilterChange(e) {
+    this.setState({
+      filter: e.target.value
+    });
+  },
+
+  getProjectNode(team, project) {
+    var org = this.props.organization;
+    var projectRouteParams = {
+      orgId: org.slug,
+      projectId: project.slug
+    };
     return (
-      <div className="dropdown anchor-right range-picker">
-        <a href="#" className="dropdown-toggle">
-          Last 7 days
-          <span className="icon-arrow-down"></span>
-        </a>
-      </div>
+      <MenuItem key={project.slug} to="projectDetails"
+                params={projectRouteParams}>
+        {project.name}
+      </MenuItem>
+    );
+  },
+
+  onOpen(event) {
+    $(this.refs.filter.getDOMNode()).focus();
+  },
+
+  onClose(event) {
+    this.setState({
+      filter: ''
+    });
+    $(this.refs.filter.getDOMNode()).val('');
+  },
+
+  render() {
+    var projectId = this.props.projectId;
+    var org = this.props.organization;
+    var urlPrefix = ConfigStore.get('urlPrefix');
+    var children = [];
+    var activeTeam;
+    var activeProject;
+    org.teams.forEach((team) => {
+      if (!team.isMember) {
+        return;
+      }
+      var hasTeam = false;
+      team.projects.forEach((project) => {
+        if (project.slug == this.props.projectId) {
+          activeTeam = team;
+          activeProject = project;
+        }
+        var fullName = team.name + ' ' + project.name + ' ' + team.slug + ' ' + project.slug;
+        if (this.state.filter && fullName.indexOf(this.state.filter) === -1) {
+          return;
+        }
+        if (!hasTeam) {
+          children.push(<li className="team-name" key={'_team' + team.slug}>{team.name}</li>);
+          hasTeam = true;
+        }
+        children.push(this.getProjectNode(team, project));
+      });
+    });
+    var title = <span>{activeTeam.name} / {activeProject.name}</span>;
+
+    return (
+      <DropdownLink title={title} topLevelClasses="project-dropdown"
+          onOpen={this.onOpen} onClose={this.onClose}>
+        <li className="project-filter" key="_filter">
+          <input type="text" placeholder="Filter projects"
+                 onKeyUp={this.onFilterChange} ref="filter" />
+        </li>
+        {children}
+        <li className="new-project" key="_new-project">
+          <a className="btn btn-primary"
+             href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>
+            <span className="icon-plus" /> Create Project
+          </a>
+        </li>
+      </DropdownLink>
     );
   }
 });
@@ -28,6 +113,8 @@ var ProjectHeader = React.createClass({
     var navSection = this.props.activeSection;
     var urlPrefix = ConfigStore.get('urlPrefix');
     var user = ConfigStore.get('user');
+    var project = this.props.project;
+    var org = this.props.organization;
 
     return (
       <div>
@@ -57,7 +144,19 @@ var ProjectHeader = React.createClass({
                 </li>
               </ul>
             </div>
-            <Breadcrumbs />
+            <ul className="breadcrumb">
+              <li>
+                <Router.Link to="organizationDetails" params={{orgId: org.slug}}>
+                  {org.name}
+                </Router.Link>
+              </li>
+              <li>
+                <ProjectSelector
+                    organization={org}
+                    projectId={project.slug}
+                    router={this.context.router} />
+              </li>
+            </ul>
            </div>
         </div>
       </div>

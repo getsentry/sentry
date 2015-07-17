@@ -28,8 +28,6 @@ var GroupList = React.createClass({
     Reflux.listenTo(GroupStore, "onGroupChange"),
   ],
 
-  crumbReservations: 1,
-
   getDefaultProps() {
     return {
       canSelectGroups: true

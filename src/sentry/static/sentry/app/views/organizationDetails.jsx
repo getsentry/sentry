@@ -2,7 +2,6 @@ var React = require("react");
 var Router = require("react-router");
 
 var api = require("../api");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var DocumentTitle = require("react-document-title");
 var Footer = require("../components/footer");
 var Header = require("../components/header");
@@ -15,11 +14,8 @@ var TeamStore = require("../stores/teamStore");
 
 var OrganizationDetails = React.createClass({
   mixins: [
-    BreadcrumbMixin,
     RouteMixin
   ],
-
-  crumbReservations: 1,
 
   childContextTypes: {
     organization: PropTypes.Organization
@@ -73,10 +69,6 @@ var OrganizationDetails = React.createClass({
         });
 
         TeamStore.loadInitialData(data.teams);
-
-        this.setBreadcrumbs([
-          {name: data.name, to: 'organizationDetails'}
-        ]);
       },
       error: () => {
         this.setState({

@@ -2,7 +2,6 @@ var React = require("react");
 var Router = require("react-router");
 
 var api = require("../api");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var Gravatar = require("../components/gravatar");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
@@ -12,12 +11,9 @@ var RouteMixin = require("../mixins/routeMixin");
 
 var OrganizationMembers = React.createClass({
   mixins: [
-    BreadcrumbMixin,
     OrganizationState,
     RouteMixin
   ],
-
-  crumbReservations: 1,
 
   contextTypes: {
     router: React.PropTypes.func
@@ -43,10 +39,6 @@ var OrganizationMembers = React.createClass({
   },
 
   fetchData() {
-    this.setBreadcrumbs([
-      {name: 'Members', to: 'organizationMembers'}
-    ]);
-
     this.setState({
       loading: true,
       error: false

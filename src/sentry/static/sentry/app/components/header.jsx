@@ -1,7 +1,6 @@
 var React = require("react");
 
 var AppState = require("../mixins/appState");
-var Breadcrumbs = require("./breadcrumbs");
 var ConfigStore = require("../stores/configStore");
 var DropdownLink = require("./dropdownLink");
 var Gravatar = require("./gravatar");
