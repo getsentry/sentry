@@ -14,6 +14,10 @@ var GroupTags = React.createClass({
     GroupState
   ],
 
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   getInitialState() {
     return {
       tagList: null,
@@ -32,6 +36,8 @@ var GroupTags = React.createClass({
       error: false
     });
 
+    // TODO(dcramer): each tag should be a separate query as the tags endpoint
+    // is not performant
     this.apiRequest('/groups/' + this.getGroup().id + '/tags/', {
       success: (data) => {
         if (!this.isMounted()) {
@@ -63,18 +69,24 @@ var GroupTags = React.createClass({
     }
 
     var children = [];
+    var router = this.context.router;
 
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
         var valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
           var pct = parseInt(tagValue.count / tag.totalValues * 100, 10);
+          var params = router.getCurrentParams();
           return (
             <li key={tagValueIdx}>
-              <a className="tag-bar" href="">
+              <Router.Link
+                  className="tag-bar"
+                  to="stream"
+                  params={params}
+                  query={{query: tag.key + ':' + '"' + tagValue.value + '"'}}>
                 <span className="tag-bar-background" style={{width: pct + '%'}}></span>
-                <span className="tag-bar-label">{tagValue.value}</span>
+                <span className="tag-bar-label">{tagValue.name}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
-              </a>
+              </Router.Link>
             </li>
           );
         });
