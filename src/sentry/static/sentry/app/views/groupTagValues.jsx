@@ -1,4 +1,4 @@
-var $ = require("jquery");
+var jQuery = require("jquery");
 var React = require("react");
 
 var api = require("../api");
@@ -34,7 +34,7 @@ var GroupTagValues = React.createClass({
     var router = this.context.router;
     var params = router.getCurrentParams();
     var queryParams = router.getCurrentQuery();
-    var querystring = $.param(queryParams);
+    var querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,

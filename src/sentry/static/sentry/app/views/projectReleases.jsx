@@ -1,3 +1,4 @@
+var jQuery = require("jquery");
 var React = require("react");
 var Reflux = require("reflux");
 var Router = require("react-router");
@@ -70,7 +71,7 @@ var ProjectReleases = React.createClass({
     var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
 
-    return '/projects/' + params.orgId + '/' + params.projectId + '/releases/';
+    return '/projects/' + params.orgId + '/' + params.projectId + '/releases/?' + jQuery.param(queryParams);
   },
 
   onPage(cursor) {
