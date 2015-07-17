@@ -47,12 +47,15 @@ var EventNode = React.createClass({
           <div className="col-xs-8 event-details">
             <h3 className="truncate">{this.makeGroupLink(group.title)}</h3>
             <div className="event-message">{group.culprit}</div>
-            <div className="event-meta">
-              <span>First:</span>
-              <TimeSince date={group.firstSeen} className="first-seen"/>
-              &nbsp;&mdash;&nbsp;
-              <span>Last:</span>
-              <TimeSince date={group.lastSeen} className="last-seen"/>
+            <div className="event-extra">
+              <ul>
+                <li>
+                  <span className="icon icon-clock"></span>
+                  <TimeSince date={group.lastSeen} />
+                  &nbsp;&mdash;&nbsp;
+                  <TimeSince date={group.firstSeen} suffix="old" />
+                </li>
+              </ul>
             </div>
           </div>
           <div className="col-xs-2 event-occurrences align-right">
