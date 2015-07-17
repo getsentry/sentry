@@ -72,7 +72,7 @@ def main():
     )
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
-        org = Organization.objects.all()[0]
+        org = Organization.get_default()
     else:
         print('Mocking org {}'.format('Default'))
         org, _ = Organization.objects.get_or_create(
