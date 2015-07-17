@@ -88,16 +88,22 @@ var GroupTagValues = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
+    var router = this.context.router;
     var tagKey = this.state.tagKey;
     var children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
       var pct = parseInt(tagValue.count / tagKey.totalValues * 100, 10);
+      var params = router.getCurrentParams();
       return (
         <li key={tagValueIdx}>
-          <a className="tag-bar" href="">
+          <Router.Link
+              className="tag-bar"
+              to="stream"
+              params={params}
+              query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
             <span className="tag-bar-background" style={{width: pct + '%'}}></span>
             <span className="tag-bar-label">{tagValue.name}</span>
             <span className="tag-bar-count"><Count value={tagValue.count} /></span>
-          </a>
+          </Router.Link>
         </li>
       );
     });
@@ -106,9 +112,6 @@ var GroupTagValues = React.createClass({
       <div>
         <div className="box">
           <div className="box-header">
-            <span className="pull-right">
-              <a href="">More Details</a>
-            </span>
             <h3>{tagKey.name} (<Count value={tagKey.totalValues} />)</h3>
           </div>
           <div className="box-content with-padding">
