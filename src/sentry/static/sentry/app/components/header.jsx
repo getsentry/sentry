@@ -92,6 +92,9 @@ var Header = React.createClass({
       <header>
         <div className="container">
           <UserNav className="pull-right" />
+          <ul className="global-nav pull-right">
+            <li><a href="https://docs.getsentry.com">Docs</a></li>
+          </ul>
           <a href="/" className="logo"><span className="icon-sentry-logo"></span></a>
           <OrganizationSelector organization={this.getOrganization()} className="pull-right" />
         </div>
