@@ -93,12 +93,6 @@ var ProjectSelector = React.createClass({
                    onKeyUp={this.onFilterChange} ref="filter" />
           </li>
           {children}
-          <li className="new-project" key="_new-project">
-            <a className="btn btn-primary"
-               href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>
-              <span className="icon-plus" /> Create Project
-            </a>
-          </li>
         </DropdownLink>
       </div>
     );
