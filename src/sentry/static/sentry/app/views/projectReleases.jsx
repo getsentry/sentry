@@ -122,7 +122,7 @@ var ProjectReleases = React.createClass({
                           </Router.Link>
                           </h4>
                           <div className="release-meta">
-                            <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} /> by <a>dcramer</a>
+                            <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                           </div>
                         </div>
                         <div className="col-md-5 col-sm-6 col-xs-6 release-stats">
