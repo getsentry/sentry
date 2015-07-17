@@ -16,10 +16,15 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
+        if key in ('release', 'user', 'filename', 'function'):
+            lookup_key = 'sentry:{0}'.format(key)
+        else:
+            lookup_key = key
+
         try:
             tagkey = TagKey.objects.get(
                 project=project,
-                key=key,
+                key=lookup_key,
             )
         except TagKey.DoesNotExist:
             raise ResourceDoesNotExist

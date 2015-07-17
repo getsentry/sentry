@@ -19,10 +19,15 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
+        if key in ('release', 'user', 'filename', 'function'):
+            lookup_key = 'sentry:{0}'.format(key)
+        else:
+            lookup_key = key
+
         try:
             tagkey = TagKey.objects.get(
                 project=project,
-                key=key,
+                key=lookup_key,
                 status=TagKeyStatus.VISIBLE,
             )
         except TagKey.DoesNotExist:
@@ -30,7 +35,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
 
         queryset = TagValue.objects.filter(
             project=project,
-            key=key,
+            key=tagkey.key,
         )
 
         return self.paginate(

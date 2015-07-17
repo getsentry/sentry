@@ -19,10 +19,16 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             {method} {path}
 
         """
+        # XXX(dcramer): kill sentry prefix for internal reserved tags
+        if key in ('release', 'user', 'filename', 'function'):
+            lookup_key = 'sentry:{0}'.format(key)
+        else:
+            lookup_key = key
+
         try:
             tagkey = TagKey.objects.get(
                 project=group.project_id,
-                key=key,
+                key=lookup_key,
                 status=TagKeyStatus.VISIBLE,
             )
         except TagKey.DoesNotExist:
@@ -30,7 +36,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
         queryset = GroupTagValue.objects.filter(
             group=group,
-            key=key,
+            key=lookup_key,
         )
 
         return self.paginate(
