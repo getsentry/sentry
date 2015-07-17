@@ -128,11 +128,6 @@ var CurlHttpContent = React.createClass({
   }
 });
 
-var RawHttpContent = React.createClass({
-  render() {
-    return null;
-  }
-});
 
 var RichHttpContent = React.createClass({
   render(){
@@ -244,8 +239,6 @@ var RequestInterface = React.createClass({
              onClick={this.toggleView.bind(this, "rich")}>Rich</a>
           <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
              onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
-          <a className={(view === "raw" ? "active" : "") + " btn btn-default btn-sm"}
-             onClick={this.toggleView.bind(this, "raw")}>Raw</a>
         </div>
       </div>
     );
@@ -256,13 +249,11 @@ var RequestInterface = React.createClass({
           event={evt}
           type={this.props.type}
           title={title}>
-        {view === "rich" ?
-          <RichHttpContent data={data} />
-        : (view === "curl" ?
+        {view === "curl" ?
           <CurlHttpContent data={data} />
         :
-          <RawHttpContent data={data} />
-        )}
+          <RichHttpContent data={data} />
+        }
       </GroupEventDataSection>
     );
   }
