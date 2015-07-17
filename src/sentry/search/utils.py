@@ -55,6 +55,8 @@ def parse_query(query, user):
             results['first_release'] = value
         elif key == 'release':
             results['tags']['sentry:release'] = value
+        elif key == 'user':
+            results['tags']['sentry:user'] = value
         else:
             results['tags'][key] = value
 
