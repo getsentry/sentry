@@ -82,23 +82,25 @@ var ProjectSelector = React.createClass({
         children.push(this.getProjectNode(team, project));
       });
     });
-    var title = <span>{activeTeam.name} / {activeProject.name}</span>;
 
     return (
-      <DropdownLink title={title} topLevelClasses="project-dropdown"
-          onOpen={this.onOpen} onClose={this.onClose}>
-        <li className="project-filter" key="_filter">
-          <input type="text" placeholder="Filter projects"
-                 onKeyUp={this.onFilterChange} ref="filter" />
-        </li>
-        {children}
-        <li className="new-project" key="_new-project">
-          <a className="btn btn-primary"
-             href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>
-            <span className="icon-plus" /> Create Project
-          </a>
-        </li>
-      </DropdownLink>
+      <div>
+        <span>{activeTeam.name} / {activeProject.name}</span>
+        <DropdownLink title="" topLevelClasses="project-dropdown"
+            onOpen={this.onOpen} onClose={this.onClose}>
+          <li className="project-filter" key="_filter">
+            <input type="text" placeholder="Filter projects"
+                   onKeyUp={this.onFilterChange} ref="filter" />
+          </li>
+          {children}
+          <li className="new-project" key="_new-project">
+            <a className="btn btn-primary"
+               href={urlPrefix + '/organizations/' + org.slug + '/projects/new/'}>
+              <span className="icon-plus" /> Create Project
+            </a>
+          </li>
+        </DropdownLink>
+      </div>
     );
   }
 });
