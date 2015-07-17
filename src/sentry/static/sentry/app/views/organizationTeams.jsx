@@ -238,7 +238,8 @@ var OrganizationStatOverview = React.createClass({
             received[1] += 1;
           }
         });
-        this.setState({epm: parseInt((received[0] / received[1]) / 60, 10)});
+        var epm = (received[1] ? parseInt((received[0] / received[1]) / 60, 10) : 0);
+        this.setState({epm: epm});
       }
     });
   },
