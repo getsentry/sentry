@@ -105,7 +105,9 @@ var GroupHeader = React.createClass({
       <div className={className}>
         <div className="row">
           <div className="col-sm-8">
-            <a className="back-arrow"><span className="icon-arrow-left"></span></a>
+            <Router.Link to="projectDetails" params={groupRouteParams} className="back-arrow">
+              <span className="icon-arrow-left"></span>
+            </Router.Link>
             <h3>
               {group.title}
             </h3>
