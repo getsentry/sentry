@@ -11,6 +11,48 @@ var RouteMixin = require("../mixins/routeMixin");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
 
+var ReleaseList = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
+  render() {
+    var params = this.context.router.getCurrentParams();
+
+    return (
+      <ul className="release-list">
+          {this.props.releaseList.map((release) => {
+            var routeParams = {
+              orgId: params.orgId,
+              projectId: params.projectId,
+              version: release.version
+            };
+
+            return (
+              <li className="release">
+                <div className="row">
+                  <div className="col-md-7 col-sm-6 col-xs-6">
+                    <h4>
+                    <Router.Link to="releaseDetails" params={routeParams} className="truncate">
+                      {release.version}
+                    </Router.Link>
+                    </h4>
+                    <div className="release-meta">
+                      <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
+                    </div>
+                  </div>
+                  <div className="col-md-5 col-sm-6 col-xs-6 release-stats">
+                    <span className="release-count">N</span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+      </ul>
+    );
+  }
+});
+
 var ProjectReleases = React.createClass({
   mixins: [
     RouteMixin
@@ -83,6 +125,13 @@ var ProjectReleases = React.createClass({
     router.transitionTo('projectReleases', params, queryParams);
   },
 
+  getReleaseTrackingUrl() {
+    var router = this.context.router;
+    var params = router.getCurrentParams();
+
+    return '/' + params.orgId + '/' + params.projectId + '/settings/release-tracking/';
+  },
+
   render() {
     var router = this.context.router;
     var params = router.getCurrentParams();
@@ -104,35 +153,15 @@ var ProjectReleases = React.createClass({
                 </div>
               </div>
             </div>
-            <ul className="release-list">
-                {this.state.releaseList.map((release) => {
-                  var routeParams = {
-                    orgId: params.orgId,
-                    projectId: params.projectId,
-                    version: release.version
-                  };
-
-                  return (
-                    <li className="release">
-                      <div className="row">
-                        <div className="col-md-7 col-sm-6 col-xs-6">
-                          <h4>
-                          <Router.Link to="releaseDetails" params={routeParams} className="truncate">
-                            {release.version}
-                          </Router.Link>
-                          </h4>
-                          <div className="release-meta">
-                            <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
-                          </div>
-                        </div>
-                        <div className="col-md-5 col-sm-6 col-xs-6 release-stats">
-                          <span className="release-count">N</span>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-            </ul>
+            {this.state.releaseList.length ?
+              <ReleaseList releaseList={this.state.releaseList} />
+            :
+              <div className="box empty-stream">
+                <span className="icon icon-exclamation" />
+                <p>There don't seem to be an releases recorded.</p>
+                <p><a href={this.getReleaseTrackingUrl()}>Learn how to integreate Release Tracking</a></p>
+              </div>
+            }
           </div>
         )}
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
