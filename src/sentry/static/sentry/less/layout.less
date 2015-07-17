@@ -185,8 +185,8 @@ header {
       position: relative;
 
       &+li {
-        padding-left: 17px;
-        margin-left: 15px;
+        padding-left: 10px;
+        margin-left: 10px;
 
         &:before {
           position: absolute;
@@ -219,10 +219,10 @@ header {
             content: "\e620";
             font-size: 17px;
             position: absolute;
-            left: -17px;
+            left: -15px;
             top: -2px;
             height: 20px;
-            width: 57px;
+            width: 50px;
             line-height: 20px;
             text-align: center;
             border-right: 1px solid rgba(79, 87, 96, 0.15);
@@ -237,7 +237,6 @@ header {
 
       &:last-child {
         a {
-          font-weight: 400;
           color: lighten(@gray, 8);
 
           &:hover {
@@ -247,7 +246,7 @@ header {
       }
 
       &:nth-child(2) {
-        padding-left: 24px;
+        padding-left: 19px;
         &:before {
           display: none;
         }
@@ -257,7 +256,7 @@ header {
         &:after {
           font-weight: 400;
           content: "Home";
-          padding-left: 38px;
+          padding-left: 30px;
           opacity: .6;
         }
       }
@@ -266,6 +265,7 @@ header {
 
   a {
     color: @grayDark;
+
     &:hover, &:active, &:focus {
       color: @grayDark;
       text-decoration: none;
