@@ -53,7 +53,6 @@ module.exports = {
     routes: require("./routes"),
 
     Alerts: require("./components/alerts"),
-    Breadcrumbs: require("./components/breadcrumbs"),
     ConfigStore: require("./stores/configStore"),
     FlotChart: require("./components/flotChart"),
     HookStore: require("./stores/hookStore"),

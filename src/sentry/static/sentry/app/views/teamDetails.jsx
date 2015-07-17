@@ -3,7 +3,6 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var LoadingIndicator = require("../components/loadingIndicator");
 var OrganizationHeader = require("../components/organizationHeader");
 var OrganizationState = require("../mixins/organizationState");
@@ -12,12 +11,9 @@ var RouteMixin = require("../mixins/routeMixin");
 
 var TeamDetails = React.createClass({
   mixins: [
-    BreadcrumbMixin,
     OrganizationState,
     RouteMixin
   ],
-
-  crumbReservations: 1,
 
   childContextTypes: {
     team: PropTypes.Team

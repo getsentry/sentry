@@ -3,7 +3,6 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
-var BreadcrumbMixin = require("../mixins/breadcrumbMixin");
 var DocumentTitle = require("react-document-title");
 var GroupHeader = require("./groupDetails/header");
 var GroupStore = require("../stores/groupStore");
@@ -18,7 +17,6 @@ var GroupDetails = React.createClass({
   },
 
   mixins: [
-    BreadcrumbMixin,
     Reflux.listenTo(GroupStore, "onGroupChange")
   ],
 
@@ -26,8 +24,6 @@ var GroupDetails = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired,
     setProjectNavSection: React.PropTypes.func.isRequired
   },
-
-  crumbReservations: 1,
 
   childContextTypes: {
     group: PropTypes.Group,
@@ -63,10 +59,6 @@ var GroupDetails = React.createClass({
         this.setState({
           loading: false
         });
-
-        this.setBreadcrumbs([
-          {name: data.title, to: 'groupDetails'}
-        ]);
 
         GroupStore.loadInitialData([data]);
       }, error: () => {
