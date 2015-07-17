@@ -30,7 +30,7 @@ var ProjectChart = React.createClass({
     var org = this.getOrganization();
     var project = this.getProject();
     if (org && project) {
-      return "/projects/" + org.slug + "/" + project.slug + "/stats/";
+      return "/projects/" + org.slug + "/" + project.slug + "/stats/?resolution=1h";
     }
   },
 
