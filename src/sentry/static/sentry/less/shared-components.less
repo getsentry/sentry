@@ -864,7 +864,10 @@ table.integrations {
 */
 
 .project-dropdown {
-    > a {color: @grayDark !important;}
+  position: static;
+  > a {
+    color: @grayDark !important;
+  }
 
   .dropdown-toggle {
     .icon-arrow-down {
@@ -878,6 +881,11 @@ table.integrations {
   .dropdown-menu {
     width: 460px;
     padding-bottom: 0;
+    left: 5px;
+
+    &:before, &:after {
+      display: none;
+    }
 
     .project-filter {
       width: 100%;
@@ -891,10 +899,14 @@ table.integrations {
         border-radius: 3px 3px 0 0;
         font-size: 15px;
         border: 0;
-        border-bottom: 1px solid @trim;
+        border-bottom: 1px solid lighten(@trim, 4);
         margin-top: -5px;
         box-shadow: none;
         padding-left: 15px;
+
+        &:focus {
+          border-bottom: 1px solid lighten(@trim, 4);
+        }
       }
     }
 
