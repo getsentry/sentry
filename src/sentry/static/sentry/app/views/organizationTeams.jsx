@@ -363,7 +363,7 @@ var OrganizationTeams = React.createClass({
               }
             </div>
           </div>
-          <OrganizationStatOverview className="colmd3 statscolumn" />
+          <OrganizationStatOverview className="col-md-3 stats-column" />
         </div>
       </OrganizationHomeContainer>
     );
