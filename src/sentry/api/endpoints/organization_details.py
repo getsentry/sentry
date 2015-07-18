@@ -61,7 +61,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context['access'] = access.from_user(request.user, organization).scopes
         context['features'] = feature_list
         context['teams'] = serialize(
-            team_list, request.user, TeamWithProjectsSerializer)
+            team_list, request.user, TeamWithProjectsSerializer())
         return Response(context)
 
     @sudo_required
