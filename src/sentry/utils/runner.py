@@ -173,6 +173,7 @@ SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
 # If you're using a reverse proxy, you should enable the X-Forwarded-Proto
 # header and uncomment the following settings
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SESSION_COOKIE_SECURE = True
 
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
@@ -305,7 +306,23 @@ def initialize_app(config):
     if settings.SENTRY_SINGLE_ORGANIZATION:
         settings.SENTRY_FEATURES['organizations:create'] = False
 
+    settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+
     initialize_receivers()
+
+    validate_backends()
+
+
+def validate_backends():
+    from sentry import app
+
+    app.buffer.validate()
+    app.nodestore.validate()
+    app.quotas.validate()
+    app.search.validate()
+    app.ratelimiter.validate()
+    app.tsdb.validate()
 
 
 def fix_south(settings):

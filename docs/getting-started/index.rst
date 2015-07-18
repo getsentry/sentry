@@ -335,6 +335,7 @@ well as within the Sentry configuration:
 .. code-block:: python
 
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
 
 Running Sentry as a Service
 ---------------------------

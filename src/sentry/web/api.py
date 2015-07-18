@@ -90,17 +90,12 @@ class Auth(object):
 
 class APIView(BaseView):
     def _get_project_from_id(self, project_id):
-        if project_id:
-            if project_id.isdigit():
-                lookup_kwargs = {'id': int(project_id)}
-            else:
-                lookup_kwargs = {'slug': project_id}
-
-            try:
-                return Project.objects.get_from_cache(**lookup_kwargs)
-            except Project.DoesNotExist:
-                raise APIError('Invalid project_id: %r' % project_id)
-        return None
+        if not project_id:
+            return
+        try:
+            return Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            raise APIError('Invalid project_id: %r' % project_id)
 
     def _parse_header(self, request, project):
         try:

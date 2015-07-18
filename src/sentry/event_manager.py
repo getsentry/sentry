@@ -336,11 +336,13 @@ class EventManager(object):
         })
 
         if release:
-            group_kwargs['first_release'] = Release.get_or_create(
+            release = Release.get_or_create(
                 project=project,
                 version=release,
                 date_added=date,
             )
+
+            group_kwargs['first_release'] = release
 
             Activity.objects.create(
                 type=Activity.RELEASE,
@@ -381,6 +383,11 @@ class EventManager(object):
             except IntegrityError:
                 self.logger.info('Duplicate Event found for event_id=%s', event_id)
                 return event
+
+        if is_new and release:
+            buffer.incr(Release, {'new_groups': 1}, {
+                'id': release.id,
+            })
 
         safe_execute(Group.objects.add_tags, group, tags,
                      _with_transaction=False)

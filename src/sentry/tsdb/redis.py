@@ -7,18 +7,17 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
+import six
+
 from binascii import crc32
 from collections import defaultdict
 from datetime import timedelta
-from hashlib import md5
-
 from django.conf import settings
 from django.utils import timezone
-
+from hashlib import md5
 from nydus.db import create_cluster
 
-import six
-
+from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import BaseTSDB
 
 
@@ -67,6 +66,12 @@ class RedisTSDB(BaseTSDB):
         self.prefix = prefix
         self.vnodes = vnodes
         super(RedisTSDB, self).__init__(**kwargs)
+
+    def validate(self):
+        try:
+            self.conn.ping()
+        except Exception as e:
+            raise InvalidConfiguration(unicode(e))
 
     def make_key(self, model, epoch, model_key):
         if isinstance(model_key, six.integer_types):

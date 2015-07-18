@@ -48,6 +48,14 @@ class Buffer(object):
             'extra': extra,
         })
 
+    def validate(self):
+        """
+        Validates the settings for this backend (i.e. such as proper connection
+        info).
+
+        Raise ``InvalidConfiguration`` if there is a configuration error.
+        """
+
     def process_pending(self):
         return []
 

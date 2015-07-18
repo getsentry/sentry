@@ -12,7 +12,9 @@ from django.utils import timezone
 from hashlib import md5
 from jsonfield import JSONField
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+)
 from sentry.utils.cache import cache
 
 
@@ -33,6 +35,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
+    new_groups = BoundedPositiveIntegerField(default=0)
 
     class Meta:
         app_label = 'sentry'
