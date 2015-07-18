@@ -89,6 +89,37 @@ class GroupListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(group3.id)
 
+    def test_stats_period(self):
+        # TODO(dcramer): this test really only checks if validation happens
+        # on statsPeriod
+        project = self.project
+        now = timezone.now()
+        group1 = self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(seconds=1),
+        )
+        group2 = self.create_group(
+            checksum='b' * 32,
+            last_seen=now,
+        )
+
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-group-index', kwargs={
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
+        response = self.client.get(url + '?statsPeriod=24h', format='json')
+        assert response.status_code == 200
+
+        response = self.client.get(url + '?statsPeriod=14d', format='json')
+        assert response.status_code == 200
+
+        response = self.client.get(url + '?statsPeriod=', format='json')
+        assert response.status_code == 200
+
+        response = self.client.get(url + '?statsPeriod=48h', format='json')
+        assert response.status_code == 400
+
 
 class GroupUpdateTest(APITestCase):
     def test_global_resolve(self):

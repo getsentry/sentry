@@ -135,39 +135,38 @@ class GroupSerializer(Serializer):
 
 
 class StreamGroupSerializer(GroupSerializer):
+    def __init__(self, stats_period=None):
+        self.stats_period = stats_period
+        assert stats_period in (None, '24h', '14d')
+
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
 
         # we need to compute stats at 1d (1h resolution), and 14d
         group_ids = [g.id for g in item_list]
-        now = timezone.now()
-        hourly_stats = tsdb.rollup(tsdb.get_range(
-            model=tsdb.models.group,
-            keys=group_ids,
-            end=now,
-            start=now - timedelta(days=1),
-        ), 3600)
-        daily_stats = tsdb.rollup(tsdb.get_range(
-            model=tsdb.models.group,
-            keys=group_ids,
-            end=now,
-            start=now - timedelta(days=14),
-        ), 3600 * 24)
+        if self.stats_period:
+            days = 14 if self.stats_period == '14d' else 1
+            now = timezone.now()
+            stats = tsdb.rollup(tsdb.get_range(
+                model=tsdb.models.group,
+                keys=group_ids,
+                end=now,
+                start=now - timedelta(days=days),
+            ), 3600 * days)
 
-        for item in item_list:
-            attrs[item].update({
-                'hourly_stats': hourly_stats[item.id],
-                'daily_stats': daily_stats[item.id],
-            })
+            for item in item_list:
+                attrs[item].update({
+                    'stats': stats[item.id],
+                })
         return attrs
 
     def serialize(self, obj, attrs, user):
         result = super(StreamGroupSerializer, self).serialize(obj, attrs, user)
 
-        result['stats'] = {
-            '24h': attrs['hourly_stats'],
-            '14d': attrs['daily_stats'],
-        }
+        if self.stats_period:
+            result['stats'] = {
+                self.stats_period: attrs['stats'],
+            }
 
         return result
 
