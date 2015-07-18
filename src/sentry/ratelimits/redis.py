@@ -4,6 +4,7 @@ from django.conf import settings
 from nydus.db import create_cluster
 from time import time
 
+from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.base import RateLimiter
 
 
@@ -22,6 +23,12 @@ class RedisRateLimiter(RateLimiter):
             'router': options['router'],
             'hosts': options['hosts'],
         })
+
+    def validate(self):
+        try:
+            self.conn.ping()
+        except Exception as e:
+            raise InvalidConfiguration(unicode(e))
 
     def is_limited(self, project, key, limit):
         key = 'rl:%s:%s:%s' % (

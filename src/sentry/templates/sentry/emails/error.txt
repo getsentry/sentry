@@ -9,8 +9,6 @@ Details
 
 {{ link }}
 
-First Seen: {{ group.first_seen|date }}
-
 Tags
 ----
 {% for tag_key, tag_value in tags %}

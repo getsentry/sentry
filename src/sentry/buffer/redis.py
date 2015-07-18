@@ -7,14 +7,15 @@ sentry.buffer.redis
 """
 from __future__ import absolute_import
 
-from time import time
-
 from django.conf import settings
 from django.db import models
 from django.utils.encoding import smart_str
 from hashlib import md5
 from nydus.db import create_cluster
+from time import time
+
 from sentry.buffer import Buffer
+from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils.compat import pickle
 from sentry.utils.imports import import_string
@@ -38,6 +39,12 @@ class RedisBuffer(Buffer):
             'router': options['router'],
             'hosts': options['hosts'],
         })
+
+    def validate(self):
+        try:
+            self.conn.ping()
+        except Exception as e:
+            raise InvalidConfiguration(unicode(e))
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
