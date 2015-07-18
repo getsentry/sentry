@@ -33,8 +33,8 @@ class SharedGroupDetailsEndpoint(Endpoint):
 
         event = group.get_latest_event()
 
-        context = serialize(group, request.user, SharedGroupSerializer)
-        context['latestEvent'] = serialize(event, request.user, SharedEventSerializer)
+        context = serialize(group, request.user, SharedGroupSerializer())
+        context['latestEvent'] = serialize(event, request.user, SharedEventSerializer())
 
         # TODO(dcramer): use specific serializer for public group and embed
         # event details as part of api response

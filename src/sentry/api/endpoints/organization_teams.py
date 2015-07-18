@@ -39,7 +39,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         ).order_by('name', 'slug'))
 
         return Response(serialize(
-            team_list, request.user, TeamWithProjectsSerializer))
+            team_list, request.user, TeamWithProjectsSerializer()))
 
     def post(self, request, organization):
         """

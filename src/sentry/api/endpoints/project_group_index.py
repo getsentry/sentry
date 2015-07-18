@@ -129,7 +129,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         context = list(cursor_result)
 
-        response = Response(serialize(context, request.user, StreamGroupSerializer))
+        response = Response(serialize(context, request.user, StreamGroupSerializer()))
         response['Link'] = ', '.join([
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
