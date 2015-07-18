@@ -23,6 +23,8 @@ from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.cursors import Cursor
 
+ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+
 
 class GroupSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=zip(
@@ -47,6 +49,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     # bookmarks=0/1
     # status=<x>
     # <tag>=<value>
+    # statsPeriod=24h
     def get(self, request, project):
         """
         List a project's aggregates
@@ -60,10 +63,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         Any standard Sentry structured search query can be passed via the
         ``query`` parameter.
+
+        The ``statsPeriod`` parameter can be used to select the timeline stats
+        which should be present. Possible values are: '' (disable), '24h', '14d'
         """
         query_kwargs = {
             'project': project,
         }
+
+        stats_period = request.GET.get('statsPeriod')
+        if stats_period not in (None, '', '24h', '14d'):
+            return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
+        elif stats_period is None:
+            # default
+            stats_period = '24h'
+        elif stats_period == '':
+            # disable stats
+            stats_period = None
 
         if request.GET.get('status'):
             try:
@@ -129,7 +145,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         context = list(cursor_result)
 
-        response = Response(serialize(context, request.user, StreamGroupSerializer()))
+        response = Response(serialize(
+            context, request.user, StreamGroupSerializer(
+                stats_period=stats_period
+            )
+        ))
         response['Link'] = ', '.join([
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
