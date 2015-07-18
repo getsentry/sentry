@@ -13,6 +13,7 @@ var PropTypes = require("../proptypes");
 var StreamGroup = require("../components/streamGroup");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
+var Version = require("../components/version");
 
 var ReleaseDetails = React.createClass({
   contextTypes: {
@@ -106,7 +107,7 @@ var ReleaseDetails = React.createClass({
                 <Router.Link to="projectReleases" params={params} className="back-arrow">
                   <span className="icon-arrow-left"></span>
                 </Router.Link>
-                <h3>Release <strong>{release.version}</strong></h3>
+                <h3>Release <strong><Version version={release.version} /></strong></h3>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                 </div>
