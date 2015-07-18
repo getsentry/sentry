@@ -139,7 +139,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         )
 
         return Response(serialize(
-            team, request.user, TeamWithProjectsSerializer), status=201)
+            team, request.user, TeamWithProjectsSerializer()), status=201)
 
     def delete(self, request, organization, member_id, team_slug):
         """
@@ -172,7 +172,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             except OrganizationMemberTeam.DoesNotExist:
                 # if the relationship doesnt exist, they're already a member
                 return Response(serialize(
-                    team, request.user, TeamWithProjectsSerializer), status=200)
+                    team, request.user, TeamWithProjectsSerializer()), status=200)
         else:
             try:
                 omt = OrganizationMemberTeam.objects.get(
@@ -201,4 +201,4 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
             )
 
         return Response(serialize(
-            team, request.user, TeamWithProjectsSerializer), status=200)
+            team, request.user, TeamWithProjectsSerializer()), status=200)

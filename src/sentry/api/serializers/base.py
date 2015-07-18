@@ -22,8 +22,6 @@ def serialize(objects, user=None, serializer=None):
             serializer = registry[type(objects[0])]
         except KeyError:
             return objects
-    else:
-        serializer = serializer()
 
     attrs = serializer.get_attrs(item_list=objects, user=user)
     return [serializer(o, attrs=attrs.get(o, {}), user=user) for o in objects]
