@@ -11,6 +11,7 @@ var Pagination = require("../components/pagination");
 var RouteMixin = require("../mixins/routeMixin");
 var TimeSince = require("../components/timeSince");
 var utils = require("../utils");
+var Version = require("../components/version");
 
 var ReleaseList = React.createClass({
   contextTypes: {
@@ -35,7 +36,7 @@ var ReleaseList = React.createClass({
                   <div className="col-md-7 col-sm-6 col-xs-6">
                     <h4>
                     <Router.Link to="releaseDetails" params={routeParams} className="truncate">
-                      {release.version}
+                      <Version version={release.version} />
                     </Router.Link>
                     </h4>
                     <div className="release-meta">
