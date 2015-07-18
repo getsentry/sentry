@@ -13,7 +13,7 @@ var ReleaseAllEvents = React.createClass({
   render() {
     return (
       <GroupList
-        query={'sentry:release:"' + this.context.release.version + '"'}
+        query={'release:"' + this.context.release.version + '"'}
         canSelectGroups={false} />
     );
   }
