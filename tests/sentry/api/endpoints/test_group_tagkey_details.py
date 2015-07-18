@@ -47,6 +47,6 @@ class GroupTagDetailsTest(APITestCase):
         })
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(tagkey.id)
+        assert response.data['key'] == str(tagkey.key)
         assert response.data['uniqueValues'] == 1
         assert response.data['totalValues'] == 1
