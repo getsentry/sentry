@@ -96,6 +96,8 @@ class ManageTeamsTest(TestCase):
 
     def test_does_render(self):
         team = self.create_team()
+        self.create_project(team=team)
+        self.create_project(team=team)
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
@@ -110,8 +112,10 @@ class ManageProjectsTest(TestCase):
 
     def test_does_render(self):
         project = self.create_project()
+        project2 = self.create_project()
         self.login_as(self.user)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/admin/projects/list.html')
         assert project in resp.context['project_list']
+        assert project2 in resp.context['project_list']
