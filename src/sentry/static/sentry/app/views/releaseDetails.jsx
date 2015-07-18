@@ -3,6 +3,7 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
+var Count = require("../components/count");
 var DocumentTitle = require("react-document-title");
 var ListLink = require("../components/listLink");
 var LoadingError = require("../components/loadingError");
@@ -113,7 +114,7 @@ var ReleaseDetails = React.createClass({
               <div className="col-md-3">
                 <div className="release-stats">
                   <h6 className="nav-header">New Events</h6>
-                  <div className="release-count">N</div>
+                  <Count className="release-count" value={release.newGroups} />
                 </div>
               </div>
             </div>

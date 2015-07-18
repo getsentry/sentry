@@ -4,6 +4,7 @@ var Reflux = require("reflux");
 var Router = require("react-router");
 
 var api = require("../api");
+var Count = require("../components/count");
 var LoadingError = require("../components/loadingError");
 var LoadingIndicator = require("../components/loadingIndicator");
 var Pagination = require("../components/pagination");
@@ -42,7 +43,7 @@ var ReleaseList = React.createClass({
                     </div>
                   </div>
                   <div className="col-md-5 col-sm-6 col-xs-6 release-stats">
-                    <span className="release-count">N</span>
+                    <Count className="release-count" value={release.newGroups} />
                   </div>
                 </div>
               </li>
