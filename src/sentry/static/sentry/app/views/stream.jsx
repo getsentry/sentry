@@ -31,7 +31,8 @@ var Stream = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: "is:unresolved"
+      defaultQuery: "is:unresolved",
+      defaultStatsPeriod: "24h"
     };
   },
 
@@ -41,7 +42,7 @@ var Stream = React.createClass({
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
-      statsPeriod: '24h',
+      statsPeriod: this.props.defaultStatsPeriod,
       realtimeActive: true,
       pageLinks: '',
       loading: true,
@@ -63,14 +64,16 @@ var Stream = React.createClass({
       success: this.onRealtimePoll,
       endpoint: this.getGroupListEndpoint()
     });
-    this._poller.enable();
 
     var realtime = Cookies.get("realtimeActive");
-
     if (realtime) {
+      var realtimeActive = realtime === "true";
       this.setState({
-        realtimeActive: realtime === "true"
+        realtimeActive: realtimeActive
       });
+      if (realtimeActive) {
+        this._poller.enable();
+      }
     }
 
     this.syncStateWithRoute();
@@ -92,11 +95,19 @@ var Stream = React.createClass({
       filter = { assigned: "1" };
     }
 
-    var query = (currentQuery.hasOwnProperty("query")) ? currentQuery.query : this.props.defaultQuery;
+    var query = (
+      currentQuery.hasOwnProperty("query") ?
+      currentQuery.query :
+      this.props.defaultQuery);
+    var statsPeriod = (
+      currentQuery.hasOwnProperty("statsPeriod") ?
+      currentQuery.statsPeriod :
+      this.props.defaultStatsPeriod);
 
     this.setState({
       filter: filter,
-      query: query
+      query: query,
+      statsPeriod: statsPeriod
     });
   },
 
@@ -107,6 +118,7 @@ var Stream = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
+    this._poller.setEndpoint(this.getGroupListEndpoint());
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       if (this.state.realtimeActive) {
         this._poller.enable();
@@ -156,6 +168,7 @@ var Stream = React.createClass({
     var params = router.getCurrentParams();
     var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
+    queryParams.statsPeriod = this.state.statsPeriod;
     if (!queryParams.hasOwnProperty("query")) {
       queryParams.query = this.props.defaultQuery;
     }
@@ -171,10 +184,13 @@ var Stream = React.createClass({
     });
   },
 
-  handleSelectStatsPeriod(period) {
-    if (period !== this.state.statsPeriod) {
+  onSelectStatsPeriod(period) {
+    if (period != this.state.statsPeriod) {
+      // TODO(dcramer): all charts should now suggest "loading"
       this.setState({
         statsPeriod: period
+      }, function() {
+        this.transitionTo();
       });
     }
   },
@@ -236,6 +252,10 @@ var Stream = React.createClass({
       queryParams.query = this.state.query;
     }
 
+    if (this.state.statsPeriod !== this.props.defaultStatsPeriod) {
+      queryParams.statsPeriod = this.state.statsPeriod;
+    }
+
     router.transitionTo('stream', router.getCurrentParams(), queryParams);
   },
 
@@ -294,7 +314,7 @@ var Stream = React.createClass({
           <StreamActions
             orgId={params.orgId}
             projectId={params.projectId}
-            onSelectStatsPeriod={this.handleSelectStatsPeriod}
+            onSelectStatsPeriod={this.onSelectStatsPeriod}
             onRealtimeChange={this.onRealtimeChange}
             realtimeActive={this.state.realtimeActive}
             statsPeriod={this.state.statsPeriod}
