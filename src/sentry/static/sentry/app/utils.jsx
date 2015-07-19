@@ -124,10 +124,10 @@ module.exports = {
           b_score = score_fn(b);
 
       for (var i = 0; i < a_score.length; i++) {
-        if (a_score[i] < b_score[i]) {
+        if (a_score[i] > b_score[i]) {
           return 1;
         }
-        if (a_score[i] > b_score[i]) {
+        if (a_score[i] < b_score[i]) {
           return -1;
         }
       }
