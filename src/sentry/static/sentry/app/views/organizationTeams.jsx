@@ -40,9 +40,6 @@ var ExpandedTeamList = React.createClass({
       <div className="box" key={team.slug}>
         <div className="box-header">
           <div className="pull-right actions hidden-xs">
-            <a className="new-project" href={urlPrefix + '/projects/new/?team=' + team.slug}>
-              New Project
-            </a>
             <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
               Leave Team
             </a>
@@ -341,8 +338,12 @@ var OrganizationTeams = React.createClass({
           <div className="col-md-9">
             <div className="team-list">
               <div className="pull-right">
-                <a href={urlPrefix + '/teams/new/'} className="new-team btn btn-primary btn-sm">
-                  <span className="icon-plus"></span> Create Team
+                <a href={urlPrefix + '/projects/new/'} className="btn btn-primary btn-sm"
+                   style={{marginRight: 5}}>
+                  <span className="icon-plus" /> Project
+                </a>
+                <a href={urlPrefix + '/teams/new/'} className="btn btn-primary btn-sm">
+                  <span className="icon-plus" /> Team
                 </a>
               </div>
               <ul className="nav nav-tabs border-bottom">
