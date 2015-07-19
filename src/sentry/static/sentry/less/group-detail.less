@@ -568,6 +568,30 @@
   margin-top: -84px;
 }
 
+.event-stats {
+  h6 {
+    font-size: 14px;
+    margin-bottom: 15px;
+    position: relative;
+
+    > span {
+      background: #fff;
+      padding-right: 7px;
+    }
+
+    &:before {
+      display: block;
+      position: absolute;
+      content: "";
+      border-top: 1px solid lighten(@trim, 9);
+      left: 0;
+      right: 0;
+      top: 50%;
+      z-index: -1;
+    }
+  }
+}
+
 .sticky-sidebar {
   .event-stats {
     position: fixed;
