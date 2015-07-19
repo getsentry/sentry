@@ -3,6 +3,8 @@ var OverlayMixin = require("react-bootstrap/OverlayMixin");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var React = require("react");
 
+var SelectedGroupStore = require("../../stores/selectedGroupStore");
+
 var ActionLink = React.createClass({
   mixins: [OverlayMixin, PureRenderMixin],
 

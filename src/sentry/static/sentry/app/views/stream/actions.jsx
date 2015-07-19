@@ -56,7 +56,7 @@ var StreamActions = React.createClass({
     if (actionType === this.props.actionTypes.ALL) {
       selectedIds = this.props.groupIds;
     } else if (actionType === this.props.actionTypes.SELECTED) {
-      itemIdSet = SelectedGroupStore.getSelectedIds();
+      var itemIdSet = SelectedGroupStore.getSelectedIds();
       selectedIds = this.props.groupIds.filter(
         (itemId) => itemIdSet.has(itemId)
       );
@@ -69,7 +69,7 @@ var StreamActions = React.createClass({
     SelectedGroupStore.clearAll();
   },
 
-  onResolve(event, actionType) {
+  onUpdate(data, event, actionType) {
     this.actionSelectedGroups(actionType, (itemIds) => {
       var loadingIndicator = IndicatorStore.add('Saving changes..');
 
@@ -77,47 +77,7 @@ var StreamActions = React.createClass({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
         itemIds: itemIds,
-        data: {
-          status: 'resolved'
-        }
-      }, {
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      });
-    });
-  },
-
-  onBookmark(event, actionType) {
-    this.actionSelectedGroups(actionType, (itemIds) => {
-      var loadingIndicator = IndicatorStore.add('Saving changes..');
-
-      api.bulkUpdate({
-        orgId: this.props.orgId,
-        projectId: this.props.projectId,
-        itemIds: itemIds,
-        data: {
-          isBookmarked: true
-        }
-      }, {
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      });
-    });
-  },
-
-  onRemoveBookmark(event, actionType) {
-    var loadingIndicator = IndicatorStore.add('Saving changes..');
-
-    this.actionSelectedGroups(actionType, (itemIds) => {
-      api.bulkUpdate({
-        orgId: this.props.orgId,
-        projectId: this.props.projectId,
-        itemIds: itemIds,
-        data: {
-          isBookmarked: false
-        }
+        data: data
       }, {
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
@@ -188,7 +148,7 @@ var StreamActions = React.createClass({
                actionTypes={this.props.actionTypes}
                className="btn btn-default btn-sm action-resolve"
                disabled={!this.state.anySelected}
-               onAction={this.onResolve}
+               onAction={this.onUpdate.bind(this, {status: "resolved"})}
                confirmLabel="Resolve"
                canActionAll={true}
                onlyIfBulk={true}
@@ -200,7 +160,7 @@ var StreamActions = React.createClass({
                actionTypes={this.props.actionTypes}
                className="btn btn-default btn-sm action-bookmark"
                disabled={!this.state.anySelected}
-               onAction={this.onBookmark}
+               onAction={this.onUpdate.bind(this, {isBookmarked: true})}
                neverConfirm={true}
                confirmLabel="Bookmark"
                canActionAll={false}
@@ -235,7 +195,7 @@ var StreamActions = React.createClass({
                    actionTypes={this.props.actionTypes}
                    className="action-remove-bookmark"
                    disabled={!this.state.anySelected}
-                   onAction={this.onRemoveBookmark}
+                   onAction={this.onUpdate.bind(this, {isBookmarked: false})}
                    neverConfirm={true}
                    actionLabel="remove these {count} events from your bookmarks"
                    onlyIfBulk={true}
@@ -243,6 +203,37 @@ var StreamActions = React.createClass({
                    selectAllActive={this.state.selectAllActive}
                    groupIds={this.props.groupIds}>
                   Remove from Bookmarks
+                </ActionLink>
+              </MenuItem>
+              <MenuItem divider={true} />
+              <MenuItem noAnchor={true}>
+                <ActionLink
+                   actionTypes={this.props.actionTypes}
+                   className="action-unresolve"
+                   disabled={!this.state.anySelected}
+                   onAction={this.onUpdate.bind(this, {status: "unresolved"})}
+                   neverConfirm={true}
+                   confirmLabel="Unresolve"
+                   onlyIfBulk={false}
+                   canActionAll={false}
+                   selectAllActive={this.state.selectAllActive}
+                   groupIds={this.props.groupIds}>
+                  Set status to: Unresolved
+                </ActionLink>
+              </MenuItem>
+              <MenuItem noAnchor={true}>
+                <ActionLink
+                   actionTypes={this.props.actionTypes}
+                   className="action-mute"
+                   disabled={!this.state.anySelected}
+                   onAction={this.onUpdate.bind(this, {status: "muted"})}
+                   neverConfirm={true}
+                   confirmLabel="Mute"
+                   onlyIfBulk={false}
+                   canActionAll={false}
+                   selectAllActive={this.state.selectAllActive}
+                   groupIds={this.props.groupIds}>
+                  Set status to: Muted
                 </ActionLink>
               </MenuItem>
               <MenuItem divider={true} />
