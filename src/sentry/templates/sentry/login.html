@@ -46,7 +46,7 @@
         <div class="control-group">
           <div class="controls">
             <label style="display: block">SSO URL</label>
-            <span style="padding: 7px 0; font-size: 15px">app.getsentry.com/</span> <input style="width: 280px; margin: 0 0 4px; padding: 5px 8px; display: inline" type="text" class="form-control" name="organization" placeholder="acme">
+            <span style="padding: 7px 0; font-size: 15px">app.getsentry.com/</span> <input style="width: 240px; margin: 0 0 4px; padding: 5px 8px; display: inline" type="text" class="form-control" name="organization" placeholder="acme">
             <p class="help-block">Enter your organization's ID and we'll get things started.</p>
           </div>
         </div>
@@ -58,9 +58,9 @@
   </div>
 
   <script>
-    $('.sso-toggle').click(function (e) {
+    $('.sso-toggle').click(function(e) {
       e.preventDefault();
-      $(".body").toggleClass('show-sso');
-    })
+      $("body").toggleClass('show-sso');
+    });
   </script>
 {% endblock %}
