@@ -12,6 +12,7 @@ var SearchBar = React.createClass({
 
   getDefaultProps() {
     return {
+      defaultQuery: "",
       query: "",
       onSearch: function() {},
       onQueryChange: function() {}
@@ -31,7 +32,7 @@ var SearchBar = React.createClass({
   },
 
   clearSearch() {
-    this.props.onQueryChange("", this.props.onSearch);
+    this.props.onQueryChange(this.props.defaultQuery, this.props.onSearch);
   },
 
   onQueryFocus() {
@@ -65,7 +66,7 @@ var SearchBar = React.createClass({
               onBlur={this.onQueryBlur}
               onChange={this.onQueryChange} />
             <span className="icon-search" />
-            {this.props.query !== '' &&
+            {this.props.query !== this.props.defaultQuery &&
               <div>
                 <a className="search-save-search btn btn-xs btn-default">Save</a>
                 <a className="search-clear-form" onClick={this.clearSearch}>

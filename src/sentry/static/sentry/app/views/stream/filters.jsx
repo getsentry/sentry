@@ -15,6 +15,7 @@ var StreamFilters = React.createClass({
 
   getDefaultProps() {
     return {
+      defaultQuery: "",
       filter: "",
       query: "",
       onFilterChange: function() {},
@@ -84,7 +85,8 @@ var StreamFilters = React.createClass({
             </div>
           </div>
           <div className="col-sm-8">
-            <SearchBar query={this.props.query}
+            <SearchBar defaultQuery={this.props.defaultQuery}
+              query={this.props.query}
               onQueryChange={this.props.onQueryChange}
               onSearch={this.props.onSearch} />
           </div>
