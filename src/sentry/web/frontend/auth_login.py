@@ -53,9 +53,6 @@ class AuthLoginView(BaseView):
         )
 
     def handle_basic_auth(self, request):
-        if request.user.is_authenticated():
-            return self.redirect(get_login_redirect(request))
-
         can_register = features.has('auth:register') or request.session.get('can_register')
 
         op = request.POST.get('op')

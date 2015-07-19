@@ -1,28 +1,73 @@
 from __future__ import absolute_import, print_function
 
+from django.conf import settings
 from django.contrib.auth import login
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.views.decorators.cache import never_cache
 
 from sentry import features
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, Organization
+from sentry.models import AuthProvider, Organization, OrganizationMemberType
 from sentry.utils.auth import get_login_redirect
-from sentry.web.forms.accounts import AuthenticationForm
+from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 
 
 class AuthOrganizationLoginView(BaseView):
     auth_required = False
 
-    def handle_basic_auth(self, request, organization):
-        form = AuthenticationForm(
-            request, request.POST or None,
+    def get_login_form(self, request):
+        op = request.POST.get('op')
+        return AuthenticationForm(
+            request, request.POST if op == 'login' else None,
             captcha=bool(request.session.get('needs_captcha')),
         )
 
-        if form.is_valid():
-            login(request, form.get_user())
+    def get_register_form(self, request):
+        op = request.POST.get('op')
+        return RegistrationForm(
+            request.POST if op == 'register' else None,
+            captcha=bool(request.session.get('needs_captcha')),
+        )
+
+    def handle_basic_auth(self, request, organization):
+        can_register = features.has('auth:register') or request.session.get('can_register')
+
+        op = request.POST.get('op')
+        login_form = self.get_login_form(request)
+        if can_register:
+            register_form = self.get_register_form(request)
+        else:
+            register_form = None
+
+        if can_register and register_form.is_valid():
+            user = register_form.save()
+
+            defaults = {
+                'has_global_access': True,
+                'type': OrganizationMemberType.MEMBER,
+            }
+
+            organization.member_set.create(
+                user=user,
+                **defaults
+            )
+
+            # HACK: grab whatever the first backend is and assume it works
+            user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+            login(request, user)
+
+            # can_register should only allow a single registration
+            request.session.pop('can_register', None)
+
+            request.session.pop('needs_captcha', None)
+
+            return self.redirect(get_login_redirect(request))
+
+        elif login_form.is_valid():
+            login(request, login_form.get_user())
 
             request.session.pop('needs_captcha', None)
 
@@ -30,15 +75,21 @@ class AuthOrganizationLoginView(BaseView):
 
         elif request.POST and not request.session.get('needs_captcha'):
             request.session['needs_captcha'] = 1
-            form = AuthenticationForm(request, request.POST or None, captcha=True)
-            form.errors.pop('captcha', None)
+            login_form = self.get_login_form(request)
+            login_form.errors.pop('captcha', None)
+            if can_register:
+                register_form = self.get_register_form(request)
+                register_form.errors.pop('captcha', None)
+
+        request.session.set_test_cookie()
 
         context = {
-            'form': form,
-            'CAN_REGISTER': features.has('auth:register') or request.session.get('can_register'),
+            'op': op or 'login',
+            'login_form': login_form,
+            'register_form': register_form,
             'organization': organization,
+            'CAN_REGISTER': can_register,
         }
-
         return self.respond('sentry/organization-login.html', context)
 
     def handle_sso(self, request, organization, auth_provider):
@@ -64,6 +115,7 @@ class AuthOrganizationLoginView(BaseView):
         return self.respond('sentry/organization-login.html', context)
 
     @never_cache
+    @transaction.atomic
     def handle(self, request, organization_slug):
         try:
             organization = Organization.objects.get(

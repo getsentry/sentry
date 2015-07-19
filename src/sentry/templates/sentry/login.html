@@ -17,11 +17,11 @@
     {% if CAN_REGISTER %}
       <li{% if op == "register" %} class="active"{% endif %}>
         <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
-      </li{%>
+      </li>
     {% endif %}
     <li{% if op == "sso" %} class="active"{% endif %}>
       <a href="#sso" data-toggle="tab">{% trans "Single Sign-On" %}</a>
-    </li{%>
+    </li>
   </ul>
 
   <div class="tab-content">
@@ -38,7 +38,7 @@
         {% endfor %}
 
         <fieldset class="form-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Sign in" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
+          <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
         </fieldset>
       </form>
     </div>
