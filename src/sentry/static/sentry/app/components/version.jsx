@@ -7,25 +7,33 @@ var Version = React.createClass({
   },
 
   propTypes: {
-    version: React.PropTypes.string.isRequired
+    version: React.PropTypes.string.isRequired,
+  },
+
+  getDefaultProps() {
+    return {
+      anchor: true
+    };
   },
 
   render() {
     var version = this.props.version;
     var shortVersion = version.length === 40 ? version.substr(0, 12) : version;
     var params = this.context.router.getCurrentParams();
-
-    return (
-      <Router.Link
-          to="releaseDetails"
-          params={{
-            orgId: params.orgId,
-            projectId: params.projectId,
-            version: version,
-          }}>
-        <span title={version}>{shortVersion}</span>
-      </Router.Link>
-    );
+    if (this.props.anchor) {
+      return (
+        <Router.Link
+            to="releaseDetails"
+            params={{
+              orgId: params.orgId,
+              projectId: params.projectId,
+              version: version,
+            }}>
+          <span title={version}>{shortVersion}</span>
+        </Router.Link>
+      );
+    }
+    return <span title={version}>{shortVersion}</span>;
   }
 });
 
