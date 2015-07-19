@@ -52,6 +52,8 @@ class TagValue(Model):
             return '%s in %s' % (self.data['function'], self.data['filename'])
         elif self.key == 'sentry:filename':
             return self.data['filename']
+        elif self.key == 'sentry:release' and len(self.value) == 40:
+            return self.value[:12]
         return self.value
 
     def get_absolute_url(self):
