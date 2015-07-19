@@ -9,28 +9,32 @@
 
 {% block footer %}{% endblock %}
 
-{% block header_action %}
-{% if CAN_REGISTER %}
-<a href="{% url 'sentry-register' %}">{% trans "Create Account" %}</a>
-{% endif %}
-{% endblock%}
-
 {% block content %}
-  <div class="sso-toggle-container pull-right">
-    <a href="#" class="sso-link sso-toggle">Looking for single sign-on?</a>
-    <a href="#" class="go-back sso-toggle"><span class="icon-arrow-left"></span> Back to login</a>
-  </div>
+  <ul class="nav nav-tabs auth-toggle">
+    <li{% if op == "login" %} class="active"{% endif %}>
+      <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
+    </li>
+    {% if CAN_REGISTER %}
+      <li{% if op == "register" %} class="active"{% endif %}>
+        <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+      </li{%>
+    {% endif %}
+    <li{% if op == "sso" %} class="active"{% endif %}>
+      <a href="#sso" data-toggle="tab">{% trans "Single Sign-On" %}</a>
+    </li{%>
+  </ul>
 
   <div class="tab-content">
-    <div class="tab-pane active" id="standard">
+    <div class="tab-pane{% if op == "login" %} active{% endif %}" id="login">
       <form class="form-stacked" action="" method="post" autocomplete="off">
-        {{ form|as_crispy_errors }}
-
-        <h3>{% trans "Sign in" %}</h3>
         {% csrf_token %}
 
-        {% for field in form %}
-        {{ field|as_crispy_field }}
+        <input type="hidden" name="op" value="login" />
+
+        {{ login_form|as_crispy_errors }}
+
+        {% for field in login_form %}
+          {{ field|as_crispy_field }}
         {% endfor %}
 
         <fieldset class="form-actions">
@@ -38,11 +42,29 @@
         </fieldset>
       </form>
     </div>
-    <div class="tab-pane" id="sso">
-      <h3>Single sign-on</h3>
+    <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
+      <form class="form-stacked" action="" method="post" autocomplete="off">
+        {% csrf_token %}
+
+        <input type="hidden" name="op" value="register" />
+
+        {{ register_form|as_crispy_errors }}
+
+        {% for field in register_form %}
+          {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
+        </fieldset>
+      </form>
+    </div>
+    <div class="tab-pane{% if op == "sso" %} active{% endif %}" id="sso">
       <form class="form-stacked" method="post">
         {% csrf_token %}
+
         <input type="hidden" name="op" value="sso" />
+
         <div class="control-group">
           <div class="controls">
             <label style="display: block">SSO URL</label>
@@ -56,11 +78,4 @@
       </form>
     </div>
   </div>
-
-  <script>
-    $('.sso-toggle').click(function(e) {
-      e.preventDefault();
-      $("body").toggleClass('show-sso');
-    });
-  </script>
 {% endblock %}
