@@ -1,12 +1,14 @@
 var React = require("react");
 var Sticky = require("react-sticky");
 
+var DateTime = require("../../components/dateTime");
 var GroupEventEntries = require("../../components/eventEntries");
 var GroupEventHeader = require("./eventHeader");
 var GroupEventTags = require("./eventTags");
 var GroupState = require("../../mixins/groupState");
 var Gravatar = require("../../components/gravatar");
 var PropTypes = require("../../proptypes");
+var TimeSince = require("../../components/timeSince");
 var utils = require("../../utils");
 
 var UserWidget = React.createClass({
@@ -20,8 +22,25 @@ var UserWidget = React.createClass({
     return (
       <div className="user-widget">
         <div className="pull-right"><Gravatar email={user.email} size={84} /></div>
-        <h6>User</h6>
-        <p><strong>{user.email}</strong></p>
+        <h6><span>User</span></h6>
+        <dl>
+          {user.email && [
+            <dt>Email:</dt>,
+            <dd>{user.email}</dd>
+          ]}
+          {user.id && [
+            <dt>ID:</dt>,
+            <dd>{user.id}</dd>
+          ]}
+          {user.username && [
+            <dt>Username:</dt>,
+            <dd>{user.username}</dd>
+          ]}
+          {user.ipAddress && [
+            <dt>IP:</dt>,
+            <dd>{user.ipAddress}</dd>
+          ]}
+        </dl>
         <div className="btn-group">
           <a href="#" className="btn btn-xs btn-default">Message User</a>
           <a href="#" className="btn btn-xs btn-default">Message All</a>
@@ -53,16 +72,19 @@ var GroupEvent = React.createClass({
               event={evt} />
         </div>
         <div className="col-md-3">
-          <div className="event-stats">
+          <div className="event-stats group-stats">
+            <h6><span>Meta</span></h6>
+            <dl>
+              <dt>ID:</dt>
+              <dd className="truncate">{evt.eventID}</dd>
+              <dt>When:</dt>
+              <dd><TimeSince date={evt.dateCreated} /></dd>
+              <dt>Date:</dt>
+              <dd><DateTime date={evt.dateCreated} /></dd>
+            </dl>
             {evt.user &&
               <UserWidget data={evt.user} />
             }
-
-            <h6>Sample ID</h6>
-            <p><strong className="truncate">{evt.eventID}</strong></p>
-
-            <h6>Time</h6>
-            <p><strong>{evt.dateCreated}</strong></p>
           </div>
         </div>
       </div>
