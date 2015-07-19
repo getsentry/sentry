@@ -9,7 +9,7 @@ var OrganizationState = require("../mixins/organizationState");
 var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
 var PropTypes = require("../proptypes");
 var TeamStore = require("../stores/teamStore");
-var {defined} = require("../utils");
+var {defined, sortArray} = require("../utils");
 
 var ExpandedTeamList = React.createClass({
   propTypes: {
@@ -51,7 +51,9 @@ var ExpandedTeamList = React.createClass({
         </div>
         <div className="box-content">
           <table className="table project-list">
-            <tbody>{team.projects.map(this.renderProject)}</tbody>
+            <tbody>{sortArray(team.projects, function(o) {
+              return o.name;
+            }).map(this.renderProject)}</tbody>
           </table>
         </div>
       </div>
@@ -276,7 +278,9 @@ var OrganizationTeams = React.createClass({
   getInitialState() {
     return {
       activeNav: 'your-teams',
-      teamList: TeamStore.getAll(),
+      teamList: sortArray(TeamStore.getAll(), function(o) {
+        return o.name;
+      }),
       projectStats: {},
     };
   },
@@ -311,8 +315,11 @@ var OrganizationTeams = React.createClass({
     var newTeamList = TeamStore.getAll();
 
     this.setState({
-      teamList: newTeamList
+      teamList: sortArray(newTeamList, function(o) {
+        return o.name;
+      })
     });
+
     this.fetchStats();
   },
 
