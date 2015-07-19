@@ -307,6 +307,7 @@ var Stream = React.createClass({
     return (
       <div>
         <StreamFilters query={this.state.query}
+          defaultQuery={this.props.defaultQuery}
           onQueryChange={this.onQueryChange}
           onFilterChange={this.onFilterChange}
           onSearch={this.onSearch} />
