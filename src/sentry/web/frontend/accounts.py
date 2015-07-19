@@ -12,7 +12,6 @@ import itertools
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.views.decorators.cache import never_cache
@@ -20,82 +19,18 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from sudo.decorators import sudo_required
 
-from sentry import features
 from sentry.models import (
-    AuthProvider, LostPasswordHash, Organization, OrganizationMemberType,
-    Project, Team, UserOption
+    LostPasswordHash, Organization, Project, Team, UserOption
 )
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
-    RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
+    RecoverPasswordForm, ChangePasswordRecoverForm,
     ProjectEmailOptionsForm)
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers, get_login_redirect
 from sentry.utils.safe import safe_execute
-
-
-@csrf_protect
-@never_cache
-@transaction.atomic
-def register(request):
-    from django.conf import settings
-
-    if not (features.has('auth:register') or request.session.get('can_register')):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    form = RegistrationForm(request.POST or None,
-                            captcha=bool(request.session.get('needs_captcha')))
-    if form.is_valid():
-        user = form.save()
-
-        # TODO(dcramer): ideally this would be handled by a special view
-        # specifically for organization registration
-        if settings.SENTRY_SINGLE_ORGANIZATION:
-            org = Organization.get_default()
-
-            defaults = {
-                'has_global_access': True,
-                'type': OrganizationMemberType.MEMBER,
-            }
-            try:
-                auth_provider = AuthProvider.objects.get(
-                    organization=org.id,
-                )
-            except AuthProvider.DoesNotExist:
-                pass
-            else:
-                defaults.update({
-                    'has_global_access': auth_provider.default_global_access,
-                    'type': auth_provider.default_role,
-                })
-
-            org.member_set.create(
-                user=user,
-                **defaults
-            )
-
-        # can_register should only allow a single registration
-        request.session.pop('can_register', None)
-
-        # HACK: grab whatever the first backend is and assume it works
-        user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
-        login_user(request, user)
-
-        request.session.pop('needs_captcha', None)
-
-        return login_redirect(request)
-
-    elif request.POST and not request.session.get('needs_captcha'):
-        request.session['needs_captcha'] = 1
-        form = RegistrationForm(request.POST or None, captcha=True)
-        form.errors.pop('captcha', None)
-
-    return render_to_response('sentry/register.html', {
-        'form': form,
-    }, request)
 
 
 @login_required

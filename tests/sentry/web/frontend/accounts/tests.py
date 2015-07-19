@@ -12,34 +12,6 @@ from sentry.models import UserOption, LostPasswordHash, User
 from sentry.testutils import TestCase
 
 
-class RegisterTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-register')
-
-    def test_redirects_if_registration_disabled(self):
-        with self.feature('auth:register', False):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 302
-
-    def test_renders_correct_template(self):
-        with self.feature('auth:register'):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 200
-            self.assertTemplateUsed('sentry/register.html')
-
-    def test_with_required_params(self):
-        with self.feature('auth:register'):
-            resp = self.client.post(self.path, {
-                'username': 'test-a-really-long-email-address@example.com',
-                'password': 'foobar',
-            })
-            assert resp.status_code == 302
-            user = User.objects.get(username='test-a-really-long-email-address@example.com')
-            assert user.email == 'test-a-really-long-email-address@example.com'
-            assert user.check_password('foobar')
-
-
 class AppearanceSettingsTest(TestCase):
     @fixture
     def path(self):

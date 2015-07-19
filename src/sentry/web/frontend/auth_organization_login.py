@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.contrib.auth import login
 from django.core.urlresolvers import reverse
+from django.views.decorators.cache import never_cache
 
 from sentry import features
 from sentry.auth.helper import AuthHelper
@@ -62,6 +63,7 @@ class AuthOrganizationLoginView(BaseView):
 
         return self.respond('sentry/organization-login.html', context)
 
+    @never_cache
     def handle(self, request, organization_slug):
         try:
             organization = Organization.objects.get(

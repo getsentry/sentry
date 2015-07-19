@@ -140,7 +140,7 @@ urlpatterns += patterns('',
     # Account
     url(r'^login-redirect/$', accounts.login_redirect,
         name='sentry-login-redirect'),
-    url(r'^register/$', accounts.register,
+    url(r'^register/$', AuthLoginView.as_view(),
         name='sentry-register'),
     url(r'^account/sudo/$', 'sudo.views.sudo',
         {'template_name': 'sentry/account/sudo.html'},
