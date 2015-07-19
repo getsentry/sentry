@@ -24,21 +24,11 @@ var ReleaseList = React.createClass({
     return (
       <ul className="release-list">
           {this.props.releaseList.map((release) => {
-            var routeParams = {
-              orgId: params.orgId,
-              projectId: params.projectId,
-              version: release.version
-            };
-
             return (
               <li className="release">
                 <div className="row">
                   <div className="col-md-7 col-sm-6 col-xs-6">
-                    <h4>
-                    <Router.Link to="releaseDetails" params={routeParams} className="truncate">
-                      <Version version={release.version} />
-                    </Router.Link>
-                    </h4>
+                    <h4><Version version={release.version} /></h4>
                     <div className="release-meta">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                     </div>
