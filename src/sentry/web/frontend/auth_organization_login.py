@@ -1,9 +1,7 @@
 from __future__ import absolute_import, print_function
 
-from django import forms
 from django.contrib.auth import login
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.auth.helper import AuthHelper
@@ -13,24 +11,11 @@ from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.frontend.base import BaseView
 
 
-class SimplifiedAuthenticationForm(AuthenticationForm):
-    username = forms.CharField(
-        label=_('Account'), max_length=128, widget=forms.TextInput(
-            attrs={'placeholder': _('username or email'),
-        }),
-    )
-    password = forms.CharField(
-        label=_('Password'), widget=forms.PasswordInput(
-            attrs={'placeholder': _('password'),
-        }),
-    )
-
-
 class AuthOrganizationLoginView(BaseView):
     auth_required = False
 
     def handle_basic_auth(self, request, organization):
-        form = SimplifiedAuthenticationForm(
+        form = AuthenticationForm(
             request, request.POST or None,
             captcha=bool(request.session.get('needs_captcha')),
         )
