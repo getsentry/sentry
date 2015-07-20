@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
-from django.contrib.auth.signals import user_logged_in
 from django.db import connections
 from django.db.utils import OperationalError
 from django.db.models.signals import post_syncdb, post_save
@@ -13,7 +12,7 @@ from pkg_resources import parse_version as Version
 from sentry import options
 from sentry.models import (
     Organization, OrganizationMemberType, Project, User, Team, ProjectKey,
-    UserOption, TagKey, TagValue, GroupTagValue, GroupTagKey, Activity,
+    TagKey, TagValue, GroupTagValue, GroupTagKey, Activity,
     Alert
 )
 from sentry.signals import buffer_incr_complete, regression_signal
@@ -156,18 +155,6 @@ def create_org_member_for_owner(instance, created, **kwargs):
     )
 
 
-# Set user language if set
-def set_language_on_logon(request, user, **kwargs):
-    language = UserOption.objects.get_value(
-        user=user,
-        project=None,
-        key='language',
-        default=None,
-    )
-    if language and hasattr(request, 'session'):
-        request.session['django_language'] = language
-
-
 @buffer_incr_complete.connect(sender=TagValue, weak=False)
 def record_project_tag_count(filters, created, **kwargs):
     from sentry import app
@@ -250,11 +237,6 @@ post_save.connect(
     sender=Organization,
     dispatch_uid="create_org_member_for_owner",
     weak=False,
-)
-user_logged_in.connect(
-    set_language_on_logon,
-    dispatch_uid="set_language_on_logon",
-    weak=False
 )
 post_save.connect(
     on_alert_creation,
