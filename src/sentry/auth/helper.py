@@ -151,7 +151,10 @@ class AuthHelper(object):
         idx = session['idx']
         if idx == len(self.pipeline):
             return self.finish_pipeline()
-        return self.pipeline[idx].dispatch(self.request, self)
+        return self.pipeline[idx].dispatch(
+            request=self.request,
+            helper=self,
+        )
 
     def next_step(self):
         """
