@@ -4,6 +4,7 @@ import logging
 
 from time import time
 from urllib import urlencode
+from urlparse import parse_qsl
 from uuid import uuid4
 
 from sentry.auth import Provider, AuthView
@@ -96,7 +97,8 @@ class OAuth2Callback(AuthView):
         )
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
-
+        if req.headers['Content-Type'].startswith('application/x-www-form-urlencoded'):
+            return dict(parse_qsl(body))
         return json.loads(body)
 
     def dispatch(self, request, helper):
