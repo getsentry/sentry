@@ -9,15 +9,11 @@ from sentry.web.frontend.base import BaseView
 class AuthView(BaseView):
     """
     A segment of Provider's auth pipeline.
+
+    See ``BaseView`` for capabilities.
     """
     auth_required = False
     sudo_required = False
-
-    def dispatch(self, request, helper):
-        """
-        Returns an ``HttpResponse``.
-        """
-        raise NotImplementedError
 
     def get_ident(self):
         cls = type(self)
