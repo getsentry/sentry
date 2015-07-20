@@ -16,6 +16,7 @@ import re
 import logging
 
 from django.core.urlresolvers import reverse
+from django.db.utils import DatabaseError
 from django.http import (
     HttpResponse, HttpResponsePermanentRedirect, HttpResponseRedirect, Http404
 )
@@ -375,15 +376,18 @@ def group_details(request, organization, project, group, event_id=None):
 
     if request.user.is_authenticated() and project.has_access(request.user):
         # update that the user has seen this group
-        create_or_update(
-            GroupSeen,
-            group=group,
-            user=request.user,
-            project=project,
-            values={
-                'last_seen': timezone.now(),
-            }
-        )
+        try:
+            create_or_update(
+                GroupSeen,
+                group=group,
+                user=request.user,
+                project=project,
+                values={
+                    'last_seen': timezone.now(),
+                }
+            )
+        except DatabaseError as exc:
+            logging.warn(unicode(exc), exc_info=True)
 
     activity_qs = Activity.objects.filter(
         group=group,
