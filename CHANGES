@@ -4,7 +4,10 @@ Version 7.7.0
 - The behavior of ``create_or_update`` has changed. If you're using it please see the updated function.
 - Added ``Group.first_release`` column.
 - Added ``SavedSearch`` model for future features.
+- Added ``Release.new_groups`` column.
 - The explore feature is now deprecated and links have been hidden.
+- Expanded various API endpoints for future usage.
+- Initial prototype of embeddable crash reports. This adds the ``UserReport`` model.
 
 Version 7.6.2
 -------------
