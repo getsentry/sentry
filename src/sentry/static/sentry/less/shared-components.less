@@ -882,12 +882,15 @@ table.integrations {
 
     &:hover {
       border-color: darken(@trim, 2);
+      .icon-arrow-down {
+        color: @gray;
+      }
     }
 
     .icon-arrow-down {
       font-size: 13px !important;
       top: 1px;
-      color: inherit;
+      color: lighten(@gray, 15);
     }
   }
 
@@ -910,7 +913,7 @@ table.integrations {
       width: 100%;
       float: none;
       padding: 0;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
 
       input {
         .form-control();
@@ -931,24 +934,28 @@ table.integrations {
 
     .team-name {
       width: 100%;
-      padding: 5px 15px 0;
-      font-size: 12px;
-      text-transform: uppercase;
+      padding: 8px 15px;
+      font-size: 13px;
+      // text-transform: uppercase;
       letter-spacing: -0.5px;
       font-weight: 600;
-      color: lighten(@gray, 15);
+      color: lighten(@gray, 18);
     }
 
     li {
       font-size: 15px;
       width: 50%;
       float: left;
-      padding: 3px;
+      padding: 0 15px 6px;
 
       > a {
-        padding: 5px 12px;
         .truncate();
         border-radius: 2px;
+        padding: 0;
+
+        &:hover {
+          background: transparent;
+        }
       }
     }
   }
