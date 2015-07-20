@@ -159,8 +159,9 @@ class OAuth2Provider(Provider):
         data = {
             'access_token': payload['access_token'],
             'token_type': payload['token_type'],
-            'expires': time() + payload['expires_in'],
         }
+        if 'expires_in' in payload:
+            data['expires'] = time() + payload['expires_in']
         if 'refresh_token' in payload:
             data['refresh_token'] = payload['refresh_token']
         return data
