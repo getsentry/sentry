@@ -57,7 +57,13 @@ DATABASES = {
         'PORT': '',
         'AUTOCOMMIT': True,
         'ATOMIC_REQUESTS': False,
-    }
+    },
+}
+
+DB_ROUTES = {
+    # db_table => database alias
+    # 'nodestore_node': 'sentry_node',
+    # 'sentry_eventmapping': 'sentry_eventmapping',
 }
 
 
