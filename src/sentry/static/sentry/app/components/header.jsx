@@ -88,6 +88,15 @@ var Header = React.createClass({
   mixins: [OrganizationState],
 
   render() {
+    var user = ConfigStore.get('user');
+    var logo;
+
+    if (user) {
+      logo = <span className="icon-sentry-logo"/>;
+    } else {
+      logo = <span className="icon-sentry-logo-full"/>;
+    }
+
     return (
       <header>
         <div className="container">
@@ -95,7 +104,7 @@ var Header = React.createClass({
           <ul className="global-nav pull-right">
             <li><a href="https://docs.getsentry.com">Docs</a></li>
           </ul>
-          <a href="/" className="logo"><span className="icon-sentry-logo"></span></a>
+          <a href="/" className="logo">{logo}</a>
           <OrganizationSelector organization={this.getOrganization()} className="pull-right" />
         </div>
       </header>
