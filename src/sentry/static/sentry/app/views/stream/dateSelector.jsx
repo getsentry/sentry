@@ -13,10 +13,8 @@ var DateSelector = React.createClass({
   ],
 
   getInitialState() {
-    var dateFrom = new Date();
-    dateFrom.setDate(dateFrom.getDate() - 3);
     return {
-      dateFrom: dateFrom.getTime() / 1000,
+      dateFrom: this.props.defaultDateFrom,
       dateTo: null,
       dateType: "last_seen"
     };
