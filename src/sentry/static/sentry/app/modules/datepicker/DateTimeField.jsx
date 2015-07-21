@@ -5,7 +5,8 @@ var moment = require('moment');
 var DateTimeField = React.createClass({
   propTypes: {
     dateTime: function(props, propName, componentName){
-      if (!moment.isMoment(props[propName])) {
+      var value = props[propName];
+      if (value && !moment.isMoment(value)) {
         return new Error('Not a valid Moment');
       }
     },
@@ -15,7 +16,7 @@ var DateTimeField = React.createClass({
   },
   getDefaultProps: function() {
     return {
-      dateTime: moment(),
+      dateTime: null,
       format: 'X',
       inputFormat: "MM/DD/YY H:mm A",
       showToday: true,
@@ -23,6 +24,14 @@ var DateTimeField = React.createClass({
     };
   },
   getInitialState: function() {
+    var inputValue;
+    var selectedDate;
+    var viewDate;
+    if (this.props.dateTime) {
+       inputValue = moment(this.props.dateTime, this.props.format).format(this.props.inputFormat);
+       selectedDate = moment(this.props.dateTime, this.props.format);
+       viewDate = moment(this.props.dateTime, this.props.format).startOf("month");
+    }
     return {
       showDatePicker: true,
       showTimePicker: false,
@@ -32,16 +41,24 @@ var DateTimeField = React.createClass({
         left: 'none',
         zIndex: '9999 !important'
       },
-      viewDate: moment(this.props.dateTime, this.props.format).startOf("month"),
-      selectedDate: moment(this.props.dateTime, this.props.format),
-      inputValue: moment(this.props.dateTime, this.props.format).format(this.props.inputFormat)
+      viewDate: viewDate,
+      selectedDate: selectedDate,
+      inputValue: inputValue
     };
   },
   componentWillReceiveProps: function(nextProps) {
+    var inputValue;
+    var selectedDate;
+    var viewDate;
+    if (nextProps.dateTime) {
+       inputValue = moment(nextProps.dateTime, nextProps.format).format(nextProps.inputFormat);
+       selectedDate = moment(nextProps.dateTime, nextProps.format);
+       viewDate = moment(nextProps.dateTime, nextProps.format).startOf("month");
+    }
     return this.setState({
-      viewDate: moment(nextProps.dateTime, nextProps.format).startOf("month"),
-      selectedDate: moment(nextProps.dateTime, nextProps.format),
-      inputValue: moment(nextProps.dateTime, nextProps.format).format(nextProps.inputFormat)
+      viewDate: viewDate,
+      selectedDate: selectedDate,
+      inputValue: inputValue
     });
   },
   onChange: function(event) {
@@ -259,6 +276,8 @@ var DateTimeField = React.createClass({
     }
   },
   render: function() {
+    var inputValue = (this.state.selectedDate ?
+      this.state.selectedDate.format(this.props.inputFormat) : '');
     return (
           <span>
             {/*this.renderOverlay()*/}
@@ -289,7 +308,7 @@ var DateTimeField = React.createClass({
               togglePicker={this.togglePicker}
               togglePeriod={this.togglePeriod} />*/}
             <span className="input-group date" ref="datetimepicker">
-              <input type="text" className="form-control" onChange={this.onChange} value={this.state.selectedDate.format(this.props.inputFormat)} />
+              <input type="text" className="form-control" onChange={this.onChange} value={inputValue} />
               <span className="input-group-addon" onClick={this.onClick} onBlur={this.onBlur} ref="dtpbutton">
                 <span className="icon icon-calendar" />
               </span>

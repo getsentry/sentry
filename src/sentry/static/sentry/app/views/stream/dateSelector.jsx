@@ -13,8 +13,10 @@ var DateSelector = React.createClass({
   ],
 
   getInitialState() {
+    var dateFrom = new Date();
+    dateFrom.setDate(dateFrom.getDate() - 3);
     return {
-      dateFrom: null,
+      dateFrom: dateFrom.getTime() / 1000,
       dateTo: null,
       dateType: "last_seen"
     };
@@ -67,9 +69,9 @@ var DateSelector = React.createClass({
         <div className="datepicker-box dropdown-menu" id="daterange">
           <form method="GET">
             <div className="input">
-              <DateTimeField onChange={this.onDateFromChange} />
+              <DateTimeField dateTime={this.state.dateFrom} onChange={this.onDateFromChange} />
               to
-              <DateTimeField onChange={this.onDateToChange} />
+              <DateTimeField dateTime={this.state.dateTo} onChange={this.onDateToChange} />
               <div className="help-block">All events are represented in UTC time.</div>
             </div>
             <div className="submit">
