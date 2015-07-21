@@ -1,8 +1,8 @@
 Plugins
 =======
 
-There are several interfaces currently available to extend Sentry. These are a work in
-progress and the API is not frozen.
+There are several interfaces currently available to extend Sentry. These
+are a work in progress and the API is not frozen.
 
 Bundled Plugins
 ---------------
@@ -17,18 +17,15 @@ Sentry includes several plugins by default. Builtin plugins are controlled via t
       'sentry.plugins.sentry_useragents',
     ]
 
-.. data:: sentry.plugins.sentry_urls
-    :noindex:
+.. describe:: sentry.plugins.sentry_urls
 
     Enables auto tagging of urls based on the Http interface contents.
 
-.. data:: sentry.plugins.sentry_mail
-    :noindex:
+.. describe:: sentry.plugins.sentry_mail
 
     Enables email notifications when new events or regressions happen.
 
-.. data:: sentry.plugins.sentry_useragents
-    :noindex:
+.. describe:: sentry.plugins.sentry_useragents
 
     Enables auto tagging of browsers and operating systems based on the
     'User-Agent' header in the HTTP interface.
@@ -44,19 +41,14 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-campfire <https://github.com/mkhattab/sentry-campfire>`_
 * `sentry-flowdock <https://github.com/getsentry/sentry-flowdock>`_
 * `sentry-fogbugz <https://github.com/glasslion/sentry-fogbugz>`_
-* `sentry-freight <https://github.com/getsentry/sentry-freight>`_
 * `sentry-github <https://github.com/getsentry/sentry-github>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
-* `sentry-heroku <https://github.com/getsentry/sentry-heroku>`_
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
 * `sentry-irccat <https://github.com/russss/sentry-irccat>`_
 * `sentry-jira <https://github.com/thurloat/sentry-jira>`_
-* `sentry-kafka <https://github.com/Banno/getsentry-kafka>`_
-* `sentry-ldap-auth <https://github.com/banno/getsentry-ldap-auth>`_
 * `sentry-lighthouse <https://github.com/gthb/sentry-lighthouse>`_
 * `sentry-notifico <https://github.com/lukegb/sentry-notifico>`_
-* `sentry-opsgenie <http://github.com/getsentry/sentry-opsgenie>`_
 * `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
 * `sentry-pivotal <https://github.com/getsentry/sentry-pivotal>`_
 * `sentry-pushover <https://github.com/dz0ny/sentry-pushover>`_
@@ -70,7 +62,6 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_
 * `sentry-slack <https://github.com/getsentry/sentry-slack>`_
 * `sentry-zabbix <https://github.com/m0n5t3r/sentry-zabbix>`_
-* `sentry-taiga <https://github.com/rochsystems/sentry-taiga>`_
 
-Have an extension that should be listed here? Submit a `pull request <https://github.com/getsentry/sentry>`_ and we'll
-get it added.
+Have an extension that should be listed here? Submit a `pull request
+<https://github.com/getsentry/sentry>`_ and we'll get it added.

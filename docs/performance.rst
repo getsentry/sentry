@@ -1,7 +1,8 @@
 Performance Tuning
 ==================
 
-This document describes a set of best practices which may help you squeeze more performance out of various Sentry configurations.
+This document describes a set of best practices which may help you squeeze
+more performance out of various Sentry configurations.
 
 
 Redis
@@ -9,9 +10,11 @@ Redis
 
 **Ensure you're using at least Redis 2.4**
 
-All Redis usage in Sentry is temporal, which means the append-log/fsync models in Redis do not need to apply.
+All Redis usage in Sentry is temporal, which means the append-log/fsync
+models in Redis do not need to apply.
 
-With that in mind, we recommend the following changes to (some) default configurations:
+With that in mind, we recommend the following changes to (some) default
+configurations:
 
 - Disable saving by removing all ``save XXXX`` lines.
 - Set ``maxmemory-policy allkeys-lru`` to aggressively prune all keys.
@@ -21,11 +24,11 @@ With that in mind, we recommend the following changes to (some) default configur
 Web Server
 ----------
 
-Switching off of the default Sentry worker model and to uWSGI + emperor mode can yield very good results.
+Switching off of the default Sentry worker model and to uWSGI + emperor
+mode can yield very good results.
 
-If you're using supervisord, you can easily implement emperor mode and uWSGI yourself by doing something along the lines of:
-
-::
+If you're using supervisord, you can easily implement emperor mode and
+uWSGI yourself by doing something along the lines of::
 
 	[program:web]
 	command=newrelic-admin run-program /srv/www/getsentry.com/env/bin/uwsgi -s 127.0.0.1:90%(process_num)02d --log-x-forwarded-for --buffer-size 32768 --post-buffering 65536 --need-app --disable-logging --wsgi-file getsentry/wsgi.py --processes 1 --threads 6
@@ -43,9 +46,8 @@ If you're using supervisord, you can easily implement emperor mode and uWSGI you
 	stdout_logfile syslog
 	stderr_logfile syslog
 
-Once you're running multiple processes, you'll of course need to also configure something like Nginx to load balance to them:
-
-::
+Once you're running multiple processes, you'll of course need to also
+configure something like Nginx to load balance to them::
 
 	upstream internal {
 	  least_conn;
@@ -108,11 +110,15 @@ See uWSGI's official documentation for emperor mode details.
 Celery
 ------
 
-Celery can be difficult to tune. Your goal is to maximize the CPU usage without running out of memory. If you have JavaScript clients this becomes more difficult, as currently the sourcemap and context scraping can buffer large amounts of memory depending on your configurations and the size of your source files.
+Celery can be difficult to tune. Your goal is to maximize the CPU usage
+without running out of memory. If you have JavaScript clients this becomes
+more difficult, as currently the sourcemap and context scraping can buffer
+large amounts of memory depending on your configurations and the size of
+your source files.
 
-On a completely anecdotal note, you can take the same approach that you might take with improving the webserver: spawn more processes. We again look to supervisord for managing this for us:
-
-::
+On a completely anecdotal note, you can take the same approach that you
+might take with improving the webserver: spawn more processes. We again
+look to supervisord for managing this for us::
 
 	[program:celeryd]
 	command=/srv/www/getsentry.com/env/bin/sentry celery worker -c 6 -P processes -l WARNING -n worker-%(process_num)02d.worker-3
@@ -133,11 +139,14 @@ On a completely anecdotal note, you can take the same approach that you might ta
 Monitoring Memory
 -----------------
 
-There are cases where Sentry currently buffers large amounts of memory. This may depend on the client (javascript vs python) as well as the size of your events. If you repeatedly run into issues where workers or web nodes are using a lot of memory, you'll want to ensure you have some mechanisms for monitoring and resolving this.
+There are cases where Sentry currently buffers large amounts of memory.
+This may depend on the client (javascript vs python) as well as the size
+of your events. If you repeatedly run into issues where workers or web
+nodes are using a lot of memory, you'll want to ensure you have some
+mechanisms for monitoring and resolving this.
 
-If you're using supervisord, we recommend taking a look at `superlance <http://superlance.readthedocs.org>`_ which aids in this situation:
-
-::
+If you're using supervisord, we recommend taking a look at `superlance
+<http://superlance.readthedocs.org>`_ which aids in this situation::
 
 	[eventlistener:memmon]
 	command=memmon -a 400MB -m ops@example.com

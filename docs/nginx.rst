@@ -1,15 +1,20 @@
-Configuring Sentry with Nginx
-=============================
+Deploying Sentry with Nginx
+===========================
 
+Nginx provides a very powerful platform for running in front of Sentry as
+it gives us features like rate limiting.
 
-Nginx provides a very powerful platform for running in front of Sentry as it
-gives us features like rate limiting.
+If you're on Ubuntu, you can simply install the ``nginx-full`` package
+which will include the required RealIP module. Otherwise you'll need to
+compile Nginx from source with ``--with-http_realip_module``.
 
-If you're on Ubuntu, you can simply install the ``nginx-full`` package which will include the required RealIP module. Otherwise you'll need to compile Nginx from source with ``--with-http_realip_module``.
+For configuration instructinos with regards to incoming mail via nginx see
+:ref:`nginx-mail`.
 
-Below is a sample production ready configuration for Nginx with Sentry:
+Basic Configuration
+-------------------
 
-::
+Below is a sample production ready configuration for Nginx with Sentry::
 
     http {
       # set REMOTE_ADDR from any internal proxies
@@ -76,21 +81,18 @@ Below is a sample production ready configuration for Nginx with Sentry:
 
 
 Proxying uWSGI
-~~~~~~~~~~~~~~
+--------------
 
-While Sentry provides a default webserver, you'll likely want to move to something
-a bit more powerful. We suggest using `uWSGI <http://projects.unbit.it/uwsgi/>`_ to
-run Sentry.
+While Sentry provides a default webserver, you'll likely want to move to
+something a bit more powerful. We suggest using `uWSGI
+<http://projects.unbit.it/uwsgi/>`_ to run Sentry.
 
-Install uWSGI into your virtualenv (refer to quickstart if you're confused):
-
-::
+Install uWSGI into your virtualenv (refer to quickstart if you're
+confused)::
 
     pip install uwsgi
 
-Create a uWSGI configuration which references the Sentry configuration:
-
-::
+Create a uWSGI configuration which references the Sentry configuration::
 
     [uwsgi]
     env = SENTRY_CONF=/etc/sentry.conf.py
@@ -119,8 +121,6 @@ Create a uWSGI configuration which references the Sentry configuration:
     log-x-forwarded-for = true
 
 
-Finally, re-configure supervisor to run uwsgi instead of 'sentry start':
-
-::
+Finally, re-configure supervisor to run uwsgi instead of 'sentry start'::
 
   /www/sentry/bin/uwsgi --ini /www/sentry/uwsgi.ini

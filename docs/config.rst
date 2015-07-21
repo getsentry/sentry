@@ -1,26 +1,28 @@
-Configuration
-=============
+Configuring Sentry
+==================
 
-This document describes additional configuration options available to the Sentry server. If you are looking for documentation for the client, it is maintained in the `Raven <http://github.com/getsentry/raven-python>`_ project.
+This document describes additional configuration options available to the
+Sentry server itself.
 
-.. data:: SENTRY_URL_PREFIX
-    :noindex:
+.. describe:: SENTRY_URL_PREFIX
 
-	Absolute URL to the sentry root directory. Should not include a trailing slash.
+    Absolute URL to the sentry root directory. Should not include a
+    trailing slash.
 
-	Defaults to ``""``.
+    Defaults to ``""``.
 
-	::
+    ::
 
-		SENTRY_URL_PREFIX = 'http://sentry.example.com'
+        SENTRY_URL_PREFIX = 'http://sentry.example.com'
 
 
 Authentication
 --------------
 
+The following keys control the authentication support.
 
-.. data:: SENTRY_FEATURES['auth:register']
-    :noindex:
+
+.. describe:: SENTRY_FEATURES['auth:register']
 
     Should Sentry allow users to create new accounts?
 
@@ -30,11 +32,10 @@ Authentication
 
         SENTRY_FEATURES['auth:register'] = True
 
-.. data:: SENTRY_PUBLIC
-    :noindex:
+.. describe:: SENTRY_PUBLIC
 
-    Should Sentry make all data publicly accessible? This should **only** be
-    used if you're installing Sentry behind your company's firewall.
+    Should Sentry make all data publicly accessible? This should **only**
+    be used if you're installing Sentry behind your company's firewall.
 
     Users will still need to have an account to view any data.
 
@@ -44,11 +45,10 @@ Authentication
 
         SENTRY_PUBLIC = True
 
-.. data:: SENTRY_ALLOW_PUBLIC_PROJECTS
-    :noindex:
+.. describe:: SENTRY_ALLOW_PUBLIC_PROJECTS
 
-    Should Sentry allow users without the 'sentry.change_project' permission to
-    make projects globally public?
+    Should Sentry allow users without the 'sentry.change_project'
+    permission to make projects globally public?
 
     Defaults to ``True`` (can set public status).
 
@@ -57,13 +57,12 @@ Authentication
         SENTRY_ALLOW_PUBLIC_PROJECTS = False
 
 
-.. data:: SENTRY_ALLOW_ORIGIN
-    :noindex:
+.. describe:: SENTRY_ALLOW_ORIGIN
 
-    If provided, Sentry will set the Access-Control-Allow-Origin header to this
-    value on /api/store/ responses. In addition, the
-    Access-Control-Allow-Headers header will be set to 'X-Sentry-Auth'. This
-    allows JavaScript clients to submit cross-domain error reports.
+    If provided, Sentry will set the Access-Control-Allow-Origin header to
+    this value on /api/store/ responses. In addition, the
+    Access-Control-Allow-Headers header will be set to 'X-Sentry-Auth'.
+    This allows JavaScript clients to submit cross-domain error reports.
 
     You can read more about these headers in the `Mozilla developer docs`_.
 
@@ -76,16 +75,12 @@ Authentication
 .. _Mozilla developer docs: https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
 
 
-Services
---------
-
 Web Server
-~~~~~~~~~~
+----------
 
 The following settings are available for the built-in webserver:
 
-.. data:: SENTRY_WEB_HOST
-    :noindex:
+.. describe:: SENTRY_WEB_HOST
 
     The hostname which the webserver should bind to.
 
@@ -95,8 +90,7 @@ The following settings are available for the built-in webserver:
 
         SENTRY_WEB_HOST = '0.0.0.0'  # bind to all addresses
 
-.. data:: SENTRY_WEB_PORT
-    :noindex:
+.. describe:: SENTRY_WEB_PORT
 
     The port which the webserver should listen on.
 
@@ -107,8 +101,7 @@ The following settings are available for the built-in webserver:
         SENTRY_WEB_PORT = 9000
 
 
-.. data:: SENTRY_WEB_OPTIONS
-    :noindex:
+.. describe:: SENTRY_WEB_OPTIONS
 
     A dictionary of additional configuration options to pass to gunicorn.
 
@@ -129,12 +122,11 @@ The following settings are available for the built-in webserver:
 .. _config-smtp-server:
 
 SMTP Server
-~~~~~~~~~~~
+-----------
 
 The following settings are available for the built-in SMTP mail server:
 
-.. data:: SENTRY_SMTP_HOST
-    :noindex:
+.. describe:: SENTRY_SMTP_HOST
 
     The hostname which the smtp server should bind to.
 
@@ -144,8 +136,7 @@ The following settings are available for the built-in SMTP mail server:
 
         SENTRY_SMTP_HOST = '0.0.0.0'  # bind to all addresses
 
-.. data:: SENTRY_SMTP_PORT
-    :noindex:
+.. describe:: SENTRY_SMTP_PORT
 
     The port which the smtp server should listen on.
 
@@ -155,8 +146,7 @@ The following settings are available for the built-in SMTP mail server:
 
         SENTRY_SMTP_PORT = 1025
 
-.. data:: SENTRY_SMTP_HOSTNAME
-    :noindex:
+.. describe:: SENTRY_SMTP_HOSTNAME
 
     The hostname which matches the server's MX record.
 
@@ -166,12 +156,10 @@ The following settings are available for the built-in SMTP mail server:
 
         SENTRY_SMTP_HOSTNAME = 'reply.getsentry.com'
 
-
 Data Sampling
 -------------
 
-.. data:: SENTRY_SAMPLE_DATA
-    :noindex:
+.. describe:: SENTRY_SAMPLE_DATA
 
     .. versionadded:: 1.10.0
 
@@ -179,7 +167,8 @@ Data Sampling
 
     Defaults to ``True``.
 
-    If this is enabled, data will be sampled in a manner similar to the following:
+    If this is enabled, data will be sampled in a manner similar to the
+    following:
 
     * 50 messages stores ~50 results
     * 1000 messages stores ~400 results
@@ -191,3 +180,14 @@ Data Sampling
     ::
 
         SENTRY_SAMPLE_DATA = False
+
+Beacon
+------
+
+.. describe:: SENTRY_BEACON
+ 
+    Controls the :doc:`beacon`.
+
+    ::
+
+        SENTRY_SAMPLE_DATA = True
