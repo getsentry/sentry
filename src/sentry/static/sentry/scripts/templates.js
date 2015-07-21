@@ -36,12 +36,12 @@
                 '<ul class="actions">' +
                     '<% if (canResolve) { %>' +
                         '<li>' +
-                            '<a href="#" data-action="resolve" title="Resolve">' +
+                            '<a href="#" data-action="resolve">' +
                                 '<i aria-hidden="true" class="icon-checkmark"></i>' +
                             '</a>' +
                         '</li>' +
                         '<li>' +
-                            '<a href="#" data-action="bookmark" class="bookmark" title="Bookmark">' +
+                            '<a href="#" data-action="bookmark" class="bookmark">' +
                                 '<i aria-hidden="true" class="icon-star"></i>' +
                             '</a>' +
                         '</li>' +
