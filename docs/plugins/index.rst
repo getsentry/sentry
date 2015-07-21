@@ -51,6 +51,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-heroku <https://github.com/getsentry/sentry-heroku>`_
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
 * `sentry-irccat <https://github.com/russss/sentry-irccat>`_
+* `sentry-javascript-lite <https://github.com/Banno/getsentry-javascript-lite>`_
 * `sentry-jira <https://github.com/thurloat/sentry-jira>`_
 * `sentry-kafka <https://github.com/Banno/getsentry-kafka>`_
 * `sentry-ldap-auth <https://github.com/banno/getsentry-ldap-auth>`_
