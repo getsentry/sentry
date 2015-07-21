@@ -30,9 +30,13 @@ var Stream = React.createClass({
   },
 
   getDefaultProps() {
+    var dateFrom = new Date(); dateFrom.setDate(dateFrom.getDate() - 3);
+    dateFrom = dateFrom.getTime() / 1000;
+
     return {
       defaultQuery: "is:unresolved",
-      defaultStatsPeriod: "24h"
+      defaultStatsPeriod: "24h",
+      defaultDateFrom: dateFrom
     };
   },
 
@@ -169,6 +173,9 @@ var Stream = React.createClass({
     var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
     queryParams.statsPeriod = this.state.statsPeriod;
+    if (!queryParams.hasOwnProperty("since")) {
+      queryParams.since = this.props.defaultDateFrom;
+    }
     if (!queryParams.hasOwnProperty("query")) {
       queryParams.query = this.props.defaultQuery;
     }
@@ -319,7 +326,8 @@ var Stream = React.createClass({
             onRealtimeChange={this.onRealtimeChange}
             realtimeActive={this.state.realtimeActive}
             statsPeriod={this.state.statsPeriod}
-            groupIds={this.state.groupIds} />
+            groupIds={this.state.groupIds}
+            defaultDateFrom={this.props.defaultDateFrom} />
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />

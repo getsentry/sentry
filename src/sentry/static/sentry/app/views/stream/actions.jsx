@@ -264,7 +264,7 @@ var StreamActions = React.createClass({
             </a>
           </div>
           <SortOptions />
-          <DateSelector />
+          <DateSelector defaultDateFrom={this.props.defaultDateFrom} />
         </div>
         <div className="hidden-sm stream-actions-assignee col-md-1">
         </div>
