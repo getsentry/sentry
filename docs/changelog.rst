@@ -1,4 +1,6 @@
 Changelog
 =========
 
-.. include:: ../CHANGES
+.. sentry:edition:: self
+
+    .. include:: ../CHANGES
