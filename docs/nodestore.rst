@@ -1,17 +1,20 @@
 Node Storage
 ============
 
-Sentry provides an abstraction called 'nodestore' which is used for storing key/value blobs.
+Sentry provides an abstraction called 'nodestore' which is used for
+storing key/value blobs.
 
-The default backend simply stores them as gzipped blobs in in the 'nodestore_node' table
-of your default database.
+The default backend simply stores them as gzipped blobs in in the
+'nodestore_node' table of your default database.
 
 Django Backend
 --------------
 
-The Django backend stores all data in the 'nodestore_node' table, using a the gzipped json blob-as-text pattern.
+The Django backend stores all data in the 'nodestore_node' table, using a
+the gzipped json blob-as-text pattern.
 
-The backend provides no options, so it should simply be set to an empty dict.
+The backend provides no options, so it should simply be set to an empty
+dict.
 
 ::
 
@@ -22,14 +25,17 @@ The backend provides no options, so it should simply be set to an empty dict.
 Riak Backend
 ------------
 
-Riak is the recommended backend for installations which have a large data consumption pattern, and would prefer to
-scale out, rather than scale up a single SQL node.
+Riak is the recommended backend for installations which have a large data
+consumption pattern, and would prefer to scale out, rather than scale up a
+single SQL node.
 
 Some notes on your Riak installation:
 
-- You will want to the ``leveldb`` backend as blobs are larger, and compression helps greatly.
+- You will want to the ``leveldb`` backend as blobs are larger, and
+  compression helps greatly.
 - Reads explicitly use ``r=1``.
-- We recommend ``n=2`` for replicas, but if the data isn't extremely important, ``n=1`` is fine.
+- We recommend ``n=2`` for replicas, but if the data isn't extremely
+  important, ``n=1`` is fine.
 
 ::
 
@@ -51,9 +57,11 @@ Some notes on your Riak installation:
 Cassandra Backend
 -----------------
 
-Cassandra is a horizontally scalable datastore in many of the same ways as Riak.
+Cassandra is a horizontally scalable datastore in many of the same ways as
+Riak.
 
-The Sentry Cassandra backend only operates over the native CQL interface, so requires Cassandra 1.2+.
+The Sentry Cassandra backend only operates over the native CQL interface,
+so requires Cassandra 1.2+.
 
 ::
 
@@ -92,10 +100,12 @@ The Sentry Cassandra backend only operates over the native CQL interface, so req
 Custom Backends
 ---------------
 
-If you have a favorite data storage solution, it only has to operate under a few rules for it to work w/ Sentry's blob storage:
+If you have a favorite data storage solution, it only has to operate under
+a few rules for it to work w/ Sentry's blob storage:
 
 - set key to value
 - get key
 - delete key
 
-For more information on implementating your own backend, take a look at ``sentry.nodestore.base.NodeStorage``.
+For more information on implementating your own backend, take a look at
+``sentry.nodestore.base.NodeStorage``.
