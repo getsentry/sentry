@@ -22,7 +22,7 @@ var DateSelector = React.createClass({
     };
   },
 
-  onClear() {
+  onClear(e) {
     this.setState({
       dateFrom: null,
       dateTo: null
