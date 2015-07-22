@@ -8,6 +8,7 @@ Version 7.7.0
 - The explore feature is now deprecated and links have been hidden.
 - Expanded various API endpoints for future usage.
 - Initial prototype of embeddable crash reports. This adds the ``UserReport`` model.
+- Added basic UI reporting for celery/beat misconfiguration or general failure.
 
 Version 7.6.2
 -------------
