@@ -19,9 +19,10 @@ running on your own infrastructure.
    throttling
    tsdb
    inbound-mail
-   beacon
    performance
    cli
+   health-checks
+   beacon
    plugins
    faq
 
