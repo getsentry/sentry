@@ -26,15 +26,3 @@ Resources
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 * `Transifex <https://www.transifex.com/projects/p/sentry/>`_ (Translate Sentry!)
-
-
-Screenshots
------------
-
-These screenshots may be slightly outdated, but should give you a feel for what Sentry presents.
-
-.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/group_list.png
-
-.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/event.png
-
-.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/dashboard.png
