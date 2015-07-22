@@ -8,8 +8,6 @@ more performance out of various Sentry configurations.
 Redis
 -----
 
-**Ensure you're using at least Redis 2.4**
-
 All Redis usage in Sentry is temporal, which means the append-log/fsync
 models in Redis do not need to apply.
 
