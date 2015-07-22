@@ -1,9 +1,9 @@
-Updating Buffers
-================
+Write Buffers
+=============
 
-Sentry provides the ability to buffer certain updates to events, such as
-counts and timestamps. This is extremely helpful if you have high
-concurrency, especially if they're frequently the same event.
+Sentry manages database row contention by buffering writes and flushing
+bulk changes to the database over a period of time. This is extremely helpful
+if you have high concurrency, especially if they're frequently the same event.
 
 For example, if you happen to receive 100,000 events/second, and 10% of
 those are reporting a connection issue to the database (where they'd get
@@ -15,19 +15,23 @@ Choosing a Backend
 ------------------
 
 To specify a backend, simply modify the ``SENTRY_BUFFER`` and
-``SENTRY_BUFFER_OPTIONS`` values in your configuration::
+``SENTRY_BUFFER_OPTIONS`` values in your configuration:
+
+.. code-block:: python
 
     SENTRY_BUFFER = 'sentry.buffer.base.Buffer'
     SENTRY_BUFFER_OPTIONS = {}
 
 
-The Redis Backend
------------------
+Redis
+`````
 
 Configuring the Redis backend **requires the queue** or you won't see any
 gains (in fact you'll just negatively impact your performance).
 
-Configuration is fairly straight forward::
+Configuration is fairly straight forward:
+
+.. code-block:: python
 
     SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
     SENTRY_BUFFER_OPTIONS = {
@@ -42,7 +46,9 @@ Configuration is fairly straight forward::
 Because the Redis buffer relies on the Nydus package, this gives you the
 ability to specify multiple nodes and have keys automatically distributed.
 It's unlikely that you'll need this functionality, but if you do, a simple
-configuration might look like this::
+configuration might look like this:
+
+.. code-block:: python
 
     SENTRY_BUFFER_OPTIONS = {
         'hosts': {
