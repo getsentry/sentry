@@ -16,7 +16,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
   ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
 * `Redis <http://redis.io>`_
-* `Nginx <http://nginx.org>`_
+* `Nginx <http://nginx.org>`_ (``nginx-full``)
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
 Hardware
