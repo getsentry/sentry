@@ -16,7 +16,7 @@ redirected to **example.com**.
 AJAX requests do not seem to work properly.
 
     It's likely you have not correctly configured **SENTRY_URL_PREFIX**, so
-    you're hitting CORS issues. . See :doc:`config` for more information.
+    you're hitting CORS issues. See :doc:`config` for more information.
 
 .. class:: qa
 
