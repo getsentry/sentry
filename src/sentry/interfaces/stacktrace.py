@@ -497,7 +497,11 @@ class Stacktrace(Interface):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to JS
-        if len(frames) == 1 and frames[0].lineno == 1 and frames[0].function in ('?', None):
+        # In a common case (I believe from window.onerror) we can end up with
+        # a stacktrace which includes a single frame and a reference that isnt
+        # valuable. It would generally point to the loading page, so it's possible
+        # we could improve this check using that information.
+        if len(frames) == 1 and frames[0].lineno == 1 and frames[0].function in ('?', None) and not frames[0].filename.endswith('.js'):
             return []
 
         if not system_frames:
