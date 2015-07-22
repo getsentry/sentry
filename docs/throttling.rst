@@ -6,34 +6,85 @@ you'll see too much inbound traffic without a good way to drop excess
 messages. There's a few solutions to this, and you'll likely want to
 employ them all if you are faced with this problem.
 
-Enabling Quotas
----------------
+Event Quotas
+------------
 
-Sentry provides a built-in quota mechanism to limit on per-project and
-system-wide basis.
+One of the primary mechanisms for throttling workloads in Sentry involves
+setting up event quotas. These can be configured per project as well as
+system wide and will allow you to limit the maximum number of events
+accepted within a 60 second period of time.
 
-As of version 7.0.0, quotas are enabled by default and configured to use
-the Redis backend. To adjust the settings or the backend, you can use the
-following settings::
+Configuration
+`````````````
 
-   SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
-   SENTRY_QUOTA_OPTIONS = {
-       'hosts': {
-           0: {
-               'host': 'localhost',
-               'port': 6379
-           }
-       }
-   }
+The primary implementation uses Redis, and simply requires you to configure
+the connection information:
 
-You can additionally configure system-wide maximums, and a default value
-for all projects::
+.. code-block:: python
+
+    SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
+    SENTRY_QUOTA_OPTIONS = {
+        'hosts': {
+            0: {
+                'host': 'localhost',
+                'port': 6379
+            }
+        }
+    }
+
+You also have the ability to specify multiple nodes and have keys automatically
+distributed. It's unlikely that you'll need this functionality, but if you do, a simple
+configuration might look like this:
+
+.. code-block:: python
+
+    SENTRY_QUOTA_OPTIONS = {
+        'hosts': {
+            0: {
+                'host': '192.168.1.1'
+            },
+            1: {
+                'host': '192.168.1.2'
+            }
+        },
+    }
+
+
+You can also configure system-wide maximums, and a default value for all projects:
+
+.. code-block:: python
 
    SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
    SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 500
 
 If you have additional needs, you're freely available to extend the base
 Quota class just as the Redis implementation does.
+
+Notification Rate Limits
+------------------------
+
+In some cases there may be concerns about limiting things such as outbound email
+notifications. To address this Sentry provides a rate limits subsystem which supports
+arbitrary rate limits.
+
+Configuration
+`````````````
+
+Like event quotas, the primary implementation uses Redis:
+
+
+.. code-block:: python
+
+    SENTRY_RATELIMITER = 'sentry.ratelimits.redis.RedisRateLimiter'
+    SENTRY_RATELIMITER_OPTIONS = {
+        'hosts': {
+            0: {
+                'host': 'localhost',
+                'port': 6379
+            }
+        }
+    }
+
 
 Rate Limiting with IPTables
 ---------------------------
