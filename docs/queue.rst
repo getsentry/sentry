@@ -1,14 +1,12 @@
-Queuing Work
-============
+Asynchronous Workers
+====================
 
 Sentry comes with a built-in queue to process tasks in a more asynchronous
-fashion. For example, with workers enabled, when an event comes in instead
-of writing it to the database immediately, it sends a job to the queue so
-that the request can be returned right away, and the background workers
-handle actually saving that data.
+fashion. For example when an event comes in instead of writing it to the database
+immediately, it sends a job to the queue so that the request can be returned right
+away, and the background workers handle actually saving that data.
 
-.. note:: As of version 3.3.0 the queue is now powered by `Celery
-          <http://celeryproject.org/>`_.
+.. note:: We rely on the `Celery <http://celeryproject.org/>`_ library for managing workers.
 
 Running a Worker
 ----------------
@@ -36,20 +34,29 @@ configuration with supervisor::
     killasgroup=true
 
 
-Enable the Queue
-----------------
+Configuring the Broker
+----------------------
 
-Once you've brought up a worker, the next step is to enable the queue. This is
-done with a simple settings flag::
+Sentry supports two primary brokers which may be adjusted depending on your
+workload: RabbitMQ and Redis.
 
-    CELERY_ALWAYS_EAGER = False
+Redis
+`````
 
-It's also **highly** recommended that you switch away from the default
-queue settings, which rely on the database, and move to something more
-efficient. These are documented in more details as part of the `Celery
-documentation <http://celeryproject.org/>`_, but something simple like
-Redis will do just fine.
+The default broker is Redis, and will work under most situations. The primary
+limitation to using Redis is that all pending work must fit in memory.
 
-An example configuration using a local Redis server might look like this::
+.. code-block:: python
 
     BROKER_URL = "redis://localhost:6379/0"
+
+
+RabbitMQ
+````````
+
+If you run with a high workload, or have concerns about fitting the pending workload
+in memory, then RabbitMQ is an ideal candidate for backing Sentry's workers.
+
+.. code-block:: python
+
+    BROKER_URL = "amqp://guest:guest@localhost:5672/sentry"
