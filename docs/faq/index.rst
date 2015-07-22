@@ -17,7 +17,10 @@ The client reports success (200 OK) but I don't see events
   the first thing you should check is your workers.
 
 Counts on events aren't increasing
-  Counts are incremented in bulk asyncrhonously utilizing the buffer and queue subsystems. Check your configuration on those.
+  Counts are incremented in bulk asynchronously utilizing the buffer and queue subsystems. Check your configuration on those.
+
+Timestamps aren't updated on rollups (such as last seen)
+  Timestamps are managed in the same way counters are utilizing the buffer and queue subsystems. Check your configuration on those.
 
 
 How do I
