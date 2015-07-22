@@ -121,7 +121,7 @@ might take with improving the webserver: spawn more processes. We again
 look to supervisord for managing this for us::
 
 	[program:celeryd]
-	command=/srv/www/getsentry.com/env/bin/sentry celery worker -c 6 -P processes -l WARNING -n worker-%(process_num)02d.worker-3
+	command=/srv/www/getsentry.com/env/bin/sentry celery worker -c 6 -B -l WARNING -n worker-%(process_num)02d
 	process_name=%(program_name)s_%(process_num)02d
 	numprocs=16
 	numprocs_start=0
