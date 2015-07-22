@@ -11,8 +11,8 @@ grouped together), enabling a buffer backend will change things so that
 each count update is actually put into a queue, and all updates are
 performed at the rate of how fast the queue can keep up.
 
-Choosing a Backend
-------------------
+Configuration
+-------------
 
 To specify a backend, simply modify the ``SENTRY_BUFFER`` and
 ``SENTRY_BUFFER_OPTIONS`` values in your configuration:
@@ -43,9 +43,8 @@ Configuration is fairly straight forward:
         }
     }
 
-Because the Redis buffer relies on the Nydus package, this gives you the
-ability to specify multiple nodes and have keys automatically distributed.
-It's unlikely that you'll need this functionality, but if you do, a simple
+You also have the ability to specify multiple nodes and have keys automatically
+distributed. It's unlikely that you'll need this functionality, but if you do, a simple
 configuration might look like this:
 
 .. code-block:: python
