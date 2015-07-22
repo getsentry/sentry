@@ -14,9 +14,9 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
   ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``
-* A real database (PostgreSQL is preferred, MySQL also works with caveats)
-* Redis
-* Nginx (with RealIP, i.e. ``nginx-full``)
+* `PostgreSQL <http://www.postgresql.org/>`_
+* `Redis <http://redis.io>`_
+* `Nginx <http://nginx.org>`_
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
 Hardware
@@ -79,7 +79,7 @@ Finally, activate your virtualenv::
     source /www/sentry/bin/activate
 
 .. note:: Activating the environment adjusts your ``PATH``, so that things
-          like pip now install into the virtualenv by default.
+          like ``pip`` now install into the virtualenv by default.
 
 Install Sentry
 --------------
@@ -165,7 +165,7 @@ not a fully supported database and should not be used in production**.
     DATABASES = {
         'default': {
             # We suggest PostgreSQL for optimal performance
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'ENGINE': 'sentry.db.postgres',
 
             # Alternatively you can use MySQL
             'ENGINE': 'django.db.backends.mysql',
@@ -180,14 +180,6 @@ not a fully supported database and should not be used in production**.
 
     # No trailing slash!
     SENTRY_URL_PREFIX = 'http://sentry.example.com'
-
-    SENTRY_WEB_HOST = '0.0.0.0'
-    SENTRY_WEB_PORT = 9000
-    SENTRY_WEB_OPTIONS = {
-        'workers': 3,  # the number of gunicorn workers
-        # detect HTTPS mode from X-Forwarded-Proto header
-        'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
-    }
 
 
 Configure Redis
@@ -258,25 +250,24 @@ you've created the database:
     # alternatively if you're using MySQL, ensure you've created the database:
     $ mysql -e 'create database sentry'
 
-Once done, you can create the initial schema using the ``upgrade``
-command:
+Once done, you can create the initial schema using the ``upgrade`` command:
 
 .. code-block:: python
 
-    $ sentry --config=/etc/sentry.conf.py upgrade
+    $ SENTRY_CONF=/www/sentry/sentry.conf.py sentry upgrade
 
 Next up you'll need to create the first user, which will act as a superuser:
 
 .. code-block:: bash
 
     # create a new user
-    $ sentry --config=/etc/sentry.conf.py createuser
+    $ SENTRY_CONF=/www/sentry/sentry.conf.py sentry createuser
 
 All schema changes and database upgrades are handled via the ``upgrade``
 command, and this is the first thing you'll want to run when upgrading to
 future versions of Sentry.
 
-.. note:: Internally, this uses `South <http://south.aeracode.org>`_ to
+.. note:: Internally this uses `South <http://south.aeracode.org>`_ to
           manage database migrations.
 
 Starting the Web Service
@@ -287,40 +278,25 @@ get you off the ground quickly, also you can setup Sentry as WSGI
 application, in that case skip to section `Running Sentry as WSGI
 application`.
 
-To start the webserver, you simply use ``sentry start``. If you opted to
-use an alternative configuration path you can pass that via the --config
-option.
+To start the built-in webserver run ``sentry start``:
 
 ::
 
-  # Sentry's server runs on port 9000 by default. Make sure your client reflects
-  # the correct host and port!
-  sentry --config=/etc/sentry.conf.py start
+  SENTRY_CONF=/www/sentry/sentry.conf.py sentry start
 
 You should now be able to test the web service by visiting `http://localhost:9000/`.
 
-.. note:: This doesn't run any workers in the background, so assuming
-          queueing is enabled (default in 7.0.0+) no asyncrhonous tasks
-          will be running.
+Starting Background Workers
+---------------------------
 
-Starting the Workers
---------------------
-
-A large amount of Sentry's work is typically done via it's workers. While
-Sentry will seemingly work without using a queue you will not actually see
-anything show up in Sentry.  Once you've configured the queue, you'll also
-need to run workers. Generally, this is as simple as running "celery" from
-the Sentry CLI.
-
-So do not forget to run the workers!
+A large amount of Sentry's work is managed via background workers. These need run
+in addition to the web service workers:
 
 ::
 
-  sentry --config=/etc/sentry.conf.py celery worker -B
+  SENTRY_CONF=/www/sentry/sentry.conf.py sentry celery worker -B
 
-Technically there is a way to run sentry without the queues by setting
-``CELERY_ALWAYS_EAGER`` to `True` but this is heavily discouraged and not
-supported.
+See :doc:`queue` for more details on configuring workers.
 
 .. note:: `Celery <http://celeryproject.org/>`_ is an open source task
           framework for Python.
