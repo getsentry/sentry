@@ -367,6 +367,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.merge',
     'sentry.tasks.store',
     'sentry.tasks.options',
+    'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
 )
@@ -412,6 +413,13 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(hours=1),
         'options': {
             'expires': 3600,
+        },
+    },
+    'send-ping': {
+        'task': 'sentry.tasks.send_ping',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
         },
     },
     'flush-buffers': {
