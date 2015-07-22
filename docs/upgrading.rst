@@ -11,7 +11,7 @@ webserver.
 
 Generally, you'll start by installing the upgraded Sentry package::
 
-    easy_install -U sentry
+    pip install --upgrade sentry
 
 Continue by running all required migrations, with the upgrade command::
 
@@ -20,7 +20,7 @@ Continue by running all required migrations, with the upgrade command::
 Finally, restart any Sentry services you had running.
 
 Upgrading to 7.x
-~~~~~~~~~~~~~~~~
+----------------
 
 An extremely large amount of changes happened between the 6.x and 7.x
 series. Many of them are backwards incompatible so you should review the
