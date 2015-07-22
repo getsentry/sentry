@@ -15,7 +15,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
   ``libxml2-dev``, ``libz-dev``, ``libffi-dev``, ``libssl-dev``
 * `PostgreSQL <http://www.postgresql.org/>`_
-* `Redis <http://redis.io>`_
+* `Redis <http://redis.io>`_ (2.6.12 or newer)
 * `Nginx <http://nginx.org>`_ (``nginx-full``)
 * A dedicated domain to host Sentry on (i.e. `sentry.yourcompany.com`).
 
@@ -99,7 +99,7 @@ via ``sentry``, and get something like the following:
 .. code-block:: bash
 
   $ sentry
-  usage: sentry [--config=/path/to/settings.py] [command] [options]
+  usage: [SENTRY_CONF=/path/to/settings.py] sentry [command] [options]
 
 
 Using Postgres or MySQL
@@ -149,7 +149,7 @@ as the argument to init, otherwise it will use the default of
 ::
 
     # the path is optional
-    sentry init /etc/sentry.conf.py
+    sentry init /www/sentry/sentry.conf.py
 
 The configuration for the server is based on ``sentry.conf.server``, which
 contains a basic Django project configuration, as well as the default
@@ -349,6 +349,7 @@ well as within the Sentry configuration:
 .. code-block:: python
 
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
 
 Running Sentry as a Service
 ---------------------------
