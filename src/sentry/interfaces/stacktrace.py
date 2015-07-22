@@ -501,7 +501,12 @@ class Stacktrace(Interface):
         # a stacktrace which includes a single frame and a reference that isnt
         # valuable. It would generally point to the loading page, so it's possible
         # we could improve this check using that information.
-        if len(frames) == 1 and frames[0].lineno == 1 and frames[0].function in ('?', None) and not frames[0].filename.endswith('.js'):
+        stack_invalid = (
+            len(frames) == 1 and frames[0].lineno == 1
+            and frames[0].function in ('?', None) and frames[0].is_url()
+            and not frames[0].filename.endswith('.js')
+        )
+        if stack_invalid:
             return []
 
         if not system_frames:
