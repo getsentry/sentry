@@ -180,7 +180,7 @@ class SourceProcessorTest(TestCase):
         processor = SourceProcessor()
         result = processor.get_stacktraces(data)
         assert len(result) == 1
-        assert type(result[0]) is Stacktrace
+        assert type(result[0][1]) is Stacktrace
 
     def test_get_stacktraces_returns_exception_interface(self):
         data = {
@@ -212,4 +212,4 @@ class SourceProcessorTest(TestCase):
         processor = SourceProcessor()
         result = processor.get_stacktraces(data)
         assert len(result) == 1
-        assert type(result[0]) is Stacktrace
+        assert type(result[0][1]) is Stacktrace
