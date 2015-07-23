@@ -6,6 +6,8 @@ from sentry.api.base import Endpoint
 
 
 class CatchallEndpoint(Endpoint):
+    permission_classes = ()
+
     def get(self, request):
         return Response(status=404)
 
