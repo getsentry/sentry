@@ -19,6 +19,8 @@ configurations:
 - Set ``maxmemory 1gb`` to a reasonable allowance.
 
 
+.. _performance-web-server:
+
 Web Server
 ----------
 

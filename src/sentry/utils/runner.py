@@ -178,6 +178,10 @@ SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # SESSION_COOKIE_SECURE = True
 
+# If you're not hosting at the root of your web server, and not using uWSGI,
+# you need to uncomment and set it to the path where Sentry is hosted.
+# FORCE_SCRIPT_NAME = '/sentry'
+
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_OPTIONS = {
