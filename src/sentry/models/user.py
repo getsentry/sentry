@@ -80,8 +80,8 @@ class User(BaseModel, AbstractBaseUser):
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models import (
-            GroupBookmark, Organization, OrganizationMember,
-            UserOption
+            AuditLogEntry, Activity, AuthIdentity, GroupBookmark, Organization,
+            OrganizationMember, UserOption
         )
 
         for obj in Organization.objects.filter(owner=from_user):
@@ -92,6 +92,21 @@ class User(BaseModel, AbstractBaseUser):
             obj.update(user=to_user)
         for obj in UserOption.objects.filter(user=from_user):
             obj.update(user=to_user)
+        for obj in UserOption.objects.filter(user=from_user):
+            obj.update(user=to_user)
+
+        Activity.objects.filter(
+            user=from_user,
+        ).update(user=to_user)
+        AuditLogEntry.objects.filter(
+            actor=from_user,
+        ).update(actor=to_user)
+        AuditLogEntry.objects.filter(
+            target_user=from_user,
+        ).update(target_user=to_user)
+        AuthIdentity.objects.filter(
+            user=from_user,
+        ).update(user=to_user)
 
     def get_display_name(self):
         return self.first_name or self.email or self.username
