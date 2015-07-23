@@ -378,7 +378,10 @@ class SourceProcessor(object):
                 if e.get('stacktrace')
             ]
         except KeyError:
-            stacktraces = None
+            stacktraces = []
+
+        if 'sentry.interfaces.Stacktrace' in data:
+            stacktraces.append(Stacktrace.to_python(data['sentry.interfaces.Stacktrace']))
 
         return stacktraces
 
