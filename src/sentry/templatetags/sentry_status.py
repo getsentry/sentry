@@ -9,7 +9,7 @@ register = template.Library()
 
 @register.inclusion_tag('sentry/partial/system-status.html', takes_context=True)
 def show_system_status(context):
-    problems = status_checks.check_all()
+    problems, _ = status_checks.check_all()
 
     return {
         'problems': problems,
