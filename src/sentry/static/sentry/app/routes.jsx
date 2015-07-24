@@ -15,6 +15,7 @@ var OrganizationDetails = require("./views/organizationDetails");
 var OrganizationStats = require("./views/organizationStats");
 var OrganizationTeams = require("./views/organizationTeams");
 var ProjectDashboard = require("./views/projectDashboard");
+var ProjectEvents = require("./views/projectEvents");
 var ProjectDetails = require("./views/projectDetails");
 var ProjectReleases = require("./views/projectReleases");
 var PropTypes = require("./proptypes");
@@ -36,6 +37,7 @@ var routes = (
       <Route name="projectDetails" path=":projectId/" handler={ProjectDetails}>
         <DefaultRoute name="stream" handler={Stream} />
         <Route name="projectDashboard" path="dashboard/" handler={ProjectDashboard} />
+        <Route name="projectEvents" path="events/" handler={ProjectEvents} />
         <Route name="projectReleases" path="releases/" handler={ProjectReleases} />
         <Route name="releaseDetails" path="releases/:version/" handler={ReleaseDetails}>
           <DefaultRoute name="releaseNewEvents" handler={ReleaseNewEvents} />
