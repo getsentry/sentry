@@ -185,9 +185,9 @@ Beacon
 ------
 
 .. describe:: SENTRY_BEACON
- 
+
     Controls the :doc:`beacon`.
 
     ::
 
-        SENTRY_SAMPLE_DATA = True
+        SENTRY_BEACON = True
