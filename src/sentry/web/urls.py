@@ -413,6 +413,8 @@ urlpatterns += patterns('',
         name='sentry-release-details-all-events'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/dashboard/$', ReactPageView.as_view(),
         name='sentry-dashboard'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/$', ReactPageView.as_view(),
+        name='sentry-events'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', ReactPageView.as_view(),
         name='sentry-stream'),
 
