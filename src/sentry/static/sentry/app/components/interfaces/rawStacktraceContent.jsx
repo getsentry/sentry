@@ -73,7 +73,7 @@ var RawStacktraceContent = React.createClass({
     var firstFrameOmitted, lastFrameOmitted;
     var children = [];
 
-    if (data.frames_omitted) {
+    if (data.framesOmitted) {
       firstFrameOmitted = data.framesOmitted[0];
       lastFrameOmitted = data.framesOmitted[1];
     } else {
