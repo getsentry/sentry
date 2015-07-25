@@ -5,6 +5,7 @@ var AppState = require("../mixins/appState");
 var ConfigStore = require("../stores/configStore");
 var DropdownLink = require("../components/dropdownLink");
 var MenuItem = require("../components/menuItem");
+var {escape} = require("../utils");
 
 var ProjectSelector = React.createClass({
   childContextTypes: {
@@ -29,16 +30,37 @@ var ProjectSelector = React.createClass({
     });
   },
 
-  getProjectNode(team, project) {
+  highlight(text, highlightText) {
+    if (!highlightText) {
+      return text;
+    }
+    highlightText = highlightText.toLowerCase();
+    var idx = text.toLowerCase().indexOf(highlightText);
+    if (idx === -1) {
+      return text;
+    }
+    return (
+      <span>
+        {text.substr(0, idx)}
+        <strong class="highlight">
+          {text.substr(idx, highlightText.length)}
+        </strong>
+        {text.substr(idx + highlightText.length)}
+      </span>
+    );
+  },
+
+  getProjectNode(team, project, highlightText) {
     var org = this.props.organization;
     var projectRouteParams = {
       orgId: org.slug,
       projectId: project.slug
     };
+
     return (
       <MenuItem key={project.slug} to="projectDetails"
-                params={projectRouteParams}>
-        {project.name}
+            params={projectRouteParams}>
+        {this.highlight(project.name, highlightText)}
       </MenuItem>
     );
   },
@@ -57,6 +79,7 @@ var ProjectSelector = React.createClass({
   render() {
     var projectId = this.props.projectId;
     var org = this.props.organization;
+    var filter = this.state.filter;
     var urlPrefix = ConfigStore.get('urlPrefix');
     var children = [];
     var activeTeam;
@@ -77,14 +100,18 @@ var ProjectSelector = React.createClass({
           activeProject = project;
         }
         var fullName = team.name + ' ' + project.name + ' ' + team.slug + ' ' + project.slug;
-        if (this.state.filter && fullName.indexOf(this.state.filter) === -1) {
+        if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
         if (!hasTeam) {
-          children.push(<li className="team-name" key={'_team' + team.slug}>{team.name}</li>);
+          children.push((
+            <li className="team-name" key={'_team' + team.slug}>
+              {this.highlight(team.name, this.state.filter)}
+            </li>
+          ));
           hasTeam = true;
         }
-        children.push(this.getProjectNode(team, project));
+        children.push(this.getProjectNode(team, project, this.state.filter));
       });
     });
 
