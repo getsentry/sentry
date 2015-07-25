@@ -5,6 +5,7 @@ var GroupEventDataSection = require("../eventDataSection");
 var PropTypes = require("../../proptypes");
 var RawStacktraceContent = require("./rawStacktraceContent");
 var StacktraceContent = require("./stacktraceContent");
+var {defined} = require("../../utils");
 
 var ExceptionContent = React.createClass({
   propTypes: {
@@ -26,7 +27,7 @@ var ExceptionContent = React.createClass({
               {exc.value &&
                 <pre className="exc-message">{exc.value}</pre>
               }
-              {stackView === "raw" ?
+              {defined(exc.stacktrace) && (stackView === "raw" ?
                 <RawStacktraceContent
                     data={exc.stacktrace}
                     platform={this.props.platform} />
@@ -35,7 +36,7 @@ var ExceptionContent = React.createClass({
                     data={exc.stacktrace}
                     includeSystemFrames={stackView === "full"}
                     platform={this.props.platform} />
-              }
+              )}
             </div>
           );
         })}
