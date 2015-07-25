@@ -47,7 +47,7 @@ var Stream = React.createClass({
       multiSelected: false,
       anySelected: false,
       statsPeriod: this.props.defaultStatsPeriod,
-      realtimeActive: true,
+      realtimeActive: false,
       pageLinks: '',
       loading: true,
       error: false,
