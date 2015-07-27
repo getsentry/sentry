@@ -66,11 +66,15 @@ var StreamFilters = React.createClass({
   render() {
     var activeButton = this.state.activeButton;
     return (
-      <div className="filter-nav">
+      <div className="filter-nav stream-header">
         <div className="row">
-          <div className="col-sm-4 primary-filters">
-            <div className="btn-group btn-group-justified">
-              <FilterSelectLink label="All Events"
+          <div className="col-sm-8 primary-filters">
+            <ul className="nav nav-tabs">
+              <li className="dropdown highlight">
+                <a href="#" className="dropdown-toggle">Events <span className="icon-arrow-down"></span></a>
+              </li>
+              <li className="divider" />
+              <FilterSelectLink label="All"
                 isActive={activeButton === 'all'}
                 onSelect={this.onFilterChange.bind(this, {})}
                 extraClass="btn-all-events" />
@@ -82,9 +86,16 @@ var StreamFilters = React.createClass({
                 isActive={activeButton === 'assigned'}
                 onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
                 extraClass="btn-assigned" />
-            </div>
+              <li className="divider" />
+              <li className="dropdown highlight">
+                <a href="#" className="dropdown-toggle">Sort by: Last Seen  <span className="icon-arrow-down"></span></a>
+              </li>
+              <li className="dropdown highlight">
+                <a href="#" className="dropdown-toggle">All Time <span className="icon-arrow-down"></span></a>
+              </li>
+            </ul>
           </div>
-          <div className="col-sm-8">
+          <div className="col-sm-4">
             <SearchBar defaultQuery={this.props.defaultQuery}
               query={this.props.query}
               onQueryChange={this.props.onQueryChange}
