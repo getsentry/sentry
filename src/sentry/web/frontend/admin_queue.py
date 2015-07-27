@@ -10,7 +10,7 @@ class AdminQueueView(BaseView):
 
     def handle(self, request):
         context = {
-            'task_list': app.tasks.keys(),
+            'task_list': sorted(app.tasks.keys()),
         }
 
         return self.respond('sentry/admin-queue.html', context)
