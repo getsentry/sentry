@@ -28,7 +28,7 @@ var RuleNode = React.createClass({
 var RuleNodeList = React.createClass({
   getInitialState() {
     return {
-      items: []
+      items: this.props.initialItems || []
     };
   },
 
@@ -118,11 +118,16 @@ var RuleEditor = React.createClass({
     conditions: React.PropTypes.instanceOf(Array).isRequired
   },
 
+  onSubmit(e) {
+    e.preventDefault();
+    throw new Error('TODO: implement saving');
+  },
+
   render() {
     var rule = this.props.rule;
 
     return (
-      <form>
+      <form onSubmit={this.onSubmit}>
         <div className="box rule-detail">
           <div className="box-header">
             <h3>
@@ -142,11 +147,11 @@ var RuleEditor = React.createClass({
               of these conditions are met:
             </h6>
 
-            <RuleNodeList nodes={this.props.conditions} />
+            <RuleNodeList nodes={this.props.conditions} initialItems={rule.conditions} />
 
             <h6>Take these actions:</h6>
 
-            <RuleNodeList nodes={this.props.actions} />
+            <RuleNodeList nodes={this.props.actions} initialItems={rule.actions} />
 
             <div className="actions">
               <button className="btn btn-primary btn-lg">Save Rule</button>
