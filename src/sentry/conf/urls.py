@@ -20,6 +20,8 @@ from django.contrib import admin
 from django.views.defaults import page_not_found
 from django.http import HttpResponse
 
+from sentry import status_checks
+from sentry.utils import json
 from sentry.web.urls import urlpatterns as web_urlpatterns
 from sentry.web.frontend.csrf_failure import CsrfFailureView
 from sentry.web.frontend.error_500 import Error500View
@@ -32,7 +34,13 @@ handler500 = Error500View.as_view()
 
 
 def handler_healthcheck(request):
-    return HttpResponse('ok')
+    if request.GET.get('full'):
+
+        problems, checks = status_checks.check_all()
+        return HttpResponse(json.dumps({
+            'problems': map(unicode, problems),
+            'healthy': checks,
+        }), content_type='application/json', status=(500 if problems else 200))
 
 
 urlpatterns = patterns('',

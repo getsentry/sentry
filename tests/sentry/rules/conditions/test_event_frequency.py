@@ -62,3 +62,21 @@ class EventFrequencyConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
         self.assertDoesNotPass(rule, event, rule_last_active=timezone.now())
+
+    def test_more_than_zero(self):
+        event = self.get_event()
+        rule = self.get_rule({
+            'interval': Interval.ONE_MINUTE,
+            'value': '0',
+        })
+        self.assertDoesNotPass(rule, event)
+
+        tsdb.incr(tsdb.models.group, event.group_id, count=1)
+
+        rule.clear_cache(event)
+
+        rule = self.get_rule({
+            'interval': Interval.ONE_MINUTE,
+            'value': '0',
+        })
+        self.assertPasses(rule, event)

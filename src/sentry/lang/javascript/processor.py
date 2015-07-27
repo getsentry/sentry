@@ -373,19 +373,25 @@ class SourceProcessor(object):
     def get_stacktraces(self, data):
         try:
             stacktraces = [
-                Stacktrace.to_python(e['stacktrace'])
+                e['stacktrace']
                 for e in data['sentry.interfaces.Exception']['values']
                 if e.get('stacktrace')
             ]
         except KeyError:
-            stacktraces = None
+            stacktraces = []
 
-        return stacktraces
+        if 'sentry.interfaces.Stacktrace' in data:
+            stacktraces.append(data['sentry.interfaces.Stacktrace'])
+
+        return [
+            (s, Stacktrace.to_python(s))
+            for s in stacktraces
+        ]
 
     def get_valid_frames(self, stacktraces):
         # build list of frames that we can actually grab source for
         frames = []
-        for stacktrace in stacktraces:
+        for _, stacktrace in stacktraces:
             frames.extend([
                 f for f in stacktrace.frames
                 if f.lineno is not None
@@ -425,18 +431,18 @@ class SourceProcessor(object):
         self.expand_frames(frames)
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
-        self.update_stacktraces(data, stacktraces)
+        self.update_stacktraces(stacktraces)
 
         return data
 
     def fix_culprit(self, data, stacktraces):
-        culprit_frame = stacktraces[0].frames[-1]
+        culprit_frame = stacktraces[0][1].frames[-1]
         if culprit_frame.module and culprit_frame.function:
             data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
 
-    def update_stacktraces(self, data, stacktraces):
-        for exception, stacktrace in zip(data['sentry.interfaces.Exception']['values'], stacktraces):
-            exception['stacktrace'] = stacktrace.to_json()
+    def update_stacktraces(self, stacktraces):
+        for raw, interface in stacktraces:
+            raw.update(interface.to_json())
 
     def ensure_module_names(self, frames):
         # TODO(dcramer): this doesn't really fit well with generic URLs so we
