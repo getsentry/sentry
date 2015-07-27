@@ -7,7 +7,7 @@
 
 {% block title %}{% trans "Queue" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
   <div class="page-header">
     <ul class="nav nav-pills pull-right" id="duration">
       <li class="active"><a href="#">1h</a></li>
@@ -18,17 +18,16 @@
   </div>
 
   <h3>Global Throughput</h3>
-  <div class="chart" style="height:250px" data-metric="jobs.all.started" data-label="Jobs started"></div>
+  <div class="chart-loader" style="height:250px" data-metric="jobs.all.started" data-label="Jobs started"></div>
 
   <h3>Tasks</h3>
-  <ul class="task-list">
+  <ul class="task-list unstyled">
     {% for task_name in task_list %}
       <li>
         <strong>{{ task_name }}</strong>
-        <div class="chart" style="height:80px"
+        <div class="chart-loader" style="height:80px"
              data-metric="jobs.started.{{ task_name }}"
-             data-labels="false"
-             data-legend="false"></div>
+             data-label="Jobs started"></div>
       </li>
     {% endfor %}
   </ul>
@@ -46,15 +45,14 @@
     });
 
     var redrawCharts = function(){
-      $('.chart').each(function(){
-        var $chart = $(this);
+      $('.chart-loader').each(function(){
+        var chart = this;
+        var $chart = $(chart);
         var chartType = $chart.data('chart');
         var metric = $chart.data('metric');
-        var endpoint = app.config.urlPrefix + '/api/0/internal/stats/';
+        var endpoint = '{{ URL_PREFIX }}/api/0/internal/stats/';
         var since = new Date().getTime() / 1000;
         var resolution;
-        var showLegend = $chart.data('legend') !== false;
-        var showLabels = $chart.data('labels') !== false;
 
         switch(selectedDuration) {
           case '1h':
@@ -73,7 +71,13 @@
             throw new Error('Invalid duration: ' + selectedDuration);
         }
 
-        $chart.html('<div class="loading">Loading...</div>');
+        $chart.html(
+          '<div class="loading">' +
+            '<div className="loading-mask"></div>' +
+            '<div className="loading-indicator"></div>' +
+            '<div className="loading-message">Loading</div>' +
+          '</div>'
+        );
 
         $.ajax({
           url: endpoint,
@@ -85,11 +89,9 @@
             key: metric
           },
           success: function(data){
-            renderChart($chart, {
+            renderChart(chart, {
               label: $chart.data('label'),
-              points: processData(data),
-              showLegend: showLegend,
-              showLabels: showLabels
+              points: processData(data)
             });
           },
           error: function(data) {
@@ -111,18 +113,7 @@
       return result;
     };
 
-    var countFormatter = function(value) {
-      if (value > 999999) {
-        return (value / 1000000) + 'mm';
-      }
-      if (value > 999) {
-        return (value / 1000) + 'k';
-      }
-      return value;
-    };
-    var emptyFormatter = function() { return ''; };
-
-    var renderChart = function($chart, data) {
+    var renderChart = function(parent, data) {
       var points = [
         {
           data: data.points,
@@ -138,51 +129,10 @@
         }
       ];
 
-      var options = {
-        xaxis: {
-          mode: "time",
-          // minTickSize: [10, "second"],
-          tickFormatter: Sentry.charts.tickFormatter
-        },
-        yaxis: {
-          min: 0,
-          tickFormatter: countFormatter
-        },
-        tooltip: true,
-        tooltipOpts: {
-          content: function(label, xval, yval, flotItem) {
-            xval = parseInt(xval, 10);
-            if(typeof yval.toLocaleString == "function") {
-              if (flotItem.series.label)
-                return yval.toLocaleString() + ' ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
-              return yval.toLocaleString() + '<br>' + moment(xval).format('llll');
-            }
-            return yval + '<br>' + moment(xval).format('llll');
-          },
-          defaultTheme: false
-        },
-        grid: {
-          show: true,
-          hoverable: true,
-          backgroundColor: '#ffffff',
-          borderColor: '#DEE3E9',
-          borderWidth: 2,
-          tickColor: '#f0f0f0'
-        },
-        hoverable: false,
-        legend: {
-          show: data.showLegend,
-          noColumns: 2,
-          position: 'nw'
-        },
-        lines: { show: false }
-      };
-
-      $.plot($chart, points, options);
-
-      $(window).resize(function(){
-        $.plot($chart, points, options);
-      });
+      React.render(React.createFactory(Sentry.FlotChart)({
+        className: "chart",
+        plotData: points
+      }), parent);
     }
   });
   </script>
@@ -190,6 +140,7 @@
   <style>
   .task-list {
     margin-left: 0;
+    padding-left: 0;
   }
   .task-list li {
     width: 49%;
@@ -202,7 +153,8 @@
     display: block;
   }
   .task-list .flot-y-axis,
-  .task-list .flot-x-axis {
+  .task-list .flot-x-axis,
+  .task-list .legend {
     display: none !important;
   }
   </style>

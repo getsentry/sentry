@@ -479,7 +479,7 @@ table.integrations {
 }
 
 /**
-* Org Selector
+* Loading Indicator
 * ============================================================================
 */
 
@@ -981,10 +981,11 @@ table.integrations {
 * ============================================================================
 */
 
+
 .chart {
+  display: block;
   position: relative;
-  min-height: 200px;
-  max-height: 250px;
+  height: 100%;
   margin-bottom: 20px;
 
   > .title {
@@ -1004,13 +1005,13 @@ table.integrations {
     position: absolute;
     left: 0;
     top: 0;
-    width: 40px;
+    white-space: nowrap;
     padding-left: 10px;
     height: 100%;
     text-align: left;
     color: @linkColor;
     .legendLabel {
-      padding: 0 10px 0 0;
+      padding: 0 5px;
     }
   }
 }
