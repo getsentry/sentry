@@ -3,10 +3,12 @@ from __future__ import absolute_import
 __all__ = ('check_all', 'Problem', 'StatusCheck')
 
 from .base import Problem, StatusCheck  # NOQA
-from .celery_ping import CeleryPingCheck
+from .celery_alive import CeleryAliveCheck
+from .celery_app_version import CeleryAppVersionCheck
 
 check_classes = [
-    CeleryPingCheck,
+    CeleryAliveCheck,
+    CeleryAppVersionCheck,
 ]
 
 
@@ -15,7 +17,8 @@ def check_all():
     problems = []
     for cls in check_classes:
         problem = cls().check()
-        problems.extend(problem)
+        if problem:
+            problems.extend(problem)
         checks[cls.__name__] = not bool(problem)
 
     return problems, checks
