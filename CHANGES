@@ -8,7 +8,11 @@ Version 7.7.0
 - The explore feature is now deprecated and links have been hidden.
 - Expanded various API endpoints for future usage.
 - Initial prototype of embeddable crash reports. This adds the ``UserReport`` model.
-- Added basic UI reporting for celery/beat misconfiguration or general failure.
+- Added basic UI reporting for status checks.
+- Added celery/beat alive check.
+- Added celery app version check.
+- Added queue overview to internal administration.
+- Upped TSDB's storage of 10s to 60m of data.
 
 Version 7.6.2
 -------------
