@@ -140,9 +140,9 @@ var RuleEditor = React.createClass({
               Every time
               <select name="action_match"
                       className="select2-small select2-inline">
-                <option value="all">all</option>
-                <option value="any">any</option>
-                <option value="none">none</option>
+                <option value="all" selected={rule.actionMatch === 'all'}>all</option>
+                <option value="any"selected={rule.actionMatch === 'any'}>any</option>
+                <option value="none"selected={rule.actionMatch === 'none'}>none</option>
               </select>
               of these conditions are met:
             </h6>
