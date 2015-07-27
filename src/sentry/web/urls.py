@@ -419,6 +419,5 @@ urlpatterns += patterns('',
         name='sentry-stream'),
 
     # Legacy
-    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.redirect_to_group,
-        name='sentry-group'),
+    url(r'', ReactPageView.as_view()),
 )
