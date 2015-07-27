@@ -30,6 +30,7 @@ import sentry.web.frontend.projects.tags
 
 __all__ = ('urlpatterns',)
 
+from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView
 from sentry.web.frontend.auth_link_identity import AuthLinkIdentityView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -173,6 +174,8 @@ urlpatterns += patterns('',
     # Admin
     url(r'^manage/$', admin.overview,
         name='sentry-admin-overview'),
+    url(r'^manage/queue/$', AdminQueueView.as_view(),
+        name='sentry-admin-queue'),
     url(r'^manage/status/environment/$', admin.status_env,
         name='sentry-admin-status'),
     url(r'^manage/status/packages/$', admin.status_packages,
