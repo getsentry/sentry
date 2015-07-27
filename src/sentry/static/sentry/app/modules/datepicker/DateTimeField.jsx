@@ -308,9 +308,9 @@ var DateTimeField = React.createClass({
               togglePicker={this.togglePicker}
               togglePeriod={this.togglePeriod} />*/}
             <span className="input-group date" ref="datetimepicker">
+              <span className="icon-calendar" />
               <input type="text" className="form-control" onChange={this.onChange} value={inputValue} />
               <span className="input-group-addon" onClick={this.onClick} onBlur={this.onBlur} ref="dtpbutton">
-                <span className="icon icon-calendar" />
               </span>
             </span>
           </span>
