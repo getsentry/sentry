@@ -1990,11 +1990,14 @@ header ~ #messages {
   top: 45px;
   padding: 15px;
 
+  .to {
+    margin: 0 6px;
+  }
+
   .input {
     > span {
       vertical-align: middle;
       display: inline-block;
-      margin-right: 5px;
       position: relative;
     }
 
@@ -2033,7 +2036,23 @@ header ~ #messages {
   }
 
   .date {
-    width: 180px;
+    position: relative;
+
+    input {
+      width: 181px;
+      padding-left: 26px;
+    }
+
+    .input-group-addon {
+      position: absolute;
+      top: -2px;
+      left: 8px;
+      z-index: 2;
+      color: lighten(@gray, 30);
+      &:hover {
+        color: lighten(@gray, 10);;
+      }
+    }
   }
 }
 

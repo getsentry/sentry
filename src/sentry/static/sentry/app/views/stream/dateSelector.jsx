@@ -68,7 +68,7 @@ var DateSelector = React.createClass({
           <form method="GET">
             <div className="input">
               <DateTimeField dateTime={this.state.dateFrom} onChange={this.onDateFromChange} />
-              to
+              <span className="to">to</span>
               <DateTimeField dateTime={this.state.dateTo} onChange={this.onDateToChange} />
               <div className="help-block">All events are represented in UTC time.</div>
             </div>
