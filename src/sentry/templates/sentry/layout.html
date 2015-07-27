@@ -5,6 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_permissions %}
 
+{% load sentry_status %}
 {% get_sentry_version %}
 
 <!DOCTYPE html>
@@ -151,6 +152,10 @@
       </div>
     </div>
     {% endblock %}
+    {% endif %}
+
+    {% if request.user.is_superuser %}
+        {% show_system_status %}
     {% endif %}
 
     {% block alerts %}

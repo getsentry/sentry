@@ -1,0 +1,209 @@
+{% extends "sentry/bases/admin.html" %}
+
+{% block admin-nav-queue %} class="active"{% endblock %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Queue" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+  <div class="page-header">
+    <ul class="nav nav-pills pull-right" id="duration">
+      <li class="active"><a href="#">1h</a></li>
+      <li><a href="#">1d</a></li>
+      <li><a href="#">1w</a></li>
+    </ul>
+    <h2>Queue Overview</h2>
+  </div>
+
+  <h3>Global Throughput</h3>
+  <div class="chart" style="height:250px" data-metric="jobs.all.started" data-label="Jobs started"></div>
+
+  <h3>Tasks</h3>
+  <ul class="task-list">
+    {% for task_name in task_list %}
+      <li>
+        <strong>{{ task_name }}</strong>
+        <div class="chart" style="height:80px"
+             data-metric="jobs.started.{{ task_name }}"
+             data-labels="false"
+             data-legend="false"></div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <script>
+  $(function(){
+    var selectedDuration = $("#duration .active a").text();
+    $('#duration a').click(function(e){
+      e.preventDefault();
+      var $el = $(this);
+      $el.parents('ul').find('li').removeClass('active');
+      $el.parent().addClass('active');
+      selectedDuration = $el.text();
+      redrawCharts();
+    });
+
+    var redrawCharts = function(){
+      $('.chart').each(function(){
+        var $chart = $(this);
+        var chartType = $chart.data('chart');
+        var metric = $chart.data('metric');
+        var endpoint = app.config.urlPrefix + '/api/0/internal/stats/';
+        var since = new Date().getTime() / 1000;
+        var resolution;
+        var showLegend = $chart.data('legend') !== false;
+        var showLabels = $chart.data('labels') !== false;
+
+        switch(selectedDuration) {
+          case '1h':
+            since -= 3600;
+            resolution = '10s';
+            break;
+          case '1d':
+            since -= 3600 * 24;
+            resolution = '1h';
+            break;
+          case '1w':
+            since -= 3600 * 24 * 7;
+            resolution = '1h';
+            break;
+          default:
+            throw new Error('Invalid duration: ' + selectedDuration);
+        }
+
+        $chart.html('<div class="loading">Loading...</div>');
+
+        $.ajax({
+          url: endpoint,
+          type: 'get',
+          dataType: 'json',
+          data: {
+            since: since,
+            resolution: resolution,
+            key: metric
+          },
+          success: function(data){
+            renderChart($chart, {
+              label: $chart.data('label'),
+              points: processData(data),
+              showLegend: showLegend,
+              showLabels: showLabels
+            });
+          },
+          error: function(data) {
+            $chart.html('<div class="error">There was an error loading statistics.</div>');
+          }
+        });
+      });
+    };
+
+    redrawCharts();
+
+    var processData = function(points) {
+      var result = [];
+      for (var i = 0; i < points.length; i++) {
+        var point = points[i];
+        var ts = point[0] * 1000;
+        result.push([ts, point[1]]);
+      }
+      return result;
+    };
+
+    var countFormatter = function(value) {
+      if (value > 999999) {
+        return (value / 1000000) + 'mm';
+      }
+      if (value > 999) {
+        return (value / 1000) + 'k';
+      }
+      return value;
+    };
+    var emptyFormatter = function() { return ''; };
+
+    var renderChart = function($chart, data) {
+      var points = [
+        {
+          data: data.points,
+          label: data.label,
+          // color: 'rgba(86, 175, 232, 1)',
+          shadowSize: 0,
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        }
+      ];
+
+      var options = {
+        xaxis: {
+          mode: "time",
+          // minTickSize: [10, "second"],
+          tickFormatter: Sentry.charts.tickFormatter
+        },
+        yaxis: {
+          min: 0,
+          tickFormatter: countFormatter
+        },
+        tooltip: true,
+        tooltipOpts: {
+          content: function(label, xval, yval, flotItem) {
+            xval = parseInt(xval, 10);
+            if(typeof yval.toLocaleString == "function") {
+              if (flotItem.series.label)
+                return yval.toLocaleString() + ' ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
+              return yval.toLocaleString() + '<br>' + moment(xval).format('llll');
+            }
+            return yval + '<br>' + moment(xval).format('llll');
+          },
+          defaultTheme: false
+        },
+        grid: {
+          show: true,
+          hoverable: true,
+          backgroundColor: '#ffffff',
+          borderColor: '#DEE3E9',
+          borderWidth: 2,
+          tickColor: '#f0f0f0'
+        },
+        hoverable: false,
+        legend: {
+          show: data.showLegend,
+          noColumns: 2,
+          position: 'nw'
+        },
+        lines: { show: false }
+      };
+
+      $.plot($chart, points, options);
+
+      $(window).resize(function(){
+        $.plot($chart, points, options);
+      });
+    }
+  });
+  </script>
+
+  <style>
+  .task-list {
+    margin-left: 0;
+  }
+  .task-list li {
+    width: 49%;
+    display: inline-block;
+    border-bottom: 1px solid #ddd;
+    margin: 0 0 5px;
+    padding: 0 0 5px;
+  }
+  .task-list li strong {
+    display: block;
+  }
+  .task-list .flot-y-axis,
+  .task-list .flot-x-axis {
+    display: none !important;
+  }
+  </style>
+{% endblock %}

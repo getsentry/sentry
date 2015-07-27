@@ -56,7 +56,7 @@ class EventFrequencyCondition(EventCondition):
         except (TypeError, ValueError):
             return False
 
-        if not (interval and value):
+        if not interval:
             return False
 
         now = timezone.now()

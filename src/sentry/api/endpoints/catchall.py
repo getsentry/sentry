@@ -1,10 +1,13 @@
 from __future__ import absolute_import
 
 from django.http import HttpResponse
-from django.views.generic import View
+
+from sentry.api.base import Endpoint
 
 
-class CatchallEndpoint(View):
+class CatchallEndpoint(Endpoint):
+    permission_classes = ()
+
     def get(self, request):
         return HttpResponse(status=404)
 
