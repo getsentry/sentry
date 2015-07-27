@@ -112,6 +112,7 @@ def list_rules(request, organization, project):
         rule_list.append({
             'id': rule.id,
             'label': rule.label,
+            'match': rule.data.get('action_match', 'all'),
             'actions': actions,
             'conditions': conditions,
         })
