@@ -7,7 +7,7 @@ from sentry import options
 from .base import StatusCheck, Problem
 
 
-class CeleryPingCheck(StatusCheck):
+class CeleryAliveCheck(StatusCheck):
     def check(self):
         last_ping = options.get('sentry:last_worker_ping') or 0
         if last_ping >= time() - 300:
