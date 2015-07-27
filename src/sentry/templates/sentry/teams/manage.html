@@ -13,12 +13,8 @@
 {% endblock %}
 
 {% block content %}
-  <div class="page-header">
-    <h2>
-      {% trans "Team Settings" %}
-      <small>{{ team.name }}</small>
-    </h2>
-  </div>
+  <h3>{{ team.name }} <small> {% trans "Team Settings" %}</small>
+  </h3>
 
   <div class="box">
     <div class="box-content with-padding">
