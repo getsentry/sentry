@@ -687,7 +687,7 @@ SENTRY_TSDB_OPTIONS = {}
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
-    (10, 30),  # 5 minute at 10 seconds
+    (10, 360),  # 60 minutes at 10 seconds
     (3600, 24 * 7),  # 7 days at 1 hour
     (3600 * 24, 60),  # 60 days at 1 day
 )
