@@ -67,7 +67,6 @@ var SortOptions = React.createClass({
 
     return (
       <DropdownLink
-          key="sort"
           className="btn btn-sm"
           btnGroup={true}
           title={dropdownTitle}>
