@@ -77,7 +77,7 @@ var ActionLink = React.createClass({
 
   renderOverlay() {
     if (!this.state.isModalOpen) {
-      return <span/>;
+      return null;
     }
 
     var selectedItemIds = SelectedGroupStore.getSelectedIds();
