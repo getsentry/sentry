@@ -213,6 +213,7 @@ CLIENT_RESERVED_ATTRS = (
     'message',
     'checksum',
     'culprit',
+    'fingerprint',
     'level',
     'time_spent',
     'logger',
