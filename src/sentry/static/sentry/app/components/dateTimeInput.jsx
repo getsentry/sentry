@@ -49,13 +49,6 @@ var DateTimeInput = React.createClass({
             placeholder="HH:MM"
             onChange={this.handleTimeInputChange} />
         </p>
-        <DayPicker
-          ref="daypicker"
-          initialMonth={month}
-          enableOutsideDays={true}
-          numberOfMonths={1}
-          modifiers={modifiers}
-          onDayTouchTap={this.handleDayTouchTap} />
       </div>
     );
   },
