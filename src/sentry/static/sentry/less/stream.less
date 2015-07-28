@@ -130,18 +130,20 @@
   border: 1px solid darken(@trim, 2);
   box-shadow: 0 1px 0 rgba(52, 60, 69, 0.02);
   border-radius: 2px;
+  position: relative;
 }
 
 .group-list, .events {
   .list-unstyled;
 
   .group {
-    position: relative;
+    position: absolute;
+    left: 15px;
+    width: 100%;
     border-bottom: 1px solid lighten(@trim, 8);
-    margin: 0;
     padding-right: 10px;
     background: #fff;
-    .transition(all .3s ease-in-out);
+    .transition(all .4s ease-in-out);
 
     .icon-bookmark {
       display: none;
@@ -235,7 +237,7 @@
     }
 
     &:last-child {
-      border: 0;
+      border-bottom-color: transparent;
       border-radius: 0 0 2px 2px;
       .event-cell {
         border-bottom: 1px solid #E9EBEC;
@@ -247,6 +249,32 @@
         border-radius: 0 0 4px 0;
       }
     }
+
+    &.group:nth-child(1)  { transform: translate3d(0, 0%, 0); }
+    &.group:nth-child(2)  { transform: translate3d(0, 100%, 0); }
+    &.group:nth-child(3)  { transform: translate3d(0, 200%, 0); }
+    &.group:nth-child(4)  { transform: translate3d(0, 300%, 0); }
+    &.group:nth-child(5)  { transform: translate3d(0, 400%, 0); }
+    &.group:nth-child(6)  { transform: translate3d(0, 500%, 0); }
+    &.group:nth-child(7)  { transform: translate3d(0, 600%, 0); }
+    &.group:nth-child(8)  { transform: translate3d(0, 700%, 0); }
+    &.group:nth-child(9)  { transform: translate3d(0, 800%, 0); }
+    &.group:nth-child(10)  { transform: translate3d(0, 900%, 0); }
+    &.group:nth-child(11)  { transform: translate3d(0, 1000%, 0); }
+    &.group:nth-child(12)  { transform: translate3d(0, 1100%, 0); }
+    &.group:nth-child(13)  { transform: translate3d(0, 1200%, 0); }
+    &.group:nth-child(14)  { transform: translate3d(0, 1300%, 0); }
+    &.group:nth-child(15)  { transform: translate3d(0, 1400%, 0); }
+    &.group:nth-child(16)  { transform: translate3d(0, 1500%, 0); }
+    &.group:nth-child(17)  { transform: translate3d(0, 1600%, 0); }
+    &.group:nth-child(18)  { transform: translate3d(0, 1700%, 0); }
+    &.group:nth-child(19)  { transform: translate3d(0, 1800%, 0); }
+    &.group:nth-child(20)  { transform: translate3d(0, 1900%, 0); }
+    &.group:nth-child(21)  { transform: translate3d(0, 2000%, 0); }
+    &.group:nth-child(22)  { transform: translate3d(0, 2100%, 0); }
+    &.group:nth-child(23)  { transform: translate3d(0, 2200%, 0); }
+    &.group:nth-child(24)  { transform: translate3d(0, 2300%, 0); }
+    &.group:nth-child(25)  { transform: translate3d(0, 2400%, 0); }
   }
 
   .deploy {
