@@ -2786,7 +2786,7 @@ msgstr ""
 
 #: web/forms/accounts.py:80
 msgid "This account is inactive."
-msgstr ""
+msgstr "Questo account è inattivo."
 
 #: web/forms/accounts.py:152
 msgid "An account is already registered with that email address."
@@ -2818,11 +2818,11 @@ msgstr "Non abbonarti alle notifiche per i nuovi progetti"
 
 #: web/forms/accounts.py:193
 msgid "Notes"
-msgstr ""
+msgstr "Note"
 
 #: web/forms/accounts.py:195
 msgid "Get notified about new notes"
-msgstr ""
+msgstr "Ricevere delle nuove notifiche"
 
 #: web/forms/accounts.py:196
 msgid "Do not subscribe to note notifications"
@@ -2834,7 +2834,7 @@ msgstr "Nuova password"
 
 #: web/forms/accounts.py:289
 msgid "That username is already in use."
-msgstr ""
+msgstr "Quel username è gia utilizzato."
 
 #: web/forms/accounts.py:317
 msgid "Language"
@@ -3060,7 +3060,7 @@ msgstr ""
 
 #: web/frontend/organization_member_settings.py:77
 msgid "Your changes were saved."
-msgstr ""
+msgstr "Le modifiche sono state salvate."
 
 #: web/frontend/organization_settings.py:16
 msgid "The name of your organization. i.e. My Company"
