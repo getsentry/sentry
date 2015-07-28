@@ -33,8 +33,3 @@ class Command(BaseCommand):
             traceback=options['traceback'],
             verbosity=options['verbosity'],
         )
-        call_command(
-            'load_help_pages',
-            traceback=options['traceback'],
-            verbosity=options['verbosity'],
-        )

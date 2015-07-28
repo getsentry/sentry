@@ -38,10 +38,6 @@ from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginVie
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.home import HomeView
-from sentry.web.frontend.help_index import HelpIndexView
-from sentry.web.frontend.help_page import HelpPageView
-from sentry.web.frontend.help_platform_details import HelpPlatformDetailsView
-from sentry.web.frontend.help_platform_index import HelpPlatformIndexView
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
 from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
 from sentry.web.frontend.organization_api_key_settings import OrganizationApiKeySettingsView
@@ -122,6 +118,7 @@ urlpatterns += patterns('',
         name='sentry-release-hook'),
     url(r'^api/embed/error-page/$', ErrorPageEmbedView.as_view(),
         name='sentry-error-page-embed'),
+    url(r'^api/', include('sentry.api.help_urls')),
 
     # Auth
     url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthLinkIdentityView.as_view(),
@@ -159,17 +156,6 @@ urlpatterns += patterns('',
     url(r'^account/settings/notifications/$', accounts.notification_settings,
         name='sentry-account-settings-notifications'),
     url(r'^account/settings/social/', include('social_auth.urls')),
-
-    # Help
-    url(r'^docs/$', HelpIndexView.as_view(),
-        name='sentry-help'),
-    url(r'^docs/api/', include('sentry.api.help_urls')),
-    url(r'^docs/(?P<page_id>[\d]+)/(?P<page_slug>[^\/]+)/$', HelpPageView.as_view(),
-        name='sentry-help-page'),
-    url(r'^docs/platforms/$', HelpPlatformIndexView.as_view(),
-        name='sentry-help-platform-list'),
-    url(r'^docs/platforms/(?P<platform>[^\/]+)/$', HelpPlatformDetailsView.as_view(),
-        name='sentry-help-platform'),
 
     # Admin
     url(r'^manage/$', admin.overview,
