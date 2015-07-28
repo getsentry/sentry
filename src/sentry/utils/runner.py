@@ -109,7 +109,7 @@ SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 # Queue #
 #########
 
-# See http://sentry.readthedocs.org/en/latest/queue/index.html for more
+# See https://docs.getsentry.com/on-premise/server/queue/ for more
 # information on configuring your queue broker and workers. Sentry relies
 # on a Python framework called Celery to manage queues.
 
@@ -304,7 +304,7 @@ def initialize_app(config):
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
         warnings.warn('Sentry is configured to run asynchronous tasks in-process. '
                       'This is not recommended within production environments. '
-                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
+                      'See https://docs.getsentry.com/on-premise/server/queue/ for more information.')
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         settings.SENTRY_FEATURES['organizations:create'] = False
@@ -352,7 +352,7 @@ def apply_legacy_settings(config):
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
     if hasattr(settings, 'SENTRY_USE_QUEUE'):
         warnings.warn('SENTRY_USE_QUEUE is deprecated. Please use CELERY_ALWAYS_EAGER instead. '
-                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.', DeprecationWarning)
+                      'See https://docs.getsentry.com/on-premise/server/queue/ for more information.', DeprecationWarning)
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
     if not settings.SENTRY_ADMIN_EMAIL:
