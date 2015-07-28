@@ -1,12 +1,13 @@
 {% load sentry_helpers %}
 
 {% if problems %}
-  <div class="container">
   {% for message in problems %}
     <div class="alert alert-block alert-error">
-      <a class="close" data-dismiss="alert">×</a>
-      {{ message|linebreaks }}
+      <div class="container">
+        <a class="close" data-dismiss="alert">×</a>
+        <span class="icon icon-x"></span>
+        {{ message|linebreaks }}
+      </div>
     </div>
   {% endfor %}
-  </div>
 {% endif %}

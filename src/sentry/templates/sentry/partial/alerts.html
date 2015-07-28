@@ -8,7 +8,6 @@ $(function(){
 });
 </script>
 {% if messages %}
-<div class="container">
   <div id="messages">
     {% for message in messages %}
     	{% with message.tags|split:" " as message_tags %}
@@ -24,5 +23,4 @@ $(function(){
       {% endwith %}
     {% endfor %}
   </div>
-</div>
 {% endif %}
