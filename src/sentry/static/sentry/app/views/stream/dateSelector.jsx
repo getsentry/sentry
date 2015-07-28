@@ -54,20 +54,21 @@ var CustomDateRange = React.createClass({
       return null;
     }
     return (
-      <Modal title="Custom Date Range" animation={false} onRequestHide={this.onToggle}>
+      <Modal title="Custom Date Range" animation={false} onRequestHide={this.onToggle} className="datepicker-modal">
         <div className="modal-body">
           <div className="datepicker-box">
-            <div className="input">
-              <DateTimeInput dateTime={this.state.dateFrom} onChange={this.onDateFromChange} />
-              to
-              <DateTimeInput dateTime={this.state.dateTo} onChange={this.onDateToChange} />
-              <div className="help-block">All events are represented in UTC time.</div>
+            <div className="row">
+              <div className="col-md-6">
+                <h6>Start</h6>
+                <DateTimeInput dateTime={this.state.dateFrom} onChange={this.onDateFromChange} />
+              </div>
+              <div className="col-md-6">
+                <h6>End</h6>
+                <DateTimeInput dateTime={this.state.dateTo} onChange={this.onDateToChange} />
+              </div>
             </div>
             <div className="submit">
-              <div className="pull-right">
-                <button className="btn btn-default btn-sm" onClick={this.onClear}>Clear</button>
-                <button className="btn btn-primary btn-sm" onClick={this.onApply}>Apply</button>
-              </div>
+              <div className="help-block pull-right">All events are represented in UTC time.</div>
               <div className="radio-inputs">
                 <label className="radio">
                   <input type="radio" name="date_type"
@@ -84,10 +85,10 @@ var CustomDateRange = React.createClass({
           </div>
         </div>
         <div className="modal-footer">
-          <button type="button" className="btn btn-small btn-primary"
-                  onClick={this.onApply}>Apply</button>
-          <button type="button" className="btn btn-small"
+          <button type="button" className="btn btn-default"
                   onClick={this.onToggle}>Close</button>
+          <button type="button" className="btn btn-primary"
+                  onClick={this.onApply}>Apply</button>
         </div>
       </Modal>
     );
