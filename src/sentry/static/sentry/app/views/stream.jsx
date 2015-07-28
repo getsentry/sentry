@@ -130,6 +130,13 @@ var Stream = React.createClass({
         this._poller.disable();
       }
     }
+    var groupList = this.refs.groupList;
+    if (groupList) {
+      var parent = $(this.refs.groupList.getDOMNode());
+      // TODO(dcramer): this code is problematic
+      var groupHeight = parent.find('.group').first().outerHeight() || 94;
+      parent.height(94 * parent.find('.group').length);
+    }
   },
 
   fetchData() {
@@ -271,7 +278,7 @@ var Stream = React.createClass({
       return <StreamGroup key={id} id={id} statsPeriod={statsPeriod} />;
     });
 
-    return (<ul className="group-list">{groupNodes}</ul>);
+    return (<ul className="group-list" ref="groupList">{groupNodes}</ul>);
   },
 
   renderEmpty() {
