@@ -707,7 +707,6 @@ SENTRY_PUBLIC_ENDPOINT = None
 
 # Early draft features. Not slated or public release yet.
 SENTRY_ENABLE_EXPLORE_CODE = False
-SENTRY_ENABLE_EXPLORE_USERS = True
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
 # size in characters
