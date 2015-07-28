@@ -1618,18 +1618,22 @@ pre.clippy {
 * ============================================================================
 */
 
+.sub-header + .alert {
+  margin-top: -31px;
+  position: relative;
+  z-index: 2;
+  box-shadow: inset 0 1px 0 rgba(0,0,0, .08);
+  border-radius: 0;
+}
+
 .alert {
   background: #ffc01a;
   color: #fff;
   border: 0;
-  font-weight: 600;
+  font-weight: 400;
   padding: 12px 20px;
   border-radius: 2px;
-  margin: -2px 0 20px;
-
-  &:last-child {
-    margin-bottom: 30px;
-  }
+  margin: 0 0 30px;
 
   p:last-child {
     margin: 0;
@@ -1637,10 +1641,10 @@ pre.clippy {
 
   .icon {
     float: left;
-    margin-top: 1px;
-    margin-right: 8px;
+    margin-top: 5px;
+    margin-right: 12px;
     display: none;
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .icon-sentry-logo {
@@ -1652,7 +1656,7 @@ pre.clippy {
     font-weight: 600;
     position: absolute;
     top: 0px;
-    right: -8px;
+    right: 15px;
     box-shadow: none;
     .transition(opacity .15s);
     color: #fff;
