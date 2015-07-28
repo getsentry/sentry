@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-05-07 02:41+0000\n"
-"PO-Revision-Date: 2015-05-07 02:42+0000\n"
+"POT-Creation-Date: 2015-07-28 05:31+0000\n"
+"PO-Revision-Date: 2015-07-28 05:31+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Czech (http://www.transifex.com/projects/p/sentry/language/cs/)\n"
 "MIME-Version: 1.0\n"
@@ -80,13 +80,12 @@ msgid "Owner"
 msgstr "Vlastník"
 
 #: constants.py:69 models/organizationmember.py:77
-#: templates/sentry/layout.html:161 templates/sentry/bases/admin.html:6
+#: templates/sentry/layout.html:162 templates/sentry/bases/admin.html:6
 #: web/forms/__init__.py:49 web/forms/edit_organization_member.py:14
 msgid "Admin"
 msgstr "Správce"
 
-#: constants.py:70 constants.py:185
-#: templates/sentry/partial/interfaces/user.html:6
+#: constants.py:70 templates/sentry/partial/interfaces/user.html:6
 #: templates/sentry/users/list.html:34
 msgid "User"
 msgstr "Uživatel"
@@ -95,344 +94,328 @@ msgstr "Uživatel"
 msgid "System Agent"
 msgstr "Agent systému"
 
-#: constants.py:184
-msgid "Exception Type"
-msgstr "Typ výjimky"
+#: constants.py:239
+#, python-brace-format
+msgid "The {name} integration has been enabled."
+msgstr ""
 
-#: constants.py:186
-msgid "File"
-msgstr "Soubor"
+#: constants.py:241
+#, python-brace-format
+msgid "The {name} integration has been disabled."
+msgstr ""
 
-#: constants.py:187
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:30
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:61
-msgid "Function"
-msgstr "Funkce"
-
-#: constants.py:188
-msgid "Release"
-msgstr "Vydání"
-
-#: constants.py:189
-msgid "OS"
-msgstr "OS"
-
-#: constants.py:190 plugins/sentry_urls/models.py:29
-#: templates/sentry/partial/interfaces/http_email.html:5
-msgid "URL"
-msgstr "URL"
-
-#: constants.py:191
-msgid "Server"
-msgstr "Server"
+#: constants.py:243
+#, python-brace-format
+msgid "Configuration for the {name} integration has been saved."
+msgstr ""
 
 #: auth/helper.py:25
 msgid "You have successully linked your account to your SSO provider."
-msgstr ""
+msgstr "Úspěšně jste propojili váš účet s poskytovatelem SSO."
 
 #: auth/helper.py:27
 msgid ""
 "SSO has been configured for your organization and any existing members have "
 "been sent an email to link their accounts."
-msgstr ""
+msgstr "SSO bylo ve vaší organizaci nastaveno a všem existujícím členům byla odeslána e-mailová zpráva sdělující nutnost propojit jejich účty."
 
 #: auth/helper.py:29
 msgid "There was an error encountered during authentication."
-msgstr ""
+msgstr "Při ověřování došlo k chybě."
 
 #: auth/helper.py:31
 msgid "You must be authenticated to link accounts."
-msgstr ""
+msgstr "K propojení účtů musíte být přihlášeni."
 
-#: conf/server.py:93
+#: conf/server.py:94
 msgid "Afrikaans"
 msgstr "Afrikánština"
 
-#: conf/server.py:94
+#: conf/server.py:95
 msgid "Arabic"
 msgstr "Arabština"
 
-#: conf/server.py:95
+#: conf/server.py:96
 msgid "Azerbaijani"
 msgstr "Ázerbájdžánština"
 
-#: conf/server.py:96
+#: conf/server.py:97
 msgid "Bulgarian"
 msgstr "Bulharština"
 
-#: conf/server.py:97
+#: conf/server.py:98
 msgid "Belarusian"
 msgstr "Běloruština"
 
-#: conf/server.py:98
+#: conf/server.py:99
 msgid "Bengali"
 msgstr "Bengálština"
 
-#: conf/server.py:99
+#: conf/server.py:100
 msgid "Breton"
 msgstr "Bretonština"
 
-#: conf/server.py:100
+#: conf/server.py:101
 msgid "Bosnian"
 msgstr "Bosenština"
 
-#: conf/server.py:101
+#: conf/server.py:102
 msgid "Catalan"
 msgstr "Katalánština"
 
-#: conf/server.py:102
+#: conf/server.py:103
 msgid "Czech"
 msgstr "Čeština"
 
-#: conf/server.py:103
+#: conf/server.py:104
 msgid "Welsh"
 msgstr "Velština"
 
-#: conf/server.py:104
+#: conf/server.py:105
 msgid "Danish"
 msgstr "Dánština"
 
-#: conf/server.py:105
+#: conf/server.py:106
 msgid "German"
 msgstr "Němčina"
 
-#: conf/server.py:106
+#: conf/server.py:107
 msgid "Greek"
 msgstr "Řečtina"
 
-#: conf/server.py:107
+#: conf/server.py:108
 msgid "English"
 msgstr "Angličtina"
 
-#: conf/server.py:108
+#: conf/server.py:109
 msgid "Esperanto"
 msgstr "Esperanto"
 
-#: conf/server.py:109
+#: conf/server.py:110
 msgid "Spanish"
 msgstr "Španělština"
 
-#: conf/server.py:110
+#: conf/server.py:111
 msgid "Estonian"
 msgstr "Estonština"
 
-#: conf/server.py:111
+#: conf/server.py:112
 msgid "Basque"
 msgstr "Baskičtina"
 
-#: conf/server.py:112
+#: conf/server.py:113
 msgid "Persian"
 msgstr "Perština"
 
-#: conf/server.py:113
+#: conf/server.py:114
 msgid "Finnish"
 msgstr "Finština"
 
-#: conf/server.py:114
+#: conf/server.py:115
 msgid "French"
 msgstr "Francouzština"
 
-#: conf/server.py:115
+#: conf/server.py:116
 msgid "Irish"
 msgstr "Irština"
 
-#: conf/server.py:116
+#: conf/server.py:117
 msgid "Galician"
 msgstr "Galicijština"
 
-#: conf/server.py:117
+#: conf/server.py:118
 msgid "Hebrew"
 msgstr "Hebrejština"
 
-#: conf/server.py:118
+#: conf/server.py:119
 msgid "Hindi"
 msgstr "Hindština"
 
-#: conf/server.py:119
+#: conf/server.py:120
 msgid "Croatian"
 msgstr "Chorvatština"
 
-#: conf/server.py:120
+#: conf/server.py:121
 msgid "Hungarian"
 msgstr "Maďarština"
 
-#: conf/server.py:121
+#: conf/server.py:122
 msgid "Interlingua"
 msgstr "Interlingua"
 
-#: conf/server.py:122
+#: conf/server.py:123
 msgid "Indonesian"
 msgstr "Indonéština"
 
-#: conf/server.py:123
+#: conf/server.py:124
 msgid "Icelandic"
 msgstr "Islandština"
 
-#: conf/server.py:124
+#: conf/server.py:125
 msgid "Italian"
 msgstr "Italština"
 
-#: conf/server.py:125
+#: conf/server.py:126
 msgid "Japanese"
 msgstr "Japonština"
 
-#: conf/server.py:126
+#: conf/server.py:127
 msgid "Georgian"
 msgstr "Gruzínština"
 
-#: conf/server.py:127
+#: conf/server.py:128
 msgid "Kazakh"
 msgstr "Kazaština"
 
-#: conf/server.py:128
+#: conf/server.py:129
 msgid "Khmer"
 msgstr "Kambodžština"
 
-#: conf/server.py:129
+#: conf/server.py:130
 msgid "Kannada"
 msgstr "Kannadština"
 
-#: conf/server.py:130
+#: conf/server.py:131
 msgid "Korean"
 msgstr "Korejština"
 
-#: conf/server.py:131
+#: conf/server.py:132
 msgid "Luxembourgish"
 msgstr "Lucemburština"
 
-#: conf/server.py:132
+#: conf/server.py:133
 msgid "Lithuanian"
 msgstr "Litevština"
 
-#: conf/server.py:133
+#: conf/server.py:134
 msgid "Latvian"
 msgstr "Lotyština"
 
-#: conf/server.py:134
+#: conf/server.py:135
 msgid "Macedonian"
 msgstr "Makedonština"
 
-#: conf/server.py:135
+#: conf/server.py:136
 msgid "Malayalam"
 msgstr "Malajština"
 
-#: conf/server.py:136
+#: conf/server.py:137
 msgid "Mongolian"
 msgstr "Mongolština"
 
-#: conf/server.py:137
+#: conf/server.py:138
 msgid "Burmese"
 msgstr "Barmština"
 
-#: conf/server.py:138
+#: conf/server.py:139
 msgid "Norwegian Bokmal"
 msgstr "Norský Bokmål"
 
-#: conf/server.py:139
+#: conf/server.py:140
 msgid "Nepali"
 msgstr "Nepálština"
 
-#: conf/server.py:140
+#: conf/server.py:141
 msgid "Dutch"
 msgstr "Nizozemština"
 
-#: conf/server.py:141
+#: conf/server.py:142
 msgid "Norwegian Nynorsk"
 msgstr "Norský nynorsk"
 
-#: conf/server.py:142
+#: conf/server.py:143
 msgid "Ossetic"
 msgstr "Osetština"
 
-#: conf/server.py:143
+#: conf/server.py:144
 msgid "Punjabi"
 msgstr "Pandžábština"
 
-#: conf/server.py:144
+#: conf/server.py:145
 msgid "Polish"
 msgstr "Polština"
 
-#: conf/server.py:145
+#: conf/server.py:146
 msgid "Portuguese"
 msgstr "Portugalština"
 
-#: conf/server.py:146
+#: conf/server.py:147
 msgid "Brazilian Portuguese"
 msgstr "Brazilská portugalština"
 
-#: conf/server.py:147
+#: conf/server.py:148
 msgid "Romanian"
 msgstr "Rumunština"
 
-#: conf/server.py:148
+#: conf/server.py:149
 msgid "Russian"
 msgstr "Ruština"
 
-#: conf/server.py:149
+#: conf/server.py:150
 msgid "Slovak"
 msgstr "Slovenština"
 
-#: conf/server.py:150
+#: conf/server.py:151
 msgid "Slovenian"
 msgstr "Slovinština"
 
-#: conf/server.py:151
+#: conf/server.py:152
 msgid "Albanian"
 msgstr "Albánština"
 
-#: conf/server.py:152
+#: conf/server.py:153
 msgid "Serbian"
 msgstr "Srbština"
 
-#: conf/server.py:153
+#: conf/server.py:154
 msgid "Swedish"
 msgstr "Švédština"
 
-#: conf/server.py:154
+#: conf/server.py:155
 msgid "Swahili"
 msgstr "Svahilština"
 
-#: conf/server.py:155
+#: conf/server.py:156
 msgid "Tamil"
 msgstr "Tamilština"
 
-#: conf/server.py:156
+#: conf/server.py:157
 msgid "Telugu"
 msgstr "Telugština"
 
-#: conf/server.py:157
+#: conf/server.py:158
 msgid "Thai"
 msgstr "Thajština"
 
-#: conf/server.py:158
+#: conf/server.py:159
 msgid "Turkish"
 msgstr "Turečtina"
 
-#: conf/server.py:159
+#: conf/server.py:160
 msgid "Tatar"
 msgstr "Tatarština"
 
-#: conf/server.py:160
+#: conf/server.py:161
 msgid "Udmurt"
 msgstr "Udmurština"
 
-#: conf/server.py:161
+#: conf/server.py:162
 msgid "Ukrainian"
 msgstr "Ukrajinština"
 
-#: conf/server.py:162
+#: conf/server.py:163
 msgid "Urdu"
 msgstr "Urdština"
 
-#: conf/server.py:163
+#: conf/server.py:164
 msgid "Vietnamese"
 msgstr "Vietnamština"
 
-#: conf/server.py:164
+#: conf/server.py:165
 msgid "Simplified Chinese"
 msgstr "Zjednodušená čínština"
 
-#: conf/server.py:165
+#: conf/server.py:166
 msgid "Traditional Chinese"
 msgstr "Tradiční čínština"
 
@@ -440,11 +423,11 @@ msgstr "Tradiční čínština"
 msgid "Big Integer"
 msgstr "Velké celé číslo"
 
-#: filters/builtins.py:22 models/alert.py:36 models/group.py:106
+#: filters/builtins.py:22 models/alert.py:38 models/group.py:106
 msgid "Unresolved"
 msgstr "Nevyřešeno"
 
-#: filters/builtins.py:23 models/alert.py:37 models/group.py:107
+#: filters/builtins.py:23 models/alert.py:39 models/group.py:107
 msgid "Resolved"
 msgstr "Vyřešeno"
 
@@ -457,36 +440,36 @@ msgstr "Ztlumeno"
 msgid "Status"
 msgstr "Stav"
 
-#: interfaces/http.py:232 templates/sentry/partial/interfaces/http.html:10
+#: interfaces/http.py:236 templates/sentry/partial/interfaces/http.html:10
 msgid "Request"
 msgstr "Požadavek"
 
-#: interfaces/stacktrace.py:563
+#: interfaces/stacktrace.py:589
 msgid "Stacktrace (most recent call first):"
 msgstr "Výpis zásobníku (nejnovější volání první):"
 
-#: interfaces/stacktrace.py:565
+#: interfaces/stacktrace.py:591
 msgid "Stacktrace (most recent call last):"
 msgstr "Výpis zásobníku (nejnovější volání poslední):"
 
-#: models/apikey.py:49 models/project.py:96 models/projectkey.py:46
-#: models/team.py:136
+#: models/apikey.py:52 models/project.py:87 models/projectkey.py:47
+#: models/team.py:117
 msgid "Active"
-msgstr "Akitvní"
+msgstr "Aktivní"
 
-#: models/apikey.py:50 models/projectkey.py:47
+#: models/apikey.py:53 models/projectkey.py:48
 msgid "Inactive"
 msgstr "Neaktivní"
 
-#: models/event.py:47
+#: models/event.py:48
 msgid "message"
 msgstr "zpráva"
 
-#: models/event.py:48
+#: models/event.py:49
 msgid "messages"
-msgstr "zpráva"
+msgstr "zprávy"
 
-#: models/event.py:61 models/group.py:253
+#: models/event.py:62 models/group.py:264
 msgid "error"
 msgstr "chyba"
 
@@ -498,17 +481,17 @@ msgstr "seskupené zprávy"
 msgid "grouped message"
 msgstr "seskupená zpráva"
 
-#: models/organization.py:81 models/tagkey.py:63
+#: models/organization.py:85 models/tagkey.py:65
 msgid "Visible"
 msgstr "Viditelné"
 
-#: models/organization.py:82 models/project.py:97 models/tagkey.py:64
-#: models/team.py:137
+#: models/organization.py:86 models/project.py:88 models/tagkey.py:66
+#: models/team.py:118
 msgid "Pending Deletion"
 msgstr "Nevyřízené smazání"
 
-#: models/organization.py:83 models/project.py:98 models/tagkey.py:65
-#: models/team.py:138
+#: models/organization.py:87 models/project.py:89 models/tagkey.py:67
+#: models/team.py:119
 msgid "Deletion in Progress"
 msgstr "Smazání probíhá"
 
@@ -598,13 +581,18 @@ msgstr "Automatická značka: Typy rozhraní"
 
 #: plugins/sentry_mail/models.py:27
 #: templates/sentry/account/notifications.html:54
-#: templates/sentry/bases/admin.html:45
+#: templates/sentry/bases/admin.html:22
 msgid "Mail"
 msgstr "Pošta"
 
 #: plugins/sentry_urls/models.py:24
 msgid "Auto Tag: URLs"
 msgstr "Automatická značka: URL"
+
+#: plugins/sentry_urls/models.py:29
+#: templates/sentry/partial/interfaces/http_email.html:5
+msgid "URL"
+msgstr "URL"
 
 #: plugins/sentry_useragents/models.py:48
 msgid "Auto Tag: Browsers"
@@ -632,15 +620,15 @@ msgstr "Zařízení"
 
 #: plugins/sentry_webhooks/plugin.py:17
 msgid "Callback URLs"
-msgstr ""
+msgstr "URL zpětného volání"
 
 #: plugins/sentry_webhooks/plugin.py:20
 msgid "Enter callback URLs to POST new events to (one per line)."
-msgstr ""
+msgstr "Zadejte URL zpětného volání na které POSTovat nové události (jedna adresa na řádek)."
 
 #: plugins/sentry_webhooks/plugin.py:40
 msgid "WebHooks"
-msgstr ""
+msgstr "WebHooks"
 
 #: templates/sentry/403-csrf-failure.html:5
 #: templates/sentry/403-csrf-failure.html:10
@@ -670,11 +658,6 @@ msgstr "Vnitřní chyba serveru"
 #: templates/sentry/500.html:12
 msgid "There was an internal server error while processing your request."
 msgstr "Při zpracování vašeho požadavku došlo k vnitřní chybě."
-
-#: templates/sentry/500.html:14
-#, python-format
-msgid "You may reference this error as <strong>%(id)s</strong>."
-msgstr "Na tuto chybu můžete odkázat jako <strong>%(id)s</strong>."
 
 #: templates/sentry/accept-organization-invite.html:5
 msgid "Team Invite"
@@ -716,38 +699,18 @@ msgstr "Vytvořit nový účet"
 msgid "Join the %(org_name)s organization"
 msgstr "Připojit se k organizaci %(org_name)s"
 
-#: templates/sentry/access-group-migration.html:5
-#: templates/sentry/access-group-migration.html:12
-msgid "Access Group Migration"
-msgstr "Přesun skupiny přístupu"
-
-#: templates/sentry/access-group-migration.html:67
-#: templates/sentry/organization-api-key-settings.html:40
-#: templates/sentry/organization-member-settings.html:73
-#: templates/sentry/organization-settings.html:32
-#: templates/sentry/account/appearance.html:37
-#: templates/sentry/account/notifications.html:105
-#: templates/sentry/account/settings.html:41
-#: templates/sentry/admin/users/edit.html:19
-#: templates/sentry/partial/_form.html:9
-#: templates/sentry/plugins/bases/issue/create_issue.html:25
-#: templates/sentry/projects/edit_key.html:72
-#: templates/sentry/projects/manage.html:52
-#: templates/sentry/projects/manage_tags.html:61
-#: templates/sentry/projects/notifications.html:46
-#: templates/sentry/projects/quotas.html:37
-#: templates/sentry/teams/manage.html:47
-msgid "Save Changes"
-msgstr "Uložit změny"
+#: templates/sentry/admin-queue.html:8 templates/sentry/bases/admin.html:19
+msgid "Queue"
+msgstr "Fronta"
 
 #: templates/sentry/auth-confirm-identity.html:9
 #: templates/sentry/auth-confirm-link.html:9
 msgid "Confirm Identity"
-msgstr ""
+msgstr "Potvrdit identitu"
 
 #: templates/sentry/auth-link-identity.html:8
 msgid "Link Identity"
-msgstr ""
+msgstr "Identita odkazu"
 
 #: templates/sentry/create-organization-member.html:6
 #: templates/sentry/create-organization-member.html:14
@@ -838,19 +801,19 @@ msgstr "Přeskočit tento krok"
 msgid "Continue"
 msgstr "Pokračovat"
 
-#: templates/sentry/dashboard.html:5 templates/sentry/layout.html:183
+#: templates/sentry/dashboard.html:5 templates/sentry/layout.html:184
 msgid "Dashboard"
 msgstr "Nástěnka"
 
 #: templates/sentry/dashboard.html:24
-#: templates/sentry/organization-stats.html:20
+#: templates/sentry/organization-stats.html:23
 #: templates/sentry/groups/details.html:26
 #: templates/sentry/groups/group_list.html:11
 msgid "Get yourself some JavaScripts dood"
 msgstr "Tak si pořiďte nějaké Javaskripty přece!"
 
 #: templates/sentry/dashboard.html:25
-#: templates/sentry/organization-stats.html:21 templates/sentry/wall.html:26
+#: templates/sentry/organization-stats.html:24 templates/sentry/wall.html:26
 #: templates/sentry/groups/details.html:25
 #: templates/sentry/groups/group_list.html:12
 msgid "Loading historical data..."
@@ -891,46 +854,46 @@ msgstr "Nemáte přístup k žádným projektům. Chtěli byste <a href=\"%(link
 msgid "Getting Started"
 msgstr "Začínáme"
 
-#: templates/sentry/layout.html:115
+#: templates/sentry/layout.html:116
 msgid "Docs"
 msgstr "Dokumenty"
 
-#: templates/sentry/layout.html:123 templates/sentry/layout.html.py:129
-#: templates/sentry/layout.html:145 templates/sentry/layout.html.py:150
+#: templates/sentry/layout.html:124 templates/sentry/layout.html.py:130
+#: templates/sentry/layout.html:146 templates/sentry/layout.html.py:151
 msgid "Organizations"
 msgstr "Organizace"
 
-#: templates/sentry/layout.html:159 templates/sentry/bases/account.html:31
+#: templates/sentry/layout.html:160 templates/sentry/bases/account.html:31
 #: web/forms/accounts.py:72 web/frontend/auth_organization_login.py:18
 msgid "Account"
 msgstr "Účet"
 
-#: templates/sentry/layout.html:164
+#: templates/sentry/layout.html:165
 msgid "Logout"
 msgstr "Odhlášení"
 
-#: templates/sentry/layout.html:168 templates/sentry/login.html:6
+#: templates/sentry/layout.html:169 templates/sentry/login.html:6
 #: templates/sentry/login.html.py:40
 #: templates/sentry/organization-login.html:8
 #: templates/sentry/organization-login.html:45
 msgid "Login"
 msgstr "Přihlášení"
 
-#: templates/sentry/layout.html:225
+#: templates/sentry/layout.html:230
 msgid "Contribute"
 msgstr "Přispět"
 
-#: templates/sentry/layout.html:225
+#: templates/sentry/layout.html:230
 msgid "Translate"
 msgstr "Překládat"
 
 #: templates/sentry/login.html:14 templates/sentry/organization-login.html:12
 msgid "New Account"
-msgstr ""
+msgstr "Nový účet"
 
 #: templates/sentry/login.html:31
 msgid "Login to Sentry"
-msgstr ""
+msgstr "Přihlásit se do Sentry"
 
 #: templates/sentry/login.html:40 templates/sentry/organization-login.html:45
 msgid "Lose your password?"
@@ -945,10 +908,21 @@ msgstr "Zakázáno"
 msgid "You do not have access to this page with your current permissions."
 msgstr "S vašimi současnými oprávněními nemáte na tuto stránku přístup."
 
+#: templates/sentry/no-organization-access.html:5
+#: templates/sentry/no-organization-access.html:12
+msgid "No Organization Access"
+msgstr ""
+
+#: templates/sentry/no-organization-access.html:14
+msgid ""
+"You don't have access to any organizations within Sentry. Talk to a Sentry "
+"administrator about getting access."
+msgstr ""
+
 #: templates/sentry/organization-api-key-settings.html:7
 #: templates/sentry/organization-api-key-settings.html:13
 msgid "API Key Settings"
-msgstr ""
+msgstr "Nastavení klíče API"
 
 #: templates/sentry/organization-api-key-settings.html:20
 #: templates/sentry/organization-member-settings.html:24
@@ -960,7 +934,25 @@ msgstr "Prosím opravte chyby níže."
 
 #: templates/sentry/organization-api-key-settings.html:27
 msgid "Key"
-msgstr ""
+msgstr "Klíč"
+
+#: templates/sentry/organization-api-key-settings.html:40
+#: templates/sentry/organization-member-settings.html:73
+#: templates/sentry/organization-settings.html:32
+#: templates/sentry/project-notifications.html:36
+#: templates/sentry/account/appearance.html:37
+#: templates/sentry/account/notifications.html:105
+#: templates/sentry/account/settings.html:41
+#: templates/sentry/admin/users/edit.html:19
+#: templates/sentry/partial/_form.html:13
+#: templates/sentry/plugins/bases/issue/create_issue.html:25
+#: templates/sentry/projects/edit_key.html:72
+#: templates/sentry/projects/manage.html:52
+#: templates/sentry/projects/manage_tags.html:61
+#: templates/sentry/projects/quotas.html:37
+#: templates/sentry/teams/manage.html:47
+msgid "Save Changes"
+msgstr "Uložit změny"
 
 #: templates/sentry/organization-api-keys.html:7
 #: templates/sentry/organization-api-keys.html:19
@@ -979,7 +971,7 @@ msgstr "Sentry uchovává záznam o důležitých událostí uvnitř vaší orga
 
 #: templates/sentry/organization-home.html:11
 msgid "Create a new Team"
-msgstr ""
+msgstr "Vytvořit nový tým"
 
 #: templates/sentry/organization-member-details.html:7
 msgid "Member Details"
@@ -993,11 +985,11 @@ msgstr "Email"
 
 #: templates/sentry/organization-member-details.html:40
 msgid "Role"
-msgstr ""
+msgstr "Role"
 
 #: templates/sentry/organization-member-details.html:48
 #: templates/sentry/organization-member-settings.html:52
-#: templates/sentry/bases/admin.html:23
+#: templates/sentry/bases/admin.html:27
 #: templates/sentry/bases/organization.html:34
 msgid "Teams"
 msgstr "Týmy"
@@ -1034,13 +1026,50 @@ msgstr "Odstranit organizaci"
 msgid "Stats"
 msgstr "Stats"
 
+#: templates/sentry/project-issue-tracking.html:7
+#: templates/sentry/project-issue-tracking.html:11
+#: templates/sentry/projects/manage.html:93
+msgid "Issue Tracking"
+msgstr ""
+
+#: templates/sentry/project-notifications.html:8
+#: templates/sentry/project-notifications.html:12
+#: templates/sentry/bases/account.html:33
+#: templates/sentry/projects/manage.html:79
+msgid "Notifications"
+msgstr "Oznámení"
+
+#: templates/sentry/project-notifications.html:19
+#: templates/sentry/projects/manage.html:87
+#: templates/sentry/projects/rules/list.html:8
+msgid "Rules"
+msgstr "Pravidla"
+
+#: templates/sentry/project-notifications.html:22
+#, python-format
+msgid ""
+"Sentry will notify you based on the <a href=\"%(link)s\">rules configured "
+"for this project</a>."
+msgstr "Sentry Vám bude zasílat oznámení v závislosti na <a href=\"%(link)s\">pravidlech nastavených v tomto projektu</a>."
+
+#: templates/sentry/project-notifications.html:26
+#: templates/sentry/account/notifications.html:47
+msgid "General"
+msgstr "Obecné"
+
+#: templates/sentry/project-release-tracking.html:7
+#: templates/sentry/project-release-tracking.html:11
+#: templates/sentry/projects/manage.html:97
+msgid "Release Tracking"
+msgstr ""
+
 #: templates/sentry/register.html:6 templates/sentry/register.html.py:31
 msgid "Register"
 msgstr "Zaregistrovat"
 
 #: templates/sentry/register.html:29
 msgid "Already have an account?"
-msgstr ""
+msgstr "Máte již účet?"
 
 #: templates/sentry/remove-organization.html:16
 msgid "Removing this organization is permanent and cannot be undone!"
@@ -1071,7 +1100,6 @@ msgid "Appearance"
 msgstr "Vzhled"
 
 #: templates/sentry/account/appearance.html:16
-#: templates/sentry/projects/notifications.html:17
 msgid "Events"
 msgstr "Události"
 
@@ -1106,12 +1134,6 @@ msgid ""
 "            seen, an already resolved event has changed to unresolved, or a\n"
 "            system-wide spike in events is detected."
 msgstr "Oznámení jsou většinou odesílána, když je zjištěna\nnová událost, nebo když již vyřešená událost byla změněna\nzpět na nevyřešenou, nebo je zjištěn celosystémový vzrůst v událostech."
-
-#: templates/sentry/account/notifications.html:47
-#: templates/sentry/bases/admin.html:16
-#: templates/sentry/projects/notifications.html:24
-msgid "General"
-msgstr "Obecné"
 
 #: templates/sentry/account/notifications.html:55
 msgid ""
@@ -1185,7 +1207,7 @@ msgstr "Nebyli jsme schopni ověřit vaší identitu. Buď odkaz, na který jste
 msgid ""
 "To recover a lost account, you will need to know your account's username. We will send a confirmation\n"
 "        email to this address which allows you to change your password."
-msgstr ""
+msgstr "Pro obnovu ztraceného účtu musíte znát uživatelské jméno vašeho účtu. Na tuto adresu Vám zašleme\n        potvrzující email, který umožní změnu vašeho hesla."
 
 #: templates/sentry/account/recover/index.html:28
 msgid "Send Email"
@@ -1203,7 +1225,7 @@ msgstr "Přehled"
 
 #: templates/sentry/admin/stats.html:12
 msgid "System Overview"
-msgstr ""
+msgstr "Přehled systému"
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
@@ -1227,8 +1249,8 @@ msgstr "Spravovat projekty"
 #: templates/sentry/explore/code/tag_details.html:61
 #: templates/sentry/groups/group_list.html:83
 #: templates/sentry/groups/group_list.html:85
-#: templates/sentry/groups/group_list.html:147
-#: templates/sentry/groups/group_list.html:149
+#: templates/sentry/groups/group_list.html:134
+#: templates/sentry/groups/group_list.html:136
 #: templates/sentry/partial/_pager.html:5
 #: templates/sentry/users/details.html:42
 #: templates/sentry/users/details.html:61 templates/sentry/users/list.html:23
@@ -1254,8 +1276,8 @@ msgstr "Předchozí"
 #: templates/sentry/explore/code/tag_details.html:62
 #: templates/sentry/groups/group_list.html:88
 #: templates/sentry/groups/group_list.html:90
-#: templates/sentry/groups/group_list.html:152
-#: templates/sentry/groups/group_list.html:154
+#: templates/sentry/groups/group_list.html:139
+#: templates/sentry/groups/group_list.html:141
 #: templates/sentry/partial/_pager.html:6
 #: templates/sentry/users/details.html:43
 #: templates/sentry/users/details.html:62 templates/sentry/users/list.html:24
@@ -1293,7 +1315,7 @@ msgid "Server Status"
 msgstr "Stav serveru"
 
 #: templates/sentry/admin/status/env.html:13
-#: templates/sentry/bases/admin.html:43
+#: templates/sentry/bases/admin.html:20
 msgid "Environment"
 msgstr "Prostředí"
 
@@ -1379,7 +1401,7 @@ msgid "Send a test email to %(email)s"
 msgstr "Odeslat zkušební email na %(email)s"
 
 #: templates/sentry/admin/status/packages.html:8
-#: templates/sentry/bases/admin.html:44
+#: templates/sentry/bases/admin.html:21
 msgid "Packages"
 msgstr "Balíčky"
 
@@ -1406,7 +1428,7 @@ msgstr "Tým"
 #: templates/sentry/admin/teams/list.html:36
 #: templates/sentry/admin/users/edit.html:28
 #: templates/sentry/admin/users/list_projects.html:7
-#: templates/sentry/bases/admin.html:24
+#: templates/sentry/bases/admin.html:28
 msgid "Projects"
 msgstr "Projekty"
 
@@ -1471,60 +1493,31 @@ msgstr "Nový uživatel"
 msgid "Confirm"
 msgstr "Potvrdit"
 
-#: templates/sentry/alerts/details.html:14
-#, python-format
-msgid "Alert at %(datetime)s"
-msgstr "Výstraha %(datetime)s"
-
-#: templates/sentry/alerts/details.html:27
-msgid "Meta"
-msgstr "Meta"
-
-#: templates/sentry/alerts/details.html:29
-msgid "When:"
-msgstr "Kdy:"
-
-#: templates/sentry/alerts/list.html:6 templates/sentry/alerts/team.html:6
-#: templates/sentry/projects/notifications.html:34 web/forms/accounts.py:186
-msgid "Alerts"
-msgstr "Výstrahy"
-
-#: templates/sentry/alerts/list.html:13 templates/sentry/alerts/team.html:13
-msgid "Recent Alerts"
-msgstr "Nedávné výstrahy"
-
 #: templates/sentry/bases/account.html:6
 #: templates/sentry/bases/account.html:30
 #: templates/sentry/bases/explore.html:20
 #: templates/sentry/bases/organization.html:82
-#: templates/sentry/bases/settings.html:18
-#: templates/sentry/bases/stream.html:26
+#: templates/sentry/bases/settings.html:15
+#: templates/sentry/bases/stream.html:23
 #: templates/sentry/projects/manage.html:76
 msgid "Settings"
 msgstr "Nastavení"
 
-#: templates/sentry/bases/account.html:33
-#: templates/sentry/projects/manage.html:79
-#: templates/sentry/projects/notifications.html:7
-#: templates/sentry/projects/notifications.html:11
-msgid "Notifications"
-msgstr "Oznámení"
-
-#: templates/sentry/bases/admin.html:21
-msgid "Manage"
-msgstr ""
+#: templates/sentry/bases/admin.html:16
+msgid "System"
+msgstr "Systém"
 
 #: templates/sentry/bases/admin.html:25
+msgid "Manage"
+msgstr "Správa"
+
+#: templates/sentry/bases/admin.html:29
 msgid "Users"
 msgstr "Uživatelé"
 
-#: templates/sentry/bases/admin.html:30
+#: templates/sentry/bases/admin.html:34
 msgid "Plugins"
 msgstr "Zásuvné moduly"
-
-#: templates/sentry/bases/admin.html:41
-msgid "System"
-msgstr ""
 
 #: templates/sentry/bases/explore.html:12
 #: templates/sentry/bases/settings.html:12
@@ -1533,8 +1526,6 @@ msgid "Stream"
 msgstr "Proud"
 
 #: templates/sentry/bases/explore.html:15
-#: templates/sentry/bases/settings.html:15
-#: templates/sentry/bases/stream.html:21
 msgid "Explore"
 msgstr "Prozkoumat"
 
@@ -1548,7 +1539,7 @@ msgstr "Nastavení organizace"
 
 #: templates/sentry/bases/organization.html:18
 msgid "Invite Member"
-msgstr ""
+msgstr "Pozvat člena"
 
 #: templates/sentry/bases/organization.html:21
 msgid "New Member"
@@ -1556,19 +1547,11 @@ msgstr "Nový člen"
 
 #: templates/sentry/bases/organization.html:67
 msgid "Auth"
-msgstr ""
+msgstr "Ověření"
 
 #: templates/sentry/bases/stream.html:11
 msgid "Search query or event ID"
 msgstr "Dotaz hledání nebo ID události"
-
-#: templates/sentry/emails/alert.html:22
-msgid "Datetime:"
-msgstr "Datum a čas:"
-
-#: templates/sentry/emails/alert.html:24
-msgid "Project:"
-msgstr "Projekt:"
 
 #: templates/sentry/events/replay_request.html:6
 msgid "Replay Request"
@@ -1821,7 +1804,7 @@ msgstr "Dodatečná data"
 msgid "Package Versions"
 msgstr "Verze balíčku"
 
-#: templates/sentry/partial/_form.html:11
+#: templates/sentry/partial/_form.html:15
 msgid "Test Configuration"
 msgstr "Nastavení testů"
 
@@ -2317,6 +2300,11 @@ msgstr "Číslo řádku"
 msgid "Column Number"
 msgstr "Číslo sloupce"
 
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:30
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:61
+msgid "Function"
+msgstr "Funkce"
+
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:32
 msgid "Sourcemap"
 msgstr "Zdrojová mapa"
@@ -2359,14 +2347,14 @@ msgstr "Změny Vaší konfigurace byly úspěšně uloženy"
 msgid ""
 "You still need to <a href=\"%(link)s\">associate an identity</a> with %(title)s before you can\n"
 "        create issues with this service."
-msgstr ""
+msgstr "Než v této službě můžete zakládat úlohy, musíte <a href=\"%(link)s\">přidělit identitu</a>\n        k %(title)s"
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:13
 #, python-format
 msgid ""
 "Your server administrator will need to configure authentication with\n"
 "            <strong>%(auth_provider)s</strong> before you can use this plugin."
-msgstr ""
+msgstr "Váš správce serveru musí nastavit ověření pomocí\n           <strong>%(auth_provider)s</strong> a pak můžete začít tento zásuvný modul používat."
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:23
 #, python-format
@@ -2432,7 +2420,7 @@ msgstr "ID projektu"
 #: templates/sentry/projects/keys.html:7
 #: templates/sentry/projects/keys.html:15
 msgid "Manage Client Keys"
-msgstr ""
+msgstr "Správa klíčů klienta"
 
 #: templates/sentry/projects/keys.html:12
 msgid "Generate New Key"
@@ -2440,7 +2428,7 @@ msgstr "Vytvořit nový klíč"
 
 #: templates/sentry/projects/keys.html:25
 msgid "Client Key"
-msgstr ""
+msgstr "Klíč klienta"
 
 #: templates/sentry/projects/keys.html:45
 msgid "Disable"
@@ -2494,7 +2482,7 @@ msgstr "Tento projekt nelze odstranit. Je používán vnitřně serverem Sentry.
 
 #: templates/sentry/projects/manage.html:60
 msgid "You do not have the required permission to remove this project."
-msgstr ""
+msgstr "Pro odstranění tohoto projektu nemáte dostatečná oprávnění."
 
 #: templates/sentry/projects/manage.html:83
 #: templates/sentry/projects/quotas.html:7
@@ -2502,28 +2490,23 @@ msgstr ""
 msgid "Rate Limits"
 msgstr "Omezení četnosti"
 
-#: templates/sentry/projects/manage.html:87
-#: templates/sentry/projects/rules/list.html:8
-msgid "Rules"
-msgstr "Pravidla"
-
-#: templates/sentry/projects/manage.html:93
+#: templates/sentry/projects/manage.html:101
 msgid "Client Keys"
-msgstr ""
+msgstr "Klíče klienta"
 
-#: templates/sentry/projects/manage.html:95
+#: templates/sentry/projects/manage.html:103
 msgid "Help"
 msgstr "Nápověda"
 
-#: templates/sentry/projects/manage.html:97
+#: templates/sentry/projects/manage.html:105
 msgid "Setup &amp; Installation"
 msgstr "Nastavení a instalace"
 
-#: templates/sentry/projects/manage.html:100
+#: templates/sentry/projects/manage.html:108
 msgid "Integrations"
 msgstr "Začlenění"
 
-#: templates/sentry/projects/manage.html:102
+#: templates/sentry/projects/manage.html:110
 #: templates/sentry/projects/plugins/list.html:7
 #: templates/sentry/projects/plugins/list.html:11
 msgid "Manage Integrations"
@@ -2556,19 +2539,6 @@ msgstr "Anotace zobrazí celkový počet jedinečných hodnot, které byly v ud�
 #: templates/sentry/projects/manage_tags.html:65
 msgid "We have not yet recorded any tags for this project."
 msgstr "Pro tento projekt nejsou zatím zaznamenány žádné značky."
-
-#: templates/sentry/projects/notifications.html:21
-#, python-format
-msgid ""
-"Sentry will notify you based on the <a href=\"%(link)s\">rules configured "
-"for this project</a>."
-msgstr "Sentry Vám bude zasílat oznámení v závislosti na <a href=\"%(link)s\">pravidlech nastavených v tomto projektu</a>."
-
-#: templates/sentry/projects/notifications.html:37
-msgid ""
-"Alerts are triggered when the rate of events for the entire project increase"
-" by a relative amount. Values represent a 60-second interval."
-msgstr "Výstrahy jsou vyslány, když se množství událostí v celém projektu zvýší o určité množství. Hodnoty představují 60vteřinový interval."
 
 #: templates/sentry/projects/quotas.html:14
 msgid ""
@@ -2686,7 +2656,7 @@ msgstr "Odstranit tým"
 
 #: templates/sentry/teams/manage.html:51
 msgid "You do not have the required permission to remove this team."
-msgstr ""
+msgstr "Pro odstranění tohoto týmu nemáte dostatečná oprávnění."
 
 #: templates/sentry/teams/remove.html:19
 msgid ""
@@ -2736,7 +2706,7 @@ msgstr "včera"
 msgid " ago"
 msgstr " před"
 
-#: web/api.py:625
+#: web/api.py:620
 msgid "Deletion has been queued and should occur shortly."
 msgstr "Smazání bylo zařazeno do fronty a mělo by být za chvíli provedeno."
 
@@ -2808,6 +2778,10 @@ msgstr "Tuto e-mailovou adresu má mnoho účtů."
 msgid "Designate an alternative email address to send email notifications to."
 msgstr "Určit alternativní e-mailovou adresu na kterou odesílat oznámení."
 
+#: web/forms/accounts.py:186
+msgid "Alerts"
+msgstr "Výstrahy"
+
 #: web/forms/accounts.py:188
 msgid "Automatically subscribe to notifications for new projects"
 msgstr "Automaticky odebírat oznámení pro nové projekty"
@@ -2818,7 +2792,7 @@ msgstr "Neodebírat oznámení nových projektů."
 
 #: web/forms/accounts.py:193
 msgid "Notes"
-msgstr ""
+msgstr "Poznámky"
 
 #: web/forms/accounts.py:195
 msgid "Get notified about new notes"
@@ -2896,72 +2870,32 @@ msgstr "Nenastaveno"
 msgid "e.g. example.com or https://example.com"
 msgstr "např. příklad.cz nebo https://příklad.cz"
 
-#: web/forms/projects.py:20
-msgid "Threshold"
-msgstr "Práh"
-
-#: web/forms/projects.py:21
-msgid "Notify when the rate of events increases by this percentage."
-msgstr "Oznámit, když se množství událostí zvýší o toto procento"
-
-#: web/forms/projects.py:23
-msgid "Minimum Events"
-msgstr "Minimum událostí"
-
-#: web/forms/projects.py:24
-msgid ""
-"Generate an alert only when an event is seen more than this many times "
-"during the interval."
-msgstr "Vytvořit výstrahu pouze, když je tato událost zaznamenána více než tento počet během intervalu."
-
-#: web/forms/projects.py:29
+#: web/forms/projects.py:19
 msgid "Mail Subject Prefix"
 msgstr "Předpona předmětu pošty"
 
-#: web/forms/projects.py:30
+#: web/forms/projects.py:20
 msgid "Choose a custom prefix for emails from this project."
 msgstr "Zvolte vlastní předponu pro e-maily z tohoto projektu."
 
-#: web/forms/projects.py:35
+#: web/forms/projects.py:25
 msgid "Maximum events per minute"
 msgstr "Maximum událostí za minutu"
 
-#: web/forms/projects.py:37
+#: web/forms/projects.py:27
 msgid ""
 "This cannot be higher than the team (or system) allotted maximum. The value "
 "can be either a fixed number, or a percentage that is relative to the team's"
 " overall quota."
 msgstr "Toto nemůže být vyšší než týmem (nebo systémem) přidělené maximum. Hodnota může být buď pevně dané číslo, nebo procento relativní k celkové kvótě týmu."
 
-#: web/forms/projects.py:74
+#: web/forms/projects.py:64
 msgid "Label"
 msgstr "Štítek"
 
-#: web/forms/teams.py:19
-msgid "Group Name"
-msgstr "Název skupiny"
-
-#: web/forms/teams.py:20
-msgid "API Team"
-msgstr "Tým API"
-
-#: web/forms/teams.py:21
-msgid "Access Type"
-msgstr "Typ přístupu"
-
-#: web/forms/teams.py:22
-msgid ""
-"Members will gain this level of access to all projects assigned to this "
-"group."
-msgstr "Členové získají tuto úroveň přístupu ve všech projektech přidělených k této skupině."
-
-#: web/forms/teams.py:64
-msgid "Invalid project"
-msgstr "Neplatný projekt"
-
 #: web/frontend/accept_organization_invite.py:13
 msgid "The invite link you followed is not valid."
-msgstr ""
+msgstr "Odkaz pozvánky, který jste použili, není platný."
 
 #: web/frontend/accept_organization_invite.py:89
 #, python-format
@@ -2976,24 +2910,24 @@ msgstr "Byli jste přidání do organizace %r."
 #: web/frontend/auth_link_identity.py:11
 msgid ""
 "Either you are not a member of the given organization or it does not exist."
-msgstr ""
+msgstr "Buď nejste členem dané organizace, nebo organizace neexistuje."
 
 #: web/frontend/auth_login.py:16
 msgid ""
 "The organization does not exist or does not have Single Sign-On enabled."
-msgstr ""
+msgstr "Organizace neexistuje nebo nemá povolené SSO."
 
 #: web/frontend/auth_organization_login.py:19
 msgid "username or email"
-msgstr ""
+msgstr "uživatelské jméno nebo e-mail"
 
 #: web/frontend/auth_organization_login.py:24
 msgid "password"
-msgstr ""
+msgstr "heslo"
 
 #: web/frontend/base.py:21
 msgid "You need to link your account with the SSO provider to continue."
-msgstr ""
+msgstr "Pro pokračování je třeba propojit váš účet s poskytovatelem SSO."
 
 #: web/frontend/create_organization.py:16
 msgid "Organization Name"
@@ -3032,26 +2966,26 @@ msgstr "Více položek oddělujte novým řádkem."
 
 #: web/frontend/organization_auth_settings.py:23
 msgid "The SSO feature is not enabled for this organization."
-msgstr ""
+msgstr "Funkce SSO není pro tuto organizaci povolena."
 
 #: web/frontend/organization_auth_settings.py:25
 msgid "SSO authentication has been disabled."
-msgstr ""
+msgstr "Ověření pomocí SSO bylo zakázáno."
 
 #: web/frontend/organization_auth_settings.py:27
 msgid ""
 "A reminder email has been sent to members who have not yet linked their "
 "accounts."
-msgstr ""
+msgstr "Členům, jenž zatím nepropojili své účty, byl odeslán upomínající e-mail."
 
 #: web/frontend/organization_auth_settings.py:32
 msgid "Require SSO"
-msgstr ""
+msgstr "Požadovat SSO"
 
 #: web/frontend/organization_auth_settings.py:33
 msgid ""
 "Require members use a valid linked SSO account to access this organization"
-msgstr ""
+msgstr "Požadovat po členech používat platný propojený účet SSO pro přístup do této organizace"
 
 #: web/frontend/organization_member_settings.py:28
 #, python-format
@@ -3064,23 +2998,39 @@ msgstr "Vaše změny byly uloženy."
 
 #: web/frontend/organization_settings.py:16
 msgid "The name of your organization. i.e. My Company"
-msgstr ""
+msgstr "Název vaší organizace, např. Moje Společnost"
 
 #: web/frontend/organization_settings.py:17
 msgid "A unique ID used to identify this organization."
-msgstr ""
+msgstr "Jedinečné ID sloužící k identifikaci této organizace."
 
 #: web/frontend/organization_settings.py:19
 msgid "Open Membership"
-msgstr ""
+msgstr "Otevřené členství"
 
 #: web/frontend/organization_settings.py:20
 msgid "Allow organization members to freely join or leave any team."
-msgstr ""
+msgstr "Umožnit členům organizace volný vstup a odchod ze všech týmů."
 
 #: web/frontend/organization_settings.py:58
 msgid "Changes to your organization were saved."
 msgstr "Změny ve vaší organizaci byly uloženy."
+
+#: web/frontend/project_notifications.py:16
+#: web/frontend/projects/plugins.py:38 web/frontend/projects/plugins.py:76
+#: web/frontend/projects/quotas.py:44 web/frontend/projects/tags.py:44
+msgid "Your settings were saved successfully."
+msgstr "Vaše nastavení byla úspěšně uložena."
+
+#: web/frontend/project_release_tracking.py:20
+msgid ""
+"Your deploy token has been regenerated. You will need to update any pre-"
+"existing deploy hooks."
+msgstr ""
+
+#: web/frontend/project_release_tracking.py:22
+msgid "The release tracking feature is not enabled for this project."
+msgstr ""
 
 #: web/frontend/project_settings.py:27
 msgid "Production"
@@ -3118,17 +3068,17 @@ msgstr "Použít serverové čištění dat, aby se zabránilo uložení citliv�
 
 #: web/frontend/project_settings.py:45
 msgid "Additional sensitive fields"
-msgstr ""
+msgstr "Dodatečná citlivá pole"
 
 #: web/frontend/project_settings.py:46
 msgid ""
 "Additional field names to match against when scrubbing data. Separate "
 "multiple entries with a newline."
-msgstr ""
+msgstr "Dodatečné názvy polí pro porovnávání při shromažďování dat. Jednotlivá pole oddělujte novým řádkem."
 
 #: web/frontend/project_settings.py:48
 msgid "e.g. email"
-msgstr ""
+msgstr "např. e-mail"
 
 #: web/frontend/project_settings.py:55
 msgid "Don't store IP Addresses"
@@ -3142,7 +3092,11 @@ msgstr "Zabránit ukládání IP adres pro nové události."
 msgid "Changes to your project were saved."
 msgstr "Změny vašeho projektu byly uloženy."
 
-#: web/frontend/remove_organization.py:13
+#: web/frontend/remove_organization.py:12
+msgid "You cannot remove the default organization."
+msgstr ""
+
+#: web/frontend/remove_organization.py:14
 #, python-format
 msgid "The %s organization has been scheduled for removal."
 msgstr "Bylo naplánováno odstranění organizace %s."
@@ -3181,15 +3135,9 @@ msgstr "Klíč API (%s) byl zakázán."
 msgid "The API key (%s) was enabled."
 msgstr "Klíč API (%s) byl povolen."
 
-#: web/frontend/projects/notifications.py:63
-#: web/frontend/projects/plugins.py:38 web/frontend/projects/plugins.py:76
-#: web/frontend/projects/quotas.py:44 web/frontend/projects/tags.py:44
-msgid "Your settings were saved successfully."
-msgstr "Vaše nastavení byla úspěšně uložena."
-
 #: web/frontend/projects/quotas.py:23
 msgid "The quotas feature is not enabled for this project."
-msgstr ""
+msgstr "Funkce kvót není v tomto projektu povolena."
 
 #: web/frontend/projects/rules.py:172
 msgid "Changes to your rule were saved."
