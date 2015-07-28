@@ -1986,12 +1986,11 @@ header ~ #messages {
 
 .datepicker-modal {
   .modal-dialog {
-    margin-top: -300px;
+    margin-top: -200px;
   }
 }
 
 .datepicker-box {
-
   .DayPicker {
     padding: 0;
   }
@@ -2003,77 +2002,36 @@ header ~ #messages {
   .form-control {
     display: inline-block;
     line-height: 1.2 !important;
-    padding-right: 5px !important;
-    padding-left: 9px !important;
+    padding-right: 4px !important;
+    padding-left: 8px !important;
 
     &.day {
-      width: 60%;
+      width: 57%;
     }
 
     &.time {
-      margin-left: 3%;
-      width: 37%;
+      margin-left: 2%;
+      width: 41%;
     }
   }
+}
 
-  .input {
-    > span {
-      vertical-align: middle;
-      display: inline-block;
-      position: relative;
-    }
+.radio-inputs {
+  position: relative;
+  display: inline-block;
 
-    .form-control {
-      display: inline;
-      height: 34px;
-    }
-  }
-
-  .help-block {
-    margin-bottom: 5px;
-  }
-
-  .radio-inputs {
-    position: relative;
+  .radio {
+    margin-top: 7px;
+    margin-right: 10px;
+    margin-bottom: 0;
+    margin-left: 20px;
     display: inline-block;
-
-    .radio {
-      margin-top: 7px;
-      margin-right: 10px;
-      margin-bottom: 0;
-      margin-left: 20px;
-      display: inline-block;
-      font-weight: normal;
-
-      input {
-        margin-left: -20px;
-        margin-top: 3px;
-        vertical-align: middle;
-      }
-    }
-  }
-
-  .submit {
-    margin-top: 10px;
-  }
-
-  .date {
-    position: relative;
+    font-weight: normal;
 
     input {
-      width: 181px;
-      padding-left: 26px;
-    }
-
-    .input-group-addon {
-      position: absolute;
-      top: -2px;
-      left: 8px;
-      z-index: 2;
-      color: lighten(@gray, 30);
-      &:hover {
-        color: lighten(@gray, 10);;
-      }
+      margin-left: -20px;
+      margin-top: 4px;
+      vertical-align: middle;
     }
   }
 }

@@ -59,17 +59,18 @@ var CustomDateRange = React.createClass({
           <div className="datepicker-box">
             <div className="row">
               <div className="col-md-6">
-                <h6>Start</h6>
+                <h6>Start (UTC)</h6>
                 <DateTimeInput dateTime={this.state.dateFrom} onChange={this.onDateFromChange} />
               </div>
               <div className="col-md-6">
-                <h6>End</h6>
+                <h6>End (UTC)</h6>
                 <DateTimeInput dateTime={this.state.dateTo} onChange={this.onDateToChange} />
               </div>
             </div>
-            <div className="submit">
-              <div className="help-block pull-right">All events are represented in UTC time.</div>
-              <div className="radio-inputs">
+          </div>
+        </div>
+        <div className="modal-footer">
+          <div className="radio-inputs pull-left">
                 <label className="radio">
                   <input type="radio" name="date_type"
                     onChange={this.onDateTypeChange.bind(this, "last_seen")}
@@ -81,10 +82,6 @@ var CustomDateRange = React.createClass({
                     checked={this.state.dateType === "first_seen"} /> First Seen
                 </label>
               </div>
-            </div>
-          </div>
-        </div>
-        <div className="modal-footer">
           <button type="button" className="btn btn-default"
                   onClick={this.onToggle}>Close</button>
           <button type="button" className="btn btn-primary"
