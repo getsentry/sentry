@@ -9,7 +9,9 @@ from mock import patch
 from django.conf import settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.event_manager import EventManager, get_hashes_for_event
+from sentry.event_manager import (
+    EventManager, get_hashes_for_event, get_hashes_from_fingerprint
+)
 from sentry.models import Event, Group, GroupStatus, EventMapping
 from sentry.testutils import TestCase, TransactionTestCase
 
@@ -99,6 +101,26 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(self.make_event(
             message='foo bar', event_id='b' * 32,
             checksum='a' * 32,
+        ))
+        with self.tasks():
+            event2 = manager.save(1)
+
+        group = Group.objects.get(id=event.group_id)
+
+        assert group.times_seen == 2
+        assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
+        assert group.message == event2.message
+
+    def test_updates_group_with_fingerprint(self):
+        manager = EventManager(self.make_event(
+            message='foo', event_id='a' * 32,
+            fingerprint=['a' * 32],
+        ))
+        event = manager.save(1)
+
+        manager = EventManager(self.make_event(
+            message='foo bar', event_id='b' * 32,
+            fingerprint=['a' * 32],
         ))
         with self.tasks():
             event2 = manager.save(1)
@@ -244,9 +266,60 @@ class GetHashesFromEventTest(TestCase):
             platform='python',
             message='Foo bar',
         )
-        checksums = get_hashes_for_event(event)
-        assert len(checksums) == 1
-        checksum = checksums[0]
+        hashes = get_hashes_for_event(event)
+        assert len(hashes) == 1
+        hash_one = hashes[0]
         stack_comp_hash.assert_called_once_with('python')
         assert not http_comp_hash.called
-        assert checksum == '3858f62230ac3c915f300c664312c63f'
+        assert hash_one == ['foo', 'bar']
+
+
+class GetHashesFromFingerprintTest(TestCase):
+    def test_default_value(self):
+        event = Event(
+            data={
+                'sentry.interfaces.Stacktrace': {
+                    'frames': [{
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                    }, {
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                        'in_app': True,
+                    }],
+                },
+                'sentry.interfaces.Http': {
+                    'url': 'http://example.com'
+                },
+            },
+            platform='python',
+            message='Foo bar',
+        )
+        fp_checksums = get_hashes_from_fingerprint(event, ["{{default}}"])
+        def_checksums = get_hashes_for_event(event)
+        assert def_checksums == fp_checksums
+
+    def test_custom_values(self):
+        event = Event(
+            data={
+                'sentry.interfaces.Stacktrace': {
+                    'frames': [{
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                    }, {
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                        'in_app': True,
+                    }],
+                },
+                'sentry.interfaces.Http': {
+                    'url': 'http://example.com'
+                },
+            },
+            platform='python',
+            message='Foo bar',
+        )
+        fp_checksums = get_hashes_from_fingerprint(event, ["{{default}}", "custom"])
+        def_checksums = get_hashes_for_event(event)
+        assert len(fp_checksums) == len(def_checksums)
+        assert def_checksums != fp_checksums
