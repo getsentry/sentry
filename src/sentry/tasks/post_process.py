@@ -55,8 +55,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     if settings.SENTRY_ENABLE_EXPLORE_CODE:
         record_affected_code.delay(event=event)
 
-    if settings.SENTRY_ENABLE_EXPLORE_USERS:
-        record_affected_user.delay(event=event)
+    record_affected_user.delay(event=event)
 
     record_additional_tags(event=event)
 
@@ -101,10 +100,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     name='sentry.tasks.post_process.record_affected_user')
 def record_affected_user(event, **kwargs):
     from sentry.models import Group
-
-    if not settings.SENTRY_ENABLE_EXPLORE_USERS:
-        logger.info('Skipping sentry:user tag due to SENTRY_ENABLE_EXPLORE_USERS')
-        return
 
     user_ident = event.user_ident
     if not user_ident:
