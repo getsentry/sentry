@@ -64,7 +64,7 @@ logger = logging.getLogger('sentry.api')
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
 PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
 
-PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6'))
+PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
 
 def api(func):
