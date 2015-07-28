@@ -34,6 +34,7 @@ var DateTimeInput = React.createClass({
       <div>
         <p>
           <input
+            className="day form-control"
             ref="input"
             type="date"
             value={dateValue}
@@ -41,6 +42,7 @@ var DateTimeInput = React.createClass({
             onChange={this.handleDateInputChange}
             onFocus={this.showCurrentDate} />
           <input
+            className="time form-control"
             ref="input"
             type="time"
             value={timeValue}
