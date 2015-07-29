@@ -40,7 +40,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         data = serialize(project, request.user)
         data['options'] = {
-            'sentry:origins': '\n'.join(project.get_option('sentry:origins', None) or []),
+            'sentry:origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
             'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
@@ -95,7 +95,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             data = serialize(project, request.user)
             data['options'] = {
-                'sentry:origins': '\n'.join(project.get_option('sentry:origins', None) or []),
+                'sentry:origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
                 'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
             }
             return Response(data)
