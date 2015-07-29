@@ -130,16 +130,18 @@
   border: 1px solid darken(@trim, 2);
   box-shadow: 0 1px 0 rgba(52, 60, 69, 0.02);
   border-radius: 2px;
-  position: relative;
+  // position: relative;
 }
 
 .group-list, .events {
   .list-unstyled;
 
   .group {
-    position: absolute;
-    left: 15px;
-    width: 100%;
+    position: relative;
+    margin: 0;
+    // position: absolute;
+    // left: 15px;
+    // width: 100%;
     border-bottom: 1px solid lighten(@trim, 8);
     padding-right: 10px;
     background: #fff;
@@ -433,6 +435,7 @@
 
 // Generate .group positions for animating
 
+/*
 .generate-groups(50);
 
 .generate-groups(@n, @i: 1, ) when (@i =< @n) {
@@ -444,7 +447,7 @@
   }
   .generate-groups(@n, (@i + 1));
 }
-
+*/
 
 /**
 * Stream Filters
