@@ -1980,12 +1980,22 @@ pre.clippy {
 }
 
 .datepicker-box {
-  .DayPicker {
-    padding: 0;
-  }
-
   h6 {
     margin-bottom: 15px;
+  }
+
+  .datepicker-wrapper {
+    > div {
+      display: inline-block;
+    }
+    .datepicker__input {
+      .form-control;
+      display: inline-block;
+      line-height: 1.2 !important;
+      padding-right: 4px !important;
+      padding-left: 8px !important;
+      width: 57%;
+    }
   }
 
   .form-control {
@@ -1993,10 +2003,6 @@ pre.clippy {
     line-height: 1.2 !important;
     padding-right: 4px !important;
     padding-left: 8px !important;
-
-    &.day {
-      width: 57%;
-    }
 
     &.time {
       margin-left: 2%;

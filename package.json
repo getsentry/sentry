@@ -28,6 +28,7 @@
     "raven-js": "^1.1.19",
     "react": "^0.13.3",
     "react-bootstrap": "^0.13.0",
+    "react-datepicker": "^0.11.0",
     "react-day-picker": "^1.0.3",
     "react-document-title": "^1.0.2",
     "react-router": "^0.13.3",
