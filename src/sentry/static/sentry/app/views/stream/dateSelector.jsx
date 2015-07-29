@@ -149,7 +149,6 @@ var DateSelector = React.createClass({
   render() {
     return (
       <DropdownLink
-          className="btn btn-sm"
           btnGroup={true}
           title="Since: All time">
         <MenuItem>All Time</MenuItem>

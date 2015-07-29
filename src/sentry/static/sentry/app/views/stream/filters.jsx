@@ -2,9 +2,11 @@ var React = require("react");
 var $ = require("jquery");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
+var DateSelector = require("./dateSelector");
 var FilterSelectLink = require("./filterSelectLink");
 var SearchBar = require("./searchBar");
 var utils = require("../../utils");
+var SortOptions = require("./sortOptions");
 
 var StreamFilters = React.createClass({
   mixins: [PureRenderMixin],
@@ -70,10 +72,6 @@ var StreamFilters = React.createClass({
         <div className="row">
           <div className="col-sm-8 primary-filters">
             <ul className="nav nav-tabs">
-              <li className="dropdown highlight">
-                <a href="#" className="dropdown-toggle">Events <span className="icon-arrow-down"></span></a>
-              </li>
-              <li className="divider" />
               <FilterSelectLink label="All"
                 isActive={activeButton === 'all'}
                 onSelect={this.onFilterChange.bind(this, {})}
@@ -87,11 +85,11 @@ var StreamFilters = React.createClass({
                 onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
                 extraClass="btn-assigned" />
               <li className="divider" />
-              <li className="dropdown highlight">
-                <a href="#" className="dropdown-toggle">Sort by: Last Seen  <span className="icon-arrow-down"></span></a>
+              <li className="highlight">
+                <SortOptions />
               </li>
-              <li className="dropdown highlight">
-                <a href="#" className="dropdown-toggle">All Time <span className="icon-arrow-down"></span></a>
+              <li className="highlight">
+                 <DateSelector defaultDateFrom={this.props.defaultDateFrom} />
               </li>
             </ul>
           </div>
