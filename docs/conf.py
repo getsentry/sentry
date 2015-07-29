@@ -199,7 +199,7 @@ htmlhelp_basename = 'Sentrydoc'
 latex_documents = [
     (
         'index', 'Sentry.tex', u'Sentry Documentation',
-        u'David Cramer', 'manual'
+        u'Functional Software Inc.', 'manual'
     ),
 ]
 
@@ -233,5 +233,10 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'sentry', u'Sentry Documentation',
-     [u'David Cramer'], 1)
+     [u'Functional Software Inc.'], 1)
 ]
+
+if os.environ.get('SENTRY_FEDERATED_DOCS') != '1':
+    sys.path.insert(0, os.path.abspath('_sentryext'))
+    import sentryext
+    sentryext.activate()

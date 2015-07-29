@@ -18,6 +18,7 @@ var config = {
       "moment",
       "raven-js",
       "react/addons",
+      "react-datepicker",
       "react-document-title",
       "react-router",
       "react-bootstrap",

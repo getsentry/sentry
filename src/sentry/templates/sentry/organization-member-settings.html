@@ -8,12 +8,10 @@
 
 {% block main %}
   <div class="page-header">
-    <div class="pull-right" style="margin-top: 5px">
-      <a href="{% url 'sentry-organization-members' organization.slug %}">Back to Organization Members</a>
-    </div>
+    <a class="back-arrow" style="top: 0px;" href="{% url 'sentry-organization-members' organization.slug %}"><span class="icon-arrow-left"></span></a>
     <h2>
-      Member Settings
-      <small>{{ member.get_display_name }}</small>
+      {{ member.get_display_name }}
+      <br><small>Member Settings</small>
     </h2>
   </div>
 
@@ -26,15 +24,19 @@
 
     {{ form|as_crispy_errors }}
 
-    <fieldset class="row">
-      <div class="control-group col-md-6">
+    <div class="row">
+      <div class="control-group col-md-4">
         <label>{% trans "Email" %}</label>
         <div class="controls">
-          <a href="mailto:{{ member.get_email }}">{{ member.get_email }}</a>
+          {% if member.get_email %}
+            <a href="mailto:{{ member.get_email }}">{{ member.get_email }}</a>
+          {% else %}
+            No email provided
+          {% endif %}
         </div>
       </div>
 
-      <div class="control-group col-md-6">
+      <div class="control-group col-md-4">
         <label>{% trans "Status" %}</label>
         <div class="controls">
           {% if member.is_pending %}
@@ -44,20 +46,19 @@
           {% endif %}
         </div>
       </div>
-      <div style="padding: 0 15px;">
+      <div class="control-group col-md-4">
       {{ form.type|as_crispy_field }}
       </div>
-    </fieldset>
+    </div>
 
-    <hr>
-
-    <fieldset>
-      <div class="pull-right" style="margin-top: -7px">{{ form.has_global_access|as_crispy_field }}</div>
-      <h3>
-        {% trans "Teams" %}
-      </h3>
-
-      <div class="box" style="padding: 15px 20px 0">
+    <div class="box">
+      <div class="box-header">
+        <div class="pull-right" style="margin-top: 28px; font-size: 85%; line-height: .5;">{{ form.has_global_access|as_crispy_field }}</div>
+        <h3>
+          {% trans "Teams" %}
+        </h3>
+      </div>
+      <div class="box-content with-padding">
         <fieldset class="team-choices row">
           {% for team_id, team_name in form.teams.field.choices %}
             <div class="control-group col-md-4">
@@ -72,7 +73,7 @@
           {% endfor %}
         </fieldset>
       </div>
-    </fieldset>
+    </div>
 
     <div class="form-actions">
       <button type="submit" name="op" value="reinvite" class="btn btn-default">{% trans "Resend Invite" %}</button>

@@ -375,6 +375,9 @@ def validate_data(project, data, client=None):
             data['level'] = LOG_LEVEL_REVERSE_MAP.get(
                 DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
+    if data.get('release'):
+        data['release'] = unicode(data['release'])
+
     return data
 
 

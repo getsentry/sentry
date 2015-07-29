@@ -155,7 +155,7 @@ describe("Stream", function() {
         multiSelected: false,
         anySelected: false,
         statsPeriod: '24h',
-        realtimeActive: true,
+        realtimeActive: false,
         pageLinks: '',
         loading: true,
         error: false

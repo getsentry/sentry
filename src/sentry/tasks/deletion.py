@@ -191,7 +191,7 @@ def delete_tag_key(object_id, continuous=True, **kwargs):
     tagkey.delete()
 
 
-def delete_events(relation, limit=1000, logger=None):
+def delete_events(relation, limit=100, logger=None):
     from sentry.app import nodestore
     from sentry.models import Event
 
@@ -211,7 +211,7 @@ def delete_events(relation, limit=1000, logger=None):
     return has_more
 
 
-def delete_objects(models, relation, limit=1000, logger=None):
+def delete_objects(models, relation, limit=100, logger=None):
     # This handles cascades properly
     has_more = False
     for model in models:

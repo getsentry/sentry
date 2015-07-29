@@ -22,6 +22,7 @@ var PropTypes = require("./proptypes");
 var ReleaseAllEvents = require("./views/releaseAllEvents");
 var ReleaseDetails = require("./views/releaseDetails");
 var ReleaseNewEvents = require("./views/releaseNewEvents");
+var RouteNotFound = require("./views/routeNotFound");
 var SharedGroupDetails = require("./views/sharedGroupDetails");
 var Stream = require("./views/stream");
 var TeamDetails = require("./views/teamDetails");
@@ -54,6 +55,7 @@ var routes = (
         </Route>
       </Route>
     </Route>
+    <Router.NotFoundRoute handler={RouteNotFound} />
   </Route>
 );
 

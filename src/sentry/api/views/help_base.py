@@ -110,7 +110,6 @@ class ApiHelpBase(BaseView):
         return callback
 
     def __get_resource_data(self, pattern, prefix, callback):
-        print(pattern.regex.pattern)
         path = simplify_regex(pattern.regex.pattern)
 
         full_path = prefix.rstrip('/') + path

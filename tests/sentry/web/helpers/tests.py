@@ -5,32 +5,8 @@ from __future__ import absolute_import
 import mock
 
 from django.contrib.auth.models import AnonymousUser
-from django.core.urlresolvers import reverse
-from sentry.web.helpers import get_login_url, group_is_public
+from sentry.web.helpers import group_is_public
 from sentry.testutils import TestCase
-
-
-class GetLoginUrlTest(TestCase):
-    def test_as_path(self):
-        with self.settings(LOGIN_URL='/really-a-404'):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-login'))
-
-    def test_as_lazy_url(self):
-        with self.settings(LOGIN_URL=reverse('sentry-fake-login')):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-fake-login'))
-
-    def test_cached(self):
-        # should still be cached
-        with self.settings(LOGIN_URL='/really-a-404'):
-            url = get_login_url(False)
-            self.assertNotEquals(url, '/really-a-404')
-
-    def test_no_value(self):
-        with self.settings(SENTRY_LOGIN_URL=None):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-login'))
 
 
 class GroupIsPublicTest(TestCase):

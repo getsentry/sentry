@@ -10,6 +10,7 @@ var Footer = React.createClass({
       <footer>
         <div className="container">
           <div className="pull-right">
+            <a href={config.urlPrefix + '/api/'}>API</a>
             <a href={config.urlPrefix + '/docs/'}>Docs</a>
             <a href="https://github.com/getsentry/sentry">Contribute</a>
           </div>
