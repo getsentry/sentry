@@ -116,6 +116,7 @@ of meta packages to make things easier:
 ::
 
     # install sentry and its postgresql dependencies
+    apt get libpq-dev
     pip install -U sentry[postgres]
 
     # or if you choose, mysql
