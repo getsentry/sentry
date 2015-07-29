@@ -1770,7 +1770,7 @@ pre.clippy {
 
   li.active a, li.active a:hover {
     background: @blue;
-    color: #fff;
+    color: #fff !important;
   }
 
   .divider {
@@ -1812,6 +1812,10 @@ pre.clippy {
 
 .nav {
   margin-bottom: 20px;
+
+  .open > a, .open > a:hover, .open > a:active {
+    background: none;
+  }
 }
 
 .nav-pills > li.active > a {
@@ -1886,7 +1890,7 @@ pre.clippy {
   border-bottom: 0;
   margin: 0 0 20px;
 
-  li {
+  > li {
     margin-right: 20px;
 
     > li.pull-right {

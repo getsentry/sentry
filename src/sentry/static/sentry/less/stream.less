@@ -3,7 +3,6 @@
 * ============================================================================
 */
 
-
 .sticky {
   z-index: 1000;
   .group-header {
@@ -466,7 +465,7 @@
   .nav-tabs {
     margin: 0;
 
-    li {
+    > li {
       > a {
         padding-bottom: 26px;
         margin: 0;
@@ -484,12 +483,6 @@
           font-weight: 600;
           color: @grayDark;
           font-size: 95%;
-        }
-      }
-
-      &:first-child {
-        a {
-          font-size: 108% !important;
         }
       }
 
