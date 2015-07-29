@@ -52,7 +52,9 @@ from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.db import get_db_engine
 from sentry.utils.javascript import to_json
-from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
+from sentry.utils.http import (
+    absolute_uri, is_valid_origin, get_origins, is_same_domain
+)
 from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
@@ -418,7 +420,7 @@ def poll(request, organization, project):
         for k, v in request.GET.iteritems()
         if k != 'cursor'
     )
-    base_url = request.build_absolute_uri(request.path)
+    base_url = absolute_uri(request.path)
     if querystring:
         base_url = '{0}?{1}'.format(base_url, querystring)
     else:
