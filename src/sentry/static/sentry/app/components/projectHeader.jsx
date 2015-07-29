@@ -1,5 +1,6 @@
 var React = require("react");
 var Router = require("react-router");
+var jQuery = require("jquery");
 
 var AppState = require("../mixins/appState");
 var ConfigStore = require("../stores/configStore");
@@ -66,14 +67,20 @@ var ProjectSelector = React.createClass({
   },
 
   onOpen(event) {
-    $(this.refs.filter.getDOMNode()).focus();
+    jQuery(this.refs.filter.getDOMNode()).focus();
   },
 
   onClose(event) {
     this.setState({
       filter: ''
     });
-    $(this.refs.filter.getDOMNode()).val('');
+    jQuery(this.refs.filter.getDOMNode()).val('');
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
+    var node = jQuery(this.refs.container.getDOMNode());
+    node.hide().show(0);
   },
 
   render() {
@@ -116,7 +123,7 @@ var ProjectSelector = React.createClass({
     });
 
     return (
-      <div>
+      <div ref="container">
         <Router.Link to="stream" params={projectRouteParams}>{activeTeam.name} / {activeProject.name}</Router.Link>
         <DropdownLink title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
