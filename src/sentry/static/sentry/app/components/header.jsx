@@ -33,6 +33,9 @@ var UserNav = React.createClass({
           menuClasses="dropdown-menu-right"
           title={title}>
         <MenuItem href={urlPrefix + '/account/settings/'}>Account</MenuItem>
+        {user.isSuperuser &&
+          <MenuItem href={urlPrefix + '/manage/'}>Admin</MenuItem>
+        }
         <MenuItem href={urlPrefix + '/auth/logout/'}>Sign out</MenuItem>
       </DropdownLink>
     );

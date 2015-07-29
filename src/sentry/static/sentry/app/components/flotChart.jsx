@@ -33,7 +33,7 @@ var timeUnitSize = {
 };
 
 var tickFormatter = (value, axis) => {
-  var d = moment(value);
+  var d = moment(parseInt(value, 10));
 
   var t = axis.tickSize[0] * timeUnitSize[axis.tickSize[1]];
   var span = axis.max - axis.min;
@@ -90,11 +90,15 @@ var FlotChart = React.createClass({
       tooltip: true,
       tooltipOpts: {
         content: (label, xval, yval, flotItem) => {
-          xval = parseInt(xval, 10);
-          if(typeof yval.toLocaleString == "function") {
-              return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
+          var xLabel = moment(parseInt(xval, 10)).format('llll');
+          var ySuffix = (flotItem.series.label || '').toLowerCase();
+          var yLabel;
+          if (typeof yval.toLocaleString === "function") {
+            yLabel = yval.toLocaleString();
+          } else {
+            yLabel = yval;
           }
-          return yval + ' events<br>' + moment(xval).format('llll');
+          return yLabel + ' ' + ySuffix + '<br>' + xLabel;
         },
         defaultTheme: false
       },

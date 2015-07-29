@@ -25,7 +25,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 {% if rule.conditions %}
-                                    <h6>When <strong>any</strong> of these conditions are met:</h6>
+                                    <h6>When <strong>{{ rule.match }}</strong> of these conditions are met:</h6>
                                     <table class="conditions-list table">
                                     {% for condition in rule.conditions %}
                                         <tr>

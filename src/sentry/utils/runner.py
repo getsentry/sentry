@@ -120,6 +120,9 @@ BROKER_URL = 'redis://localhost:6379'
 # Rate Limits #
 ###############
 
+# Rate limits apply to notification handlers and are enforced per-project
+# automatically.
+
 SENTRY_RATELIMITER = 'sentry.ratelimits.redis.RedisRateLimiter'
 
 ##################

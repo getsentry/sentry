@@ -335,7 +335,7 @@ var OrganizationStats = React.createClass({
     return [
       {
         data: stats.accepted,
-        label: 'Accepted',
+        label: 'Events Accepted',
         color: 'rgba(86, 175, 232, 1)',
         shadowSize: 0,
         stack: true,
@@ -349,7 +349,7 @@ var OrganizationStats = React.createClass({
         data: stats.rejected,
         color: 'rgba(244, 63, 32, 1)',
         shadowSize: 0,
-        label: 'Rejected',
+        label: 'Events Rejected',
         stack: true,
         lines: {
           lineWidth: 2,
@@ -382,7 +382,9 @@ var OrganizationStats = React.createClass({
             : (this.state.statsError ?
               <LoadingError onRetry={this.fetchData} />
             :
-              <FlotChart plotData={this.getChartPlotData()} className="chart" />
+              <div style={{height: 250}}>
+                <FlotChart plotData={this.getChartPlotData()} className="chart" />
+              </div>
             )}
           </div>
         </div>

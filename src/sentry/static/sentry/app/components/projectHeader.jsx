@@ -1,10 +1,12 @@
 var React = require("react");
 var Router = require("react-router");
+var jQuery = require("jquery");
 
 var AppState = require("../mixins/appState");
 var ConfigStore = require("../stores/configStore");
 var DropdownLink = require("../components/dropdownLink");
 var MenuItem = require("../components/menuItem");
+var {escape} = require("../utils");
 
 var ProjectSelector = React.createClass({
   childContextTypes: {
@@ -29,34 +31,62 @@ var ProjectSelector = React.createClass({
     });
   },
 
-  getProjectNode(team, project) {
+  highlight(text, highlightText) {
+    if (!highlightText) {
+      return text;
+    }
+    highlightText = highlightText.toLowerCase();
+    var idx = text.toLowerCase().indexOf(highlightText);
+    if (idx === -1) {
+      return text;
+    }
+    return (
+      <span>
+        {text.substr(0, idx)}
+        <strong className="highlight">
+          {text.substr(idx, highlightText.length)}
+        </strong>
+        {text.substr(idx + highlightText.length)}
+      </span>
+    );
+  },
+
+  getProjectNode(team, project, highlightText) {
     var org = this.props.organization;
     var projectRouteParams = {
       orgId: org.slug,
       projectId: project.slug
     };
+
     return (
       <MenuItem key={project.slug} to="projectDetails"
-                params={projectRouteParams}>
-        {project.name}
+            params={projectRouteParams}>
+        {this.highlight(project.name, highlightText)}
       </MenuItem>
     );
   },
 
   onOpen(event) {
-    $(this.refs.filter.getDOMNode()).focus();
+    jQuery(this.refs.filter.getDOMNode()).focus();
   },
 
   onClose(event) {
     this.setState({
       filter: ''
     });
-    $(this.refs.filter.getDOMNode()).val('');
+    jQuery(this.refs.filter.getDOMNode()).val('');
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
+    var node = jQuery(this.refs.container.getDOMNode());
+    node.hide().show(0);
   },
 
   render() {
     var projectId = this.props.projectId;
     var org = this.props.organization;
+    var filter = this.state.filter;
     var urlPrefix = ConfigStore.get('urlPrefix');
     var children = [];
     var activeTeam;
@@ -77,19 +107,23 @@ var ProjectSelector = React.createClass({
           activeProject = project;
         }
         var fullName = team.name + ' ' + project.name + ' ' + team.slug + ' ' + project.slug;
-        if (this.state.filter && fullName.indexOf(this.state.filter) === -1) {
+        if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
         if (!hasTeam) {
-          children.push(<li className="team-name" key={'_team' + team.slug}>{team.name}</li>);
+          children.push((
+            <li className="team-name" key={'_team' + team.slug}>
+              {this.highlight(team.name, this.state.filter)}
+            </li>
+          ));
           hasTeam = true;
         }
-        children.push(this.getProjectNode(team, project));
+        children.push(this.getProjectNode(team, project, this.state.filter));
       });
     });
 
     return (
-      <div>
+      <div ref="container">
         <Router.Link to="stream" params={projectRouteParams}>{activeTeam.name} / {activeProject.name}</Router.Link>
         <DropdownLink title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>

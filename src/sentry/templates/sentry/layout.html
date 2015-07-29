@@ -5,6 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_permissions %}
 
+{% load sentry_status %}
 {% get_sentry_version %}
 
 <!DOCTYPE html>
@@ -153,6 +154,10 @@
     {% endblock %}
     {% endif %}
 
+    {% if request.user.is_superuser %}
+        {% show_system_status %}
+    {% endif %}
+
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
@@ -187,6 +192,7 @@
           <a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a>
           {% endif %}
           {% block support_link %}{% endblock %}
+          <a href="{% url 'sentry-api-0-help' %}">{% trans "API" %}</a>
           <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry">{% trans "Contribute" %}</a>
         </div>

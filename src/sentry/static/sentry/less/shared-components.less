@@ -479,7 +479,7 @@ table.integrations {
 }
 
 /**
-* Org Selector
+* Loading Indicator
 * ============================================================================
 */
 
@@ -902,6 +902,7 @@ table.integrations {
     width: 320px;
     padding-bottom: 0;
     left: -145px;
+    .clearfix;
 
     &:before {
       left: 50%;
@@ -949,8 +950,14 @@ table.integrations {
     li {
       font-size: 15px;
       width: 50%;
+      position: relative;
       float: left;
       padding: 0 15px 6px;
+
+      strong {
+        font-weight: normal;
+        background: #FFFF00;
+      }
 
       > a {
         .truncate();
@@ -978,10 +985,11 @@ table.integrations {
 * ============================================================================
 */
 
+
 .chart {
+  display: block;
   position: relative;
-  min-height: 200px;
-  max-height: 250px;
+  height: 100%;
   margin-bottom: 20px;
 
   > .title {
@@ -1001,13 +1009,13 @@ table.integrations {
     position: absolute;
     left: 0;
     top: 0;
-    width: 40px;
+    white-space: nowrap;
     padding-left: 10px;
     height: 100%;
     text-align: left;
     color: @linkColor;
     .legendLabel {
-      padding: 0 10px 0 0;
+      padding: 0 5px;
     }
   }
 }
@@ -1614,32 +1622,21 @@ pre.clippy {
 * ============================================================================
 */
 
-header ~ #messages {
-  margin-top: -21px;
+.sub-header + .alert, header + .alert {
+  margin-top: -31px;
   position: relative;
-  z-index: 100;
-
-  .alert {
-    border-radius: 0;
-    box-shadow: inset 0 1px 0 rgba(0,0,0, .05) !important;
-  }
-  .container {
-    padding: 0;
-  }
+  z-index: 2;
+  border-radius: 0;
 }
 
 .alert {
   background: #ffc01a;
   color: #fff;
   border: 0;
-  font-weight: 600;
+  font-weight: 400;
   padding: 12px 20px;
   border-radius: 2px;
-  margin: 0 0 20px;
-
-  &:last-child {
-    margin-bottom: 20px;
-  }
+  margin: 0 0 30px;
 
   p:last-child {
     margin: 0;
@@ -1647,10 +1644,10 @@ header ~ #messages {
 
   .icon {
     float: left;
-    margin-top: 1px;
-    margin-right: 8px;
+    margin-top: 5px;
+    margin-right: 12px;
     display: none;
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .icon-sentry-logo {
@@ -1662,7 +1659,7 @@ header ~ #messages {
     font-weight: 600;
     position: absolute;
     top: 0px;
-    right: -8px;
+    right: 15px;
     box-shadow: none;
     .transition(opacity .15s);
     color: #fff;
@@ -1696,7 +1693,7 @@ header ~ #messages {
   background: @green;
   .icon-checkmark {
     display: block;
-    margin-top: 0;
+    margin-top: 4px;
   }
 }
 
@@ -2018,56 +2015,61 @@ header ~ #messages {
 * ============================================================================
 */
 
+.datepicker-modal {
+  .modal-dialog {
+    margin-top: -200px;
+  }
+}
+
 .datepicker-box {
-  width: 420px;
-  position: absolute;
-  top: 45px;
-  padding: 15px;
+  h6 {
+    margin-bottom: 15px;
+  }
 
-  .input {
-    > span {
-      vertical-align: middle;
+  .datepicker-wrapper {
+    > div {
       display: inline-block;
-      margin-right: 5px;
-      position: relative;
     }
-
-    .form-control {
-      display: inline;
-      height: 34px;
+    .datepicker__input {
+      .form-control;
+      display: inline-block;
+      line-height: 1.2 !important;
+      padding-right: 4px !important;
+      padding-left: 8px !important;
+      width: 57%;
     }
   }
 
-  .help-block {
-    margin-bottom: 5px;
-  }
-
-  .radio-inputs {
-    position: relative;
+  .form-control {
     display: inline-block;
+    line-height: 1.2 !important;
+    padding-right: 4px !important;
+    padding-left: 8px !important;
 
-    .radio {
-      margin-top: 7px;
-      margin-right: 10px;
-      margin-bottom: 0;
-      margin-left: 20px;
-      display: inline-block;
-      font-weight: normal;
-
-      input {
-        margin-left: -20px;
-        margin-top: 3px;
-        vertical-align: middle;
-      }
+    &.time {
+      margin-left: 2%;
+      width: 41%;
     }
   }
+}
 
-  .submit .btn {
-    margin-left: 5px;
-  }
+.radio-inputs {
+  position: relative;
+  display: inline-block;
 
-  .date {
-    width: 180px;
+  .radio {
+    margin-top: 7px;
+    margin-right: 10px;
+    margin-bottom: 0;
+    margin-left: 20px;
+    display: inline-block;
+    font-weight: normal;
+
+    input {
+      margin-left: -20px;
+      margin-top: 4px;
+      vertical-align: middle;
+    }
   }
 }
 
@@ -2077,14 +2079,13 @@ header ~ #messages {
 */
 
 .modal {
-
   .close {
     background: none;
     border: 0;
     padding: 0;
     font-size: 24px;
     position: absolute;
-    top: 15px;
+    top: 14px;
     right: 15px;
     z-index: 100;
     color: lighten(@gray, 20);
@@ -2097,17 +2098,17 @@ header ~ #messages {
   .modal-content {
     padding: 20px;
     border-radius: 2px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
     border: 0;
     overflow: hidden;
   }
 
   .modal-header {
-    background: #f9f9f9;
-    border-bottom: 1px solid #e1e4e5;
+    background: rgba(249, 250, 251, 0.8);
+    border-bottom: 1px solid lighten(@trim, 5);
     border-radius: 5px 5px 0 0;
-    padding: 15px 20px 14px;
-    margin: -20px -20px 15px;
+    padding: 15px 20px;
+    margin: -20px -20px 20px;
 
     h4 {
       font-size: 16px;
@@ -2129,11 +2130,9 @@ header ~ #messages {
   }
 
   .modal-footer {
-    margin-top: 0;
-    border-top: 0;
-    padding: 0 0 0;
-    margin-bottom: -20px;
-    text-align: center;
+    padding: 15px 20px;
+    border-top: 1px solid lighten(@trim, 8);
+    margin: 5px -20px -20px;
   }
 }
 

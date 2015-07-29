@@ -18,7 +18,7 @@ dev-mysql: develop
 	pip install "file://`pwd`#egg=sentry[mysql]"
 
 dev-docs:
-	pip install -r docs/requirements.txt
+	pip install -r doc-requirements.txt
 
 reset-db:
 	@echo "--> Dropping existing 'sentry' database"

@@ -17,8 +17,7 @@ celerybeat-schedule
 /dist
 /env
 /node_modules/
-/docs/html
-/docs/doctrees
+/docs/_build
 example/db.sqlite
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/

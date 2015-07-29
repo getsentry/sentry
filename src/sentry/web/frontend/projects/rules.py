@@ -112,6 +112,7 @@ def list_rules(request, organization, project):
         rule_list.append({
             'id': rule.id,
             'label': rule.label,
+            'match': rule.data.get('action_match', 'all'),
             'actions': actions,
             'conditions': conditions,
         })
@@ -178,8 +179,8 @@ def create_or_edit_rule(request, organization, project, rule_id=None):
     condition_list = []
 
     # TODO: conditions need to be based on actions
-    for rule_type, rule in rules:
-        node = rule(project)
+    for rule_type, rule_cls in rules:
+        node = rule_cls(project)
         context = {
             'id': node.id,
             'label': node.label,

@@ -252,6 +252,45 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'foo bar'])
 
+    def test_get_hash_discards_seemingly_useless_stack(self):
+        interface = Stacktrace.to_python({
+            'frames': [{
+                'context_line': '<HTML>',
+                'lineno': 1,
+                'abs_path': 'http://example.com/foo',
+                'filename': 'foo',
+                'function': '?',
+            }],
+        })
+        result = interface.get_hash()
+        assert result == []
+
+    def test_get_hash_does_not_discard_non_urls(self):
+        interface = Stacktrace.to_python({
+            'frames': [{
+                'context_line': '<HTML>',
+                'lineno': 1,
+                'abs_path': 'foo',
+                'filename': 'foo',
+                'function': '?',
+            }],
+        })
+        result = interface.get_hash()
+        assert result != []
+
+    def test_get_hash_does_not_discard_js_frames(self):
+        interface = Stacktrace.to_python({
+            'frames': [{
+                'context_line': 'function foo() {}',
+                'lineno': 1,
+                'abs_path': 'http://example.com/foo.js',
+                'filename': 'foo.js',
+                'function': '?',
+            }],
+        })
+        result = interface.get_hash()
+        assert result != []
+
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):
         event = mock.Mock(spec=Event())

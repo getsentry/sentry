@@ -130,6 +130,7 @@
   border: 1px solid darken(@trim, 2);
   box-shadow: 0 1px 0 rgba(52, 60, 69, 0.02);
   border-radius: 2px;
+  // position: relative;
 }
 
 .group-list, .events {
@@ -137,11 +138,14 @@
 
   .group {
     position: relative;
-    border-bottom: 1px solid lighten(@trim, 8);
     margin: 0;
+    // position: absolute;
+    // left: 15px;
+    // width: 100%;
+    border-bottom: 1px solid lighten(@trim, 8);
     padding-right: 10px;
     background: #fff;
-    .transition(all .3s ease-in-out);
+    .transition(all .4s ease-in-out);
 
     .icon-bookmark {
       display: none;
@@ -235,7 +239,7 @@
     }
 
     &:last-child {
-      border: 0;
+      border-bottom-color: transparent;
       border-radius: 0 0 2px 2px;
       .event-cell {
         border-bottom: 1px solid #E9EBEC;
@@ -428,6 +432,22 @@
   padding: 40px;
   text-align: center;
 }
+
+// Generate .group positions for animating
+
+/*
+.generate-groups(50);
+
+.generate-groups(@n, @i: 1, ) when (@i =< @n) {
+  .group:nth-child(@{i}) {
+    @offset: (@i * 100% - 100);
+    transform: translate3d(0, @offset, 0);
+    -moz-transform: translate3d(0, @offset, 0);
+    -ms-transform: translate3d(0, @offset, 0);
+  }
+  .generate-groups(@n, (@i + 1));
+}
+*/
 
 /**
 * Stream Filters
