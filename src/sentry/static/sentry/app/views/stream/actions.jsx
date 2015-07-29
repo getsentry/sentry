@@ -4,13 +4,11 @@ var Reflux = require("reflux");
 var api = require("../../api");
 var ActionLink = require("./actionLink");
 var GroupStore = require("../../stores/groupStore");
-var DateSelector = require("./dateSelector");
 var DropdownLink = require("../../components/dropdownLink");
 var IndicatorStore = require("../../stores/indicatorStore");
 var MenuItem = require("../../components/menuItem");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var SelectedGroupStore = require("../../stores/selectedGroupStore");
-var SortOptions = require("./sortOptions");
 
 var StreamActions = React.createClass({
   mixins: [
@@ -263,8 +261,6 @@ var StreamActions = React.createClass({
               )}
             </a>
           </div>
-          <SortOptions />
-          <DateSelector defaultDateFrom={this.props.defaultDateFrom} />
         </div>
         <div className="hidden-sm stream-actions-assignee col-md-1">
         </div>
