@@ -89,7 +89,7 @@ var StreamFilters = React.createClass({
                 <SortOptions />
               </li>
               <li className="highlight">
-                 <DateSelector defaultDateFrom={this.props.defaultDateFrom} />
+                <DateSelector defaultDateFrom={this.props.defaultDateFrom} />
               </li>
             </ul>
           </div>
