@@ -96,6 +96,8 @@ class APIView(BaseView):
     def _get_project_from_id(self, project_id):
         if not project_id:
             return
+        if not project_id.isdigit():
+            raise APIError('Invalid project_id: %r' % project_id)
         try:
             return Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
