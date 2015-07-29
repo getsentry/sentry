@@ -439,6 +439,8 @@
   .group:nth-child(@{i}) {
     @offset: (@i * 100% - 100);
     transform: translate3d(0, @offset, 0);
+    -moz-transform: translate3d(0, @offset, 0);
+    -ms-transform: translate3d(0, @offset, 0);
   }
   .generate-groups(@n, (@i + 1));
 }
