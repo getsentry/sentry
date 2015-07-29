@@ -43,7 +43,7 @@ var ProjectSelector = React.createClass({
     return (
       <span>
         {text.substr(0, idx)}
-        <strong class="highlight">
+        <strong className="highlight">
           {text.substr(idx, highlightText.length)}
         </strong>
         {text.substr(idx + highlightText.length)}
