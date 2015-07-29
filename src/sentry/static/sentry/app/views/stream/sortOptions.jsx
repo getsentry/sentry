@@ -60,14 +60,13 @@ var SortOptions = React.createClass({
   render() {
     var dropdownTitle = (
       <span>
-        <span className="hidden-sm hidden-xs">Sort by:</span>
+        <span>Sort by:</span>
         &nbsp; {this.getSortLabel(this.state.sortKey)}
       </span>
     );
 
     return (
       <DropdownLink
-          className="btn btn-sm"
           btnGroup={true}
           title={dropdownTitle}>
         {this.getMenuItem('priority')}

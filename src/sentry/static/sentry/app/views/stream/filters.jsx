@@ -2,9 +2,11 @@ var React = require("react");
 var $ = require("jquery");
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
+var DateSelector = require("./dateSelector");
 var FilterSelectLink = require("./filterSelectLink");
 var SearchBar = require("./searchBar");
 var utils = require("../../utils");
+var SortOptions = require("./sortOptions");
 
 var StreamFilters = React.createClass({
   mixins: [PureRenderMixin],
@@ -66,11 +68,11 @@ var StreamFilters = React.createClass({
   render() {
     var activeButton = this.state.activeButton;
     return (
-      <div className="filter-nav">
+      <div className="filter-nav stream-header">
         <div className="row">
-          <div className="col-sm-4 primary-filters">
-            <div className="btn-group btn-group-justified">
-              <FilterSelectLink label="All Events"
+          <div className="col-sm-8 primary-filters">
+            <ul className="nav nav-tabs">
+              <FilterSelectLink label="All"
                 isActive={activeButton === 'all'}
                 onSelect={this.onFilterChange.bind(this, {})}
                 extraClass="btn-all-events" />
@@ -82,9 +84,16 @@ var StreamFilters = React.createClass({
                 isActive={activeButton === 'assigned'}
                 onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
                 extraClass="btn-assigned" />
-            </div>
+              <li className="divider" />
+              <li className="highlight">
+                <SortOptions />
+              </li>
+              <li className="highlight">
+                 <DateSelector defaultDateFrom={this.props.defaultDateFrom} />
+              </li>
+            </ul>
           </div>
-          <div className="col-sm-8">
+          <div className="col-sm-4">
             <SearchBar defaultQuery={this.props.defaultQuery}
               query={this.props.query}
               onQueryChange={this.props.onQueryChange}

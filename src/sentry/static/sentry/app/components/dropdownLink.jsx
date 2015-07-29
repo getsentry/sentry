@@ -45,7 +45,6 @@ var DropdownLink = React.createClass({
 
     var topLevelClasses = classSet({
       "dropdown" : true,
-      "btn-group": this.props.btnGroup,
     });
 
     return (
