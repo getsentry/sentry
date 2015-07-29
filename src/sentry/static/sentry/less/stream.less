@@ -437,8 +437,8 @@
 
 .generate-groups(@n, @i: 1, ) when (@i =< @n) {
   .group:nth-child(@{i}) {
-    @width: (@i * 100% - 100);
-    transform: translate3d(0, @width, 0);
+    @offset: (@i * 100% - 100);
+    transform: translate3d(0, @offset, 0);
   }
   .generate-groups(@n, (@i + 1));
 }
