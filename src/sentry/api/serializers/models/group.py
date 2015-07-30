@@ -66,14 +66,16 @@ class GroupSerializer(Serializer):
 
             tags = {}
             for key in tag_counts.iterkeys():
-                # TODO(dcramer): query for these
-                tagkey = tagkeys[key]
+                try:
+                    label = tagkeys[key].get_label()
+                except KeyError:
+                    label = key.replace('_', ' ').title()
                 try:
                     value = tag_counts[key].get(item.id, 0)
                 except KeyError:
                     value = 0
                 tags[key] = {
-                    'name': tagkey.get_label(),
+                    'name': label,
                     'count': value,
                 }
 
