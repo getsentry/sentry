@@ -11,7 +11,7 @@ from uuid import uuid1
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
 )
-from sentry.permissions import can_remove_project, can_set_public_projects
+from sentry.permissions import can_remove_project
 from sentry.plugins import plugins
 from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField
@@ -27,8 +27,6 @@ class EditProjectForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'placeholder': _('Production')}))
     platform = forms.ChoiceField(choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
         widget=forms.Select(attrs={'data-placeholder': _('Select a platform')}))
-    public = forms.BooleanField(required=False,
-        help_text=_('Imply public access to any event for this project.'))
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
@@ -59,7 +57,7 @@ class EditProjectForm(forms.ModelForm):
     )
 
     class Meta:
-        fields = ('name', 'platform', 'public', 'team', 'slug')
+        fields = ('name', 'platform', 'team', 'slug')
         model = Project
 
     def __init__(self, request, organization, team_list, data, instance, *args, **kwargs):
@@ -68,8 +66,6 @@ class EditProjectForm(forms.ModelForm):
         self.organization = organization
         self.team_list = team_list
 
-        if not can_set_public_projects(request.user):
-            del self.fields['public']
         self.fields['team'].choices = self.get_team_choices(team_list, instance.team)
         self.fields['team'].widget.choices = self.fields['team'].choices
 

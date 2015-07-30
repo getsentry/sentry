@@ -45,18 +45,6 @@ The following keys control the authentication support.
 
         SENTRY_PUBLIC = True
 
-.. describe:: SENTRY_ALLOW_PUBLIC_PROJECTS
-
-    Should Sentry allow users without the 'sentry.change_project'
-    permission to make projects globally public?
-
-    Defaults to ``True`` (can set public status).
-
-    ::
-
-        SENTRY_ALLOW_PUBLIC_PROJECTS = False
-
-
 .. describe:: SENTRY_ALLOW_ORIGIN
 
     If provided, Sentry will set the Access-Control-Allow-Origin header to
