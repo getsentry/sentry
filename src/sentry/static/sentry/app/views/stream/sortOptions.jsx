@@ -9,9 +9,7 @@ var SortOptions = React.createClass({
     router: React.PropTypes.func
   },
 
-  mixins: [
-    PureRenderMixin
-  ],
+  mixins: [PureRenderMixin],
 
   getInitialState() {
     var router = this.context.router;

@@ -9,8 +9,6 @@ var utils = require("../../utils");
 var SortOptions = require("./sortOptions");
 
 var StreamFilters = React.createClass({
-  mixins: [PureRenderMixin],
-
   contextTypes: {
     router: React.PropTypes.func
   },
