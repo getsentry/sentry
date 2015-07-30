@@ -141,7 +141,7 @@ var Selectize = React.createClass({
   render() {
     var opts = {
         ref: 'select',
-        className: "form-control"
+        className: "form-control " + (this.props.className || '')
     };
     if (this.props.disabled) {
       opts.disabled = true;
