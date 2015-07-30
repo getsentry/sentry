@@ -23,6 +23,7 @@ var config = {
       "react-router",
       "react-bootstrap",
       "reflux",
+      "selectize",
       "flot/jquery.flot",
       "flot/jquery.flot.stack",
       "flot/jquery.flot.time",
