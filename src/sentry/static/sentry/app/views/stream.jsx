@@ -2,6 +2,7 @@ var React = require("react");
 var Reflux = require("reflux");
 var $ = require("jquery");
 var Cookies = require("js-cookie");
+var moment = require("moment");
 
 var api = require("../api");
 var GroupActions = require("../actions/groupActions");
@@ -31,7 +32,7 @@ var Stream = React.createClass({
 
   getDefaultProps() {
     var dateFrom = new Date(); dateFrom.setDate(dateFrom.getDate() - 3);
-    dateFrom = dateFrom.getTime() / 1000;
+    dateFrom = moment(dateFrom);
 
     return {
       defaultQuery: "is:unresolved",
@@ -182,7 +183,7 @@ var Stream = React.createClass({
     queryParams.limit = this.props.maxItems;
     queryParams.statsPeriod = this.state.statsPeriod;
     if (!queryParams.hasOwnProperty("since")) {
-      queryParams.since = this.props.defaultDateFrom;
+      queryParams.since = this.props.defaultDateFrom.toISOString();
     }
     if (!queryParams.hasOwnProperty("query")) {
       queryParams.query = this.props.defaultQuery;
@@ -322,6 +323,7 @@ var Stream = React.createClass({
     return (
       <div>
         <StreamFilters query={this.state.query}
+          defaultDateFrom={this.props.defaultDateFrom}
           defaultQuery={this.props.defaultQuery}
           onQueryChange={this.onQueryChange}
           onFilterChange={this.onFilterChange}
@@ -334,8 +336,7 @@ var Stream = React.createClass({
             onRealtimeChange={this.onRealtimeChange}
             realtimeActive={this.state.realtimeActive}
             statsPeriod={this.state.statsPeriod}
-            groupIds={this.state.groupIds}
-            defaultDateFrom={this.props.defaultDateFrom} />
+            groupIds={this.state.groupIds} />
         </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />

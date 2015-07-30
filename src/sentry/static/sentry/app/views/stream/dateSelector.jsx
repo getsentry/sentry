@@ -1,5 +1,6 @@
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var React = require("react");
+var moment = require("moment");
 
 var DateTimeInput = require("../../components/dateTimeInput");
 var DropdownLink = require("../../components/dropdownLink");
@@ -13,8 +14,8 @@ var CustomDateRange = React.createClass({
   getInitialState() {
     return {
       isModalOpen: false,
-      dateFrom: '',
-      dateTo: '',
+      dateFrom: this.props.dateFrom,
+      dateTo: this.props.dateTo,
       dateType: 'last_seen'
     };
   },
@@ -153,7 +154,9 @@ var DateSelector = React.createClass({
           title="Since: All time">
         <MenuItem>All Time</MenuItem>
         <MenuItem noAnchor={true}>
-          <CustomDateRange />
+          <CustomDateRange
+            dateFrom={this.state.dateFrom}
+            dateTo={this.state.dateTo} />
         </MenuItem>
       </DropdownLink>
     );

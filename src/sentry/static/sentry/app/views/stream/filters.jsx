@@ -16,6 +16,7 @@ var StreamFilters = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: "",
+      defaultDateFrom: "",
       filter: "",
       query: "",
       onFilterChange: function() {},
