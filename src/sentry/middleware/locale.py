@@ -15,7 +15,6 @@ from django.core.urlresolvers import reverse
 
 from sentry.app import env
 from sentry.models import UserOption
-from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 
@@ -23,7 +22,7 @@ class SentryLocaleMiddleware(object):
     def process_request(self, request):
         # HACK: bootstrap some env crud if we haven't yet
         if not settings.SENTRY_URL_PREFIX:
-            settings.SENTRY_URL_PREFIX = absolute_uri(reverse('sentry')).strip('/')
+            settings.SENTRY_URL_PREFIX = request.build_absolute_uri(reverse('sentry')).strip('/')
 
         # bind request to env
         env.request = request
