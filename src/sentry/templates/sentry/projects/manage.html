@@ -55,9 +55,6 @@
         {{ form.scrub_data|as_crispy_field }}
         {{ form.sensitive_fields|as_crispy_field }}
         {{ form.scrub_ip_address|as_crispy_field }}
-        {% if form.public %}
-        {{ form.public|as_crispy_field }}
-        {% endif %}
       </div>
     </div>
 

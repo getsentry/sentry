@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 import six
 
-from django.conf import settings
 from django.db.models import Q
 from functools import wraps
 
@@ -99,25 +98,6 @@ def can_create_projects(user, team):
         return False
 
     result = plugins.first('has_perm', user, 'add_project', team)
-    if result is False:
-        return result
-
-    return True
-
-
-@requires_login
-def can_set_public_projects(user):
-    """
-    Returns a boolean describing whether a user has the ability to
-    change the ``public`` attribute of projects.
-    """
-    if user.is_superuser:
-        return True
-
-    result = plugins.first('has_perm', user, 'set_project_public')
-    if result is None:
-        result = settings.SENTRY_ALLOW_PUBLIC_PROJECTS
-
     if result is False:
         return result
 
