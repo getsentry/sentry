@@ -56,6 +56,7 @@ module.exports = {
     ConfigStore: require("./stores/configStore"),
     FlotChart: require("./components/flotChart"),
     HookStore: require("./stores/hookStore"),
+    Indicators: require("./components/indicators"),
     RuleEditor: require("./views/ruleEditor")
   }
 };
