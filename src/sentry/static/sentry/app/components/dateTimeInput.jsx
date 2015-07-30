@@ -4,14 +4,22 @@ var DatePicker = require("react-datepicker");
 
 var DateTimeInput = React.createClass({
   getInitialState() {
+    var datetime = this.props.dateTime;
+    if (!datetime) {
+      return {
+        dateValue: null,
+        timeValue: ''
+      };
+    }
+
     return {
-      dateValue: moment(),
-      timeValue: ''
+      dateValue: datetime,
+      timeValue: datetime.format("HH:MM")
     };
   },
 
   render() {
-    var {dateValue, timeValue, month} = this.state;
+    var {dateValue, timeValue} = this.state;
 
     var selectedDay = moment(dateValue, "L", true).toDate();
 
