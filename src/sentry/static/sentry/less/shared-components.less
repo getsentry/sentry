@@ -2035,16 +2035,28 @@ pre.clippy {
   }
 
   .datepicker-wrapper {
-    > div {
-      display: inline-block;
-    }
+    width: 57%;
+    float: left;
+
     .datepicker__input {
-      .form-control;
-      display: inline-block;
-      line-height: 1.2 !important;
+      box-shadow: inset 0 1px 1px rgba(70, 82, 98, 0.04);
+      height: auto;
+      border: 1px solid darken(@trim, 4);
+      padding: 8px 12px 7px;
+      position: relative;
+      border-radius: 2px;
+
+      .placeholder(lighten(@gray, 28));
+
+      &:focus {
+        box-shadow: none;
+        border-color: darken(@trim, 10);
+      }
+      display: block;
+      line-height: 1.4 !important;
       padding-right: 4px !important;
       padding-left: 8px !important;
-      width: 57%;
+      width: 100%;
     }
   }
 
