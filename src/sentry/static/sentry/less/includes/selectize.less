@@ -31,7 +31,7 @@
 @selectize-lighten-disabled-item-border: 30%;
 @selectize-opacity-disabled: 0.5;
 
-@selectize-shadow-input: inset 0 1px 1px rgba(70, 82, 98, 0.05);
+@selectize-shadow-input: 0 1px 1px rgba(70, 82, 98, 0.06);
 @selectize-shadow-input-focus: none;
 @selectize-border: 1px solid @selectize-color-border;
 @selectize-border-radius: 2px;
@@ -39,12 +39,12 @@
 @selectize-width-item-border: 0;
 @selectize-max-height-dropdown: 200px;
 
-@selectize-padding-x: 12px;
-@selectize-padding-y: 8px;
-@selectize-padding-item-x: 6px;
-@selectize-padding-item-y: 12px;
+@selectize-padding-x: 10px;
+@selectize-padding-y: 5px;
+@selectize-padding-item-x: 10px;
+@selectize-padding-item-y: 5px;
 @selectize-padding-dropdown-item-x: @selectize-padding-x;
-@selectize-padding-dropdown-item-y: 5px;
+@selectize-padding-dropdown-item-y: 3px;
 @selectize-margin-item-x: 3px;
 @selectize-margin-item-y: 3px;
 
@@ -106,7 +106,7 @@
 
 .selectize-input {
   border: @selectize-border;
-  padding: @selectize-padding-y @selectize-padding-x @selectize-padding-y - 1;
+  padding: @selectize-padding-y @selectize-padding-x @selectize-padding-y;
   display: inline-block;
   width: 100%;
   overflow: hidden;
@@ -255,7 +255,7 @@
     content: "\e60f";
     display: block;
     position: absolute;
-    top: 35%;
+    top: 32%;
     right: @selectize-arrow-offset;
     margin-top: -4px;
   }
