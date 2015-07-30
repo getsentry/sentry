@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
@@ -123,11 +123,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             except ValueError:
                 return Response('{"detail": "invalid limit"}', status=400)
 
-        today = timezone.now()
         if date_from:
             date_from = self._parse_date(date_from)
-        else:
-            date_from = today - timedelta(days=5)
 
         if date_to:
             date_to = self._parse_date(date_to)
