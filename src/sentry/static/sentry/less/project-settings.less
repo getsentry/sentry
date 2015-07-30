@@ -3,9 +3,10 @@
 * ============================================================================
 */
 
-.selectize-inline {
+.selectize-inline-block {
   display: inline-block;
   padding: 0 6px;
+  margin-bottom: 5px !important;
 
   .selectize-input {
     font-size: 90%;
@@ -20,9 +21,17 @@
       right: 6px !important;
     }
   }
+
+  .selectize-dropdown {
+    z-index: 5000;
+  }
 }
 
 .rules-list, .rule-detail {
+  hr {
+    margin-bottom: 10px;
+  }
+
   h6 {
     font-weight: 600;
     select {
@@ -43,6 +52,7 @@
 
   .table {
     border-radius: 2.5px;
+    border: 1px solid darken(@trim, 4);
   }
 
   .add {
@@ -62,7 +72,7 @@
     }
   }
 
-  select {
+  .selectize-control {
     margin-bottom: 20px;
   }
 
@@ -70,5 +80,11 @@
     padding: 20px;
     border-top: 1px solid lighten(@trim, 4);
     margin: 0 -20px -20px;
+  }
+}
+
+.rule-action-list, .rule-condition-list {
+  .selectize-control {
+    max-width: 40%;
   }
 }
