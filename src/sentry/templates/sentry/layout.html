@@ -182,7 +182,7 @@
 
         {% block content_after %}
         {% endblock %}
-     </div>
+      </div>
     </div>
     <footer>
       <div class="container">
@@ -201,218 +201,219 @@
         {% endblock %}
       </div>
     </footer>
+  </div>
 
-    <div class="welcome-modal modal fade in" style="display: none">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <div class="modal-body">
-            <div class="welcome-slides">
-              <div class="slide">
-                <div class="container">
-                  <h1>Welcome to Sentry</h1>
-                  <p>Hell yeah! Bout damn time we got this shit poppin'.</p>
-                  <p>
-                    <a class="btn btn-default " href="#">Installation Instructions</a>
-                    <a class="btn btn-primary " href="#">Start Overview</a>
-                  </p>
-                  <div class="screenshot fadeInUp" data-animate></div>
-                </div>
+  <div class="welcome-modal modal fade in" style="display: none">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <div class="modal-body">
+          <div class="welcome-slides">
+            <div class="slide">
+              <div class="container">
+                <h1>Welcome to Sentry</h1>
+                <p>Hell yeah! Bout damn time we got this shit poppin'.</p>
+                <p>
+                  <a class="btn btn-default " href="#">Installation Instructions</a>
+                  <a class="btn btn-primary " href="#">Start Overview</a>
+                </p>
+                <div class="screenshot fadeInUp" data-animate></div>
               </div>
-              <div class="slide">
-                <div class="row">
-                  <div class="col-md-5 fadeIn" data-animate>
-                    <h3>Teach Sentry about your business.</h3>
-                    <p>Tag users, servers, shopping cart totals, or whatever is important to you.</p>
-                    <p><a class="btn btn-primary" href="#">Learn more about Tagging</a></p>
-                  </div>
-                  <div class="col-md-7">
-                    <div class="screenshot">
-                      <div class="loupe zoomIn" data-animate></div>
-                    </div>
-                  </div>
+            </div>
+            <div class="slide">
+              <div class="row">
+                <div class="col-md-5 fadeIn" data-animate>
+                  <h3>Teach Sentry about your business.</h3>
+                  <p>Tag users, servers, shopping cart totals, or whatever is important to you.</p>
+                  <p><a class="btn btn-primary" href="#">Learn more about Tagging</a></p>
                 </div>
-              </div>
-              <div class="slide">
-                <div class="row">
-                  <div class="col-md-7 chat-column">
-                    <ul class="chat fadeInUp" data-animate>
-                      <li class="chat-message">
-                        <div class="chat-avatar"></div>
-                        <h5>Sentry <time>8:02pm</time></h5>
-                        <div class="chat-body">Regression on <a>Sentry Chef</a></div>
-                        <blockquote>
-                          <strong>'dict' object has no attribute 'startswith'</strong>
-                          sentry.interfaces.stacktrace in is_unhashable_function
-                        </blockquote>
-                      </li>
-                      <li class="chat-message">
-                        <div class="chat-avatar"></div>
-                        <h5>Sentry <time>8:02pm</time></h5>
-                        <div class="chat-body">Regression on <a>Sentry Backend</a></div>
-                        <blockquote>
-                          <strong>Error processing 'send_webhook' on 'WebHooksPlugin':</strong>
-                          six in reraise
-                        </blockquote>
-                      </li>
-                      <li class="chat-message">
-                        <div class="chat-avatar"></div>
-                        <h5>Sentry <time>8:05pm</time></h5>
-                        <div class="chat-body">Regression on <a>Sentry Chef</a></div>
-                        <blockquote>
-                          <strong>'dict' object has no attribute 'startswith'</strong>
-                          sentry.interfaces.stacktrace in is_unhashable_function
-                        </blockquote>
-                      </li>
-                      <li class="chat-message">
-                        <div class="chat-avatar">
-                          <img src="https://avatars3.githubusercontent.com/u/23610?v=3">
-                        </div>
-                        <h5>David <time>8:05pm</time></h5>
-                        <div class="chat-body">Oh fuck</div>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="col-md-5">
-                    <h3>Take us to work.</h3>
-                    <p>Get notified of events in Slack, HipChat, Campfire, IRC, and more &mdash; in realtime.</p>
-                    <p><a class="btn btn-primary" href="#">Learn more about Integrations</a></p>
-                  </div>
-                </div>
-                <div class="mask"></div>
-              </div>
-              <div class="slide">
-                <div class="row">
-                  <div class="col-md-5">
-                    <h3>Built for your workflow.</h3>
-                    <p>Create issues in GitHub, Trello, Jira, Redmine, and others right from Sentry.</p>
-                    <p><a class="btn btn-primary" href="#">Learn more about Issue Tracking</a></p>
-                  </div>
-                  <div class="col-md-7">
-                    <div class="screenshot"></div>
+                <div class="col-md-7">
+                  <div class="screenshot">
+                    <div class="loupe zoomIn" data-animate></div>
                   </div>
                 </div>
               </div>
             </div>
+            <div class="slide">
+              <div class="row">
+                <div class="col-md-7 chat-column">
+                  <ul class="chat fadeInUp" data-animate>
+                    <li class="chat-message">
+                      <div class="chat-avatar"></div>
+                      <h5>Sentry <time>8:02pm</time></h5>
+                      <div class="chat-body">Regression on <a>Sentry Chef</a></div>
+                      <blockquote>
+                        <strong>'dict' object has no attribute 'startswith'</strong>
+                        sentry.interfaces.stacktrace in is_unhashable_function
+                      </blockquote>
+                    </li>
+                    <li class="chat-message">
+                      <div class="chat-avatar"></div>
+                      <h5>Sentry <time>8:02pm</time></h5>
+                      <div class="chat-body">Regression on <a>Sentry Backend</a></div>
+                      <blockquote>
+                        <strong>Error processing 'send_webhook' on 'WebHooksPlugin':</strong>
+                        six in reraise
+                      </blockquote>
+                    </li>
+                    <li class="chat-message">
+                      <div class="chat-avatar"></div>
+                      <h5>Sentry <time>8:05pm</time></h5>
+                      <div class="chat-body">Regression on <a>Sentry Chef</a></div>
+                      <blockquote>
+                        <strong>'dict' object has no attribute 'startswith'</strong>
+                        sentry.interfaces.stacktrace in is_unhashable_function
+                      </blockquote>
+                    </li>
+                    <li class="chat-message">
+                      <div class="chat-avatar">
+                        <img src="https://avatars3.githubusercontent.com/u/23610?v=3">
+                      </div>
+                      <h5>David <time>8:05pm</time></h5>
+                      <div class="chat-body">Oh fuck</div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="col-md-5">
+                  <h3>Take us to work.</h3>
+                  <p>Get notified of events in Slack, HipChat, Campfire, IRC, and more &mdash; in realtime.</p>
+                  <p><a class="btn btn-primary" href="#">Learn more about Integrations</a></p>
+                </div>
+              </div>
+              <div class="mask"></div>
+            </div>
+            <div class="slide">
+              <div class="row">
+                <div class="col-md-5">
+                  <h3>Built for your workflow.</h3>
+                  <p>Create issues in GitHub, Trello, Jira, Redmine, and others right from Sentry.</p>
+                  <p><a class="btn btn-primary" href="#">Learn more about Issue Tracking</a></p>
+                </div>
+                <div class="col-md-7">
+                  <div class="screenshot"></div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="modal-footer">
-            <div class="row">
-              <div class="col-md-2">
-                <a href="#" class="btn btn-default btn-sm prev slide-show-prev"><span class="icon-arrow-left"></span></a>
-              </div>
-              <div class="col-md-8">
-                <ul class="dot-nav"></ul>
-              </div>
-              <div class="col-md-2">
-                <a href="#" class="btn btn-default btn-sm next slide-show-next"><span class="icon-arrow-right"></span></a>
-              </div>
+        </div>
+        <div class="modal-footer">
+          <div class="row">
+            <div class="col-md-2">
+              <a href="#" class="btn btn-default btn-sm prev slide-show-prev"><span class="icon-arrow-left"></span></a>
+            </div>
+            <div class="col-md-8">
+              <ul class="dot-nav"></ul>
+            </div>
+            <div class="col-md-2">
+              <a href="#" class="btn btn-default btn-sm next slide-show-next"><span class="icon-arrow-right"></span></a>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <script type="text/javascript">
-    $(function() {
-      // This is duplicated from <ProjectSelector>
-      $('.project-dropdown').on('shown.bs.dropdown', function(event){
-        $(event.target).find('input[type=text]').focus();
-      });
-
-      $(function() {
-        $('select').selectize();
-      });
+  </div>
+  {% block selectize %}
+  <script>
+  $(function() {
+    $('select').selectize();
+  });
+  </script>
+  {% endblock %}
+  <script type="text/javascript">
+  $(function() {
+    // This is duplicated from <ProjectSelector>
+    $('.project-dropdown').on('shown.bs.dropdown', function(event){
+      $(event.target).find('input[type=text]').focus();
     });
-    $(function() {
+  });
+  $(function() {
+    var slideShow = function() {
 
-      var slideShow = function() {
+      var slideWidth = $(".slide").width();
+      var numSlides = 0;
+      var currentSlide;
 
-        var slideWidth = $(".slide").width();
-        var numSlides = 0;
-        var currentSlide;
+      // Find all slides
 
-        // Find all slides
+      $(".slide").each(function(i) {
+        numSlides++;
 
-        $(".slide").each(function(i) {
-          numSlides++;
+        var slide = i + 1;
+        var isActive;
 
-          var slide = i + 1;
-          var isActive;
-
-          if ($(this).hasClass("active")) {
-            isActive = true;
-            currentSlide = slide;
-          }
-
-          $(this).addClass("slide-" + slide );
-
-          // Build dot nav
-
-          $(".dot-nav").append('<li class="'+ (isActive ? "active" : "") + '"><a href="#" class="show-slide" data-show-slide="'+ slide +'"></a></li>')
-        });
-
-        // Input handlers
-
-        $(".show-slide").click(function() {
-          showSlide($(this).attr("data-show-slide"));
-        });
-
-        $(".close").click(function() {
-          $(".welcome-modal").fadeOut();
-        });
-
-        $(".slide-show-next").click(function() {
-          if (currentSlide + 1 <= numSlides) {
-            showSlide(currentSlide + 1);
-          } else {
-            showSlide(1);
-          }
-        });
-
-        $(".slide-show-prev").click(function() {
-          if (currentSlide - 1 != 0) {
-            showSlide(currentSlide - 1);
-          } else {
-            showSlide(numSlides);
-          }
-        });
-
-        this.showSlide = function(location) {
-          currentSlide = location;
-
-          // Clear active items
-          $(".slide").removeClass("active");
-          $(".dot-nav li").removeClass("active");
-
-          // Set new active items
-
-          $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
-          $(".slide-" + location).addClass("active");
-
-          // Use margin to show slide
-
-          $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
-
-          // Animate shit
-
-          $(".slide-" + location + " [data-animate]").addClass("animated");
+        if ($(this).hasClass("active")) {
+          isActive = true;
+          currentSlide = slide;
         }
 
-        showSlide(1);
+        $(this).addClass("slide-" + slide );
+
+        // Build dot nav
+
+        $(".dot-nav").append('<li class="'+ (isActive ? "active" : "") + '"><a href="#" class="show-slide" data-show-slide="'+ slide +'"></a></li>')
+      });
+
+      // Input handlers
+
+      $(".show-slide").click(function() {
+        showSlide($(this).attr("data-show-slide"));
+      });
+
+      $(".close").click(function() {
+        $(".welcome-modal").fadeOut();
+      });
+
+      $(".slide-show-next").click(function() {
+        if (currentSlide + 1 <= numSlides) {
+          showSlide(currentSlide + 1);
+        } else {
+          showSlide(1);
+        }
+      });
+
+      $(".slide-show-prev").click(function() {
+        if (currentSlide - 1 != 0) {
+          showSlide(currentSlide - 1);
+        } else {
+          showSlide(numSlides);
+        }
+      });
+
+      this.showSlide = function(location) {
+        currentSlide = location;
+
+        // Clear active items
+        $(".slide").removeClass("active");
+        $(".dot-nav li").removeClass("active");
+
+        // Set new active items
+
+        $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
+        $(".slide-" + location).addClass("active");
+
+        // Use margin to show slide
+
+        $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
+
+        // Animate shit
+
+        $(".slide-" + location + " [data-animate]").addClass("animated");
       }
 
-      $( "body" ).keypress(function( event ) {
-        if ( event.which == 96 ) {
-           event.preventDefault();
-           $(".welcome-modal").fadeIn();
-        }
-      });
+      showSlide(1);
+    }
 
-      slideShow();
+    $( "body" ).keypress(function( event ) {
+      if ( event.which == 96 ) {
+         event.preventDefault();
+         $(".welcome-modal").fadeIn();
+      }
     });
 
-    </script>
-    {% endblock %}
-  </div>
+    slideShow();
+  });
+  </script>
+  {% endblock %}
   {% block scripts_bottom %}{% endblock %}
 </body>
 </html>
