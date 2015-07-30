@@ -3,6 +3,25 @@
 * ============================================================================
 */
 
+.selectize-inline {
+  display: inline-block;
+  padding: 0 6px;
+
+  .selectize-input {
+    font-size: 90%;
+    padding: 6px 15px 5px 8px;
+    min-width: 70px;
+    position: relative;
+    top: 8px;
+
+    &:after {
+      top: 46% !important;
+      font-size: 85% !important;
+      right: 6px !important;
+    }
+  }
+}
+
 .rules-list, .rule-detail {
   h6 {
     font-weight: 600;
