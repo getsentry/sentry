@@ -71,7 +71,7 @@ var StreamFilters = React.createClass({
         <div className="row">
           <div className="col-sm-8 primary-filters">
             <ul className="nav nav-tabs">
-              <FilterSelectLink label="All"
+              <FilterSelectLink label="All Events"
                 isActive={activeButton === 'all'}
                 onSelect={this.onFilterChange.bind(this, {})}
                 extraClass="btn-all-events" />
