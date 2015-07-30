@@ -184,7 +184,7 @@ var RuleEditor = React.createClass({
             <h6>
               Every time
               <select ref="actionMatch"
-                      className="select2-small select2-inline"
+                      className="selectize-inline"
                       defaultValue={actionMatch}
                       required={true}>
                 <option value="all">all</option>
