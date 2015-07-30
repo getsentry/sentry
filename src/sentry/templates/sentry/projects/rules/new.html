@@ -12,9 +12,8 @@
       rule: {% serialize rule %},
       actions: {{ action_list|safe }},
       conditions: {{ condition_list|safe }},
-      // formData: {{ form_data|to_json|safe }},
-      // formErrors: {{ form_errors|to_json|safe }}
-      project: {% serialize project %}
+      project: {% serialize project %},
+      organization: {% serialize organization %}
     }), document.getElementById('blk_rule_editor'));
   });
   </script>
