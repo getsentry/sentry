@@ -4,50 +4,52 @@
 */
 
 .rules-list, .rule-detail {
-	h6 {
-		font-weight: 600;
-		select {
-			margin: 0 5px;
-		}
+  h6 {
+    font-weight: 600;
+    select {
+      margin: 0 5px;
+    }
 
-		strong {
-			padding: 0px 4px 1px;
-			border: 1px solid @trim;
-			border-radius: 3px;
-		}
-	}
+    strong {
+      padding: 1px 5px;
+      border-radius: 2px;
+      background-color: lighten(@gray, 49);
+      margin-right: 2px;
+    }
+  }
 
-	.box-content {
-		padding-bottom: 20px !important;
-	}
+  .box-content {
+    padding-bottom: 20px !important;
+  }
 
-	.table {
-		margin-bottom: 10px;
-	}
+  .table {
+    border-radius: 2.5px;
+  }
 
-	.add {
-		margin-bottom: 20px;
-	}
+  .add {
+    margin-bottom: 20px;
+  }
 
-	.conditions-list td, .actions-list td {
-		padding: 12px 15px 10px !important;
+  .conditions-list td, .actions-list td {
+    padding: 10px 12px !important;
+    font-size: 13px;
 
-		a {
-			color: lighten(@gray, 30);
+    a {
+      color: lighten(@gray, 30);
 
-			&:hover {
-				color: @gray;
-			}
-		}
-	}
+      &:hover {
+        color: @gray;
+      }
+    }
+  }
 
   select {
     margin-bottom: 20px;
   }
 
-	.actions {
-		padding: 20px;
-		border-top: 1px solid lighten(@trim, 4);
-		margin: 0 -20px -20px;
-	}
+  .actions {
+    padding: 20px;
+    border-top: 1px solid lighten(@trim, 4);
+    margin: 0 -20px -20px;
+  }
 }
