@@ -42,9 +42,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     def _parse_date(self, value):
-        return datetime.utcfromtimestamp(float(value)).replace(
-            tzinfo=timezone.utc,
-        )
+        try:
+            return datetime.utcfromtimestamp(float(value)).replace(
+                tzinfo=timezone.utc,
+            )
+        except ValueError:
+            return datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%fZ').replace(
+                tzinfo=timezone.utc,
+            )
 
     # bookmarks=0/1
     # status=<x>
