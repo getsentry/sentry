@@ -5,12 +5,13 @@ configure()
 
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from pytz import utc
 from random import randint
 
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, User, Organization, OrganizationAccessRequest,
+    Activity, User, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Team
 )
 from sentry.utils.samples import create_sample_event
@@ -134,6 +135,16 @@ def main():
             )
 
             event3 = create_sample_event(project, 'java')
+
+            with transaction.atomic():
+                try:
+                    GroupMeta.objects.create(
+                        group=event1.group,
+                        key='github:tid',
+                        value='134',
+                    )
+                except IntegrityError:
+                    pass
 
         OrganizationAccessRequest.objects.create_or_update(
             member=dummy_member,
