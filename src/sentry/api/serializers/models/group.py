@@ -83,7 +83,7 @@ class GroupSerializer(Serializer):
             for plugin in plugins.for_project(project=item.project, version=1):
                 safe_execute(plugin.tags, None, item, annotations)
             for plugin in plugins.for_project(project=item.project, version=2):
-                annotations.extend(safe_execute(plugin.get_annotations, item) or ())
+                annotations.extend(safe_execute(plugin.get_annotations, group=item) or ())
 
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
