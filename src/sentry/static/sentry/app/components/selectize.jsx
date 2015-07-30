@@ -141,7 +141,7 @@ var Selectize = React.createClass({
   render() {
     var opts = {
         ref: 'select',
-        className: "form-control " + (this.props.className || '')
+        className: " " + (this.props.className || '')
     };
     if (this.props.disabled) {
       opts.disabled = true;
@@ -150,11 +150,9 @@ var Selectize = React.createClass({
       opts.multiple = true;
     }
     return (
-      <div className="form-group">
-        <select {...opts}>
-          {this.props.children}
-        </select>
-      </div>
+      <select {...opts}>
+        {this.props.children}
+      </select>
     );
   }
 });
