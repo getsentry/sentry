@@ -4,26 +4,8 @@ var Router = require("react-router");
 var $ = require("jquery");
 
 var api = require("../api");
+var IndicatorStore = require('../stores/indicatorStore');
 var utils = require("../utils");
-
-var RuleNode = React.createClass({
-  propTypes: {
-    type: React.PropTypes.string.isRequired
-  },
-
-  render() {
-    return (
-      <tr>
-        <td></td>
-        <td className="align-right">
-          <button className="btn btn-default btn-sm">
-            <span className="icon-trash"></span>
-          </button>
-        </td>
-      </tr>
-    );
-  }
-});
 
 var RuleNodeList = React.createClass({
   getInitialState() {
@@ -42,17 +24,20 @@ var RuleNodeList = React.createClass({
   onAddRow(e) {
     var $el = $(e.target);
     var nodeId = $el.val();
+
+    $el.val('');
+
     if (!nodeId) return;
+
     this.state.items.push({
       id: nodeId
     });
     this.setState({
       items: this.state.items
     });
-    $el.val('');
   },
 
-  onDeleteRow(idx) {
+  onDeleteRow(idx, e) {
     this.state.items.splice(idx, idx + 1);
     this.setState({
       items: this.state.items
@@ -64,10 +49,8 @@ var RuleNodeList = React.createClass({
   },
 
   render() {
-    var actions = [];
-
     return (
-      <div>
+      <div className={this.props.className}>
         <table className="actions-list table" style={{marginBottom: '10px'}}>
           <col />
           <col style={{ textAlign: 'right'}} />
@@ -75,7 +58,10 @@ var RuleNodeList = React.createClass({
             {this.state.items.map((item, idx) => {
               return (
                 <tr key={idx}>
-                  <td dangerouslySetInnerHTML={{__html: this.getNode(item.id).html}} />
+                  <td className="rule-form">
+                    <input type="hidden" name="id" value={item.id} />
+                    <span dangerouslySetInnerHTML={{__html: this.getNode(item.id).html}} />
+                  </td>
                   <td className="align-right">
                     <a onClick={this.onDeleteRow.bind(this, idx)}><span className="icon-trash" /></a>
                   </td>
@@ -86,7 +72,7 @@ var RuleNodeList = React.createClass({
         </table>
         <fieldset>
           <select onChange={this.onAddRow}>
-            <option key="blank"/>
+            <option key="blank" />
             {this.props.nodes.map((node) => {
               return (
                 <option value={node.id} key={node.id}>{node.label}</option>
@@ -99,35 +85,83 @@ var RuleNodeList = React.createClass({
   }
 });
 
-var RuleName = React.createClass({
-  render() {
-    return (
-      <div>
-        <h6>Rule name:</h6>
-        <input type="text" name="label" className="form-control"
-               placeholder="My Rule Name" defaultValue={this.props.value} />
-        <hr/>
-      </div>
-    );
-  }
-});
-
 var RuleEditor = React.createClass({
   propTypes: {
     actions: React.PropTypes.instanceOf(Array).isRequired,
     conditions: React.PropTypes.instanceOf(Array).isRequired
   },
 
+  getInitialState() {
+    return {
+      loading: false,
+      error: null
+    };
+  },
+
+  serializeNode(node) {
+    var result = {};
+    $(node).find('input, select').each(function() {
+      result[this.name] = $(this).val();
+    });
+    return result;
+  },
+
+  componentDidUpdate() {
+    if (this.state.error) {
+      $(document.body).scrollTop($(this.refs.form.getDOMNode()).offset().top);
+    }
+  },
+
   onSubmit(e) {
     e.preventDefault();
-    throw new Error('TODO: implement saving');
+    var form = $(this.refs.form.getDOMNode());
+    var conditions = [];
+    form.find('.rule-condition-list .rule-form').each((_, el) => {
+      conditions.push(this.serializeNode(el));
+    });
+    var actions = [];
+    form.find('.rule-action-list .rule-form').each((_, el) => {
+      actions.push(this.serializeNode(el));
+    });
+    var actionMatch = $(this.refs.actionMatch.getDOMNode()).val();
+    var name = $(this.refs.name.getDOMNode()).val();
+    var data = {
+      actionMatch: actionMatch,
+      actions: actions,
+      conditions: conditions,
+      name: name
+    };
+    var rule = this.props.rule;
+    var project = this.props.project;
+    var org = this.props.organization;
+    var endpoint = '/projects/' + org.slug + '/' + project.slug + '/rules/' + rule.id + '/';
+
+    var loadingIndicator = IndicatorStore.add('Saving...');
+    api.request(endpoint, {
+      method: "PUT",
+      data: data,
+      success: () => {
+        window.location.href = '../../';
+      },
+      error: (data) => {
+        this.setState({
+          error: data || 'Unknown error',
+          loading: false
+        });
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
   },
 
   render() {
     var rule = this.props.rule;
+    var {loading, error} = this.state;
+    var {actionMatch, actions, conditions, name} = rule;
 
     return (
-      <form onSubmit={this.onSubmit}>
+      <form onSubmit={this.onSubmit} ref="form">
         <div className="box rule-detail">
           <div className="box-header">
             <h3>
@@ -135,26 +169,46 @@ var RuleEditor = React.createClass({
             </h3>
           </div>
           <div className="box-content with-padding">
-            <RuleName value={rule.name} />
+            {error &&
+              <div className="alert alert-block alert-error">
+                <p>There was an error saving your changes. Make sure all fields are valid and try again.</p>
+              </div>
+            }
+            <h6>Rule name:</h6>
+            <input ref="name"
+                   type="text" className="form-control"
+                   defaultValue={name}
+                   required={true}
+                   placeholder="My Rule Name" />
+            <hr/>
             <h6>
               Every time
-              <select name="action_match"
-                      className="select2-small select2-inline">
-                <option value="all" selected={rule.actionMatch === 'all'}>all</option>
-                <option value="any"selected={rule.actionMatch === 'any'}>any</option>
-                <option value="none"selected={rule.actionMatch === 'none'}>none</option>
+              <select ref="actionMatch"
+                      className="select2-small select2-inline"
+                      defaultValue={actionMatch}
+                      required={true}>
+                <option value="all">all</option>
+                <option value="any">any</option>
+                <option value="none">none</option>
               </select>
               of these conditions are met:
             </h6>
 
-            <RuleNodeList nodes={this.props.conditions} initialItems={rule.conditions} />
+            <RuleNodeList nodes={this.props.conditions}
+              initialItems={conditions}
+              className="rule-condition-list"
+              onChange={this.onConditionsChange} />
 
             <h6>Take these actions:</h6>
 
-            <RuleNodeList nodes={this.props.actions} initialItems={rule.actions} />
+            <RuleNodeList nodes={this.props.actions}
+              initialItems={actions}
+              className="rule-action-list"
+              onChange={this.onActionsChange} />
 
             <div className="actions">
-              <button className="btn btn-primary btn-lg">Save Rule</button>
+              <button className="btn btn-primary btn-lg"
+                      disabled={loading}>Save Rule</button>
             </div>
           </div>
         </div>
