@@ -20,7 +20,7 @@ var Selectize = React.createClass({
 
       // Component options
       value: '',
-      handleChange: $.noop
+      onChange: $.noop
     };
   },
 
@@ -111,14 +111,14 @@ var Selectize = React.createClass({
     return false;
   },
 
-  onChange(value) {
+  onChange(...args) {
     // Because handleChange often triggers state
     // changes in containing components, we need to
     // make sure that we're not currently updating from
     // within another state change (otherwise react
     // will throw an InvariantError).
     if (!this._updating) {
-      this.props.handleChange(value);
+      this.props.onChange.call(this, this.selectize, ...args);
     }
   },
 
@@ -149,7 +149,13 @@ var Selectize = React.createClass({
     if (this.props.multiple) {
       opts.multiple = true;
     }
-    return <div className="form-group"><select {...opts} /></div>;
+    return (
+      <div className="form-group">
+        <select {...opts}>
+          {this.props.children}
+        </select>
+      </div>
+    );
   }
 });
 
@@ -198,10 +204,11 @@ const selectizeOptNames = [
 ];
 
 var handledProps = {
+  children:     true,
   value:        true,
   disabled:     true,
   placeholder:  true,
-  handleChange: true,
+  onChange:     true,
   options:      true,
 };
 
