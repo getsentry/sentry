@@ -5,7 +5,31 @@ var $ = require("jquery");
 
 var api = require("../api");
 var IndicatorStore = require('../stores/indicatorStore');
+var Selectize = require("../components/selectize");
 var utils = require("../utils");
+
+var RuleNode = React.createClass({
+  componentDidMount() {
+    $(this.refs.html.getDOMNode()).find('select').selectize();
+  },
+
+  render() {
+    var {id, node} = this.props;
+    return (
+      <tr>
+        <td className="rule-form">
+          <input type="hidden" name="id" value={id} />
+          <span ref="html" dangerouslySetInnerHTML={{__html: node.html}} />
+        </td>
+        <td className="align-right">
+          <a onClick={this.props.onDelete}>
+            <span className="icon-trash" />
+          </a>
+        </td>
+      </tr>
+    );
+  }
+});
 
 var RuleNodeList = React.createClass({
   getInitialState() {
@@ -21,13 +45,10 @@ var RuleNodeList = React.createClass({
     });
   },
 
-  onAddRow(e) {
-    var $el = $(e.target);
-    var nodeId = $el.val();
-
-    $el.val('');
-
+  onAddRow(sel, nodeId) {
     if (!nodeId) return;
+
+    sel.setValue('', true);
 
     this.state.items.push({
       id: nodeId
@@ -57,28 +78,23 @@ var RuleNodeList = React.createClass({
           <tbody>
             {this.state.items.map((item, idx) => {
               return (
-                <tr key={idx}>
-                  <td className="rule-form">
-                    <input type="hidden" name="id" value={item.id} />
-                    <span dangerouslySetInnerHTML={{__html: this.getNode(item.id).html}} />
-                  </td>
-                  <td className="align-right">
-                    <a onClick={this.onDeleteRow.bind(this, idx)}><span className="icon-trash" /></a>
-                  </td>
-                </tr>
+                <RuleNode key={idx}
+                  id={item.id}
+                  node={this.getNode(item.id)}
+                  onDelete={this.onDeleteRow.bind(this, idx)} />
               );
             })}
           </tbody>
         </table>
         <fieldset>
-          <select onChange={this.onAddRow}>
+          <Selectize onChange={this.onAddRow}>
             <option key="blank" />
             {this.props.nodes.map((node) => {
               return (
                 <option value={node.id} key={node.id}>{node.label}</option>
               );
             })}
-          </select>
+          </Selectize>
         </fieldset>
       </div>
     );
@@ -183,14 +199,14 @@ var RuleEditor = React.createClass({
             <hr/>
             <h6>
               Every time
-              <select ref="actionMatch"
+              <Selectize ref="actionMatch"
                       className="selectize-inline"
                       defaultValue={actionMatch}
                       required={true}>
                 <option value="all">all</option>
                 <option value="any">any</option>
                 <option value="none">none</option>
-              </select>
+              </Selectize>
               of these conditions are met:
             </h6>
 
