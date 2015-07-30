@@ -89,6 +89,9 @@ SENTRY_REDIS_OPTIONS = {
 # Cache #
 #########
 
+# Sentry currently utilizes two separate mechanisms. While CACHES is not a
+# requirement, it will optimize several high throughput patterns.
+
 # If you wish to use memcached, install the dependencies and adjust the config
 # as shown:
 #
@@ -100,9 +103,8 @@ SENTRY_REDIS_OPTIONS = {
 #         'LOCATION': ['127.0.0.1:11211'],
 #     }
 # }
-#
-# SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
 
+# A primary cache is required for things such as processing events
 SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 
 #########

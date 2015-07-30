@@ -106,7 +106,7 @@ class RavenIntegrationTest(TransactionTestCase):
             data=data,
             content_type=content_type,
             **headers)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        assert resp.status_code == 200, resp.content
 
     @mock.patch('raven.base.Client.send_remote')
     def test_basic(self, send_remote):
@@ -120,11 +120,11 @@ class RavenIntegrationTest(TransactionTestCase):
             client.capture('Message', message='foo')
 
         send_remote.assert_called_once()
-        self.assertEquals(Group.objects.count(), 1)
+        assert Group.objects.count() == 1
         group = Group.objects.get()
-        self.assertEquals(group.event_set.count(), 1)
+        assert group.event_set.count() == 1
         instance = group.event_set.get()
-        self.assertEquals(instance.message, 'foo')
+        assert instance.message == 'foo'
 
 
 class SentryRemoteTest(TestCase):
@@ -148,63 +148,63 @@ class SentryRemoteTest(TestCase):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
         resp = self._postWithSignature(kwargs)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
-        self.assertEquals(instance.message, 'hello')
-        self.assertEquals(instance.datetime, timestamp)
+        assert instance.message == 'hello'
+        assert instance.datetime == timestamp
         group = instance.group
-        self.assertEquals(group.first_seen, timestamp)
-        self.assertEquals(group.last_seen, timestamp)
+        assert group.first_seen == timestamp
+        assert group.last_seen == timestamp
 
     def test_timestamp_as_iso(self):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
         resp = self._postWithSignature(kwargs)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
-        self.assertEquals(instance.message, 'hello')
-        self.assertEquals(instance.datetime, timestamp)
+        assert instance.message == 'hello'
+        assert instance.datetime == timestamp
         group = instance.group
-        self.assertEquals(group.first_seen, timestamp)
-        self.assertEquals(group.last_seen, timestamp)
+        assert group.first_seen == timestamp
+        assert group.last_seen == timestamp
 
     def test_ungzipped_data(self):
         kwargs = {'message': 'hello'}
         resp = self._postWithSignature(kwargs)
-        self.assertEquals(resp.status_code, 200)
+        assert resp.status_code == 200
         instance = Event.objects.get()
-        self.assertEquals(instance.message, 'hello')
+        assert instance.message == 'hello'
 
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
     def test_correct_data_with_get(self):
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
-        self.assertEquals(instance.message, 'hello')
+        assert instance.message == 'hello'
 
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
     def test_get_without_referer(self):
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        self.assertEquals(resp.status_code, 400, resp.content)
+        assert resp.status_code == 403, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        self.assertEquals(resp.status_code, 200, resp.content)
+        assert resp.status_code == 200, resp.content
 
     def test_signature(self):
         kwargs = {'message': 'hello'}
 
         resp = self._postWithSignature(kwargs)
 
-        self.assertEquals(resp.status_code, 200, resp.content)
+        assert resp.status_code == 200, resp.content
 
         instance = Event.objects.get()
 
-        self.assertEquals(instance.message, 'hello')
+        assert instance.message == 'hello'
 
     def test_content_encoding_deflate(self):
         kwargs = {'message': 'hello'}
