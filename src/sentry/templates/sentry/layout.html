@@ -317,6 +317,10 @@
       $('.project-dropdown').on('shown.bs.dropdown', function(event){
         $(event.target).find('input[type=text]').focus();
       });
+
+      $(function() {
+        $('select').selectize();
+      });
     });
     $(function() {
 
