@@ -7,6 +7,14 @@ $(function(){
   }), document.getElementById('blk_alerts'));
 });
 </script>
+<div id="blk_indicators"></div>
+<script>
+$(function(){
+  React.render(React.createFactory(Sentry.Indicators)({
+     className: "indicators-container"
+  }), document.getElementById('blk_indicators'));
+});
+</script>
 {% if messages %}
   <div id="messages">
     {% for message in messages %}
