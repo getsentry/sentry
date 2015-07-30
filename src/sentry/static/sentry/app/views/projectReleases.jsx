@@ -33,7 +33,7 @@ var ReleaseList = React.createClass({
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                     </div>
                   </div>
-                  <div className="col-md-5 col-sm-6 col-xs-6 release-stats">
+                  <div className="col-md-5 col-sm-6 col-xs-6 release-stats stream-count">
                     <Count className="release-count" value={release.newGroups} />
                   </div>
                 </div>
