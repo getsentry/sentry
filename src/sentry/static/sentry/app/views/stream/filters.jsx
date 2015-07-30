@@ -87,9 +87,6 @@ var StreamFilters = React.createClass({
               <li className="highlight">
                 <SortOptions />
               </li>
-              <li className="highlight">
-                <DateSelector defaultDateFrom={this.props.defaultDateFrom} />
-              </li>
             </ul>
           </div>
           <div className="col-sm-4">
