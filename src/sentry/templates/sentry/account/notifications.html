@@ -19,22 +19,6 @@
         padding-bottom: 10px;
     }
     </style>
-    <script>
-    $(function(){
-        $('form a[data-toggle=change-target-value]').click(function(){
-            var $this = $(this);
-            var $target = $('#' + $this.data('target'));
-            var result = window.prompt('Enter an email address', $target.val());
-            $target.val(result || '');
-            if (result !== null) {
-                $this.text(result);
-            } else {
-                $this.html('<em>default</em>');
-            }
-        })
-    });
-    </script>
-
     <form action="" method="post">
         {% csrf_token %}
 
@@ -68,7 +52,7 @@
 
                             <thead>
                                 <tr>
-                                    <th style="width:5px"><input type="checkbox" onclick="$('tbody input[type=checkbox]', $(this).parents('table')).attr('checked', this.checked)"></th>
+                                    <th style="width:5px"><input type="checkbox" data-action="check-all-projects" /></th>
                                     <th>{% trans "Project Name" %}</th>
                                     <th style="width:100px;overflow:hidden;text-align:right">
                                         {% trans "Email Address" %}</th>
@@ -80,7 +64,9 @@
                         <td>{{ form.alert }}</td>
                         <td><label for="{{ form.alert.auto_id }}">{{ project.name }}</label></td>
                         <td style="text-align:right">
-                            <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">{% if form.email.value %}{{ form.email.value }}{% else %}<em>default</em>{% endif %}</a>
+                            <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">
+                                {% if form.email.value %}{{ form.email.value }}{% else %}<em>default</em>{% endif %}
+                            </a>
                             {{ form.email }}
                         </td>
                     </tr>
@@ -105,4 +91,22 @@
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
     </form>
+    <script>
+    $(function(){
+        $('form a[data-toggle="change-target-value"]').click(function(){
+            var $this = $(this);
+            var $target = $('#' + $this.data('target'));
+            var result = window.prompt('Enter an email address', $target.val());
+            $target.val(result || '');
+            if (result) {
+                $this.text(result);
+            } else {
+                $this.html('<em>default</em>');
+            }
+        });
+        $('input[data-action="check-all-projects"').click(function(){
+            $(this).parents('table').find('tbody input[type=checkbox]').prop('checked', $(this).prop('checked'))
+        });
+    });
+    </script>
 {% endblock %}
