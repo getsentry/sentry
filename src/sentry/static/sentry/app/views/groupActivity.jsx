@@ -163,13 +163,14 @@ var GroupActivity = React.createClass({
       var label = formatActivity(item);
 
       if (item.type === 'note') {
+        var noteBody = utils.nl2br(utils.urlize(utils.escape(item.data.text)));
         return (
           <li className="activity-note" key={itemIdx}>
             {avatar}
             <div className="activity-bubble">
               <TimeSince date={item.dateCreated} />
               <div className="activity-author">{authorName}</div>
-              <p>{ utils.nl2br(utils.urlize(utils.escape(item.data.text))) }</p>
+              <p dangerouslySetInnerHTML={{__html: noteBody}} />
             </div>
           </li>
         );
