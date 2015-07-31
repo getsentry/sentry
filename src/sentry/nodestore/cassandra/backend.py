@@ -11,6 +11,7 @@ from __future__ import absolute_import, print_function
 import casscache
 
 from sentry.nodestore.base import NodeStorage
+from sentry.utils.cache import memoize
 
 
 class CassandraNodeStorage(NodeStorage):
@@ -25,22 +26,29 @@ class CassandraNodeStorage(NodeStorage):
     """
     def __init__(self, servers, keyspace='sentry',
                  columnfamily='nodestore', **kwargs):
-        self.conn = casscache.Client(
-            servers=servers,
-            keyspace=keyspace,
-            columnfamily=columnfamily,
-            **kwargs
+        self.servers = servers
+        self.keyspace = keyspace
+        self.columnfamily = columnfamily
+        self.options = kwargs
+        super(CassandraNodeStorage, self).__init__()
+
+    @memoize
+    def connection(self):
+        return casscache.Client(
+            servers=self.servers,
+            keyspace=self.keyspace,
+            columnfamily=self.columnfamily,
+            **self.options
         )
-        super(CassandraNodeStorage, self).__init__(**kwargs)
 
     def delete(self, id):
-        self.conn.delete(id)
+        self.connection.delete(id)
 
     def get(self, id):
-        return self.conn.get(id)
+        return self.connection.get(id)
 
     def get_multi(self, id_list):
-        return self.conn.get_multi(id_list)
+        return self.connection.get_multi(id_list)
 
     def set(self, id, data):
-        self.conn.set(id, data)
+        self.connection.set(id, data)
