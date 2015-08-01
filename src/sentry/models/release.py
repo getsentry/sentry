@@ -86,3 +86,8 @@ class Release(Model):
             cache.set(cache_key, release, 3600)
 
         return release
+
+    def short_version(self):
+        if len(self.version) == 40:
+            return self.version[:12]
+        return self.version
