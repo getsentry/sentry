@@ -168,11 +168,6 @@ class Activity(Model):
                     version=self.data['version'],
                     project=project,
                 ),
-                'release_link': absolute_uri(reverse('sentry-release-details', kwargs={
-                    'organization_slug': org.slug,
-                    'project_id': project.slug,
-                    'version': self.data['version'],
-                })),
             })
 
         template_name = self.get_type_display()

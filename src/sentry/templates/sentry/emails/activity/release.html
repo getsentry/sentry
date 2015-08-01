@@ -3,7 +3,6 @@
 {% load sentry_helpers %}
 
 {% block header %}
-    <a href="{{ release_link }}" class="btn">View Release</a>
     <h1>Sentry <small>New Release of <a href="{{ project_link }}">{{ project.name }}</a></small></h1>
 {% endblock %}
 
@@ -11,5 +10,5 @@
     <h2>
         Version {{ release.short_version }}
     </h2>
-    <p><a href="{{ release_link }}" class="highlight">{{ release.short_version }}</a> was released for <a href="{{ project_link }}">{{ project.name }}</a> on {{ release.date_added }}</p>
+    <p><a class="highlight">{{ release.short_version }}</a> was released for <a href="{{ project_link }}">{{ project.name }}</a> on {{ release.date_added }}</p>
 {% endblock %}
