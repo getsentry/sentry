@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import traceback
 
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
@@ -26,7 +27,11 @@ class MailPreview(object):
         return render_to_string(self.text_template, self.context)
 
     def html_body(self):
-        return inline_css(render_to_string(self.html_template, self.context))
+        try:
+            return inline_css(render_to_string(self.html_template, self.context))
+        except Exception:
+            traceback.print_exc()
+            raise
 
 
 @login_required
