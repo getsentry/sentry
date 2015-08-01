@@ -88,12 +88,15 @@ if settings.DEBUG:
     import sentry.web.frontend.debug.mail
     from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
     from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
+    from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 
     urlpatterns += patterns('',
         url(r'^debug/mail/new-event/$',
             sentry.web.frontend.debug.mail.new_event),
         url(r'^debug/mail/new-note/$',
             sentry.web.frontend.debug.mail.new_note),
+        url(r'^debug/mail/new-release/$',
+            DebugNewReleaseEmailView.as_view()),
         url(r'^debug/mail/request-access/$',
             sentry.web.frontend.debug.mail.request_access),
         url(r'^debug/mail/access-approved/$',
