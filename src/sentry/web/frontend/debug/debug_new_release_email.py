@@ -49,8 +49,8 @@ class DebugNewReleaseEmailView(View):
         }))
 
         preview = MailPreview(
-            html_template='sentry/emails/new-release.html',
-            text_template='sentry/emails/new-release.txt',
+            html_template='sentry/emails/activity/release.html',
+            text_template='sentry/emails/activity/release.txt',
             context={
                 'release': release,
                 'project': project,
