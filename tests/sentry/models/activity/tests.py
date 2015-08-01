@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+
 from django.core import mail
 
-from sentry.models import Activity
+from sentry.models import Activity, Release
 from sentry.testutils import TestCase
 
 
 class SendNotificationTest(TestCase):
-    def test_simple(self):
+    def test_note(self):
         user_foo = self.create_user('foo@example.com')
 
         activity = Activity.objects.create(
@@ -33,3 +35,33 @@ class SendNotificationTest(TestCase):
         assert msg.extra_headers['Message-Id'] == '<activity/%s@localhost>' % activity.pk
         assert msg.extra_headers['In-Reply-To'] == '<group/%s@localhost>' % self.group.pk
         assert msg.extra_headers['References'] == '<group/%s@localhost>' % self.group.pk
+
+    def test_release(self):
+        user_foo = self.create_user('foo@example.com')
+
+        release = Release.objects.create(
+            project=self.project,
+            version='a' * 40,
+        )
+
+        activity = Activity.objects.create(
+            project=self.project,
+            type=Activity.RELEASE,
+            user=user_foo,
+            event=self.create_event('a' * 32, group=self.group),
+            data={
+                'version': release.version,
+            },
+        )
+
+        self.project.team.organization.member_set.create(user=user_foo)
+
+        with self.tasks():
+            activity.send_notification()
+
+        assert len(mail.outbox) == 1
+
+        msg = mail.outbox[0]
+
+        assert msg.subject == '[Sentry] Release %s' % (release.version,)
+        assert msg.to == [self.user.email]
