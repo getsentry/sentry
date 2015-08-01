@@ -87,6 +87,7 @@ class Release(Model):
 
         return release
 
+    @property
     def short_version(self):
         if len(self.version) == 40:
             return self.version[:12]
