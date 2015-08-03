@@ -34,13 +34,17 @@ handler500 = Error500View.as_view()
 
 
 def handler_healthcheck(request):
-    if request.GET.get('full'):
+    problems, checks = status_checks.check_all()
 
-        problems, checks = status_checks.check_all()
+    if request.GET.get('full'):
         return HttpResponse(json.dumps({
             'problems': map(unicode, problems),
             'healthy': checks,
         }), content_type='application/json', status=(500 if problems else 200))
+    elif problems:
+        return handler500(request)
+    else:
+        return HttpResponse('ok')
 
 
 urlpatterns = patterns('',
