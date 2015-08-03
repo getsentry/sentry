@@ -106,7 +106,7 @@ var ProjectSelector = React.createClass({
           activeTeam = team;
           activeProject = project;
         }
-        var fullName = team.name + ' ' + project.name + ' ' + team.slug + ' ' + project.slug;
+        var fullName = [team.name, project.name, team.slug, project.slug].join(' ').toLowerCase();
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
