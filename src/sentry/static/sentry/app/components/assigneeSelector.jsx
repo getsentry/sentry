@@ -26,7 +26,7 @@ var AssigneeSelector = React.createClass({
     return {
       assignedTo: group.assignedTo,
       memberList: MemberListStore.getAll(),
-      filterQuery: '',
+      filter: '',
       loading: false
     };
   },
@@ -45,7 +45,7 @@ var AssigneeSelector = React.createClass({
 
   // TODO(dcramer): this should check changes in member list
   shouldComponentUpdate(nextProps, nextState) {
-    if (nextState.filterQuery !== this.state.filterQuery) {
+    if (nextState.filter !== this.state.filter) {
       return true;
     }
     if (nextState.loading !== this.state.loading) {
@@ -67,17 +67,17 @@ var AssigneeSelector = React.createClass({
 
   assignTo(member) {
     api.assignTo({id: this.props.id, email: member.email});
-    this.setState({filterQuery: '', loading: true});
+    this.setState({filter: '', loading: true});
   },
 
   clearAssignTo() {
     api.assignTo({id: this.props.id, email: ''});
-    this.setState({filterQuery: '', loading: true});
+    this.setState({filter: '', loading: true});
   },
 
-  onChangeFilter() {
+  onFilterChange() {
     this.setState({
-      filterQuery: event.target.value
+      filter: event.target.value
     });
   },
 
@@ -87,13 +87,40 @@ var AssigneeSelector = React.createClass({
 
   onDropdownClose() {
     this.setState({
-      filterQuery: ''
+      filter: ''
     });
+  },
+
+  highlight(text, highlightText) {
+    if (!highlightText) {
+      return text;
+    }
+    highlightText = highlightText.toLowerCase();
+    var idx = text.toLowerCase().indexOf(highlightText);
+    if (idx === -1) {
+      return text;
+    }
+    return (
+      <span>
+        {text.substr(0, idx)}
+        <strong className="highlight">
+          {text.substr(idx, highlightText.length)}
+        </strong>
+        {text.substr(idx + highlightText.length)}
+      </span>
+    );
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
+    var node = jQuery(this.refs.container.getDOMNode());
+    node.hide().show(0);
   },
 
   render() {
     var loading = this.state.loading;
     var assignedTo = this.state.assignedTo;
+    var filter = this.state.filter;
 
     var className = "assignee-selector anchor-right";
     if (!assignedTo) {
@@ -102,47 +129,54 @@ var AssigneeSelector = React.createClass({
 
     var memberNodes = [];
     this.state.memberList.forEach(function(item){
+      var fullName = [item.name, item.email].join(' ').toLowerCase();
+      if (filter && fullName.indexOf(filter) === -1) {
+        return;
+      }
       memberNodes.push(
         <MenuItem key={item.id}
                   disabled={!loading}
                   onSelect={this.assignTo.bind(this, item)} >
           <Gravatar email={item.email} className="avatar"
                     size={48} />
-          {item.name || item.email}
+          {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
       );
     }.bind(this));
 
     return (
-      <div className={className}>
-        {loading ?
-          <LoadingIndicator mini={true} />
-        :
-          <DropdownLink
-            className="assignee-selector-toggle"
-            onOpen={this.onDropdownOpen}
-            onClose={this.onDropdownClose}
-            title={assignedTo ?
-              <Gravatar email={assignedTo.email} className="avatar"
-                        size={48} />
-              :
-              <span className="icon-user" />
-            }>
-            <MenuItem noAnchor={true} key="filter">
-              <input type="text" className="form-control input-sm"
-                     placeholder="Filter people" ref="filter" />
-            </MenuItem>
-            {assignedTo ?
-              <MenuItem key="clear"
-                        className="clear-assignee"
-                        disabled={!loading}
-                        onSelect={this.clearAssignTo}>
-                <span className="icon-close"/> Clear Assignee
+      <div ref="container">
+        <div className={className}>
+          {loading ?
+            <LoadingIndicator mini={true} />
+          :
+            <DropdownLink
+              className="assignee-selector-toggle"
+              onOpen={this.onDropdownOpen}
+              onClose={this.onDropdownClose}
+              title={assignedTo ?
+                <Gravatar email={assignedTo.email} className="avatar"
+                          size={48} />
+                :
+                <span className="icon-user" />
+              }>
+              <MenuItem noAnchor={true} key="filter">
+                <input type="text" className="form-control input-sm"
+                       placeholder="Filter people" ref="filter"
+                       onKeyUp={this.onFilterChange} />
               </MenuItem>
-            : ''}
-            {memberNodes}
-          </DropdownLink>
-        }
+              {assignedTo ?
+                <MenuItem key="clear"
+                          className="clear-assignee"
+                          disabled={!loading}
+                          onSelect={this.clearAssignTo}>
+                  <span className="icon-close"/> Clear Assignee
+                </MenuItem>
+              : ''}
+              {memberNodes}
+            </DropdownLink>
+          }
+        </div>
       </div>
     );
   }
