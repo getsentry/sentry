@@ -6,6 +6,7 @@ import raven
 import sentry
 
 from django.conf import settings
+from django.db.utils import DatabaseError
 from raven.contrib.django.client import DjangoClient
 
 from . import metrics
@@ -56,6 +57,9 @@ class SentryInternalClient(DjangoClient):
 
         try:
             project = Project.objects.get_from_cache(id=settings.SENTRY_PROJECT)
+        except DatabaseError:
+            self.error_logger.error('Unable to fetch internal project',
+                                    exc_info=True)
         except Project.DoesNotExist:
             self.error_logger.error('Internal project (id=%s) does not exist',
                                     settings.SENTRY_PROJECT)
