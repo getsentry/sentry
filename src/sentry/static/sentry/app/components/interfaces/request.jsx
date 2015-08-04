@@ -117,7 +117,7 @@ var CurlHttpContent = React.createClass({
       result += ' \\\n  --data "' + this.escapeQuotes(jQuery.param(data.data)) + '"';
     }
     result += ' \\\n ' + data.url;
-    if (defined(data.query)) {
+    if (defined(data.query) && data.query) {
       result += '?' + data.query;
     }
     return result;
