@@ -69,7 +69,7 @@ var StreamFilters = React.createClass({
     return (
       <div className="filter-nav stream-header">
         <div className="row">
-          <div className="col-sm-8 primary-filters">
+          <div className="col-sm-7 primary-filters">
             <ul className="nav nav-tabs">
               <FilterSelectLink label="All Events"
                 isActive={activeButton === 'all'}
@@ -89,7 +89,7 @@ var StreamFilters = React.createClass({
               </li>
             </ul>
           </div>
-          <div className="col-sm-4">
+          <div className="col-sm-5">
             <SearchBar defaultQuery={this.props.defaultQuery}
               query={this.props.query}
               onQueryChange={this.props.onQueryChange}
