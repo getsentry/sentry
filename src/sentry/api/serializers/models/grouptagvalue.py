@@ -20,8 +20,12 @@ class GroupTagValueSerializer(Serializer):
 
         result = {}
         for item in item_list:
+            try:
+                label = tagvalues[item.value].get_label()
+            except KeyError:
+                label = item.value.replace('_', ' ').title()
             result[item] = {
-                'name': tagvalues[item.value].get_label(),
+                'name': label,
             }
         return result
 
