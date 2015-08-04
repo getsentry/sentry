@@ -9,10 +9,6 @@ class InvalidInterface(InvalidData):
     pass
 
 
-class InvalidTimestamp(InvalidData):
-    pass
-
-
 class InvalidRequest(Exception):
     pass
 
