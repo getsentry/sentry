@@ -222,8 +222,9 @@ class ClientApiHelper(object):
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
             self.log.info(unicode(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)',
-                           type(e).__name__, e)
+            raise APIError('Bad data decoding request (%s, %s)' % (
+                type(e).__name__, e
+            ))
 
     def decompress_gzip(self, encoded_data):
         try:
@@ -237,8 +238,9 @@ class ClientApiHelper(object):
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
             self.log.info(unicode(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' % (
-                           type(e).__name__, e))
+            raise APIError('Bad data decoding request (%s, %s)' %
+                (type(e).__name__, e)
+            )
 
     def decode_and_decompress_data(self, encoded_data):
         try:
@@ -250,8 +252,9 @@ class ClientApiHelper(object):
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
             self.log.info(unicode(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)',
-                           type(e).__name__, e)
+            raise APIError('Bad data decoding request (%s, %s)' %
+                (type(e).__name__, e)
+            )
 
     def safely_load_json_string(self, json_string):
         try:
@@ -260,8 +263,9 @@ class ClientApiHelper(object):
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
             self.log.info(unicode(e), exc_info=True)
-            raise APIError('Bad data reconstructing object (%s, %s)',
-                           type(e).__name__, e)
+            raise APIError('Bad data reconstructing object (%s, %s)' %
+                (type(e).__name__, e)
+            )
 
         # XXX: ensure keys are coerced to strings
         return dict((smart_str(k), v) for k, v in obj.iteritems())
