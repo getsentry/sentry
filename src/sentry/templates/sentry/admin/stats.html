@@ -8,15 +8,19 @@
 {% block title %}{% trans "Overview" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-  <div class="page-header">
-    <h2>{% trans "System Overview" %}</h2>
-  </div>
+  <h3>{% trans "System Overview" %}</h3>
 
-  <h3>
-    Event Throughput
-    <small id="rate" class="pull-right"></small>
-  </h3>
-  <div id="blk_chart" style="height:250px"></div>
+  <div class="box">
+    <div class="box-header">
+      <h4>
+        Event Throughput
+        <span id="rate" class="pull-right"></span>
+      </h4>
+    </div>
+    <div class="box-content with-padding">
+      <div id="blk_chart" style="height:250px"></div>
+    </div>
+  </div>
 
   <script>
   $(function(){
