@@ -148,6 +148,7 @@ class Activity(Model):
         context = {
             'data': self.data,
             'author': author,
+            'project': self.project,
             'project_link': absolute_uri(reverse('sentry-stream', kwargs={
                 'organization_slug': org.slug,
                 'project_id': project.slug,
