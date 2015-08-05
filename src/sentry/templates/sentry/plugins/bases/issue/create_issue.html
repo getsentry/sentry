@@ -10,8 +10,6 @@
         <h3>{{ title }}</h3>
     </div>
 
-    {{ form|as_crispy_errors }}
-
     <form class="form-stacked" action="" method="post">
         {% csrf_token %}
         {{ form|as_crispy_errors }}

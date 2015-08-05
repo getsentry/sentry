@@ -58,6 +58,11 @@ class User(BaseModel, AbstractBaseUser):
         verbose_name = _('user')
         verbose_name_plural = _('users')
 
+    def delete(self):
+        if self.username == 'sentry':
+            raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
+        return super(User, self).delete()
+
     def save(self, *args, **kwargs):
         if not self.username:
             self.username = self.email

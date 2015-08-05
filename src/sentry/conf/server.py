@@ -455,7 +455,12 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
-        }
+        },
+        'console:api': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'client_info',
+        },
     },
     'filters': {
         'sentry:internal': {
@@ -467,7 +472,7 @@ LOGGING = {
             'format': '[%(levelname)s] %(message)s',
         },
         'client_info': {
-            'format': '[%(levelname)s] %(project_slug)s/%(team_slug)s %(message)s',
+            'format': '[%(levelname)s] [%(project)s] [%(agent)s] %(message)s',
         },
     },
     'root': {
@@ -477,8 +482,9 @@ LOGGING = {
         'sentry': {
             'level': 'ERROR',
         },
-        'sentry.coreapi': {
-            'formatter': 'client_info',
+        'sentry.api': {
+            'handlers': ['console:api', 'sentry'],
+            'propagate': False,
         },
         'sentry.errors': {
             'handlers': ['console'],
@@ -707,7 +713,6 @@ SENTRY_PUBLIC_ENDPOINT = None
 
 # Early draft features. Not slated or public release yet.
 SENTRY_ENABLE_EXPLORE_CODE = False
-SENTRY_ENABLE_EXPLORE_USERS = True
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
 # size in characters

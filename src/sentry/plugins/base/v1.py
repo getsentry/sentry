@@ -204,7 +204,7 @@ class IPlugin(local, PluggableViewMixin):
 
         >>> def get_resource_links(self):
         >>>     return [
-        >>>         ('Documentation', 'http://sentry.readthedocs.org'),
+        >>>         ('Documentation', 'https://docs.getsentry.com'),
         >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
         >>>         ('Source', 'https://github.com/getsentry/sentry'),
         >>>     ]

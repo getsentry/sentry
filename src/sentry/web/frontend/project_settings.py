@@ -173,7 +173,7 @@ class ProjectSettingsView(ProjectView):
         return EditProjectForm(
             request, organization, team_list, request.POST or None,
             instance=project, initial={
-                'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
+                'origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
                 'token': security_token,
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),

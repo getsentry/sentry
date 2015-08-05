@@ -48,23 +48,12 @@ class PostProcessGroupTest(TestCase):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
 
-        with self.settings(SENTRY_ENABLE_EXPLORE_USERS=False):
-            post_process_group(
-                event=event,
-                is_new=True,
-                is_regression=False,
-                is_sample=False,
-            )
-
-        assert not mock_record_affected_user.delay.called
-
-        with self.settings(SENTRY_ENABLE_EXPLORE_USERS=True):
-            post_process_group(
-                event=event,
-                is_new=True,
-                is_regression=False,
-                is_sample=False,
-            )
+        post_process_group(
+            event=event,
+            is_new=True,
+            is_regression=False,
+            is_sample=False,
+        )
 
         mock_record_affected_user.delay.assert_called_once_with(
             event=event,

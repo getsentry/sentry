@@ -28,7 +28,6 @@ from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH
 )
-from sentry.exceptions import InvalidTimestamp
 from sentry.interfaces.base import get_interface
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
@@ -37,19 +36,19 @@ from sentry.utils.auth import parse_auth_header
 from sentry.utils.compat import StringIO
 from sentry.utils.strings import decompress
 
-
-logger = logging.getLogger('sentry.coreapi')
-
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
 
 class APIError(Exception):
     http_status = 400
     msg = 'Invalid request'
+    name = None
 
-    def __init__(self, msg=None):
+    def __init__(self, msg=None, name=None):
         if msg:
             self.msg = msg
+        if self.name:
+            self.name = name
 
     def __str__(self):
         return self.msg or ''
@@ -64,343 +63,402 @@ class APIForbidden(APIError):
     http_status = 403
 
 
-class APITimestampExpired(APIError):
-    http_status = 410
-
-
 class APIRateLimited(APIError):
     http_status = 429
-    msg = 'Creation of this event was denied due to rate limiting.'
+    msg = 'Creation of this event was denied due to rate limiting'
+    name = 'rate_limit'
 
     def __init__(self, retry_after=None):
         self.retry_after = retry_after
 
 
-def client_metadata(client=None, project=None, exception=None, tags=None, extra=None):
-    if not extra:
-        extra = {}
-    if not tags:
-        tags = {}
-
-    extra['client'] = client
-    extra['request'] = env.request
-    extra['tags'] = tags
-    if project:
-        extra['project_slug'] = project.slug
-        extra['project_id'] = project.id
-        if project.team:
-            extra['team_slug'] = project.team.slug
-            extra['team_id'] = project.team.id
-        if project.organization:
-            extra['organization_slug'] = project.organization.slug
-            extra['organization_id'] = project.organization.id
-
-    tags['client'] = client
-    if exception:
-        tags['exc_type'] = type(exception).__name__
-    if project and project.organization:
-        tags['project'] = '%s/%s' % (project.organization.slug, project.slug)
-
-    result = {'extra': extra}
-    if exception:
-        result['exc_info'] = True
-    return result
+class InvalidTimestamp(Exception):
+    pass
 
 
-def extract_auth_vars(request):
-    if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
-        return parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
-    elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
-        return parse_auth_header(request.META['HTTP_AUTHORIZATION'])
-    else:
-        return dict(
-            (k, request.GET[k])
-            for k in request.GET.iterkeys()
-            if k.startswith('sentry_')
-        )
+class Auth(object):
+    def __init__(self, auth_vars, is_public=False):
+        self.client = auth_vars.get('sentry_client')
+        self.version = str(auth_vars.get('sentry_version'))
+        self.secret_key = auth_vars.get('sentry_secret')
+        self.public_key = auth_vars.get('sentry_key')
+        self.is_public = is_public
 
 
-def project_from_auth_vars(auth_vars):
-    api_key = auth_vars.get('sentry_key')
-    if not api_key:
-        raise APIForbidden('Invalid api key')
-    try:
-        pk = ProjectKey.objects.get_from_cache(public_key=api_key)
-    except ProjectKey.DoesNotExist:
-        raise APIForbidden('Invalid api key')
+class ClientContext(object):
+    def __init__(self, agent=None, version=None, project_id=None,
+                 ip_address=None):
+        # user-agent (i.e. raven-python)
+        self.agent = agent
+        # protocol version
+        self.version = version
+        # project instance
+        self.project_id = project_id
+        self.project = None
+        self.ip_address = ip_address
 
-    if not constant_time_compare(pk.secret_key, auth_vars.get('sentry_secret', pk.secret_key)):
-        raise APIForbidden('Invalid api key')
+    def bind_project(self, project):
+        self.project = project
+        self.project_id = project.id
 
-    if not pk.is_active:
-        raise APIForbidden('API key is disabled')
+    def bind_auth(self, auth):
+        self.agent = auth.client
+        self.version = auth.version
 
-    if not pk.roles.store:
-        raise APIForbidden('Key does not allow event storage access')
-
-    project = Project.objects.get_from_cache(pk=pk.project_id)
-
-    return project
-
-
-def decompress_deflate(encoded_data):
-    try:
-        return zlib.decompress(encoded_data)
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.info(e, **client_metadata(exception=e))
-        raise APIForbidden('Bad data decoding request (%s, %s)' % (
-            e.__class__.__name__, e))
+    def get_tags_context(self):
+        return {
+            'project': self.project_id,
+            'agent': self.agent,
+            'protocol': self.version
+        }
 
 
-def decompress_gzip(encoded_data):
-    try:
-        fp = StringIO(encoded_data)
-        try:
-            f = GzipFile(fileobj=fp)
-            return f.read()
-        finally:
-            f.close()
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.info(e, **client_metadata(exception=e))
-        raise APIForbidden('Bad data decoding request (%s, %s)' % (
-            e.__class__.__name__, e))
+class ClientLogHelper(object):
+    def __init__(self, context):
+        self.context = context
+        self.logger = logging.getLogger('sentry.api')
 
+    def debug(self, *a, **k):
+        self.logger.debug(*a, **self._metadata(**k))
 
-def decode_and_decompress_data(encoded_data):
-    try:
-        try:
-            return decompress(encoded_data)
-        except zlib.error:
-            return base64.b64decode(encoded_data)
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.info(e, **client_metadata(exception=e))
-        raise APIForbidden('Bad data decoding request (%s, %s)' % (
-            e.__class__.__name__, e))
+    def info(self, *a, **k):
+        self.logger.info(*a, **self._metadata(**k))
 
+    def warning(self, *a, **k):
+        self.logger.warning(*a, **self._metadata(**k))
 
-def safely_load_json_string(json_string):
-    try:
-        obj = json.loads(json_string)
-    except Exception as e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.info(e, **client_metadata(exception=e))
-        raise APIForbidden('Bad data reconstructing object (%s, %s)' % (
-            e.__class__.__name__, e))
+    def error(self, *a, **k):
+        self.logger.error(*a, **self._metadata(**k))
 
-    # XXX: ensure keys are coerced to strings
-    return dict((smart_str(k), v) for k, v in obj.iteritems())
+    def _metadata(self, tags=None, extra=None, **kwargs):
+        if not extra:
+            extra = {}
+        if not tags:
+            tags = {}
 
+        context = self.context
 
-def process_data_timestamp(data, current_datetime=None):
-    if not data['timestamp']:
-        del data['timestamp']
-        return data
-    elif is_float(data['timestamp']):
-        try:
-            data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
-        except Exception:
-            raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
-    elif not isinstance(data['timestamp'], datetime):
-        if '.' in data['timestamp']:
-            format = '%Y-%m-%dT%H:%M:%S.%f'
+        project = context.project
+        if project:
+            project_label = '%s/%s' % (project.organization.slug, project.slug)
         else:
-            format = '%Y-%m-%dT%H:%M:%S'
-        if 'Z' in data['timestamp']:
-            # support UTC market, but not other timestamps
-            format += 'Z'
-        try:
-            data['timestamp'] = datetime.strptime(data['timestamp'], format)
-        except Exception:
-            raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
+            project_label = 'id=%s' % (context.project_id,)
 
-    if current_datetime is None:
-        current_datetime = datetime.now()
+        tags.update(context.get_tags_context())
+        tags['project'] = project_label
 
-    if data['timestamp'] > current_datetime + timedelta(minutes=1):
-        raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
+        extra['request'] = env.request
+        extra['tags'] = tags
+        extra['agent'] = context.agent
+        extra['protocol'] = context.version
+        extra['project'] = project_label
 
-    if data['timestamp'] < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
+        kwargs['extra'] = extra
 
-    data['timestamp'] = float(data['timestamp'].strftime('%s'))
-
-    return data
+        return kwargs
 
 
-def validate_data(project, data, client=None):
-    # TODO(dcramer): move project out of the data packet
-    data['project'] = project.id
+class ClientApiHelper(object):
+    def __init__(self, agent=None, version=None, project_id=None,
+                 ip_address=None):
+        self.context = ClientContext(
+            agent=agent, version=version, project_id=project_id,
+            ip_address=ip_address,
+        )
+        self.log = ClientLogHelper(self.context)
 
-    if not data.get('message'):
-        data['message'] = '<no message value>'
-    elif not isinstance(data['message'], six.string_types):
-        raise APIError('Invalid value for message')
+    def auth_from_request(self, request):
+        if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
+            result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
+        elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
+            result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
+        else:
+            result = dict(
+                (k, request.GET[k])
+                for k in request.GET.iterkeys()
+                if k.startswith('sentry_')
+            )
+        if not result:
+            raise APIUnauthorized('Unable to find authentication information')
 
-    if data.get('culprit'):
-        if not isinstance(data['culprit'], six.string_types):
-            raise APIError('Invalid value for culprit')
+        origin = self.origin_from_request(request)
+        auth = Auth(result, is_public=bool(origin))
+        # default client to user agent
+        if not auth.client:
+            auth.client = request.META.get('HTTP_USER_AGENT')
+        return auth
 
-    if not data.get('event_id'):
-        data['event_id'] = uuid.uuid4().hex
-    elif not isinstance(data['event_id'], six.string_types):
-        raise APIError('Invalid value for event_id')
-    if len(data['event_id']) > 32:
-        logger.info(
-            'Discarded value for event_id due to length (%d chars)',
-            len(data['event_id']), **client_metadata(client, project))
-        data['event_id'] = uuid.uuid4().hex
+    def origin_from_request(self, request):
+        """
+        Returns either the Origin or Referer value from the request headers.
+        """
+        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
 
-    if 'timestamp' in data:
-        try:
-            process_data_timestamp(data)
-        except InvalidTimestamp as e:
-            # Log the error, remove the timestamp, and continue
-            logger.info(
-                'Discarded invalid value for timestamp: %r', data['timestamp'],
-                **client_metadata(client, project, exception=e))
-            del data['timestamp']
-
-    if data.get('modules') and type(data['modules']) != dict:
-        logger.info(
-            'Discarded invalid type for modules: %s',
-            type(data['modules']), **client_metadata(client, project))
-        del data['modules']
-
-    if data.get('extra') is not None and type(data['extra']) != dict:
-        logger.info(
-            'Discarded invalid type for extra: %s',
-            type(data['extra']), **client_metadata(client, project))
-        del data['extra']
-
-    if data.get('tags') is not None:
-        if type(data['tags']) == dict:
-            data['tags'] = data['tags'].items()
-        elif not isinstance(data['tags'], (list, tuple)):
-            logger.info(
-                'Discarded invalid type for tags: %s',
-                type(data['tags']), **client_metadata(client, project))
-            del data['tags']
-
-    if data.get('tags'):
-        # remove any values which are over 32 characters
-        tags = []
-        for pair in data['tags']:
-            try:
-                k, v = pair
-            except ValueError:
-                logger.info('Discarded invalid tag value: %r',
-                            pair, **client_metadata(client, project))
-                continue
-
-            if not isinstance(k, six.string_types):
-                try:
-                    k = six.text_type(k)
-                except Exception:
-                    logger.info('Discarded invalid tag key: %r',
-                                type(k), **client_metadata(client, project))
-                    continue
-
-            if not isinstance(v, six.string_types):
-                try:
-                    v = six.text_type(v)
-                except Exception:
-                    logger.info('Discarded invalid tag value: %s=%r',
-                                k, type(v), **client_metadata(client, project))
-                    continue
-            if len(k) > MAX_TAG_KEY_LENGTH or len(v) > MAX_TAG_VALUE_LENGTH:
-                logger.info('Discarded invalid tag: %s=%s',
-                            k, v, **client_metadata(client, project))
-                continue
-            tags.append((k, v))
-        data['tags'] = tags
-
-    for k in data.keys():
-        if k in CLIENT_RESERVED_ATTRS:
-            continue
-
-        value = data.pop(k)
-
-        if not value:
-            logger.info(
-                'Ignored empty interface value: %s', k,
-                **client_metadata(client, project))
-            continue
+    def project_from_auth(self, auth):
+        if not auth.public_key:
+            raise APIUnauthorized('Invalid api key')
 
         try:
-            interface = get_interface(k)
-        except ValueError:
-            logger.info(
-                'Ignored unknown attribute: %s', k,
-                **client_metadata(client, project))
-            continue
+            pk = ProjectKey.objects.get_from_cache(public_key=auth.public_key)
+        except ProjectKey.DoesNotExist:
+            raise APIUnauthorized('Invalid api key')
 
-        if type(value) != dict:
-            # HACK(dcramer): the exception interface supports a list as the
-            # value. We should change this in a new protocol version.
-            if type(value) in (list, tuple):
-                value = {'values': value}
-            else:
-                logger.info(
-                    'Invalid parameters for value: %s', k,
-                    type(value), **client_metadata(client, project))
-                continue
+        # a secret key may not be present which will be validated elsewhere
+        if not constant_time_compare(pk.secret_key, auth.secret_key or pk.secret_key):
+            raise APIUnauthorized('Invalid api key')
 
+        if not pk.is_active:
+            raise APIUnauthorized('API key is disabled')
+
+        if not pk.roles.store:
+            raise APIUnauthorized('Key does not allow event storage access')
+
+        return Project.objects.get_from_cache(id=pk.project_id)
+
+    def decompress_deflate(self, encoded_data):
         try:
-            inst = interface.to_python(value)
-            data[inst.get_path()] = inst.to_json()
+            return zlib.decompress(encoded_data)
         except Exception as e:
-            if isinstance(e, AssertionError):
-                log = logger.info
-            else:
-                log = logger.error
-            log('Discarded invalid value for interface: %s', k,
-                **client_metadata(client, project, exception=e, extra={'value': value}))
+            # This error should be caught as it suggests that there's a
+            # bug somewhere in the client's code.
+            self.log.info(unicode(e), exc_info=True)
+            raise APIError('Bad data decoding request (%s, %s)' % (
+                type(e).__name__, e
+            ))
 
-    level = data.get('level') or DEFAULT_LOG_LEVEL
-    if isinstance(level, six.string_types) and not level.isdigit():
-        # assume it's something like 'warning'
+    def decompress_gzip(self, encoded_data):
         try:
-            data['level'] = LOG_LEVEL_REVERSE_MAP[level]
-        except KeyError as e:
-            logger.info(
-                'Discarded invalid logger value: %s', level,
-                **client_metadata(client, project, exception=e))
-            data['level'] = LOG_LEVEL_REVERSE_MAP.get(
-                DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
+            fp = StringIO(encoded_data)
+            try:
+                f = GzipFile(fileobj=fp)
+                return f.read()
+            finally:
+                f.close()
+        except Exception as e:
+            # This error should be caught as it suggests that there's a
+            # bug somewhere in the client's code.
+            self.log.info(unicode(e), exc_info=True)
+            raise APIError('Bad data decoding request (%s, %s)' %
+                (type(e).__name__, e)
+            )
 
-    if data.get('release'):
-        data['release'] = unicode(data['release'])
+    def decode_and_decompress_data(self, encoded_data):
+        try:
+            try:
+                return decompress(encoded_data)
+            except zlib.error:
+                return base64.b64decode(encoded_data)
+        except Exception as e:
+            # This error should be caught as it suggests that there's a
+            # bug somewhere in the client's code.
+            self.log.info(unicode(e), exc_info=True)
+            raise APIError('Bad data decoding request (%s, %s)' %
+                (type(e).__name__, e)
+            )
 
-    return data
+    def safely_load_json_string(self, json_string):
+        try:
+            obj = json.loads(json_string)
+        except Exception as e:
+            # This error should be caught as it suggests that there's a
+            # bug somewhere in the client's code.
+            self.log.info(unicode(e), exc_info=True)
+            raise APIError('Bad data reconstructing object (%s, %s)' %
+                (type(e).__name__, e)
+            )
 
+        # XXX: ensure keys are coerced to strings
+        return dict((smart_str(k), v) for k, v in obj.iteritems())
 
-def ensure_does_not_have_ip(data):
-    if 'sentry.interfaces.Http' in data:
-        if 'env' in data['sentry.interfaces.Http']:
-            data['sentry.interfaces.Http']['env'].pop('REMOTE_ADDR', None)
+    def _process_data_timestamp(self, data, current_datetime=None):
+        if not data['timestamp']:
+            del data['timestamp']
+            return data
+        elif is_float(data['timestamp']):
+            try:
+                data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
+            except Exception:
+                raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
+        elif not isinstance(data['timestamp'], datetime):
+            if '.' in data['timestamp']:
+                format = '%Y-%m-%dT%H:%M:%S.%f'
+            else:
+                format = '%Y-%m-%dT%H:%M:%S'
+            if 'Z' in data['timestamp']:
+                # support UTC market, but not other timestamps
+                format += 'Z'
+            try:
+                data['timestamp'] = datetime.strptime(data['timestamp'], format)
+            except Exception:
+                raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
-    if 'sentry.interfaces.User' in data:
-        data['sentry.interfaces.User'].pop('ip_address', None)
+        if current_datetime is None:
+            current_datetime = datetime.now()
 
+        if data['timestamp'] > current_datetime + timedelta(minutes=1):
+            raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
 
-def ensure_has_ip(data, ip_address):
-    if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
-        return
+        if data['timestamp'] < current_datetime - timedelta(days=30):
+            raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
 
-    if data.get('sentry.interfaces.User', {}).get('ip_address'):
-        return
+        data['timestamp'] = float(data['timestamp'].strftime('%s'))
 
-    data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
+        return data
 
+    def validate_data(self, project, data):
+        # TODO(dcramer): move project out of the data packet
+        data['project'] = project.id
 
-def insert_data_to_database(data):
-    cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
-    default_cache.set(cache_key, data, timeout=3600)
-    preprocess_event.delay(cache_key=cache_key, start_time=time())
+        if not data.get('message'):
+            data['message'] = '<no message value>'
+        elif not isinstance(data['message'], six.string_types):
+            raise APIForbidden('Invalid value for message')
+
+        if data.get('culprit'):
+            if not isinstance(data['culprit'], six.string_types):
+                raise APIForbidden('Invalid value for culprit')
+
+        if not data.get('event_id'):
+            data['event_id'] = uuid.uuid4().hex
+        elif not isinstance(data['event_id'], six.string_types):
+            raise APIForbidden('Invalid value for event_id')
+
+        if len(data['event_id']) > 32:
+            self.log.info(
+                'Discarded value for event_id due to length (%d chars)',
+                len(data['event_id']))
+            data['event_id'] = uuid.uuid4().hex
+
+        if 'timestamp' in data:
+            try:
+                self._process_data_timestamp(data)
+            except InvalidTimestamp as e:
+                self.log.info(
+                    'Discarded invalid value for timestamp: %r',
+                    data['timestamp'], exc_info=True)
+                del data['timestamp']
+
+        if data.get('modules') and type(data['modules']) != dict:
+            self.log.info(
+                'Discarded invalid type for modules: %s',
+                type(data['modules']))
+            del data['modules']
+
+        if data.get('extra') is not None and type(data['extra']) != dict:
+            self.log.info(
+                'Discarded invalid type for extra: %s',
+                type(data['extra']))
+            del data['extra']
+
+        if data.get('tags') is not None:
+            if type(data['tags']) == dict:
+                data['tags'] = data['tags'].items()
+            elif not isinstance(data['tags'], (list, tuple)):
+                self.log.info(
+                    'Discarded invalid type for tags: %s', type(data['tags']))
+                del data['tags']
+
+        if data.get('tags'):
+            # remove any values which are over 32 characters
+            tags = []
+            for pair in data['tags']:
+                try:
+                    k, v = pair
+                except ValueError:
+                    self.log.info('Discarded invalid tag value: %r', pair)
+                    continue
+
+                if not isinstance(k, six.string_types):
+                    try:
+                        k = six.text_type(k)
+                    except Exception:
+                        self.log.info('Discarded invalid tag key: %r', type(k))
+                        continue
+
+                if not isinstance(v, six.string_types):
+                    try:
+                        v = six.text_type(v)
+                    except Exception:
+                        self.log.info('Discarded invalid tag value: %s=%r',
+                                      k, type(v))
+                        continue
+                if len(k) > MAX_TAG_KEY_LENGTH or len(v) > MAX_TAG_VALUE_LENGTH:
+                    self.log.info('Discarded invalid tag: %s=%s', k, v)
+                    continue
+                tags.append((k, v))
+            data['tags'] = tags
+
+        for k in data.keys():
+            if k in CLIENT_RESERVED_ATTRS:
+                continue
+
+            value = data.pop(k)
+
+            if not value:
+                self.log.info('Ignored empty interface value: %s', k)
+                continue
+
+            try:
+                interface = get_interface(k)
+            except ValueError:
+                self.log.info('Ignored unknown attribute: %s', k)
+                continue
+
+            if type(value) != dict:
+                # HACK(dcramer): the exception interface supports a list as the
+                # value. We should change this in a new protocol version.
+                if type(value) in (list, tuple):
+                    value = {'values': value}
+                else:
+                    self.log.info(
+                        'Invalid parameter for value: %s (%r)', k, type(value))
+                    continue
+
+            try:
+                inst = interface.to_python(value)
+                data[inst.get_path()] = inst.to_json()
+            except Exception as e:
+                if isinstance(e, AssertionError):
+                    log = self.log.info
+                else:
+                    log = self.log.error
+                log('Discarded invalid value for interface: %s (%r)', k, value,
+                    exc_info=True)
+
+        level = data.get('level') or DEFAULT_LOG_LEVEL
+        if isinstance(level, six.string_types) and not level.isdigit():
+            # assume it's something like 'warning'
+            try:
+                data['level'] = LOG_LEVEL_REVERSE_MAP[level]
+            except KeyError as e:
+                self.log.info(
+                    'Discarded invalid logger value: %s', level)
+                data['level'] = LOG_LEVEL_REVERSE_MAP.get(
+                    DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
+
+        if data.get('release'):
+            data['release'] = unicode(data['release'])
+
+        return data
+
+    def ensure_does_not_have_ip(self, data):
+        if 'sentry.interfaces.Http' in data:
+            if 'env' in data['sentry.interfaces.Http']:
+                data['sentry.interfaces.Http']['env'].pop('REMOTE_ADDR', None)
+
+        if 'sentry.interfaces.User' in data:
+            data['sentry.interfaces.User'].pop('ip_address', None)
+
+    def ensure_has_ip(self, data, ip_address):
+        if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
+            return
+
+        if data.get('sentry.interfaces.User', {}).get('ip_address'):
+            return
+
+        data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
+
+    def insert_data_to_database(self, data):
+        cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
+        default_cache.set(cache_key, data, timeout=3600)
+        preprocess_event.delay(cache_key=cache_key, start_time=time())
