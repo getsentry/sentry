@@ -1349,22 +1349,29 @@ table.integrations {
       margin: 0;
     }
 
-    li a {
-      padding: 5px 8px;
-      display: block;
-      padding-left: 33px;
-      position: relative;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: left;
+    li {
+      strong {
+        font-weight: normal;
+        background: lighten(@yellow, 15);
+      }
 
-      img {
-        margin-right: 5px;
-        position: absolute;
-        left: 8px;
-        top: 4px;
-        .square(20px);
+      a {
+        padding: 5px 8px;
+        display: block;
+        padding-left: 33px;
+        position: relative;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: left;
+
+        img {
+          margin-right: 5px;
+          position: absolute;
+          left: 8px;
+          top: 4px;
+          .square(20px);
+        }
       }
     }
   }
