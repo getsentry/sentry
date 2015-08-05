@@ -64,7 +64,7 @@ var StreamActions = React.createClass({
 
     callback(selectedIds);
 
-    SelectedGroupStore.clearAll();
+    SelectedGroupStore.deselectAll();
   },
 
   onUpdate(data, event, actionType) {

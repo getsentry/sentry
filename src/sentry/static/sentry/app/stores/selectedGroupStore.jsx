@@ -65,8 +65,10 @@ var SelectedGroupStore = Reflux.createStore({
     return this.records[itemId] === true;
   },
 
-  clearAll() {
-    this.records = {};
+  deselectAll() {
+    for (var itemId in this.records) {
+      this.records[itemId] = false;
+    }
     this.trigger();
   },
 
