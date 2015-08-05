@@ -36,9 +36,9 @@
                 {% for user in user_list.paginator.objects %}
                     <tr>
                         <td>
-                            <a href="{% url 'sentry-admin-edit-user' user.pk %}">
+                            <strong><a href="{% url 'sentry-admin-edit-user' user.pk %}">
                                 {{ user.username }}
-                            </a>
+                            </a></strong>
                             {% if not user.is_active %}
                                 <em>inactive account</em>
                             {% endif %}
