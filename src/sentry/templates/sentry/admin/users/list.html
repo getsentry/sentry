@@ -10,18 +10,16 @@
 {% block main %}
     {% paginator user_list from request as user_list per_page 50 %}
 
-    <form class="btn-toolbar" method="GET" action="">
-        <input type="text" name="uquery" value="{% if user_query %}{{ user_query }}{% endif %}" placeholder="search by email address">
-        <div class="btn-group pull-right">
-            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
-        </div>
+    <form class="pull-right" method="GET" action="">
+        <input class="form-control" type="text" name="uquery" value="{% if user_query %}{{ user_query }}{% endif %}" placeholder="search by email address" style="width: 240px; margin-top: -4px;">
     </form>
+
+    <h3 class="no-border">{% trans "Users" %}</h3>
 
     {% if user_list.paginator.objects %}
         {% querystring from request without sort as sort_querystring %}
 
-        <table class="table table-bordered table-striped">
+        <table class="table" style="margin-bottom: 20px">
             <colgroup>
                 <col>
                 <col style="width:150px;">
@@ -71,8 +69,8 @@
     <div class="btn-toolbar">
         <a href="{% url 'sentry-admin-new-user' %}" class="btn btn-primary">{% trans "Create a new user" %}</a>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
+            <a class="btn btn-lg prev{% if not user_list.paginator.has_previous %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}{% endif %}"><span class="icon-arrow-left"></span></a>
+            <a class="btn btn-lg next{% if not user_list.paginator.has_next %} disabled{% else %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}{% endif %}"><span class="icon-arrow-right"></span></a>
         </div>
     </div>
 
