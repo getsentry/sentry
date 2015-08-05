@@ -8,7 +8,7 @@ If you're on Ubuntu, you can simply install the ``nginx-full`` package
 which will include the required RealIP module. Otherwise you'll need to
 compile Nginx from source with ``--with-http_realip_module``.
 
-For configuration instructinos with regards to incoming mail via nginx see
+For configuration instructions with regards to incoming mail via nginx see
 :ref:`nginx-mail`.
 
 Basic Configuration
@@ -124,3 +124,86 @@ Create a uWSGI configuration which references the Sentry configuration::
 Finally, re-configure supervisor to run uwsgi instead of 'sentry start'::
 
   /www/sentry/bin/uwsgi --ini /www/sentry/uwsgi.ini
+
+
+Hosting Sentry at a Subpath
+----------------------------
+
+If your web server is hosting several applications then hosting Sentry at '/' may not be feasible for you. It is possible to configure your webserver such that all traffic going to '/sentry' can be directed at Sentry and everything else can remain as is.
+
+
+Subpath with uWSGI
+^^^^^^^^^^^^^^^^^^
+
+Hosting apps at a subpath is officially supported by uWSGI with a configuration option. (Source: `uWSGI - Hosting multiple apps <http://uwsgi-docs.readthedocs.org/en/latest/Nginx.html#hosting-multiple-apps-in-the-same-process-aka-managing-script-name-and-path-info>`_)
+
+**uWSGI Configuration**
+
+If you are using a uWSGI configuration file, add these lines::
+
+    ; Host Sentry at /sentry
+    mount = /sentry=path/to/sentry/wsgi.py
+    manage-script-name = true
+
+If you call uWSGI directly, possibly from Supervisor, see :ref:`performance-web-server`.
+
+Edit the command used to start sentry by removing this option::
+
+    --wsgi-file getsentry/wsgi.py
+
+And adding these options::
+
+    --mount "/sentry=getsentry/wsgi.py" --manage-script-name
+
+**Nginx Configuration**
+
+Make the adjustment to the 'location' directive in Nginx's configuration file::
+
+    location '/' => location '/sentry'
+
+One rewrite is still required before the location block [#f1]_::
+
+    if ($http_referer ~ .com/sentry) {
+      rewrite /sentry/sentry/(.*)$ /sentry/$1 break;
+    }
+
+
+Subpath with Sentry's Default Webserver
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This is a bit more involved and harder to debug because not only does Nginx have to know the new location to listen for, it also must do rewriting of the urls it sends to the Sentry's built in server because it knows nothing about you trying to host the application elsewhere.
+
+These are not full configurations, but abbreviated versions to highlight the differences from the main examples.
+
+**Nginx Configuration**::
+
+    server {
+
+      ...
+
+      if ($http_referer ~ .com/sentry) {
+        rewrite /_static/(.*)$ /sentry/_static/$1 break;
+        rewrite /sentry/sentry/(.*)$ /sentry/$1 break;
+      }
+
+      location /sentry {
+        ...
+      }
+
+      ...
+    }
+
+**Django Configuration**
+
+Your Sentry settings file ($SENTRY_CONF python file)::
+
+    ...
+
+    SENTRY_URL_PREFIX = 'http://yourdomain.com/sentry'
+    FORCE_SCRIPT_NAME = '/sentry'
+
+    ...
+
+.. rubric:: Footnotes
+
+.. [#f1] Some URIs still don't play nice with hosting at a subpath so they need to be caught by Nginx. The known offender is the permalink for all events returned by the API.
