@@ -18,6 +18,7 @@ from sentry.models import (
     OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.utils.auth import get_login_redirect
+from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from . import manager
@@ -136,7 +137,7 @@ class AuthHelper(object):
         self.request.session.modified = True
 
     def get_redirect_url(self):
-        return self.request.build_absolute_uri(reverse('sentry-auth-sso'))
+        return absolute_uri(reverse('sentry-auth-sso'))
 
     def clear_session(self):
         if 'auth' in self.request.session:

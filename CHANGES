@@ -19,6 +19,9 @@ Version 7.7.0
 - Added celery app version check.
 - Added queue overview to internal administration.
 - Upped TSDB's storage of 10s to 60m of data.
+- Added protocol version 7 to client spec.
+  - Adds ``fingerprint`` attribute.
+- The behavior of ``SENTRY_ENABLE_EXPLORE_USERS`` is now default and the setting has been removed.
 
 Version 7.6.2
 -------------

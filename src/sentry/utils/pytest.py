@@ -63,7 +63,6 @@ def pytest_configure(config):
 
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
-    settings.SENTRY_ENABLE_EXPLORE_USERS = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
     # disable error reporting by default

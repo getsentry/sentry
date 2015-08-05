@@ -84,7 +84,7 @@ def get_annotations(group, request=None):
 
     annotation_list = []
     for plugin in plugins.for_project(project, version=2):
-        for value in (safe_execute(plugin.get_annotations, request, group) or ()):
+        for value in (safe_execute(plugin.get_annotations, group=group) or ()):
             annotation = safe_execute(Annotation, **value)
             if annotation:
                 annotation_list.append(annotation)

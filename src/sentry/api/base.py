@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 from sentry.app import raven, tsdb
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
-from sentry.utils.http import is_valid_origin
+from sentry.utils.http import absolute_uri, is_valid_origin
 
 from .authentication import ApiKeyAuthentication, ProjectKeyAuthentication
 from .paginator import Paginator
@@ -60,7 +60,7 @@ class Endpoint(APIView):
             for k, v in request.GET.iteritems()
             if k != 'cursor'
         )
-        base_url = request.build_absolute_uri(request.path)
+        base_url = absolute_uri(request.path)
         if querystring:
             base_url = '{0}?{1}'.format(base_url, querystring)
         else:

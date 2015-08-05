@@ -26,7 +26,7 @@ running on your own infrastructure.
    plugins
    faq
 
-.. sentry:edition:: self
+.. sentry:edition:: self, on-premise
 
     .. toctree::
        :maxdepth: 1

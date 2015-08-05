@@ -68,8 +68,28 @@ def get_hashes_for_event(event):
         result = interface.compute_hashes(event.platform)
         if not result:
             continue
-        return map(md5_from_hash, result)
-    return [md5_from_hash([event.message])]
+        return result
+    return [[event.message]]
+
+
+def get_hashes_from_fingerprint(event, fingerprint):
+    default_values = set(['{{ default }}', '{{default}}'])
+    if any(d in fingerprint for d in default_values):
+        default_hashes = get_hashes_for_event(event)
+        hash_count = len(default_hashes)
+    else:
+        hash_count = 1
+
+    hashes = []
+    for idx in xrange(hash_count):
+        result = []
+        for bit in fingerprint:
+            if bit in default_values:
+                result.extend(default_hashes[idx])
+            else:
+                result.append(bit)
+        hashes.append(result)
+    return hashes
 
 
 if not settings.SENTRY_SAMPLE_DATA:
@@ -181,6 +201,7 @@ class EventManager(object):
         data.setdefault('server_name', None)
         data.setdefault('site', None)
         data.setdefault('checksum', None)
+        data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
         data.setdefault('extra', {})
 
@@ -277,6 +298,7 @@ class EventManager(object):
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
         checksum = data.pop('checksum', None)
+        fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
 
@@ -321,8 +343,10 @@ class EventManager(object):
         # Calculate the checksum from the first highest scoring interface
         if checksum:
             hashes = [checksum]
+        elif fingerprint:
+            hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
         else:
-            hashes = get_hashes_for_event(event)
+            hashes = map(md5_from_hash, get_hashes_for_event(event))
 
         group_kwargs = kwargs.copy()
         group_kwargs.update({

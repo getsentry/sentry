@@ -2,8 +2,11 @@ from __future__ import absolute_import, print_function
 
 import inspect
 import logging
+import raven
+import sentry
 
 from django.conf import settings
+from django.db.utils import DatabaseError
 from raven.contrib.django.client import DjangoClient
 
 from . import metrics
@@ -42,16 +45,27 @@ class SentryInternalClient(DjangoClient):
         # TODO(dcramer): this should respect rate limits/etc and use the normal
         # pipeline
         from sentry.app import tsdb
-        from sentry.coreapi import insert_data_to_database
+        from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
         from sentry.models import Project
 
+        helper = ClientApiHelper(
+            agent='raven-python/%s (sentry %s)' % (raven.VERSION, sentry.VERSION),
+            project_id=settings.SENTRY_PROJECT,
+            version=self.protocol_version,
+        )
+
         try:
             project = Project.objects.get_from_cache(id=settings.SENTRY_PROJECT)
+        except DatabaseError:
+            self.error_logger.error('Unable to fetch internal project',
+                                    exc_info=True)
         except Project.DoesNotExist:
             self.error_logger.error('Internal project (id=%s) does not exist',
                                     settings.SENTRY_PROJECT)
             return
+
+        helper.context.bind_project(project)
 
         metrics.incr('events.total', 1)
 
@@ -63,7 +77,7 @@ class SentryInternalClient(DjangoClient):
                 (tsdb.models.project_total_received, project.id),
                 (tsdb.models.organization_total_received, project.organization_id),
             ])
-            insert_data_to_database(data)
+            helper.insert_data_to_database(data)
         except Exception as e:
             if self.raise_send_errors:
                 raise

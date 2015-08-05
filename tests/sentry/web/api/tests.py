@@ -7,7 +7,7 @@ import mock
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import OrganizationMember, User
+from sentry.models import OrganizationMember, ProjectKey, User
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -18,16 +18,16 @@ class StoreViewTest(TestCase):
         return reverse('sentry-api-store', kwargs={'project_id': self.project.id})
 
     @mock.patch('sentry.web.api.StoreView._parse_header')
-    @mock.patch('sentry.web.api.project_from_auth_vars')
-    def test_options_response(self, project_from_auth_vars, parse_header):
+    def test_options_response(self, parse_header):
+        project = self.create_project()
+        pk = ProjectKey.objects.get_or_create(project=project)[0]
         parse_header.return_value = {
-            'sentry_project': self.project.id,
-            'sentry_key': 'a' * 40,
+            'sentry_project': project.id,
+            'sentry_key': pk.public_key,
             'sentry_version': '2.0',
         }
-        project_from_auth_vars.return_value = (self.project, None)
         resp = self.client.options(self.path)
-        self.assertEquals(resp.status_code, 200)
+        assert resp.status_code == 200, resp.content
         self.assertIn('Allow', resp)
         self.assertEquals(resp['Allow'], 'GET, POST, HEAD, OPTIONS')
         self.assertIn('Content-Length', resp)
@@ -36,38 +36,38 @@ class StoreViewTest(TestCase):
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
     def test_options_response_with_invalid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
-        self.assertEquals(resp.status_code, 400)
+        assert resp.status_code == 403, resp.content
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
         self.assertIn('X-Sentry-Error', resp)
-        self.assertEquals(resp['X-Sentry-Error'], "Invalid origin: 'http://foo.com'")
-        self.assertEquals(resp.content, resp['X-Sentry-Error'])
+        assert resp['X-Sentry-Error'] == "Invalid origin: http://foo.com"
+        assert json.loads(resp.content)['error'] == resp['X-Sentry-Error']
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
     def test_options_response_with_invalid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
-        self.assertEquals(resp.status_code, 400)
+        assert resp.status_code == 403, resp.content
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
         self.assertIn('X-Sentry-Error', resp)
-        self.assertEquals(resp['X-Sentry-Error'], "Invalid origin: 'http://foo.com'")
-        self.assertEquals(resp.content, resp['X-Sentry-Error'])
+        assert resp['X-Sentry-Error'] == "Invalid origin: http://foo.com"
+        assert json.loads(resp.content)['error'] == resp['X-Sentry-Error']
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
-        self.assertEquals(resp.status_code, 200)
+        assert resp.status_code == 200, resp.content
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
     @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
     def test_options_response_with_valid_referrer(self):
         resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
-        self.assertEquals(resp.status_code, 200)
+        assert resp.status_code == 200, resp.content
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
-    @mock.patch('sentry.web.api.insert_data_to_database')
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_ip_address(self, mock_insert_data_to_database):
         self.project.update_option('sentry:scrub_ip_address', True)
         body = {
@@ -80,7 +80,7 @@ class StoreViewTest(TestCase):
             },
         }
         resp = self._postWithHeader(body)
-        assert resp.status_code == 200
+        assert resp.status_code == 200, resp.content
 
         call_data = mock_insert_data_to_database.call_args[0][0]
         assert not call_data['sentry.interfaces.User'].get('ip_address')
@@ -97,7 +97,7 @@ class CrossDomainXmlTest(TestCase):
         get_origins.return_value = '*'
         resp = self.client.get(self.path)
         get_origins.assert_called_once_with(self.project)
-        self.assertEquals(resp.status_code, 200)
+        assert resp.status_code == 200, resp.content
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
         assert '<allow-access-from domain="*" secure="false" />' in resp.content

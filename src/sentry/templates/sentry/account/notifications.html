@@ -34,45 +34,45 @@
         {% endwith %}
 
         {% if project_forms %}
+            <h4>{% trans "Mail" %}</h4>
+            <p>{% blocktrans %}Choose which projects you wish to receive email notifications for, as well as an alternative email address to send to.{% endblocktrans %}</p>
+            <p><small>{% blocktrans %}Note: You will never receive notifications if a project has them disabled (via the Project settings){% endblocktrans %}</small></p>
 
-                <h4>{% trans "Mail" %}</h4>
-                <p>{% blocktrans %}Choose which projects you wish to receive email notifications for, as well as an alternative email address to send to.{% endblocktrans %}</p>
-                <p><small>{% blocktrans %}Note: You will never receive notifications if a project has them disabled (via the Project settings){% endblocktrans %}</small></p>
+            {% for project, form in project_forms %}
+                {{ form|as_crispy_errors }}
+            {% endfor %}
+            {% for project, form in project_forms %}
+                {% ifchanged project.team %}
+                    {% if not forloop.first %}
+                        </table>
+                    {% endif %}
+                    <h4>{{ project.team.name }}</h4>
 
-                {% for project, form in project_forms %}
-                    {{ form|as_crispy_errors }}
-                {% endfor %}
-                {% for project, form in project_forms %}
-                    {% ifchanged project.team %}
-                        {% if not forloop.first %}
-                            </table>
-                        {% endif %}
-                        <h4>{{ project.team.name }}</h4>
-
-                        <table class="table table-bordered table-striped" style="margin-bottom: 20px">
-                            <thead>
-                                <tr>
-                                    <th style="width:31px">
-                                        <input type="checkbox" data-action="check-all-projects"></th>
-                                    <th>{% trans "Project Name" %}</th>
-                                    <th style="width:150px;overflow:hidden;text-align:right">
-                                        {% trans "Email Address" %}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    {% endifchanged %}
-                    <tr>
-                        <td>{{ form.alert }}</td>
-                        <td><label for="{{ form.alert.auto_id }}">{{ project.name }}</label></td>
-                        <td style="text-align:right">
-                            <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">
-                                {% if form.email.value %}{{ form.email.value }}{% else %}<em>Default</em>{% endif %}
-                            </a>
-                            {{ form.email }}
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody></table>
+                    <table class="table table-bordered table-striped" style="margin-bottom: 20px">
+                        <thead>
+                            <tr>
+                                <th style="width:31px">
+                                    <input type="checkbox" data-action="check-all-projects">
+                                </th>
+                                <th>{% trans "Project Name" %}</th>
+                                <th style="width:150px;overflow:hidden;text-align:right">
+                                    {% trans "Email Address" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                {% endifchanged %}
+                <tr>
+                    <td>{{ form.alert }}</td>
+                    <td><label for="{{ form.alert.auto_id }}">{{ project.name }}</label></td>
+                    <td style="text-align:right">
+                        <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">
+                            {% if form.email.value %}{{ form.email.value }}{% else %}<em>Default</em>{% endif %}
+                        </a>
+                        {{ form.email }}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody></table>
         {% endif %}
 
         {% for form in ext_forms %}

@@ -8,9 +8,10 @@ sentry.web.views
 from __future__ import absolute_import, print_function
 
 import logging
-import six
+import traceback
 
 from datetime import timedelta
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -18,8 +19,7 @@ from django.core.urlresolvers import reverse
 from django.db import connections
 from django.db.models import Sum, Q
 from django.http import (
-    HttpResponse, HttpResponseBadRequest,
-    HttpResponseForbidden, HttpResponseRedirect,
+    HttpResponse, HttpResponseForbidden, HttpResponseRedirect,
 )
 from django.utils import timezone
 from django.utils.translation import ugettext as _
@@ -33,11 +33,8 @@ from sentry import app
 from sentry.app import tsdb
 from sentry.constants import MEMBER_USER
 from sentry.coreapi import (
-    project_from_auth_vars, decode_and_decompress_data,
-    safely_load_json_string, validate_data, insert_data_to_database, APIError,
-    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip,
-    decompress_deflate, decompress_gzip, ensure_does_not_have_ip)
-from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper
+)
 from sentry.event_manager import EventManager
 from sentry.models import (
     Group, GroupStatus, GroupTagValue, Project, TagValue, Activity, User
@@ -54,13 +51,13 @@ from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
 
-logger = logging.getLogger('sentry.api')
+logger = logging.getLogger('sentry')
 
 # Transparent 1x1 gif
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
 PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
 
-PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6'))
+PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
 
 def api(func):
@@ -79,138 +76,117 @@ def api(func):
     return wrapped
 
 
-class Auth(object):
-    def __init__(self, auth_vars, is_public=False):
-        self.client = auth_vars.get('sentry_client')
-        self.version = int(float(auth_vars.get('sentry_version')))
-        self.secret_key = auth_vars.get('sentry_secret')
-        self.public_key = auth_vars.get('sentry_key')
-        self.is_public = is_public
-
-
 class APIView(BaseView):
     def _get_project_from_id(self, project_id):
         if not project_id:
             return
+        if not project_id.isdigit():
+            raise APIError('Invalid project_id: %r' % project_id)
         try:
             return Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
             raise APIError('Invalid project_id: %r' % project_id)
 
-    def _parse_header(self, request, project):
-        try:
-            auth_vars = extract_auth_vars(request)
-        except (IndexError, ValueError):
-            raise APIError('Invalid auth header')
+    def _parse_header(self, request, helper, project):
+        auth = helper.auth_from_request(request)
 
-        if not auth_vars:
-            raise APIError('Client/server version mismatch: Unsupported client')
+        if auth.version not in PROTOCOL_VERSIONS:
+            raise APIError('Client using unsupported server protocol version (%r)' % str(auth.version or ''))
 
-        server_version = auth_vars.get('sentry_version', '1.0')
-        client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
+        if not auth.client:
+            raise APIError("Client did not send 'client' identifier")
 
-        Raven.tags_context({'client': client})
-        Raven.tags_context({'protocol': server_version})
-
-        if server_version not in PROTOCOL_VERSIONS:
-            raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
-
-        if not client:
-            raise APIError('Client request error: Missing client version identifier')
-
-        return auth_vars
+        return auth
 
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
+        helper = ClientApiHelper(
+            agent=request.META.get('HTTP_USER_AGENT'),
+            project_id=project_id,
+            ip_address=request.META['REMOTE_ADDR'],
+        )
+        origin = None
+
         try:
-            origin = self.get_request_origin(request)
+            origin = helper.origin_from_request(request)
 
-            response = self._dispatch(request, project_id=project_id, *args, **kwargs)
-        except InvalidRequest as e:
-            response = HttpResponseBadRequest(str(e), content_type='text/plain')
-        except Exception:
-            response = HttpResponse(status=500)
+            response = self._dispatch(request, helper, project_id=project_id,
+                                      origin=origin,
+                                      *args, **kwargs)
+        except APIError as e:
+            context = {
+                'error': unicode(e.msg).encode('utf-8'),
+            }
+            if e.name:
+                context['error_name'] = e.name
 
-        if response.status_code != 200:
+            response = HttpResponse(json.dumps(context),
+                                    content_type='application/json',
+                                    status=e.http_status)
             # Set X-Sentry-Error as in many cases it is easier to inspect the headers
-            response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
+            response['X-Sentry-Error'] = context['error']
 
-            if response.status_code == 500:
-                log = logger.error
-                exc_info = True
+            if isinstance(e, APIRateLimited) and e.retry_after is not None:
+                response['Retry-After'] = str(e.retry_after)
+
+        except Exception:
+            if settings.DEBUG or True:
+                content = traceback.format_exc()
             else:
-                log = logger.info
-                exc_info = None
+                content = ''
+            traceback.print_exc()
+            response = HttpResponse(content,
+                                    content_type='text/plain',
+                                    status=500)
 
-            log('status=%s project_id=%s user_id=%s ip=%s agent=%s %s', response.status_code, project_id,
-                request.user.is_authenticated() and request.user.id or None,
-                request.META['REMOTE_ADDR'], request.META.get('HTTP_USER_AGENT'),
-                response['X-Sentry-Error'], extra={
-                    'request': request,
-                }, exc_info=exc_info)
-
-            if origin:
-                # We allow all origins on errors
-                response['Access-Control-Allow-Origin'] = '*'
+        if response.status_code != 200 and origin:
+            # We allow all origins on errors
+            response['Access-Control-Allow-Origin'] = '*'
 
         if origin:
-            response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, Content-Type, ' \
-                'Authentication'
-            response['Access-Control-Allow-Methods'] = ', '.join(self._allowed_methods())
+            response['Access-Control-Allow-Headers'] = \
+                'X-Sentry-Auth, X-Requested-With, Origin, Accept, ' \
+                'Content-Type, Authentication'
+            response['Access-Control-Allow-Methods'] = \
+                ', '.join(self._allowed_methods())
 
         return response
 
-    def get_request_origin(self, request):
-        """
-        Returns either the Origin or Referer value from the request headers.
-        """
-        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
-
-    def _dispatch(self, request, project_id=None, *args, **kwargs):
+    def _dispatch(self, request, helper, project_id=None, origin=None,
+                  *args, **kwargs):
         request.user = AnonymousUser()
 
-        try:
-            project = self._get_project_from_id(project_id)
-        except APIError as e:
-            raise InvalidRequest(str(e))
-
+        project = self._get_project_from_id(project_id)
         if project:
-            Raven.tags_context({'project': project.id})
+            helper.context.bind_project(project)
+            Raven.tags_context(helper.context.get_tags_context())
 
-        origin = self.get_request_origin(request)
         if origin is not None:
             # This check is specific for clients who need CORS support
             if not project:
-                raise InvalidRequest('Your client must be upgraded for CORS support.')
+                raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
-                raise InvalidOrigin(origin)
+                raise APIForbidden('Invalid origin: %s' % (origin,))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
             response = self.options(request, project)
         else:
-            try:
-                auth_vars = self._parse_header(request, project)
-            except APIError as e:
-                raise InvalidRequest(str(e))
+            auth = self._parse_header(request, helper, project)
 
-            try:
-                project_ = project_from_auth_vars(auth_vars)
-            except APIError as error:
-                return HttpResponse(six.text_type(error.msg), status=error.http_status)
+            project_ = helper.project_from_auth(auth)
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
                 if not project_:
-                    raise InvalidRequest('Unable to identify project')
+                    raise APIError('Unable to identify project')
                 project = project_
             elif project_ != project:
-                raise InvalidRequest('Project ID mismatch')
-            else:
-                Raven.tags_context({'project': project.id})
+                raise APIError('Two different project were specified')
 
-            auth = Auth(auth_vars, is_public=bool(origin))
+            helper.context.bind_auth(auth)
+            Raven.tags_context(helper.context.get_tags_context())
 
             if auth.version >= 3:
                 if request.method == 'GET':
@@ -220,19 +196,19 @@ class APIView(BaseView):
                     # it can be safely assumed that it was checked previously and it's ok.
                     if origin is None and not is_valid_origin(origin, project):
                         # Special case an error message for a None origin when None wasn't allowed
-                        raise InvalidRequest('Missing required Origin or Referer header')
+                        raise APIForbidden('Missing required Origin or Referer header')
                 else:
                     # Version 3 enforces secret key for server side requests
                     if not auth.secret_key:
-                        raise InvalidRequest('Missing required attribute in authentication header: sentry_secret')
+                        raise APIForbidden('Missing required attribute in authentication header: sentry_secret')
 
-            try:
-                response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
-
-            except APIError as error:
-                response = HttpResponse(six.text_type(error.msg), content_type='text/plain', status=error.http_status)
-                if isinstance(error, APIRateLimited) and error.retry_after is not None:
-                    response['Retry-After'] = str(error.retry_after)
+            response = super(APIView, self).dispatch(
+                request=request,
+                project=project,
+                auth=auth,
+                helper=helper,
+                **kwargs
+            )
 
         if origin:
             response['Access-Control-Allow-Origin'] = origin
@@ -279,18 +255,18 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    def post(self, request, project, auth, **kwargs):
+    def post(self, request, **kwargs):
         data = request.body
-        response_or_event_id = self.process(request, project, auth, data, **kwargs)
+        response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
         return HttpResponse(json.dumps({
             'id': response_or_event_id,
         }), content_type='application/json')
 
-    def get(self, request, project, auth, **kwargs):
+    def get(self, request, **kwargs):
         data = request.GET.get('sentry_data', '')
-        response_or_event_id = self.process(request, project, auth, data, **kwargs)
+        response_or_event_id = self.process(request, data=data, **kwargs)
 
         # Return a simple 1x1 gif for browser so they don't throw a warning
         response = HttpResponse(PIXEL, 'image/gif')
@@ -298,7 +274,7 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
-    def process(self, request, project, auth, data, **kwargs):
+    def process(self, request, project, auth, helper, data, **kwargs):
         metrics.incr('events.total', 1)
 
         event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
@@ -324,27 +300,25 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
             ])
 
+        # TODO(dcramer): remove create_event perm hooks
         result = plugins.first('has_perm', request.user, 'create_event', project,
                                version=1)
         if result is False:
             metrics.incr('events.dropped', 1)
-            raise APIForbidden('Creation of this event was blocked')
+            raise APIForbidden('Creation of this event was blocked due to a plugin')
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
         if content_encoding == 'gzip':
-            data = decompress_gzip(data)
+            data = helper.decompress_gzip(data)
         elif content_encoding == 'deflate':
-            data = decompress_deflate(data)
+            data = helper.decompress_deflate(data)
         elif not data.startswith('{'):
-            data = decode_and_decompress_data(data)
-        data = safely_load_json_string(data)
+            data = helper.decode_and_decompress_data(data)
+        data = helper.safely_load_json_string(data)
 
-        try:
-            # mutates data
-            validate_data(project, data, auth.client)
-        except InvalidData as e:
-            raise APIError(u'Invalid data: %s (%s)' % (six.text_type(e), type(e)))
+        # mutates data
+        helper.validate_data(project, data)
 
         # mutates data
         manager = EventManager(data, version=auth.version)
@@ -354,7 +328,7 @@ class StoreView(APIView):
 
         # insert IP address if not available
         if auth.is_public and not scrub_ip_address:
-            ensure_has_ip(data, request.META['REMOTE_ADDR'])
+            helper.ensure_has_ip(data, request.META['REMOTE_ADDR'])
 
         event_id = data['event_id']
 
@@ -363,8 +337,7 @@ class StoreView(APIView):
         cache_key = 'ev:%s:%s' % (project.id, event_id,)
 
         if cache.get(cache_key) is not None:
-            logger.warning('Discarded recent duplicate event from project %s/%s (id=%s)', project.organization.slug, project.slug, event_id)
-            raise InvalidRequest('An event with the same ID already exists.')
+            raise APIForbidden('An event with the same ID already exists (%s)' % (event_id,))
 
         if project.get_option('sentry:scrub_data', True):
             # We filter data immediately before it ever gets into the queue
@@ -373,14 +346,14 @@ class StoreView(APIView):
 
         if scrub_ip_address:
             # We filter data immediately before it ever gets into the queue
-            ensure_does_not_have_ip(data)
+            helper.ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
-        insert_data_to_database(data)
+        helper.insert_data_to_database(data)
 
         cache.set(cache_key, '', 60 * 5)
 
-        logger.debug('New event from project %s/%s (id=%s)', project.organization.slug, project.slug, event_id)
+        helper.log.debug('New event received (%s)', event_id)
 
         return event_id
 
