@@ -34,13 +34,14 @@ class ReleaseHook(object):
             project=self.project,
             values=values,
         )
-        Activity.objects.create(
+        activity = Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,
             ident=version,
             data={'version': version},
             datetime=values['date_released'],
         )
+        activity.send_notification()
 
     def handle(self, request):
         raise NotImplementedError

@@ -52,6 +52,7 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
             }}
 
         """
+        # TODO(dcramer): handle Activity creation
         try:
             release = Release.objects.get(
                 project=project,
