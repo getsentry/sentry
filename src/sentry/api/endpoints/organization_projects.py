@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Project, Team
+from sentry.models import Project
 
 
 class OrganizationProjectsEndpoint(OrganizationEndpoint):
@@ -20,18 +20,14 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             {method} {path}
 
         """
-        team_list = Team.objects.get_for_user(
-            organization=organization,
-            user=request.user,
-        )
-
-        project_list = []
-        for team in team_list:
-            project_list.extend(Project.objects.get_for_user(
-                team=team,
-                user=request.user,
-            ))
-        project_list.sort(key=lambda x: x.name)
+        if request.auth and hasattr(request.auth, 'project'):
+            team_list = [request.auth.project.team]
+            project_list = [request.auth.project]
+        else:
+            team_list = list(request.access.teams)
+            project_list = list(Project.objects.filter(
+                team__in=team_list,
+            ).order_by('name'))
 
         team_map = dict(
             (t.id, c) for (t, c) in zip(team_list, serialize(team_list, request.user)),
