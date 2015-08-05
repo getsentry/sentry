@@ -166,16 +166,16 @@ describe('SelectedGroupStore', function() {
 
   });
 
-  describe('clearAll()', function() {
+  describe('deselectAll()', function() {
 
-    it("resets records", function() {
-      SelectedGroupStore.records = { 1: true };
-      SelectedGroupStore.clearAll();
-      expect(SelectedGroupStore.records).to.eql({});
+    it("sets all records to false", function() {
+      SelectedGroupStore.records = { 1: true, 2: true, 3: false };
+      SelectedGroupStore.deselectAll();
+      expect(SelectedGroupStore.records).to.eql({ 1: false, 2: false, 3: false });
     });
 
     it("triggers an update", function() {
-      SelectedGroupStore.clearAll();
+      SelectedGroupStore.deselectAll();
       expect(this.trigger.called).to.be.true;
     });
 
@@ -206,7 +206,6 @@ describe('SelectedGroupStore', function() {
       SelectedGroupStore.toggleSelect();
       expect(this.trigger.called).to.be.false;
     });
-
   });
 
   describe('toggleSelectAll()', function() {
