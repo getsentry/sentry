@@ -22,8 +22,8 @@ describe("FilterSelectLink", function() {
   describe("render()", function() {
 
     it("shows a button", function(){
-      var wrapper = React.render(<FilterSelectLink />, document.body);
-      var expected = findWithClass(wrapper, "btn");
+      var wrapper = React.render(<FilterSelectLink extraClass="test-btn" />, document.body);
+      var expected = findWithClass(wrapper, "test-btn");
       expect(expected).to.be.ok;
     });
 
@@ -38,12 +38,11 @@ describe("FilterSelectLink", function() {
       expect(() => findWithClass(wrapper, "active")).to.throw();
     });
 
-
-    it("calls onSelect() when clicked", function(){
+    it("calls onSelect() when anchor clicked", function(){
       var onSelect = this.sandbox.spy();
       var wrapper = React.render(<FilterSelectLink onSelect={onSelect} />, document.body);
 
-      TestUtils.Simulate.click(wrapper.getDOMNode());
+      TestUtils.Simulate.click(wrapper.getDOMNode().firstChild);
 
       expect(onSelect.called).to.be.true;
     });
