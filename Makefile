@@ -60,7 +60,7 @@ update-submodules:
 	git submodule update
 	@echo ""
 
-test: develop lint test-python test-cli
+test: develop lint test-js test-python test-cli
 
 testloop: develop
 	pip install pytest-xdist
