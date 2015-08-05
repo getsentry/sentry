@@ -12,17 +12,12 @@ import traceback
 
 from datetime import timedelta
 from django.conf import settings
-from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
-from django.db import connections
 from django.db.models import Sum, Q
-from django.http import (
-    HttpResponse, HttpResponseForbidden, HttpResponseRedirect,
-)
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
-from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
@@ -31,20 +26,18 @@ from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.app import tsdb
-from sentry.constants import MEMBER_USER
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper
 )
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupStatus, GroupTagValue, Project, TagValue, Activity, User
+    Group, GroupStatus, Project, TagValue, User
 )
 from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
-from sentry.utils.db import get_db_engine
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.utils.safe import safe_execute
@@ -356,220 +349,6 @@ class StoreView(APIView):
         helper.log.debug('New event received (%s)', event_id)
 
         return event_id
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
-def make_group_public(request, organization, project, group_id):
-    try:
-        group = Group.objects.get(pk=group_id)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    happened = group.update(is_public=True)
-
-    if happened:
-        Activity.objects.create(
-            project=project,
-            group=group,
-            type=Activity.SET_PUBLIC,
-            user=request.user,
-        )
-
-    return to_json(group, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
-def make_group_private(request, organization, project, group_id):
-    try:
-        group = Group.objects.get(pk=group_id)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    happened = group.update(is_public=False)
-
-    if happened:
-        Activity.objects.create(
-            project=project,
-            group=group,
-            type=Activity.SET_PRIVATE,
-            user=request.user,
-        )
-
-    return to_json(group, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
-def resolve_group(request, organization, project, group_id):
-    try:
-        group = Group.objects.get(pk=group_id)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    happened = group.update(
-        status=GroupStatus.RESOLVED,
-        resolved_at=timezone.now(),
-    )
-    if happened:
-        Activity.objects.create(
-            project=project,
-            group=group,
-            type=Activity.SET_RESOLVED,
-            user=request.user,
-        )
-
-    return to_json(group, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
-def mute_group(request, organization, project, group_id):
-    try:
-        group = Group.objects.get(pk=group_id)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    happened = group.update(
-        status=GroupStatus.MUTED,
-        resolved_at=timezone.now(),
-    )
-    if happened:
-        Activity.objects.create(
-            project=project,
-            group=group,
-            type=Activity.SET_MUTED,
-            user=request.user,
-        )
-
-    return to_json(group, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
-def unresolve_group(request, organization, project, group_id):
-    try:
-        group = Group.objects.get(pk=group_id)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    happened = group.update(
-        status=GroupStatus.UNRESOLVED,
-        active_at=timezone.now(),
-    )
-    if happened:
-        Activity.objects.create(
-            project=project,
-            group=group,
-            type=Activity.SET_UNRESOLVED,
-            user=request.user,
-        )
-
-    return to_json(group, request)
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-def remove_group(request, organization, project, group_id):
-    from sentry.tasks.deletion import delete_group
-
-    try:
-        group = Group.objects.get(pk=group_id)
-    except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    delete_group.delay(object_id=group.id)
-
-    if request.is_ajax():
-        response = HttpResponse('{}')
-        response['Content-Type'] = 'application/json'
-    else:
-        messages.add_message(request, messages.SUCCESS,
-            _('Deletion has been queued and should occur shortly.'))
-        response = HttpResponseRedirect(reverse('sentry-stream', args=[organization.slug, project.slug]))
-    return response
-
-
-@csrf_exempt
-@has_access(MEMBER_USER)
-@never_cache
-@api
-def get_group_tags(request, organization, project, group_id, tag_name):
-    # XXX(dcramer): Consider this API deprecated as soon as it was implemented
-    cutoff = timezone.now() - timedelta(days=7)
-
-    engine = get_db_engine('default')
-    if 'postgres' in engine:
-        # This doesnt guarantee percentage is accurate, but it does ensure
-        # that the query has a maximum cost
-        cursor = connections['default'].cursor()
-        cursor.execute("""
-            SELECT SUM(t)
-            FROM (
-                SELECT times_seen as t
-                FROM sentry_messagefiltervalue
-                WHERE group_id = %s
-                AND key = %s
-                AND last_seen > NOW() - INTERVAL '7 days'
-                LIMIT 10000
-            ) as a
-        """, [group_id, tag_name])
-        total = cursor.fetchone()[0] or 0
-    else:
-        total = GroupTagValue.objects.filter(
-            group=group_id,
-            key=tag_name,
-            last_seen__gte=cutoff,
-        ).aggregate(t=Sum('times_seen'))['t'] or 0
-
-    unique_tags = GroupTagValue.objects.filter(
-        group=group_id,
-        key=tag_name,
-        last_seen__gte=cutoff,
-    ).values_list('value', 'times_seen').order_by('-times_seen')[:10]
-
-    # fetch TagValue instances so we can get proper labels
-    tag_values = dict(
-        (t.value, t)
-        for t in TagValue.objects.filter(
-            key=tag_name,
-            project_id=project.id,
-            value__in=[u[0] for u in unique_tags],
-        )
-    )
-
-    values = []
-    for tag, times_seen in unique_tags:
-        try:
-            tag_value = tag_values[tag]
-        except KeyError:
-            label = tag
-        else:
-            label = tag_value.get_label()
-
-        values.append({
-            'value': tag,
-            'count': times_seen,
-            'label': label,
-        })
-
-    return json.dumps({
-        'name': tag_name,
-        'values': values,
-        'total': total,
-    })
 
 
 @never_cache
