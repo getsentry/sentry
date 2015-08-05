@@ -41,7 +41,8 @@ class ReleaseHook(object):
             data={'version': version},
             datetime=values['date_released'],
         )
-        activity.send_notification()
+        # TODO(dcramer): enable these when they're optional and useful
+        # activity.send_notification()
 
     def handle(self, request):
         raise NotImplementedError
