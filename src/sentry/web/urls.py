@@ -317,27 +317,12 @@ urlpatterns += patterns('',
         name='sentry-api-crossdomain-xml'),
 
     # Generic API
-    url(r'^api/(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group,
-        name='sentry-api-remove-group'),
-
     url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/groups/trends/$', api.get_group_trends,
         name='sentry-api-groups-trends'),
     url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/groups/newest/$', api.get_new_groups,
         name='sentry-api-groups-new'),
     url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/groups/resolved/$', api.get_resolved_groups,
         name='sentry-api-groups-resolved'),
-
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/public/$', api.make_group_public,
-        name='sentry-api-set-group-public'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/private/$', api.make_group_private, name='sentry-api-set-group-private'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/resolved/$', api.resolve_group,
-        name='sentry-api-set-group-resolve'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/muted/$', api.mute_group,
-        name='sentry-api-set-group-mute'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/unresolved/$', api.unresolve_group,
-        name='sentry-api-set-group-unresolve'),
-    url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/tags/(?P<tag_name>[^/]+)/$', api.get_group_tags,
-        name='sentry-api-group-tags'),
 
     url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/stats/$', api.get_stats,
         name='sentry-api-stats'),
