@@ -126,7 +126,10 @@ class Activity(Model):
         project = self.project
         org = self.project.organization
 
-        author = self.user.first_name or self.user.username
+        if self.user:
+            author = self.user.first_name or self.user.username
+        else:
+            author = None
 
         subject_prefix = self.project.get_option(
             'subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
