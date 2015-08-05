@@ -1,3 +1,14 @@
+Version 7.8.0
+-------------
+
+- Clients which were only sending ``sentry_key`` and not using CORS will no
+  longer be able to authenticate.
+- All incoming events now log through ``sentry.api``, which will additionally
+  capture far more events with improved console formatting.
+- The 'sentry' user can no longer be removed.
+- The Cassandra nodestore backend was broken, and this has been resolved.
+
+
 Version 7.7.0
 -------------
 
