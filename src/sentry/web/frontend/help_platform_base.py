@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db.models import Q
 from itertools import groupby
 
-from sentry.models import Project, ProjectKey
+from sentry.models import OrganizationMemberTeam, Project, ProjectKey
 from sentry.web.frontend.base import BaseView
 
 
@@ -15,8 +15,11 @@ class HelpPlatformBaseView(BaseView):
             Q(organization__member_set__has_global_access=True, organization__member_set__user=user)
             | Q(team__organizationmember__user=user)
         ).exclude(
-            team__organizationmemberteam__is_active=False,
-        ).select_related('team', 'organization').order_by('organization', 'team').distinct())
+            team__id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember__user=user,
+                is_active=False
+            ).values('team_id')
+        ).select_related('team', 'organization').order_by('organization__name', 'team__name', 'name').distinct())
 
     def group_project_list(self, project_list):
         results = []
