@@ -12,6 +12,14 @@
 
         <p>{% trans "A required security token was not found or was invalid." %}</p>
 
+        <p>{% trans "If you're continually seeing this issue, try the following:" %}</p>
+
+        <ol>
+          <li>{% trans "Clear cookies (at least for Sentry's domain)." %}</li>
+          <li>{% trans "Reload the page you're trying to submit (don't re-submit data)." %}</li>
+          <li>{% trans "Re-enter the information, and submit the form again." %}</li>
+        </ol>
+
         {% if no_referer %}
           <p>You are seeing this message because Sentry requires a 'Referer
            header' to be sent by your Web browser, but none was sent. This header is
