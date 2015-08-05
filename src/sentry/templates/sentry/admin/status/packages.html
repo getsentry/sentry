@@ -8,40 +8,28 @@
 {% block title %}{% trans "Packages" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-    <div class="page-header">
-        <h2>{% trans "Extensions" %}</h2>
-    </div>
+    <h3>{% trans "Extensions" %}</h3>
+
     {% if extensions %}
-        <table class="table table-bordered table-striped">
-            <colgroup>
-                <col style="width:220px">
-            </colgroup>
-            <tbody>
-                {% for key, value in extensions %}
-                    <tr>
-                        <th>{{ key }}</th>
-                        <td class="code">{{ value }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <dl class="vars">
+            {% for key, value in extensions %}
+            <dt>{{ key }}</dt>
+            <dd>
+<pre class="val">{{ value }}</pre>
+            </dd>
+            {% endfor %}
+        </dl>
     {% else %}
         <p>{% trans "No extensions registered." %}</p>
     {% endif %}
-    <div class="page-header">
-        <h2>{% trans "Modules" %}</h2>
-    </div>
-    <table class="table table-bordered table-striped">
-        <colgroup>
-            <col style="width:220px">
-        </colgroup>
-        <tbody>
-            {% for key, value in modules %}
-                <tr>
-                    <th>{{ key }}</th>
-                    <td class="code">{{ value }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+    <h3>{% trans "Modules" %}</h3>
+    <dl class="vars">
+        {% for key, value in modules %}
+        <dt>{{ key }}</dt>
+        <dd>
+<pre class="val">{{ value }}</pre>
+        </dd>
+        {% endfor %}
+    </dl>
 {% endblock %}
