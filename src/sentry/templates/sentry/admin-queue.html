@@ -8,29 +8,37 @@
 {% block title %}{% trans "Queue" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-  <div class="page-header">
-    <ul class="nav nav-pills pull-right" id="duration">
-      <li class="active"><a href="#">1h</a></li>
-      <li><a href="#">1d</a></li>
-      <li><a href="#">1w</a></li>
-    </ul>
-    <h2>Queue Overview</h2>
+  <ul class="nav nav-tabs pull-right" id="duration">
+    <li class="active"><a href="#">1h</a></li>
+    <li><a href="#">1d</a></li>
+    <li><a href="#">1w</a></li>
+  </ul>
+
+  <h3 class="no-border">Queue Overview</h3>
+
+  <div class="box">
+    <div class="box-header"><h3>Global Throughput</h3></div>
+    <div class="box-content with-padding">
+      <div class="chart-loader" style="height:250px" data-metric="jobs.all.started" data-label="Jobs started"></div>
+    </div>
   </div>
 
-  <h3>Global Throughput</h3>
-  <div class="chart-loader" style="height:250px" data-metric="jobs.all.started" data-label="Jobs started"></div>
+  <h3 class="no-border">Tasks</h3>
 
-  <h3>Tasks</h3>
-  <ul class="task-list unstyled">
+  <div class="row">
     {% for task_name in task_list %}
-      <li>
-        <strong>{{ task_name }}</strong>
-        <div class="chart-loader" style="height:80px"
-             data-metric="jobs.started.{{ task_name }}"
-             data-label="Jobs started"></div>
-      </li>
+      <div class="col-md-6">
+        <div class="box box-mini">
+          <div class="box-header">{{ task_name }}</div>
+          <div class="box-content with-padding">
+            <div class="chart-loader" style="height:100px"
+               data-metric="jobs.started.{{ task_name }}"
+               data-label="Jobs started"></div>
+          </div>
+        </div>
+      </div>
     {% endfor %}
-  </ul>
+  </div>
 
   <script>
   $(function(){
