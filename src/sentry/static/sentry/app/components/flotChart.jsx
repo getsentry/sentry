@@ -77,6 +77,7 @@ var FlotChart = React.createClass({
       },
       yaxis: {
         min: 0,
+        minTickSize: 1,
         tickFormatter: (value) => {
           if (value > 999999) {
             return (value / 1000000) + 'mm';
