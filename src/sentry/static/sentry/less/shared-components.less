@@ -876,12 +876,14 @@ table.integrations {
     border: 1px solid lighten(@trim, 5);
     margin-left: 6px;
     display: inline-block;
-    padding: 1px 2px 0;
-    border-radius: 2px;
-    top: 0;
-    position: relative;
+    border-radius: 75%;
     color: lighten(@gray, 10);
     font-size: 13px;
+    text-align: center;
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    line-height: 16px;
 
     &:hover {
       border-color: darken(@trim, 2);
@@ -891,7 +893,7 @@ table.integrations {
     }
 
     .icon-arrow-down {
-      font-size: 13px !important;
+      font-size: 12px !important;
       top: 1px;
       color: lighten(@gray, 15);
     }
