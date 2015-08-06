@@ -260,6 +260,90 @@ class SentryRemoteTest(TestCase):
 
         assert instance.message == 'hello'
 
+    def test_protocol_v2_0_without_secret_key(self):
+        kwargs = {'message': 'hello'}
+
+        resp = self._postWithHeader(
+            data=kwargs,
+            key=self.projectkey.public_key,
+            protocol='2.0',
+        )
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+
+        assert instance.message == 'hello'
+
+    def test_protocol_v3(self):
+        kwargs = {'message': 'hello'}
+
+        resp = self._postWithHeader(
+            data=kwargs,
+            key=self.projectkey.public_key,
+            secret=self.projectkey.secret_key,
+            protocol='3',
+        )
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+
+        assert instance.message == 'hello'
+
+    def test_protocol_v4(self):
+        kwargs = {'message': 'hello'}
+
+        resp = self._postWithHeader(
+            data=kwargs,
+            key=self.projectkey.public_key,
+            secret=self.projectkey.secret_key,
+            protocol='4',
+        )
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+
+        assert instance.message == 'hello'
+
+    def test_protocol_v5(self):
+        kwargs = {'message': 'hello'}
+
+        resp = self._postWithHeader(
+            data=kwargs,
+            key=self.projectkey.public_key,
+            secret=self.projectkey.secret_key,
+            protocol='5',
+        )
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+
+        assert instance.message == 'hello'
+
+    def test_protocol_v6(self):
+        kwargs = {'message': 'hello'}
+
+        resp = self._postWithHeader(
+            data=kwargs,
+            key=self.projectkey.public_key,
+            secret=self.projectkey.secret_key,
+            protocol='6',
+        )
+
+        assert resp.status_code == 200, resp.content
+
+        event_id = json.loads(resp.content)['id']
+        instance = Event.objects.get(event_id=event_id)
+
+        assert instance.message == 'hello'
+
 
 class DepdendencyTest(TestCase):
     def raise_import_error(self, package):
