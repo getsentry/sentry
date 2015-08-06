@@ -79,6 +79,25 @@ describe("SearchBar", function() {
 
   });
 
+  describe("onKeyUp()", function () {
+    describe("escape", function () {
+      it("blurs the input", function () {
+        var wrapper = React.render(<SearchBar />, document.body);
+        wrapper.state.dropdownVisible = true;
+
+        var input = React.findDOMNode(wrapper.refs.searchInput);
+
+        input.focus();
+
+        expect(document.activeElement).to.eql(input);
+
+        TestUtils.Simulate.keyUp(input, {key: "Escape", keyCode: "27"}});
+
+        expect(document.activeElement).to.not.eql(input);
+      });
+    });
+  });
+
   describe("render()", function() {
 
     it("invokes onSearch() when submitting the form", function() {
