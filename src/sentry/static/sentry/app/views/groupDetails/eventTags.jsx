@@ -1,6 +1,5 @@
-var React = require("react");
-
-var PropTypes = require("../../proptypes");
+import React from "react";
+import PropTypes from "../../proptypes";
 
 var GroupEventTags = React.createClass({
   propTypes: {
@@ -34,5 +33,6 @@ var GroupEventTags = React.createClass({
   }
 });
 
-module.exports = GroupEventTags;
+export default GroupEventTags;
+
 

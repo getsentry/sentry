@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var MutedBox = React.createClass({
@@ -16,4 +16,5 @@ var MutedBox = React.createClass({
   }
 });
 
-module.exports = MutedBox;
+export default MutedBox;
+

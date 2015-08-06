@@ -1,6 +1,5 @@
-var React = require("react");
-
-var $ = require("jquery");
+import React from "react";
+import $ from "jquery";
 require("bootstrap/js/tooltip");
 
 var TooltipTrigger = React.createClass({
@@ -44,4 +43,5 @@ var TooltipTrigger = React.createClass({
   }
 });
 
-module.exports = TooltipTrigger;
+export default TooltipTrigger;
+

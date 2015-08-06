@@ -1,15 +1,14 @@
-var $ = require("jquery");
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../api");
-var GroupState = require("../mixins/groupState");
-var Gravatar = require("../components/gravatar");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var Pagination = require("../components/pagination");
-var PropTypes = require("../proptypes");
-var TimeSince = require("../components/timeSince");
+import $ from "jquery";
+import React from "react";
+import Router from "react-router";
+import api from "../api";
+import GroupState from "../mixins/groupState";
+import Gravatar from "../components/gravatar";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import Pagination from "../components/pagination";
+import PropTypes from "../proptypes";
+import TimeSince from "../components/timeSince";
 
 var GroupEvents = React.createClass({
   contextTypes: {
@@ -120,4 +119,5 @@ var GroupEvents = React.createClass({
   }
 });
 
-module.exports = GroupEvents;
+export default GroupEvents;
+

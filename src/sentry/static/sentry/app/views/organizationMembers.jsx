@@ -1,13 +1,12 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../api");
-var Gravatar = require("../components/gravatar");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var OrganizationHomeContainer = require("../components/organizationHomeContainer");
-var OrganizationState = require("../mixins/organizationState");
-var RouteMixin = require("../mixins/routeMixin");
+import React from "react";
+import Router from "react-router";
+import api from "../api";
+import Gravatar from "../components/gravatar";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import OrganizationHomeContainer from "../components/organizationHomeContainer";
+import OrganizationState from "../mixins/organizationState";
+import RouteMixin from "../mixins/routeMixin";
 
 var OrganizationMembers = React.createClass({
   mixins: [
@@ -129,4 +128,5 @@ var OrganizationMembers = React.createClass({
   }
 });
 
-module.exports = OrganizationMembers;
+export default OrganizationMembers;
+

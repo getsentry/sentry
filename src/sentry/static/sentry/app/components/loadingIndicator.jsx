@@ -1,6 +1,6 @@
-var joinClasses = require("react/lib/joinClasses");
-var classSet = require("react/lib/cx");
-var React = require("react");
+import joinClasses from "react/lib/joinClasses";
+import classSet from "react/lib/cx";
+import React from "react";
 
 var LoadingIndicator = React.createClass({
   propTypes: {
@@ -29,4 +29,5 @@ var LoadingIndicator = React.createClass({
   }
 });
 
-module.exports = LoadingIndicator;
+export default LoadingIndicator;
+

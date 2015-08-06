@@ -1,5 +1,5 @@
-var React = require("react");
-var Reflux = require("reflux");
+import React from "react";
+import Reflux from "reflux";
 
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
@@ -43,4 +43,5 @@ var EventActions = React.createClass({
   }
 });
 
-module.exports = EventActions;
+export default EventActions;
+

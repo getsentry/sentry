@@ -1,15 +1,14 @@
-var jQuery = require("jquery");
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-
-var AssigneeSelector = require("./assigneeSelector");
-var Count = require("./count");
-var GroupChart = require("./streamGroupChart");
-var GroupStore = require("../stores/groupStore");
-var SelectedGroupStore = require("../stores/selectedGroupStore");
-var TimeSince = require("./timeSince");
-var {compareArrays, valueIsEqual} = require("../utils");
+import jQuery from "jquery";
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import AssigneeSelector from "./assigneeSelector";
+import Count from "./count";
+import GroupChart from "./streamGroupChart";
+import GroupStore from "../stores/groupStore";
+import SelectedGroupStore from "../stores/selectedGroupStore";
+import TimeSince from "./timeSince";
+import {compareArrays, valueIsEqual} from "../utils";
 
 var GroupCheckBox = React.createClass({
   mixins: [
@@ -216,4 +215,5 @@ var StreamGroup = React.createClass({
   }
 });
 
-module.exports = StreamGroup;
+export default StreamGroup;
+

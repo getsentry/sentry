@@ -1,7 +1,6 @@
-var React = require("react");
-
-var Gravatar = require("../../components/gravatar");
-var GroupState = require("../../mixins/groupState");
+import React from "react";
+import Gravatar from "../../components/gravatar";
+import GroupState from "../../mixins/groupState";
 
 var GroupSeenBy = React.createClass({
   mixins: [GroupState],
@@ -32,4 +31,5 @@ var GroupSeenBy = React.createClass({
   }
 });
 
-module.exports = GroupSeenBy;
+export default GroupSeenBy;
+

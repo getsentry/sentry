@@ -1,18 +1,17 @@
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-
-var api = require("../api");
-var ConfigStore = require("../stores/configStore");
-var DocumentTitle = require("react-document-title");
-var MemberListStore = require("../stores/memberListStore");
-var {modelsEqual} = require("../utils");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var ProjectHeader = require("../components/projectHeader");
-var OrganizationState = require("../mixins/organizationState");
-var RouteMixin = require("../mixins/routeMixin");
-var PropTypes = require("../proptypes");
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import api from "../api";
+import ConfigStore from "../stores/configStore";
+import DocumentTitle from "react-document-title";
+import MemberListStore from "../stores/memberListStore";
+import {modelsEqual} from "../utils";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import ProjectHeader from "../components/projectHeader";
+import OrganizationState from "../mixins/organizationState";
+import RouteMixin from "../mixins/routeMixin";
+import PropTypes from "../proptypes";
 
 var ProjectDetails = React.createClass({
   mixins: [
@@ -155,4 +154,5 @@ var ProjectDetails = React.createClass({
   }
 });
 
-module.exports = ProjectDetails;
+export default ProjectDetails;
+

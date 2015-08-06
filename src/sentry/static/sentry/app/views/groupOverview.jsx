@@ -1,21 +1,20 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../api");
-var ApiMixin = require("../mixins/apiMixin");
-var Count = require("../components/count");
-var DateTime = require("../components/dateTime");
-var GroupChart = require("./groupDetails/chart");
-var GroupEventEntries = require("../components/eventEntries");
-var GroupState = require("../mixins/groupState");
-var MutedBox = require("../components/mutedBox");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var PropTypes = require("../proptypes");
-var RouteMixin = require("../mixins/routeMixin");
-var TimeSince = require("../components/timeSince");
-var utils = require("../utils");
-var Version = require("../components/version");
+import React from "react";
+import Router from "react-router";
+import api from "../api";
+import ApiMixin from "../mixins/apiMixin";
+import Count from "../components/count";
+import DateTime from "../components/dateTime";
+import GroupChart from "./groupDetails/chart";
+import GroupEventEntries from "../components/eventEntries";
+import GroupState from "../mixins/groupState";
+import MutedBox from "../components/mutedBox";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import PropTypes from "../proptypes";
+import RouteMixin from "../mixins/routeMixin";
+import TimeSince from "../components/timeSince";
+import utils from "../utils";
+import Version from "../components/version";
 
 var SeenInfo = React.createClass({
   propTypes: {
@@ -298,4 +297,5 @@ var GroupOverview = React.createClass({
   }
 });
 
-module.exports = GroupOverview;
+export default GroupOverview;
+

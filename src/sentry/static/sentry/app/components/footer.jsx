@@ -1,6 +1,5 @@
-var React = require("react");
-
-var ConfigStore = require("../stores/configStore");
+import React from "react";
+import ConfigStore from "../stores/configStore";
 
 var Footer = React.createClass({
   render() {
@@ -24,4 +23,5 @@ var Footer = React.createClass({
   }
 });
 
-module.exports = Footer;
+export default Footer;
+

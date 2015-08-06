@@ -1,17 +1,16 @@
-var React = require("react");
-var Reflux = require("reflux");
-var $ = require("jquery");
-var Cookies = require("js-cookie");
-
-var api = require("../api");
-var EventRow = require("../components/eventRow");
-var EventActions = require("./projectEvents/actions");
-var EventStore = require("../stores/eventStore");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var Pagination = require("../components/pagination");
-var RouteMixin = require("../mixins/routeMixin");
-var utils = require("../utils");
+import React from "react";
+import Reflux from "reflux";
+import $ from "jquery";
+import Cookies from "js-cookie";
+import api from "../api";
+import EventRow from "../components/eventRow";
+import EventActions from "./projectEvents/actions";
+import EventStore from "../stores/eventStore";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import Pagination from "../components/pagination";
+import RouteMixin from "../mixins/routeMixin";
+import utils from "../utils";
 
 var ProjectEvents = React.createClass({
   mixins: [
@@ -247,4 +246,5 @@ var ProjectEvents = React.createClass({
   }
 });
 
-module.exports = ProjectEvents;
+export default ProjectEvents;
+

@@ -1,4 +1,4 @@
-var Reflux = require("reflux");
+import Reflux from "reflux";
 
 var OrganizationStore = Reflux.createStore({
   init() {
@@ -23,4 +23,5 @@ var OrganizationStore = Reflux.createStore({
   }
 });
 
-module.exports = OrganizationStore;
+export default OrganizationStore;
+

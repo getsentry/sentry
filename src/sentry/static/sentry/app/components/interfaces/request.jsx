@@ -1,10 +1,9 @@
-var React = require("react");
-var jQuery = require("jquery");
-
-var ConfigStore = require("../../stores/configStore");
-var GroupEventDataSection = require("../eventDataSection");
-var PropTypes = require("../../proptypes");
-var {defined, objectIsEmpty} = require("../../utils");
+import React from "react";
+import jQuery from "jquery";
+import ConfigStore from "../../stores/configStore";
+import GroupEventDataSection from "../eventDataSection";
+import PropTypes from "../../proptypes";
+import {defined, objectIsEmpty} from "../../utils";
 
 var ClippedBox = React.createClass({
   propTypes: {
@@ -259,4 +258,5 @@ var RequestInterface = React.createClass({
   }
 });
 
-module.exports = RequestInterface;
+export default RequestInterface;
+

@@ -1,5 +1,5 @@
-var React = require("react");
-var moment = require("moment");
+import React from "react";
+import moment from "moment";
 
 var TimeSince = React.createClass({
   propTypes: {
@@ -48,4 +48,5 @@ var TimeSince = React.createClass({
   }
 });
 
-module.exports = TimeSince;
+export default TimeSince;
+

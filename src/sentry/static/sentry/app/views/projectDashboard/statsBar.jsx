@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 var TeamStatsBar = React.createClass({
   render() {
@@ -25,4 +25,5 @@ var TeamStatsBar = React.createClass({
   }
 });
 
-module.exports = TeamStatsBar;
+export default TeamStatsBar;
+

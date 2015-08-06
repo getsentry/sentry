@@ -1,8 +1,7 @@
-var React = require("react");
-var Router = require("react-router");
-
-var GroupList = require("../components/groupList");
-var PropTypes = require("../proptypes");
+import React from "react";
+import Router from "react-router";
+import GroupList from "../components/groupList";
+import PropTypes from "../proptypes";
 
 var ReleaseNewEvents = React.createClass({
   contextTypes: {
@@ -19,4 +18,5 @@ var ReleaseNewEvents = React.createClass({
   }
 });
 
-module.exports = ReleaseNewEvents;
+export default ReleaseNewEvents;
+

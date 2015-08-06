@@ -1,7 +1,6 @@
 
-var Reflux = require("reflux");
-
-var LoadingIndicator = require('../components/loadingIndicator');
+import Reflux from "reflux";
+import LoadingIndicator from '../components/loadingIndicator';
 
 var IndicatorStore = Reflux.createStore({
   init() {
@@ -25,4 +24,5 @@ var IndicatorStore = Reflux.createStore({
   }
 });
 
-module.exports = IndicatorStore;
+export default IndicatorStore;
+

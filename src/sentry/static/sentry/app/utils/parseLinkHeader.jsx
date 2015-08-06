@@ -1,4 +1,4 @@
-module.exports = function(header) {
+export default function(header) {
   if (header === null) {
     return {};
   }
@@ -18,4 +18,5 @@ module.exports = function(header) {
   });
 
   return links;
-};
+}
+

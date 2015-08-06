@@ -1,19 +1,18 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../api");
-var ApiMixin = require("../mixins/apiMixin");
-var GroupChart = require("./groupDetails/chart");
-var GroupEvent = require("./groupDetails/event");
-var GroupEventToolbar = require("./groupDetails/eventToolbar");
-var GroupState = require("../mixins/groupState");
-var MutedBox = require("../components/mutedBox");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var PropTypes = require("../proptypes");
-var RouteMixin = require("../mixins/routeMixin");
-var TimeSince = require("../components/timeSince");
-var utils = require("../utils");
+import React from "react";
+import Router from "react-router";
+import api from "../api";
+import ApiMixin from "../mixins/apiMixin";
+import GroupChart from "./groupDetails/chart";
+import GroupEvent from "./groupDetails/event";
+import GroupEventToolbar from "./groupDetails/eventToolbar";
+import GroupState from "../mixins/groupState";
+import MutedBox from "../components/mutedBox";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import PropTypes from "../proptypes";
+import RouteMixin from "../mixins/routeMixin";
+import TimeSince from "../components/timeSince";
+import utils from "../utils";
 
 
 var GroupEventDetails = React.createClass({
@@ -114,4 +113,5 @@ var GroupEventDetails = React.createClass({
   }
 });
 
-module.exports = GroupEventDetails;
+export default GroupEventDetails;
+

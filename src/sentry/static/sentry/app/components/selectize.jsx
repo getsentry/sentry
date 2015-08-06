@@ -1,6 +1,5 @@
-// Based on onChange
-var React = require("react");
-var $ = require("jquery");
+import React from "react";
+import $ from "jquery";
 
 var Selectize = React.createClass({
   getDefaultProps() {
@@ -210,4 +209,5 @@ var handledProps = {
   options:      true,
 };
 
-module.exports = Selectize;
+export default Selectize;
+

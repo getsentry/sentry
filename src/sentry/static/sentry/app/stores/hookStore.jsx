@@ -1,5 +1,5 @@
 
-var Reflux = require("reflux");
+import Reflux from "reflux";
 
 var validHookNames = new Set([
   'organization:sidebar'
@@ -36,4 +36,5 @@ var HookStore = Reflux.createStore({
   }
 });
 
-module.exports = HookStore;
+export default HookStore;
+

@@ -1,10 +1,8 @@
-var React = require("react");
-
-var OrganizationHeader = require("./organizationHeader");
-var OrganizationHomeSidebar = require("./organizationHomeSidebar");
-var OrganizationState = require("../mixins/organizationState");
-
-var Loading = require("../components/loadingIndicator");
+import React from "react";
+import OrganizationHeader from "./organizationHeader";
+import OrganizationHomeSidebar from "./organizationHomeSidebar";
+import OrganizationState from "../mixins/organizationState";
+import Loading from "../components/loadingIndicator";
 
 var OrganizationHomeContainer = React.createClass({
   mixins: [OrganizationState],
@@ -28,4 +26,5 @@ var OrganizationHomeContainer = React.createClass({
   }
 });
 
-module.exports = OrganizationHomeContainer;
+export default OrganizationHomeContainer;
+

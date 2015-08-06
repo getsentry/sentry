@@ -1,12 +1,11 @@
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-var $ = require("jquery");
-
-var api = require("../api");
-var IndicatorStore = require('../stores/indicatorStore');
-var Selectize = require("../components/selectize");
-var utils = require("../utils");
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import $ from "jquery";
+import api from "../api";
+import IndicatorStore from '../stores/indicatorStore';
+import Selectize from "../components/selectize";
+import utils from "../utils";
 
 var RuleNode = React.createClass({
   componentDidMount() {
@@ -233,4 +232,5 @@ var RuleEditor = React.createClass({
   }
 });
 
-module.exports = RuleEditor;
+export default RuleEditor;
+

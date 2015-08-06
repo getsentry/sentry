@@ -1,6 +1,5 @@
-var Reflux = require("reflux");
-
-var GroupStore = require("./groupStore");
+import Reflux from "reflux";
+import GroupStore from "./groupStore";
 
 var SelectedGroupStore = Reflux.createStore({
   init() {
@@ -89,4 +88,5 @@ var SelectedGroupStore = Reflux.createStore({
   }
 });
 
-module.exports = SelectedGroupStore;
+export default SelectedGroupStore;
+

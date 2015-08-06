@@ -1,7 +1,6 @@
-var React = require("react");
-
-var PropTypes = require("../../proptypes");
-var {defined, trim} = require("../../utils");
+import React from "react";
+import PropTypes from "../../proptypes";
+import {defined, trim} from "../../utils";
 
 var RawStacktraceContent = React.createClass({
   propTypes: {
@@ -95,4 +94,5 @@ var RawStacktraceContent = React.createClass({
   }
 });
 
-module.exports = RawStacktraceContent;
+export default RawStacktraceContent;
+
