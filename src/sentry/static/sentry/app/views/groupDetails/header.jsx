@@ -113,6 +113,12 @@ var GroupHeader = React.createClass({
             </h3>
             <div className="event-message">
               <span className="message">{group.culprit}</span>
+              {group.annotations.map((annotation) => {
+                return (
+                  <span className="event-annotation"
+                      dangerouslySetInnerHTML={{__html: annotation}} />
+                );
+              })}
             </div>
           </div>
           <div className="col-sm-4 stats">
