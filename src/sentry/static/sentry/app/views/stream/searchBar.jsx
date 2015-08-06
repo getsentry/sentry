@@ -25,9 +25,13 @@ var SearchBar = React.createClass({
     };
   },
 
+  blur() {
+    this.refs.searchInput.getDOMNode().blur();
+  },
+
   onSubmit(event) {
     event.preventDefault();
-    this.refs.searchInput.getDOMNode().blur();
+    this.blur();
     this.props.onSearch();
   },
 
@@ -51,6 +55,13 @@ var SearchBar = React.createClass({
     this.props.onQueryChange(event.target.value);
   },
 
+  onKeyUp(event) {
+    if (event.key === 'Escape' || event.keyCode === 27) {
+      // blur handler should additionally hide dropdown
+      this.blur();
+    }
+  },
+
   render() {
     return (
       <div className="search">
@@ -64,6 +75,7 @@ var SearchBar = React.createClass({
               value={this.props.query}
               onFocus={this.onQueryFocus}
               onBlur={this.onQueryBlur}
+              onKeyUp={this.onKeyUp}
               onChange={this.onQueryChange} />
             <span className="icon-search" />
             {this.props.query !== this.props.defaultQuery &&
