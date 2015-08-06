@@ -11,7 +11,7 @@ var AlertMessage = React.createClass({
   },
 
   closeAlert: function() {
-    AlertActions.closeAlert(this);
+    AlertActions.closeAlert(this.props.id);
   },
 
   render: function() {
@@ -26,7 +26,7 @@ var AlertMessage = React.createClass({
                 onClick={this.closeAlert}>
           <span aria-hidden="true">&times;</span>
         </button>
-        {this.props.children}
+        {this.props.message}
       </div>
     );
   }
