@@ -91,7 +91,7 @@ describe("SearchBar", function() {
 
         expect(document.activeElement).to.eql(input);
 
-        TestUtils.Simulate.keyUp(input, {key: "Escape", keyCode: "27"}});
+        TestUtils.Simulate.keyUp(input, {key: "Escape", keyCode: "27"});
 
         expect(document.activeElement).to.not.eql(input);
       });
