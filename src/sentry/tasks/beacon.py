@@ -12,10 +12,13 @@ import json
 import logging
 import sentry
 
+from datetime import timedelta
 from django.conf import settings
+from django.utils import timezone
 from hashlib import sha1
 from uuid import uuid4
 
+from sentry.app import tsdb
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
 
@@ -51,6 +54,14 @@ def send_beacon():
         id__in=internal_project_ids,
     ).values_list('platform', flat=True)))
 
+    end = timezone.now()
+    events_24h = tsdb.get_sums(
+        model=tsdb.models.internal,
+        keys=['events.total'],
+        start=end - timedelta(hours=24),
+        end=end,
+    )['events.total']
+
     payload = {
         'install_id': install_id,
         'version': sentry.get_version(),
@@ -63,6 +74,7 @@ def send_beacon():
             'projects': Project.objects.count(),
             'teams': Team.objects.count(),
             'organizations': Organization.objects.count(),
+            'events.24h': events_24h,
         }
     }
 
