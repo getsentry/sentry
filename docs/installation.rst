@@ -369,6 +369,7 @@ go.
 
   [program:sentry-web]
   directory=/www/sentry/
+  environment=SENTRY_CONF=/www/sentry/sentry.conf.py
   command=/www/sentry/bin/sentry start
   autostart=true
   autorestart=true
@@ -378,6 +379,7 @@ go.
 
   [program:sentry-worker]
   directory=/www/sentry/
+  environment=SENTRY_CONF=/www/sentry/sentry.conf.py
   command=/www/sentry/bin/sentry celery worker -B
   autostart=true
   autorestart=true
