@@ -1,7 +1,7 @@
-var React = require("react");
+import React from "react";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
-var SearchDropdown = require("./searchDropdown");
+import SearchDropdown from "./searchDropdown";
 
 var SearchBar = React.createClass({
   contextTypes: {
@@ -94,4 +94,5 @@ var SearchBar = React.createClass({
   }
 });
 
-module.exports = SearchBar;
+export default SearchBar;
+

@@ -1,5 +1,5 @@
-var React = require("react");
-var Router = require("react-router");
+import React from "react";
+import Router from "react-router";
 
 var Version = React.createClass({
   contextTypes: {
@@ -37,4 +37,5 @@ var Version = React.createClass({
   }
 });
 
-module.exports = Version;
+export default Version;
+

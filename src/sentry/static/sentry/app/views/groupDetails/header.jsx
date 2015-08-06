@@ -1,15 +1,14 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../../api");
-var AssigneeSelector = require("../../components/assigneeSelector");
-var Count = require("../../components/count");
-var GroupActions = require("./actions");
-var GroupSeenBy = require("./seenBy");
-var IndicatorStore = require("../../stores/indicatorStore");
-var ListLink = require("../../components/listLink");
-var ProjectState = require("../../mixins/projectState");
-var PropTypes = require("../../proptypes");
+import React from "react";
+import Router from "react-router";
+import api from "../../api";
+import AssigneeSelector from "../../components/assigneeSelector";
+import Count from "../../components/count";
+import GroupActions from "./actions";
+import GroupSeenBy from "./seenBy";
+import IndicatorStore from "../../stores/indicatorStore";
+import ListLink from "../../components/listLink";
+import ProjectState from "../../mixins/projectState";
+import PropTypes from "../../proptypes";
 
 var GroupHeader = React.createClass({
   mixins: [ProjectState],
@@ -176,4 +175,5 @@ var GroupHeader = React.createClass({
   }
 });
 
-module.exports = GroupHeader;
+export default GroupHeader;
+

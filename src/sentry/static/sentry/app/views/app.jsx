@@ -1,13 +1,12 @@
-var React = require("react");
-
-var api = require("../api");
-var Alerts = require("../components/alerts");
-var ConfigStore = require("../stores/configStore");
-var Header = require("../components/header");
-var Indicators = require("../components/indicators");
-var LoadingIndicator = require("../components/loadingIndicator");
-var OrganizationStore = require("../stores/organizationStore");
-var PropTypes = require("../proptypes");
+import React from "react";
+import api from "../api";
+import Alerts from "../components/alerts";
+import ConfigStore from "../stores/configStore";
+import Header from "../components/header";
+import Indicators from "../components/indicators";
+import LoadingIndicator from "../components/loadingIndicator";
+import OrganizationStore from "../stores/organizationStore";
+import PropTypes from "../proptypes";
 
 var App = React.createClass({
   propTypes: {
@@ -59,4 +58,5 @@ var App = React.createClass({
   }
 });
 
-module.exports = App;
+export default App;
+

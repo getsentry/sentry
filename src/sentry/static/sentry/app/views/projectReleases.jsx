@@ -1,17 +1,16 @@
-var jQuery = require("jquery");
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-
-var api = require("../api");
-var Count = require("../components/count");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var Pagination = require("../components/pagination");
-var RouteMixin = require("../mixins/routeMixin");
-var TimeSince = require("../components/timeSince");
-var utils = require("../utils");
-var Version = require("../components/version");
+import jQuery from "jquery";
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import api from "../api";
+import Count from "../components/count";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import Pagination from "../components/pagination";
+import RouteMixin from "../mixins/routeMixin";
+import TimeSince from "../components/timeSince";
+import utils from "../utils";
+import Version from "../components/version";
 
 var ReleaseList = React.createClass({
   contextTypes: {
@@ -162,4 +161,5 @@ var ProjectReleases = React.createClass({
   }
 });
 
-module.exports = ProjectReleases;
+export default ProjectReleases;
+

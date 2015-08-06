@@ -1,6 +1,6 @@
-var React = require("react");
-var $ = require("jquery");
-var MD5 = require("crypto-js/md5");
+import React from "react";
+import $ from "jquery";
+import MD5 from "crypto-js/md5";
 
 var Gravatar = React.createClass({
   propTypes: {
@@ -42,4 +42,5 @@ var Gravatar = React.createClass({
   }
 });
 
-module.exports = Gravatar;
+export default Gravatar;
+

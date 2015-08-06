@@ -1,8 +1,7 @@
-var React = require("react");
-
-var DocumentTitle = require("react-document-title");
-var Footer = require("../components/footer");
-var Header = require("../components/header");
+import React from "react";
+import DocumentTitle from "react-document-title";
+import Footer from "../components/footer";
+import Header from "../components/header";
 
 var RouteNotFound = React.createClass({
   getTitle() {
@@ -32,4 +31,5 @@ var RouteNotFound = React.createClass({
   }
 });
 
-module.exports = RouteNotFound;
+export default RouteNotFound;
+

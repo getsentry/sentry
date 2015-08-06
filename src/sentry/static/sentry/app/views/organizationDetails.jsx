@@ -1,16 +1,15 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../api");
-var DocumentTitle = require("react-document-title");
-var Footer = require("../components/footer");
-var Header = require("../components/header");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var OrganizationState = require("../mixins/organizationState");
-var PropTypes = require("../proptypes");
-var RouteMixin = require("../mixins/routeMixin");
-var TeamStore = require("../stores/teamStore");
+import React from "react";
+import Router from "react-router";
+import api from "../api";
+import DocumentTitle from "react-document-title";
+import Footer from "../components/footer";
+import Header from "../components/header";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import OrganizationState from "../mixins/organizationState";
+import PropTypes from "../proptypes";
+import RouteMixin from "../mixins/routeMixin";
+import TeamStore from "../stores/teamStore";
 
 var OrganizationDetails = React.createClass({
   mixins: [
@@ -109,4 +108,5 @@ var OrganizationDetails = React.createClass({
   }
 });
 
-module.exports = OrganizationDetails;
+export default OrganizationDetails;
+

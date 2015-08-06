@@ -1,13 +1,12 @@
-var jQuery = require("jquery");
-var React = require("react");
-
-var api = require("../api");
-var Count = require("../components/count");
-var GroupState = require("../mixins/groupState");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var Pagination = require("../components/pagination");
-var PropTypes = require("../proptypes");
+import jQuery from "jquery";
+import React from "react";
+import api from "../api";
+import Count from "../components/count";
+import GroupState from "../mixins/groupState";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import Pagination from "../components/pagination";
+import PropTypes from "../proptypes";
 
 var GroupTagValues = React.createClass({
   mixins: [GroupState],
@@ -126,4 +125,5 @@ var GroupTagValues = React.createClass({
   }
 });
 
-module.exports = GroupTagValues;
+export default GroupTagValues;
+

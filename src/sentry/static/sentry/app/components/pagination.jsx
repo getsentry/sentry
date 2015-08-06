@@ -1,7 +1,6 @@
-var React = require("react");
-var Router = require("react-router");
-
-var utils = require("../utils");
+import React from "react";
+import Router from "react-router";
+import utils from "../utils";
 
 var Pagination = React.createClass({
   propTypes: {
@@ -49,4 +48,5 @@ var Pagination = React.createClass({
   }
 });
 
-module.exports = Pagination;
+export default Pagination;
+

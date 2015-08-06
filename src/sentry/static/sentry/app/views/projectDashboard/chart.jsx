@@ -1,12 +1,11 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../../api");
-var BarChart = require("../../components/barChart");
-var LoadingError = require("../../components/loadingError");
-var LoadingIndicator = require("../../components/loadingIndicator");
-var RouteMixin = require("../../mixins/routeMixin");
-var ProjectState = require("../../mixins/projectState");
+import React from "react";
+import Router from "react-router";
+import api from "../../api";
+import BarChart from "../../components/barChart";
+import LoadingError from "../../components/loadingError";
+import LoadingIndicator from "../../components/loadingIndicator";
+import RouteMixin from "../../mixins/routeMixin";
+import ProjectState from "../../mixins/projectState";
 
 var ProjectChart = React.createClass({
   mixins: [
@@ -98,4 +97,5 @@ var ProjectChart = React.createClass({
   }
 });
 
-module.exports = ProjectChart;
+export default ProjectChart;
+

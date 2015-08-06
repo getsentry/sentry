@@ -1,4 +1,4 @@
-var PropTypes = require("../proptypes");
+import PropTypes from "../proptypes";
 
 var OrganizationState = {
   contextTypes: {
@@ -18,4 +18,5 @@ var OrganizationState = {
   }
 };
 
-module.exports = OrganizationState;
+export default OrganizationState;
+

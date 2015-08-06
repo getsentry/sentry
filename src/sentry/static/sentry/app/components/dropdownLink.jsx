@@ -1,7 +1,7 @@
-var joinClasses = require("react/lib/joinClasses");
-var classSet = require("react/lib/cx");
-var React = require("react");
-var $ = require("jquery");
+import joinClasses from "react/lib/joinClasses";
+import classSet from "react/lib/cx";
+import React from "react";
+import $ from "jquery";
 
 require("bootstrap/js/dropdown");
 
@@ -63,4 +63,5 @@ var DropdownLink = React.createClass({
   }
 });
 
-module.exports = DropdownLink;
+export default DropdownLink;
+

@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 var PropTypes = {
   AnyModel: React.PropTypes.shape({
@@ -27,4 +27,5 @@ var PropTypes = {
   })
 };
 
-module.exports = PropTypes;
+export default PropTypes;
+

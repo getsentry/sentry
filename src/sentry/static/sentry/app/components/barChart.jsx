@@ -1,9 +1,8 @@
-var $ = require("jquery");
-var moment = require("moment");
-var React = require("react");
-
-var TooltipTrigger = require("./tooltipTrigger");
-var { valueIsEqual } = require("../utils");
+import $ from "jquery";
+import moment from "moment";
+import React from "react";
+import TooltipTrigger from "./tooltipTrigger";
+import { valueIsEqual } from "../utils";
 
 var BarChart = React.createClass({
   propTypes: {
@@ -210,4 +209,5 @@ var BarChart = React.createClass({
   }
 });
 
-module.exports = BarChart;
+export default BarChart;
+

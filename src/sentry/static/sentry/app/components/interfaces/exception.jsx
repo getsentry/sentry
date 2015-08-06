@@ -1,11 +1,10 @@
-var React = require("react");
-var classSet = require("react/lib/cx");
-
-var GroupEventDataSection = require("../eventDataSection");
-var PropTypes = require("../../proptypes");
-var RawStacktraceContent = require("./rawStacktraceContent");
-var StacktraceContent = require("./stacktraceContent");
-var {defined} = require("../../utils");
+import React from "react";
+import classSet from "react/lib/cx";
+import GroupEventDataSection from "../eventDataSection";
+import PropTypes from "../../proptypes";
+import RawStacktraceContent from "./rawStacktraceContent";
+import StacktraceContent from "./stacktraceContent";
+import {defined} from "../../utils";
 
 var ExceptionContent = React.createClass({
   propTypes: {
@@ -99,4 +98,5 @@ var ExceptionInterface = React.createClass({
   }
 });
 
-module.exports = ExceptionInterface;
+export default ExceptionInterface;
+

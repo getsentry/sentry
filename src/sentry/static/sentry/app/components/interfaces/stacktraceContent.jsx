@@ -1,11 +1,9 @@
-var React = require("react");
-var classSet = require("react/lib/cx");
-
-var GroupEventDataSection = require("../eventDataSection");
-var PropTypes = require("../../proptypes");
-var {defined} = require("../../utils");
-
-var ContextData = require("../contextData");
+import React from "react";
+import classSet from "react/lib/cx";
+import GroupEventDataSection from "../eventDataSection";
+import PropTypes from "../../proptypes";
+import {defined} from "../../utils";
+import ContextData from "../contextData";
 
 var FrameVariables = React.createClass({
   propTypes: {
@@ -198,4 +196,5 @@ var StacktraceContent = React.createClass({
   }
 });
 
-module.exports = StacktraceContent;
+export default StacktraceContent;
+

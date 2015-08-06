@@ -1,6 +1,6 @@
-var React = require('react');
-var jQuery = require('jquery');
-var moment = require('moment');
+import React from 'react';
+import jQuery from 'jquery';
+import moment from 'moment';
 
 // we need flot and the various plugins
 require('flot');
@@ -148,4 +148,5 @@ var FlotChart = React.createClass({
   }
 });
 
-module.exports = FlotChart;
+export default FlotChart;
+

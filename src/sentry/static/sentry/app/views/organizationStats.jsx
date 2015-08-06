@@ -1,18 +1,17 @@
-var $ = require("jquery");
-var moment = require("moment");
-var React = require("react");
-
-var api = require("../api");
-var ConfigStore = require("../stores/configStore");
-var Count = require("../components/count");
-var FlotChart = require("../components/flotChart");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var OrganizationHomeContainer = require("../components/organizationHomeContainer");
-var OrganizationState = require("../mixins/organizationState");
+import $ from "jquery";
+import moment from "moment";
+import React from "react";
+import api from "../api";
+import ConfigStore from "../stores/configStore";
+import Count from "../components/count";
+import FlotChart from "../components/flotChart";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import OrganizationHomeContainer from "../components/organizationHomeContainer";
+import OrganizationState from "../mixins/organizationState";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-var RouteMixin = require("../mixins/routeMixin");
-var utils = require("../utils");
+import RouteMixin from "../mixins/routeMixin";
+import utils from "../utils";
 
 var getPercent = (item, total) => {
   if (total === 0) {
@@ -412,4 +411,5 @@ var OrganizationStats = React.createClass({
   }
 });
 
-module.exports = OrganizationStats;
+export default OrganizationStats;
+

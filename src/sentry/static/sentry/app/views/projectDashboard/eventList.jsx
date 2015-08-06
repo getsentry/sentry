@@ -1,14 +1,13 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../../api");
-var Count = require("../../components/count");
-var LoadingError = require("../../components/loadingError");
-var LoadingIndicator = require("../../components/loadingIndicator");
-var PropTypes = require("../../proptypes");
-var RouteMixin = require("../../mixins/routeMixin");
-var TimeSince = require("../../components/timeSince");
-var ProjectState = require("../../mixins/projectState");
+import React from "react";
+import Router from "react-router";
+import api from "../../api";
+import Count from "../../components/count";
+import LoadingError from "../../components/loadingError";
+import LoadingIndicator from "../../components/loadingIndicator";
+import PropTypes from "../../proptypes";
+import RouteMixin from "../../mixins/routeMixin";
+import TimeSince from "../../components/timeSince";
+import ProjectState from "../../mixins/projectState";
 
 var EventNode = React.createClass({
   mixins: [ProjectState],
@@ -193,4 +192,5 @@ var EventList = React.createClass({
   }
 });
 
-module.exports = EventList;
+export default EventList;
+

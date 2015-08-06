@@ -1,20 +1,19 @@
-var React = require("react");
-var Reflux = require("reflux");
-var $ = require("jquery");
-var Cookies = require("js-cookie");
-var moment = require("moment");
-
-var api = require("../api");
-var GroupActions = require("../actions/groupActions");
-var GroupStore = require("../stores/groupStore");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var Pagination = require("../components/pagination");
-var RouteMixin = require("../mixins/routeMixin");
-var StreamGroup = require('../components/streamGroup');
-var StreamActions = require('./stream/actions');
-var StreamFilters = require('./stream/filters');
-var utils = require("../utils");
+import React from "react";
+import Reflux from "reflux";
+import $ from "jquery";
+import Cookies from "js-cookie";
+import moment from "moment";
+import api from "../api";
+import GroupActions from "../actions/groupActions";
+import GroupStore from "../stores/groupStore";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import Pagination from "../components/pagination";
+import RouteMixin from "../mixins/routeMixin";
+import StreamGroup from '../components/streamGroup';
+import StreamActions from './stream/actions';
+import StreamFilters from './stream/filters';
+import utils from "../utils";
 
 var Stream = React.createClass({
   mixins: [
@@ -346,4 +345,5 @@ var Stream = React.createClass({
 
 });
 
-module.exports = Stream;
+export default Stream;
+

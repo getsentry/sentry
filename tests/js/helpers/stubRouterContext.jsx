@@ -1,6 +1,6 @@
 var React = require("react");
 
-module.exports = (Component, props, stubs) => {
+export default (Component, props, stubs) => {
   function RouterStub() {}
 
   Object.assign(RouterStub, {

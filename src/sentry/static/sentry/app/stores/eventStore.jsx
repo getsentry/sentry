@@ -1,5 +1,5 @@
-var jQuery = require("jquery");
-var Reflux = require("reflux");
+import jQuery from "jquery";
+import Reflux from "reflux";
 
 var EventStore = Reflux.createStore({
   init() {
@@ -75,4 +75,5 @@ var EventStore = Reflux.createStore({
   }
 });
 
-module.exports = EventStore;
+export default EventStore;
+

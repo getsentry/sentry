@@ -1,8 +1,8 @@
-var React = require("react");
-var Reflux = require("reflux");
+import React from "react";
+import Reflux from "reflux";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
-var AlertStore = require('../stores/alertStore');
+import AlertStore from '../stores/alertStore';
 
 var Alerts = React.createClass({
   mixins: [
@@ -27,4 +27,5 @@ var Alerts = React.createClass({
   }
 });
 
-module.exports = Alerts;
+export default Alerts;
+

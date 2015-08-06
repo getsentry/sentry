@@ -1,10 +1,9 @@
-var jQuery = require("jquery");
-var React = require("react");
-
-var ConfigStore = require("../stores/configStore");
-var HookStore = require("../stores/hookStore");
-var ListLink = require("../components/listLink");
-var OrganizationState = require("../mixins/organizationState");
+import jQuery from "jquery";
+import React from "react";
+import ConfigStore from "../stores/configStore";
+import HookStore from "../stores/hookStore";
+import ListLink from "../components/listLink";
+import OrganizationState from "../mixins/organizationState";
 
 var OrganizationHomeSidebar = React.createClass({
   mixins: [OrganizationState],
@@ -66,4 +65,5 @@ var OrganizationHomeSidebar = React.createClass({
   }
 });
 
-module.exports = OrganizationHomeSidebar;
+export default OrganizationHomeSidebar;
+

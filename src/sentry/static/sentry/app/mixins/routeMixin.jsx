@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 var RouteMixin = {
   contextTypes: {
@@ -30,4 +30,5 @@ var RouteMixin = {
   },
 };
 
-module.exports = RouteMixin;
+export default RouteMixin;
+

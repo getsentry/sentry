@@ -1,17 +1,16 @@
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-var jQuery = require("jquery");
-
-var api = require("../api");
-var Count = require("../components/count");
-var DocumentTitle = require("react-document-title");
-var EventEntries = require("../components/eventEntries");
-var Footer = require("../components/footer");
-var Header = require("../components/header");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var PropTypes = require("../proptypes");
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import jQuery from "jquery";
+import api from "../api";
+import Count from "../components/count";
+import DocumentTitle from "react-document-title";
+import EventEntries from "../components/eventEntries";
+import Footer from "../components/footer";
+import Header from "../components/header";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import PropTypes from "../proptypes";
 
 var SharedGroupHeader = React.createClass({
   render() {
@@ -148,4 +147,5 @@ var SharedGroupDetails = React.createClass({
   }
 });
 
-module.exports = SharedGroupDetails;
+export default SharedGroupDetails;
+

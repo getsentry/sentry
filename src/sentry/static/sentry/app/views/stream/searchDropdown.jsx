@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var SearchDropdown = React.createClass({
@@ -70,4 +70,5 @@ var SearchDropdown = React.createClass({
   }
 });
 
-module.exports = SearchDropdown;
+export default SearchDropdown;
+

@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 var Count = React.createClass({
   propTypes: {
@@ -46,4 +46,5 @@ var Count = React.createClass({
   }
 });
 
-module.exports = Count;
+export default Count;
+

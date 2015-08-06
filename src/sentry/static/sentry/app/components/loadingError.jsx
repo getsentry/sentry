@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 var LoadingError = React.createClass({
   propTypes: {
@@ -30,4 +30,5 @@ var LoadingError = React.createClass({
   }
 });
 
-module.exports = LoadingError;
+export default LoadingError;
+

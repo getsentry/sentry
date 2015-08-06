@@ -1,5 +1,5 @@
 
-var Reflux = require("reflux");
+import Reflux from "reflux";
 
 
 // TODO(dcramer): we should probably just make every parameter update
@@ -20,4 +20,5 @@ var GroupActions = Reflux.createActions([
 ]);
 
 
-module.exports = GroupActions;
+export default GroupActions;
+

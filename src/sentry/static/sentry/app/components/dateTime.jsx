@@ -1,5 +1,5 @@
-var React = require("react");
-var moment = require("moment");
+import React from "react";
+import moment from "moment";
 
 var DateTime = React.createClass({
   propTypes: {
@@ -19,4 +19,5 @@ var DateTime = React.createClass({
   }
 });
 
-module.exports = DateTime;
+export default DateTime;
+
