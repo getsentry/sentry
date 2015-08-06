@@ -1,9 +1,8 @@
-var React = require("react");
-var Router = require("react-router");
-
-var EventStore = require("../stores/eventStore");
-var Gravatar = require("./gravatar");
-var TimeSince = require("./timeSince");
+import React from "react";
+import Router from "react-router";
+import EventStore from "../stores/eventStore";
+import Gravatar from "./gravatar";
+import TimeSince from "./timeSince";
 
 var EventRow = React.createClass({
   propTypes: {
@@ -66,4 +65,5 @@ var EventRow = React.createClass({
   }
 });
 
-module.exports = EventRow;
+export default EventRow;
+

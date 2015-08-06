@@ -1,6 +1,6 @@
-var React = require("react");
-var moment = require("moment");
-var DatePicker = require("react-datepicker");
+import React from "react";
+import moment from "moment";
+import DatePicker from "react-datepicker";
 
 var DateTimeInput = React.createClass({
   getInitialState() {
@@ -58,4 +58,5 @@ var DateTimeInput = React.createClass({
   }
 });
 
-module.exports = DateTimeInput;
+export default DateTimeInput;
+

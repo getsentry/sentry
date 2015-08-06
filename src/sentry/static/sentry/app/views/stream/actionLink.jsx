@@ -1,9 +1,8 @@
-var Modal = require("react-bootstrap/Modal");
-var OverlayMixin = require("react-bootstrap/OverlayMixin");
+import Modal from "react-bootstrap/Modal";
+import OverlayMixin from "react-bootstrap/OverlayMixin";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-var React = require("react");
-
-var SelectedGroupStore = require("../../stores/selectedGroupStore");
+import React from "react";
+import SelectedGroupStore from "../../stores/selectedGroupStore";
 
 var ActionLink = React.createClass({
   mixins: [OverlayMixin, PureRenderMixin],
@@ -129,4 +128,5 @@ var ActionLink = React.createClass({
   }
 });
 
-module.exports = ActionLink;
+export default ActionLink;
+

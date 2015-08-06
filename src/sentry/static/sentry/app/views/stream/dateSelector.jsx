@@ -1,12 +1,11 @@
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-var React = require("react");
-var moment = require("moment");
-
-var DateTimeInput = require("../../components/dateTimeInput");
-var DropdownLink = require("../../components/dropdownLink");
-var MenuItem = require("../../components/menuItem");
-var Modal = require("react-bootstrap/Modal");
-var OverlayMixin = require("react-bootstrap/OverlayMixin");
+import React from "react";
+import moment from "moment";
+import DateTimeInput from "../../components/dateTimeInput";
+import DropdownLink from "../../components/dropdownLink";
+import MenuItem from "../../components/menuItem";
+import Modal from "react-bootstrap/Modal";
+import OverlayMixin from "react-bootstrap/OverlayMixin";
 
 var CustomDateRange = React.createClass({
   mixins: [OverlayMixin, PureRenderMixin],
@@ -163,4 +162,5 @@ var DateSelector = React.createClass({
   }
 });
 
-module.exports = DateSelector;
+export default DateSelector;
+

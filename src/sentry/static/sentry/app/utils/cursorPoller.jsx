@@ -1,5 +1,5 @@
-var api = require('../api');
-var parseLinkHeader = require('./parseLinkHeader');
+import api from '../api';
+import parseLinkHeader from './parseLinkHeader';
 
 class CursorPoller {
   constructor(options) {
@@ -68,4 +68,5 @@ class CursorPoller {
   }
 }
 
-module.exports = CursorPoller;
+export default CursorPoller;
+

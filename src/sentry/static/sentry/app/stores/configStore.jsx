@@ -1,5 +1,5 @@
 
-var Reflux = require("reflux");
+import Reflux from "reflux";
 
 var ConfigStore = Reflux.createStore({
   init() {
@@ -28,4 +28,5 @@ var ConfigStore = Reflux.createStore({
   }
 });
 
-module.exports = ConfigStore;
+export default ConfigStore;
+

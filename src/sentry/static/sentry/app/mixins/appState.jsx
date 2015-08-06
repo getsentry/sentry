@@ -1,7 +1,6 @@
-var React = require("react");
-
-var OrganizationStore = require("../stores/organizationStore");
-var PropTypes = require("../proptypes");
+import React from "react";
+import OrganizationStore from "../stores/organizationStore";
+import PropTypes from "../proptypes";
 
 var AppState = {
   getOrganizationList() {
@@ -9,4 +8,5 @@ var AppState = {
   }
 };
 
-module.exports = AppState;
+export default AppState;
+

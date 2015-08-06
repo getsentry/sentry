@@ -1,12 +1,11 @@
-var React = require("react");
-var {Link} = require("react-router");
-
-var ApiMixin = require("../mixins/apiMixin");
-var Count = require("../components/count");
-var GroupState = require("../mixins/groupState");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var PropTypes = require("../proptypes");
+import React from "react";
+import {Link} from "react-router";
+import ApiMixin from "../mixins/apiMixin";
+import Count from "../components/count";
+import GroupState from "../mixins/groupState";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import PropTypes from "../proptypes";
 
 var GroupTags = React.createClass({
   mixins: [
@@ -129,4 +128,5 @@ var GroupTags = React.createClass({
   }
 });
 
-module.exports = GroupTags;
+export default GroupTags;
+

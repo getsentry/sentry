@@ -1,15 +1,14 @@
-var React = require("react");
-var Reflux = require("reflux");
-
-var api = require("../api");
-var Gravatar = require("../components/gravatar");
-var GroupStore = require("../stores/groupStore");
-var DropdownLink = require("./dropdownLink");
-var MemberListStore = require("../stores/memberListStore");
-var MenuItem = require("./menuItem");
-var PropTypes = require("../proptypes");
-var LoadingIndicator = require("../components/loadingIndicator");
-var {compareArrays, valueIsEqual} = require("../utils");
+import React from "react";
+import Reflux from "reflux";
+import api from "../api";
+import Gravatar from "../components/gravatar";
+import GroupStore from "../stores/groupStore";
+import DropdownLink from "./dropdownLink";
+import MemberListStore from "../stores/memberListStore";
+import MenuItem from "./menuItem";
+import PropTypes from "../proptypes";
+import LoadingIndicator from "../components/loadingIndicator";
+import {compareArrays, valueIsEqual} from "../utils";
 
 var AssigneeSelector = React.createClass({
   mixins: [
@@ -182,4 +181,5 @@ var AssigneeSelector = React.createClass({
   }
 });
 
-module.exports = AssigneeSelector;
+export default AssigneeSelector;
+

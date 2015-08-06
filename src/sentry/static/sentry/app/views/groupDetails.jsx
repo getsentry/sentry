@@ -1,15 +1,14 @@
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-
-var api = require("../api");
-var DocumentTitle = require("react-document-title");
-var GroupHeader = require("./groupDetails/header");
-var GroupStore = require("../stores/groupStore");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var PropTypes = require("../proptypes");
-var utils = require("../utils");
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import api from "../api";
+import DocumentTitle from "react-document-title";
+import GroupHeader from "./groupDetails/header";
+import GroupStore from "../stores/groupStore";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import PropTypes from "../proptypes";
+import utils from "../utils";
 
 var GroupDetails = React.createClass({
   contextTypes: {
@@ -117,4 +116,5 @@ var GroupDetails = React.createClass({
   }
 });
 
-module.exports = GroupDetails;
+export default GroupDetails;
+

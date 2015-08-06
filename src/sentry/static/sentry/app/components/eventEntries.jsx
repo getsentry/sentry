@@ -1,10 +1,9 @@
-var React = require("react");
-var Sticky = require("react-sticky");
-
-var EventDataSection = require("./eventDataSection");
-var PropTypes = require("../proptypes");
-var utils = require("../utils");
-var ContextData = require("./contextData");
+import React from "react";
+import Sticky from "react-sticky";
+import EventDataSection from "./eventDataSection";
+import PropTypes from "../proptypes";
+import utils from "../utils";
+import ContextData from "./contextData";
 
 var EventExtraData = React.createClass({
   propTypes: {
@@ -157,4 +156,5 @@ var EventEntries = React.createClass({
   }
 });
 
-module.exports = EventEntries;
+export default EventEntries;
+

@@ -1,8 +1,7 @@
-var React = require("react");
-
-var EventList = require("./projectDashboard/eventList");
-var ProjectState = require("../mixins/projectState");
-var ProjectChart = require("./projectDashboard/chart");
+import React from "react";
+import EventList from "./projectDashboard/eventList";
+import ProjectState from "../mixins/projectState";
+import ProjectChart from "./projectDashboard/chart";
 
 var ProjectDashboard = React.createClass({
   mixins: [
@@ -56,4 +55,5 @@ var ProjectDashboard = React.createClass({
   }
 });
 
-module.exports = ProjectDashboard;
+export default ProjectDashboard;
+

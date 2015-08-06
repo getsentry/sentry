@@ -1,5 +1,5 @@
-var React = require('react');
-var jQuery = require('jquery');
+import React from 'react';
+import jQuery from 'jquery';
 
 function looksLikeRepr(value) {
   var a = value[0];
@@ -132,4 +132,5 @@ var ContextData = React.createClass({
   }
 });
 
-module.exports = ContextData;
+export default ContextData;
+

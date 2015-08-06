@@ -1,15 +1,14 @@
-var React = require("react");
-var Sticky = require("react-sticky");
-
-var DateTime = require("../../components/dateTime");
-var GroupEventEntries = require("../../components/eventEntries");
-var GroupEventHeader = require("./eventHeader");
-var GroupEventTags = require("./eventTags");
-var GroupState = require("../../mixins/groupState");
-var Gravatar = require("../../components/gravatar");
-var PropTypes = require("../../proptypes");
-var TimeSince = require("../../components/timeSince");
-var utils = require("../../utils");
+import React from "react";
+import Sticky from "react-sticky";
+import DateTime from "../../components/dateTime";
+import GroupEventEntries from "../../components/eventEntries";
+import GroupEventHeader from "./eventHeader";
+import GroupEventTags from "./eventTags";
+import GroupState from "../../mixins/groupState";
+import Gravatar from "../../components/gravatar";
+import PropTypes from "../../proptypes";
+import TimeSince from "../../components/timeSince";
+import utils from "../../utils";
 
 var UserWidget = React.createClass({
   propTypes: {
@@ -92,4 +91,5 @@ var GroupEvent = React.createClass({
   }
 });
 
-module.exports = GroupEvent;
+export default GroupEvent;
+

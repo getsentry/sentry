@@ -1,19 +1,18 @@
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-
-var api = require("../api");
-var Count = require("../components/count");
-var DocumentTitle = require("react-document-title");
-var ListLink = require("../components/listLink");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var ProjectState = require("../mixins/projectState");
-var PropTypes = require("../proptypes");
-var StreamGroup = require("../components/streamGroup");
-var TimeSince = require("../components/timeSince");
-var utils = require("../utils");
-var Version = require("../components/version");
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import api from "../api";
+import Count from "../components/count";
+import DocumentTitle from "react-document-title";
+import ListLink from "../components/listLink";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import ProjectState from "../mixins/projectState";
+import PropTypes from "../proptypes";
+import StreamGroup from "../components/streamGroup";
+import TimeSince from "../components/timeSince";
+import utils from "../utils";
+import Version from "../components/version";
 
 var ReleaseDetails = React.createClass({
   contextTypes: {
@@ -131,4 +130,5 @@ var ReleaseDetails = React.createClass({
   }
 });
 
-module.exports = ReleaseDetails;
+export default ReleaseDetails;
+

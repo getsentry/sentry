@@ -1,15 +1,14 @@
-var React = require("react");
-var Reflux = require("reflux");
-
-var api = require("../api");
-var BarChart = require("../components/barChart");
-var ConfigStore = require("../stores/configStore");
-var OrganizationHomeContainer = require("../components/organizationHomeContainer");
-var OrganizationState = require("../mixins/organizationState");
+import React from "react";
+import Reflux from "reflux";
+import api from "../api";
+import BarChart from "../components/barChart";
+import ConfigStore from "../stores/configStore";
+import OrganizationHomeContainer from "../components/organizationHomeContainer";
+import OrganizationState from "../mixins/organizationState";
 var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
-var PropTypes = require("../proptypes");
-var TeamStore = require("../stores/teamStore");
-var {defined, sortArray} = require("../utils");
+import PropTypes from "../proptypes";
+import TeamStore from "../stores/teamStore";
+import {defined, sortArray} from "../utils";
 
 var ExpandedTeamList = React.createClass({
   propTypes: {
@@ -379,4 +378,5 @@ var OrganizationTeams = React.createClass({
   }
 });
 
-module.exports = OrganizationTeams;
+export default OrganizationTeams;
+

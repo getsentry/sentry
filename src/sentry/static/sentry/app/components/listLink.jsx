@@ -1,7 +1,6 @@
-var React = require("react");
-var Router = require("react-router");
-
-var classSet = require('react/lib/cx');
+import React from "react";
+import Router from "react-router";
+import classSet from 'react/lib/cx';
 
 var ListLink = React.createClass({
   displayName: 'ListLink',
@@ -47,4 +46,5 @@ var ListLink = React.createClass({
   }
 });
 
-module.exports = ListLink;
+export default ListLink;
+

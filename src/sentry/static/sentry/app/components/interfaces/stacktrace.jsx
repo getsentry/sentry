@@ -1,10 +1,9 @@
-var React = require("react");
-var classSet = require("react/lib/cx");
-
-var GroupEventDataSection = require("../eventDataSection");
-var PropTypes = require("../../proptypes");
-var RawStacktraceContent = require("./rawStacktraceContent");
-var StacktraceContent = require("./stacktraceContent");
+import React from "react";
+import classSet from "react/lib/cx";
+import GroupEventDataSection from "../eventDataSection";
+import PropTypes from "../../proptypes";
+import RawStacktraceContent from "./rawStacktraceContent";
+import StacktraceContent from "./stacktraceContent";
 
 var StacktraceInterface = React.createClass({
   propTypes: {
@@ -66,4 +65,5 @@ var StacktraceInterface = React.createClass({
   }
 });
 
-module.exports = StacktraceInterface;
+export default StacktraceInterface;
+

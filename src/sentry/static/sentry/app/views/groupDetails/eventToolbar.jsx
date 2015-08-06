@@ -1,8 +1,7 @@
-var React = require("react");
-var Sticky = require('react-sticky');
-
-var PropTypes = require("../../proptypes");
-var utils = require("../../utils");
+import React from "react";
+import Sticky from 'react-sticky';
+import PropTypes from "../../proptypes";
+import utils from "../../utils";
 
 var GroupEventToolbar  = React.createClass({
   propTypes: {
@@ -81,4 +80,5 @@ var GroupEventToolbar  = React.createClass({
   }
 });
 
-module.exports = GroupEventToolbar ;
+export default GroupEventToolbar ;
+

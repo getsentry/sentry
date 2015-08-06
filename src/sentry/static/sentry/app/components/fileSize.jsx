@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 var FileSize = React.createClass({
   units: ['KB','MB','GB','TB','PB','EB','ZB','YB'],
@@ -28,4 +28,5 @@ var FileSize = React.createClass({
   }
 });
 
-module.exports = FileSize;
+export default FileSize;
+

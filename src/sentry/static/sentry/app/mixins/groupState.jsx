@@ -1,5 +1,5 @@
-var PropTypes = require("../proptypes");
-var ProjectState = require("./projectState");
+import PropTypes from "../proptypes";
+import ProjectState from "./projectState";
 
 var GroupState = {
   mixins: [ProjectState],
@@ -13,4 +13,5 @@ var GroupState = {
   }
 };
 
-module.exports = GroupState;
+export default GroupState;
+

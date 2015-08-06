@@ -1,14 +1,13 @@
-var React = require("react");
-var Reflux = require("reflux");
-
-var api = require("../../api");
-var ActionLink = require("./actionLink");
-var GroupStore = require("../../stores/groupStore");
-var DropdownLink = require("../../components/dropdownLink");
-var IndicatorStore = require("../../stores/indicatorStore");
-var MenuItem = require("../../components/menuItem");
+import React from "react";
+import Reflux from "reflux";
+import api from "../../api";
+import ActionLink from "./actionLink";
+import GroupStore from "../../stores/groupStore";
+import DropdownLink from "../../components/dropdownLink";
+import IndicatorStore from "../../stores/indicatorStore";
+import MenuItem from "../../components/menuItem";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-var SelectedGroupStore = require("../../stores/selectedGroupStore");
+import SelectedGroupStore from "../../stores/selectedGroupStore";
 
 var StreamActions = React.createClass({
   mixins: [
@@ -283,4 +282,5 @@ var StreamActions = React.createClass({
   }
 });
 
-module.exports = StreamActions;
+export default StreamActions;
+

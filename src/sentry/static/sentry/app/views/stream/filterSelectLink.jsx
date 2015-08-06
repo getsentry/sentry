@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 var FilterSelectLink = React.createClass({
   contextTypes: {
@@ -35,4 +35,5 @@ var FilterSelectLink = React.createClass({
   }
 });
 
-module.exports = FilterSelectLink;
+export default FilterSelectLink;
+

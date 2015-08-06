@@ -1,7 +1,6 @@
-var React = require("react");
-var Reflux = require("reflux");
-
-var IndicatorStore = require('../stores/indicatorStore');
+import React from "react";
+import Reflux from "reflux";
+import IndicatorStore from '../stores/indicatorStore';
 
 var Indicators = React.createClass({
   mixins: [
@@ -25,4 +24,5 @@ var Indicators = React.createClass({
   }
 });
 
-module.exports = Indicators;
+export default Indicators;
+

@@ -1,8 +1,7 @@
-var React = require("react");
-
-var moment = require("moment");
-var FileSize = require("../../components/fileSize");
-var PropTypes = require("../../proptypes");
+import React from "react";
+import moment from "moment";
+import FileSize from "../../components/fileSize";
+import PropTypes from "../../proptypes";
 
 var GroupEventHeader = React.createClass({
   propTypes: {
@@ -39,4 +38,5 @@ var GroupEventHeader = React.createClass({
   }
 });
 
-module.exports = GroupEventHeader;
+export default GroupEventHeader;
+

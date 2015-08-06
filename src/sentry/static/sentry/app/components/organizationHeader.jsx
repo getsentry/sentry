@@ -1,6 +1,5 @@
-var React = require("react");
-
-var OrganizationState = require("../mixins/organizationState");
+import React from "react";
+import OrganizationState from "../mixins/organizationState";
 
 var OrganizationHeader = React.createClass({
   mixins: [OrganizationState],
@@ -28,4 +27,5 @@ var OrganizationHeader = React.createClass({
   }
 });
 
-module.exports = OrganizationHeader;
+export default OrganizationHeader;
+

@@ -1,13 +1,12 @@
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-
-var api = require("../api");
-var LoadingIndicator = require("../components/loadingIndicator");
-var OrganizationHeader = require("../components/organizationHeader");
-var OrganizationState = require("../mixins/organizationState");
-var PropTypes = require("../proptypes");
-var RouteMixin = require("../mixins/routeMixin");
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import api from "../api";
+import LoadingIndicator from "../components/loadingIndicator";
+import OrganizationHeader from "../components/organizationHeader";
+import OrganizationState from "../mixins/organizationState";
+import PropTypes from "../proptypes";
+import RouteMixin from "../mixins/routeMixin";
 
 var TeamDetails = React.createClass({
   mixins: [
@@ -85,4 +84,5 @@ var TeamDetails = React.createClass({
   }
 });
 
-module.exports = TeamDetails;
+export default TeamDetails;
+

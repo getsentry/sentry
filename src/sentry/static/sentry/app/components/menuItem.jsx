@@ -1,8 +1,7 @@
-var React = require("react");
-var Router = require("react-router");
-
-var joinClasses = require("react/lib/joinClasses");
-var classSet = require("react/lib/cx");
+import React from "react";
+import Router from "react-router";
+import joinClasses from "react/lib/joinClasses";
+import classSet from "react/lib/cx";
 
 var MenuItem = React.createClass({
   propTypes: {
@@ -78,4 +77,5 @@ var MenuItem = React.createClass({
   }
 });
 
-module.exports = MenuItem;
+export default MenuItem;
+
