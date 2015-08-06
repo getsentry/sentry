@@ -373,8 +373,8 @@ go.
   autostart=true
   autorestart=true
   redirect_stderr=true
-  stdout_logfile syslog
-  stderr_logfile syslog
+  stdout_logfile=syslog
+  stderr_logfile=syslog
 
   [program:sentry-worker]
   directory=/www/sentry/
@@ -382,8 +382,8 @@ go.
   autostart=true
   autorestart=true
   redirect_stderr=true
-  stdout_logfile syslog
-  stderr_logfile syslog
+  stdout_logfile=syslog
+  stderr_logfile=syslog
 
 
 Removing Old Data
