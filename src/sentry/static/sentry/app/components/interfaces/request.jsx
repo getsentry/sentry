@@ -112,9 +112,9 @@ var CurlHttpContent = React.createClass({
       result += ' \\\n -H "' + key + ': ' + this.escapeQuotes(data.headers[key]) + '"';
     }
     if (typeof data.data === "string") {
-      result += ' \\\n  --data "' + this.escapeQuotes(data.data) + '"';
+      result += ' \\\n --data "' + this.escapeQuotes(data.data) + '"';
     } else if (defined(data.data)) {
-      result += ' \\\n  --data "' + this.escapeQuotes(jQuery.param(data.data)) + '"';
+      result += ' \\\n --data "' + this.escapeQuotes(jQuery.param(data.data)) + '"';
     }
     result += ' \\\n ' + data.url;
     if (defined(data.query) && data.query) {
