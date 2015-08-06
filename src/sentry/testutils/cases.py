@@ -144,7 +144,7 @@ class BaseTestCase(Fixtures, Exam):
     def _makePostMessage(self, data):
         return base64.b64encode(self._makeMessage(data))
 
-    def _postWithHeader(self, data, key=None, secret=None):
+    def _postWithHeader(self, data, key=None, secret=None, protocol=None):
         if key is None:
             key = self.projectkey.public_key
             secret = self.projectkey.secret_key
@@ -154,7 +154,12 @@ class BaseTestCase(Fixtures, Exam):
             resp = self.client.post(
                 reverse('sentry-api-store'), message,
                 content_type='application/octet-stream',
-                HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+                HTTP_X_SENTRY_AUTH=get_auth_header(
+                    '_postWithHeader',
+                    key,
+                    secret,
+                    protocol,
+                ),
             )
         return resp
 
