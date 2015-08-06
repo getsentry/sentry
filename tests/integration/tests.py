@@ -187,13 +187,13 @@ class SentryRemoteTest(TestCase):
     def test_get_without_referer(self):
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 200, resp.content
+        assert resp.status_code == 200, (resp.status_code, resp.get('X-Sentry-Error'))
 
     def test_signature(self):
         kwargs = {'message': 'hello'}
