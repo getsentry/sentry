@@ -55,4 +55,5 @@ class StreamManager {
   }
 }
 
-module.exports = StreamManager;
+export default StreamManager;
+

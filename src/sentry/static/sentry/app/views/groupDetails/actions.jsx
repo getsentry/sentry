@@ -1,12 +1,11 @@
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../../api");
-var DropdownLink = require("../../components/dropdownLink");
-var GroupState = require("../../mixins/groupState");
-var IndicatorStore = require("../../stores/indicatorStore");
-var MenuItem = require("../../components/menuItem");
-var LinkWithConfirmation = require("../../components/linkWithConfirmation");
+import React from "react";
+import Router from "react-router";
+import api from "../../api";
+import DropdownLink from "../../components/dropdownLink";
+import GroupState from "../../mixins/groupState";
+import IndicatorStore from "../../stores/indicatorStore";
+import MenuItem from "../../components/menuItem";
+import LinkWithConfirmation from "../../components/linkWithConfirmation";
 
 var GroupActions = React.createClass({
   contextTypes: {
@@ -130,4 +129,5 @@ var GroupActions = React.createClass({
   }
 });
 
-module.exports = GroupActions;
+export default GroupActions;
+

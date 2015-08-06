@@ -1,5 +1,5 @@
-var PropTypes = require("../proptypes");
-var OrganizationState = require("./organizationState");
+import PropTypes from "../proptypes";
+import OrganizationState from "./organizationState";
 
 var TeamState = {
   mixins: [OrganizationState],
@@ -13,4 +13,5 @@ var TeamState = {
   }
 };
 
-module.exports = TeamState;
+export default TeamState;
+

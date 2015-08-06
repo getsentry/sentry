@@ -5,7 +5,7 @@ var React = require("react");
 var divFactory = React.createFactory("div");
 var originalCreateElement = React.createElement;
 
-module.exports = function(stubber, stubbedComponents) {
+export default function(stubber, stubbedComponents) {
   stubber.stub(React, "createElement", function(component, props) {
     if (stubbedComponents.indexOf(component) === -1) {
       return originalCreateElement.apply(React, arguments);
@@ -24,4 +24,4 @@ module.exports = function(stubber, stubbedComponents) {
       return divFactory(props);
     }
   });
-};
+}

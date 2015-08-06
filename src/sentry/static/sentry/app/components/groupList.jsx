@@ -1,17 +1,16 @@
-var React = require("react");
-var Reflux = require("reflux");
-var Router = require("react-router");
-var jQuery = require("jquery");
-
-var api = require("../api");
-var GroupStore = require("../stores/groupStore");
-var LoadingError = require("../components/loadingError");
-var LoadingIndicator = require("../components/loadingIndicator");
-var ProjectState = require("../mixins/projectState");
-var PropTypes = require("../proptypes");
-var StreamGroup = require("../components/streamGroup");
-var TimeSince = require("../components/timeSince");
-var utils = require("../utils");
+import React from "react";
+import Reflux from "reflux";
+import Router from "react-router";
+import jQuery from "jquery";
+import api from "../api";
+import GroupStore from "../stores/groupStore";
+import LoadingError from "../components/loadingError";
+import LoadingIndicator from "../components/loadingIndicator";
+import ProjectState from "../mixins/projectState";
+import PropTypes from "../proptypes";
+import StreamGroup from "../components/streamGroup";
+import TimeSince from "../components/timeSince";
+import utils from "../utils";
 
 var GroupList = React.createClass({
   contextTypes: {
@@ -164,4 +163,5 @@ var GroupList = React.createClass({
   }
 });
 
-module.exports = GroupList;
+export default GroupList;
+

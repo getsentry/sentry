@@ -1,7 +1,6 @@
 
-var Reflux = require("reflux");
-
-var TeamActions = require("../actions/teamActions");
+import Reflux from "reflux";
+import TeamActions from "../actions/teamActions";
 
 var TeamStore = Reflux.createStore({
   init() {
@@ -62,4 +61,5 @@ var TeamStore = Reflux.createStore({
 
 window.TeamStore = TeamStore;
 
-module.exports = TeamStore;
+export default TeamStore;
+

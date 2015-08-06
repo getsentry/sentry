@@ -114,4 +114,5 @@ Collection.prototype.update = function update(item) {
   return false;
 };
 
-module.exports = Collection;
+export default Collection;
+

@@ -1,6 +1,5 @@
-var React = require("react");
-
-var PropTypes = require("../proptypes");
+import React from "react";
+import PropTypes from "../proptypes";
 
 var GroupEventDataSection = React.createClass({
   propTypes: {
@@ -36,4 +35,5 @@ var GroupEventDataSection = React.createClass({
   }
 });
 
-module.exports = GroupEventDataSection;
+export default GroupEventDataSection;
+

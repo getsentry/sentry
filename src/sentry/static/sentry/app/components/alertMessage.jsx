@@ -1,5 +1,5 @@
-var React = require("react");
-var AlertActions = require('../actions/alertActions');
+import React from "react";
+import AlertActions from '../actions/alertActions';
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var AlertMessage = React.createClass({
@@ -32,4 +32,5 @@ var AlertMessage = React.createClass({
   }
 });
 
-module.exports = AlertMessage;
+export default AlertMessage;
+

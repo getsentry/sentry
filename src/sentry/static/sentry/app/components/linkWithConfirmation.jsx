@@ -1,7 +1,6 @@
-var React = require("react");
-
-var Modal = require("react-bootstrap/Modal");
-var OverlayMixin = require("react-bootstrap/OverlayMixin");
+import React from "react";
+import Modal from "react-bootstrap/Modal";
+import OverlayMixin from "react-bootstrap/OverlayMixin";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var LinkWithConfirmation = React.createClass({
@@ -65,4 +64,5 @@ var LinkWithConfirmation = React.createClass({
   }
 });
 
-module.exports = LinkWithConfirmation;
+export default LinkWithConfirmation;
+

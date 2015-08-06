@@ -1,17 +1,16 @@
-var $ = require("jquery");
-var React = require("react");
-var Router = require("react-router");
-
-var api = require("../api");
-var Gravatar = require("../components/gravatar");
-var GroupState = require("../mixins/groupState");
-var GroupStore = require("../stores/groupStore");
-var IndicatorStore = require("../stores/indicatorStore");
-var MemberListStore = require("../stores/memberListStore");
-var PropTypes = require("../proptypes");
+import $ from "jquery";
+import React from "react";
+import Router from "react-router";
+import api from "../api";
+import Gravatar from "../components/gravatar";
+import GroupState from "../mixins/groupState";
+import GroupStore from "../stores/groupStore";
+import IndicatorStore from "../stores/indicatorStore";
+import MemberListStore from "../stores/memberListStore";
+import PropTypes from "../proptypes";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-var TimeSince = require("../components/timeSince");
-var utils = require("../utils");
+import TimeSince from "../components/timeSince";
+import utils from "../utils";
 
 var formatActivity = function(item) {
   var data = item.data;
@@ -202,4 +201,5 @@ var GroupActivity = React.createClass({
   }
 });
 
-module.exports = GroupActivity;
+export default GroupActivity;
+

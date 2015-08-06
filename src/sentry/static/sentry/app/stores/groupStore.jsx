@@ -1,11 +1,10 @@
 
-var jQuery = require("jquery");
-var Reflux = require("reflux");
-
-var AlertActions = require("../actions/alertActions");
-var GroupActions = require('../actions/groupActions');
-var MemberListStore = require("../stores/memberListStore");
-var utils = require("../utils");
+import jQuery from "jquery";
+import Reflux from "reflux";
+import AlertActions from "../actions/alertActions";
+import GroupActions from '../actions/groupActions';
+import MemberListStore from "../stores/memberListStore";
+import utils from "../utils";
 
 var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
 var ERR_SCHEDULE_DELETE = 'Unable to delete events. Please try again.';
@@ -273,4 +272,5 @@ var GroupStore = Reflux.createStore({
   }
 });
 
-module.exports = GroupStore;
+export default GroupStore;
+

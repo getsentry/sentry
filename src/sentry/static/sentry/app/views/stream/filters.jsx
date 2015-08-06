@@ -1,12 +1,12 @@
-var React = require("react");
-var $ = require("jquery");
+import React from "react";
+import $ from "jquery";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
-var DateSelector = require("./dateSelector");
-var FilterSelectLink = require("./filterSelectLink");
-var SearchBar = require("./searchBar");
-var utils = require("../../utils");
-var SortOptions = require("./sortOptions");
+import DateSelector from "./dateSelector";
+import FilterSelectLink from "./filterSelectLink";
+import SearchBar from "./searchBar";
+import utils from "../../utils";
+import SortOptions from "./sortOptions";
 
 var StreamFilters = React.createClass({
   contextTypes: {
@@ -101,4 +101,5 @@ var StreamFilters = React.createClass({
   }
 });
 
-module.exports = StreamFilters;
+export default StreamFilters;
+

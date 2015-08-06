@@ -1,8 +1,7 @@
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
-var React = require("react");
-
-var DropdownLink = require("../../components/dropdownLink");
-var MenuItem = require("../../components/menuItem");
+import React from "react";
+import DropdownLink from "../../components/dropdownLink";
+import MenuItem from "../../components/menuItem";
 
 var SortOptions = React.createClass({
   contextTypes: {
@@ -76,4 +75,5 @@ var SortOptions = React.createClass({
   }
 });
 
-module.exports = SortOptions;
+export default SortOptions;
+

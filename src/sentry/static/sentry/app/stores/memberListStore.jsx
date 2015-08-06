@@ -1,5 +1,5 @@
 
-var Reflux = require("reflux");
+import Reflux from "reflux";
 
 // var MemberActions = require('../actions/groupActions');
 
@@ -41,4 +41,5 @@ var MemberListStore = Reflux.createStore({
   }
 });
 
-module.exports = MemberListStore;
+export default MemberListStore;
+

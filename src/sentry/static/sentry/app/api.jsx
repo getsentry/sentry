@@ -1,6 +1,6 @@
-var $ = require("jquery");
-var GroupActions = require("./actions/groupActions");
-var TeamActions = require("./actions/teamActions");
+import $ from "jquery";
+import GroupActions from "./actions/groupActions";
+import TeamActions from "./actions/teamActions";
 
 class Request {
   constructor(xhr) {
@@ -219,4 +219,5 @@ class Client {
   }
 }
 
-module.exports = new Client();
+export default new Client();
+

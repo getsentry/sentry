@@ -1,7 +1,6 @@
-var React = require("react");
-
-var BarChart = require("../../components/barChart");
-var PropTypes = require("../../proptypes");
+import React from "react";
+import BarChart from "../../components/barChart";
+import PropTypes from "../../proptypes";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
 var GroupChart = React.createClass({
@@ -51,4 +50,5 @@ var GroupChart = React.createClass({
 
 });
 
-module.exports = GroupChart;
+export default GroupChart;
+

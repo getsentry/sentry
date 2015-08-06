@@ -1,31 +1,31 @@
-var React = require("react");
-var Router = require("react-router");
+import React from "react";
+import Router from "react-router";
 var Route = Router.Route;
 var DefaultRoute = Router.DefaultRoute;
 
-var App = require("./views/app");
-var GroupActivity = require("./views/groupActivity");
-var GroupDetails = require("./views/groupDetails");
-var GroupEvents = require("./views/groupEvents");
-var GroupTags = require("./views/groupTags");
-var GroupTagValues = require("./views/groupTagValues");
-var GroupOverview = require("./views/groupOverview");
-var GroupEventDetails = require("./views/groupEventDetails");
-var OrganizationDetails = require("./views/organizationDetails");
-var OrganizationStats = require("./views/organizationStats");
-var OrganizationTeams = require("./views/organizationTeams");
-var ProjectDashboard = require("./views/projectDashboard");
-var ProjectEvents = require("./views/projectEvents");
-var ProjectDetails = require("./views/projectDetails");
-var ProjectReleases = require("./views/projectReleases");
-var PropTypes = require("./proptypes");
-var ReleaseAllEvents = require("./views/releaseAllEvents");
-var ReleaseDetails = require("./views/releaseDetails");
-var ReleaseNewEvents = require("./views/releaseNewEvents");
-var RouteNotFound = require("./views/routeNotFound");
-var SharedGroupDetails = require("./views/sharedGroupDetails");
-var Stream = require("./views/stream");
-var TeamDetails = require("./views/teamDetails");
+import App from "./views/app";
+import GroupActivity from "./views/groupActivity";
+import GroupDetails from "./views/groupDetails";
+import GroupEvents from "./views/groupEvents";
+import GroupTags from "./views/groupTags";
+import GroupTagValues from "./views/groupTagValues";
+import GroupOverview from "./views/groupOverview";
+import GroupEventDetails from "./views/groupEventDetails";
+import OrganizationDetails from "./views/organizationDetails";
+import OrganizationStats from "./views/organizationStats";
+import OrganizationTeams from "./views/organizationTeams";
+import ProjectDashboard from "./views/projectDashboard";
+import ProjectEvents from "./views/projectEvents";
+import ProjectDetails from "./views/projectDetails";
+import ProjectReleases from "./views/projectReleases";
+import PropTypes from "./proptypes";
+import ReleaseAllEvents from "./views/releaseAllEvents";
+import ReleaseDetails from "./views/releaseDetails";
+import ReleaseNewEvents from "./views/releaseNewEvents";
+import RouteNotFound from "./views/routeNotFound";
+import SharedGroupDetails from "./views/sharedGroupDetails";
+import Stream from "./views/stream";
+import TeamDetails from "./views/teamDetails";
 
 var routes = (
   <Route name="app" path="/" handler={App}>
@@ -59,4 +59,5 @@ var routes = (
   </Route>
 );
 
-module.exports = routes;
+export default routes;
+

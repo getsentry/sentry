@@ -92,7 +92,7 @@ var arrayIsEqual = function(arr, other, deep) {
   }
 };
 
-module.exports = {
+export default {
   getQueryParams() {
     var vars = {},
         href = window.location.href,
@@ -190,3 +190,4 @@ module.exports = {
   StreamManager: require('./utils/streamManager'),
   CursorPoller: require('./utils/cursorPoller')
 };
+

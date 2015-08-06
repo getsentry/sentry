@@ -1,5 +1,5 @@
 
-var Reflux = require("reflux");
+import Reflux from "reflux";
 
 var TeamActions = Reflux.createActions([
   "update",
@@ -8,4 +8,5 @@ var TeamActions = Reflux.createActions([
 ]);
 
 
-module.exports = TeamActions;
+export default TeamActions;
+

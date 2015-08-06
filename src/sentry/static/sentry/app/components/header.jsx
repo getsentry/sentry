@@ -1,13 +1,12 @@
-var React = require("react");
-
-var AppState = require("../mixins/appState");
-var ConfigStore = require("../stores/configStore");
-var DropdownLink = require("./dropdownLink");
-var Gravatar = require("./gravatar");
-var MenuItem = require("./menuItem");
-var OrganizationState = require("../mixins/organizationState");
-var OrganizationStore = require("../stores/organizationStore");
-var UserInfo = require("./userInfo");
+import React from "react";
+import AppState from "../mixins/appState";
+import ConfigStore from "../stores/configStore";
+import DropdownLink from "./dropdownLink";
+import Gravatar from "./gravatar";
+import MenuItem from "./menuItem";
+import OrganizationState from "../mixins/organizationState";
+import OrganizationStore from "../stores/organizationStore";
+import UserInfo from "./userInfo";
 
 var UserNav = React.createClass({
   shouldComponentUpdate(nextProps, nextState) {
@@ -115,4 +114,5 @@ var Header = React.createClass({
   }
 });
 
-module.exports = Header;
+export default Header;
+

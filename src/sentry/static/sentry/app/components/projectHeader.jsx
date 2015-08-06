@@ -1,12 +1,11 @@
-var React = require("react");
-var Router = require("react-router");
-var jQuery = require("jquery");
-
-var AppState = require("../mixins/appState");
-var ConfigStore = require("../stores/configStore");
-var DropdownLink = require("../components/dropdownLink");
-var MenuItem = require("../components/menuItem");
-var {escape} = require("../utils");
+import React from "react";
+import Router from "react-router";
+import jQuery from "jquery";
+import AppState from "../mixins/appState";
+import ConfigStore from "../stores/configStore";
+import DropdownLink from "../components/dropdownLink";
+import MenuItem from "../components/menuItem";
+import {escape} from "../utils";
 
 var ProjectSelector = React.createClass({
   childContextTypes: {
@@ -199,4 +198,5 @@ var ProjectHeader = React.createClass({
   }
 });
 
-module.exports = ProjectHeader;
+export default ProjectHeader;
+

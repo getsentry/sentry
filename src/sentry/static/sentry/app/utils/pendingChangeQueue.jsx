@@ -25,4 +25,5 @@ class PendingChangeQueue extends Array {
   }
 }
 
-module.exports = PendingChangeQueue;
+export default PendingChangeQueue;
+

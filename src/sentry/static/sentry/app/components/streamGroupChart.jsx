@@ -1,9 +1,8 @@
-var React = require("react");
-var Reflux = require("reflux");
-
-var BarChart = require("./barChart");
-var GroupStore = require("../stores/groupStore");
-var {valueIsEqual} = require("../utils");
+import React from "react";
+import Reflux from "reflux";
+import BarChart from "./barChart";
+import GroupStore from "../stores/groupStore";
+import {valueIsEqual} from "../utils";
 
 var GroupChart = React.createClass({
   mixins: [
@@ -68,4 +67,5 @@ var GroupChart = React.createClass({
   }
 });
 
-module.exports = GroupChart;
+export default GroupChart;
+

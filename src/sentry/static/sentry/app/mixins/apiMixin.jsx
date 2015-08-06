@@ -1,4 +1,4 @@
-var api = require("../api");
+import api from "../api";
 
 var ApiMixin = {
   componentWillMount() {
@@ -29,4 +29,5 @@ var ApiMixin = {
   }
 };
 
-module.exports = ApiMixin;
+export default ApiMixin;
+

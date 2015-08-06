@@ -1,4 +1,4 @@
-var jQuery = require("jquery");
+import jQuery from "jquery";
 
 // setup jquery for CSRF tokens
 function getCookie(name) {
@@ -42,7 +42,7 @@ jQuery(document).ajaxSend(function(event, xhr, settings) {
 
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
-module.exports = {
+export default {
   jQuery: jQuery,
   moment: require("moment"),
   Raven: require("raven-js"),
@@ -60,3 +60,8 @@ module.exports = {
     RuleEditor: require("./views/ruleEditor")
   }
 };
+
+
+
+
+

@@ -1,4 +1,4 @@
-var React = require("react");
+import React from "react";
 
 function getUserDisplayName(name) {
   var parts = name.split(/@/);
@@ -33,4 +33,5 @@ var UserInfo = React.createClass({
   }
 });
 
-module.exports = UserInfo;
+export default UserInfo;
+

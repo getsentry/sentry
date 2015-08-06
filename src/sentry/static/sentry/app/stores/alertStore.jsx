@@ -1,8 +1,7 @@
 
-var Reflux = require("reflux");
-
-var AlertMessage = require('../components/alertMessage');
-var AlertActions = require('../actions/alertActions');
+import Reflux from "reflux";
+import AlertMessage from '../components/alertMessage';
+import AlertActions from '../actions/alertActions';
 
 var AlertStore = Reflux.createStore({
   listenables: AlertActions,
@@ -30,4 +29,5 @@ var AlertStore = Reflux.createStore({
   }
 });
 
-module.exports = AlertStore;
+export default AlertStore;
+
