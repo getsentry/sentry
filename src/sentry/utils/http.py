@@ -71,12 +71,8 @@ def get_origins(project=None):
         result = []
 
     if project:
-        # TODO: we should cache this
-        from sentry.plugins.helpers import get_option
-        optval = get_option('sentry:origins', project)
-        if optval is None:
-            optval = ['*']
-        elif optval:
+        optval = project.get_option('sentry:origins', ['*'])
+        if optval:
             result.extend(optval)
 
     # lowercase and strip the trailing slash from all origin values
