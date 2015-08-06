@@ -23,6 +23,7 @@ var ActionLink = React.createClass({
   getDefaultProps() {
     return {
       actionTypes: {},
+      buttonTitle: null, // title="..." (optional)
       confirmLabel: 'Edit',
       onlyIfBulk: false,
       neverConfirm: false,
@@ -69,7 +70,7 @@ var ActionLink = React.createClass({
       className += ' disabled';
     }
     return (
-      <a className={className} disabled={this.props.disabled} onClick={this.handleToggle}>
+      <a title={this.props.buttonTitle} className={className} disabled={this.props.disabled} onClick={this.handleToggle}>
         {this.props.children}
       </a>
     );
