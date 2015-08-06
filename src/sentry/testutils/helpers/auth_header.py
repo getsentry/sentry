@@ -3,10 +3,13 @@ from __future__ import absolute_import
 __all__ = ('get_auth_header',)
 
 
-def get_auth_header(client, api_key=None, secret_key=None):
+def get_auth_header(client, api_key=None, secret_key=None, version=None):
+    if version is None:
+        version = '6'
+
     header = [
         ('sentry_client', client),
-        ('sentry_version', '5'),
+        ('sentry_version', version),
     ]
 
     if api_key:
