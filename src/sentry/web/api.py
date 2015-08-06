@@ -192,7 +192,7 @@ class APIView(BaseView):
             helper.context.bind_auth(auth)
             Raven.tags_context(helper.context.get_tags_context())
 
-            if auth.version >= 3:
+            if float(auth.version) >= 3:
                 if request.method == 'GET':
                     # GET only requires an Origin/Referer check
                     # If an Origin isn't passed, it's possible that the project allows no origin,
