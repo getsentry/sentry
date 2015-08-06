@@ -45,6 +45,24 @@
     margin-top: 6px;
   }
 
+  .event-annotation {
+    display: inline-block;
+    margin: 0 0 5px 9px;
+    font-size: 13px;
+    line-height: 1;
+    border-left: 1px solid lighten(@trim, 6);
+    padding-left: 9px;
+    height: 13px;
+
+    a {
+      color: lighten(@gray, 12);
+
+      &:hover {
+        color: @gray;
+      }
+    }
+  }
+
   .count span {
     font-size: 24px;
     display: block;
