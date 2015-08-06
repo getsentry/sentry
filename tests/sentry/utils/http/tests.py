@@ -42,6 +42,12 @@ class SameDomainTestCase(TestCase):
 
 
 class GetOriginsTestCase(TestCase):
+    def test_project_default(self):
+        project = Project.objects.get()
+
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
+            result = get_origins(project)
+            self.assertEquals(result, frozenset(['*']))
 
     def test_project(self):
         project = Project.objects.get()
