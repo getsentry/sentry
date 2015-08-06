@@ -133,6 +133,17 @@ class APIView(BaseView):
                                     content_type='text/plain',
                                     status=500)
 
+        if helper.context.version:
+            metrics.incr('client-api.v%s.requests' % (
+                helper.context.version,
+            ))
+            metrics.incr('client-api.v%s.responses.%s' % (
+                helper.context.version, response.status_code
+            ))
+            metrics.incr('client-api.v%s.responses.%sxx' % (
+                helper.context.version, str(response.status_code)[0]
+            ))
+
         if response.status_code != 200 and origin:
             # We allow all origins on errors
             response['Access-Control-Allow-Origin'] = '*'
