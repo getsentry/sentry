@@ -185,12 +185,14 @@ class SentryRemoteTest(TestCase):
 
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
     def test_get_without_referer(self):
+        self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
         assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
+        self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
         assert resp.status_code == 200, (resp.status_code, resp.get('X-Sentry-Error'))
