@@ -44,6 +44,7 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.release_details import ReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
+from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
@@ -211,6 +212,9 @@ urlpatterns = patterns(
         name='sentry-api-0-helppage-details'),
 
     # Internal
+    url(r'^internal/health/$',
+        SystemHealthEndpoint.as_view(),
+        name='sentry-api-0-system-health'),
     url(r'^internal/stats/$',
         InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),
