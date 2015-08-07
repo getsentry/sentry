@@ -36,6 +36,9 @@ class SentryLocaleMiddleware(object):
         if not request.user.is_authenticated():
             return
 
+        if request.path.startswith(reverse('sentry-api-catchall')):
+            return
+
         language = UserOption.objects.get_value(
             user=request.user, project=None, key='language', default=None)
         if language:
