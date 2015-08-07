@@ -86,7 +86,7 @@ var OrganizationDetails = React.createClass({
 
   getTitle() {
     if (this.state.organization)
-      return this.state.organization.name + ' | Sentry';
+      return this.state.organization.name;
     return 'Sentry';
   },
 
