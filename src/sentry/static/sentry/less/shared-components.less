@@ -1680,9 +1680,8 @@ pre.clippy {
 
   .icon {
     float: left;
-    margin-top: 5px;
-    margin-right: 10px;
-    display: none;
+    margin: 3px 8px 0 3px;
+    display: block;
     font-size: 15px;
   }
 
@@ -1695,7 +1694,7 @@ pre.clippy {
     font-weight: 600;
     position: absolute;
     top: -6px;
-    right: 15px;
+    right: 8px;
     box-shadow: none;
     .transition(opacity .15s);
     color: #fff;
@@ -1718,24 +1717,22 @@ pre.clippy {
 
 .alert-error {
   background: @red;
-  .icon-exclamation {
-    display: block;
-  }
-}
-.alert-info {
-  background: @blue;
-}
-.alert-success {
-  background: @green;
-  .icon-checkmark {
-    display: block;
-    margin-top: 4px;
+  .icon:before {
+    content: "\e615";
   }
 }
 
-.alert-error, .alert-success {
-  .icon-sentry-logo {
+.alert-info {
+  background: @blue;
+  .icon {
     display: none;
+  }
+}
+
+.alert-success {
+  background: @green;
+  .icon:before {
+    content: "\e60a";
   }
 }
 
