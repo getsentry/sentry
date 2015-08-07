@@ -12,31 +12,26 @@ import pytz
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.middleware.locale import LocaleMiddleware
 
-from sentry.app import env
 from sentry.models import UserOption
 from sentry.utils.safe import safe_execute
 
 
-class SentryLocaleMiddleware(object):
+class SentryLocaleMiddleware(LocaleMiddleware):
     def process_request(self, request):
-        # HACK: bootstrap some env crud if we haven't yet
-        if not settings.SENTRY_URL_PREFIX:
-            settings.SENTRY_URL_PREFIX = request.build_absolute_uri(reverse('sentry')).strip('/')
-
-        # bind request to env
-        env.request = request
-
-        safe_execute(self.load_user_conf, request)
-
-    def load_user_conf(self, request):
         if settings.MAINTENANCE:
             return
 
-        if not request.user.is_authenticated():
+        if request.path.startswith(reverse('sentry-api-catchall')):
             return
 
-        if request.path.startswith(reverse('sentry-api-catchall')):
+        safe_execute(self.load_user_conf, request)
+
+        super(SentryLocaleMiddleware, self).process_request(request)
+
+    def load_user_conf(self, request):
+        if not request.user.is_authenticated():
             return
 
         language = UserOption.objects.get_value(

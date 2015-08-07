@@ -191,6 +191,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
+    'sentry.middleware.env.SentryEnvMiddleware',
     'sentry.middleware.proxy.SetRemoteAddrFromForwardedFor',
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -200,7 +201,6 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.sudo.SudoMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
     'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
