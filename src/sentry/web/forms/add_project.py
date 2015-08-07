@@ -13,8 +13,9 @@ BLANK_CHOICE = [("", "")]
 class AddProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Name'), max_length=200,
         widget=forms.TextInput(attrs={
-            'placeholder': _('e.g. Backend, Frontend, iOS, Android'),
+            'placeholder': _('i.e. my project name'),
         }),
+        help_text='Using the repository name generally works well.',
     )
     platform = forms.ChoiceField(
         choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
