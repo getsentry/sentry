@@ -52,6 +52,14 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
+    {% if request.user.is_superuser %}
+        {% show_system_status %}
+    {% endif %}
+
+    {% block alerts %}
+    {% include "sentry/partial/alerts.html" %}
+    {% endblock %}
+    
     {% block header %}
     <header>
       <div class="container">
@@ -138,14 +146,6 @@
     </div>
     {% endblock %}
     {% endif %}
-
-    {% if request.user.is_superuser %}
-        {% show_system_status %}
-    {% endif %}
-
-    {% block alerts %}
-    {% include "sentry/partial/alerts.html" %}
-    {% endblock %}
 
     <div class="container">
       {% block above_content %}{% endblock %}
