@@ -873,24 +873,16 @@ table.integrations {
   }
 
   .dropdown-toggle {
-    border: 1px solid lighten(@trim, 3);
+    border: 1px solid transparent;
+    border-radius: 50%;
+    padding: 0 3px 1px;
+    .btn-default;
+    position: relative;
+    top: -1px;
+
     margin-left: 6px;
     display: inline-block;
-    border-radius: 75%;
-    color: lighten(@gray, 10);
-    font-size: 13px;
-    text-align: center;
-    width: 16px;
-    height: 16px;
-    display: inline-block;
-    line-height: 16px;
-
-    &:hover {
-      border-color: darken(@trim, 2);
-      .icon-arrow-down {
-        color: @gray;
-      }
-    }
+    vertical-align: middle;
 
     .icon-arrow-down {
       font-size: 12px !important;
