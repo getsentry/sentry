@@ -8,11 +8,6 @@
   {{ section.name }} | {{ block.super }}
 {% endblock %}
 
-{% block breadcrumb_inner %}
-  {{ block.super }}
-  <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
-{% endblock%}
-
 {% block crumbs %}
   {{ block.super }}
   <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>

@@ -3,7 +3,6 @@ import Reflux from "reflux";
 import Router from "react-router";
 import api from "../api";
 import LoadingIndicator from "../components/loadingIndicator";
-import OrganizationHeader from "../components/organizationHeader";
 import OrganizationState from "../mixins/organizationState";
 import PropTypes from "../proptypes";
 import RouteMixin from "../mixins/routeMixin";
@@ -73,7 +72,6 @@ var TeamDetails = React.createClass({
 
     return (
       <div>
-        <OrganizationHeader />
         <div className="container">
           <div className="content">
             <Router.RouteHandler />
@@ -85,4 +83,3 @@ var TeamDetails = React.createClass({
 });
 
 export default TeamDetails;
-

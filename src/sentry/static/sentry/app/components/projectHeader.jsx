@@ -178,19 +178,10 @@ var ProjectHeader = React.createClass({
                 </li>
               </ul>
             </div>
-            <ul className="breadcrumb">
-              <li>
-                <Router.Link to="organizationDetails" params={{orgId: org.slug}}>
-                  {org.name}
-                </Router.Link>
-              </li>
-              <li>
-                <ProjectSelector
-                    organization={org}
-                    projectId={project.slug}
-                    router={this.context.router} />
-              </li>
-            </ul>
+            <ProjectSelector
+                organization={org}
+                projectId={project.slug}
+                router={this.context.router} />
            </div>
         </div>
       </div>
@@ -199,4 +190,3 @@ var ProjectHeader = React.createClass({
 });
 
 export default ProjectHeader;
-
