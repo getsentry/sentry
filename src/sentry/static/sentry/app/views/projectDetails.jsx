@@ -123,7 +123,7 @@ var ProjectDetails = React.createClass({
 
   getTitle() {
     if (this.state.project)
-      return this.state.team.name + ' / ' + this.state.project.name + ' | Sentry';
+      return this.state.team.name + ' / ' + this.state.project.name;
     return 'Sentry';
   },
 

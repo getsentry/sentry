@@ -55,7 +55,7 @@ var ReleaseDetails = React.createClass({
     var project = this.getProject();
     var team = this.getTeam();
     var params = this.context.router.getCurrentParams();
-    return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name + ' | Sentry';
+    return 'Release ' + params.version + ' | ' + team.name + ' / ' + project.name;
   },
 
   fetchData() {
