@@ -14,21 +14,12 @@ var OK_SCHEDULE_DELETE = 'The selected events have been scheduled for deletion.'
 var OK_SCHEDULE_MERGE = 'The selected events have been scheduled for merge.';
 
 var GroupStore = Reflux.createStore({
+  listenables: [GroupActions],
+
   init() {
     this.items = [];
     this.statuses = {};
     this.pendingChanges = new utils.PendingChangeQueue();
-
-    this.listenTo(GroupActions.assignTo, this.onAssignTo);
-    this.listenTo(GroupActions.assignToError, this.onAssignToError);
-    this.listenTo(GroupActions.assignToSuccess, this.onAssignToSuccess);
-    this.listenTo(GroupActions.delete, this.onDelete);
-    this.listenTo(GroupActions.deleteError, this.onDeleteError);
-    this.listenTo(GroupActions.merge, this.onMerge);
-    this.listenTo(GroupActions.mergeError, this.onMergeError);
-    this.listenTo(GroupActions.update, this.onUpdate);
-    this.listenTo(GroupActions.updateError, this.onUpdateError);
-    this.listenTo(GroupActions.updateSuccess, this.onUpdateSuccess);
   },
 
   reset() {
