@@ -37,13 +37,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization):
         """
-        Retrieve an organization
+        Retrieve an Organization
+        ````````````````````````
 
         Return details on an individual organization including various details
         such as membership access, features, and teams.
-
-            {method} {path}
-
         """
         context = serialize(
             organization,
@@ -55,16 +53,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     @sudo_required
     def put(self, request, organization):
         """
-        Update an organization
+        Update an Organization
+        ``````````````````````
 
         Update various attributes and configurable settings for the given
         organization.
-
-            {method} {path}
-            {{
-              "name": "My Organization Name"
-            }}
-
         """
         serializer = OrganizationSerializer(organization, data=request.DATA,
                                             partial=True)
@@ -86,15 +79,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     @sudo_required
     def delete(self, request, organization):
         """
-        Delete an organization
+        Delete an Organization
+        ``````````````````````
 
         Schedules an organization for deletion.
 
-            {method} {path}
-
-        **Note:** Deletion happens asynchronously and therefor is not immediate.
-        However once deletion has begun the state of a project changes and will
-        be hidden from most public views.
+        **Note:** Deletion happens asynchronously and therefor is not
+        immediate.  However once deletion has begun the state of a project
+        changes and will be hidden from most public views.
         """
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)

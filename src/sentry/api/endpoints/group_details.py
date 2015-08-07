@@ -94,12 +94,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
     def get(self, request, group):
         """
-        Retrieve an aggregate
+        Retrieve an Aggregate
+        `````````````````````
 
-        Return details on an individual aggregate.
-
-            {method} {path}
-
+        Return details on an individual aggregate.  Aggregates are also
+        sometimes referred to as groups.
         """
         # TODO(dcramer): handle unauthenticated/public response
         data = serialize(group, request.user)
@@ -175,21 +174,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
     def put(self, request, group):
         """
         Update an aggregate
+        ```````````````````
 
-        Updates an individual aggregate's attributes.
-
-            {method} {path}
-            {{
-              "status": "resolved"
-            }}
+        Updates an individual aggregate's attributes.  Only the attributes
+        submitted are modified.
 
         Attributes:
 
-        - status: resolved, unresolved, muted
-        - hasSeen: true, false
-        - isBookmarked: true, false
-        - assignedTo: user
-
+        - ``status``: ``"resolved"``, ``"unresolved"``, ``"muted"``
+        - ``hasSeen``: `true`, false`
+        - ``isBookmarked``: `true`, false`
+        - ``assignedTo``: user id
         """
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
@@ -313,11 +308,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
     def delete(self, request, group):
         """
-        Delete an aggregate
+        Delete an Aggregate
+        ```````````````````
 
         Deletes an individual aggregate.
-
-            {method} {path}
         """
         from sentry.tasks.deletion import delete_group
 

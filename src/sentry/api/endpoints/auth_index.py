@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api import client
 from sentry.api.authentication import QuietBasicAuthentication
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import Endpoint
 from sentry.models import AnonymousUser
 
 
@@ -22,16 +22,25 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
-    doc_section = DocSection.ACCOUNTS
+    # XXX: it's not quite clear if this should be documented or not at
+    # this time.
+    # doc_section = DocSection.ACCOUNTS
 
     def post(self, request):
         """
-        Authenticate a user
+        Authenticate a User
+        ```````````````````
 
-        Authenticate a user using the provided credentials.
+        This endpoint authenticates a user using the provided credentials
+        through a regular HTTP basic auth system.  The response contains
+        cookies that need to be sent with further requests that require
+        authentication.
 
-            curl -X {method} -u PUBLIC_KEY:SECRET_KEY {path}
+        This is primarily used internally in Sentry.
 
+        Common example::
+
+            curl -X ###METHOD### -u username:password ###URL###
         """
         if not request.user.is_authenticated():
             return Response(status=400)
@@ -43,12 +52,10 @@ class AuthIndexEndpoint(Endpoint):
 
     def delete(self, request, *args, **kwargs):
         """
-        Logout the authenticated user
+        Logout the Authenticated User
+        `````````````````````````````
 
         Deauthenticate the currently active session.
-
-            {method} {path}
-
         """
         logout(request._request)
         request.user = AnonymousUser()

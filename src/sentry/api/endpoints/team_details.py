@@ -28,7 +28,8 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
     def get(self, request, team):
         """
-        Retrieve a team
+        Retrieve a Team
+        ```````````````
 
         Return details on an individual team.
 
@@ -43,15 +44,11 @@ class TeamDetailsEndpoint(TeamEndpoint):
     @sudo_required
     def put(self, request, team):
         """
-        Update a team
+        Update a Team
+        `````````````
 
-        Update various attributes and configurable settings for the given team.
-
-            {method} {path}
-            {{
-              "name": "My Team Name"
-            }}
-
+        Update various attributes and configurable settings for the given
+        team.
         """
         serializer = TeamSerializer(team, data=request.DATA, partial=True)
         if serializer.is_valid():
@@ -72,15 +69,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
     @sudo_required
     def delete(self, request, team):
         """
-        Delete a team
+        Delete a Team
+        `````````````
 
         Schedules a team for deletion.
 
-            {method} {path}
-
-        **Note:** Deletion happens asynchronously and therefor is not immediate.
-        However once deletion has begun the state of a project changes and will
-        be hidden from most public views.
+        **Note:** Deletion happens asynchronously and therefor is not
+        immediate.  However once deletion has begun the state of a project
+        changes and will be hidden from most public views.
         """
         updated = Team.objects.filter(
             id=team.id,

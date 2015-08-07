@@ -12,12 +12,10 @@ class GroupEventsEndpoint(GroupEndpoint):
 
     def get(self, request, group):
         """
-        List an aggregate's available samples
+        List Available Samples
+        ``````````````````````
 
-        Return a list of sampled events bound to an aggregate.
-
-            {method} {path}
-
+        This endpoint lists an aggregate's available samples.
         """
 
         events = Event.objects.filter(

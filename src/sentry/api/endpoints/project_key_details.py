@@ -19,15 +19,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
     def put(self, request, project, key_id):
         """
-        Update a client key
+        Update a Client Key
+        ```````````````````
 
         Update a client key.
-
-            {method} {path}
-            {{
-                "name": "My key label"
-            }}
-
         """
         try:
             key = ProjectKey.objects.get(
@@ -62,12 +57,10 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
     def delete(self, request, project, key_id):
         """
-        Delete a client key
+        Delete a Client Key
+        ```````````````````
 
         Delete a client key.
-
-            {method} {path}
-
         """
         try:
             key = ProjectKey.objects.get(

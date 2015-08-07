@@ -18,12 +18,10 @@ class ProjectKeysEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         """
-        List a project's client keys
+        List a Project's Client Keys
+        ````````````````````````````
 
         Return a list of client keys bound to a project.
-
-            {method} {path}
-
         """
         keys = list(ProjectKey.objects.filter(
             project=project,
@@ -34,15 +32,10 @@ class ProjectKeysEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         """
-        Create a new client key
+        Create a new Client Key
+        ```````````````````````
 
         Create a new client key bound to a project.
-
-            {method} {path}
-            {{
-                "name": "My key label"
-            }}
-
         """
         serializer = KeySerializer(data=request.DATA)
 

@@ -22,12 +22,10 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, version):
         """
-        Retrieve a release
+        Retrieve a Release
+        ``````````````````
 
         Return details on an individual release.
-
-            {method} {path}
-
         """
         try:
             release = Release.objects.get(
@@ -41,16 +39,10 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
     def put(self, request, project, version):
         """
-        Update a release
+        Update a Release
+        ````````````````
 
         Update a release.
-
-            {method} {path}
-            {{
-                "version": "abcdef",
-                "dateReleased": "2015-05-11T02:23:10Z"
-            }}
-
         """
         # TODO(dcramer): handle Activity creation
         try:
@@ -85,12 +77,10 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
     def delete(self, request, project, version):
         """
-        Delete a release
+        Delete a Release
+        ````````````````
 
         Permanently remove a release and all of its files.
-
-            {method} {path}
-
         """
         try:
             release = Release.objects.get(

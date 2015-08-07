@@ -12,16 +12,16 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
 
     def get(self, request, project):
         """
-        Retrieve event counts for a project
+        Retrieve Event Counts for a Project
+        ```````````````````````````````````
 
         **Draft:** This endpoint may change in the future without notice.
 
         Return a set of points representing a normalized timestamp and the
         number of events seen in the period.
 
-            {method} {path}?since=1421092384.822244&until=1434052399.443363
-
-        Query ranges are limited to Sentry's configured time-series resolutions.
+        Query ranges are limited to Sentry's configured time-series
+        resolutions.
 
         Parameters:
 
@@ -29,8 +29,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
         - until: a timestamp to set the end of the query
         - resolution: an explicit resolution to search for (i.e. 10s)
 
-        **Note:** resolution should not be used unless you're familiar with Sentry
-        internals as it's restricted to pre-defined values.
+        **Note:** resolution should not be used unless you're familiar
+        with Sentry internals as it's restricted to pre-defined values.
         """
         data = tsdb.get_range(
             model=tsdb.models.project,

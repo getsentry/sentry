@@ -13,26 +13,26 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
     def get(self, request, organization):
         """
-        Retrieve event counts for an organization
+        Retrieve Event Counts for an Organization
+        `````````````````````````````````````````
 
         **Draft:** This endpoint may change in the future without notice.
 
         Return a set of points representing a normalized timestamp and the
         number of events seen in the period.
 
-            {method} {path}?since=1421092384.822244&until=1434052399.443363
-
-        Query ranges are limited to Sentry's configured time-series resolutions.
+        Query ranges are limited to Sentry's configured time-series
+        resolutions.
 
         Parameters:
 
-        - since: a timestamp to set the start of the query
-        - until: a timestamp to set the end of the query
-        - resolution: an explicit resolution to search for (i.e. 10s)
-        - stat: the name of the stat to query (received, rejected)
+        - ``since``: a timestamp to set the start of the query
+        - ``until``: a timestamp to set the end of the query
+        - ``resolution``: an explicit resolution to search for (i.e. 10s)
+        - ``stat``: the name of the stat to query (received, rejected)
 
-        **Note:** resolution should not be used unless you're familiar with Sentry
-        internals as it's restricted to pre-defined values.
+        **Note:** resolution should not be used unless you're familiar
+        with Sentry internals as it's restricted to pre-defined values.
         """
         group = request.GET.get('group')
         if not group:

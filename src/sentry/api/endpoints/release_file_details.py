@@ -18,12 +18,10 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, version, file_id):
         """
-        Retrieve a file
+        Retrieve a File
+        ```````````````
 
         Return details on an individual file within a release.
-
-            {method} {path}
-
         """
         release = Release.objects.get(
             project=project,
@@ -38,15 +36,10 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
 
     def put(self, request, project, version, file_id):
         """
-        Update a file
+        Update a File
+        `````````````
 
         Update metadata about an existing file.
-
-            {method} {path}
-            {{
-                "name": "http://example.com/application.js"
-            }}
-
         """
         release = Release.objects.get(
             project=project,
@@ -71,11 +64,10 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
 
     def delete(self, request, project, version, file_id):
         """
-        Delete a file
+        Delete a File
+        `````````````
 
         Permanently remove a file from a release.
-
-            {method} {path}
 
         This will also remove the physical file from storage.
         """

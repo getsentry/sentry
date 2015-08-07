@@ -20,12 +20,10 @@ class OrganizationIndexEndpoint(Endpoint):
 
     def get(self, request):
         """
-        List your organizations
+        List your Organizations
+        ```````````````````````
 
         Return a list of organizations available to the authenticated session.
-
-            {method} {path}
-
         """
         if request.auth:
             if hasattr(request.auth, 'project'):
@@ -40,15 +38,10 @@ class OrganizationIndexEndpoint(Endpoint):
 
     def post(self, request):
         """
-        Create a new organization
+        Create a New Organization
+        `````````````````````````
 
         Create a new organization.
-
-            {method} {path}
-            {{
-                "name": "My organization"
-            }}
-
         """
         serializer = OrganizationSerializer(data=request.DATA)
 

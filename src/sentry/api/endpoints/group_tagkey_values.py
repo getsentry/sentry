@@ -12,12 +12,10 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
     def get(self, request, group, key):
         """
-        List a tag's values
+        List a Tag's Values
+        ```````````````````
 
         Return a list of values associated with this key.
-
-            {method} {path}
-
         """
         # XXX(dcramer): kill sentry prefix for internal reserved tags
         if key in ('release', 'user', 'filename', 'function'):

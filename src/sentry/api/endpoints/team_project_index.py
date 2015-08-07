@@ -20,7 +20,8 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
 
     def get(self, request, team):
         """
-        List a team's projects
+        List a Team's Projects
+        ``````````````````````
 
         Return a list of projects bound to a team.
 
@@ -33,15 +34,10 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
 
     def post(self, request, team):
         """
-        Create a new project
+        Create a New Project
+        ````````````````````
 
         Create a new project bound to a team.
-
-            {method} {path}
-            {{
-                "name": "My project"
-            }}
-
         """
         serializer = ProjectSerializer(data=request.DATA)
 
