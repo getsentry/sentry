@@ -1668,9 +1668,11 @@ pre.clippy {
   color: #fff;
   border: 0;
   font-weight: 400;
-  padding: 12px 20px;
-  border-radius: 2px;
-  margin: 0 0 30px;
+  padding: 10px 20px;
+  border-radius: 0;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
 
   p:last-child {
     margin: 0;
@@ -1678,9 +1680,8 @@ pre.clippy {
 
   .icon {
     float: left;
-    margin-top: 5px;
-    margin-right: 10px;
-    display: none;
+    margin: 3px 8px 0 3px;
+    display: block;
     font-size: 15px;
   }
 
@@ -1692,8 +1693,8 @@ pre.clippy {
     opacity: .5;
     font-weight: 600;
     position: absolute;
-    top: 0px;
-    right: 15px;
+    top: -6px;
+    right: 8px;
     box-shadow: none;
     .transition(opacity .15s);
     color: #fff;
@@ -1712,28 +1713,30 @@ pre.clippy {
     font-weight: 600;
     color: inherit;
   }
+
+  & + .alert {
+    box-shadow: inset 0 1px 0 rgba(0,0,0, .15);
+  }
 }
 
 .alert-error {
   background: @red;
-  .icon-exclamation {
-    display: block;
-  }
-}
-.alert-info {
-  background: @blue;
-}
-.alert-success {
-  background: @green;
-  .icon-checkmark {
-    display: block;
-    margin-top: 4px;
+  .icon:before {
+    content: "\e615";
   }
 }
 
-.alert-error, .alert-success {
-  .icon-sentry-logo {
+.alert-info {
+  background: @blue;
+  .icon {
     display: none;
+  }
+}
+
+.alert-success {
+  background: @green;
+  .icon:before {
+    content: "\e60a";
   }
 }
 
