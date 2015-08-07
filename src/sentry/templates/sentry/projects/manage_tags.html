@@ -38,7 +38,7 @@
         {% for tag in tag_list %}
           <tr data-tagkey="{{ tag.key }}">
             <td>
-              <h4>{{ tag.get_label }}</h4>
+              <h4>{{ tag.get_label }} <small>({{ tag.key }})</small></h4>
               <small>{{ tag.values_seen|small_count }} unique value(s)</small>
             </td>
             <td style="text-align:center">
