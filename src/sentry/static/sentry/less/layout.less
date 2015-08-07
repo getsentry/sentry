@@ -172,85 +172,6 @@ header {
     }
   }
 
-  .breadcrumb {
-    background: none;
-    padding: 0;
-    margin-bottom: 0;
-    white-space: nowrap;
-    position: relative;
-
-    > li {
-      position: relative;
-
-      &+li {
-        padding-left: 10px;
-        margin-left: 10px;
-
-        &:before {
-          position: absolute;
-          left: 0;
-          top: -2px;
-          height: 20px;
-          padding: 0;
-          content: "";
-          border-left: 1px solid rgba(79, 87, 96, 0.15);
-        }
-      }
-
-      &.truncate {
-        max-width: 250px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      &:first-child {
-
-        a {
-          font-size: 0;
-          padding-left: 20px;
-          color: @grayDark;
-
-          &:before {
-            display: block;
-            font-family: "sentry-simple";
-            content: "\e620";
-            font-size: 17px;
-            position: absolute;
-            left: -15px;
-            top: -2px;
-            height: 20px;
-            width: 50px;
-            line-height: 20px;
-            text-align: center;
-            border-right: 1px solid rgba(79, 87, 96, 0.15);
-            font-weight: 500 !important;
-          }
-
-          &:hover:before {
-            color: @grayDark;
-          }
-        }
-      }
-
-      &:nth-child(2) {
-        padding-left: 19px;
-        &:before {
-          display: none;
-        }
-      }
-
-      &:first-child:last-child {
-        &:after {
-          font-weight: 400;
-          content: "Home";
-          padding-left: 30px;
-          opacity: .6;
-        }
-      }
-    }
-  }
-
   a {
     color: @grayDark;
 
@@ -427,10 +348,6 @@ footer {
 */
 
 @media(max-width:400px) {
-  .breadcrumb {
-    display: none;
-  }
-
   .sub-header .pull-right {
     float: left !important;
 

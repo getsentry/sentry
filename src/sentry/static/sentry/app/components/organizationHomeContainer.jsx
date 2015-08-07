@@ -1,5 +1,4 @@
 import React from "react";
-import OrganizationHeader from "./organizationHeader";
 import OrganizationHomeSidebar from "./organizationHomeSidebar";
 import OrganizationState from "../mixins/organizationState";
 import Loading from "../components/loadingIndicator";
@@ -10,7 +9,6 @@ var OrganizationHomeContainer = React.createClass({
   render() {
     return (
       <div className="organization-home">
-        <OrganizationHeader />
         <div className="container">
           <div className="content row">
             <div className="col-md-2">
@@ -27,4 +25,3 @@ var OrganizationHomeContainer = React.createClass({
 });
 
 export default OrganizationHomeContainer;
-
