@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
+from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen,
     GroupStatus, TagKey
@@ -119,7 +120,7 @@ class GroupSerializer(Serializer):
             'firstSeen': obj.first_seen,
             'lastSeen': obj.last_seen,
             'timeSpent': obj.avg_time_spent,
-            'level': obj.get_level_display(),
+            'level': LOG_LEVELS.get(obj.level, 'unknown'),
             'status': status_label,
             'isPublic': obj.is_public,
             'project': {
