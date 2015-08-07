@@ -6,15 +6,10 @@ var gulp = require("gulp"),
     gp_less = require("gulp-less"),
     gp_util = require("gulp-util"),
     gp_watch = require("gulp-watch"),
-    path = require("path"),
-    webpack = require("webpack");
+    path = require("path");
 
 var staticPrefix = "src/sentry/static/sentry",
-    distPath = staticPrefix + "/dist",
-    webpackStatsOptions = {
-      chunkModules: false,
-      colors: true
-    };
+    distPath = staticPrefix + "/dist";
 
 // Workaround for https://github.com/gulpjs/gulp/issues/71
 var origSrc = gulp.src;
@@ -74,15 +69,7 @@ gulp.task("dist:css:wall", buildCssCompileTask("wall.css", [file("less/wall.less
 
 gulp.task("dist:css", ["dist:css:sentry", "dist:css:wall"]);
 
-gulp.task("dist:webpack", function(callback){
-  webpack(require('./webpack.config.js'), function(err, stats) {
-      if(err) throw new gutil.PluginError("webpack", err);
-      gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
-      callback();
-  });
-});
-
-gulp.task("dist", ["dist:css", "dist:webpack"]);
+gulp.task("dist", ["dist:css"]);
 
 gulp.task("watch:css:sentry", ["dist:css:sentry"], function(){
   return gp_watch(file("less/**/*.less"), function(){
@@ -98,19 +85,8 @@ gulp.task("watch:css:wall", ["dist:css:wall"], function(){
 
 gulp.task("watch:css", ["watch:css:sentry", "watch:css:wall"]);
 
-// TODO(dcramer): this is causing issues, use webpack --watch for now
-gulp.task("watch:webpack", function(callback){
-  var config = require('./webpack.config.js');
-  config.debug = true;
-  webpack(config).watch(200, function(err, stats) {
-    if(err) throw new gutil.PluginError("webpack", err);
-    gp_util.log("[webpack]", stats.toString(webpackStatsOptions));
-  });
-  callback();
-});
-
 gulp.task("watch", function(){
-  return gulp.start(["watch:css", "watch:webpack"]);
+  return gulp.start(["watch:css"]);
 });
 
 gulp.task("default", ["dist"]);
