@@ -12,14 +12,13 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
 
     def get(self, request, project, key):
         """
-        List a tag's values
+        List a Tag's Values
+        ```````````````````
 
         Return a list of values associated with this key.
 
-            {method} {path}
-
-        The ``query`` parameter can be used to to perform a "starts with" match
-        on values.
+        The ``query`` parameter can be used to to perform a "starts with"
+        match on values.
         """
         if key in ('release', 'user', 'filename', 'function'):
             lookup_key = 'sentry:{0}'.format(key)

@@ -26,12 +26,12 @@ class EventDetailsEndpoint(Endpoint):
 
     def get(self, request, event_id):
         """
-        Retrieve an event
+        Retrieve an Event
+        `````````````````
 
-        Return details on an individual event.
-
-            {method} {path}
-
+        This endpoint returns the data for a specific event.  The event ID
+        is the event as it appears in the Sentry database and not the event
+        ID that is reported by the client upon submission.
         """
         event = Event.objects.get(
             id=event_id

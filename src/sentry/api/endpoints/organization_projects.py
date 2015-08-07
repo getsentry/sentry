@@ -13,12 +13,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization):
         """
-        List an organization's projects
+        List an Organization's Projects
+        ```````````````````````````````
 
         Return a list of projects bound to a organization.
-
-            {method} {path}
-
         """
         if request.auth and hasattr(request.auth, 'project'):
             team_list = [request.auth.project.team]

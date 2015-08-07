@@ -57,20 +57,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     # statsPeriod=24h
     def get(self, request, project):
         """
-        List a project's aggregates
+        List a Project's Aggregates
+        ```````````````````````````
 
         Return a list of aggregates bound to a project.
 
-            {method} {path}
-
-        A default query of 'is:resolved' is applied. To return results with
-        other statuses send an new query value (i.e. ?query= for all results).
+        A default query of 'is:resolved' is applied. To return results
+        with other statuses send an new query value (i.e. ?query= for all
+        results).
 
         Any standard Sentry structured search query can be passed via the
         ``query`` parameter.
 
-        The ``statsPeriod`` parameter can be used to select the timeline stats
-        which should be present. Possible values are: '' (disable), '24h', '14d'
+        The ``statsPeriod`` parameter can be used to select the timeline
+        stats which should be present. Possible values are: '' (disable),
+        '24h', '14d'
         """
         query_kwargs = {
             'project': project,
@@ -184,15 +185,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
     def put(self, request, project):
         """
-        Bulk mutate a list of aggregates
+        Bulk Mutate a List of Aggregates
+        ````````````````````````````````
 
         Bulk mutate various attributes on aggregates.
-
-            {method} {path}?id=1&id=2&id=3
-            {{
-              "status": "resolved",
-              "isBookmarked": true
-            }}
 
         - For non-status updates, the 'id' parameter is required.
         - For status updates, the 'id' parameter may be omitted for a batch
@@ -200,23 +196,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         - An optional 'status' parameter may be used to restrict mutations to
           only events with the given status.
 
-        For example, to resolve all aggregates (project-wide):
-
-            {method} {path}
-            {{
-                "status": "resolved"
-            }}
-
         Attributes:
 
-        - status: resolved, unresolved, muted
-        - hasSeen: true, false
-        - isBookmarked: true, false
-        - isPublic: true, false
-        - merge: true, false
+        - ``status``: resolved, unresolved, muted
+        - ``hasSeen``: true, false
+        - ``isBookmarked``: true, false
+        - ``isPublic``: true, false
+        - ``merge``: true, false
 
-        If any ids are out of scope this operation will succeed without any data
-        mutation.
+        If any ids are out of scope this operation will succeed without
+        any data mutation.
         """
         group_ids = request.GET.getlist('id')
         if group_ids:
@@ -379,16 +368,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
     def delete(self, request, project):
         """
-        Bulk remove a list of aggregates
+        Bulk Remove a List of Aggregates
+        ````````````````````````````````
 
         Permanently remove the given aggregates.
 
         Only queries by 'id' are accepted.
 
-            {method} {path}?id=1&id=2&id=3
-
-        If any ids are out of scope this operation will succeed without any data
-        mutation
+        If any ids are out of scope this operation will succeed without
+        any data mutation.
         """
         group_ids = request.GET.getlist('id')
         if group_ids:

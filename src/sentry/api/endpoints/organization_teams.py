@@ -20,12 +20,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization):
         """
-        List an organization's teams
+        List an Organization's Teams
+        ````````````````````````````
 
         Return a list of teams bound to a organization.
-
-            {method} {path}
-
         """
         # TODO(dcramer): this should be system-wide default for organization
         # based endpoints
@@ -42,15 +40,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
     def post(self, request, organization):
         """
-        Create a new team
+        Create a new Team
+        ``````````````````
 
         Create a new team bound to an organization.
-
-            {method} {path}
-            {{
-                "name": "My team"
-            }}
-
         """
         serializer = TeamSerializer(data=request.DATA)
 

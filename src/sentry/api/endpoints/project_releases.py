@@ -24,15 +24,13 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         """
-        List a project's releases
+        List a Project's Releases
+        `````````````````````````
 
         Retrieve a list of releases for a given project.
 
-            {method} {path}
-
         To find releases for a given version the 'query' parameter may be to
         create a "version STARTS WITH" filter.
-
         """
         query = request.GET.get('query')
 
@@ -54,16 +52,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         """
-        Create a new release
+        Create a New Release
+        ````````````````````
 
         Create a new release for the given project.
-
-            {method} {path}
-            {{
-                "version": "abcdef",
-                "dateReleased": "2015-05-11T02:23:10Z"
-            }}
-
         """
         serializer = ReleaseSerializer(data=request.DATA)
 

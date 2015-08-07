@@ -31,12 +31,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         """
-        Retrieve a project
+        Retrieve a Project
+        ``````````````````
 
         Return details on an individual project.
-
-            {method} {path}
-
         """
         data = serialize(project, request.user)
         data['options'] = {
@@ -53,18 +51,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     @sudo_required
     def put(self, request, project):
         """
-        Update a project
+        Update a Project
+        ````````````````
 
-        Update various attributes and configurable settings for the given project.
-
-            {method} {path}
-            {{
-              "name": "My Project Name",
-              "options": {{
-                "sentry:origins": "*"
-              }}
-            }}
-
+        Update various attributes and configurable settings for the given
+        project.
         """
         serializer = ProjectSerializer(project, data=request.DATA, partial=True)
 
@@ -107,15 +98,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     @sudo_required
     def delete(self, request, project):
         """
-        Delete a project
+        Delete a Project
+        ````````````````
 
         Schedules a project for deletion.
 
-            {method} {path}
-
-        **Note:** Deletion happens asynchronously and therefor is not immediate.
-        However once deletion has begun the state of a project changes and will
-        be hidden from most public views.
+        **Note:** Deletion happens asynchronously and therefor is not
+        immediate.  However once deletion has begun the state of a project
+        changes and will be hidden from most public views.
         """
         if project.is_internal_project():
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',

@@ -12,12 +12,10 @@ class ProjectEventsEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         """
-        List a project's available samples
+        List a Project's Available Samples
+        ``````````````````````````````````
 
         Return a list of sampled events bound to a project.
-
-            {method} {path}
-
         """
 
         events = Event.objects.filter(

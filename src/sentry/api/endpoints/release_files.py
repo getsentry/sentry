@@ -32,12 +32,10 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
     def get(self, request, project, version):
         """
-        List a release's files
+        List a Release's Files
+        ``````````````````````
 
         Retrieve a list of files for a given release.
-
-            {method} {path}
-
         """
         try:
             release = Release.objects.get(
@@ -55,22 +53,17 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
     def post(self, request, project, version):
         """
-        Upload a new file
+        Upload a New File
+        `````````````````
 
         Upload a new file for the given release.
 
-            {method} {path}
-            name=http%3A%2F%2Fexample.com%2Fapplication.js
-            &header=X-SourceMap%3A%20http%3A%2F%2Fexample.com%2Fapplication.js.map
+        Unlike other API requests, files must be uploaded using the
+        traditional multipart/form-data content-type.
 
-            # ...
-
-        Unlike other API requests, files must be uploaded using the traditional
-        multipart/form-data content-type.
-
-        The optional 'name' attribute should reflect the absolute path that this
-        file will be referenced as. For example, in the case of JavaScript you
-        might specify the full web URI.
+        The optional 'name' attribute should reflect the absolute path
+        that this file will be referenced as. For example, in the case of
+        JavaScript you might specify the full web URI.
         """
         try:
             release = Release.objects.get(
