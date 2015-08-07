@@ -169,7 +169,11 @@ class BuildStatic(Command):
         check_output(['npm', 'install', '--quiet'], cwd=work_path)
 
         log.info("running [gulp dist]")
-        check_output([os.path.join('node_modules', '.bin', 'gulp'), 'dist'],
+        check_output([os.path.join('node_modules', '.bin', 'gulp'), 'dist:css'],
+                     cwd=work_path)
+
+        log.info("running [webpack]")
+        check_output([os.path.join('node_modules', '.bin', 'webpack'), '-p'],
                      cwd=work_path)
 
 
