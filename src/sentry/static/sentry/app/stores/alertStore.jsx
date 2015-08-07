@@ -8,23 +8,21 @@ var AlertStore = Reflux.createStore({
 
   init: function() {
     this.alerts = [];
+    this.count = 0;
   },
 
   onAddAlert: function(message, type){
-    if (React.isValidElement(message)) {
-      this.alerts.push(message);
-    } else {
-      this.alerts.push(<AlertMessage type={type}>{message}</AlertMessage>);
-    }
+    this.alerts.push({
+      id: this.count++,
+      message: message,
+      type: type
+    });
+
     this.trigger(this.alerts);
   },
 
-  onCloseAlert: function(alert){
-    this.alerts = this.alerts.filter(function(item){
-      // XXX(dcramer): there is likely a safer way to do this that isnt using
-      // what seems to be a private operator
-      return item !== alert._currentElement;
-    });
+  onCloseAlert: function(id){
+    this.alerts = this.alerts.filter(item => item.id !== id);
     this.trigger(this.alerts);
   }
 });
