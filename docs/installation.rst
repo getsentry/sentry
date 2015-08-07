@@ -116,7 +116,7 @@ of meta packages to make things easier:
 ::
 
     # install sentry and its postgresql dependencies
-    apt get libpq-dev
+    apt-get install libpq-dev
     pip install -U sentry[postgres]
 
     # or if you choose, mysql
@@ -369,21 +369,23 @@ go.
 
   [program:sentry-web]
   directory=/www/sentry/
+  environment=SENTRY_CONF=/www/sentry/sentry.conf.py
   command=/www/sentry/bin/sentry start
   autostart=true
   autorestart=true
   redirect_stderr=true
-  stdout_logfile syslog
-  stderr_logfile syslog
+  stdout_logfile=syslog
+  stderr_logfile=syslog
 
   [program:sentry-worker]
   directory=/www/sentry/
+  environment=SENTRY_CONF=/www/sentry/sentry.conf.py
   command=/www/sentry/bin/sentry celery worker -B
   autostart=true
   autorestart=true
   redirect_stderr=true
-  stdout_logfile syslog
-  stderr_logfile syslog
+  stdout_logfile=syslog
+  stderr_logfile=syslog
 
 
 Removing Old Data

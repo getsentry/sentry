@@ -36,6 +36,7 @@ class SendBeaconTest(TestCase):
                 'users': 2,
                 'projects': 2,
                 'teams': 2,
+                'events.24h': 0,
             },
             'admin_email': 'foo@example.com',
         }, timeout=5)

@@ -15,7 +15,10 @@ ERR_NO_TEAMS = 'You cannot create a new project because there are no teams to as
 
 
 class AddProjectWithTeamForm(AddProjectForm):
-    team = forms.ChoiceField(choices=(), required=True)
+    team = forms.ChoiceField(
+        choices=(), required=True,
+        help_text='The team controls who has access to this project.',
+    )
 
     class Meta:
         fields = ('name', 'team', 'platform')
