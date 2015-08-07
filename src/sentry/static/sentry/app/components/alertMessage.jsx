@@ -27,6 +27,7 @@ var AlertMessage = React.createClass({
                   onClick={this.closeAlert}>
             <span aria-hidden="true">&times;</span>
           </button>
+          <span className="icon"></span>
           {this.props.message}
         </div>
       </div>
