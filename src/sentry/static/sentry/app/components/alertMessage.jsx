@@ -22,15 +22,16 @@ var AlertMessage = React.createClass({
 
     return (
       <div className={className}>
-        <button type="button" className="close" aria-label="Close"
-                onClick={this.closeAlert}>
-          <span aria-hidden="true">&times;</span>
-        </button>
-        {this.props.message}
+        <div className="container">
+          <button type="button" className="close" aria-label="Close"
+                  onClick={this.closeAlert}>
+            <span aria-hidden="true">&times;</span>
+          </button>
+          {this.props.message}
+        </div>
       </div>
     );
   }
 });
 
 export default AlertMessage;
-
