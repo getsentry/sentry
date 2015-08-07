@@ -19,7 +19,6 @@
 
   {% block css %}
   <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
-  <link href="{% url 'sentry-media' 'sentry' 'vendor/platformicons/platformicons/platformicons.css' %}" type="text/css" rel="stylesheet">
   {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
@@ -59,7 +58,7 @@
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
-    
+
     {% block header %}
     <header>
       <div class="container">
