@@ -129,8 +129,13 @@ var TagDistributionMeter = React.createClass({
     var otherPct = utils.percent(totalValues - totalVisible, totalValues);
     var otherPctLabel = Math.floor(otherPct);
 
-    var params = this.context.router.getCurrentParams();
-    params.tagKey = this.props.tag;
+    var currentParams = this.context.router.getCurrentParams();
+    var params = {
+      orgId: currentParams.orgId,
+      projectId: currentParams.projectId,
+      groupId: currentParams.groupId,
+      tagKey: this.props.tag
+    };
 
     return (
       <div className="distribution-graph">
