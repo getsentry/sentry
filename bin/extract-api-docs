@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+from sentry.utils.runner import configure
+configure()
+
+import re
+import json
+import inspect
+from sentry.constants import HTTP_METHODS
+from sentry.api.urls import urlpatterns as api_url_patterns
+from sentry.api.base import Endpoint, DocSection
+
+
+optional_group_matcher = re.compile(r'\(\?\:(.+)\)')
+named_group_matcher = re.compile(r'\(\?P<(\w+)>[^\)]+\)')
+non_named_group_matcher = re.compile(r'\(.*?\)')
+
+
+API_PREFIX = '/api/0/'
+
+
+def simplify_regex(pattern):
+    """
+    Clean up urlpattern regexes into something somewhat readable by Mere Humans:
+    turns something like "^(?P<sport_slug>\w+)/athletes/(?P<athlete_slug>\w+)/$"
+    into "{sport_slug}/athletes/{athlete_slug}/"
+    """
+    pattern = optional_group_matcher.sub(lambda m: '[%s]' % m.group(1), pattern)
+
+    # handle named groups first
+    pattern = named_group_matcher.sub(lambda m: '{%s}' % m.group(1), pattern)
+
+    # handle non-named groups
+    pattern = non_named_group_matcher.sub("{var}", pattern)
+
+    # clean up any outstanding regex-y characters.
+    pattern = pattern.replace('^', '').replace('$', '') \
+        .replace('?', '').replace('//', '/').replace('\\', '')
+    if not pattern.startswith('/'):
+        pattern = '/' + pattern
+    return pattern
+
+
+def get_internal_endpoint_from_pattern(pattern):
+    if not hasattr(pattern, 'callback'):
+        return
+    if hasattr(pattern.callback, 'cls'):
+        cls = pattern.callback.cls
+        if issubclass(cls, Endpoint):
+            return cls
+    elif hasattr(pattern.callback, 'cls_instance'):
+        inst = pattern.callback.cls_instance
+        if isinstance(inst, Endpoint):
+            return inst.__class__
+
+
+def extract_documentation(func):
+    doc = inspect.getdoc(func)
+    if doc is not None:
+        return doc.decode('utf-8')
+
+
+def get_endpoint_path(internal_endpoint):
+    return '%s.%s' % (
+        internal_endpoint.__module__,
+        internal_endpoint.__name__,
+    )
+
+
+def extract_endpoint_info(pattern, internal_endpoint):
+    path = simplify_regex(pattern.regex.pattern)
+    for method_name in HTTP_METHODS:
+        if method_name in ('HEAD', 'OPTIONS'):
+            continue
+        method = getattr(internal_endpoint, method_name.lower(), None)
+        if method is None:
+            continue
+        doc = extract_documentation(method)
+        if doc is None:
+            continue
+        section = getattr(internal_endpoint, 'doc_section', None)
+        if section is None:
+            continue
+        yield dict(
+            path=API_PREFIX + path.lstrip('/'),
+            method=method_name,
+            doc=doc,
+            section=section.name.lower(),
+            internal_path='%s:%s' % (
+                get_endpoint_path(internal_endpoint),
+                method.__name__
+            )
+        )
+
+
+def iter_endpoints():
+    for pattern in api_url_patterns:
+        internal_endpoint = get_internal_endpoint_from_pattern(pattern)
+        if internal_endpoint is None:
+            continue
+        for endpoint in extract_endpoint_info(pattern, internal_endpoint):
+            yield endpoint
+
+
+def main():
+    print json.dumps({
+        'endpoints': list(iter_endpoints()),
+        'sections': dict((x.name.lower(), x.value)
+                         for x in DocSection)
+    }, indent=2)
+
+
+if __name__ == '__main__':
+    main()
