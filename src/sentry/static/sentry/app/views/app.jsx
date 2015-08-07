@@ -1,6 +1,7 @@
 import React from "react";
 import api from "../api";
 import Alerts from "../components/alerts";
+import AlertActions from "../actions/alertActions.jsx";
 import ConfigStore from "../stores/configStore";
 import Header from "../components/header";
 import Indicators from "../components/indicators";
@@ -36,6 +37,17 @@ var App = React.createClass({
           error: true
         });
       }
+    });
+
+    api.request('/internal/health/', {
+      success: (data) => {
+        if (data && data.problems) {
+          data.problems.forEach(problem => {
+            AlertActions.addAlert(problem, 'error');
+          });
+        }
+      },
+      error: () => {} // TODO: do something?
     });
   },
 
