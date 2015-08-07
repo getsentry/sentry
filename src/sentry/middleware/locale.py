@@ -11,7 +11,6 @@ from __future__ import absolute_import
 import pytz
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.middleware.locale import LocaleMiddleware
 
 from sentry.models import UserOption
@@ -23,7 +22,7 @@ class SentryLocaleMiddleware(LocaleMiddleware):
         if settings.MAINTENANCE:
             return
 
-        if request.path.startswith(reverse('sentry-api-catchall')):
+        if '/api/0/' in request.path:
             return
 
         safe_execute(self.load_user_conf, request)
