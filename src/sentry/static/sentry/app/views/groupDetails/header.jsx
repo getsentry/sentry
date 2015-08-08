@@ -144,9 +144,9 @@ var GroupHeader = React.createClass({
             <a onClick={this.onToggleMute}>
               <span className="icon" />
               {group.status !== 'muted' ?
-                'Turn notifications off'
+                'Mute notifications'
               :
-                'Turn notifications on'
+                'Un-mute notifications'
               }
             </a>
           </div>
@@ -176,4 +176,3 @@ var GroupHeader = React.createClass({
 });
 
 export default GroupHeader;
-
