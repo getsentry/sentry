@@ -13,13 +13,10 @@
   <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
 {% endblock%}
 
-{% block content_before %}
-<div class="page-header">
-  <h2>{{ section.name }}</h2>
-</div>
-{% endblock%}
-
 {% block main %}
+  <div class="page-header">
+    <h3>{{ section.name }}</h3>
+  </div>
   <div class="list-group">
     {% for resource in resource_list %}
       {% for method in resource.methods %}
