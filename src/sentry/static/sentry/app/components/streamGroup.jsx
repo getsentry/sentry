@@ -216,4 +216,3 @@ var StreamGroup = React.createClass({
 });
 
 export default StreamGroup;
-
