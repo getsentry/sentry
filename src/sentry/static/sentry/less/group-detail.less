@@ -228,26 +228,13 @@
   .icon {
     position: relative;
     &:before {
-      content: "\e006";
+      content: "\e607";
     }
   }
 
   &.on, a:hover {
     .icon {
-      &:after {
-        display: block;
-        content: "";
-        position: absolute;
-        height: 20px;
-        width: 3px;
-        border-left: 2px solid lighten(@gray, 30);
-        top: -2px;
-        left: 7px;
-        background: #fff;
-        -ms-transform: rotate(26deg); /* IE 9 */
-        -webkit-transform: rotate(26deg); /* Chrome, Safari, Opera */
-        transform: rotate(26deg);
-      }
+      color: @red;
     }
   }
 }
