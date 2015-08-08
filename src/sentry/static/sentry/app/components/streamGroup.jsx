@@ -149,6 +149,9 @@ var StreamGroup = React.createClass({
     if (data.status === "resolved") {
       className += " isResolved";
     }
+    if (data.status === "muted") {
+      className += " isMuted";
+    }
 
     var routeParams = {
       orgId: params.orgId,
@@ -166,6 +169,7 @@ var StreamGroup = React.createClass({
           }
           <h3 className="truncate">
             <Router.Link to="groupDetails" params={routeParams}>
+              <span className="icon icon-soundoff"></span>
               <span className="icon icon-bookmark"></span>
               {data.title}
             </Router.Link>
