@@ -10,13 +10,10 @@
   <li><a href="{% url 'sentry-api-0-help' %}">Web API</a></li>
 {% endblock%}
 
-{% block content_before %}
-<div class="page-header">
-  <h2>API Overiew</h2>
-</div>
-{% endblock%}
-
 {% block main %}
+    <div class="page-header">
+      <h3>API Overiew</h3>
+    </div>
     <p>You are viewing documention for version 0 of the Sentry web API.</p>
 
     <h4 id="current-version">Current Version</h4>
