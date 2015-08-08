@@ -146,20 +146,39 @@
     background: #fff;
     .transition(all .4s ease-in-out);
 
-    .icon-bookmark {
-      display: none;
+    .icon-bookmark, .icon-soundoff {
+      padding-right: 5px;
       font-size: 95%;
       position: relative;
-      top: 2px;
-      color: #D4DBDF;
-      width: auto;
-      padding-right: 3px;
-      overflow: hidden;
       .transition(all .2s ease-in-out);
+      width: auto;
+    }
+
+    .icon-bookmark {
+      top: 2px;
+      display: none;
+      color: lighten(@gray, 15%);
+      overflow: hidden;
+    }
+
+    .icon-soundoff {
+      display: none;
+      font-size: 90%;
+      top: 1px;
+      color: @red;
+      width: auto;
+      overflow: hidden;
+      padding-left: 1px;
     }
 
     &.isBookmarked {
       .icon-bookmark {
+        display: inline-block;
+      }
+    }
+
+    &.isMuted {
+      .icon-soundoff {
         display: inline-block;
       }
     }
