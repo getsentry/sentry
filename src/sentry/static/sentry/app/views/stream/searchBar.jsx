@@ -81,7 +81,7 @@ var SearchBar = React.createClass({
             {this.props.query !== this.props.defaultQuery &&
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
-                  <span className="icon-close" />
+                  <span className="icon-circle-cross" />
                 </a>
               </div>
             }
@@ -94,4 +94,3 @@ var SearchBar = React.createClass({
 });
 
 export default SearchBar;
-

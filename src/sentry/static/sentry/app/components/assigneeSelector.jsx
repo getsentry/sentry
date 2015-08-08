@@ -169,7 +169,7 @@ var AssigneeSelector = React.createClass({
                           className="clear-assignee"
                           disabled={!loading}
                           onSelect={this.clearAssignTo}>
-                  <span className="icon-close"/> Clear Assignee
+                  <span className="icon-circle-cross"/> Clear Assignee
                 </MenuItem>
               : ''}
               {memberNodes}
@@ -182,4 +182,3 @@ var AssigneeSelector = React.createClass({
 });
 
 export default AssigneeSelector;
-
