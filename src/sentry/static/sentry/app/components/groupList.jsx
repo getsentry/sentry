@@ -3,6 +3,7 @@ import Reflux from "reflux";
 import Router from "react-router";
 import jQuery from "jquery";
 import api from "../api";
+import GroupListHeader from "../components/groupListHeader";
 import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
@@ -153,15 +154,23 @@ var GroupList = React.createClass({
         </div>
       );
 
+    var wrapperClass;
+
+    if (!this.props.bulkActions) {
+      wrapperClass = "stream-no-bulk-actions";
+    }
+
     return (
-      <ul className="group-list">
-        {this.state.groupIds.map((id) => {
-          return <StreamGroup key={id} id={id} canSelect={this.props.canSelectGroups} />;
-        })}
-      </ul>
+      <div className={wrapperClass}>
+        <GroupListHeader />
+        <ul className="group-list">
+          {this.state.groupIds.map((id) => {
+            return <StreamGroup key={id} id={id} canSelect={this.props.canSelectGroups} />;
+          })}
+        </ul>
+      </div>
     );
   }
 });
 
 export default GroupList;
-
