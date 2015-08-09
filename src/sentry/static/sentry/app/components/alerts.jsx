@@ -18,8 +18,16 @@ var Alerts = React.createClass({
   },
 
   render() {
+    var className = this.props.className;
+
+    if (!this.state.alerts.length) {
+      className += " hidden";
+    } else {
+      className = this.props.className;
+    }
+
     return (
-      <div {...this.props}>
+      <div className={className}>
         {this.state.alerts.map(function(alert, key) {
            return <AlertMessage id={alert.id} key={key} type={alert.type} message={alert.message} />;
         })}
