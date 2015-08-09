@@ -13,10 +13,9 @@ var ReleaseNewEvents = React.createClass({
     return (
       <GroupList
         query={'first-release:"' + this.context.release.version + '"'}
-        canSelectGroups={false} />
+        canSelectGroups={false} bulkActions={false} />
     );
   }
 });
 
 export default ReleaseNewEvents;
-
