@@ -150,7 +150,7 @@ var GroupList = React.createClass({
       return (
         <div className="box empty-stream">
           <span className="icon icon-exclamation"></span>
-          <p>There don't seem to be an events fitting the query.</p>
+          <p>There don't seem to be any events fitting the query.</p>
         </div>
       );
 
