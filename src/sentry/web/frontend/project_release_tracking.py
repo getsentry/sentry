@@ -10,7 +10,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
-from sentry import constants, features
+from sentry import constants
 from sentry.models import OrganizationMemberType, ProjectOption
 from sentry.plugins import plugins, ReleaseTrackingPlugin
 from sentry.utils.http import absolute_uri
@@ -60,15 +60,6 @@ class ProjectReleaseTrackingView(ProjectView):
         ).hexdigest()
 
     def handle(self, request, organization, team, project):
-        if not features.has('projects:release-tracking', project, actor=request.user):
-            messages.add_message(
-                request, messages.ERROR,
-                ERR_NO_FEATURE,
-            )
-            redirect = reverse('sentry-manage-project',
-                               args=[organization.slug, project.slug])
-            return HttpResponseRedirect(redirect)
-
         token = None
 
         if request.method == 'POST':
