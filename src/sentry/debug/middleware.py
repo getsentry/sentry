@@ -6,6 +6,16 @@ import re
 from debug_toolbar.toolbar import DebugToolbar
 from django.utils.encoding import force_text
 
+TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Debugger</h1>
+    <pre>{}</pre>
+</body>
+</html>
+"""
+
 
 class DebugMiddleware(object):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
@@ -76,7 +86,7 @@ class DebugMiddleware(object):
             if 'application/json' in response['Content-Type']:
                 content = json.dumps(json.loads(content), indent=2)
             response['Content-Type'] = 'text/html'
-            response.content = '<body><h1>Debugger</h1><pre>{}</pre></body>'.format(content)
+            response.content = TEMPLATE.format(content)
 
         # Insert the toolbar in the response.
         bits = self._body_regexp.split(content)
