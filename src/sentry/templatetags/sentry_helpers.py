@@ -43,8 +43,9 @@ from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
-SentryVersion = namedtuple('SentryVersion', ['current', 'latest',
-                                             'update_available'])
+SentryVersion = namedtuple('SentryVersion', [
+    'current', 'latest', 'update_available', 'build',
+])
 
 
 register = template.Library()
@@ -151,9 +152,10 @@ def get_sentry_version(context):
 
     latest = options.get('sentry:latest_version') or current
     update_available = Version(latest) > Version(current)
+    build = sentry.__build__ or current
 
     context['sentry_version'] = SentryVersion(
-        current, latest, update_available
+        current, latest, update_available, build
     )
     return ''
 
