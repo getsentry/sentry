@@ -90,7 +90,7 @@ class DebugMiddleware(object):
 
         # Collapse the toolbar by default if SHOW_COLLAPSED is set.
         if 'djdt' in request.COOKIES:
-            response.delete_cookie('djdt', 'hide', 864000)
+            response.delete_cookie('djdt')
 
         content = force_text(response.content, encoding='utf-8')
         if 'text/html' not in response['Content-Type']:
