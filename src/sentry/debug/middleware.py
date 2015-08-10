@@ -5,17 +5,8 @@ import re
 import thread
 
 from debug_toolbar.toolbar import DebugToolbar
+from django.template.loader import render_to_string
 from django.utils.encoding import force_text
-
-TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<body>
-    <h1>Debugger</h1>
-    <pre>{}</pre>
-</body>
-</html>
-"""
 
 
 class ToolbarCache(object):
@@ -98,14 +89,16 @@ class DebugMiddleware(object):
             panel.disable_instrumentation()
 
         # Collapse the toolbar by default if SHOW_COLLAPSED is set.
-        if toolbar.config['SHOW_COLLAPSED'] and 'djdt' not in request.COOKIES:
-            response.set_cookie('djdt', 'hide', 864000)
+        if 'djdt' in request.COOKIES:
+            response.delete_cookie('djdt', 'hide', 864000)
 
         content = force_text(response.content, encoding='utf-8')
         if 'text/html' not in response['Content-Type']:
             if 'application/json' in response['Content-Type']:
                 content = json.dumps(json.loads(content), indent=2)
-            content = TEMPLATE.format(content)
+            content = render_to_string('debug_toolbar/wrapper.html', {
+                'content': content,
+            })
             response['Content-Type'] = 'text/html'
 
         # Insert the toolbar in the response.
