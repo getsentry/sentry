@@ -115,3 +115,7 @@ class User(BaseModel, AbstractBaseUser):
 
     def get_display_name(self):
         return self.first_name or self.email or self.username
+
+    def is_active_superuser(self):
+        # TODO(dcramer): add VPN support via INTERNAL_IPS + ipaddr ranges
+        return self.is_superuser
