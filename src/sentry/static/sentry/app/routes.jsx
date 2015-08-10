@@ -20,6 +20,7 @@ import ProjectDetails from "./views/projectDetails";
 import ProjectReleases from "./views/projectReleases";
 import PropTypes from "./proptypes";
 import ReleaseAllEvents from "./views/releaseAllEvents";
+import ReleaseArtifacts from "./views/releaseArtifacts";
 import ReleaseDetails from "./views/releaseDetails";
 import ReleaseNewEvents from "./views/releaseNewEvents";
 import RouteNotFound from "./views/routeNotFound";
@@ -43,6 +44,7 @@ var routes = (
         <Route name="releaseDetails" path="releases/:version/" handler={ReleaseDetails}>
           <DefaultRoute name="releaseNewEvents" handler={ReleaseNewEvents} />
           <Route name="releaseAllEvents" path="all-events/" handler={ReleaseAllEvents} />
+          <Route name="releaseArtifacts" path="artifacts/" handler={ReleaseArtifacts} />
         </Route>
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>

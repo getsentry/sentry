@@ -11,8 +11,8 @@ from random import randint
 
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, User, GroupMeta, Organization, OrganizationAccessRequest,
-    OrganizationMember, Project, Team
+    Activity, File, GroupMeta, Organization, OrganizationAccessRequest,
+    OrganizationMember, Project, Release, ReleaseFile, Team, User
 )
 from sentry.utils.samples import create_sample_event
 
@@ -112,26 +112,43 @@ def main():
                 }
             )
 
+            release = Release.objects.get_or_create(
+                version='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+                project=project,
+            )[0]
+
+            ReleaseFile.objects.get_or_create(
+                project=project,
+                release=release,
+                name='an-example.js',
+                file=File.objects.get_or_create(
+                    name='an-example.js',
+                    type='release.file',
+                    checksum='abcde' * 8,
+                    size=13043,
+                )[0],
+            )
+
             event1 = create_sample_event(
                 project=project,
                 platform='python',
-                release='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+                release=release.version,
             )
             create_sample_time_series(event1)
 
             event2 = create_sample_event(
                 project=project,
                 platform='javascript',
-                release='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+                release=release.version,
             )
             create_sample_time_series(event2)
 
             Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
-                ident='4f38b65c62c4565aa94bba391ff8946922a8eed4',
+                ident=release.version,
                 user=user,
-                data={'version': '4f38b65c62c4565aa94bba391ff8946922a8eed4'},
+                data={'version': release.version},
             )
 
             event3 = create_sample_event(project, 'java')
