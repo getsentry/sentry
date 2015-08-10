@@ -126,7 +126,7 @@
                                 "    }"
                             ],
                             "colno": 24,
-                            "in_app": true,
+                            "in_app": false,
                             "data": {
                                 "orig_filename": "/dist/1.0/raven.min.js",
                                 "orig_abs_path": "https://d3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js",
