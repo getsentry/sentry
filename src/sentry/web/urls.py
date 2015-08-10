@@ -9,8 +9,6 @@ from __future__ import absolute_import
 
 __all__ = ('urlpatterns',)
 
-import debug_toolbar
-
 from django.conf.urls import include, patterns, url
 from django.conf import settings
 
@@ -242,9 +240,6 @@ urlpatterns += patterns('',
         name='sentry-remove-organization'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
         name='sentry-accept-invite'),
-
-    # Debugger
-    url(r'^__debug__/', include(debug_toolbar.urls)),
 
     # Settings - Projects
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$',
