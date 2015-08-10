@@ -90,3 +90,16 @@ class Template(Interface):
         result.extend([n[1].strip('\n') for n in context])
 
         return '\n'.join(result)
+
+    def get_api_context(self, is_public=False):
+        return {
+            'lineNo': self.lineno,
+            'filename': self.filename,
+            'context': get_context(
+                lineno=self.lineno,
+                context_line=self.context_line,
+                pre_context=self.pre_context,
+                post_context=self.post_context,
+                filename=self.filename,
+            ),
+        }

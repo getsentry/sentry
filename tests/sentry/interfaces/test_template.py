@@ -42,3 +42,11 @@ class TemplateTest(TestCase):
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()
+
+    def test_get_api_context(self):
+        result = self.interface.get_api_context()
+        assert result == {
+            'filename': 'foo.html',
+            'context': [(1, 'hello world')],
+            'lineNo': 1,
+        }
