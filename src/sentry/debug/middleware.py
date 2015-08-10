@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import json
 import re
+import thread
 
 from debug_toolbar.toolbar import DebugToolbar
 from django.utils.encoding import force_text
@@ -17,10 +18,29 @@ TEMPLATE = """
 """
 
 
+class ToolbarCache(object):
+    def __init__(self):
+        self._toolbars = {}
+
+    def create(self, request):
+        toolbar = DebugToolbar(request)
+        self._toolbars[thread.get_ident()] = toolbar
+        return toolbar
+
+    def pop(self):
+        return self._toolbars.pop(thread.get_ident(), None)
+
+    def get(self):
+        return self._toolbars.get(thread.get_ident(), None)
+
+toolbar_cache = ToolbarCache()
+
+
 class DebugMiddleware(object):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
 
     def show_toolbar(self, request):
+        # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
         if not request.user.is_authenticated():
             return False
         if not request.user.is_active_superuser():
@@ -34,7 +54,7 @@ class DebugMiddleware(object):
         if not self.show_toolbar(request):
             return
 
-        request.debugtoolbar = toolbar = DebugToolbar(request)
+        toolbar = toolbar_cache.create(request)
 
         # Activate instrumentation ie. monkey-patch.
         for panel in toolbar.enabled_panels:
@@ -49,7 +69,7 @@ class DebugMiddleware(object):
         return response
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        toolbar = getattr(request, 'debugtoolbar', None)
+        toolbar = toolbar_cache.get()
         if not toolbar:
             return
 
@@ -61,7 +81,7 @@ class DebugMiddleware(object):
                 break
 
     def process_response(self, request, response):
-        toolbar = getattr(request, 'debugtoolbar', None)
+        toolbar = toolbar_cache.pop()
         if not toolbar:
             return response
 
