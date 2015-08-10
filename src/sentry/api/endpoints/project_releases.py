@@ -30,10 +30,20 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             {method} {path}
 
+        To find releases for a given version the 'query' parameter may be to
+        create a "version STARTS WITH" filter.
+
         """
+        query = request.GET.get('query')
+
         queryset = Release.objects.filter(
             project=project,
         )
+
+        if query:
+            queryset = queryset.filter(
+                version__istartswith=query,
+            )
 
         return self.paginate(
             request=request,
