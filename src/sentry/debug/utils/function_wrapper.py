@@ -4,8 +4,8 @@ from time import time
 
 
 class FunctionWrapper(object):
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, collector):
+        self.collector = collector
 
     def __call__(self, func, *args, **kwargs):
         __traceback_hide__ = True  # NOQA
@@ -28,8 +28,7 @@ class FunctionWrapper(object):
                 'start': start,
                 'end': end,
             }
-
             self.record(data)
 
     def record(self, data):
-        self.data.append(data)
+        self.collector.append(data)

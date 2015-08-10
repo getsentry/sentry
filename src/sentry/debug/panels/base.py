@@ -3,35 +3,35 @@ from __future__ import absolute_import
 from debug_toolbar.panels import Panel
 from django.utils.translation import ungettext
 
+from ..utils.thread_collector import ThreadCollector
+
 
 class CallRecordingPanel(Panel):
     def __init__(self, *args, **kwargs):
         super(CallRecordingPanel, self).__init__(*args, **kwargs)
-        self.calls = []
-        self._context = []
+        cls = type(self)
+        if getattr(cls, '_collector', None) is None:
+            self.collector = ThreadCollector()
 
-        for context in self.get_context():
-            self.add_context(context)
+            for context in cls.get_context(self.collector):
+                context.patch()
 
-    def get_context(self):
+    @classmethod
+    def get_context(cls):
         """
-        >>> def get_context(self):
+        >>> @classmethod
+        >>> def get_context(cls, collector):
         >>>     return [
-        >>>         PatchContext('foo.bar', FunctionWrapper(self.calls))
+        >>>         PatchContext('foo.bar', FunctionWrapper(collector))
         >>>     ]
         """
         raise NotImplementedError
 
-    def add_context(self, context):
-        self._context.append(context)
-
     def enable_instrumentation(self):
-        for context in self._context:
-            context.patch()
+        self.calls = self.collector.enable()
 
     def disable_instrumentation(self):
-        for context in self._context:
-            context.unpatch()
+        self.collector.disable()
 
     @property
     def nav_subtitle(self):
