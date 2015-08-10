@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "bower": "^1.2.8",
-    "chai": "1.7.x",
+    "chai": "^3.0.0",
     "gulp": "^3.8.10",
     "gulp-cached": "^1.0.1",
     "gulp-clean": "^0.3.1",
