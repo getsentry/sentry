@@ -8,9 +8,9 @@
   "dependencies": {
     "bower": "^1.2.8",
     "chai": "1.7.x",
-    "gulp": "^3.8.10",
+    "del": "^1.1.1",
+    "gulp": "^3.8.11",
     "gulp-cached": "^1.0.1",
-    "gulp-clean": "^0.3.1",
     "gulp-concat": "^2.4.2",
     "gulp-less": "^1.3.6",
     "gulp-rename": "^1.2.0",
@@ -21,7 +21,8 @@
     "mocha": "1.9.x",
     "mocha-phantomjs": "3.0.x",
     "phantomjs": "1.9.x",
-    "uglify-js": "2.2.4"
+    "uglify-js": "2.2.4",
+    "vinyl-paths": "^1.0.0"
   },
   "private": true,
   "scripts": {
