@@ -202,6 +202,7 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.locale.SentryLocaleMiddleware',
     'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'sentry.debug.middleware.DebugMiddleware',
 )
 
 ROOT_URLCONF = 'sentry.conf.urls'
@@ -234,6 +235,7 @@ INSTALLED_APPS = (
 
     'captcha',
     'crispy_forms',
+    'debug_toolbar',
     'gunicorn',
     'kombu.transport.django',
     'raven.contrib.django.raven_compat',
@@ -530,6 +532,20 @@ RECAPTCHA_PRIVATE_KEY = None
 STATSD_CLIENT = 'django_statsd.clients.null'
 SENTRY_METRICS_PREFIX = ''
 SENTRY_METRICS_SAMPLE_RATE = 1.0
+
+# Debugger
+
+DEBUG_TOOLBAR_PANELS = (
+    'debug_toolbar.panels.timer.TimerPanel',
+    'sentry.debug.panels.route.RoutePanel',
+    'debug_toolbar.panels.templates.TemplatesPanel',
+
+    'debug_toolbar.panels.sql.SQLPanel',
+    # TODO(dcramer): https://github.com/getsentry/sentry/issues/1722
+    # 'sentry.debug.panels.redis.RedisPanel',
+)
+
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 # Sentry and Raven configuration
 

@@ -113,3 +113,7 @@ class User(BaseModel, AbstractBaseUser):
         AuthIdentity.objects.filter(
             user=from_user,
         ).update(user=to_user)
+
+    def is_active_superuser(self):
+        # TODO(dcramer): add VPN support via INTERNAL_IPS + ipaddr ranges
+        return self.is_superuser

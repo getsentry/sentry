@@ -164,6 +164,7 @@ class MailPlugin(NotificationPlugin):
             rules.append((rule.label, rule_link))
 
         context = {
+            'project_label': project.get_full_name(),
             'group': group,
             'event': event,
             'tags': event.get_tags(),
