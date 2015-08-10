@@ -41,6 +41,33 @@ class ProjectReleaseListTest(APITestCase):
         assert response.data[0]['version'] == release2.version
         assert response.data[1]['version'] == release1.version
 
+    def test_query_filter(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team()
+        project = self.create_project(team=team, name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            version='foobar',
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        response = self.client.get(url + '?query=foo', format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['version'] == release.version
+
+        response = self.client.get(url + '?query=bar', format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
 
 class ProjectReleaseCreateTest(APITestCase):
     def test_simple(self):
