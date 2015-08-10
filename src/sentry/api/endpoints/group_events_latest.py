@@ -20,6 +20,8 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
 
         """
         event = group.get_latest_event()
+        if not event:
+            return Response({'detail': 'No events found for group'}, status=404)
 
         try:
             return client.get('/events/{}/'.format(event.id), request.user, request.auth)
