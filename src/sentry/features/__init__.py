@@ -11,7 +11,6 @@ default_manager.add('organizations:create')
 default_manager.add('organizations:sso', OrganizationFeature)
 default_manager.add('teams:create', OrganizationFeature)
 default_manager.add('projects:quotas', ProjectFeature)
-default_manager.add('projects:release-tracking', ProjectFeature)
 
 # expose public api
 add = default_manager.add
