@@ -22,8 +22,8 @@ logger = get_task_logger(__name__)
 @retry
 def merge_group(from_object_id, to_object_id, **kwargs):
     from sentry.models import (
-        Group, GroupHash, GroupRuleStatus, GroupTagKey, GroupTagValue,
-        EventMapping, Event
+        Group, GroupAssignee, GroupHash, GroupRuleStatus, GroupTagKey,
+        GroupTagValue, EventMapping, Event
     )
 
     try:
@@ -39,7 +39,8 @@ def merge_group(from_object_id, to_object_id, **kwargs):
         return
 
     model_list = (
-        GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping, Event
+        GroupAssignee, GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey,
+        EventMapping, Event
     )
 
     has_more = merge_objects(model_list, group, new_group, logger=logger)
