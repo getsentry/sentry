@@ -297,9 +297,8 @@ class Group(Model):
         return ''
 
     def get_email_subject(self):
-        return '[%s %s] %s: %s' % (
-            self.team.name.encode('utf-8'),
-            self.project.name.encode('utf-8'),
+        return '[%s] %s: %s' % (
+            self.project.get_full_name().encode('utf-8'),
             six.text_type(self.get_level_display()).upper().encode('utf-8'),
             self.message_short.encode('utf-8')
         )
