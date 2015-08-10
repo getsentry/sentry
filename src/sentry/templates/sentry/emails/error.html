@@ -12,9 +12,9 @@
     <h2>
         {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
         {% if group.times_seen == 1 %}
-            New Event on <a href="{% absolute_uri project_link %}" class="highlight">{{ group.team.name }} {{ group.project.name }}</a>
+            New Event on <a href="{% absolute_uri project_link %}" class="highlight">{{ project_label }}</a>
         {% else %}
-            Regression on <a href="{% absolute_uri project_link %}" class="highlight">{{ group.team.name }} {{ group.project.name }}</a>
+            Regression on <a href="{% absolute_uri project_link %}" class="highlight">{{ project_label }}</a>
         {% endif %}
     </h2>
 
