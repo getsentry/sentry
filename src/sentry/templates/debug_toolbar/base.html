@@ -8,6 +8,7 @@
      {{ toolbar.config.ROOT_TAG_EXTRA_ATTRS|safe }}>
     <div hidden="hidden" id="djDebugToolbar">
         <ul id="djDebugPanelList">
+            <li><a id="djHideToolBarButton" href="#" title="{% trans "Hide toolbar" %}">{% trans "Hide" %} &#187;</a></li>
             {% for panel in toolbar.panels %}
                 <li class="djDebugPanelButton">
                     <input type="checkbox" data-cookie="djdt{{ panel.panel_id }}" {% if panel.enabled %}checked="checked" title="{% trans "Disable for next and successive requests" %}"{% else %}title="{% trans "Enable for next and successive requests" %}"{% endif %} />
