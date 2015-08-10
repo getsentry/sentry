@@ -78,10 +78,11 @@ class RedisWrapper(FunctionWrapper):
 class RedisPanel(CallRecordingPanel):
     title = nav_title = _("Redis")
 
-    def get_context(self):
+    @classmethod
+    def get_context(cls, collector):
         return [
-            PatchContext('redis.client.StrictRedis.execute_command', RedisWrapper(self.calls)),
-            PatchContext('redis.client.BasePipeline.execute', RedisPipelineWrapper(self.calls)),
+            PatchContext('redis.client.StrictRedis.execute_command', RedisWrapper(collector)),
+            PatchContext('redis.client.BasePipeline.execute', RedisPipelineWrapper(collector)),
         ]
 
     @property
