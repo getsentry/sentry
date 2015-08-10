@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry.api import client
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import DocSection, Endpoint
+from sentry.models import AnonymousUser
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -50,4 +51,5 @@ class AuthIndexEndpoint(Endpoint):
 
         """
         logout(request._request)
+        request.user = AnonymousUser()
         return Response(status=204)
