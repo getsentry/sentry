@@ -20,7 +20,7 @@ class DebugMiddleware(threading.local, DebugToolbarMiddleware):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
         if not request.user.is_active_superuser():
             return False
-        if 'text/html' not in request.META['HTTP_ACCEPT']:
+        if 'text/html' not in request.META.get('HTTP_ACCEPT', '*/*'):
             return False
         return True
 
