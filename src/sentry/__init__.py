@@ -23,7 +23,7 @@ def _get_git_revision(path):
         return None
     fh = open(revision_file, 'r')
     try:
-        return fh.read().strip()[:7]
+        return fh.read().strip()
     finally:
         fh.close()
 
