@@ -18,6 +18,8 @@ class DebugMiddleware(threading.local, DebugToolbarMiddleware):
 
     def show_toolbar(self, request):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
+        if not request.user.is_authenticated():
+            return False
         if not request.user.is_active_superuser():
             return False
         if 'text/html' not in request.META.get('HTTP_ACCEPT', '*/*'):
