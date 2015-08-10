@@ -243,6 +243,9 @@ urlpatterns += patterns('',
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
         name='sentry-accept-invite'),
 
+    # Debugger
+    url(r'^__debug__/', include(debug_toolbar.urls)),
+
     # Settings - Projects
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$',
         sentry.web.frontend.projects.general.get_started,
@@ -424,7 +427,4 @@ urlpatterns += patterns('',
     # Legacy
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.redirect_to_group,
         name='sentry-group'),
-
-    # Debugger
-    url(r'^__debug__/', include(debug_toolbar.urls)),
 )
