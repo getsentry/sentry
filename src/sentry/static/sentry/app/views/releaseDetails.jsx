@@ -121,6 +121,7 @@ var ReleaseDetails = React.createClass({
             <ul className="nav nav-tabs">
               <ListLink to="releaseNewEvents" params={params}>New Events</ListLink>
               <ListLink to="releaseAllEvents" params={params}>All Events</ListLink>
+              <ListLink to="releaseArtifacts" params={params} className="pull-right">Artifacts</ListLink>
             </ul>
           </div>
           <Router.RouteHandler />
