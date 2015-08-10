@@ -4,17 +4,12 @@ import json
 import re
 import threading
 
-from debug_toolbar.middleware import DebugToolbarMiddleware
 from debug_toolbar.toolbar import DebugToolbar
 from django.utils.encoding import force_text
 
 
-# Inherit from DebugToolbarMiddleware because of DJDT monkey patching
-class DebugMiddleware(threading.local, DebugToolbarMiddleware):
+class DebugMiddleware(threading.local):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
-
-    def __init__(self):
-        threading.local.__init__(self)
 
     def show_toolbar(self, request):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
