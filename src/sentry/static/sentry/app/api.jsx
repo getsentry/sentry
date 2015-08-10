@@ -78,6 +78,9 @@ class Client {
       method: method,
       data: data,
       contentType: 'application/json',
+      headers: {
+        'Accept': 'application/json; charset=utf-8'
+      },
       success: this.wrapCallback(id, options.success),
       error: this.wrapCallback(id, options.error),
       complete: this.wrapCallback(id, options.complete, true)
