@@ -31,7 +31,6 @@ class ThreadCollector(object):
         if thread is None:
             thread = threading.currentThread()
         # fail silently if not active for thread
-        print((self.collections.keys(), thread))
         if thread not in self.collections:
             return
         self.collections[thread].append(item)
