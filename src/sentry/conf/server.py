@@ -537,7 +537,8 @@ DEBUG_TOOLBAR_PANELS = (
     'debug_toolbar.panels.templates.TemplatesPanel',
 
     'debug_toolbar.panels.sql.SQLPanel',
-    'sentry.debug.panels.redis.RedisPanel',
+    # TODO(dcramer): https://github.com/getsentry/sentry/issues/1722
+    # 'sentry.debug.panels.redis.RedisPanel',
 
     'debug_toolbar.panels.versions.VersionsPanel',
 )
