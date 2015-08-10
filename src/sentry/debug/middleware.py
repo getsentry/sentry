@@ -85,14 +85,15 @@ class DebugMiddleware(object):
         if 'text/html' not in response['Content-Type']:
             if 'application/json' in response['Content-Type']:
                 content = json.dumps(json.loads(content), indent=2)
+            content = TEMPLATE.format(content)
             response['Content-Type'] = 'text/html'
-            response.content = TEMPLATE.format(content)
 
         # Insert the toolbar in the response.
         bits = self._body_regexp.split(content)
         if len(bits) > 1:
             bits[-2] += toolbar.render_toolbar()
-            response.content = '</body>'.join(bits)
+            content = '</body>'.join(bits)
 
-        response['Content-Length'] = len(response.content)
+        response.content = content
+        response['Content-Length'] = len(content)
         return response
