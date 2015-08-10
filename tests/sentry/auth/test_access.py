@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import Mock
 
 from sentry.auth import access
-from sentry.models import AuthProvider
+from sentry.models import AnonymousUser, AuthProvider
 from sentry.testutils import TestCase
 
 
@@ -76,7 +76,6 @@ class FromUserTest(TestCase):
         assert result.sso_is_valid
 
     def test_anonymous_user(self):
-        from django.contrib.auth.models import AnonymousUser
         user = self.create_user()
         anon_user = AnonymousUser()
         organization = self.create_organization(owner=user)

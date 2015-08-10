@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
@@ -19,7 +18,7 @@ from django.utils.safestring import mark_safe
 from sentry import options
 from sentry.api.serializers.base import serialize
 from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import Project, Team, ProjectOption
+from sentry.models import AnonymousUser, Project, Team, ProjectOption
 
 logger = logging.getLogger('sentry')
 

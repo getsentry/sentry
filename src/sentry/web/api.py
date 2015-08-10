@@ -12,7 +12,6 @@ import traceback
 
 from datetime import timedelta
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
@@ -31,7 +30,7 @@ from sentry.coreapi import (
 )
 from sentry.event_manager import EventManager
 from sentry.models import (
-    Group, GroupStatus, Project, TagValue, User
+    AnonymousUser, Group, GroupStatus, Project, TagValue, User
 )
 from sentry.signals import event_received
 from sentry.plugins import plugins
