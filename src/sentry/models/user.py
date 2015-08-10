@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import warnings
 
 from django.contrib.auth.models import AbstractBaseUser, UserManager
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -92,13 +92,23 @@ class User(BaseModel, AbstractBaseUser):
         for obj in Organization.objects.filter(owner=from_user):
             obj.update(owner=to_user)
         for obj in OrganizationMember.objects.filter(user=from_user):
-            obj.update(user=to_user)
+            with transaction.atomic():
+                try:
+                    obj.update(user=to_user)
+                except IntegrityError:
+                    pass
         for obj in GroupBookmark.objects.filter(user=from_user):
-            obj.update(user=to_user)
+            with transaction.atomic():
+                try:
+                    obj.update(user=to_user)
+                except IntegrityError:
+                    pass
         for obj in UserOption.objects.filter(user=from_user):
-            obj.update(user=to_user)
-        for obj in UserOption.objects.filter(user=from_user):
-            obj.update(user=to_user)
+            with transaction.atomic():
+                try:
+                    obj.update(user=to_user)
+                except IntegrityError:
+                    pass
 
         Activity.objects.filter(
             user=from_user,
