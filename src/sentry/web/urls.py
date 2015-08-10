@@ -7,19 +7,10 @@ sentry.web.urls
 """
 from __future__ import absolute_import
 
-try:
-    from django.conf.urls import include, patterns, url
-except ImportError:
-    # django < 1.5 compat
-    from django.conf.urls.defaults import include, patterns, url  # NOQA
+__all__ = ('urlpatterns',)
 
+from django.conf.urls import include, patterns, url
 from django.conf import settings
-
-from sentry.web import api
-from sentry.web.frontend import (
-    accounts, generic, groups, events,
-    admin, users, explore, explore_code,
-)
 
 import sentry.web.frontend.projects.keys
 import sentry.web.frontend.projects.plugins
@@ -27,7 +18,11 @@ import sentry.web.frontend.projects.quotas
 import sentry.web.frontend.projects.rules
 import sentry.web.frontend.projects.tags
 
-__all__ = ('urlpatterns',)
+from sentry.web import api
+from sentry.web.frontend import (
+    accounts, generic, groups, events,
+    admin, users, explore, explore_code,
+)
 
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.accept_organization_invite import AcceptOrganizationInviteView

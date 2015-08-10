@@ -9,6 +9,7 @@ These are additional urls used by the Sentry-provided web server
 """
 from __future__ import absolute_import
 
+import debug_toolbar
 import os
 
 try:
@@ -53,4 +54,5 @@ urlpatterns = patterns('',
     url(r'^404/', handler404, name='error-400'),
     url(r'^_health/$', handler_healthcheck, name='healthcheck'),
     url(r'^403-csrf-failure/', CsrfFailureView.as_view(), name='error-403-csrf-failure'),
+    url(r'^__debug__/', include(debug_toolbar.urls)),
 ) + web_urlpatterns
