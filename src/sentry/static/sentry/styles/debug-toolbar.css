@@ -97,7 +97,6 @@
     background-color:#111;
     height:50px;
     z-index:100000000;
-    opacity:0.9;
     overflow-y: auto;
     border-bottom:1px solid #222;
 }
