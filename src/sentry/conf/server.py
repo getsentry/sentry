@@ -542,6 +542,8 @@ DEBUG_TOOLBAR_PANELS = (
     'debug_toolbar.panels.versions.VersionsPanel',
 )
 
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+
 # Sentry and Raven configuration
 
 SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'

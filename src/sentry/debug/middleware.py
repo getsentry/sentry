@@ -2,13 +2,31 @@ from __future__ import absolute_import
 
 import json
 import re
-import threading
+import thread
 
 from debug_toolbar.toolbar import DebugToolbar
 from django.utils.encoding import force_text
 
 
-class DebugMiddleware(threading.local):
+class ToolbarCache(object):
+    def __init__(self):
+        self._toolbars = {}
+
+    def create(self, request):
+        toolbar = DebugToolbar(request)
+        self._toolbars[thread.get_ident()] = toolbar
+        return toolbar
+
+    def pop(self):
+        return self._toolbars.pop(thread.get_ident(), None)
+
+    def get(self):
+        return self._toolbars.get(thread.get_ident(), None)
+
+toolbar_cache = ToolbarCache()
+
+
+class DebugMiddleware(object):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
 
     def show_toolbar(self, request):
@@ -24,10 +42,9 @@ class DebugMiddleware(threading.local):
     def process_request(self, request):
         # Decide whether the toolbar is active for this request.
         if not self.show_toolbar(request):
-            self.toolbar = None
             return
 
-        self.toolbar = toolbar = DebugToolbar(request)
+        toolbar = toolbar_cache.create(request)
 
         # Activate instrumentation ie. monkey-patch.
         for panel in toolbar.enabled_panels:
@@ -42,7 +59,7 @@ class DebugMiddleware(threading.local):
         return response
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        toolbar = getattr(self, 'toolbar', None)
+        toolbar = toolbar_cache.get()
         if not toolbar:
             return
 
@@ -54,7 +71,7 @@ class DebugMiddleware(threading.local):
                 break
 
     def process_response(self, request, response):
-        toolbar = getattr(self, 'toolbar', None)
+        toolbar = toolbar_cache.pop()
         if not toolbar:
             return response
 
@@ -85,7 +102,6 @@ class DebugMiddleware(threading.local):
         bits = self._body_regexp.split(content)
         if len(bits) > 1:
             bits[-2] += toolbar.render_toolbar()
-            print(bits)
             response.content = '</body>'.join(bits)
 
         response['Content-Length'] = len(response.content)
