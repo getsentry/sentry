@@ -122,7 +122,7 @@ var ProjectSelector = React.createClass({
     });
 
     return (
-      <div ref="container">
+      <div className="project-select" ref="container">
         <Router.Link to="stream" params={projectRouteParams}>{activeTeam.name} / {activeProject.name}</Router.Link>
         <DropdownLink title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
