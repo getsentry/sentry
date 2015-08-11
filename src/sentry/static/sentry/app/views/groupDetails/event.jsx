@@ -40,7 +40,7 @@ var UserWidget = React.createClass({
             <dd>{user.ipAddress}</dd>
           ]}
         </dl>
-        <div className="btn-group">
+        <div className="btn-group hidden">
           <a href="#" className="btn btn-xs btn-default">Message User</a>
           <a href="#" className="btn btn-xs btn-default">Message All</a>
         </div>
@@ -92,4 +92,3 @@ var GroupEvent = React.createClass({
 });
 
 export default GroupEvent;
-
