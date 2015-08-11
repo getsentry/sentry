@@ -1,5 +1,5 @@
 import joinClasses from "react/lib/joinClasses";
-import classSet from "react/lib/cx";
+import classNames from "classnames";
 import React from "react";
 
 var LoadingIndicator = React.createClass({
@@ -13,7 +13,7 @@ var LoadingIndicator = React.createClass({
   },
 
   render() {
-    var className = classSet({
+    var className = classNames({
       "loading": true,
       "mini": this.props.mini,
       "global": this.props.global,
