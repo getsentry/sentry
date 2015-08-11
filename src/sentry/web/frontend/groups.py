@@ -187,7 +187,7 @@ def render_with_group_context(group, template, context, request=None,
 
             errors = []
             error_set = set()
-            for error in event.data.get('errors'):
+            for error in event.data.get('errors', []):
                 error_data = json.dumps({
                     k: v for k, v in error.iteritems()
                     if k != 'type'
