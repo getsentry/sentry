@@ -11,25 +11,44 @@ var EventErrors = React.createClass({
     event: PropTypes.Event.isRequired
   },
 
+  getInitialState(){
+    return {
+      isOpen: false,
+    };
+  },
+
   shouldComponentUpdate(nextProps, nextState) {
+    if (this.state.isOpen != nextState.isOpen) {
+      return true;
+    }
     return this.props.event.id !== nextProps.event.id;
   },
 
+  toggle() {
+    this.setState({isOpen: !this.state.isOpen});
+  },
+
   render() {
+    var errors = this.props.event.errors;
+    var numErrors = errors.length;
+    var isOpen = this.state.isOpen;
     return (
       <EventDataSection
           group={this.props.group}
           event={this.props.event}
           type="errors"
           className="errors">
-        <p>There were errors encountered while processing this event:</p>
-        <ul>
-          {this.props.event.errors.map((error, errorIdx) => {
+        <p>
+          <a className="btn btn-default btn-sm pull-right" onClick={this.toggle}>{isOpen ? 'Hide' : 'Show'}</a>
+          There were {numErrors} {numErrors != 1 ? 'errors' : 'error'} encountered while processing this event.
+        </p>
+        <ul style={{display: isOpen ? 'block' : 'none'}}>
+          {errors.map((error, errorIdx) => {
             return (
               <li key={errorIdx}>
                 {error.title}<br />
                 {error.data &&
-                  <pre>{JSON.stringify(error.data)}</pre>
+                  <pre>{JSON.stringify(error.data).substr(0, 512)}</pre>
                 }
               </li>
             );
