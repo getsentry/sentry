@@ -33,10 +33,18 @@ var ReleaseList = React.createClass({
                     </div>
                   </div>
                   <div className="col-sm-2 col-xs-3 release-stats">
-                    <TimeSince date={release.lastEvent} />
+                    {release.lastEvent ?
+                      <TimeSince date={release.lastEvent} />
+                    :
+                      <span>&mdash;</span>
+                    }
                   </div>
                   <div className="col-sm-2 col-xs-2 hidden-xs release-stats">
-                    <TimeSince date={release.firstEvent} />
+                    {release.firstEvent ?
+                      <TimeSince date={release.firstEvent} />
+                    :
+                      <span>&mdash;</span>
+                    }
                   </div>
                   <div className="col-sm-2 col-xs-3 release-stats stream-count">
                     <Count className="release-count" value={release.newGroups} />
