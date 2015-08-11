@@ -173,6 +173,9 @@ class BuildStatic(Command):
         check_output([os.path.join('node_modules', '.bin', 'gulp'), 'dist:css'],
                      cwd=work_path)
 
+        # Enable React production optimization
+        os.environ['NODE_ENV'] = 'production'
+
         log.info("running [webpack]")
         check_output([os.path.join('node_modules', '.bin', 'webpack'), '-p'],
                      cwd=work_path)
