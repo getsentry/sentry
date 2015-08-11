@@ -124,8 +124,11 @@ var BarChart = React.createClass({
     );
     var className = "chart-marker tip " + (marker.className || '');
 
+    // example key: m-last-seen-22811123, m-first-seen-228191
+    var key = ['m', marker.className, marker.x].join('-');
+
     return (
-      <a key={'m' + marker.x} className={className} data-title={title}>
+      <a key={key} className={className} data-title={title}>
         <span>{marker.label}</span>
       </a>
     );
@@ -210,4 +213,3 @@ var BarChart = React.createClass({
 });
 
 export default BarChart;
-
