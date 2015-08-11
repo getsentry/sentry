@@ -1071,6 +1071,30 @@ div.commands {
 
 }
 
+.box.errors {
+  border-color: @red;
+  background: lighten(@red, 35);
+  color: #000;
+
+  .box-content {
+    p {
+      margin-bottom: 10px;
+    }
+    ul {
+      margin-bottom: 20px;
+    }
+    pre {
+      background: inherit;
+      padding: 0;
+      color: inherit;
+    }
+    li {
+      margin-bottom: 0;
+    }
+  }
+}
+
+
 /* message details */
 .server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 0; margin-bottom: 0; }
 .server-list li, .url-list li { padding-bottom: 10px; }

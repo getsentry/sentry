@@ -5,6 +5,41 @@ import PropTypes from "../proptypes";
 import utils from "../utils";
 import ContextData from "./contextData";
 
+var EventErrors = React.createClass({
+  propTypes: {
+    group: PropTypes.Group.isRequired,
+    event: PropTypes.Event.isRequired
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.event.id !== nextProps.event.id;
+  },
+
+  render() {
+    return (
+      <EventDataSection
+          group={this.props.group}
+          event={this.props.event}
+          type="errors"
+          className="errors">
+        <p>There were errors encountered while processing this event:</p>
+        <ul>
+          {this.props.event.errors.map((error, errorIdx) => {
+            return (
+              <li key={errorIdx}>
+                {error.title}<br />
+                {error.data &&
+                  <pre>{error.data}</pre>
+                }
+              </li>
+            );
+          })}
+        </ul>
+      </EventDataSection>
+    );
+  }
+});
+
 var EventExtraData = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -141,6 +176,11 @@ var EventEntries = React.createClass({
 
     return (
       <div>
+        {!utils.objectIsEmpty(evt.errors) &&
+          <EventErrors
+            group={group}
+            event={evt} />
+        }
         {entries}
         {!utils.objectIsEmpty(evt.context) &&
           <EventExtraData
