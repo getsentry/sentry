@@ -1073,23 +1073,28 @@ div.commands {
 
 .box.errors {
   border-color: @red;
-  background: lighten(@red, 35);
+  background: #fff;
   color: #000;
 
   .box-content {
     p {
-      margin-bottom: 10px;
+      color: #d21c25;
+      font-weight: bold;
+      .btn {
+        margin-left: 5px;
+      }
     }
     ul {
       margin-bottom: 20px;
+      li {
+        margin-bottom: 5px;
+      }
     }
     pre {
       background: inherit;
       padding: 0;
+      margin: 0;
       color: inherit;
-    }
-    li {
-      margin-bottom: 0;
     }
   }
 }
