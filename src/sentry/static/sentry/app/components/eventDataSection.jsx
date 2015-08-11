@@ -18,15 +18,17 @@ var GroupEventDataSection = React.createClass({
 
   render: function() {
     return (
-      <div className="box">
+      <div className={(this.props.className || '') + ' box'}>
         <a name={this.props.type} />
-        <div className="box-header">
-          {this.props.wrapTitle ?
-            <h3>{this.props.title}</h3>
-          :
-            <div>{this.props.title}</div>
-          }
-        </div>
+        {this.props.title &&
+          <div className="box-header">
+            {this.props.wrapTitle ?
+              <h3>{this.props.title}</h3>
+            :
+              <div>{this.props.title}</div>
+            }
+          </div>
+        }
         <div className="box-content with-padding">
           {this.props.children}
         </div>
