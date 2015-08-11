@@ -1,5 +1,5 @@
 import React from "react";
-import classSet from "react/lib/cx";
+import classNames from "classnames";
 import {defined} from "../../utils";
 import PropTypes from "../../proptypes";
 import ContextData from "../contextData";
@@ -65,7 +65,7 @@ var Frame = React.createClass({
   render() {
     var data = this.props.data;
 
-    var className = classSet({
+    var className = classNames({
       "frame": true,
       "system-frame": !data.inApp,
       "frame-errors": data.errors,
