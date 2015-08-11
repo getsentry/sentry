@@ -193,10 +193,11 @@ var StreamGroup = React.createClass({
                   </Router.Link>
                 </li>
               }
-              {data.annotations.map((annotation) => {
+              {data.annotations.map((annotation, key) => {
                 return (
                   <li className="event-annotation"
-                      dangerouslySetInnerHTML={{__html: annotation}} />
+                      dangerouslySetInnerHTML={{__html: annotation}}
+                      key={key} />
                 );
               })}
             </ul>

@@ -1,7 +1,7 @@
 import React from "react";
 import Router from "react-router";
 import joinClasses from "react/lib/joinClasses";
-import classSet from "react/lib/cx";
+import classNames from "classnames";
 
 var MenuItem = React.createClass({
   propTypes: {
@@ -70,7 +70,7 @@ var MenuItem = React.createClass({
 
     return (
       <li {...this.props} role="presentation" title={null} href={null}
-        className={joinClasses(this.props.className, classSet(classes))}>
+        className={joinClasses(this.props.className, classNames(classes))}>
         {children}
       </li>
     );

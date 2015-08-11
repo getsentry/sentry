@@ -7,7 +7,7 @@ var AlertMessage = React.createClass({
 
   propTypes: {
     type: React.PropTypes.string,
-    children: React.PropTypes.any.isRequired
+    message: React.PropTypes.string
   },
 
   closeAlert: function() {
