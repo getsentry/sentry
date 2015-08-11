@@ -156,11 +156,12 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
+        assert not event.data['errors']
+
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        assert not frame.errors
         assert frame.pre_context == [
             'function add(a, b) {',
             '\t"use strict";',
@@ -253,11 +254,12 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
+        assert not event.data['errors']
+
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
-        assert not frame.errors
         assert frame.pre_context == [
             'function add(a, b) {',
             '\t"use strict";',

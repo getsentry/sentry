@@ -1,5 +1,10 @@
 {
     "culprit": "views.js in updateMember",
+    "errors": [
+        {"type": "invalid_attribute", "name": "foobar"},
+        {"type": "invalid_attribute", "name": "foobar"},
+        {"type": "invalid_data", "name": "event_id", "value": "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8"}
+    ],
     "sentry.interfaces.Exception": {
         "values": [
             {
@@ -15,7 +20,6 @@
                                 "",
                                 "        renderMemberInContainer: function(member){"
                             ],
-                            "errors": ["This is an example error"],
                             "vars": {},
                             "module": null,
                             "filename": "../../sentry/scripts/views.js",
