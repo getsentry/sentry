@@ -5,6 +5,7 @@ import re
 import thread
 
 from debug_toolbar.toolbar import DebugToolbar
+from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.encoding import force_text
 
@@ -32,6 +33,8 @@ class DebugMiddleware(object):
 
     def show_toolbar(self, request):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
+        if not settings.SENTRY_DEBUGGER:
+            return False
         if not request.user.is_authenticated():
             return False
         if not request.user.is_active_superuser():
