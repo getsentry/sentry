@@ -29,7 +29,7 @@ var EventErrors = React.createClass({
               <li key={errorIdx}>
                 {error.title}<br />
                 {error.data &&
-                  <pre>{error.data}</pre>
+                  <pre>{JSON.stringify(error.data)}</pre>
                 }
               </li>
             );
