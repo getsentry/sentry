@@ -17,117 +17,15 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404
 
-from sentry.api.serializers import serialize
 from sentry.auth import access
 from sentry.constants import MEMBER_USER
 from sentry.models import (
-    Project, Group, GroupMeta, Event, EventError
+    Project, Group, GroupMeta, Event
 )
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
-
-
-def render_with_group_context(group, template, context, request=None,
-                              event=None, is_public=False):
-    context.update({
-        'team': group.project.team,
-        'organization': group.project.organization,
-        'project': group.project,
-        'group': group,
-        'selectedGroup': serialize(group, request.user),
-    })
-
-    if request and request.user.is_authenticated():
-        context['ACCESS'] = access.from_user(
-            user=request.user,
-            organization=group.organization,
-        ).to_django_context()
-    else:
-        context['ACCESS'] = access.DEFAULT.to_django_context()
-
-    if event:
-        if event.id:
-            # HACK(dcramer): work around lack of unique sorting on datetime
-            base_qs = Event.objects.filter(
-                group=event.group_id,
-            ).exclude(id=event.id)
-            try:
-                next_event = sorted(
-                    base_qs.filter(
-                        datetime__gte=event.datetime
-                    ).order_by('datetime')[0:5],
-                    key=lambda x: (x.datetime, x.id)
-                )[0]
-            except IndexError:
-                next_event = None
-
-            try:
-                prev_event = sorted(
-                    base_qs.filter(
-                        datetime__lte=event.datetime,
-                    ).order_by('-datetime')[0:5],
-                    key=lambda x: (x.datetime, x.id),
-                    reverse=True
-                )[0]
-            except IndexError:
-                prev_event = None
-        else:
-            next_event = None
-            prev_event = None
-
-        if not is_public:
-            extra_data = event.data.get('extra', {})
-            if not isinstance(extra_data, dict):
-                extra_data = {}
-
-            errors = []
-            error_set = set()
-            for error in event.data.get('errors', []):
-                error_data = json.dumps({
-                    k: v for k, v in error.iteritems()
-                    if k != 'type'
-                })
-                if error_data == '{}':
-                    error_data = None
-
-                error_hash = (error['type'], error_data)
-                if error_hash in error_set:
-                    continue
-                error_set.add(error_hash)
-                error_result = {
-                    'type': error['type'],
-                    'title': EventError.get_title(error['type']),
-                    'data': error_data,
-                }
-                errors.append(error_result)
-
-            context.update({
-                'tags': event.get_tags(),
-                'json_data': extra_data,
-                'errors': errors,
-            })
-
-        context.update({
-            'event': event,
-            'version_data': event.data.get('modules', None),
-            'next_event': next_event,
-            'prev_event': prev_event,
-        })
-
-    return render_to_response(template, context, request)
-
-
-@login_required
-def redirect_to_group(request, project_id, group_id):
-    group = get_object_or_404(Group, id=group_id)
-
-    return HttpResponseRedirect(reverse('sentry-group', kwargs={
-        'project_id': group.project.slug,
-        'organization_slug': group.project.organization.slug,
-        'group_id': group.id,
-    }))
 
 
 @login_required
