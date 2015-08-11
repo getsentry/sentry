@@ -170,7 +170,7 @@ var ProjectReleases = React.createClass({
               <div className="box empty-stream">
                 <span className="icon icon-exclamation" />
                 <p>There don't seem to be any releases yet.</p>
-                <p><a href={this.getReleaseTrackingUrl()}>Learn how to integreate Release Tracking</a></p>
+                <p><a href={this.getReleaseTrackingUrl()}>Learn how to integrate Release Tracking</a></p>
               </div>
             }
           </div>
