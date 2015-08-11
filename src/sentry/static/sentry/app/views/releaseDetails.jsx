@@ -102,7 +102,7 @@ var ReleaseDetails = React.createClass({
         <div className={this.props.classname}>
           <div className="release-details">
             <div className="row">
-              <div className="col-md-9">
+              <div className="col-sm-6 col-xs-12">
                 <Router.Link to="projectReleases" params={params} className="back-arrow">
                   <span className="icon-arrow-left"></span>
                 </Router.Link>
@@ -111,7 +111,19 @@ var ReleaseDetails = React.createClass({
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                 </div>
               </div>
-              <div className="col-md-3">
+              <div className="col-sm-2 hidden-xs">
+                <div className="release-stats">
+                  <h6 className="nav-header">First Event</h6>
+                  <TimeSince date={release.firstEvent} />
+                </div>
+              </div>
+              <div className="col-sm-2 hidden-xs">
+                <div className="release-stats">
+                  <h6 className="nav-header">Last Event</h6>
+                  <TimeSince date={release.lastEvent} />
+                </div>
+              </div>
+              <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">New Events</h6>
                   <Count className="release-count" value={release.newGroups} />
