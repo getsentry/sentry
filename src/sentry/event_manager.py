@@ -151,6 +151,11 @@ class ScoreClause(object):
         return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 
 
+class EventError(object):
+    INVALID_DATA = 'invalid_data'
+    INVALID_ATTRIBUTE = 'invalid_attribute'
+
+
 class EventManager(object):
     logger = logging.getLogger('sentry.events')
 
@@ -204,6 +209,7 @@ class EventManager(object):
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
         data.setdefault('extra', {})
+        data.setdefault('errors', [])
 
         tags = data.get('tags')
         if not tags:
