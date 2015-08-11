@@ -30,7 +30,8 @@ from sentry.constants import (
 )
 from sentry.db.models import create_or_update
 from sentry.models import (
-    Project, Group, GroupMeta, Event, Activity, EventMapping, TagKey, GroupSeen
+    Project, Group, GroupMeta, Event, EventError, Activity, EventMapping,
+    TagKey, GroupSeen
 )
 from sentry.permissions import can_create_projects
 from sentry.plugins import plugins
@@ -184,9 +185,31 @@ def render_with_group_context(group, template, context, request=None,
             if not isinstance(extra_data, dict):
                 extra_data = {}
 
+            errors = []
+            error_set = set()
+            for error in event.data.get('errors'):
+                error_data = json.dumps({
+                    k: v for k, v in error.iteritems()
+                    if k != 'type'
+                })
+                if error_data == '{}':
+                    error_data = None
+
+                error_hash = (error['type'], error_data)
+                if error_hash in error_set:
+                    continue
+                error_set.add(error_hash)
+                error_result = {
+                    'type': error['type'],
+                    'title': EventError.get_title(error['type']),
+                    'data': error_data,
+                }
+                errors.append(error_result)
+
             context.update({
                 'tags': event.get_tags(),
                 'json_data': extra_data,
+                'errors': errors,
             })
 
         context.update({

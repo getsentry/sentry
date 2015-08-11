@@ -28,9 +28,8 @@ from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
     MAX_TAG_KEY_LENGTH
 )
-from sentry.event_manager import EventError
 from sentry.interfaces.base import get_interface
-from sentry.models import Project, ProjectKey
+from sentry.models import EventError, Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header

@@ -1,6 +1,22 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
+{% if errors %}
+    <div id="errors" class="event-errors">
+        <h4>There were errors encountered while processing this event</h4>
+        <ul>
+            {% for error in errors %}
+                <li>
+                    {{ error.title }}<br />
+                    {% if error.data %}
+                    <pre>{{ error.data }}</pre>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
 {% if tags %}
     <div id="tags">
         <div class="page-header">
