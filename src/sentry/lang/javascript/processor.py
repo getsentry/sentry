@@ -235,6 +235,7 @@ def fetch_url(url, project=None, release=None):
         )
         domain_result = cache.get(domain_key)
         if domain_result:
+            domain_result['url'] = url
             raise CannotFetchSource(domain_result)
 
         headers = {}
@@ -259,17 +260,20 @@ def fetch_url(url, project=None, release=None):
             if isinstance(exc, SuspiciousOperation):
                 error = {
                     'type': EventError.SECURITY_VIOLATION,
-                    'value': unicode(exc)
+                    'value': unicode(exc),
+                    'url': url,
                 }
             elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = {
                     'type': EventError.JS_GENERIC_FETCH_ERROR,
                     'value': type(exc),
+                    'url': url,
                 }
             else:
                 logger.exception(unicode(exc))
                 error = {
                     'type': EventError.UNKNOWN_ERROR,
+                    'url': url,
                 }
 
             # TODO(dcramer): we want to be less aggressive on disabling domains
@@ -296,6 +300,7 @@ def fetch_url(url, project=None, release=None):
         error = {
             'type': EventError.JS_INVALID_HTTP_CODE,
             'value': result[2],
+            'url': url,
         }
         raise CannotFetchSource(error)
 
@@ -320,7 +325,7 @@ def fetch_sourcemap(url, project=None, release=None):
         return sourcemap_to_index(body)
     except (JSONDecodeError, ValueError):
         raise UnparseableSourcemap({
-            'value': url,
+            'url': url,
         })
 
 
