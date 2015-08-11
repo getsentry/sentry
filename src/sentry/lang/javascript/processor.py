@@ -266,7 +266,7 @@ def fetch_url(url, project=None, release=None):
             elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = {
                     'type': EventError.JS_GENERIC_FETCH_ERROR,
-                    'value': type(exc),
+                    'value': str(type(exc)),
                     'url': url,
                 }
             else:
