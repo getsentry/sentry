@@ -1,6 +1,6 @@
 import React from "react";
 import Router from "react-router";
-import classSet from 'react/lib/cx';
+import classNames from 'classnames';
 
 var ListLink = React.createClass({
   displayName: 'ListLink',
@@ -24,15 +24,15 @@ var ListLink = React.createClass({
   },
 
   getClassName() {
-    var classNames = {};
+    var _classNames = {};
 
     if (this.props.className)
-      classNames[this.props.className] = true;
+      _classNames[this.props.className] = true;
 
     if (this.context.router.isActive(this.props.to, this.props.params, this.props.query))
-      classNames[this.props.activeClassName] = true;
+      _classNames[this.props.activeClassName] = true;
 
-    return classSet(classNames);
+    return classNames(_classNames);
   },
 
   render() {

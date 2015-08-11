@@ -1,5 +1,5 @@
 import joinClasses from "react/lib/joinClasses";
-import classSet from "react/lib/cx";
+import classNames from "classnames";
 import React from "react";
 import $ from "jquery";
 
@@ -38,12 +38,12 @@ var DropdownLink = React.createClass({
   },
 
   render() {
-    var className = classSet({
+    var className = classNames({
       "dropdown-toggle": true,
       "disabled": this.props.disabled,
     });
 
-    var topLevelClasses = classSet({
+    var topLevelClasses = classNames({
       "dropdown" : true,
     });
 

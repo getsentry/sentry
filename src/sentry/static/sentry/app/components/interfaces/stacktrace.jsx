@@ -1,5 +1,4 @@
 import React from "react";
-import classSet from "react/lib/cx";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../proptypes";
 import RawStacktraceContent from "./rawStacktraceContent";
