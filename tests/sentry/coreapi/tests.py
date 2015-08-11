@@ -130,6 +130,10 @@ class ValidateDataTest(BaseAPITest):
             'event_id': 'a' * 33,
         })
         assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'event_id'
+        assert data['errors'][0]['value'] == 'a' * 33
 
     def test_invalid_event_id_raises(self):
         self.assertRaises(APIError, self.helper.validate_data, self.project, {
@@ -142,6 +146,9 @@ class ValidateDataTest(BaseAPITest):
             'foo': 'bar',
         })
         assert 'foo' not in data
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_attribute'
+        assert data['errors'][0]['name'] == 'foo'
 
     def test_invalid_interface_name(self):
         data = self.helper.validate_data(self.project, {
@@ -149,6 +156,9 @@ class ValidateDataTest(BaseAPITest):
             'foo.baz': 'bar',
         })
         assert 'foo.baz' not in data
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_attribute'
+        assert data['errors'][0]['name'] == 'foo.baz'
 
     def test_invalid_interface_import_path(self):
         data = self.helper.validate_data(self.project, {
@@ -156,13 +166,9 @@ class ValidateDataTest(BaseAPITest):
             'sentry.interfaces.Exception2': 'bar',
         })
         assert 'sentry.interfaces.Exception2' not in data
-
-    def test_invalid_interface_args(self):
-        data = self.helper.validate_data(self.project, {
-            'message': 'foo',
-            'tests.manager.tests.DummyInterface': {'foo': 'bar'}
-        })
-        assert 'tests.manager.tests.DummyInterface' not in data
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_attribute'
+        assert data['errors'][0]['name'] == 'sentry.interfaces.Exception2'
 
     def test_does_expand_list(self):
         data = self.helper.validate_data(self.project, {
@@ -188,6 +194,10 @@ class ValidateDataTest(BaseAPITest):
             'level': 'foobar',
         })
         assert data['level'] == 40
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'level'
+        assert data['errors'][0]['value'] == 'foobar'
 
     def test_tags_as_string(self):
         data = self.helper.validate_data(self.project, {
@@ -202,6 +212,7 @@ class ValidateDataTest(BaseAPITest):
             'tags': {'f' * 33: 'value', 'foo': 'v' * 201, 'bar': 'value'},
         })
         assert data['tags'] == [('bar', 'value')]
+        assert len(data['errors']) == 2
 
     def test_tags_as_invalid_pair(self):
         data = self.helper.validate_data(self.project, {
@@ -209,6 +220,10 @@ class ValidateDataTest(BaseAPITest):
             'tags': [('foo', 'bar'), ('biz', 'baz', 'boz')],
         })
         assert data['tags'] == [('foo', 'bar')]
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'tags'
+        assert data['errors'][0]['value'] == ('biz', 'baz', 'boz')
 
     def test_extra_as_string(self):
         data = self.helper.validate_data(self.project, {

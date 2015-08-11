@@ -29,7 +29,7 @@ from sentry.constants import (
     MAX_TAG_KEY_LENGTH
 )
 from sentry.interfaces.base import get_interface
-from sentry.models import Project, ProjectKey
+from sentry.models import EventError, Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
@@ -309,6 +309,8 @@ class ClientApiHelper(object):
         # TODO(dcramer): move project out of the data packet
         data['project'] = project.id
 
+        data.setdefault('errors', [])
+
         if not data.get('message'):
             data['message'] = '<no message value>'
         elif not isinstance(data['message'], six.string_types):
@@ -327,6 +329,11 @@ class ClientApiHelper(object):
             self.log.info(
                 'Discarded value for event_id due to length (%d chars)',
                 len(data['event_id']))
+            data['errors'].append({
+                'type': EventError.INVALID_DATA,
+                'name': 'event_id',
+                'value': data['event_id'],
+            })
             data['event_id'] = uuid.uuid4().hex
 
         if 'timestamp' in data:
@@ -336,18 +343,33 @@ class ClientApiHelper(object):
                 self.log.info(
                     'Discarded invalid value for timestamp: %r',
                     data['timestamp'], exc_info=True)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'timestamp',
+                    'value': data['timestamp'],
+                })
                 del data['timestamp']
 
         if data.get('modules') and type(data['modules']) != dict:
             self.log.info(
                 'Discarded invalid type for modules: %s',
                 type(data['modules']))
+            data['errors'].append({
+                'type': EventError.INVALID_DATA,
+                'name': 'modules',
+                'value': data['modules'],
+            })
             del data['modules']
 
         if data.get('extra') is not None and type(data['extra']) != dict:
             self.log.info(
                 'Discarded invalid type for extra: %s',
                 type(data['extra']))
+            data['errors'].append({
+                'type': EventError.INVALID_DATA,
+                'name': 'extra',
+                'value': data['extra'],
+            })
             del data['extra']
 
         if data.get('tags') is not None:
@@ -356,6 +378,11 @@ class ClientApiHelper(object):
             elif not isinstance(data['tags'], (list, tuple)):
                 self.log.info(
                     'Discarded invalid type for tags: %s', type(data['tags']))
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'tags',
+                    'value': data['tags'],
+                })
                 del data['tags']
 
         if data.get('tags'):
@@ -366,6 +393,11 @@ class ClientApiHelper(object):
                     k, v = pair
                 except ValueError:
                     self.log.info('Discarded invalid tag value: %r', pair)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': 'tags',
+                        'value': pair,
+                    })
                     continue
 
                 if not isinstance(k, six.string_types):
@@ -373,6 +405,11 @@ class ClientApiHelper(object):
                         k = six.text_type(k)
                     except Exception:
                         self.log.info('Discarded invalid tag key: %r', type(k))
+                        data['errors'].append({
+                            'type': EventError.INVALID_DATA,
+                            'name': 'tags',
+                            'value': pair,
+                        })
                         continue
 
                 if not isinstance(v, six.string_types):
@@ -381,9 +418,20 @@ class ClientApiHelper(object):
                     except Exception:
                         self.log.info('Discarded invalid tag value: %s=%r',
                                       k, type(v))
+                        data['errors'].append({
+                            'type': EventError.INVALID_DATA,
+                            'name': 'tags',
+                            'value': pair,
+                        })
                         continue
+
                 if len(k) > MAX_TAG_KEY_LENGTH or len(v) > MAX_TAG_VALUE_LENGTH:
                     self.log.info('Discarded invalid tag: %s=%s', k, v)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': 'tags',
+                        'value': pair,
+                    })
                     continue
                 tags.append((k, v))
             data['tags'] = tags
@@ -396,12 +444,21 @@ class ClientApiHelper(object):
 
             if not value:
                 self.log.info('Ignored empty interface value: %s', k)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': k,
+                    'value': value,
+                })
                 continue
 
             try:
                 interface = get_interface(k)
             except ValueError:
                 self.log.info('Ignored unknown attribute: %s', k)
+                data['errors'].append({
+                    'type': EventError.INVALID_ATTRIBUTE,
+                    'name': k,
+                })
                 continue
 
             if type(value) != dict:
@@ -412,6 +469,11 @@ class ClientApiHelper(object):
                 else:
                     self.log.info(
                         'Invalid parameter for value: %s (%r)', k, type(value))
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': k,
+                        'value': value,
+                    })
                     continue
 
             try:
@@ -424,6 +486,11 @@ class ClientApiHelper(object):
                     log = self.log.error
                 log('Discarded invalid value for interface: %s (%r)', k, value,
                     exc_info=True)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': k,
+                    'value': value,
+                })
 
         level = data.get('level') or DEFAULT_LOG_LEVEL
         if isinstance(level, six.string_types) and not level.isdigit():
@@ -433,6 +500,11 @@ class ClientApiHelper(object):
             except KeyError as e:
                 self.log.info(
                     'Discarded invalid logger value: %s', level)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'level',
+                    'value': level,
+                })
                 data['level'] = LOG_LEVEL_REVERSE_MAP.get(
                     DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
