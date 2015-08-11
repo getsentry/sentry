@@ -26,13 +26,19 @@ var ReleaseList = React.createClass({
             return (
               <li className="release">
                 <div className="row">
-                  <div className="col-md-7 col-sm-6 col-xs-6">
+                  <div className="col-xs-6">
                     <h4><Version version={release.version} /></h4>
                     <div className="release-meta">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                     </div>
                   </div>
-                  <div className="col-md-5 col-sm-6 col-xs-6 release-stats stream-count">
+                  <div className="col-sm-2 col-xs-3 release-stats">
+                    <TimeSince date={release.lastEvent} />
+                  </div>
+                  <div className="col-sm-2 col-xs-2 hidden-xs release-stats">
+                    <TimeSince date={release.firstEvent} />
+                  </div>
+                  <div className="col-sm-2 col-xs-3 release-stats stream-count">
                     <Count className="release-count" value={release.newGroups} />
                   </div>
                 </div>
@@ -138,8 +144,14 @@ var ProjectReleases = React.createClass({
             <h3>Releases</h3>
             <div className="release-header">
               <div className="row">
-                <div className="col-md-7 col-sm-6 col-xs-6">Version</div>
-                <div className="col-md-5 col-sm-6 col-xs-6 release-stats align-right">
+                <div className="col-xs-6">Version</div>
+                <div className="col-sm-2 col-xs-3 release-stats align-right">
+                  Last Event
+                </div>
+                <div className="col-sm-2 hidden-xs release-stats align-right">
+                  First Event
+                </div>
+                <div className="col-sm-2 col-xs-3 release-stats align-right">
                   New Events
                 </div>
               </div>
