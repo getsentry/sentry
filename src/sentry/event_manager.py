@@ -204,6 +204,7 @@ class EventManager(object):
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
         data.setdefault('extra', {})
+        data.setdefault('errors', [])
 
         tags = data.get('tags')
         if not tags:

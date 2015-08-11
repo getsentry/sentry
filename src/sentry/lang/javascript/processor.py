@@ -19,7 +19,7 @@ from urlparse import urlparse, urljoin, urlsplit
 from sentry import http
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import Project, Release, ReleaseFile
+from sentry.models import EventError, Project, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
@@ -50,14 +50,6 @@ MAX_RESOURCE_FETCHES = 100
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
-ERR_DOMAIN_BLACKLISTED = 'The domain has been temporarily blacklisted due to previous failures:\n{reason}.'
-ERR_GENERIC_FETCH_FAILURE = 'A {type} error was hit while fetching the source'
-ERR_HTTP_CODE = 'Received HTTP {status_code} response'
-ERR_NO_COLUMN = 'No column information available (cant expand sourcemap)'
-ERR_MISSING_SOURCE = 'Source was not found: {filename}'
-ERR_SOURCEMAP_UNPARSEABLE = 'Sourcemap was not parseable (likely invalid JSON)'
-ERR_TOO_MANY_REMOTE_SOURCES = 'Not fetching context due to too many remote sources'
-ERR_UNKNOWN_INTERNAL_ERROR = 'An unknown internal error occurred while attempting to fetch the source'
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -65,19 +57,22 @@ logger = logging.getLogger(__name__)
 
 
 class BadSource(Exception):
-    pass
+    error_type = EventError.UNKNOWN_ERROR
 
-
-class DomainBlacklisted(BadSource):
-    pass
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
+        data.setdefault('type', self.error_type)
+        super(BadSource, self).__init__(data['type'])
+        self.data = data
 
 
 class CannotFetchSource(BadSource):
-    pass
+    error_type = EventError.JS_GENERIC_FETCH_ERROR
 
 
 class UnparseableSourcemap(BadSource):
-    pass
+    error_type = EventError.JS_INVALID_SOURCEMAP
 
 
 def trim_line(line, column=0):
@@ -235,14 +230,13 @@ def fetch_url(url, project=None, release=None):
     if result is None:
         # lock down domains that are problematic
         domain = urlparse(url).netloc
-        domain_key = 'source:blacklist:%s' % (
+        domain_key = 'source:blacklist:v2:%s' % (
             md5(domain.encode('utf-8')).hexdigest(),
         )
         domain_result = cache.get(domain_key)
         if domain_result:
-            raise DomainBlacklisted(ERR_DOMAIN_BLACKLISTED.format(
-                reason=domain_result,
-            ))
+            domain_result['url'] = url
+            raise CannotFetchSource(domain_result)
 
         headers = {}
         if project and is_valid_origin(url, project=project):
@@ -264,14 +258,23 @@ def fetch_url(url, project=None, release=None):
         except Exception as exc:
             logger.debug('Unable to fetch %r', url, exc_info=True)
             if isinstance(exc, SuspiciousOperation):
-                error = unicode(exc)
+                error = {
+                    'type': EventError.SECURITY_VIOLATION,
+                    'value': unicode(exc),
+                    'url': url,
+                }
             elif isinstance(exc, (RequestException, ZeroReturnError)):
-                error = ERR_GENERIC_FETCH_FAILURE.format(
-                    type=type(exc),
-                )
+                error = {
+                    'type': EventError.JS_GENERIC_FETCH_ERROR,
+                    'value': type(exc),
+                    'url': url,
+                }
             else:
                 logger.exception(unicode(exc))
-                error = ERR_UNKNOWN_INTERNAL_ERROR
+                error = {
+                    'type': EventError.UNKNOWN_ERROR,
+                    'url': url,
+                }
 
             # TODO(dcramer): we want to be less aggressive on disabling domains
             cache.set(domain_key, error or '', 300)
@@ -294,9 +297,11 @@ def fetch_url(url, project=None, release=None):
     if result[2] != 200:
         logger.debug('HTTP %s when fetching %r', result[2], url,
                      exc_info=True)
-        error = ERR_HTTP_CODE.format(
-            status_code=result[2],
-        )
+        error = {
+            'type': EventError.JS_INVALID_HTTP_CODE,
+            'value': result[2],
+            'url': url,
+        }
         raise CannotFetchSource(error)
 
     return UrlResult(url, result[0], result[1])
@@ -319,7 +324,9 @@ def fetch_sourcemap(url, project=None, release=None):
     try:
         return sourcemap_to_index(body)
     except (JSONDecodeError, ValueError):
-        raise UnparseableSourcemap(ERR_SOURCEMAP_UNPARSEABLE)
+        raise UnparseableSourcemap({
+            'url': url,
+        })
 
 
 def is_data_uri(url):
@@ -423,12 +430,14 @@ class SourceProcessor(object):
             id=data['project'],
         )
 
-        release = self.get_release(project, data)
+        data.setdefault('errors', [])
+        errors = data['errors']
 
+        release = self.get_release(project, data)
         # all of these methods assume mutation on the original
         # objects rather than re-creation
         self.populate_source_cache(project, frames, release)
-        self.expand_frames(frames)
+        errors.extend(self.expand_frames(frames) or [])
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
         self.update_stacktraces(stacktraces)
@@ -458,13 +467,13 @@ class SourceProcessor(object):
 
         cache = self.cache
         sourcemaps = self.sourcemaps
+        all_errors = []
 
         for frame in frames:
             errors = cache.get_errors(frame.abs_path)
             if errors:
                 has_changes = True
-
-            frame.errors = errors
+                all_errors.extend(errors)
 
             source = cache.get(frame.abs_path)
             if source is None:
@@ -491,11 +500,12 @@ class SourceProcessor(object):
                     }
                     errors = cache.get_errors(abs_path)
                     if errors:
-                        frame.errors.extend(errors)
+                        all_errors.extend(errors)
                     else:
-                        frame.errors.append(ERR_MISSING_SOURCE.format(
-                            filename=abs_path.encode('utf-8'),
-                        ))
+                        all_errors.append({
+                            'type': 'missing_source',
+                            'filename': abs_path.encode('utf-8'),
+                        })
 
                 # Store original data in annotation
                 frame.data = {
@@ -528,6 +538,7 @@ class SourceProcessor(object):
             # TODO: theoretically a minified source could point to another mapped, minified source
             frame.pre_context, frame.context_line, frame.post_context = get_source_context(
                 source=source, lineno=frame.lineno, colno=frame.colno or 0)
+        return all_errors
 
     def populate_source_cache(self, project, frames, release):
         pending_file_list = set()
@@ -549,7 +560,9 @@ class SourceProcessor(object):
             done_file_list.add(filename)
 
             if idx > self.max_fetches:
-                cache.add_error(filename, ERR_TOO_MANY_REMOTE_SOURCES)
+                cache.add_error(filename, {
+                    'type': EventError.JS_TOO_MANY_REMOTE_SOURCES,
+                })
                 continue
 
             # TODO: respect cache-control/max-age headers to some extent
@@ -557,7 +570,7 @@ class SourceProcessor(object):
             try:
                 result = fetch_url(filename, project=project, release=release)
             except BadSource as exc:
-                cache.add_error(filename, unicode(exc))
+                cache.add_error(filename, exc.data)
                 continue
 
             cache.add(filename, result.body.splitlines())
@@ -569,7 +582,10 @@ class SourceProcessor(object):
 
             # If we didn't have a colno, a sourcemap wont do us any good
             if filename not in sourcemap_capable:
-                cache.add_error(filename, ERR_NO_COLUMN)
+                cache.add_error(filename, {
+                    'type': EventError.JS_NO_COLUMN,
+                    'filename': filename,
+                })
                 continue
 
             logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
@@ -586,7 +602,7 @@ class SourceProcessor(object):
                     release=release,
                 )
             except BadSource as exc:
-                cache.add_error(filename, unicode(exc))
+                cache.add_error(filename, exc.data)
                 continue
 
             sourcemaps.add(sourcemap_url, sourcemap_idx)

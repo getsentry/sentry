@@ -209,6 +209,7 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CON
 
 CLIENT_RESERVED_ATTRS = (
     'project',
+    'errors',
     'event_id',
     'message',
     'checksum',
