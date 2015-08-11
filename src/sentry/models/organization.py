@@ -121,6 +121,11 @@ class Organization(Model):
             slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
         super(Organization, self).save(*args, **kwargs)
 
+    def delete(self):
+        if self.is_default():
+            raise Exception('You cannot delete the the default organization.')
+        return super(Organization, self).delete()
+
     @cached_property
     def is_default(self):
         if not settings.SENTRY_SINGLE_ORGANIZATION:
