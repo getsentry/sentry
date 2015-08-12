@@ -44,6 +44,7 @@ CLEAN_MODULE_RE = re.compile(r"""^
 )/)+|
 (?:[-\.][a-f0-9]{7,}$)  # Ending in a commitish
 """, re.X | re.I)
+VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
@@ -352,6 +353,14 @@ def generate_module(src):
 
     if filename.endswith('.min'):
         filename = filename[:-4]
+
+    # TODO(dcramer): replace CLEAN_MODULE_RE with tokenizer completely
+    tokens = filename.split('/')
+    for idx, token in enumerate(tokens):
+        # a SHA
+        if VERSION_RE.match(token):
+            return '/'.join(tokens[idx + 1:])
+
     return CLEAN_MODULE_RE.sub('', filename) or UNKNOWN_MODULE
 
 
@@ -457,7 +466,7 @@ class SourceProcessor(object):
         # TODO(dcramer): this doesn't really fit well with generic URLs so we
         # whitelist it to http/https
         for frame in frames:
-            if not frame.module and frame.abs_path.startswith(('http:', 'https:')):
+            if not frame.module and frame.abs_path.startswith(('http:', 'https:', 'webpack:')):
                 frame.module = generate_module(frame.abs_path)
 
     def expand_frames(self, frames):
