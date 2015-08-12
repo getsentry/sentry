@@ -550,7 +550,8 @@ class SourceProcessor(object):
 
                 frame.abs_path = abs_path
                 frame.filename = filename
-                frame.module = generate_module(state.src)
+                if abs_path.startswith(('http:', 'https:')):
+                    frame.module = generate_module(abs_path)
 
             elif sourcemap_url:
                 frame.data = {
