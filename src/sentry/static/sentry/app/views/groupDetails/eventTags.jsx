@@ -8,15 +8,16 @@ var GroupEventTags = React.createClass({
   },
 
   render() {
-    var children = this.props.event.tags.map((tag, tagIdx) => {
-      var key = tag[0];
-      var value = tag[1];
-      return (
-        <li key={tagIdx}>
+    var children = [];
+    var value;
+    for (var key in this.props.event.tags) {
+      value = this.props.event.tags[key];
+      children.push(
+        <li key={key}>
           {key} = {value}
         </li>
       );
-    });
+    }
 
     return (
       <div id="tags" className="box">
