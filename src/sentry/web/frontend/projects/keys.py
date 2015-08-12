@@ -22,7 +22,6 @@ from sentry.models import (
 from sentry.permissions import (
     can_remove_project_key, can_add_project_key, can_edit_project_key
 )
-from sentry.plugins import plugins
 from sentry.web.decorators import has_access
 from sentry.web.forms.projectkeys import EditProjectKeyForm
 from sentry.web.helpers import render_to_response
@@ -31,10 +30,6 @@ from sentry.web.helpers import render_to_response
 @has_access(MEMBER_ADMIN)
 @csrf_protect
 def manage_project_keys(request, organization, project):
-    result = plugins.first('has_perm', request.user, 'edit_project', project)
-    if result is False and not request.user.is_superuser:
-        return HttpResponseRedirect(reverse('sentry'))
-
     key_list = list(ProjectKey.objects.filter(
         project=project,
     ).order_by('-id'))
