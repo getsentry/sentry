@@ -609,10 +609,16 @@
 // User widget
 
 .user-widget {
+  position: relative;
+
   margin: 0 0 20px;
 
   .avatar {
-    .square(42px);
+    .square(30px);
+    position: absolute;
+    top: -8px;
+    right: 0;
+    box-shadow: -6px 0 0 #fff;
   }
 
   .btn-group {
