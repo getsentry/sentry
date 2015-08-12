@@ -12,7 +12,6 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Project, Team
 )
 from sentry.permissions import can_remove_project, can_set_public_projects
-from sentry.plugins import plugins
 from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField
 )
@@ -147,10 +146,6 @@ class ProjectSettingsView(ProjectView):
 
         if request.user.is_superuser:
             return True
-
-        result = plugins.first('has_perm', request.user, 'edit_project', project)
-        if result is False:
-            return False
 
         return True
 

@@ -11,7 +11,6 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Team, OrganizationMember,
     OrganizationMemberType
 )
-from sentry.plugins import plugins
 from sentry.web.frontend.base import TeamView
 
 
@@ -28,10 +27,6 @@ class TeamSettingsView(TeamView):
         return EditTeamForm(request.POST or None, instance=team)
 
     def handle(self, request, organization, team):
-        result = plugins.first('has_perm', request.user, 'edit_team', team)
-        if result is False and not request.user.is_superuser:
-            return HttpResponseRedirect(reverse('sentry'))
-
         form = self.get_form(request, team)
         if form.is_valid():
             team = form.save()

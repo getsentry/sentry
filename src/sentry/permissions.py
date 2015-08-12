@@ -15,7 +15,6 @@ from functools import wraps
 
 from sentry import features
 from sentry.models import OrganizationMemberType
-from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
 
 
@@ -98,10 +97,6 @@ def can_create_projects(user, team):
     if not is_team_admin(user, team):
         return False
 
-    result = plugins.first('has_perm', user, 'add_project', team)
-    if result is False:
-        return result
-
     return True
 
 
@@ -114,14 +109,7 @@ def can_set_public_projects(user):
     if user.is_superuser:
         return True
 
-    result = plugins.first('has_perm', user, 'set_project_public')
-    if result is None:
-        result = settings.SENTRY_ALLOW_PUBLIC_PROJECTS
-
-    if result is False:
-        return result
-
-    return True
+    return settings.SENTRY_ALLOW_PUBLIC_PROJECTS
 
 
 @requires_login
@@ -155,10 +143,6 @@ def can_add_organization_member(user, organization):
     if not is_organization_admin(user, organization):
         return False
 
-    result = plugins.first('has_perm', user, 'add_organization_member', organization)
-    if result is False:
-        return False
-
     return True
 
 
@@ -170,10 +154,6 @@ def can_manage_organization_member(user, member, perm):
 
     # must be an owner of the team
     if not is_organization_admin(user, member.organization):
-        return False
-
-    result = plugins.first('has_perm', user, perm, member)
-    if result is False:
         return False
 
     return True
@@ -198,10 +178,6 @@ def can_remove_project(user, project):
     if not is_project_admin(user, project):
         return False
 
-    result = plugins.first('has_perm', user, 'remove_project', project)
-    if result is False:
-        return False
-
     return True
 
 
@@ -211,10 +187,6 @@ def can_add_project_key(user, project):
         return True
 
     if not is_project_admin(user, project):
-        return False
-
-    result = plugins.first('has_perm', user, 'add_project_key', project)
-    if result is False:
         return False
 
     return True
@@ -230,10 +202,6 @@ def can_edit_project_key(user, key):
     if not is_project_admin(user, project):
         return False
 
-    result = plugins.first('has_perm', user, 'edit_project_key', project, key)
-    if result is False:
-        return False
-
     return True
 
 
@@ -245,10 +213,6 @@ def can_remove_project_key(user, key):
     project = key.project
 
     if not is_project_admin(user, project):
-        return False
-
-    result = plugins.first('has_perm', user, 'remove_project_key', project, key)
-    if result is False:
         return False
 
     return True
