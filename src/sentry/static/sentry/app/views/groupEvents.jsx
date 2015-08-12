@@ -79,7 +79,6 @@ var GroupEvents = React.createClass({
     }
     tagList.sort();
 
-    var hasUser = false;
     var children = this.state.eventList.map((event, eventIdx) => {
       var linkParams = {
         orgId: this.getOrganization().slug,
@@ -87,8 +86,6 @@ var GroupEvents = React.createClass({
         groupId: this.getGroup().id,
         eventId: event.id
       };
-
-      if (event.user) hasTrue = true;
 
       return (
         <tr key={eventIdx}>
@@ -134,7 +131,7 @@ var GroupEvents = React.createClass({
                 </th>
               );
             })}
-            {hasUser &&
+            {event.user &&
               <th>User</th>
             }
           </thead>
