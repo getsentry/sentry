@@ -45,12 +45,7 @@ var EventErrors = React.createClass({
         <ul style={{display: isOpen ? 'block' : 'none'}}>
           {errors.map((error, errorIdx) => {
             return (
-              <li key={errorIdx}>
-                {error.title}<br />
-                {error.data &&
-                  <pre>{JSON.stringify(error.data).substr(0, 512)}</pre>
-                }
-              </li>
+              <li key={errorIdx}>{error.message}</li>
             );
           })}
         </ul>
