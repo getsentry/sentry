@@ -466,7 +466,7 @@ class SourceProcessor(object):
         # TODO(dcramer): this doesn't really fit well with generic URLs so we
         # whitelist it to http/https
         for frame in frames:
-            if not frame.module and frame.abs_path.startswith(('http:', 'https:', 'webpack:')):
+            if not frame.module and frame.abs_path.startswith(('http:', 'https:')):
                 frame.module = generate_module(frame.abs_path)
 
     def expand_frames(self, frames):
@@ -535,8 +535,21 @@ class SourceProcessor(object):
                     frame.function = last_state.name or frame.function
                 else:
                     frame.function = state.name or frame.function
+
+                filename = state.src
+                # special case webpack support
+                if filename.startswith('webpack://'):
+                    abs_path = filename
+                    # webpack seems to use ~ to imply "relative to resolver root"
+                    # which is generally seen for third party deps
+                    # (i.e. node_modules)
+                    if '~' in filename:
+                        filename = '~' + abs_path.split('/~/', 1)[-1]
+                    else:
+                        filename = filename.split('webpack:///', 1)[-1]
+
                 frame.abs_path = abs_path
-                frame.filename = state.src
+                frame.filename = filename
                 frame.module = generate_module(state.src)
 
             elif sourcemap_url:
