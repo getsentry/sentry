@@ -14,16 +14,6 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
-sys.path.insert(1, os.path.join(os.path.dirname(__file__), '_themes'))
-
-if 'DJANGO_SETTINGS_MODULE' not in os.environ:
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
-
-# TODO(dcramer): this is to allow autodoc support
-from django.conf import settings
-settings.SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -38,7 +28,6 @@ settings.SENTRY_CACHE = 'sentry.cache.django.DjangoCache'
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 #extensions = ['sphinxtogithub']
 extensions = [
-    'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
