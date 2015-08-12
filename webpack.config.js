@@ -42,7 +42,7 @@ var config = {
     ]
   },
   plugins: [
-    new webpack.optimize.CommonsChunkPlugin("vendor", distPath + "/vendor.js"),
+    new webpack.optimize.CommonsChunkPlugin("vendor", "vendor.js"),
     new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
@@ -60,7 +60,9 @@ var config = {
     extensions: ["", ".jsx", ".js", ".json"]
   },
   output: {
-    filename: distPath + "/[name].js",
+    path: distPath,
+    filename: "[name].js",
+    devtoolModuleFilenameTemplate: "[resourcePath]",
     libraryTarget: "var",
     library: "exports"
   },
