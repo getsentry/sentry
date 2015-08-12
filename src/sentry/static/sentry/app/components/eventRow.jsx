@@ -36,6 +36,11 @@ var EventRow = React.createClass({
       groupId: event.groupID
     };
 
+    var tagList = [];
+    for (var key in event.tags) {
+      tagList.push([key, event.tags[key]]);
+    }
+
     return (
       <tr>
         <td>
@@ -43,8 +48,8 @@ var EventRow = React.createClass({
             <Router.Link to="groupEventDetails"
                 params={linkParams}>{event.message}</Router.Link>
           </h5>
-          <small className="tagList">{event.tags.map((tag, tagIdx) => {
-            return <span key={tagIdx}>{tag[0]} = {tag[1]} </span>;
+          <small className="tagList">{tagList.map((tag) => {
+            return <span key={tag[0]}>{tag[0]} = {tag[1]} </span>;
           })}</small>
         </td>
         <td className="event-user table-user-info">
