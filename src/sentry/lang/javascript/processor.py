@@ -503,8 +503,8 @@ class SourceProcessor(object):
                         all_errors.extend(errors)
                     else:
                         all_errors.append({
-                            'type': 'missing_source',
-                            'filename': abs_path.encode('utf-8'),
+                            'type': EventError.JS_MISSING_SOURCE,
+                            'url': abs_path.encode('utf-8'),
                         })
 
                 # Store original data in annotation
@@ -584,7 +584,7 @@ class SourceProcessor(object):
             if filename not in sourcemap_capable:
                 cache.add_error(filename, {
                     'type': EventError.JS_NO_COLUMN,
-                    'filename': filename,
+                    'url': filename,
                 })
                 continue
 
