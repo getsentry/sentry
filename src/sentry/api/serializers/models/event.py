@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import Event, EventError
-from sentry.utils import json
 
 
 @register(Event)
@@ -45,21 +44,13 @@ class EventSerializer(Serializer):
         errors = []
         error_set = set()
         for error in obj.data.get('errors', []):
-            error_data = {
-                k: v for k, v in error.iteritems()
-                if k != 'type'
-            }
-            if not error_data:
-                error_data = None
-
-            error_hash = (error['type'], json.dumps(error_data))
-            if error_hash in error_set:
+            message = EventError.get_message(error)
+            if message in error_set:
                 continue
-            error_set.add(error_hash)
+            error_set.add(message)
             error_result = {
                 'type': error['type'],
-                'title': EventError.get_title(error['type']),
-                'data': error_data,
+                'message': message,
             }
             errors.append(error_result)
 

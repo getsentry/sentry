@@ -14,19 +14,19 @@ class EventError(object):
     JS_INVALID_SOURCEMAP = 'js_invalid_source'
     JS_TOO_MANY_REMOTE_SOURCES = 'js_too_many_sources'
 
-    _titles = {
-        INVALID_DATA: 'Discarded invalid data',
-        INVALID_ATTRIBUTE: 'Discarded invalid attribute',
+    _messages = {
+        INVALID_DATA: 'Discarded invalid value for parameter \'{name}\'',
+        INVALID_ATTRIBUTE: 'Discarded invalid parameter \'{name}\'',
         UNKNOWN_ERROR: 'Unknown error',
-        SECURITY_VIOLATION: 'Security violation',
-        JS_GENERIC_FETCH_ERROR: 'Unable to fetch URL',
-        JS_INVALID_HTTP_CODE: 'HTTP returned unsuccessful response',
-        JS_NO_COLUMN: 'No column information available',
-        JS_MISSING_SOURCE: 'Source code was not found',
-        JS_INVALID_SOURCEMAP: 'Sourcemap was invalid or not parseable',
+        SECURITY_VIOLATION: 'Security violation on {url}: {value}',
+        JS_GENERIC_FETCH_ERROR: 'Unable to fetch resource: {url}',
+        JS_INVALID_HTTP_CODE: 'HTTP returned {value} response on {url}',
+        JS_NO_COLUMN: 'Cannot expand sourcemap due to no column information for {url}',
+        JS_MISSING_SOURCE: 'Source code was not found for {url}',
+        JS_INVALID_SOURCEMAP: 'Sourcemap was invalid or not parseable: {url}',
         JS_TOO_MANY_REMOTE_SOURCES: 'Too many remote source requests',
     }
 
     @classmethod
-    def get_title(cls, type):
-        return cls._titles[type]
+    def get_message(cls, data):
+        return cls._messages[data['type']].format(**data)
