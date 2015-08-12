@@ -38,7 +38,7 @@ var Stream = React.createClass({
   },
 
   getInitialState() {
-    return {
+    return $.extend({}, {
       groupIds: [],
       selectAllActive: false,
       multiSelected: false,
@@ -50,7 +50,7 @@ var Stream = React.createClass({
       error: false,
       query: this.props.defaultQuery,
       filter: {}
-    };
+    }, this.getQueryStringState());
   },
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -77,7 +77,6 @@ var Stream = React.createClass({
       }
     }
 
-    this.syncStateWithRoute();
     this.fetchData();
   },
 
@@ -86,7 +85,7 @@ var Stream = React.createClass({
     GroupStore.reset();
   },
 
-  syncStateWithRoute() {
+  getQueryStringState() {
     var currentQuery = this.context.router.getCurrentQuery();
 
     var filter = {};
@@ -105,15 +104,15 @@ var Stream = React.createClass({
       currentQuery.statsPeriod :
       this.props.defaultStatsPeriod);
 
-    this.setState({
+    return {
       filter: filter,
       query: query,
       statsPeriod: statsPeriod
-    });
+    };
   },
 
   routeDidChange() {
-    this.syncStateWithRoute();
+    this.setState(this.getQueryStringState());
     this._poller.disable();
     this.fetchData();
   },
@@ -174,7 +173,7 @@ var Stream = React.createClass({
   getGroupListEndpoint() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    var queryParams = $.extend({}, router.getCurrentQuery());
     queryParams.limit = this.props.maxItems;
     queryParams.statsPeriod = this.state.statsPeriod;
     if (!queryParams.hasOwnProperty("query")) {
@@ -224,7 +223,7 @@ var Stream = React.createClass({
   onPage(cursor) {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    var queryParams = $.extend({}, router.getCurrentQuery());
     queryParams.cursor = cursor;
 
     router.transitionTo('stream', params, queryParams);
@@ -338,4 +337,3 @@ var Stream = React.createClass({
 });
 
 export default Stream;
-
