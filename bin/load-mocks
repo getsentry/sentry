@@ -12,7 +12,7 @@ from random import randint
 from sentry.app import tsdb
 from sentry.models import (
     Activity, File, GroupMeta, Organization, OrganizationAccessRequest,
-    OrganizationMember, Project, Release, ReleaseFile, Team, User
+    OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport
 )
 from sentry.utils.samples import create_sample_event
 
@@ -162,6 +162,15 @@ def main():
                     )
                 except IntegrityError:
                     pass
+
+            UserReport.objects.create(
+                project=project,
+                event_id=event3.event_id,
+                group=event3.group,
+                name='Jane Doe',
+                email='jane@example.com',
+                comments='I have no idea how I got here.',
+            )
 
         OrganizationAccessRequest.objects.create_or_update(
             member=dummy_member,

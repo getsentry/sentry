@@ -558,6 +558,7 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:sso': False,
     'projects:quotas': True,
+    'projects:user-reports': True,
 }
 
 # Default time zone for localization in the UI.

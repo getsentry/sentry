@@ -14,7 +14,7 @@ from sentry.db.models.query import create_or_update
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
     Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupStatus,
-    GroupTagValue, Release
+    GroupTagValue, Release, UserReport
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -166,6 +166,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'activity': serialize(activity, request.user),
             'seenBy': serialize(seen_by, request.user),
             'pluginActions': action_list,
+            'userReportCount': UserReport.objects.filter(group=group).count(),
             'stats': {
                 '24h': hourly_stats,
                 '30d': daily_stats,

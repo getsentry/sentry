@@ -32,15 +32,23 @@ class ProjectSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        d = {
+        from sentry import features
+
+        feature_list = []
+        if features.has('projects:quotas', obj, actor=user):
+            feature_list.append('quotas')
+        if features.has('projects:user-reports', obj, actor=user):
+            feature_list.append('user-reports')
+
+        return {
             'id': str(obj.id),
             'slug': obj.slug,
             'name': obj.name,
             'isPublic': obj.public,
             'dateCreated': obj.date_added,
+            'features': feature_list,
             'permission': {
                 'owner': attrs['access_type'] <= OrganizationMemberType.OWNER,
                 'admin': attrs['access_type'] <= OrganizationMemberType.ADMIN,
             },
         }
-        return d

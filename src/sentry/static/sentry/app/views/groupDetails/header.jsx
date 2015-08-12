@@ -81,7 +81,8 @@ var GroupHeader = React.createClass({
 
   render() {
     var group = this.props.group,
-        userCount = 0;
+        userCount = 0,
+        features = this.getProjectFeatures();
 
     if (group.tags["sentry:user"] !== undefined) {
       userCount = group.tags["sentry:user"].count;
@@ -173,6 +174,11 @@ var GroupHeader = React.createClass({
           <ListLink to="groupActivity" params={params}>
             Activity <span className="badge animated">{this.state.activityCount}</span>
           </ListLink>
+          {features.has('user-reports') &&
+            <ListLink to="groupUserReports" params={params}>
+              User Reports <span className="badge animated">{group.userReportCount}</span>
+            </ListLink>
+          }
           <ListLink to="groupTags" params={params}>
             Tags
           </ListLink>

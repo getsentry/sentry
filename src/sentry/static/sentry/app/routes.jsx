@@ -6,11 +6,12 @@ var DefaultRoute = Router.DefaultRoute;
 import App from "./views/app";
 import GroupActivity from "./views/groupActivity";
 import GroupDetails from "./views/groupDetails";
+import GroupEventDetails from "./views/groupEventDetails";
 import GroupEvents from "./views/groupEvents";
 import GroupTags from "./views/groupTags";
 import GroupTagValues from "./views/groupTagValues";
 import GroupOverview from "./views/groupOverview";
-import GroupEventDetails from "./views/groupEventDetails";
+import GroupUserReports from "./views/groupUserReports";
 import OrganizationDetails from "./views/organizationDetails";
 import OrganizationStats from "./views/organizationStats";
 import OrganizationTeams from "./views/organizationTeams";
@@ -51,9 +52,10 @@ var routes = (
           <DefaultRoute name="groupOverview" handler={GroupOverview} />
           <Route name="groupActivity" path="activity/" handler={GroupActivity} />
           <Route name="groupEventDetails" path="events/:eventId/" handler={GroupEventDetails} />
+          <Route name="groupEvents" path="events/" handler={GroupEvents} />
           <Route name="groupTags" path="tags/" handler={GroupTags} />
           <Route name="groupTagValues" path="tags/:tagKey/" handler={GroupTagValues} />
-          <Route name="groupEvents" path="events/" handler={GroupEvents} />
+          <Route name="groupUserReports" path="reports/" handler={GroupUserReports} />
         </Route>
       </Route>
     </Route>

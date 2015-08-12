@@ -14,6 +14,7 @@ from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
+from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
@@ -204,6 +205,9 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/tags/(?P<key>[^/]+)/values/$',
         GroupTagKeyValuesEndpoint.as_view(),
         name='sentry-api-0-group-tagkey-values'),
+    url(r'^groups/(?P<group_id>\d+)/user-reports/$',
+        GroupUserReportsEndpoint.as_view(),
+        name='sentry-api-0-group-user-reports'),
 
     url(r'^shared/groups/(?P<share_id>[^\/]+)/$',
         SharedGroupDetailsEndpoint.as_view(),
