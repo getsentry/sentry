@@ -7,13 +7,8 @@ sentry.web.frontend.generic
 """
 from __future__ import absolute_import
 
-from django.http import HttpResponseRedirect
-from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext as _
 from django.views.generic import TemplateView as BaseTemplateView
 
-from sentry.plugins import plugins
-from sentry.plugins.base import Response
 from sentry.web.helpers import render_to_response
 
 
@@ -35,35 +30,6 @@ def static_media(request, **kwargs):
 def partial_static_media(request, path):
     path = 'app/templates/' + path
     return static_media(request, module='sentry', path=path)
-
-
-def missing_perm(request, perm, **kwargs):
-    """
-    Returns a generic response if you're missing permission to perform an
-    action.
-
-    Plugins may overwrite this with the ``missing_perm_response`` hook.
-    """
-    response = plugins.first('missing_perm_response', request, perm, **kwargs)
-
-    if response:
-        if isinstance(response, HttpResponseRedirect):
-            return response
-
-        if not isinstance(response, Response):
-            raise NotImplementedError('Use self.render() when returning responses.')
-
-        return response.respond(request, {
-            'perm': perm,
-        })
-
-    if perm.label:
-        return render_to_response('sentry/generic_error.html', {
-            'title': _('Missing Permission'),
-            'message': _('You do not have the required permissions to %s.') % (perm.label,)
-        }, request)
-
-    return HttpResponseRedirect(reverse('sentry'))
 
 
 class TemplateView(BaseTemplateView):

@@ -19,9 +19,6 @@ from sentry.constants import MEMBER_ADMIN
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 )
-from sentry.permissions import (
-    can_remove_project_key, can_add_project_key, can_edit_project_key
-)
 from sentry.web.decorators import has_access
 from sentry.web.forms.projectkeys import EditProjectKeyForm
 from sentry.web.helpers import render_to_response
@@ -36,8 +33,6 @@ def manage_project_keys(request, organization, project):
 
     for key in key_list:
         key.project = project
-        key.can_remove = can_remove_project_key(request.user, key),
-        key.can_edit = can_edit_project_key(request.user, key),
 
     context = csrf(request)
     context.update({
@@ -46,7 +41,6 @@ def manage_project_keys(request, organization, project):
         'page': 'keys',
         'project': project,
         'key_list': key_list,
-        'can_add_key': can_add_project_key(request.user, project),
     })
 
     return render_to_response('sentry/projects/keys.html', context, request)
@@ -55,9 +49,6 @@ def manage_project_keys(request, organization, project):
 @has_access(MEMBER_ADMIN)
 @csrf_protect
 def new_project_key(request, organization, project):
-    if not can_add_project_key(request.user, project):
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
-
     key = ProjectKey.objects.create(
         project=project,
     )
@@ -83,9 +74,6 @@ def edit_project_key(request, organization, project, key_id):
             project=project,
         )
     except ProjectKey.DoesNotExist():
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
-
-    if not can_edit_project_key(request.user, key):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     form = EditProjectKeyForm(request.POST or None, instance=key)
@@ -127,9 +115,6 @@ def remove_project_key(request, organization, project, key_id):
     except ProjectKey.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
-    if not can_remove_project_key(request.user, key):
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
-
     audit_data = key.get_audit_log_data()
 
     key.delete()
@@ -159,10 +144,6 @@ def disable_project_key(request, organization, project, key_id):
     except ProjectKey.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
-    # we require removal permission for this
-    if not can_edit_project_key(request.user, key):
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
-
     key.update(status=ProjectKeyStatus.INACTIVE)
 
     AuditLogEntry.objects.create(
@@ -188,10 +169,6 @@ def enable_project_key(request, organization, project, key_id):
     try:
         key = ProjectKey.objects.get(id=key_id)
     except ProjectKey.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
-
-    # we require removal permission for this
-    if not can_edit_project_key(request.user, key):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
     key.update(status=ProjectKeyStatus.ACTIVE)

@@ -7,199 +7,20 @@ sentry.permissions
 """
 from __future__ import absolute_import
 
-import six
-
-from django.db.models import Q
-from functools import wraps
-
-from sentry import features
 from sentry.models import OrganizationMemberType
-from sentry.utils.cache import cached_for_request
 
 
-class Permission(object):
-    def __init__(self, name, label):
-        self.name = name
-        self.label = label
-
-    def __unicode__(self):
-        return self.name
-
-    def __eq__(self, other):
-        return six.text_type(self) == six.text_type(other)
-
-
-class Permissions(object):
-    ADD_ORGANIZATION = Permission('add_organization', 'create new organizations')
-    ADD_TEAM = Permission('add_team', 'create new teams')
-    ADD_PROJECT = Permission('add_project', 'create new projects')
-    ADD_MEMBER = Permission('add_organization_member', 'add an organization member')
-
-
-def requires_login(func):
-    @wraps(func)
-    def wrapped(user, *args, **kwargs):
-        if not (user and user.is_authenticated()):
-            return False
-
-        return func(user, *args, **kwargs)
-    return wrapped
-
-
-def is_organization_admin(user, organization):
-    # an organization admin *must* have global access
-    return organization.member_set.filter(
-        user=user,
-        type__lte=OrganizationMemberType.ADMIN,
-        has_global_access=True,
-    ).exists()
-
-
-def is_team_admin(user, team):
-    return team.organization.member_set.filter(
-        Q(has_global_access=True) | Q(teams=team),
-        user=user,
-        type__lte=OrganizationMemberType.ADMIN,
-    ).exists()
-
-
-def is_project_admin(user, project):
-    return is_team_admin(user, project.team)
-
-
-@cached_for_request
-@requires_login
-def can_create_teams(user, organization):
-    """
-    Returns a boolean describing whether a user has the ability to
-    create new teams.
-    """
-    if user.is_superuser:
-        return True
-
-    if not is_organization_admin(user, organization):
-        return False
-
-    return features.has('teams:create', organization, actor=user)
-
-
-@cached_for_request
-@requires_login
-def can_create_projects(user, team):
-    """
-    Returns a boolean describing whether a user has the ability to
-    create new projects.
-    """
-    if user.is_superuser:
-        return True
-
-    if not is_team_admin(user, team):
-        return False
-
-    return True
-
-
-@requires_login
-def can_manage_org(user, organization):
-    if user.is_superuser:
-        return True
-
-    if is_organization_admin(user, organization):
-        return True
-
-    return False
-
-
-@requires_login
-def can_manage_team(user, team):
-    if can_manage_org(user, team.organization):
-        return True
-
-    if is_team_admin(user, team):
-        return True
-
-    return False
-
-
-@requires_login
-def can_add_organization_member(user, organization):
-    # must be an owner of the team
-    if user.is_superuser:
-        return True
-
-    if not is_organization_admin(user, organization):
-        return False
-
-    return True
-
-
-@requires_login
-def can_manage_organization_member(user, member, perm):
-    # permissions always take precedence
-    if user.is_superuser:
-        return True
-
-    # must be an owner of the team
-    if not is_organization_admin(user, member.organization):
-        return False
-
-    return True
-
-
-def can_edit_organization_member(user, member):
-    return can_manage_organization_member(user, member, 'edit_organization_member')
-
-
-def can_remove_organization_member(user, member):
-    return can_manage_organization_member(user, member, 'remove_organization_member')
-
-
-@requires_login
 def can_remove_project(user, project):
+    if not (user and user.is_authenticated()):
+        return False
+
     if project.is_internal_project():
         return False
 
     if user.is_superuser:
         return True
 
-    if not is_project_admin(user, project):
-        return False
-
-    return True
-
-
-@requires_login
-def can_add_project_key(user, project):
-    if user.is_superuser:
-        return True
-
-    if not is_project_admin(user, project):
-        return False
-
-    return True
-
-
-@requires_login
-def can_edit_project_key(user, key):
-    if user.is_superuser:
-        return True
-
-    project = key.project
-
-    if not is_project_admin(user, project):
-        return False
-
-    return True
-
-
-@requires_login
-def can_remove_project_key(user, key):
-    if user.is_superuser:
-        return True
-
-    project = key.project
-
-    if not is_project_admin(user, project):
+    if not project.has_access(user, OrganizationMemberType.OWNER):
         return False
 
     return True

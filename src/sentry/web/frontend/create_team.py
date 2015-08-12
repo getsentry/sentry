@@ -6,11 +6,9 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 
 from sentry.models import OrganizationMemberType
-from sentry.permissions import can_create_teams, Permissions
 from sentry.web.forms.add_project import AddProjectForm
 from sentry.web.forms.add_team import AddTeamForm
 from sentry.web.frontend.base import OrganizationView
-from sentry.web.frontend.generic import missing_perm
 
 
 class Step(object):
@@ -41,9 +39,6 @@ class CreateTeamView(OrganizationView):
     # using that requires us to inherit from Django's base CBVs which is not
     # acceptable due to the way we handle base view validation and ACLs.
     def handle(self, request, organization):
-        if not can_create_teams(request.user, organization):
-            return missing_perm(request, Permissions.ADD_TEAM)
-
         session_data = request.session.get(self.session_key, {})
         if request.method == 'GET':
             logging.debug('GET request; resetting create team form wizard')

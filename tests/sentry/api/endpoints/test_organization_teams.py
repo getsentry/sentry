@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from exam import fixture
-from mock import Mock, patch
 
 from sentry.models import Team
 from sentry.testutils import APITestCase
@@ -41,19 +40,17 @@ class OrganizationTeamsCreateTest(APITestCase):
     def path(self):
         return reverse('sentry-api-0-organization-teams', args=[self.organization.slug])
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=False))
     def test_missing_permission(self):
-        self.login_as(user=self.user)
+        user = self.create_user()
+        self.login_as(user=user)
         resp = self.client.post(self.path)
         assert resp.status_code == 403
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
     def test_missing_params(self):
         self.login_as(user=self.user)
         resp = self.client.post(self.path)
         assert resp.status_code == 400
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
     def test_valid_params(self):
         self.login_as(user=self.user)
 
@@ -67,7 +64,6 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert team.slug == 'foobar'
         assert team.organization == self.organization
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
     def test_without_slug(self):
         self.login_as(user=self.user)
 
