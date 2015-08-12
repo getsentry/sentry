@@ -440,31 +440,48 @@ table.integrations {
   }
 }
 
-.table.event-list {
-  h5 {
-    margin-bottom: 5px;
-  }
+.event-list {
+  border: 1px solid @gray-light;
+  overflow-y: scroll;
 
-  .table-user-info {
-    padding-left: 54px !important;
-    position: relative;
+  .table {
+    border: 0;
 
-    .avatar {
-      top: 50%;
-      .square(24px);
-      margin-top: -12px;
-    }
-
-    p {
+    h5 {
       margin-bottom: 0;
-    }
-  }
+      font-size: 16px;
 
-  time {
-    white-space: nowrap;
+      small {
+        margin-top: 5px;
+        display: block;
+        color: @gray;
+      }
+    }
+
+    th, td {
+      white-space: nowrap;
+    }
+
+    .table-user-info {
+      padding-left: 54px !important;
+      position: relative;
+
+      .avatar {
+        top: 50%;
+        .square(24px);
+        margin-top: -12px;
+      }
+
+      p {
+        margin-bottom: 0;
+      }
+    }
+
+    time {
+      white-space: nowrap;
+    }
   }
 }
-
 /**
 * Avatar
 * ============================================================================

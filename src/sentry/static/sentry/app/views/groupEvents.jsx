@@ -2,13 +2,13 @@ import $ from "jquery";
 import React from "react";
 import Router from "react-router";
 import api from "../api";
+import DateTime from "../components/dateTime";
 import GroupState from "../mixins/groupState";
 import Gravatar from "../components/gravatar";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 import PropTypes from "../proptypes";
-import TimeSince from "../components/timeSince";
 
 var GroupEvents = React.createClass({
   contextTypes: {
@@ -72,6 +72,12 @@ var GroupEvents = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
+    var group = this.getGroup();
+    var tagList = [];
+    for (var key in group.tags) {
+      tagList.push([group.tags[key].name, key]);
+    }
+
     var children = this.state.eventList.map((event, eventIdx) => {
       var linkParams = {
         orgId: this.getOrganization().slug,
@@ -83,13 +89,21 @@ var GroupEvents = React.createClass({
       return (
         <tr key={eventIdx}>
           <td>
-            <h5><Router.Link to="groupEventDetails"
-                  params={linkParams}>{event.message}</Router.Link>
+            <h5>
+              <Router.Link to="groupEventDetails"
+                           params={linkParams}>
+                <DateTime date={event.dateCreated} />
+              </Router.Link>
+              <small>{event.eventID}</small>
             </h5>
-            <small className="tagList">{event.tags.map((tag, tagIdx) => {
-              return <span key={tagIdx}>{tag[0]} = {tag[1]} </span>;
-            })}</small>
           </td>
+          {tagList.map((tag, tagIdx) => {
+            return (
+              <td key={tagIdx}>
+                {event.tags[tag[1]]}
+              </td>
+            );
+          })}
           <td className="event-user table-user-info">
             {event.user ?
               <div>
@@ -100,17 +114,27 @@ var GroupEvents = React.createClass({
               <span>&mdash;</span>
             }
           </td>
-          <td className="align-right">
-            <TimeSince date={event.dateCreated} />
-          </td>
         </tr>
       );
     });
 
     return (
-      <div>
-        <table className="table event-list">
-          {children}
+      <div className="event-list">
+        <table className="table">
+          <thead>
+            <th>ID</th>
+            {tagList.map((tag, tagIdx) => {
+              return (
+                <th key={tagIdx}>
+                  {tag[0]}
+                </th>
+              );
+            })}
+            <th>User</th>
+          </thead>
+          <tbody>
+            {children}
+          </tbody>
         </table>
 
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
