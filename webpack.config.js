@@ -62,7 +62,6 @@ var config = {
   output: {
     path: distPath,
     filename: "[name].js",
-    devtoolModuleFilenameTemplate: "[resourcePath]",
     libraryTarget: "var",
     library: "exports"
   },
