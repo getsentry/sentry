@@ -28,7 +28,6 @@ class ManageProjectKeysTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/projects/keys.html')
         assert 'key_list' in resp.context
-        assert 'can_add_key' in resp.context
 
 
 class NewProjectKeyTest(TestCase):

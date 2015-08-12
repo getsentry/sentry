@@ -7,7 +7,6 @@ from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Project
-from sentry.permissions import can_create_projects
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -44,9 +43,6 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             }}
 
         """
-        if not can_create_projects(user=request.user, team=team):
-            return Response(status=403)
-
         serializer = ProjectSerializer(data=request.DATA)
 
         if serializer.is_valid():

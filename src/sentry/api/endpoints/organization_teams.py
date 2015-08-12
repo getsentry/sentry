@@ -8,7 +8,6 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
-from sentry.permissions import can_create_teams
 
 
 class TeamSerializer(serializers.Serializer):
@@ -53,9 +52,6 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             }}
 
         """
-        if not can_create_teams(request.user, organization):
-            return Response(status=403)
-
         serializer = TeamSerializer(data=request.DATA)
 
         if serializer.is_valid():

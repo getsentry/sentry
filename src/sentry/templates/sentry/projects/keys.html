@@ -2,12 +2,11 @@
 
 {% load i18n %}
 {% load sentry_helpers %}
-{% load sentry_plugins %}
 
 {% block title %}{% trans "Client Keys" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-    {% if can_add_key %}
+    {% if ACCESS.project_write %}
         <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
     {% endif %}
     <h2>{% trans "Client Keys" %}</h2>
@@ -34,7 +33,7 @@
                         <input class="form-control" value="{{ key.dsn_private }}" onclick="this.select()" />
                     </td>
                     <td style="text-align:right; vertical-align:bottom !important;">
-                        {% if key.can_edit %}
+                        {% if ACCESS.project_write %}
                             {% if key.is_active %}
                                 <form method="POST" action="{% url 'sentry-disable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
                                     {% csrf_token %}
@@ -47,7 +46,7 @@
                                 </form>
                             {% endif %}
                         {% endif %}
-                        {% if key.can_remove %}
+                        {% if ACCESS.project_write %}
                             <form method="POST" action="{% url 'sentry-remove-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
                                 {% csrf_token %}
                                 <input type="submit" class="btn btn-danger btn-sm" value="{% trans "Revoke" %}">

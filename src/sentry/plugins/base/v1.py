@@ -333,17 +333,8 @@ class IPlugin(local, PluggableViewMixin):
         pass
 
     def missing_perm_response(self, request, perm, *args, **objects):
-        """
-        Given a user, a permission name, and an optional mapping of objects
-        within a context, returns a custom response.
-
-        :param user: either an instance of ``AnonymousUser`` or ``User``.
-        :param perm: a string, such as "edit_project"
-        :param objects: an optional mapping of objects
-
-        If your plugin does not need to override this response, simply return
-        ``None``.
-        """
+        # DEPRECATED: No longer used.
+        pass
 
     def is_regression(self, group, event, **kwargs):
         """
