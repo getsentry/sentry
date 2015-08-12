@@ -56,7 +56,7 @@ copyright = u'2010-2015, the Sentry Team'
 #
 # The short X.Y version.
 
-version = __import__('pkg_resources').get_distribution('sentry').version
+version = '0.0.0'
 # The full version, including alpha/beta/rc tags.
 release = version
 
