@@ -33,7 +33,6 @@ from sentry.models import (
     AnonymousUser, Group, GroupStatus, Project, TagValue, User
 )
 from sentry.signals import event_received
-from sentry.plugins import plugins
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
@@ -302,13 +301,6 @@ class StoreView(APIView):
                 (app.tsdb.models.project_total_received, project.id),
                 (app.tsdb.models.organization_total_received, project.organization_id),
             ])
-
-        # TODO(dcramer): remove create_event perm hooks
-        result = plugins.first('has_perm', request.user, 'create_event', project,
-                               version=1)
-        if result is False:
-            metrics.incr('events.dropped', 1)
-            raise APIForbidden('Creation of this event was blocked due to a plugin')
 
         content_encoding = request.META.get('HTTP_CONTENT_ENCODING', '')
 
