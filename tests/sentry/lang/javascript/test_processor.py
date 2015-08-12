@@ -129,6 +129,8 @@ class GenerateModuleTest(TestCase):
         assert generate_module('http://example.com/vendor.92cd589eca8235e7b373bf5ae94ebf898e3b949c.js') == 'vendor'
         assert generate_module('/a/javascripts/application-bundle-149360d3414c26adac3febdf6832e25c.min.js') == 'a/javascripts/application-bundle'
         assert generate_module('https://example.com/libs/libs-20150417171659.min.js') == 'libs/libs'
+        assert generate_module('webpack:///92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
+        assert generate_module('webpack:///example/92cd589eca8235e7b373bf5ae94ebf898e3b949c/vendor.js') == 'vendor'
 
 
 class FetchBase64SourcemapTest(TestCase):
