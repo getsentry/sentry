@@ -1,6 +1,6 @@
 import React from "react";
 import classNames from "classnames";
-import {defined} from "../../utils";
+import {defined, objectIsEmpty} from "../../utils";
 import PropTypes from "../../proptypes";
 import ContextData from "../contextData";
 
@@ -131,8 +131,8 @@ var Frame = React.createClass({
               lineWs}</span><span className="contextline">{lineCode
             }</span> <span className="icon-plus"></span></li>;
           })}
-          {defined(data.vars) &&
-          <FrameVariables data={data.vars} key="vars" />
+          {!objectIsEmpty(data.vars) &&
+            <FrameVariables data={data.vars} key="vars" />
           }
         </ol>
       );
