@@ -40,7 +40,7 @@ var EventErrors = React.createClass({
           className="errors">
         <p>
           <a className="btn btn-default btn-sm pull-right" onClick={this.toggle}>{isOpen ? 'Hide' : 'Show'}</a>
-          There were {numErrors} {numErrors != 1 ? 'errors' : 'error'} encountered while processing this event.
+          There {numErrors != 1 ? ('were ' + numErrors + ' errors') : 'was 1 error'} encountered while processing this event.
         </p>
         <ul style={{display: isOpen ? 'block' : 'none'}}>
           {errors.map((error, errorIdx) => {
