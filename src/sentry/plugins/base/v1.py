@@ -329,29 +329,8 @@ class IPlugin(local, PluggableViewMixin):
     # Server side signals which do not have request context
 
     def has_perm(self, user, perm, *objects, **kwargs):
-        """
-        Given a user, a permission name, and an optional list of objects
-        within context, returns an override value for a permission.
-
-        :param user: either an instance of ``AnonymousUser`` or ``User``.
-        :param perm: a string, such as "edit_project"
-        :param objects: an optional list of objects
-
-        If your plugin does not modify this permission, simply return ``None``.
-
-        For example, has perm might be called like so:
-
-        >>> has_perm(user, 'add_project')
-
-        It also might be called with more context:
-
-        >>> has_perm(user, 'edit_project', project)
-
-        Or with even more context:
-
-        >>> has_perm(user, 'configure_project_plugin', project, plugin)
-        """
-        return None
+        # DEPRECATED: No longer used.
+        pass
 
     def missing_perm_response(self, request, perm, *args, **objects):
         """
