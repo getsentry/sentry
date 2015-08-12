@@ -77,6 +77,7 @@ var GroupEvents = React.createClass({
     for (var key in group.tags) {
       tagList.push([group.tags[key].name, key]);
     }
+    tagList.sort();
 
     var children = this.state.eventList.map((event, eventIdx) => {
       var linkParams = {
