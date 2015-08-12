@@ -9,6 +9,7 @@
 {% block org_members_nav %}active{% endblock %}
 
 {% block main %}
+  <a class="btn btn-primary btn-sm pull-right" href="{% url 'sentry-create-organization-member' organization.slug %}"><span class="icon-plus"></span> Invite Member</a>
   <h3>{% trans "Members" %}</h3>
 
   <p>{% blocktrans %}Members of your organization gain slightly elevated permissions over individual team members. For example, organization administrators can create new teams as well as manage all organization settings (including the list of admins).{% endblocktrans %}</p>
