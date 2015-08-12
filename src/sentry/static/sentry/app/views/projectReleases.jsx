@@ -26,11 +26,14 @@ var ReleaseList = React.createClass({
             return (
               <li className="release">
                 <div className="row">
-                  <div className="col-xs-6">
+                  <div className="col-sm-8 col-xs-6">
                     <h4><Version version={release.version} /></h4>
                     <div className="release-meta">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                     </div>
+                  </div>
+                  <div className="col-sm-2 col-xs-3 release-stats stream-count">
+                    <Count className="release-count" value={release.newGroups} />
                   </div>
                   <div className="col-sm-2 col-xs-3 release-stats">
                     {release.lastEvent ?
@@ -38,16 +41,6 @@ var ReleaseList = React.createClass({
                     :
                       <span>&mdash;</span>
                     }
-                  </div>
-                  <div className="col-sm-2 col-xs-2 hidden-xs release-stats">
-                    {release.firstEvent ?
-                      <TimeSince date={release.firstEvent} />
-                    :
-                      <span>&mdash;</span>
-                    }
-                  </div>
-                  <div className="col-sm-2 col-xs-3 release-stats stream-count">
-                    <Count className="release-count" value={release.newGroups} />
                   </div>
                 </div>
               </li>
@@ -152,15 +145,12 @@ var ProjectReleases = React.createClass({
             <h3>Releases</h3>
             <div className="release-header">
               <div className="row">
-                <div className="col-xs-6">Version</div>
-                <div className="col-sm-2 col-xs-3 release-stats align-right">
-                  Last Event
-                </div>
-                <div className="col-sm-2 hidden-xs release-stats align-right">
-                  First Event
-                </div>
+                <div className="col-sm-8 col-xs-6">Version</div>
                 <div className="col-sm-2 col-xs-3 release-stats align-right">
                   New Events
+                </div>
+                <div className="col-sm-2 col-xs-3 release-stats align-right">
+                  Last Event
                 </div>
               </div>
             </div>

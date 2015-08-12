@@ -113,6 +113,12 @@ var ReleaseDetails = React.createClass({
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
+                  <h6 className="nav-header">New Events</h6>
+                  <Count className="release-count" value={release.newGroups} />
+                </div>
+              </div>
+              <div className="col-sm-2 hidden-xs">
+                <div className="release-stats">
                   <h6 className="nav-header">First Event</h6>
                   {release.firstEvent ?
                     <TimeSince date={release.firstEvent} />
@@ -129,12 +135,6 @@ var ReleaseDetails = React.createClass({
                   :
                     <span>&mdash;</span>
                   }
-                </div>
-              </div>
-              <div className="col-sm-2 hidden-xs">
-                <div className="release-stats">
-                  <h6 className="nav-header">New Events</h6>
-                  <Count className="release-count" value={release.newGroups} />
                 </div>
               </div>
             </div>
