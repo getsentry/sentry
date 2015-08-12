@@ -121,9 +121,16 @@ var ProjectSelector = React.createClass({
       });
     });
 
+    var activeProjectName;
+    if (activeProject.name.indexOf(activeTeam.name) === -1) {
+      activeProjectName = activeTeam.name + ' / ' + activeProject.name;
+    } else {
+      activeProjectName = activeProject.name;
+    }
+
     return (
       <div className="project-select" ref="container">
-        <Router.Link to="stream" params={projectRouteParams}>{activeTeam.name} / {activeProject.name}</Router.Link>
+        <Router.Link to="stream" params={projectRouteParams}>{activeProjectName}</Router.Link>
         <DropdownLink title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
           <li className="project-filter" key="_filter">
