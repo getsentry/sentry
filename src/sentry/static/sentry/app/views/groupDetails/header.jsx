@@ -98,13 +98,13 @@ var GroupHeader = React.createClass({
       className += " isResolved";
     }
 
-    var groupRouteParams = this.context.router.getCurrentParams();
+    var params = this.context.router.getCurrentParams();
 
     return (
       <div className={className}>
         <div className="row">
           <div className="col-sm-8">
-            <Router.Link to="projectDetails" params={groupRouteParams} className="back-arrow">
+            <Router.Link to="projectDetails" params={params} className="back-arrow">
               <span className="icon-arrow-left"></span>
             </Router.Link>
             <h3>
@@ -112,6 +112,13 @@ var GroupHeader = React.createClass({
             </h3>
             <div className="event-message">
               <span className="message">{group.culprit}</span>
+              {group.logger &&
+                <span className="event-annotation">
+                  <Router.Link to="stream" params={params} query={{query: "logger:" + group.logger}}>
+                    {group.logger}
+                  </Router.Link>
+                </span>
+              }
               {group.annotations.map((annotation) => {
                 return (
                   <span className="event-annotation"
@@ -157,16 +164,16 @@ var GroupHeader = React.createClass({
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <ListLink to="groupOverview" params={groupRouteParams}>
+          <ListLink to="groupOverview" params={params}>
             Overview
           </ListLink>
-          <ListLink to="groupEvents" params={groupRouteParams}>
+          <ListLink to="groupEvents" params={params}>
             Events
           </ListLink>
-          <ListLink to="groupActivity" params={groupRouteParams}>
+          <ListLink to="groupActivity" params={params}>
             Activity <span className="badge animated">{this.state.activityCount}</span>
           </ListLink>
-          <ListLink to="groupTags" params={groupRouteParams}>
+          <ListLink to="groupTags" params={params}>
             Tags
           </ListLink>
         </ul>

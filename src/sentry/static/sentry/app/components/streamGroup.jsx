@@ -193,6 +193,13 @@ var StreamGroup = React.createClass({
                   </Router.Link>
                 </li>
               }
+              {data.logger &&
+                <li className="event-annotation">
+                  <Router.Link to="stream" params={params} query={{query: "logger:" + data.logger}}>
+                    {data.logger}
+                  </Router.Link>
+                </li>
+              }
               {data.annotations.map((annotation, key) => {
                 return (
                   <li className="event-annotation"
