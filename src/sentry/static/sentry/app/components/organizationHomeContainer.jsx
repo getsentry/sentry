@@ -11,7 +11,7 @@ var OrganizationHomeContainer = React.createClass({
       <div className="organization-home">
         <div className="container">
           <div className="content row">
-            <div className="col-md-2">
+            <div className="col-md-2 org-sidebar">
               <OrganizationHomeSidebar />
             </div>
             <div className="col-md-10">
