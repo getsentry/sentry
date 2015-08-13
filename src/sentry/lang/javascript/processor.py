@@ -543,8 +543,8 @@ class SourceProcessor(object):
                     # webpack seems to use ~ to imply "relative to resolver root"
                     # which is generally seen for third party deps
                     # (i.e. node_modules)
-                    if '~' in filename:
-                        filename = '~' + filename.split('/~/', 1)[-1]
+                    if '/~/' in filename:
+                        filename = '~/' + abs_path.split('/~/', 1)[-1]
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
 
