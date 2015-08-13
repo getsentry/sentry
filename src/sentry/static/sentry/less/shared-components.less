@@ -904,7 +904,6 @@ table.integrations {
 */
 
 .project-dropdown {
-
   a {
     color: @grayDark !important;
   }
@@ -1002,6 +1001,13 @@ table.integrations {
 
         &:hover {
           background: transparent;
+        }
+
+        &.active, &:active {
+          color: #fff !important;
+          background: @blue;
+          margin-left: -6px;
+          padding-left: 6px;
         }
       }
     }
