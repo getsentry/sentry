@@ -172,7 +172,7 @@ var GroupHeader = React.createClass({
             Events
           </ListLink>
           <ListLink to="groupActivity" params={params}>
-            Activity <span className="badge animated">{this.state.activityCount}</span>
+            Comments <span className="badge animated">{this.state.activityCount}</span>
           </ListLink>
           {features.has('user-reports') &&
             <ListLink to="groupUserReports" params={params}>
