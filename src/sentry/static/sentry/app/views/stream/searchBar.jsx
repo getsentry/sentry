@@ -63,12 +63,16 @@ var SearchBar = React.createClass({
   },
 
   render() {
+    var dropdownStyle = {
+      display: this.state.dropdownVisible ? 'block' : 'none'
+    };
+
     return (
       <div className="search">
         <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
           <div>
             <input type="text" className="search-input form-control"
-              placeholder="Search for events, users, tags, and everything else."
+              placeholder={this.props.placeholder}
               name="query"
               ref="searchInput"
               autoComplete="off"
@@ -86,7 +90,12 @@ var SearchBar = React.createClass({
               </div>
             }
           </div>
-          <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
+
+          {function() {
+            if (this.props.children) {
+              return <div style={dropdownStyle}>{this.props.children}</div>;
+            }
+          }.call(this)}
         </form>
       </div>
     );
