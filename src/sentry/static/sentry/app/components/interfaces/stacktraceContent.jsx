@@ -1,5 +1,6 @@
 import React from "react";
 //import GroupEventDataSection from "../eventDataSection";
+import ConfigStore from "../../stores/configStore";
 import Frame from "./frame";
 import {defined} from "../../utils";
 
@@ -16,6 +17,7 @@ var StacktraceContent = React.createClass({
   },
 
   render() {
+    var user = ConfigStore.get("user");
     var data = this.props.data;
     var firstFrameOmitted, lastFrameOmitted;
     var includeSystemFrames = this.props.includeSystemFrames;
@@ -40,8 +42,12 @@ var StacktraceContent = React.createClass({
           </li>
         ));
       }
-
     });
+
+    // TODO(dcramer): Python needs to default to newest first
+    if (user.options.stacktraceOrder == "newestFirst") {
+      frames.reverse();
+    }
 
     return (
       <div className="traceback">
