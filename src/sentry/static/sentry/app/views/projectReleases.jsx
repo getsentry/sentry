@@ -11,6 +11,7 @@ import RouteMixin from "../mixins/routeMixin";
 import TimeSince from "../components/timeSince";
 import utils from "../utils";
 import Version from "../components/version";
+import SearchBar from "../views/stream/searchBar.jsx";
 
 var ReleaseList = React.createClass({
   contextTypes: {
@@ -56,6 +57,12 @@ var ProjectReleases = React.createClass({
     RouteMixin
   ],
 
+  getDefaultProps() {
+    return {
+      defaultQuery: ""
+    };
+  },
+
   contextTypes: {
     router: React.PropTypes.func
   },
@@ -68,8 +75,19 @@ var ProjectReleases = React.createClass({
     return {
       releaseList: [],
       loading: true,
-      error: false
+      error: false,
+      query: this.props.defaultQuery
     };
+  },
+
+  onQueryChange(query, callback) {
+    this.setState({
+      query: query
+    }, callback);
+  },
+
+  onSearch(query) {
+    this.fetchData();
   },
 
   componentWillMount() {
@@ -108,8 +126,9 @@ var ProjectReleases = React.createClass({
   getProjectReleasesEndpoint() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    var queryParams = $.extend({}, router.getCurrentQuery());
     queryParams.limit = 50;
+    queryParams.query = this.state.query;
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/releases/?' + jQuery.param(queryParams);
   },
@@ -117,7 +136,7 @@ var ProjectReleases = React.createClass({
   onPage(cursor) {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    var queryParams = $.extend({}, router.getCurrentQuery());
     queryParams.cursor = cursor;
 
     router.transitionTo('projectReleases', params, queryParams);
@@ -142,7 +161,19 @@ var ProjectReleases = React.createClass({
           <LoadingError onRetry={this.fetchData} />
         :
           <div>
-            <h3>Releases</h3>
+            <div className="row">
+              <div className="col-sm-7">
+                <h3>Releases</h3>
+              </div>
+              <div className="col-sm-5">
+                <SearchBar defaultQuery=""
+                  placeholder="Search for a release."
+                  query={this.state.query}
+                  onQueryChange={this.onQueryChange}
+                  onSearch={this.onSearch}
+                />
+              </div>
+            </div>
             <div className="release-header">
               <div className="row">
                 <div className="col-sm-8 col-xs-6">Version</div>
@@ -172,4 +203,3 @@ var ProjectReleases = React.createClass({
 });
 
 export default ProjectReleases;
-
