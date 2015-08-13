@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from sentry.api.serializers import Serializer, register
-from sentry.models import User
+from sentry.models import User, UserOption
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -15,4 +17,18 @@ class UserSerializer(Serializer):
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
         }
+        if obj == user:
+            options = {
+                o.key: o.value
+                for o in UserOption.objects.filter(
+                    user=user,
+                    project__isnull=True,
+                )
+            }
+            d['options'] = {
+                'language': options.get('language') or 'en',
+                'stacktraceOrder': int(options.get('stacktrace_order', -1) or -1),
+                'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
+
+            }
         return d
