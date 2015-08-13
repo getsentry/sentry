@@ -904,10 +904,6 @@ table.integrations {
 */
 
 .project-dropdown {
-  a {
-    color: @grayDark !important;
-  }
-
   .dropdown-toggle {
     border: 1px solid transparent;
     border-radius: 50%;
@@ -983,7 +979,6 @@ table.integrations {
     }
 
     li {
-      font-size: 15px;
       width: 50%;
       position: relative;
       float: left;
@@ -992,22 +987,26 @@ table.integrations {
       strong {
         font-weight: normal;
         background: lighten(@yellow, 15);
+        color: @grayDark;
       }
 
       > a {
         .truncate();
         border-radius: 2px;
         padding: 0;
+        padding-left: 6px;
+        border-radius: 0;
+        line-height: 1;
+        margin: 4px 0 4px -9px;
+        border-left: 3px solid transparent;
 
         &:hover {
           background: transparent;
         }
 
         &.active, &:active {
-          color: #fff !important;
-          background: @blue;
-          margin-left: -6px;
-          padding-left: 6px;
+          color: @grayDark;
+          border-left: 3px solid @blue;
         }
       }
     }
