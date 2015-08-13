@@ -617,6 +617,26 @@ table.integrations {
   }
 }
 
+// Loading Gif
+
+.loading.triangle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 500px;
+  margin-top: -200px;
+  margin-left: -250px;
+
+  .loading-indicator {
+    border: 0;
+    animation: none;
+    -webkit-animation: none;
+    background-image: url(../images/sentry-loader.gif);
+    .square(150px);
+    background-size: contain;
+  }
+}
+
 /**
 * Auth providers
 * ============================================================================
