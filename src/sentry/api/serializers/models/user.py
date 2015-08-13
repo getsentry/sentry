@@ -25,9 +25,17 @@ class UserSerializer(Serializer):
                     project__isnull=True,
                 )
             }
+            stacktrace_order = int(options.get('stacktrace_order', -1) or -1)
+            if stacktrace_order == -1:
+                stacktrace_order = 'default'
+            elif stacktrace_order == 2:
+                stacktrace_order = 'newestFirst'
+            elif stacktrace_order == 1:
+                stacktrace_order = 'newestLast'
+
             d['options'] = {
                 'language': options.get('language') or 'en',
-                'stacktraceOrder': int(options.get('stacktrace_order', -1) or -1),
+                'stacktraceOrder': stacktrace_order,
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
 
             }
