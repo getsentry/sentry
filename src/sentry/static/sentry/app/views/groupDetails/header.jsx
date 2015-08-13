@@ -21,18 +21,6 @@ var GroupHeader = React.createClass({
     memberList: React.PropTypes.instanceOf(Array).isRequired
   },
 
-  componentWillMount() {
-    this.setState({
-      activityCount: this.props.group.activity.length
-    });
-  },
-
-  componentWillReceiveProps(nextProps) {
-    this.setState({
-      activityCount: nextProps.group.activity.length
-    });
-  },
-
   onToggleMute() {
     var group = this.props.group;
     var project = this.getProject();
@@ -172,7 +160,7 @@ var GroupHeader = React.createClass({
             Events
           </ListLink>
           <ListLink to="groupActivity" params={params}>
-            Comments <span className="badge animated">{this.state.activityCount}</span>
+            Comments <span className="badge animated">{group.numComments}</span>
           </ListLink>
           {features.has('user-reports') &&
             <ListLink to="groupUserReports" params={params}>
