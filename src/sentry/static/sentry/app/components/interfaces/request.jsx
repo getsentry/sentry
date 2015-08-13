@@ -1,62 +1,10 @@
 import React from "react";
 import jQuery from "jquery";
 import ConfigStore from "../../stores/configStore";
+import ClippedBox from "../../components/clippedBox";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../proptypes";
 import {defined, objectIsEmpty} from "../../utils";
-
-var ClippedBox = React.createClass({
-  propTypes: {
-    title: React.PropTypes.string.isRequired,
-    defaultClipped: React.PropTypes.bool
-  },
-
-  getDefaultProps() {
-    return {
-      defaultClipped: false,
-      clipHeight: 200
-    };
-  },
-
-  getInitialState() {
-    return {
-      clipped: this.props.defaultClipped
-    };
-  },
-
-  componentDidMount() {
-    var renderedHeight = this.getDOMNode().offsetHeight;
-
-    if (renderedHeight > this.props.clipHeight ) {
-      this.setState({
-        clipped: true
-      });
-    }
-  },
-
-  reveal() {
-    this.setState({
-      clipped: false
-    });
-  },
-
-  render() {
-    var className = "box-clippable";
-    if (this.state.clipped) {
-      className += " clipped";
-    }
-
-    return (
-      <div className={className}>
-        <h5>{this.props.title}</h5>
-        {this.props.children}
-        <div className="clip-fade">
-          <a onClick={this.reveal} className="show-more btn btn-primary btn-xs">Show more</a>
-        </div>
-      </div>
-    );
-  }
-});
 
 var DefinitionList = React.createClass({
   propTypes: {
@@ -259,4 +207,3 @@ var RequestInterface = React.createClass({
 });
 
 export default RequestInterface;
-

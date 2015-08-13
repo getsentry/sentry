@@ -1,9 +1,10 @@
 import React from "react";
-import Sticky from "react-sticky";
+
+import ClippedBox from "./clippedBox";
+import ContextData from "./contextData";
 import EventDataSection from "./eventDataSection";
 import PropTypes from "../proptypes";
 import utils from "../utils";
-import ContextData from "./contextData";
 
 var EventErrors = React.createClass({
   propTypes: {
@@ -120,9 +121,11 @@ var EventPackageData = React.createClass({
           event={this.props.event}
           type="packages"
           title="Packages">
-        <dl className="vars">
-          {children}
-        </dl>
+        <ClippedBox>
+          <dl className="vars">
+            {children}
+          </dl>
+        </ClippedBox>
       </EventDataSection>
     );
   }
