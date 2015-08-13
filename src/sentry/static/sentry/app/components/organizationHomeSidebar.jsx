@@ -22,7 +22,7 @@ var OrganizationHomeSidebar = React.createClass({
     });
 
     return (
-      <div>
+      <div className="org-sidebar">
         <h6 className="nav-header">General</h6>
         <ul className="nav nav-stacked">
           <ListLink to="organizationTeams" params={orgParams}>Projects</ListLink>
@@ -66,4 +66,3 @@ var OrganizationHomeSidebar = React.createClass({
 });
 
 export default OrganizationHomeSidebar;
-
