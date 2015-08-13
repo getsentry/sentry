@@ -4,23 +4,9 @@ var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var SearchDropdown = React.createClass({
   mixins: [PureRenderMixin],
 
-  propTypes: {
-    dropdownVisible: React.PropTypes.bool
-  },
-
-  getDefaultProps() {
-    return {
-      dropdownVisible: false
-    };
-  },
-
   render() {
-    var style = {
-      display: this.props.dropdownVisible ? 'block' : 'none'
-    };
-
     return (
-      <div className="search-dropdown" style={style}>
+      <div className="search-dropdown">
         <ul className="search-helper search-autocomplete-list">
           <li className="search-autocomplete-item">
             <span className="icon icon-tag"></span>
@@ -71,4 +57,3 @@ var SearchDropdown = React.createClass({
 });
 
 export default SearchDropdown;
-
