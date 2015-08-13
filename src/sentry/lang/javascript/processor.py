@@ -543,14 +543,15 @@ class SourceProcessor(object):
                     # webpack seems to use ~ to imply "relative to resolver root"
                     # which is generally seen for third party deps
                     # (i.e. node_modules)
-                    if '~' in filename:
-                        filename = '~' + abs_path.split('/~/', 1)[-1]
+                    if '/~/' in filename:
+                        filename = '~/' + abs_path.split('/~/', 1)[-1]
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
 
                 frame.abs_path = abs_path
                 frame.filename = filename
-                frame.module = generate_module(state.src)
+                if abs_path.startswith(('http:', 'https:')):
+                    frame.module = generate_module(abs_path)
 
             elif sourcemap_url:
                 frame.data = {

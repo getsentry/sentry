@@ -444,11 +444,6 @@ class ClientApiHelper(object):
 
             if not value:
                 self.log.info('Ignored empty interface value: %s', k)
-                data['errors'].append({
-                    'type': EventError.INVALID_DATA,
-                    'name': k,
-                    'value': value,
-                })
                 continue
 
             try:
