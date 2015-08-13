@@ -5,6 +5,7 @@ var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 import DateSelector from "./dateSelector";
 import FilterSelectLink from "./filterSelectLink";
 import SearchBar from "./searchBar";
+import SearchDropdown from "./searchDropdown";
 import utils from "../../utils";
 import SortOptions from "./sortOptions";
 
@@ -90,9 +91,12 @@ var StreamFilters = React.createClass({
           </div>
           <div className="col-sm-5">
             <SearchBar defaultQuery={this.props.defaultQuery}
+              placeholder="Search for events, users, tags, and everything else."
               query={this.props.query}
               onQueryChange={this.props.onQueryChange}
-              onSearch={this.props.onSearch} />
+              onSearch={this.props.onSearch}>
+              <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
+            </SearchBar>
           </div>
         </div>
       </div>
@@ -101,4 +105,3 @@ var StreamFilters = React.createClass({
 });
 
 export default StreamFilters;
-
