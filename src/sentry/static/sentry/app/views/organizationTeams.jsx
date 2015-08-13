@@ -9,6 +9,7 @@ var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
 import PropTypes from "../proptypes";
 import TeamStore from "../stores/teamStore";
 import {defined, sortArray} from "../utils";
+import classNames from "classnames";
 
 var ExpandedTeamList = React.createClass({
   propTypes: {
@@ -249,12 +250,16 @@ var OrganizationStatOverview = React.createClass({
     var router = this.context.router;
     var access = this.getAccess();
 
+    var rejectedClasses = ['count'];
+    if (this.state.totalRejected > 0)
+      rejectedClasses.push('rejected');
+
     return (
       <div className={this.props.className}>
         <h6 className="nav-header">Events Per Minute</h6>
         <p className="count">{this.state.epm}</p>
         <h6 className="nav-header">Rejected in last 24h</h6>
-        <p className="count rejected">{this.state.totalRejected}</p>
+        <p className={classNames(rejectedClasses)}>{this.state.totalRejected}</p>
         {access.has('org:read') &&
           <Router.Link to="organizationStats" params={router.getCurrentParams()}
                        className="stats-link">View all stats</Router.Link>
@@ -379,4 +384,3 @@ var OrganizationTeams = React.createClass({
 });
 
 export default OrganizationTeams;
-
