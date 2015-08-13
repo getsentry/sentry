@@ -57,9 +57,12 @@ var App = React.createClass({
 
   render() {
     if (this.state.loading) {
-      return <LoadingIndicator />;
+      return (
+        <LoadingIndicator triangle={true}>
+          Getting a list of all of your organizations.
+        </LoadingIndicator>
+      );
     }
-
     return (
       <div>
         <Alerts className="messages-container" />

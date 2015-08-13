@@ -91,9 +91,13 @@ var OrganizationDetails = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
+    if (this.state.loading) {
+        return (
+          <LoadingIndicator triangle={true}>
+            Loading data for your organization.
+          </LoadingIndicator>
+        );
+    } else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
     return (

@@ -5,7 +5,8 @@ import React from "react";
 var LoadingIndicator = React.createClass({
   propTypes: {
     global: React.PropTypes.bool,
-    mini:  React.PropTypes.bool
+    mini:  React.PropTypes.bool,
+    triangle: React.PropTypes.bool
   },
 
   shouldComponentUpdate() {
@@ -17,6 +18,7 @@ var LoadingIndicator = React.createClass({
       "loading": true,
       "mini": this.props.mini,
       "global": this.props.global,
+      "triangle": this.props.triangle,
     });
 
     return (
