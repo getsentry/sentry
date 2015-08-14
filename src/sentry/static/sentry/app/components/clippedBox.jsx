@@ -2,7 +2,7 @@ import React from "react";
 
 var ClippedBox = React.createClass({
   propTypes: {
-    title: React.PropTypes.string.isRequired,
+    title: React.PropTypes.string,
     defaultClipped: React.PropTypes.bool
   },
 
