@@ -1,4 +1,5 @@
 import React from "react";
+import ConfigStore from "../../stores/configStore";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../proptypes";
 import RawStacktraceContent from "./rawStacktraceContent";
@@ -13,8 +14,23 @@ var StacktraceInterface = React.createClass({
   },
 
   getInitialState() {
+    var user = ConfigStore.get("user");
+    var platform = this.props.event.platform;
+    var newestFirst;
+    switch (user.options.stacktraceOrder) {
+      case "newestFirst":
+        newestFirst = true;
+        break;
+      case "newestLast":
+        newestFirst = false;
+        break;
+      case "default":
+        newestFirst = (platform === "python");
+    }
+
     return {
-      stackView: (this.props.data.hasSystemFrames ? "app" : "full")
+      stackView: (this.props.data.hasSystemFrames ? "app" : "full"),
+      newestFirst: newestFirst
     };
   },
 
@@ -29,10 +45,16 @@ var StacktraceInterface = React.createClass({
     var evt = this.props.event;
     var data = this.props.data;
     var stackView = this.state.stackView;
+    var newestFirst = this.state.newestFirst;
 
     var title = (
       <div>
-        Stacktrace
+        {'Stacktrace '}
+        {newestFirst ?
+          <small>(most recent call last)</small>
+        :
+          <small>(most recent call first)</small>
+        }
         <div className="btn-group">
           {data.hasSystemFrames &&
             <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App Only</a>
@@ -52,12 +74,14 @@ var StacktraceInterface = React.createClass({
         {stackView === "raw" ?
           <RawStacktraceContent
               data={data}
-              platform={evt.platform} />
+              platform={evt.platform}
+              newestFirst={newestFirst} />
         :
           <StacktraceContent
               data={data}
               includeSystemFrames={stackView === "full"}
-              platform={evt.platform} />
+              platform={evt.platform}
+              newestFirst={newestFirst} />
         }
       </GroupEventDataSection>
     );
