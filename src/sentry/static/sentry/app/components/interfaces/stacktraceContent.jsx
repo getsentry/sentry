@@ -37,7 +37,7 @@ var StacktraceContent = React.createClass({
       }
       if (frameIdx === firstFrameOmitted) {
         frames.push((
-          <li className="frames-omitted" key="omitted">
+          <li className="frame frames-omitted" key="omitted">
             Frames {firstFrameOmitted} until {lastFrameOmitted} were omitted and not available.
           </li>
         ));
@@ -60,4 +60,3 @@ var StacktraceContent = React.createClass({
 });
 
 export default StacktraceContent;
-
