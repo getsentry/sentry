@@ -17,9 +17,11 @@ var StreamFilters = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: "",
+      sort: "",
       filter: "",
       query: "",
       onFilterChange: function() {},
+      onSortChange: function() {},
       onQueryChange: function() {},
       onSearch: function() {}
     };
@@ -85,7 +87,9 @@ var StreamFilters = React.createClass({
                 extraClass="btn-assigned" />
               <li className="divider" />
               <li className="highlight">
-                <SortOptions />
+                <SortOptions
+                  sort={this.props.sort}
+                  onSelect={this.props.onSortChange} />
               </li>
             </ul>
           </div>
