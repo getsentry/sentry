@@ -77,7 +77,7 @@ var ExceptionInterface = React.createClass({
 
     return {
       stackView: (this.props.data.hasSystemFrames ? "app" : "full"),
-      reverse: reverseOrder
+      newestFirst: newestFirst
     };
   },
 
