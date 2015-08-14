@@ -58,7 +58,7 @@ var StreamActions = React.createClass({
         (itemId) => itemIdSet.has(itemId)
       );
     } else {
-      throw new Exception('Invalid selector: ' + groupIds);
+      throw new Error('Invalid selector: ' + groupIds);
     }
 
     callback(selectedIds);
