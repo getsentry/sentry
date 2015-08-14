@@ -139,16 +139,21 @@ class Frame(Interface):
         abs_path = data.get('abs_path')
         filename = data.get('filename')
 
+        # absolute path takes priority over filename
+        # (in the end both will get set)
         if not abs_path:
             abs_path = filename
+            filename = None
 
-        if not filename:
-            if abs_path and is_url(abs_path):
+        if not filename and abs_path:
+            if is_url(abs_path):
                 urlparts = urlparse(abs_path)
                 if urlparts.path:
                     filename = urlparts.path
-        else:
-            filename = abs_path
+                else:
+                    filename = abs_path
+            else:
+                filename = abs_path
 
         assert filename or data.get('function') or data.get('module')
 
