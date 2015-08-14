@@ -12,6 +12,10 @@ var RawStacktraceContent = React.createClass({
     switch (this.props.platform) {
       case "javascript":
         return this.getJavaScriptFrame(frame);
+      case "ruby":
+        return this.getRubyFrame(frame);
+      case "python":
+        return this.getPythonFrame(frame);
       default:
         return this.getDefaultFrame(frame);
     }
@@ -39,7 +43,28 @@ var RawStacktraceContent = React.createClass({
     return result;
   },
 
-  getDefaultFrame(frame) {
+  getRubyFrame(frame) {
+    var result = '  from ';
+    if (defined(frame.filename)) {
+      result += frame.filename;
+    } else if (defined(frame.module)) {
+      result += '(' + frame.module + ')';
+    } else {
+      result += '?';
+    }
+    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+      result += ':' + frame.lineNo;
+    }
+    if (defined(frame.colNo) && frame.colNo >= 0) {
+      result += ':' + frame.colNo;
+    }
+    if (defined(frame.function)) {
+      result += ':in `' + frame.function + '\'';
+    }
+    return result;
+  },
+
+  getPythonFrame(frame) {
     var result = '';
     if (defined(frame.filename)) {
       result += '  File "' + frame.filename + '"';
@@ -65,6 +90,10 @@ var RawStacktraceContent = React.createClass({
       });
     }
     return result;
+  },
+
+  getDefaultFrame(frame) {
+    return this.getPythonFrame(frame);
   },
 
   render() {
