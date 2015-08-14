@@ -242,7 +242,7 @@ var GroupStore = Reflux.createStore({
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'update');
     });
-    if (failSilently) {
+    if (!failSilently) {
       AlertActions.addAlert(ERR_UPDATE, 'error');
     }
     this.trigger(new Set(itemIds));
