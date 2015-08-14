@@ -32,6 +32,7 @@ var Stream = React.createClass({
   getDefaultProps() {
     return {
       defaultQuery: "is:unresolved",
+      defaultSort: "date",
       defaultStatsPeriod: "24h",
       maxItems: 25
     };
@@ -239,12 +240,16 @@ var Stream = React.createClass({
     }, callback);
   },
 
+  onSortChange(sort) {
+    this.setState({
+      sort: sort
+    }, this.transitionTo);
+  },
+
   onFilterChange(filter) {
     this.setState({
       filter: filter
-    }, function() {
-      this.transitionTo();
-    });
+    }, this.transitionTo);
   },
 
   transitionTo() {
@@ -257,6 +262,10 @@ var Stream = React.createClass({
 
     if (this.state.query !== this.props.defaultQuery) {
       queryParams.query = this.state.query;
+    }
+
+    if (this.state.sort !== this.props.defaultSort) {
+      queryParams.sort = this.state.sort;
     }
 
     if (this.state.statsPeriod !== this.props.defaultStatsPeriod) {
@@ -316,6 +325,7 @@ var Stream = React.createClass({
         <StreamFilters query={this.state.query}
           defaultQuery={this.props.defaultQuery}
           onQueryChange={this.onQueryChange}
+          onSortChange={this.onSortChange}
           onFilterChange={this.onFilterChange}
           onSearch={this.onSearch} />
         <div className="group-header">
