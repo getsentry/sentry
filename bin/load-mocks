@@ -143,6 +143,18 @@ def main():
             )
             create_sample_time_series(event2)
 
+            event3 = create_sample_event(project, 'java')
+
+            create_sample_time_series(event3)
+
+            event4 = create_sample_event(
+                project=project,
+                platform='ruby',
+                release=release.version,
+            )
+
+            create_sample_time_series(event4)
+
             Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
@@ -150,8 +162,6 @@ def main():
                 user=user,
                 data={'version': release.version},
             )
-
-            event3 = create_sample_event(project, 'java')
 
             with transaction.atomic():
                 try:

@@ -1,0 +1,98 @@
+{
+    "culprit": "bin/raven in <main> at line 36",
+    "modules": {
+        "coderay": "1.1.0",
+        "http-cookie": "1.0.2",
+        "domain_name": "0.5.24",
+        "mime-types": "1.25.1",
+        "faraday": "0.9.1",
+        "pry": "0.10.1",
+        "slop": "3.6.0",
+        "bundler": "1.7.10",
+        "sentry-raven": "0.14.0",
+        "timecop": "0.7.3",
+        "unf_ext": "0.0.7.1",
+        "rspec-mocks": "3.2.1",
+        "rspec-core": "3.2.3",
+        "rest-client": "1.8.0",
+        "rake": "10.4.2",
+        "rspec": "3.2.0",
+        "rspec-expectations": "3.2.1",
+        "method_source": "0.8.2",
+        "diff-lcs": "1.2.5",
+        "multipart-post": "2.0.0",
+        "netrc": "0.10.3",
+        "rspec-support": "3.2.2",
+        "unf": "0.1.4",
+        "rack": "1.6.1"
+    },
+    "sentry.interfaces.Exception": {
+        "exc_omitted": null,
+        "values": [
+            {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "<main>",
+                            "abs_path": "bin/raven",
+                            "pre_context": [
+                                "    if !dsn\n",
+                                "      puts \"Usage: raven test <dsn>\"\n",
+                                "    else\n"
+                            ],
+                            "post_context": [
+                                "    end\n",
+                                "  else\n",
+                                "    puts parser\n"
+                            ],
+                            "in_app": true,
+                            "lineno": 36,
+                            "filename": "bin/raven",
+                            "context_line": "      Raven::CLI::test(dsn)\n"
+                        },
+                        {
+                            "function": "test",
+                            "abs_path": "/Users/User/Development/raven-ruby/lib/raven/cli.rb",
+                            "pre_context": [
+                                "      puts \"\"\n",
+                                "\n",
+                                "      begin\n"
+                            ],
+                            "post_context": [
+                                "      rescue ZeroDivisionError => exception\n",
+                                "        evt = Raven.capture_exception(exception)\n",
+                                "      end\n"
+                            ],
+                            "in_app": false,
+                            "lineno": 31,
+                            "filename": "raven/cli.rb",
+                            "context_line": "        1 / 0\n"
+                        },
+                        {
+                            "function": "/",
+                            "abs_path": "/Users/User/Development/raven-ruby/lib/raven/cli.rb",
+                            "pre_context": [
+                                "      puts \"\"\n",
+                                "\n",
+                                "      begin\n"
+                            ],
+                            "post_context": [
+                                "      rescue ZeroDivisionError => exception\n",
+                                "        evt = Raven.capture_exception(exception)\n",
+                                "      end\n"
+                            ],
+                            "in_app": false,
+                            "lineno": 31,
+                            "filename": "raven/cli.rb",
+                            "context_line": "        1 / 0\n"
+                        }
+                    ],
+                    "frames_omitted": null
+                },
+                "type": "ZeroDivisionError",
+                "module": "",
+                "value": "divided by 0"
+            }
+        ]
+    }
+}
