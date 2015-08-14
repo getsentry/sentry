@@ -9,7 +9,8 @@ var LoadingIndicator = require("app/components/loadingIndicator");
 var Stream = require("app/views/stream");
 var StreamGroup = require("app/components/streamGroup");
 var stubReactComponents = require("../../helpers/stubReactComponent");
-var stubRouterContext = require("../../helpers/stubRouterContext");
+var stubContext = require("../../helpers/stubContext");
+var stubRouter = require("../../helpers/stubRouter");
 
 var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
@@ -23,21 +24,22 @@ describe("Stream", function() {
     this.stubbedApiRequest = this.sandbox.stub(Api, "request");
     stubReactComponents(this.sandbox, [StreamGroup]);
 
-    this.Element = stubRouterContext(Stream, {
-      setProjectNavSection() {}
-    }, {
-      getCurrentParams() {
-        return {
-          orgId: "123",
-          projectId: "456"
-        };
-      },
-      getCurrentQuery() {
-        return {
-          limit: 0
-        };
-      }
+    var ContextStubbedStream = stubContext(Stream, {
+      router: stubRouter({
+        getCurrentParams() {
+          return {
+            orgId: "123",
+            projectId: "456"
+          };
+        },
+        getCurrentQuery() {
+          return { limit: 0 };
+        }
+      })
     });
+
+
+    this.Element = <ContextStubbedStream setProjectNavSection={function () {}}/>;
   });
 
   afterEach(function() {
@@ -57,8 +59,8 @@ describe("Stream", function() {
 
       var stubbedSetEndpoint = this.sandbox.stub(CursorPoller.prototype, "setEndpoint");
 
-      var wrapper = React.render(<this.Element />, document.body);
-      wrapper.refs.stub.fetchData();
+      var wrapper = React.render(this.Element, document.body);
+      wrapper.refs.wrapped.fetchData();
 
       expect(stubbedSetEndpoint.calledWith(expectedUrl)).to.be.true;
     });
@@ -68,15 +70,15 @@ describe("Stream", function() {
   describe("render()", function() {
 
     it("displays a loading indicator when component is loading", function() {
-      var wrapper = React.render(<this.Element />, document.body);
-      wrapper.refs.stub.setState({ loading: true });
+      var wrapper = React.render(this.Element, document.body);
+      wrapper.refs.wrapped.setState({ loading: true });
       var expected = findWithType(wrapper, LoadingIndicator);
       expect(expected).to.be.ok;
     });
 
     it("displays an error when component has errored", function() {
-      var wrapper = React.render(<this.Element />, document.body);
-      wrapper.refs.stub.setState({
+      var wrapper = React.render(this.Element, document.body);
+      wrapper.refs.wrapped.setState({
         error: true,
         loading: false
       });
@@ -85,8 +87,8 @@ describe("Stream", function() {
     });
 
     it("displays the group list", function() {
-      var wrapper = React.render(<this.Element />, document.body);
-      wrapper.refs.stub.setState({
+      var wrapper = React.render(this.Element, document.body);
+      wrapper.refs.wrapped.setState({
         error: false,
         groupIds: ["1"],
         loading: false
@@ -96,8 +98,8 @@ describe("Stream", function() {
     });
 
     it("displays empty with no ids", function() {
-      var wrapper = React.render(<this.Element />, document.body);
-      wrapper.refs.stub.setState({
+      var wrapper = React.render(this.Element, document.body);
+      wrapper.refs.wrapped.setState({
         error: false,
         groupIds: [],
         loading: false
@@ -116,14 +118,14 @@ describe("Stream", function() {
 
     it("reads the realtimeActive state from a cookie", function() {
       Cookies.set("realtimeActive", "false");
-      var wrapper = React.render(<this.Element />, document.body);
+      var wrapper = React.render(this.Element, document.body);
       var expected = findWithClass(wrapper, "icon-play");
       expect(expected).to.be.ok;
     });
 
     it("reads the true realtimeActive state from a cookie", function() {
       Cookies.set("realtimeActive", "true");
-      var wrapper = React.render(<this.Element />, document.body);
+      var wrapper = React.render(this.Element, document.body);
       var expected = findWithClass(wrapper, "icon-pause");
       expect(expected).to.be.ok;
     });
@@ -133,14 +135,14 @@ describe("Stream", function() {
   describe("onRealtimeChange", function() {
 
     it("sets the realtimeActive state", function() {
-      var wrapper = React.render(<this.Element />, document.body);
-      wrapper.refs.stub.state.realtimeActive = false;
-      wrapper.refs.stub.onRealtimeChange(true);
-      expect(wrapper.refs.stub.state.realtimeActive).to.eql(true);
+      var wrapper = React.render(this.Element, document.body);
+      wrapper.refs.wrapped.state.realtimeActive = false;
+      wrapper.refs.wrapped.onRealtimeChange(true);
+      expect(wrapper.refs.wrapped.state.realtimeActive).to.eql(true);
       expect(Cookies.get("realtimeActive")).to.eql("true");
 
-      wrapper.refs.stub.onRealtimeChange(false);
-      expect(wrapper.refs.stub.state.realtimeActive).to.eql(false);
+      wrapper.refs.wrapped.onRealtimeChange(false);
+      expect(wrapper.refs.wrapped.state.realtimeActive).to.eql(false);
       expect(Cookies.get("realtimeActive")).to.eql("false");
     });
 
@@ -160,8 +162,8 @@ describe("Stream", function() {
         loading: true,
         error: false
       };
-      var wrapper = React.render(<this.Element />, document.body);
-      var actual = wrapper.refs.stub.getInitialState();
+      var wrapper = React.render(this.Element, document.body);
+      var actual = wrapper.refs.wrapped.getInitialState();
 
       for (var property in expected) {
         expect(actual[property]).to.eql(expected[property]);
