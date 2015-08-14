@@ -71,14 +71,14 @@ class StacktraceTest(TestCase):
         assert frame.filename == '/foo.js'
         assert frame.abs_path == 'http://foo.com/foo.js'
 
-    def test_coerces_url_abs_paths(self):
+    def test_does_not_overwrite_filename(self):
         interface = Stacktrace.to_python(dict(frames=[{
             'lineno': 1,
             'filename': 'foo.js',
             'abs_path': 'http://foo.com/foo.js',
         }]))
         frame = interface.frames[0]
-        assert frame.filename == '/foo.js'
+        assert frame.filename == 'foo.js'
         assert frame.abs_path == 'http://foo.com/foo.js'
 
     def test_ignores_results_with_empty_path(self):
