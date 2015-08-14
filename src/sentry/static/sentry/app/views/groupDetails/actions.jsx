@@ -93,10 +93,12 @@ var GroupActions = React.createClass({
       <div className="group-actions">
         <div className="btn-group">
           <a className={resolveClassName}
+             title="Resolve"
              onClick={this.onToggleResolve}>
             <span className="icon-checkmark"></span>
           </a>
           <a className={bookmarkClassName}
+             title="Bookmark"
              onClick={this.onToggleBookmark}>
             <span className="icon-bookmark"></span>
           </a>
@@ -104,6 +106,7 @@ var GroupActions = React.createClass({
         <div className="btn-group">
           <LinkWithConfirmation
                className="group-remove btn btn-default btn-sm"
+               title="Delete"
                message="Deleting this event is permanent. Are you sure you wish to continue?"
                onConfirm={this.onDelete}>
             <span className="icon-trash"></span>

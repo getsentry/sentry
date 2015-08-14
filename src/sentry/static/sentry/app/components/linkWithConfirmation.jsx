@@ -37,7 +37,7 @@ var LinkWithConfirmation = React.createClass({
       className += ' disabled';
     }
     return (
-      <a className={className} disabled={this.props.disabled} onClick={this.onToggle}>
+      <a className={className} disabled={this.props.disabled} onClick={this.onToggle} title={this.props.title}>
         {this.props.children}
       </a>
     );
