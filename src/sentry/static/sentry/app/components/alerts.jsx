@@ -12,9 +12,9 @@ var Alerts = React.createClass({
   ],
 
   getInitialState() {
-      return {
-          alerts: []
-      };
+    return {
+      alerts: []
+    };
   },
 
   render() {
