@@ -526,6 +526,9 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 RECAPTCHA_PUBLIC_KEY = None
 RECAPTCHA_PRIVATE_KEY = None
+NOCAPTCHA = True
+
+CAPTCHA_WIDGET_TEMPLATE = "sentry/partial/form_captcha.html"
 
 # django-statsd
 
