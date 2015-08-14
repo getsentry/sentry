@@ -113,16 +113,18 @@ var GroupEvents = React.createClass({
               </td>
             );
           })}
-          <td className="event-user table-user-info">
-            {hasUser ?
-              <div>
-                <Gravatar email={event.user.email} size={64} className="avatar" />
-                {event.user.email}
-              </div>
-            :
-              <span>&mdash;</span>
-            }
-          </td>
+          {hasUser &&
+            <td className="event-user table-user-info">
+              {event.user ?
+                <div>
+                  <Gravatar email={event.user.email} size={64} className="avatar" />
+                  {event.user.email}
+                </div>
+              :
+                <span>&mdash;</span>
+              }
+            </td>
+          }
         </tr>
       );
     });
