@@ -705,16 +705,16 @@
 
 .frames-omitted,
 .exc-omitted {
-  color: #887676;
+  color: @grayDark;
   font-size: 14px;
   font-weight: 600;
-  border-left: 1px solid #E24444;
-  border-right: 1px solid #E24444;
-  background: #FFF0F0;
+  border-left: 3px solid @red;
+  border-right: 1px solid lighten(@red, 30%);
+  background: lighten(@red, 35%);
   padding: 10px 20px;
-  margin-bottom: 10px;
-  margin-left: -16px;
-  margin-right: -16px;
+  margin-bottom: 10px !important;
+  margin-left: -21px;
+  margin-right: -21px;
 }
 
 .frame {
