@@ -74,7 +74,7 @@ var AssigneeSelector = React.createClass({
     this.setState({filter: '', loading: true});
   },
 
-  onFilterChange() {
+  onFilterChange(event) {
     this.setState({
       filter: event.target.value
     });
