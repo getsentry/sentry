@@ -4,41 +4,27 @@ import DropdownLink from "../../components/dropdownLink";
 import MenuItem from "../../components/menuItem";
 
 var SortOptions = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   mixins: [PureRenderMixin],
 
   getInitialState() {
-    var router = this.context.router;
-    var queryParams = router.getCurrentQuery();
-
     return {
-      sortKey: queryParams.sort || 'date'
+      sortKey: this.props.sort || 'date'
     };
   },
 
   getMenuItem(key) {
-    var router = this.context.router;
-    var queryParams = $.extend({}, router.getCurrentQuery());
-    var params = router.getCurrentParams();
-
-    queryParams.sort = key;
-
     return (
-      <MenuItem to="stream" params={params} query={queryParams}
-                isActive={this.state.sortKey === key}>
+      <MenuItem onSelect={this.onSelect} eventKey={key} isActive={this.state.sortKey === key}>
         {this.getSortLabel(key)}
       </MenuItem>
     );
   },
 
-  componentWillReceiveProps(nextProps) {
-    var router = this.context.router;
-    this.setState({
-      sortKey: router.getCurrentQuery().sort || 'date'
-    });
+  onSelect(sort) {
+    this.setState({sortKey: sort});
+    if (this.props.onSelect) {
+      this.props.onSelect(sort);
+    }
   },
 
   getSortLabel(key) {
