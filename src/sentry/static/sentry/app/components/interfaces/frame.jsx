@@ -98,6 +98,10 @@ var Frame = React.createClass({
       }
     }
 
+    if (data.inApp) {
+      title.push(<span><span className="divider"/>application</span>);
+    }
+
     var outerClassName = "context";
     if (this.state.isExpanded) {
       outerClassName += " expanded";
