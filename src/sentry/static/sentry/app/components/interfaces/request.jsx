@@ -158,8 +158,8 @@ var RequestInterface = React.createClass({
     var view = this.state.view;
 
     var fullUrl = data.url;
-    if (data.query_string) {
-      fullUrl = fullUrl + '?' + data.query_string;
+    if (data.query) {
+      fullUrl = fullUrl + '?' + data.query;
     }
     if (data.fragment) {
       fullUrl = fullUrl + '#' + data.fragment;
