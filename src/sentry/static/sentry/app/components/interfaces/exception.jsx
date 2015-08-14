@@ -14,6 +14,7 @@ var ExceptionContent = React.createClass({
   },
 
   render() {
+    var stackView = this.props.view;
     var children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx}>
@@ -42,7 +43,6 @@ var ExceptionContent = React.createClass({
       children.reverse();
     }
 
-    var stackView = this.props.view;
     // TODO(dcramer): implement exceptions omitted
     return (
       <div>
