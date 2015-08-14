@@ -89,7 +89,7 @@ def is_newest_frame_first(event):
 
 
 def is_url(filename):
-    return '://' in filename
+    return filename.startswith(('file:', 'http:', 'https:'))
 
 
 def remove_function_outliers(function):
@@ -149,12 +149,12 @@ class Frame(Interface):
             abs_path = filename
 
         if not filename:
+            if abs_path and is_url(abs_path):
+                urlparts = urlparse(abs_path)
+                if urlparts.path:
+                    filename = urlparts.path
+        else:
             filename = abs_path
-
-        if abs_path and is_url(abs_path):
-            urlparts = urlparse(abs_path)
-            if urlparts.path:
-                filename = urlparts.path
 
         assert filename or data.get('function') or data.get('module')
 
