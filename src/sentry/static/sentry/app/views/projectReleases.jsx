@@ -149,53 +149,68 @@ var ProjectReleases = React.createClass({
     return '/' + params.orgId + '/' + params.projectId + '/settings/release-tracking/';
   },
 
-  render() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+  renderStreamBody() {
+    var body;
 
+    if (this.state.loading)
+      body = this.renderLoading();
+    else if (this.state.error)
+      body = <LoadingError onRetry={this.fetchData} />;
+    else if (this.state.releaseList.length > 0) {
+      body = <ReleaseList releaseList={this.state.releaseList} />;
+    } else {
+      body = this.renderEmpty();
+    }
+
+    return body;
+  },
+
+  renderLoading() {
+    return (
+      <div className="box">
+        <LoadingIndicator />
+      </div>
+    );
+  },
+
+  renderEmpty() {
+    return (
+      <div className="box empty-stream">
+        <span className="icon icon-exclamation" />
+        <p>There don't seem to be any releases yet.</p>
+        <p><a href={this.getReleaseTrackingUrl()}>Learn how to integrate Release Tracking</a></p>
+      </div>
+    );
+  },
+
+  render() {
     return (
       <div>
-        {this.state.loading ?
-          <LoadingIndicator />
-        : (this.state.error ?
-          <LoadingError onRetry={this.fetchData} />
-        :
-          <div>
-            <div className="row">
-              <div className="col-sm-7">
-                <h3>Releases</h3>
-              </div>
-              <div className="col-sm-5">
-                <SearchBar defaultQuery=""
-                  placeholder="Search for a release."
-                  query={this.state.query}
-                  onQueryChange={this.onQueryChange}
-                  onSearch={this.onSearch}
-                />
-              </div>
-            </div>
-            <div className="release-header">
-              <div className="row">
-                <div className="col-sm-8 col-xs-6">Version</div>
-                <div className="col-sm-2 col-xs-3 release-stats align-right">
-                  New Events
-                </div>
-                <div className="col-sm-2 col-xs-3 release-stats align-right">
-                  Last Event
-                </div>
-              </div>
-            </div>
-            {this.state.releaseList.length ?
-              <ReleaseList releaseList={this.state.releaseList} />
-            :
-              <div className="box empty-stream">
-                <span className="icon icon-exclamation" />
-                <p>There don't seem to be any releases yet.</p>
-                <p><a href={this.getReleaseTrackingUrl()}>Learn how to integrate Release Tracking</a></p>
-              </div>
-            }
+        <div className="row">
+          <div className="col-sm-7">
+            <h3>Releases</h3>
           </div>
-        )}
+          <div className="col-sm-5">
+            <SearchBar defaultQuery=""
+              placeholder="Search for a release."
+              query={this.state.query}
+              onQueryChange={this.onQueryChange}
+              onSearch={this.onSearch}
+            />
+          </div>
+        </div>
+        <div className="release-header">
+          <div className="row">
+            <div className="col-sm-8 col-xs-6">Version</div>
+            <div className="col-sm-2 col-xs-3 release-stats align-right">
+              New Events
+            </div>
+            <div className="col-sm-2 col-xs-3 release-stats align-right">
+              Last Event
+            </div>
+          </div>
+        </div>
+        {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
