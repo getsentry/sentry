@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.encoding import smart_str
 from hashlib import md5
-from nydus.db import create_cluster
+from rb import Cluster
 from time import time
 
 from sentry.buffer import Buffer
@@ -33,16 +33,12 @@ class RedisBuffer(Buffer):
         options.setdefault('hosts', {
             0: {},
         })
-        options.setdefault('router', 'nydus.db.routers.keyvalue.PartitionRouter')
-        self.conn = create_cluster({
-            'engine': 'nydus.db.backends.redis.Redis',
-            'router': options['router'],
-            'hosts': options['hosts'],
-        })
+        self.cluster = Cluster(options['hosts'])
 
     def validate(self):
         try:
-            self.conn.ping()
+            with self.cluster.all() as client:
+                client.ping()
         except Exception as e:
             raise InvalidConfiguration(unicode(e))
 
@@ -78,7 +74,7 @@ class RedisBuffer(Buffer):
         key = self._make_key(model, filters)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis shard)
-        conn = self.conn.get_conn(key)
+        conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
         pipe.hsetnx(key, 'm', '%s.%s' % (model.__module__, model.__name__))
@@ -94,13 +90,15 @@ class RedisBuffer(Buffer):
         pipe.execute()
 
     def process_pending(self):
+        client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(self.pending_key)
         # prevent a stampede due to celerybeat + periodic task
-        if not self.conn.set(lock_key, '1', nx=True, ex=60):
+        if not client.set(lock_key, '1', nx=True, ex=60):
             return
 
         try:
-            for conn in self.conn.hosts.itervalues():
+            for host_id in self.cluster.hosts.iterkeys():
+                conn = self.cluster.get_local_client(host_id)
                 keys = conn.zrange(self.pending_key, 0, -1)
                 if not keys:
                     continue
@@ -112,27 +110,28 @@ class RedisBuffer(Buffer):
                 pipe.zrem(self.pending_key, *keys)
                 pipe.execute()
         finally:
-            self.conn.delete(lock_key)
+            client.delete(lock_key)
 
     def process(self, key):
+        client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
-        if not self.conn.set(lock_key, '1', nx=True, ex=10):
+        if not client.set(lock_key, '1', nx=True, ex=10):
             return
 
-        with self.conn.map() as conn:
+        with self.cluster.map() as conn:
             values = conn.hgetall(key)
             conn.delete(key)
 
         if not values:
             return
 
-        model = import_string(values['m'])
-        filters = pickle.loads(values['f'])
+        model = import_string(values.value['m'])
+        filters = pickle.loads(values.value['f'])
         incr_values = {}
         extra_values = {}
-        for k, v in values.iteritems():
+        for k, v in values.value.iteritems():
             if k.startswith('i+'):
                 incr_values[k[2:]] = int(v)
             elif k.startswith('e+'):
