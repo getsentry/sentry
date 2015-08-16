@@ -286,6 +286,13 @@ table.table {
       font-weight: 600;
       font-size: 15px;
       margin: 0 0 4px;
+
+      a {
+        color: @grayDark;
+        &:hover, &:active {
+          color: darken(@grayDark, 20);
+        }
+      }
     }
 
     .avatar {
