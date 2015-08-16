@@ -15,7 +15,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from hashlib import md5
-from nydus.db import create_cluster
+
+from rb import Cluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.tsdb.base import BaseTSDB
@@ -47,29 +48,22 @@ class RedisTSDB(BaseTSDB):
     - ``vnodes`` controls the shard distribution and should ideally be set to
       the maximum number of physical hosts.
     """
-    def __init__(self, hosts=None, router=None, prefix='ts:', vnodes=64,
-                 **kwargs):
+    def __init__(self, hosts=None, prefix='ts:', vnodes=64, **kwargs):
         # inherit default options from REDIS_OPTIONS
         defaults = settings.SENTRY_REDIS_OPTIONS
 
         if hosts is None:
             hosts = defaults.get('hosts', {0: {}})
 
-        if router is None:
-            router = defaults.get('router', 'nydus.db.routers.keyvalue.PartitionRouter')
-
-        self.conn = create_cluster({
-            'engine': 'nydus.db.backends.redis.Redis',
-            'router': router,
-            'hosts': hosts,
-        })
+        self.cluster = Cluster(hosts)
         self.prefix = prefix
         self.vnodes = vnodes
         super(RedisTSDB, self).__init__(**kwargs)
 
     def validate(self):
         try:
-            self.conn.ping()
+            with self.cluster.all() as client:
+                client.ping()
         except Exception as e:
             raise InvalidConfiguration(unicode(e))
 
@@ -106,7 +100,7 @@ class RedisTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        with self.conn.map() as conn:
+        with self.cluster.map() as client:
             for rollup, max_values in self.rollups:
                 norm_rollup = normalize_to_rollup(timestamp, rollup)
                 expire = rollup * max_values
@@ -114,8 +108,8 @@ class RedisTSDB(BaseTSDB):
                 for model, key in items:
                     model_key = self.get_model_key(key)
                     hash_key = make_key(model, norm_rollup, model_key)
-                    conn.hincrby(hash_key, model_key, count)
-                    conn.expire(hash_key, expire)
+                    client.hincrby(hash_key, model_key, count)
+                    client.expire(hash_key, expire)
 
     def get_range(self, model, keys, start, end, rollup=None):
         """
@@ -137,7 +131,7 @@ class RedisTSDB(BaseTSDB):
 
         results = []
         timestamp = end
-        with self.conn.map() as conn:
+        with self.cluster.map() as client:
             while timestamp >= start:
                 real_epoch = normalize_to_epoch(timestamp, rollup)
                 norm_epoch = normalize_to_rollup(timestamp, rollup)
@@ -145,13 +139,14 @@ class RedisTSDB(BaseTSDB):
                 for key in keys:
                     model_key = self.get_model_key(key)
                     hash_key = make_key(model, norm_epoch, model_key)
-                    results.append((real_epoch, key, conn.hget(hash_key, model_key)))
+                    results.append((real_epoch, key,
+                                    client.hget(hash_key, model_key)))
 
                 timestamp = timestamp - timedelta(seconds=rollup)
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
-            results_by_key[key][epoch] = int(count or 0)
+            results_by_key[key][epoch] = int(count.value or 0)
 
         for key, points in results_by_key.iteritems():
             results_by_key[key] = sorted(points.items())

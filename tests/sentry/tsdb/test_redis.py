@@ -18,7 +18,9 @@ class RedisTSDBTest(TestCase):
             (ONE_HOUR, 24),  # 1 days at 1 hour
             (ONE_DAY, 30),  # 30 days at 1 day
         ), vnodes=64)
-        self.db.conn.flushdb()
+
+        with self.db.cluster.all() as client:
+            client.flushdb()
 
     def test_make_key(self):
         result = self.db.make_key(TSDBModel.project, 1368889980, 1)
