@@ -179,18 +179,16 @@ var BarChart = React.createClass({
     var markers = this.props.markers.slice();
 
     var children = [];
-    var lastX = 0;
     points.forEach((point, pointIdx) => {
-      markers.forEach((marker, markerIdx) => {
-        if (marker.x > lastX && marker.x <= point.x) {
-          markers.splice(markerIdx, 1);
-          children.push(this.renderMarker(marker));
-        }
-      });
+      while(markers.length && markers[0].x <= point.x) {
+        children.push(this.renderMarker(markers.shift()));
+      }
+
       children.push(this.renderChartColumn(point, maxval, timeLabelFunc, pointWidth));
-      lastX = point.x;
     });
 
+    // in bizarre case where markers never got rendered, render them last
+    // NOTE: should this ever happen?
     markers.forEach((marker) => {
       children.push(this.renderMarker(marker));
     });
