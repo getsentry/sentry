@@ -78,11 +78,18 @@ class SensitiveDataFilter(object):
             key = key.lower()
         else:
             key = ''
+
+        original_value = value
+        if isinstance(value, basestring):
+            value = value.lower()
+        else:
+            value = ''
+
         for field in self.fields:
             if field in key or field in value:
                 # store mask as a fixed length for security
                 return self.MASK
-        return value
+        return original_value
 
     def filter_stacktrace(self, data):
         if 'frames' not in data:
