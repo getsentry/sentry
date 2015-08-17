@@ -1714,7 +1714,7 @@ pre.clippy {
 }
 
 .alert {
-  background: #ffc01a;
+  background: lighten(@gray, 15);
   color: #fff;
   border: 0;
   font-weight: 400;
@@ -1766,6 +1766,11 @@ pre.clippy {
 
   & + .alert {
     box-shadow: inset 0 1px 0 rgba(0,0,0, .15);
+  }
+
+  &.alert-block {
+    margin-bottom: 20px;
+    border-radius: 2px;
   }
 }
 
