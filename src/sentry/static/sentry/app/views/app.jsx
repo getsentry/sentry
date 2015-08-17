@@ -3,7 +3,6 @@ import api from "../api";
 import Alerts from "../components/alerts";
 import AlertActions from "../actions/alertActions.jsx";
 import ConfigStore from "../stores/configStore";
-import Header from "../components/header";
 import Indicators from "../components/indicators";
 import LoadingIndicator from "../components/loadingIndicator";
 import OrganizationStore from "../stores/organizationStore";
@@ -63,6 +62,7 @@ var App = React.createClass({
         </LoadingIndicator>
       );
     }
+
     return (
       <div>
         <Alerts className="messages-container" />
