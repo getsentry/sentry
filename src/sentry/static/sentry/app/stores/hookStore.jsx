@@ -2,6 +2,7 @@
 import Reflux from "reflux";
 
 var validHookNames = new Set([
+  'organization:header',
   'organization:sidebar'
 ]);
 
