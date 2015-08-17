@@ -12,7 +12,7 @@ var ReleaseNewEvents = React.createClass({
   render() {
     return (
       <div>
-      <div className="alert alert-block">
+        <div className="alert alert-block">
           <a href="#"><span className="icon icon-open"></span> View new events in the stream</a>
         </div>
         <GroupList

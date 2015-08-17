@@ -11,9 +11,14 @@ var ReleaseAllEvents = React.createClass({
 
   render() {
     return (
-      <GroupList
-        query={'release:"' + this.context.release.version + '"'}
-        canSelectGroups={false} bulkActions={false} />
+      <div>
+        <div className="alert alert-block">
+          <a href="#"><span className="icon icon-open"></span> View all events in the stream</a>
+        </div>
+        <GroupList
+          query={'release:"' + this.context.release.version + '"'}
+          canSelectGroups={false} bulkActions={false} />
+      </div>
     );
   }
 });
