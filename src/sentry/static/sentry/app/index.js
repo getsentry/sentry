@@ -50,6 +50,7 @@ export default {
   Router: require("react-router"),
 
   Sentry: {
+    api: require("./api"),
     routes: require("./routes"),
 
     Alerts: require("./components/alerts"),
