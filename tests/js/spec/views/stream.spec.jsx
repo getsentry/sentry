@@ -65,6 +65,33 @@ describe("Stream", function() {
       expect(stubbedSetEndpoint.calledWith(expectedUrl)).to.be.true;
     });
 
+    it("should cancel any previous, unfinished fetches", function () {
+      this.stubbedApiRequest.restore();
+
+      var requestCancel = this.sandbox.stub();
+      var requestOptions;
+      this.sandbox.stub(Api, "request", function (url, options) {
+        requestOptions = options;
+        return {
+          cancel: requestCancel
+        };
+      });
+
+      // NOTE: fetchData called once after render automatically
+      var stream = React.render(this.Element, document.body).refs.wrapped;
+
+      // 2nd fetch should call cancel
+      stream.fetchData();
+
+      expect(requestCancel.calledOnce).to.be.ok;
+      expect(stream.lastRequest).to.be.ok;
+
+      // when request "completes", lastRequest is cleared
+      requestOptions.complete();
+
+      expect(stream.lastRequest).to.be.null;
+    });
+
   });
 
   describe("render()", function() {
