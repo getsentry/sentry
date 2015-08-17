@@ -4,6 +4,7 @@ import api from "../api";
 import DocumentTitle from "react-document-title";
 import Footer from "../components/footer";
 import Header from "../components/header";
+import HookStore from "../stores/hookStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import OrganizationState from "../mixins/organizationState";
@@ -100,9 +101,16 @@ var OrganizationDetails = React.createClass({
     } else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
+    // Allow injection via getsentry et all
+    var children = [];
+    HookStore.get('organization:header').forEach((cb) => {
+      children.push(cb(this.state.organization));
+    });
+
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
+          {children}
           <Header />
           <Router.RouteHandler />
           <Footer />
