@@ -56,6 +56,7 @@ tests_require = [
     'blist',  # used by cassandra
     'casscache',
     'cqlsh',
+    'datadog',
     'elasticsearch',
     'httpretty',
     'pytest-cov>=1.4',
@@ -79,7 +80,6 @@ install_requires = [
     'django-picklefield>=0.3.0,<0.4.0',
     'django-recaptcha>=1.0.0,<1.1.0',
     'django-social-auth>=0.7.28,<0.8.0',
-    'django-statsd-mozilla>=0.3.14.0,<0.3.15.0',
     'django-sudo>=1.1.3,<1.2.0',
     'django-templatetag-sugar>=0.1.0',
     'djangorestframework>=2.3.8,<2.4.0',
