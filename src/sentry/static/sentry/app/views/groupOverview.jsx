@@ -291,9 +291,19 @@ var GroupOverview = React.createClass({
             : (this.state.error ?
               <LoadingError onRetry={this.fetchData} />
             :
-              <GroupEventEntries
-                  group={group}
-                  event={evt} />
+              <div>
+                <div className="alert-block alert">
+                  This summary is based on the <Router.Link to="groupEventDetails" params={{
+                    projectId: projectId,
+                    orgId: orgId,
+                    groupId: group.id,
+                    eventId: evt.id
+                  }}>most recent event</Router.Link> in this aggregate.
+                </div>
+                <GroupEventEntries
+                    group={group}
+                    event={evt} />
+              </div>
             )}
           </div>
         </div>
