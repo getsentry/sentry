@@ -162,3 +162,14 @@ class SensitiveDataFilterTest(TestCase):
         self.assertTrue('sentry.interfaces.Http' in data)
         http = data['sentry.interfaces.Http']
         self.assertEquals(http['data'], proc.MASK)
+
+    def test_does_not_fail_on_non_string(self):
+        data = {
+            'extra': {
+                'foo': 1,
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        result = proc.apply(data)
+        self.assertEquals(data['extra'], {'foo': 1})
