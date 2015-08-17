@@ -102,9 +102,10 @@ var OrganizationDetails = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     // Allow injection via getsentry et all
+    var org = this.state.organization;
     var children = [];
     HookStore.get('organization:header').forEach((cb) => {
-      children.push(cb(this.state.organization));
+      children.push(cb(org));
     });
 
     return (
