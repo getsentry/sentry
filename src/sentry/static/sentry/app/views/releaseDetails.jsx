@@ -114,14 +114,14 @@ var ReleaseDetails = React.createClass({
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">New Events</h6>
-                  <Count className="release-count" value={release.newGroups} />
+                  <span className="stream-count"><Count value={release.newGroups} /></span>
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">First Event</h6>
                   {release.firstEvent ?
-                    <TimeSince date={release.firstEvent} />
+                    <span className="stream-count"><TimeSince date={release.firstEvent} /></span>
                   :
                     <span>&mdash;</span>
                   }
@@ -131,7 +131,7 @@ var ReleaseDetails = React.createClass({
                 <div className="release-stats">
                   <h6 className="nav-header">Last Event</h6>
                   {release.lastEvent ?
-                    <TimeSince date={release.lastEvent} />
+                    <span className="stream-count"><TimeSince date={release.lastEvent} /></span>
                   :
                     <span>&mdash;</span>
                   }
@@ -152,4 +152,3 @@ var ReleaseDetails = React.createClass({
 });
 
 export default ReleaseDetails;
-
