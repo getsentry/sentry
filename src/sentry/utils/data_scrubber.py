@@ -74,12 +74,12 @@ class SensitiveDataFilter(object):
         if isinstance(value, six.string_types) and self.VALUES_RE.search(value):
             return self.MASK
 
-        if not isinstance(key, basestring):
-            return value
-
-        key = key.lower()
+        if isinstance(key, basestring):
+            key = key.lower()
+        else:
+            key = ''
         for field in self.fields:
-            if field in key:
+            if field in key or field in value:
                 # store mask as a fixed length for security
                 return self.MASK
         return value

@@ -149,3 +149,16 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         result = proc.sanitize('foo', "foo 4242424242424242")
         self.assertEquals(result, proc.MASK)
+
+    def test_sanitize_http_body(self):
+        data = {
+            'sentry.interfaces.Http': {
+                'data': '{"email":"zzzz@gmail.com","password":"zzzzz"}',
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        result = proc.apply(data)
+        self.assertTrue('sentry.interfaces.Http' in data)
+        http = data['sentry.interfaces.Http']
+        self.assertEquals(http['data'], proc.MASK)
