@@ -18,7 +18,7 @@ var OrganizationHomeSidebar = React.createClass({
     // Allow injection via getsentry et all
     var children = [];
     HookStore.get('organization:sidebar').forEach((cb) => {
-      children.push(cb());
+      children.push(cb(org));
     });
 
     return (
