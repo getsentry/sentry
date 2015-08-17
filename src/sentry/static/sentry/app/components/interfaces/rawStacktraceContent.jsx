@@ -16,6 +16,8 @@ var RawStacktraceContent = React.createClass({
         return this.getRubyFrame(frame);
       case "python":
         return this.getPythonFrame(frame);
+      case "java":
+        return this.getJavaFrame(frame);
       default:
         return this.getDefaultFrame(frame);
     }
@@ -88,6 +90,24 @@ var RawStacktraceContent = React.createClass({
           result += '\n    ' + trim(item[1]);
         }
       });
+    }
+    return result;
+  },
+
+  getJavaFrame(frame) {
+    var result = '    at';
+    if (defined(frame.module)) {
+      result += ' ' + frame.module + '.';
+    }
+    if (defined(frame.function)) {
+      result += frame.function;
+    }
+    if (defined(frame.filename)) {
+      result += '(' + frame.filename;
+      if (defined(frame.lineNo) && frame.lineNo >= 0) {
+        result += ':' + frame.lineNo;
+      }
+      result += ')';
     }
     return result;
   },
