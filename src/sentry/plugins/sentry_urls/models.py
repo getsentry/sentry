@@ -9,8 +9,6 @@ from __future__ import absolute_import
 
 import sentry
 
-from django.utils.translation import ugettext_lazy as _
-
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
 
@@ -21,12 +19,11 @@ class UrlsPlugin(TagPlugin):
     from ``sentry.interfaces.Http``.
     """
     slug = 'urls'
-    title = _('Auto Tag: URLs')
+    title = 'Auto Tag: URLs'
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
     tag = 'url'
-    tag_label = _('URL')
     project_default_enabled = True
 
     def get_tag_values(self, event):
