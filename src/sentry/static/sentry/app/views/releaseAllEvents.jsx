@@ -20,7 +20,7 @@ var ReleaseAllEvents = React.createClass({
           }} query={{
             query: "release:" + this.context.release.version
           }}>
-            <span className="icon icon-open"></span> View all events in the stream
+            <span className="icon icon-open"></span> View all events seen in this release in the stream
           </Router.Link>
         </div>
         <GroupList
