@@ -23,14 +23,14 @@ var ProjectDashboard = React.createClass({
   getTrendingEventsEndpoint() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var qs = "sort_by=priority";
+    var qs = "sort=priority";
     return "/projects/" + params.orgId + "/" + params.projectId + "/groups/?" + qs;
   },
 
   getNewEventsEndpoint() {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var qs = "sort_by=new";
+    var qs = "sort=new";
     return "/projects/" + params.orgId + "/" + params.projectId + "/groups/?" + qs;
   },
 
