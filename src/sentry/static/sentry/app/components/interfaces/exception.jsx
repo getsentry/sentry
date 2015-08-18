@@ -62,9 +62,11 @@ var ExceptionInterface = React.createClass({
 
   getInitialState() {
     var user = ConfigStore.get("user");
+    // user may not be authenticated
+    var options = user.options || {};
     var platform = this.props.event.platform;
     var newestFirst;
-    switch (user.options.stacktraceOrder) {
+    switch (options.stacktraceOrder) {
       case "newestFirst":
         newestFirst = true;
         break;
