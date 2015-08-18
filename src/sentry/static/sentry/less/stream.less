@@ -288,11 +288,11 @@
   .checkbox {
     position: absolute;
     left: 40px;
-    top: 4px;
+    top: 2px;
   }
 
   .event-details {
-    padding: 15px 0 13px 44px;
+    padding: 12px 0 10px 44px;
 
     h3 {
       font-size: 16px;
@@ -311,14 +311,11 @@
     }
 
     .event-message {
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      overflow: hidden;
-      font-size: 90%;
+      margin-bottom: 5px;
     }
 
     .event-extra {
-      margin-top: 7px;
+      margin-top: 2px;
 
       ul {
         .list-unstyled;
@@ -395,9 +392,19 @@
     }
   }
 
+  .event-culprit {
+    .message {
+      text-align: center;
+      font-size: 90%;
+      white-space: nowrap;
+      line-height: 100%;
+      line-height: 66px;
+    }
+  }
+
   .event-assignee {
     color: #B5B9BD;
-    padding-top: 28px;
+    padding-top: 20px;
     text-align: center;
 
     .dropdown-menu {
@@ -407,11 +414,11 @@
   }
 
   .event-graph {
-    padding-top: 32px;
+    padding-top: 24px;
   }
 
   .event-users, .event-occurrences {
-    padding-top: 33px;
+    padding-top: 21px;
     span {
       .stream-count;
       .transition(all linear .3s);
