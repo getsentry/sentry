@@ -5,13 +5,26 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.serializers import serialize
-from sentry.models import Event
+from sentry.models import Event, Release
 
 
 class EventDetailsEndpoint(Endpoint):
     doc_section = DocSection.EVENTS
 
     permission_classes = (GroupPermission,)
+
+    def _get_release_info(self, request, event):
+        version = event.get_tag('sentry:release')
+        if not version:
+            return None
+        try:
+            release = Release.objects.get(
+                project=event.project,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {'version': version}
+        return serialize(release, request.user)
 
     def get(self, request, event_id):
         """
@@ -56,6 +69,7 @@ class EventDetailsEndpoint(Endpoint):
             prev_event = None
 
         data = serialize(event, request.user)
+        data['release'] = self._get_release_info(request, event)
 
         if next_event:
             data['nextEventID'] = str(next_event.id)

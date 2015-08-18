@@ -104,9 +104,7 @@ var GroupEventDetails = React.createClass({
         : (this.state.error ?
           <LoadingError onRetry={this.fetchData} />
         :
-          <div>
-            <GroupEvent group={group} event={evt} />
-          </div>
+          <GroupEvent group={group} event={evt} />
         )}
       </div>
     );

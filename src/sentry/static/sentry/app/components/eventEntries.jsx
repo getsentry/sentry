@@ -3,6 +3,7 @@ import React from "react";
 import ClippedBox from "./clippedBox";
 import ContextData from "./contextData";
 import EventDataSection from "./eventDataSection";
+import EventTags from "./eventTags";
 import PropTypes from "../proptypes";
 import utils from "../utils";
 
@@ -198,6 +199,9 @@ var EventEntries = React.createClass({
             group={group}
             event={evt} />
         }
+        <EventTags
+            group={group}
+            event={evt} />
         {entries}
         {!utils.objectIsEmpty(evt.context) &&
           <EventExtraData
