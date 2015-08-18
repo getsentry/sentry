@@ -124,7 +124,7 @@ class RedisBuffer(Buffer):
             values = conn.hgetall(key)
             conn.delete(key)
 
-        if not values:
+        if not values.value:
             return
 
         model = import_string(values.value['m'])
