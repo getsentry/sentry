@@ -27,7 +27,7 @@ class MultiNodeStorage(NodeStorage):
     >>> MultiNodeStorage(backends=[
     >>>     ('sentry.nodestore.django.backend.DjangoNodeStorage', {}),
     >>>     ('sentry.nodestore.riak.backend.RiakNodeStorage', {}),
-    >>> ], read_selector=random.choice)
+    >>> ], read_selector=lambda backends: backends[0])
     """
     def __init__(self, backends, read_selector=random.choice, **kwargs):
         assert backends, "you should provide at least one backend"
