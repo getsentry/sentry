@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 import sentry
 
-from django.utils.translation import ugettext_lazy as _
 from ua_parser.user_agent_parser import Parse
 
 from sentry.plugins import register
@@ -45,9 +44,8 @@ class BrowserPlugin(UserAgentPlugin):
     from ``sentry.interfaces.Http``.
     """
     slug = 'browsers'
-    title = _('Auto Tag: Browsers')
+    title = 'Auto Tag: Browsers'
     tag = 'browser'
-    tag_label = _('Browser Name')
 
     def get_tag_from_ua(self, ua):
         ua = ua['user_agent']
@@ -74,9 +72,8 @@ class OsPlugin(UserAgentPlugin):
     from ``sentry.interfaces.Http``.
     """
     slug = 'os'
-    title = _('Auto Tag: Operating Systems')
+    title = 'Auto Tag: Operating Systems'
     tag = 'os'
-    tag_label = _('Operating System')
 
     def get_tag_from_ua(self, ua):
         ua = ua['os']
@@ -104,9 +101,8 @@ class DevicePlugin(UserAgentPlugin):
     from ``sentry.interfaces.Http``.
     """
     slug = 'device'
-    title = _('Auto Tag: Device')
+    title = 'Auto Tag: Device'
     tag = 'device'
-    tag_label = _('Device')
 
     def get_tag_from_ua(self, ua):
         return ua['device']['family']
