@@ -335,7 +335,7 @@ class ClientApiHelper(object):
                 'Discarded value for event_id due to length (%d chars)',
                 len(data['event_id']))
             data['errors'].append({
-                'type': EventError.INVALID_DATA,
+                'type': EventError.VALUE_TOO_LONG,
                 'name': 'event_id',
                 'value': data['event_id'],
             })
@@ -510,6 +510,13 @@ class ClientApiHelper(object):
 
         if data.get('release'):
             data['release'] = unicode(data['release'])
+            if len(data['release']) > 64:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'release',
+                    'value': data['release'],
+                })
+                del data['release']
 
         return data
 

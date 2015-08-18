@@ -139,7 +139,7 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data['event_id'] == '031667ea1758441f92c7995a428d2d14'
         assert len(data['errors']) == 1
-        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['type'] == 'value_too_long'
         assert data['errors'][0]['name'] == 'event_id'
         assert data['errors'][0]['value'] == 'a' * 33
 
@@ -244,6 +244,22 @@ class ValidateDataTest(BaseAPITest):
         self.assertRaises(APIError, self.helper.validate_data, self.project, {
             'culprit': 1
         })
+
+    def test_release_too_long(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 'a' * 65,
+        })
+        assert not data.get('release')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'release'
+        assert data['errors'][0]['value'] == 'a' * 65
+
+    def test_release_as_non_string(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 42,
+        })
+        assert data.get('release') == '42'
 
 
 class GetInterfaceTest(TestCase):
