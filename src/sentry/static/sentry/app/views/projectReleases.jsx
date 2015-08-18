@@ -19,8 +19,6 @@ var ReleaseList = React.createClass({
   },
 
   render() {
-    var params = this.context.router.getCurrentParams();
-
     return (
       <ul className="release-list">
           {this.props.releaseList.map((release) => {
@@ -72,16 +70,24 @@ var ProjectReleases = React.createClass({
   },
 
   getInitialState() {
+    var queryParams = this.context.router.getCurrentQuery();
+
     return {
       releaseList: [],
       loading: true,
       error: false,
-      query: this.props.defaultQuery
+      query: queryParams.query || this.props.defaultQuery
     };
   },
 
   onSearch(query) {
-    this.setState({ query: query }, this.fetchData);
+    var router = this.context.router;
+
+    var targetQueryParams = {};
+    if (query !== '')
+      targetQueryParams.query = query;
+
+    router.transitionTo("projectReleases", router.getCurrentParams(), targetQueryParams);
   },
 
   componentWillMount() {
@@ -90,7 +96,10 @@ var ProjectReleases = React.createClass({
   },
 
   routeDidChange() {
-    this.fetchData();
+    var queryParams = this.context.router.getCurrentQuery();
+    this.setState({
+      query: queryParams.query
+    }, this.fetchData);
   },
 
   fetchData() {
