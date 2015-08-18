@@ -21,6 +21,7 @@ var SearchBar = React.createClass({
 
   getInitialState() {
     return {
+      query: this.props.query || this.props.defaultQuery,
       dropdownVisible: false
     };
   },
@@ -32,11 +33,14 @@ var SearchBar = React.createClass({
   onSubmit(event) {
     event.preventDefault();
     this.blur();
-    this.props.onSearch();
+    this.props.onSearch(this.state.query);
   },
 
   clearSearch() {
-    this.props.onQueryChange(this.props.defaultQuery, this.props.onSearch);
+    this.setState(
+      { query: this.props.defaultQuery },
+      () => this.props.onSearch(this.state.query)
+    );
   },
 
   onQueryFocus() {
@@ -52,7 +56,10 @@ var SearchBar = React.createClass({
   },
 
   onQueryChange(event) {
-    this.props.onQueryChange(event.target.value);
+    this.setState(
+      { query: event.target.value },
+      () => this.props.onQueryChange(this.state.query)
+    );
   },
 
   onKeyUp(event) {
@@ -76,13 +83,13 @@ var SearchBar = React.createClass({
               name="query"
               ref="searchInput"
               autoComplete="off"
-              value={this.props.query}
+              value={this.state.query}
               onFocus={this.onQueryFocus}
               onBlur={this.onQueryBlur}
               onKeyUp={this.onKeyUp}
               onChange={this.onQueryChange} />
             <span className="icon-search" />
-            {this.props.query !== this.props.defaultQuery &&
+            {this.state.query !== this.props.defaultQuery &&
               <div>
                 <a className="search-clear-form" onClick={this.clearSearch}>
                   <span className="icon-circle-cross" />

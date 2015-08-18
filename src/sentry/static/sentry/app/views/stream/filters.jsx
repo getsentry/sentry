@@ -22,7 +22,6 @@ var StreamFilters = React.createClass({
       query: "",
       onFilterChange: function() {},
       onSortChange: function() {},
-      onQueryChange: function() {},
       onSearch: function() {}
     };
   },
@@ -97,7 +96,6 @@ var StreamFilters = React.createClass({
             <SearchBar defaultQuery={this.props.defaultQuery}
               placeholder="Search for events, users, tags, and everything else."
               query={this.props.query}
-              onQueryChange={this.props.onQueryChange}
               onSearch={this.props.onSearch}>
               <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
             </SearchBar>
