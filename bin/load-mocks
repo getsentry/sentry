@@ -55,7 +55,7 @@ def create_sample_time_series(event):
         now = now - timedelta(hours=1)
 
 
-def main():
+def main(num_events=1):
     user = User.objects.filter(is_superuser=True)[0]
 
     dummy_user, _ = User.objects.get_or_create(
@@ -129,31 +129,26 @@ def main():
                 )[0],
             )
 
-            event1 = create_sample_event(
-                project=project,
-                platform='python',
-                release=release.version,
-            )
-            create_sample_time_series(event1)
+            for _ in range(num_events):
+                event1 = create_sample_event(
+                    project=project,
+                    platform='python',
+                    release=release.version,
+                )
 
-            event2 = create_sample_event(
-                project=project,
-                platform='javascript',
-                release=release.version,
-            )
-            create_sample_time_series(event2)
+                event2 = create_sample_event(
+                    project=project,
+                    platform='javascript',
+                    release=release.version,
+                )
 
-            event3 = create_sample_event(project, 'java')
+                event3 = create_sample_event(project, 'java')
 
-            create_sample_time_series(event3)
-
-            event4 = create_sample_event(
-                project=project,
-                platform='ruby',
-                release=release.version,
-            )
-
-            create_sample_time_series(event4)
+                event4 = create_sample_event(
+                    project=project,
+                    platform='ruby',
+                    release=release.version,
+                )
 
             Activity.objects.create(
                 type=Activity.RELEASE,
@@ -182,6 +177,14 @@ def main():
                 comments='I have no idea how I got here.',
             )
 
+            print('    > Loading time series data'.format(project_name))
+
+            create_sample_time_series(event1)
+            create_sample_time_series(event2)
+            create_sample_time_series(event3)
+            create_sample_time_series(event4)
+
+
         OrganizationAccessRequest.objects.create_or_update(
             member=dummy_member,
             team=team,
@@ -200,4 +203,11 @@ if __name__ == '__main__':
     from django.conf import settings
     settings.CELERY_ALWAYS_EAGER = True
 
-    main()
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option('--events', dest='num_events', default=1, type=int)
+
+    (options, args) = parser.parse_args()
+
+    main(num_events=options.num_events)
