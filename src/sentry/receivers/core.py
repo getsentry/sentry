@@ -12,12 +12,10 @@ from pkg_resources import parse_version as Version
 from sentry import options
 from sentry.models import (
     Organization, OrganizationMemberType, Project, User, Team, ProjectKey,
-    TagKey, TagValue, GroupTagValue, GroupTagKey, Activity,
-    Alert
+    TagKey, TagValue, GroupTagValue, GroupTagKey, Activity
 )
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils import db
-from sentry.utils.safe import safe_execute
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -212,13 +210,6 @@ def create_regression_activity(instance, **kwargs):
     )
 
 
-def on_alert_creation(instance, **kwargs):
-    from sentry.plugins import plugins
-
-    for plugin in plugins.for_project(instance.project):
-        safe_execute(plugin.on_alert, alert=instance)
-
-
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_syncdb.connect(
@@ -236,11 +227,5 @@ post_save.connect(
     handle_db_failure(create_org_member_for_owner),
     sender=Organization,
     dispatch_uid="create_org_member_for_owner",
-    weak=False,
-)
-post_save.connect(
-    on_alert_creation,
-    sender=Alert,
-    dispatch_uid="on_alert_creation",
     weak=False,
 )
