@@ -1,20 +1,33 @@
 import React from "react";
 import PropTypes from "../proptypes";
+import Router from "react-router";
 
 var EventTags = React.createClass({
+  contextTypes: {
+    router: React.PropTypes.func
+  },
+
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired
   },
 
   render() {
-    var children = [];
-    var value;
+    var params = this.context.router.getCurrentParams(),
+      children = [],
+      value;
+
     for (var key in this.props.event.tags) {
       value = this.props.event.tags[key];
+
       children.push(
         <li key={key}>
-          {key} = {value}
+          <Router.Link
+            to="stream"
+            params={params}
+            query={{query: key + ':' + '"' + value + '"'}}>
+            {key} = {value}
+          </Router.Link>
         </li>
       );
     }
