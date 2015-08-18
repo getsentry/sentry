@@ -161,7 +161,7 @@ var StreamGroup = React.createClass({
 
     return (
       <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-7 col-xs-8 event-details">
+        <div className="col-md-4 col-xs-8 event-details">
           {this.props.canSelect &&
             <div className="checkbox">
               <GroupCheckBox id={data.id} />
@@ -174,7 +174,7 @@ var StreamGroup = React.createClass({
               {data.title}
             </Router.Link>
           </h3>
-          <div className="event-message truncate">
+          <div className="event-message truncate hidden-md hidden-lg visible-sm visible-xs">
             <span className="message">{data.culprit}</span>
           </div>
           <div className="event-extra">
@@ -209,6 +209,9 @@ var StreamGroup = React.createClass({
               })}
             </ul>
           </div>
+        </div>
+        <div className="event-culprit col-md-3 hidden-xs hidden-sm">
+          <span className="message truncate">{data.culprit}</span>
         </div>
         <div className="event-assignee col-md-1 hidden-sm hidden-xs">
           <AssigneeSelector id={data.id} />
