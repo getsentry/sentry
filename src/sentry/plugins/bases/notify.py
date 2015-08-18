@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import ratelimiter
 from sentry.plugins import Notification, Plugin
@@ -38,8 +37,8 @@ class BaseNotificationUserOptionsForm(forms.Form):
 
 
 class NotificationPlugin(Plugin):
-    description = _('Notify project members when a new event is seen for the first time, or when an '
-                    'already resolved event has changed back to unresolved.')
+    description = ('Notify project members when a new event is seen for the first time, or when an '
+                   'already resolved event has changed back to unresolved.')
     # site_conf_form = NotificationConfigurationForm
     project_conf_form = NotificationConfigurationForm
 

@@ -12,7 +12,6 @@ import sentry
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.plugins import register
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -24,7 +23,7 @@ NOTSET = object()
 
 
 class MailPlugin(NotificationPlugin):
-    title = _('Mail')
+    title = 'Mail'
     conf_key = 'mail'
     slug = 'mail'
     version = sentry.VERSION

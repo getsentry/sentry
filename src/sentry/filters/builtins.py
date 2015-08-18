@@ -26,7 +26,7 @@ STATUS_LEVELS = (
 
 
 class StatusFilter(Filter):
-    label = _('Status')
+    label = 'Status'
     column = 'status'
     default = '0'
     choices = OrderedDict(STATUS_LEVELS)

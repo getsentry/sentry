@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, OrganizationMember, Project
