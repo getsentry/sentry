@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import time
 
 from django.conf import settings
-from nydus.db import create_cluster
+from rb import Cluster
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.quotas.base import Quota, RateLimited, NotRateLimited
@@ -25,16 +25,12 @@ class RedisQuota(Quota):
             options = settings.SENTRY_REDIS_OPTIONS
         super(RedisQuota, self).__init__(**options)
         options.setdefault('hosts', {0: {}})
-        options.setdefault('router', 'nydus.db.routers.keyvalue.PartitionRouter')
-        self.conn = create_cluster({
-            'engine': 'nydus.db.backends.redis.Redis',
-            'router': options['router'],
-            'hosts': options['hosts'],
-        })
+        self.cluster = Cluster(options['hosts'])
 
     def validate(self):
         try:
-            self.conn.ping()
+            with self.cluster.all() as client:
+                client.ping()
         except Exception as e:
             raise InvalidConfiguration(unicode(e))
 
@@ -63,7 +59,8 @@ class RedisQuota(Quota):
         return NotRateLimited
 
     def get_time_remaining(self):
-        return int(self.ttl - (time.time() - int(time.time() / self.ttl) * self.ttl))
+        return int(self.ttl - (
+            time.time() - int(time.time() / self.ttl) * self.ttl))
 
     def _get_system_key(self):
         return 'quota:s:%s' % (int(time.time() / self.ttl),)
@@ -79,17 +76,21 @@ class RedisQuota(Quota):
             team_key = self._get_team_key(project.team)
         else:
             team_key = None
-            team_result = 0
+            team_result = None
 
         proj_key = self._get_project_key(project)
         sys_key = self._get_system_key()
-        with self.conn.map() as conn:
-            proj_result = conn.incr(proj_key)
-            conn.expire(proj_key, self.ttl)
-            sys_result = conn.incr(sys_key)
-            conn.expire(sys_key, self.ttl)
+        with self.cluster.map() as client:
+            proj_result = client.incr(proj_key)
+            client.expire(proj_key, self.ttl)
+            sys_result = client.incr(sys_key)
+            client.expire(sys_key, self.ttl)
             if team_key:
-                team_result = conn.incr(team_key)
-                conn.expire(team_key, self.ttl)
+                team_result = client.incr(team_key)
+                client.expire(team_key, self.ttl)
 
-        return int(sys_result), int(team_result), int(proj_result)
+        return (
+            int(sys_result.value),
+            int(team_result and team_result.value or 0),
+            int(proj_result.value),
+        )

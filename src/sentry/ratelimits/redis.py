@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.conf import settings
-from nydus.db import create_cluster
+from rb import Cluster
 from time import time
 
 from sentry.exceptions import InvalidConfiguration
@@ -16,17 +16,13 @@ class RedisRateLimiter(RateLimiter):
             # inherit default options from REDIS_OPTIONS
             options = settings.SENTRY_REDIS_OPTIONS
         options.setdefault('hosts', {0: {}})
-        options.setdefault('router', 'nydus.db.routers.keyvalue.PartitionRouter')
 
-        self.conn = create_cluster({
-            'engine': 'nydus.db.backends.redis.Redis',
-            'router': options['router'],
-            'hosts': options['hosts'],
-        })
+        self.cluster = Cluster(options['hosts'])
 
     def validate(self):
         try:
-            self.conn.ping()
+            with self.cluster.all() as client:
+                client.ping()
         except Exception as e:
             raise InvalidConfiguration(unicode(e))
 
@@ -35,10 +31,8 @@ class RedisRateLimiter(RateLimiter):
             key, project.id, int(time() / self.ttl)
         )
 
-        with self.conn.map() as conn:
-            proj_result = conn.incr(key)
-            conn.expire(key, self.ttl)
+        with self.cluster.map() as client:
+            proj_result = client.incr(key)
+            client.expire(key, self.ttl)
 
-        if int(proj_result) > limit:
-            return True
-        return False
+        return proj_result.value > limit
