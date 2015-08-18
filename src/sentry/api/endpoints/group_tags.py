@@ -4,13 +4,14 @@ from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue, GroupTagKey, TagKey
+from sentry.models import GroupTagValue, GroupTagKey, TagKey, TagKeyStatus
 
 
 class GroupTagsEndpoint(GroupEndpoint):
     def get(self, request, group):
         tag_keys = TagKey.objects.filter(
             project=group.project,
+            status=TagKeyStatus.VISIBLE,
             key__in=GroupTagKey.objects.filter(
                 group=group,
             ).values('key'),
