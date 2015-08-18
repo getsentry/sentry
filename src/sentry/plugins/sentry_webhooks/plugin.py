@@ -37,7 +37,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
     ]
 
     slug = 'webhooks'
-    title = _('WebHooks')
+    title = 'WebHooks'
     conf_title = title
     conf_key = 'webhooks'
     project_conf_form = WebHooksOptionsForm

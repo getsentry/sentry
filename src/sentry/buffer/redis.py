@@ -125,7 +125,7 @@ class RedisBuffer(Buffer):
             values = conn.hgetall(key)
             conn.delete(key)
 
-        if not values:
+        if not values.value:
             self.logger.info('Skipped process on %s; no values found', key)
             return
 
