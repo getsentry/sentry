@@ -47,7 +47,7 @@ var StreamActions = React.createClass({
     return this.props.onSelectStatsPeriod(period);
   },
 
-  actionSelectedGroups(actionType, callback, data) {
+  actionSelectedGroups(actionType, callback) {
     var selectedIds;
 
     if (actionType === this.props.actionTypes.ALL) {
@@ -58,7 +58,7 @@ var StreamActions = React.createClass({
         (itemId) => itemIdSet.has(itemId)
       );
     } else {
-      throw new Error('Invalid selector: ' + groupIds);
+      throw new Error('Invalid action type: ' + actionType);
     }
 
     callback(selectedIds);
