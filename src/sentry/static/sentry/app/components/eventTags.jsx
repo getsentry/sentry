@@ -19,6 +19,10 @@ var EventTags = React.createClass({
       );
     }
 
+    if (children.length === 0) {
+      return null;
+    }
+
     return (
       <div id="tags" className="box">
         <div className="box-header">
