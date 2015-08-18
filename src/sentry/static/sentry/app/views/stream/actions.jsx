@@ -86,7 +86,7 @@ var StreamActions = React.createClass({
   onDelete(event, actionType) {
     var loadingIndicator = IndicatorStore.add('Removing events..');
 
-    this.actionSelectedGroups((itemIds) => {
+    this.actionSelectedGroups(actionType, (itemIds) => {
       api.bulkDelete({
         orgId: this.props.orgId,
         projectId: this.props.projectId,
