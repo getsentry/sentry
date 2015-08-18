@@ -9,7 +9,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import tsdb
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen,
-    GroupStatus, TagKey
+    GroupStatus, TagKey, TagKeyStatus
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -67,9 +67,14 @@ class GroupSerializer(Serializer):
             tags = {}
             for key in tag_counts.iterkeys():
                 try:
-                    label = tagkeys[key].get_label()
+                    tagkey = tagkeys[key]
                 except KeyError:
                     label = key.replace('_', ' ').title()
+                else:
+                    if tagkey.status != TagKeyStatus.VISIBLE:
+                        continue
+                    label = tagkey.get_label()
+
                 try:
                     value = tag_counts[key].get(item.id, 0)
                 except KeyError:
