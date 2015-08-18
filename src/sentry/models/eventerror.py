@@ -4,6 +4,7 @@ from __future__ import absolute_import
 class EventError(object):
     INVALID_DATA = 'invalid_data'
     INVALID_ATTRIBUTE = 'invalid_attribute'
+    VALUE_TOO_LONG = 'value_too_long'
     UNKNOWN_ERROR = 'unknown_error'
     SECURITY_VIOLATION = 'security_violation'
 
@@ -17,6 +18,7 @@ class EventError(object):
     _messages = {
         INVALID_DATA: 'Discarded invalid value for parameter \'{name}\'',
         INVALID_ATTRIBUTE: 'Discarded invalid parameter \'{name}\'',
+        VALUE_TOO_LONG: 'Discarded value for \'{name}\' due to exceeding maximum length',
         UNKNOWN_ERROR: 'Unknown error',
         SECURITY_VIOLATION: 'Security violation on {url}: {value}',
         JS_GENERIC_FETCH_ERROR: 'Unable to fetch resource: {url}',
