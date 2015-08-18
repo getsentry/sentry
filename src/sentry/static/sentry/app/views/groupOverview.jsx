@@ -298,7 +298,7 @@ var GroupOverview = React.createClass({
                     orgId: orgId,
                     groupId: group.id,
                     eventId: evt.id
-                  }} className="pull-right btn btn-sm">More Details</Router.Link>
+                  }} className="pull-right"><small>More Details</small></Router.Link>
                   This summary is based on the most recent event in this aggregate.
                 </div>
                 <GroupEventEntries
@@ -314,4 +314,3 @@ var GroupOverview = React.createClass({
 });
 
 export default GroupOverview;
-
