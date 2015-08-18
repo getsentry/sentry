@@ -530,12 +530,6 @@ NOCAPTCHA = True
 
 CAPTCHA_WIDGET_TEMPLATE = "sentry/partial/form_captcha.html"
 
-# django-statsd
-
-STATSD_CLIENT = 'django_statsd.clients.null'
-SENTRY_METRICS_PREFIX = ''
-SENTRY_METRICS_SAMPLE_RATE = 1.0
-
 # Debugger
 
 DEBUG_TOOLBAR_PANELS = (
@@ -723,6 +717,12 @@ SENTRY_TSDB_ROLLUPS = (
 # File storage
 SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
 SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
+
+# Internal metrics
+SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'
+SENTRY_METRICS_OPTIONS = {}
+SENTRY_METRICS_SAMPLE_RATE = 1.0
+SENTRY_METRICS_PREFIX = ''
 
 # URL to embed in js documentation
 SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.19/jquery,native/raven.min.js'

@@ -104,6 +104,14 @@ class ProcessDataTimestampTest(BaseAPITest):
             'timestamp': '2052-01-01T10:30:45Z'
         })
 
+    def test_long_microseconds_value(self):
+        d = datetime(2012, 01, 01, 10, 30, 45)
+        data = self.helper._process_data_timestamp({
+            'timestamp': '2012-01-01T10:30:45.341324Z'
+        }, current_datetime=d)
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], 1325413845.0)
+
 
 class ValidateDataTest(BaseAPITest):
     def test_missing_project_id(self):

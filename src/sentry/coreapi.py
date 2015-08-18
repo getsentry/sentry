@@ -271,37 +271,42 @@ class ClientApiHelper(object):
         return dict((smart_str(k), v) for k, v in obj.iteritems())
 
     def _process_data_timestamp(self, data, current_datetime=None):
-        if not data['timestamp']:
+        value = data['timestamp']
+        if not value:
             del data['timestamp']
             return data
-        elif is_float(data['timestamp']):
+        elif is_float(value):
             try:
-                data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
+                value = datetime.fromtimestamp(float(value))
             except Exception:
                 raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
-        elif not isinstance(data['timestamp'], datetime):
-            if '.' in data['timestamp']:
-                format = '%Y-%m-%dT%H:%M:%S.%f'
+        elif not isinstance(value, datetime):
+            # all timestamps are in UTC, but the marker is optional
+            if 'Z' in value:
+                value = data['timestamp'][:-1]
+            if '.' in value:
+                # Python doesn't support long microsecond values
+                # https://github.com/getsentry/sentry/issues/1610
+                ts_bits = value.split('.', 1)
+                value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
+                fmt = '%Y-%m-%dT%H:%M:%S.%f'
             else:
-                format = '%Y-%m-%dT%H:%M:%S'
-            if 'Z' in data['timestamp']:
-                # support UTC market, but not other timestamps
-                format += 'Z'
+                fmt = '%Y-%m-%dT%H:%M:%S'
             try:
-                data['timestamp'] = datetime.strptime(data['timestamp'], format)
+                value = datetime.strptime(value, fmt)
             except Exception:
                 raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
         if current_datetime is None:
             current_datetime = datetime.now()
 
-        if data['timestamp'] > current_datetime + timedelta(minutes=1):
-            raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
+        if value > current_datetime + timedelta(minutes=1):
+            raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % value)
 
-        if data['timestamp'] < current_datetime - timedelta(days=30):
-            raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
+        if value < current_datetime - timedelta(days=30):
+            raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % value)
 
-        data['timestamp'] = float(data['timestamp'].strftime('%s'))
+        data['timestamp'] = float(value.strftime('%s'))
 
         return data
 
