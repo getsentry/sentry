@@ -120,6 +120,29 @@ class GroupListTest(APITestCase):
         response = self.client.get(url + '?statsPeriod=48h', format='json')
         assert response.status_code == 400
 
+    def test_auto_resolved(self):
+        project = self.project
+        project.update_option('sentry:resolve_age', 1)
+        now = timezone.now()
+        group1 = self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(days=1),
+        )
+        group2 = self.create_group(
+            checksum='b' * 32,
+            last_seen=now,
+        )
+
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-group-index', kwargs={
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
+        response = self.client.get(url, format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(group2.id)
+
 
 class GroupUpdateTest(APITestCase):
     def test_global_resolve(self):

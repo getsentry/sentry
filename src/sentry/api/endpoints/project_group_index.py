@@ -12,7 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.constants import (
-    DEFAULT_SORT_OPTION, STATUS_CHOICES
+    DEFAULT_SORT_OPTION, STATUS_CHOICES, STATUS_UNRESOLVED
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
@@ -145,10 +145,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         cursor_result = search.query(**query_kwargs)
 
-        context = list(cursor_result)
+        results = list(cursor_result)
+
+        # HACK: remove auto resolved entries
+        if query_kwargs.get('status') == STATUS_UNRESOLVED:
+            results = [
+                r for r in results
+                if not r.is_resolved()
+            ]
 
         response = Response(serialize(
-            context, request.user, StreamGroupSerializer(
+            results, request.user, StreamGroupSerializer(
                 stats_period=stats_period
             )
         ))
