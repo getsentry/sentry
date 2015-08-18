@@ -33,16 +33,24 @@ class RedisCache(local):
             'hosts': options['hosts'],
         })
 
+    def _make_key(self, key):
+        if key.startswith('e:'):
+            return key
+        return 'c:%s' % (key,)
+
     def set(self, key, value, timeout):
+        key = self._make_key(key)
         with self.conn.map() as conn:
             conn.set(key, json.dumps(value))
             if timeout:
                 conn.expire(key, timeout)
 
     def delete(self, key):
+        key = self._make_key(key)
         self.conn.delete(key)
 
     def get(self, key):
+        key = self._make_key(key)
         result = self.conn.get(key)
         if result is not None:
             result = json.loads(result)
