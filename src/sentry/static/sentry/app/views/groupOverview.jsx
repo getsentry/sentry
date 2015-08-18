@@ -6,7 +6,6 @@ import Count from "../components/count";
 import DateTime from "../components/dateTime";
 import GroupChart from "./groupDetails/chart";
 import GroupEventEntries from "../components/eventEntries";
-import GroupEventTags from "./groupDetails/eventTags";
 import GroupState from "../mixins/groupState";
 import MutedBox from "../components/mutedBox";
 import LoadingError from "../components/loadingError";
@@ -302,9 +301,6 @@ var GroupOverview = React.createClass({
                   }} className="pull-right btn btn-sm">More Details</Router.Link>
                   This summary is based on the most recent event in this aggregate.
                 </div>
-                <GroupEventTags
-                  group={group}
-                  event={evt} />
                 <GroupEventEntries
                     group={group}
                     event={evt} />

@@ -3,12 +3,13 @@ import Sticky from "react-sticky";
 import DateTime from "../../components/dateTime";
 import GroupEventEntries from "../../components/eventEntries";
 import GroupEventHeader from "./eventHeader";
-import GroupEventTags from "./eventTags";
 import GroupState from "../../mixins/groupState";
 import Gravatar from "../../components/gravatar";
 import PropTypes from "../../proptypes";
 import TimeSince from "../../components/timeSince";
 import utils from "../../utils";
+import Version from "../../components/version";
+
 
 var UserWidget = React.createClass({
   propTypes: {
@@ -23,13 +24,13 @@ var UserWidget = React.createClass({
         <div className="pull-right"><Gravatar email={user.email} size={84} /></div>
         <h6><span>User</span></h6>
         <dl>
-          {user.email && [
-            <dt>Email:</dt>,
-            <dd>{user.email}</dd>
-          ]}
           {user.id && [
             <dt>ID:</dt>,
             <dd>{user.id}</dd>
+          ]}
+          {user.email && [
+            <dt>Email:</dt>,
+            <dd>{user.email}</dd>
           ]}
           {user.username && [
             <dt>Username:</dt>,
@@ -49,6 +50,22 @@ var UserWidget = React.createClass({
   }
 });
 
+var ReleaseWidget = React.createClass({
+  render() {
+    var release = this.props.data;
+
+    return (
+      <div className="user-widget">
+        <h6><span>Release</span></h6>
+        <dl>
+          <dt key={4}>Version:</dt>
+          <dd key={5}><Version version={release.version} /></dd>
+        </dl>
+      </div>
+    );
+  }
+});
+
 var GroupEvent = React.createClass({
   mixins: [GroupState],
 
@@ -63,9 +80,6 @@ var GroupEvent = React.createClass({
     return (
       <div className="row event">
         <div className="col-md-9">
-          <GroupEventTags
-              group={group}
-              event={evt} />
           <GroupEventEntries
               group={group}
               event={evt} />
@@ -83,6 +97,9 @@ var GroupEvent = React.createClass({
             </dl>
             {evt.user &&
               <UserWidget data={evt.user} />
+            }
+            {evt.release &&
+              <ReleaseWidget data={evt.release} />
             }
           </div>
         </div>
