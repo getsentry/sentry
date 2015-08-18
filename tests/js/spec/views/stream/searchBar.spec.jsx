@@ -25,28 +25,28 @@ describe("SearchBar", function() {
 
     it("clears the query", function() {
       var props = {
-        query: "is:unresolved",
-        onQueryChange: this.sandbox.spy()
+        query: "is:unresolved ruby",
+        defaultQuery: "is:unresolved"
       };
       var wrapper = React.render(<SearchBar {...props} />, document.body);
 
       wrapper.clearSearch();
 
-      expect(props.onQueryChange.calledWith("")).to.be.true;
+      expect(wrapper.state.query).to.equal("is:unresolved");
     });
 
     it("calls onSearch()", function(done) {
       var props = {
-        query: "is:unresolved",
-        onSearch: this.sandbox.spy(),
-        onQueryChange: this.sandbox.spy()
+        query: "is:unresolved ruby",
+        defaultQuery: "is:unresolved",
+        onSearch: this.sandbox.spy()
       };
       var wrapper = React.render(<SearchBar {...props} />, document.body);
 
       wrapper.clearSearch();
 
       setTimeout(() => {
-        expect(props.onQueryChange.calledWith("", props.onSearch)).to.be.true;
+        expect(props.onSearch.calledWith("is:unresolved")).to.be.true;
         done();
       });
     });
@@ -112,8 +112,7 @@ describe("SearchBar", function() {
     it("invokes onSearch() when search is cleared", function(done) {
       var props = {
         query: "is:unresolved",
-        onSearch: this.sandbox.spy(),
-        onQueryChange: this.sandbox.spy()
+        onSearch: this.sandbox.spy()
       };
       var wrapper = React.render(<SearchBar {...props} />, document.body);
 
@@ -121,7 +120,7 @@ describe("SearchBar", function() {
       TestUtils.Simulate.click(cancelButton);
 
       setTimeout(() => {
-        expect(props.onQueryChange.calledWith("", props.onSearch)).to.be.true;
+        expect(props.onSearch.calledWith("")).to.be.true;
         done();
       });
     });

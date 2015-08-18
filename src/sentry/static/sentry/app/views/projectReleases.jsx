@@ -80,14 +80,8 @@ var ProjectReleases = React.createClass({
     };
   },
 
-  onQueryChange(query, callback) {
-    this.setState({
-      query: query
-    }, callback);
-  },
-
   onSearch(query) {
-    this.fetchData();
+    this.setState({ query: query }, this.fetchData);
   },
 
   componentWillMount() {
@@ -156,19 +150,30 @@ var ProjectReleases = React.createClass({
       body = this.renderLoading();
     else if (this.state.error)
       body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.releaseList.length > 0) {
+    else if (this.state.releaseList.length > 0)
       body = <ReleaseList releaseList={this.state.releaseList} />;
-    } else {
+    else if (this.state.query && this.state.query !== this.props.defaultQuery)
+      body = this.renderNoQueryResults();
+    else
       body = this.renderEmpty();
-    }
 
     return body;
   },
+
 
   renderLoading() {
     return (
       <div className="box">
         <LoadingIndicator />
+      </div>
+    );
+  },
+
+  renderNoQueryResults() {
+    return (
+      <div className="box empty-stream">
+        <span className="icon icon-exclamation" />
+        <p>Sorry, no releases match your filters.</p>
       </div>
     );
   },

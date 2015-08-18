@@ -236,14 +236,10 @@ var Stream = React.createClass({
     router.transitionTo('stream', params, queryParams);
   },
 
-  onSearch() {
-    this.transitionTo();
-  },
-
-  onQueryChange(query, callback) {
+  onSearch(query) {
     this.setState({
       query: query
-    }, callback);
+    }, this.transitionTo);
   },
 
   onSortChange(sort) {
@@ -330,7 +326,6 @@ var Stream = React.createClass({
       <div>
         <StreamFilters query={this.state.query}
           defaultQuery={this.props.defaultQuery}
-          onQueryChange={this.onQueryChange}
           onSortChange={this.onSortChange}
           onFilterChange={this.onFilterChange}
           onSearch={this.onSearch} />
