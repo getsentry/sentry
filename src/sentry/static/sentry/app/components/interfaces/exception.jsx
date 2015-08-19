@@ -2,7 +2,7 @@ import React from "react";
 import ConfigStore from "../../stores/configStore";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../proptypes";
-import RawStacktraceContent from "./rawStacktraceContent";
+import rawStacktraceContent from "./rawStacktraceContent";
 import StacktraceContent from "./stacktraceContent";
 import {defined} from "../../utils";
 
@@ -24,18 +24,13 @@ var ExceptionContent = React.createClass({
           {exc.value &&
             <pre className="exc-message">{exc.value}</pre>
           }
-          {defined(exc.stacktrace) && (stackView === "raw" ?
-            <RawStacktraceContent
-                data={exc.stacktrace}
-                platform={this.props.platform}
-                newestFirst={this.props.newestFirst} />
-          :
+          {defined(exc.stacktrace) &&
             <StacktraceContent
                 data={exc.stacktrace}
                 includeSystemFrames={stackView === "full"}
                 platform={this.props.platform}
                 newestFirst={this.props.newestFirst} />
-          )}
+          }
         </div>
       );
     });
@@ -44,6 +39,28 @@ var ExceptionContent = React.createClass({
     }
 
     // TODO(dcramer): implement exceptions omitted
+    return (
+      <div>
+        {children}
+      </div>
+    );
+  }
+});
+
+var RawExceptionContent = React.createClass({
+  propTypes: {
+    platform: React.PropTypes.string
+  },
+
+  render() {
+    var children = this.props.values.map((exc, excIdx) => {
+      return (
+        <pre key={excIdx} className="traceback">
+          {rawStacktraceContent(exc.stacktrace, this.props.platform, exc)}
+        </pre>
+      );
+    });
+
     return (
       <div>
         {children}
@@ -120,11 +137,16 @@ var ExceptionInterface = React.createClass({
           event={evt}
           type={this.props.type}
           title={title}>
-        <ExceptionContent
-            view={stackView}
+        {stackView === 'raw' ?
+          <RawExceptionContent
+            values={data.values}
+            platform={evt.platform}/> :
+
+          <ExceptionContent
             values={data.values}
             platform={evt.platform}
-            newestFirst={newestFirst} />
+            newestFirst={newestFirst}/>
+        }
       </GroupEventDataSection>
     );
   }

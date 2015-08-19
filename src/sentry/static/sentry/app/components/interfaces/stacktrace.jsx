@@ -2,7 +2,7 @@ import React from "react";
 import ConfigStore from "../../stores/configStore";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../proptypes";
-import RawStacktraceContent from "./rawStacktraceContent";
+import rawStacktraceContent from "./rawStacktraceContent";
 import StacktraceContent from "./stacktraceContent";
 
 var StacktraceInterface = React.createClass({
@@ -74,10 +74,9 @@ var StacktraceInterface = React.createClass({
           type={this.props.type}
           title={title}>
         {stackView === "raw" ?
-          <RawStacktraceContent
-              data={data}
-              platform={evt.platform}
-              newestFirst={newestFirst} />
+          <pre className="traceback">
+            {rawStacktraceContent(data, this.props.platform)}
+          </pre>
         :
           <StacktraceContent
               data={data}
