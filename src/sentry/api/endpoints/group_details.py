@@ -59,13 +59,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
         return activity[:num]
 
     def _get_seen_by(self, request, group):
-        seen_by = sorted([
-            (gs.user, gs.last_seen)
-            for gs in GroupSeen.objects.filter(
-                group=group
-            ).select_related('user')
-        ], key=lambda ls: ls[1], reverse=True)
-        return [s[0] for s in seen_by]
+        seen_by = list(GroupSeen.objects.filter(
+            group=group
+        ).select_related('user').order_by('-last_seen'))
+        return serialize(seen_by, request.user)
 
     def _get_actions(self, request, group):
         project = group.project
@@ -116,7 +113,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             try:
                 first_release = GroupTagValue.objects.filter(
                     group=group,
-                    key='sentry:release',
+                    key__in=('sentry:release', 'release'),
                 ).order_by('first_seen')[0]
             except IndexError:
                 first_release = None
@@ -130,7 +127,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             try:
                 last_release = GroupTagValue.objects.filter(
                     group=group,
-                    key='sentry:release',
+                    key__in=('sentry:release', 'release'),
                 ).order_by('-last_seen')[0]
             except IndexError:
                 last_release = None
@@ -164,7 +161,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'firstRelease': first_release,
             'lastRelease': last_release,
             'activity': serialize(activity, request.user),
-            'seenBy': serialize(seen_by, request.user),
+            'seenBy': seen_by,
             'pluginActions': action_list,
             'userReportCount': UserReport.objects.filter(group=group).count(),
             'stats': {
