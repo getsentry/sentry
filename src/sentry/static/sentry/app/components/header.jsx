@@ -7,6 +7,7 @@ import MenuItem from "./menuItem";
 import OrganizationState from "../mixins/organizationState";
 import OrganizationStore from "../stores/organizationStore";
 import UserInfo from "./userInfo";
+import {Link} from "react-router";
 
 var UserNav = React.createClass({
   shouldComponentUpdate(nextProps, nextState) {
@@ -99,6 +100,7 @@ var Header = React.createClass({
       logo = <span className="icon-sentry-logo-full"/>;
     }
 
+    // NOTE: this.props.orgId not guaranteed to be specified
     return (
       <header>
         <div className="container">
@@ -106,7 +108,11 @@ var Header = React.createClass({
           <ul className="global-nav pull-right">
             <li><a href="https://docs.getsentry.com">Docs</a></li>
           </ul>
-          <a href="/" className="logo">{logo}</a>
+          {this.props.orgId ?
+            <Link to="organizationDetails" params={{orgId: this.props.orgId}} className="logo">{logo}</Link>
+            :
+            <a href="/" className="logo">{logo}</a>
+          }
           <OrganizationSelector organization={this.getOrganization()} className="pull-right" />
         </div>
       </header>
