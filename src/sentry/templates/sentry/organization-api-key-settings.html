@@ -39,8 +39,10 @@
         </div>
       </div>
 
-      <div class="scopes">
+      <div class="row scopes">
+        <div class="col-md-12">
         {{ form.scopes|as_crispy_field }}
+        </div>
       </div>
 
       {{ form.allowed_origins|as_crispy_field }}
