@@ -108,7 +108,7 @@ class ProjectKey(Model):
             url = settings.SENTRY_ENDPOINT
         else:
             key = self.public_key
-            url = settings.SENTRY_PUBLIC_ENDPOINT
+            url = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
 
         urlparts = urlparse(url or settings.SENTRY_URL_PREFIX)
         return '%s://%s@%s/%s' % (
