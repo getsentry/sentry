@@ -82,7 +82,7 @@ var GroupUserReports = React.createClass({
           <Gravatar email={item.email} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
-            <div className="activity-author">{item.name}</div>
+            <div className="activity-author">{item.name} <small>{item.email}</small></div>
             <p dangerouslySetInnerHTML={{__html: body}} />
           </div>
         </li>
