@@ -11,7 +11,6 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.db import connections
 from django.utils import timezone
-from nydus.utils import ThreadPool
 from optparse import make_option
 
 from sentry.app import nodestore
@@ -20,6 +19,7 @@ from sentry.models import (
     LostPasswordHash, TagValue
 )
 from sentry.utils import db
+from sentry.utils.threadpool import ThreadPool
 
 
 def delete_object(item):

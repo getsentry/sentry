@@ -2,31 +2,18 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
-from sentry.api.bases.group import GroupPermission
+from sentry.api.base import DocSection
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Event, Release
+from sentry.models import Event
 
 
-class EventDetailsEndpoint(Endpoint):
-    permission_classes = (GroupPermission,)
+class ProjectEventDetailsEndpoint(ProjectEndpoint):
+    doc_section = DocSection.EVENTS
 
-    def _get_release_info(self, request, event):
-        version = event.get_tag('sentry:release')
-        if not version:
-            return None
-        try:
-            release = Release.objects.get(
-                project=event.project,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            return {'version': version}
-        return serialize(release, request.user)
-
-    def get(self, request, event_id):
+    def get(self, request, project, event_id):
         """
-        Retrieve an event
+        Retrieve an event for a project
 
         Return details on an individual event.
 
@@ -34,10 +21,9 @@ class EventDetailsEndpoint(Endpoint):
 
         """
         event = Event.objects.get(
-            id=event_id
+            event_id=event_id,
+            project=project,
         )
-
-        self.check_object_permissions(request, event.group)
 
         Event.objects.bind_nodes([event], 'data')
 
@@ -67,14 +53,13 @@ class EventDetailsEndpoint(Endpoint):
             prev_event = None
 
         data = serialize(event, request.user)
-        data['release'] = self._get_release_info(request, event)
 
         if next_event:
-            data['nextEventID'] = str(next_event.id)
+            data['nextEventID'] = str(next_event.event_id)
         else:
             data['nextEventID'] = None
         if prev_event:
-            data['previousEventID'] = str(prev_event.id)
+            data['previousEventID'] = str(prev_event.event_id)
         else:
             data['previousEventID'] = None
 
