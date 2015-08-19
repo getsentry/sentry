@@ -8,6 +8,7 @@ Version 7.8.0
 - The 'sentry' user can no longer be removed.
 - The Cassandra nodestore backend was broken, and this has been resolved.
 - The ``has_perm`` plugin hook is no longer used.
+- Do not unconditionally map sys.stdout to sys.stderr
 
 
 Version 7.7.0
