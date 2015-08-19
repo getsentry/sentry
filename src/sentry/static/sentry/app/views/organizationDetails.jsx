@@ -108,11 +108,13 @@ var OrganizationDetails = React.createClass({
       children.push(cb(org));
     });
 
+    var params = this.context.router.getCurrentParams();
+
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {children}
-          <Header />
+          <Header orgId={params.orgId}/>
           <Router.RouteHandler />
           <Footer />
         </div>
