@@ -16,19 +16,24 @@
     Event Throughput
     <small id="rate" class="pull-right"></small>
   </h3>
-  <div id="chart" class="chart"></div>
+  <div id="org_chart" class="chart" style="height:250px"></div>
+
+  <h3>API Responses</h3>
+  <div id="api_chart" class="chart" style="height:250px"></div>
 
   <script>
   $(function(){
-    var $chart = $('#chart');
     var $projectData = $('#project_data');
-    var rawData = {"events.total": null, "events.dropped": null};
+    var rawData = {
+      "events.total": null,
+      "events.dropped": null,
+      "client-api.all-versions.responses.2xx": null,
+      "client-api.all-versions.responses.4xx": null,
+      "client-api.all-versions.responses.5xx": null
+    };
     var statsEndpoint = app.config.urlPrefix + '/api/0/internal/stats/';
     var stats = {received: [], rejected: []};
     var systemTotal = {received: 0, rejected: 0, accepted: 0};
-    var pendingRequests = 2;
-
-    $chart.height('250px');
 
     $.each(rawData, function(statName, _) {
       // query the organization stats via a separate call as its possible the project stats
@@ -54,12 +59,25 @@
 
     function requestFinished() {
       if (rawData['events.total'] && rawData['events.dropped']) {
-        processData();
-        renderChart();
+        processOrgData();
+        renderOrgChart();
+      }
+      if (rawData['client-api.all-versions.responses.2xx'] && rawData['client-api.all-versions.responses.4xx'] && rawData['client-api.all-versions.responses.5xx']) {
+        renderApiChart();
       }
     }
 
-    function processData() {
+    function processRawSeries(series) {
+      var result = [];
+      var item;
+      for (var i = 0; i < series.length; i++) {
+        item = series[i];
+        result.push([item[0] * 1000, item[1]]);
+      }
+      return result;
+    }
+
+    function processOrgData() {
       var oReceived = 0;
       var oRejected = 0;
       var sReceived = {};
@@ -95,11 +113,11 @@
       });
     }
 
-    function renderChart() {
+    function renderOrgChart() {
       var points = [
         {
           data: stats.accepted,
-          label: 'Stored',
+          label: 'Accepted',
           color: 'rgba(86, 175, 232, 1)',
           shadowSize: 0,
           stack: true,
@@ -122,7 +140,53 @@
           }
         }
       ];
+      renderChart('#org_chart', points);
+      $('#rate').text(systemTotal.avgRate + ' avg EPM');
+    }
 
+    function renderApiChart() {
+      var points = [
+        {
+          data: processRawSeries(rawData['client-api.all-versions.responses.4xx']),
+          color: 'rgb(86, 175, 232)',
+          shadowSize: 0,
+          label: '4xx',
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        },
+        {
+          data: processRawSeries(rawData['client-api.all-versions.responses.5xx']),
+          color: 'rgb(244, 63, 32)',
+          shadowSize: 0,
+          label: '5xx',
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        },
+        {
+          data: processRawSeries(rawData['client-api.all-versions.responses.2xx']),
+          label: '2xx',
+          color: 'rgb(78, 222, 73)',
+          shadowSize: 0,
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        }
+      ];
+      renderChart('#api_chart', points);
+    }
+
+    function renderChart(parent, points) {
       var options = {
         xaxis: {
           mode: "time",
@@ -131,6 +195,7 @@
         },
         yaxis: {
           min: 0,
+          minTickSize: 1,
           tickFormatter: function(value) {
             if (value > 999999) {
               return (value / 1000000) + 'mm';
@@ -146,9 +211,9 @@
           content: function(label, xval, yval, flotItem) {
             xval = parseInt(xval, 10);
             if(typeof yval.toLocaleString == "function") {
-                return yval.toLocaleString() + ' events ' + flotItem.series.label.toLowerCase() + '<br>' + moment(xval).format('llll');
+              yval = yval.toLocaleString();
             }
-            return yval + ' events<br>' + moment(xval).format('llll');
+              return '<strong>' + flotItem.series.label + ':</strong> ' + yval + '<br>' + moment(xval).format('llll');
           },
           defaultTheme: false
         },
@@ -162,19 +227,17 @@
         },
         hoverable: false,
         legend: {
-            noColumns: 2,
+            noColumns: points.length,
             position: 'nw'
         },
         lines: { show: false }
       };
 
-      $.plot($chart, points, options);
-
+      var $parent = $(parent);
+      $.plot($parent, points, options);
       $(window).resize(function(){
-        $.plot($chart, points, options);
+        $.plot($parent, points, options);
       });
-
-      $('#rate').text(systemTotal.avgRate + ' avg EPM');
     }
   });
   </script>
