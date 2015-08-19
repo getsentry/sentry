@@ -1,7 +1,8 @@
 import React from "react";
+import moment from "moment";
+
 import Gravatar from "../../components/gravatar";
 import GroupState from "../../mixins/groupState";
-
 import {userDisplayName} from "../../utils/formatters";
 
 var GroupSeenBy = React.createClass({
@@ -31,9 +32,9 @@ var GroupSeenBy = React.createClass({
     var group = this.getGroup();
 
     var seenByNodes = group.seenBy.map((user, userIdx) => {
-      var displayName = userDisplayName(user);
+      let title = userDisplayName(user) + '<br/>' + moment(user.lastSeen).format("LL");
       return (
-        <li key={userIdx} className="tip" data-title={displayName}>
+        <li key={userIdx} className="tip" data-title={title}>
           <Gravatar size={52} email={user.email} />
         </li>
       );
