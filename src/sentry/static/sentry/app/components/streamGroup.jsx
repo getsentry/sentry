@@ -200,8 +200,8 @@ var StreamGroup = React.createClass({
                   </Router.Link>
                 </li>
               }
-              <li className="hidden-xs">
-                <span className="message">{data.culprit}</span>
+              <li className="event-culprit hidden-xs">
+                {data.culprit}
               </li>
               {data.annotations.map((annotation, key) => {
                 return (
