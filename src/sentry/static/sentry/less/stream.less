@@ -321,6 +321,7 @@
       ul {
         .list-unstyled;
         margin-left: -9px;
+        .clearfix;
 
         li {
           float: left;
@@ -394,13 +395,10 @@
   }
 
   .event-culprit {
-    .message {
-      text-align: right;
-      font-size: 90%;
-      white-space: nowrap;
-      line-height: 100%;
-      line-height: 66px;
-    }
+    max-width: 180px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .event-assignee {
