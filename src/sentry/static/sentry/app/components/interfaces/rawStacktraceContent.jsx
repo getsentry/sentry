@@ -2,16 +2,45 @@ import React from "react";
 import PropTypes from "../../proptypes";
 import {defined, trim} from "../../utils";
 
-function getFrame(frame, platform) {
+function getException(exception, platform) {
+  switch (platform) {
+    case "php":
+      return getPHPException(exception);
+    case "java":
+    case "javascript":
+    case "python":
+    case "ruby":
+    /* falls through */
+    default:
+      return getDefaultException(exception);
+  }
+}
+
+export function getPHPException(exception) {
+  var result = exception.type + ': '  + exception.value;
+  if (exception.module) {
+    result += ' in ' + exception.module;
+  }
+  result += '\nStack trace:';
+  return result;
+}
+
+export function getDefaultException(exception) {
+  return exception.type + ': ' + exception.value;
+}
+
+function getFrame(frame, platform, index) {
   switch (platform) {
     case "javascript":
       return getJavaScriptFrame(frame);
     case "ruby":
       return getRubyFrame(frame);
-    case "python":
-      return getPythonFrame(frame);
     case "java":
       return getJavaFrame(frame);
+    case "php":
+      return getPHPFrame(frame, index);
+    case "python": // default
+    /* falls through */
     default:
       return getPythonFrame(frame);
   }
@@ -106,12 +135,35 @@ export function getJavaFrame(frame) {
   return result;
 }
 
+export function getPHPFrame(frame, index) {
+  // NOTE: doesn't include vars
+  var result = '#' + index + ' ';
+  if (defined(frame.filename)) {
+    result += frame.filename;
+    if (defined(frame.lineNo)) {
+      result += '(' + frame.lineNo;
+      if (defined(frame.colNo)) {
+        result += ':' + frame.colNo;
+      }
+      result += ')';
+    }
+    result += ': ';
+  }
+  if (defined(frame.module)) {
+    result += frame.module + '->';
+  }
+  if (defined(frame.function)) {
+    result += frame.function + '()';
+  }
+  return result;
+}
+
 export default function render (data, platform, exception) {
   var firstFrameOmitted, lastFrameOmitted;
   var children = [];
 
   if (exception) {
-    children.push(exception.type + ': ' + exception.value);
+    children.push(getException(exception, platform));
   }
 
   if (data.framesOmitted) {
@@ -123,7 +175,7 @@ export default function render (data, platform, exception) {
   }
 
   data.frames.forEach((frame, frameIdx) => {
-    children.push(getFrame(frame, platform));
+    children.push(getFrame(frame, platform, frameIdx));
     if (frameIdx === firstFrameOmitted) {
       children.push((
         '.. frames ' + firstFrameOmitted + ' until ' + lastFrameOmitted + ' were omitted and not available ..'
