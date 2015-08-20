@@ -16,6 +16,8 @@ import sys
 import pkg_resources
 import warnings
 
+from functools import partial
+
 USE_GEVENT = os.environ.get('USE_GEVENT') == '1'
 
 KEY_LENGTH = 40
@@ -286,7 +288,7 @@ def initialize_gevent():
         make_psycopg_green()
 
 
-def initialize_app(config):
+def initialize_app(config, skip_backend_validation=False):
     from django.utils import timezone
     from sentry.app import env
 
@@ -320,7 +322,8 @@ def initialize_app(config):
 
     initialize_receivers()
 
-    validate_backends()
+    if not skip_backend_validation:
+        validate_backends()
 
 
 def validate_backends():
@@ -427,7 +430,7 @@ def on_configure(config):
         settings, 'social_auth', 'social_auth_association')
 
 
-def configure(config_path=None):
+def configure(config_path=None, skip_backend_validation=False):
     configure_app(
         project='sentry',
         config_path=config_path,
@@ -435,7 +438,8 @@ def configure(config_path=None):
         default_settings='sentry.conf.server',
         settings_initializer=generate_settings,
         settings_envvar='SENTRY_CONF',
-        initializer=initialize_app,
+        initializer=partial(
+            initialize_app, skip_backend_validation=skip_backend_validation),
         on_configure=on_configure,
     )
 

@@ -1,0 +1,12 @@
+{
+  "requests": [
+    {
+      "path": "/api/0/groups/1/", 
+      "method": "GET", 
+      "headers": {
+        "Host": "app.getsentry.com", 
+        "Authorization": "Basic YWU2ZDg0YWIwODNkNDFkYjliOGY0OGMxNzJhNzYyNGE6"
+      }
+    }
+  ]
+}
