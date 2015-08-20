@@ -150,6 +150,12 @@ def main(num_events=1):
                     release=release.version,
                 )
 
+                event5 = create_sample_event(
+                    project=project,
+                    platform='php',
+                    release=release.version,
+                )
+
             Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
