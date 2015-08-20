@@ -5,7 +5,9 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch
 
-from sentry.models import Group, GroupBookmark, GroupSeen, GroupStatus
+from sentry.models import (
+    EventMapping, Group, GroupBookmark, GroupSeen, GroupStatus
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
 
@@ -142,6 +144,44 @@ class GroupListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == str(group2.id)
+
+    def test_lookup_by_event_id(self):
+        project = self.project
+        project.update_option('sentry:resolve_age', 1)
+        now = timezone.now()
+        group = self.create_group(checksum='a' * 32)
+        self.create_group(checksum='b' * 32)
+        EventMapping.objects.create(
+            event_id='c' * 32,
+            project=group.project,
+            group=group,
+        )
+
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-group-index', kwargs={
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
+        response = self.client.get(url + '?query=' + ('c' * 32), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == str(group.id)
+
+    def test_lookup_by_unknown_event_id(self):
+        project = self.project
+        project.update_option('sentry:resolve_age', 1)
+        now = timezone.now()
+        group = self.create_group(checksum='a' * 32)
+        self.create_group(checksum='b' * 32)
+
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-project-group-index', kwargs={
+            'organization_slug': self.project.organization.slug,
+            'project_slug': self.project.slug,
+        })
+        response = self.client.get(url + '?query=' + ('c' * 32), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
 
 class GroupUpdateTest(APITestCase):

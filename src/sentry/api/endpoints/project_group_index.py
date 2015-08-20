@@ -16,7 +16,7 @@ from sentry.constants import (
 )
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Group, GroupBookmark, GroupSeen, GroupStatus, TagKey
+    Activity, EventMapping, Group, GroupBookmark, GroupSeen, GroupStatus, TagKey
 )
 from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
@@ -139,7 +139,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if cursor:
             query_kwargs['cursor'] = Cursor.from_string(cursor)
 
-        query = request.GET.get('query', 'is:unresolved')
+        query = request.GET.get('query', 'is:unresolved').strip()
+        if len(query) == 32:
+            # check to see if we've got an event ID
+            try:
+                matching_event = EventMapping.objects.filter(
+                    project=project,
+                    event_id=query,
+                ).select_related('group')[0]
+            except IndexError:
+                pass
+            else:
+                return Response(serialize(
+                    [matching_event.group], request.user, StreamGroupSerializer(
+                        stats_period=stats_period
+                    )
+                ))
+
         if query is not None:
             query_kwargs.update(parse_query(query, request.user))
 
