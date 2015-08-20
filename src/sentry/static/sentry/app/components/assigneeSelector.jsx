@@ -9,6 +9,8 @@ import MenuItem from "./menuItem";
 import PropTypes from "../proptypes";
 import LoadingIndicator from "../components/loadingIndicator";
 import {compareArrays, valueIsEqual} from "../utils";
+import classNames from "classnames";
+import {userDisplayName} from "../utils/formatters";
 
 var AssigneeSelector = React.createClass({
   mixins: [
@@ -28,6 +30,26 @@ var AssigneeSelector = React.createClass({
       filter: '',
       loading: false
     };
+  },
+
+  componentDidMount() {
+    this.attachTooltips();
+  },
+
+  componentWillUnmount() {
+    this.removeTooltips();
+    $(this.getDOMNode()).unbind();
+  },
+
+  attachTooltips() {
+    $(this.getDOMNode()).tooltip({
+      html: true,
+      selector: ".tip"
+    });
+  },
+
+  removeTooltips() {
+    $(this.getDOMNode()).tooltip("destroy");
   },
 
   componentWillReceiveProps(nextProps) {
@@ -143,6 +165,11 @@ var AssigneeSelector = React.createClass({
       );
     }.bind(this));
 
+    var tooltipTitle = null;
+    if (assignedTo) {
+      tooltipTitle = userDisplayName(assignedTo);
+    }
+
     return (
       <div ref="container">
         <div className={className}>
@@ -154,7 +181,7 @@ var AssigneeSelector = React.createClass({
               onOpen={this.onDropdownOpen}
               onClose={this.onDropdownClose}
               title={assignedTo ?
-                <Gravatar email={assignedTo.email} className="avatar"
+                <Gravatar email={assignedTo.email} title={tooltipTitle} className="avatar tip"
                           size={48} />
                 :
                 <span className="icon-user" />
