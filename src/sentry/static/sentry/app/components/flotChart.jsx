@@ -32,6 +32,23 @@ var timeUnitSize = {
   "year": 365.2425 * 24 * 60 * 60 * 1000
 };
 
+var numberWithCommas = function(x) {
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+var buildTooltipHandler = function(series) {
+  return function(_l, xval, _y, flotItem) {
+    var yval;
+    var content = '<h6>' + moment(parseInt(xval, 10)).format('llll') + '</h6>';
+    for (var i = 0; i < series.length; i++) {
+      // we're assuming series are identical
+      yval = numberWithCommas(series[i].data[flotItem.dataIndex][1] || 0);
+      content += '<strong style="color:' + series[i].color + '">' + series[i].label + ':</strong> ' + yval + '<br>';
+    }
+    return content;
+  };
+};
+
 var tickFormatter = (value, axis) => {
   var d = moment(parseInt(value, 10));
 
@@ -69,6 +86,7 @@ var FlotChart = React.createClass({
   },
 
   renderChart(options) {
+    var series = this.props.plotData;
     var plotOptions = {
       xaxis: {
         mode: "time",
@@ -90,17 +108,7 @@ var FlotChart = React.createClass({
       },
       tooltip: true,
       tooltipOpts: {
-        content: (label, xval, yval, flotItem) => {
-          var xLabel = moment(parseInt(xval, 10)).format('llll');
-          var ySuffix = (flotItem.series.label || '').toLowerCase();
-          var yLabel;
-          if (typeof yval.toLocaleString === "function") {
-            yLabel = yval.toLocaleString();
-          } else {
-            yLabel = yval;
-          }
-          return yLabel + ' ' + ySuffix + '<br>' + xLabel;
-        },
+        content: buildTooltipHandler(series),
         defaultTheme: false
       },
       grid: {
@@ -113,14 +121,14 @@ var FlotChart = React.createClass({
       },
       hoverable: false,
       legend: {
-        noColumns: 2,
+        noColumns: series.length,
         position: 'nw'
       },
       lines: { show: false }
     };
 
     var chart = this.refs.chartNode.getDOMNode();
-    jQuery.plot(chart, this.props.plotData, plotOptions);
+    jQuery.plot(chart, series, plotOptions);
   },
 
   shouldComponentUpdate(nextProps, nextState) {

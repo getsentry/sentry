@@ -131,6 +131,16 @@ class APIView(BaseView):
                                     content_type='text/plain',
                                     status=500)
 
+        # TODO(dcramer): it'd be nice if we had an incr_multi method so
+        # tsdb could optimize this
+        metrics.incr('client-api.all-versions.requests')
+        metrics.incr('client-api.all-versions.responses.%s' % (
+            response.status_code,
+        ))
+        metrics.incr('client-api.all-versions.responses.%sxx' % (
+            str(response.status_code)[0],
+        ))
+
         if helper.context.version:
             metrics.incr('client-api.v%s.requests' % (
                 helper.context.version,
