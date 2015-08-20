@@ -22,11 +22,11 @@ var EventTags = React.createClass({
 
       children.push(
         <li key={key}>
-          <Router.Link
+          {key} = <Router.Link
             to="stream"
             params={params}
             query={{query: key + ':' + '"' + value + '"'}}>
-            {key} = {value}
+            {value}
           </Router.Link>
         </li>
       );
