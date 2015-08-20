@@ -5,6 +5,7 @@ import click
 import base64
 import urlparse
 import logging
+import requests
 
 from pytz import utc
 from datetime import datetime, timedelta
@@ -292,24 +293,43 @@ def run_scenario(scenario, vars):
     report('scenario', 'Running scenario "%s"' % scenario)
     filename = os.path.join(SCENARIO_PATH, scenario + '.py')
 
-    requests = []
+    reqs = []
 
-    def do_request(method, path, headers=None):
+    def do_request(method, path, headers=None, data=None):
         path = '/api/0/' + path.lstrip('/')
         headers = dict(headers or {})
         headers['Host'] = 'app.getsentry.com'
-        headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
+        req_headers = dict(headers)
+        req_headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
             vars['api_key'].key.encode('utf-8')))
-        requests.append({
+
+        body = None
+        if data is not None:
+            body = json.dumps(data)
+            headers['Content-Type'] = 'application/json'
+
+        url = 'http://127.0.0.1:%s%s' % (
+            settings.SENTRY_APIDOCS_WEB_PORT,
+            path,
+        )
+
+        response = requests.request(method=method, url=url,
+                                    headers=req_headers, data=body)
+
+        reqs.append({
             'method': method,
             'path': path,
-            'headers': headers,
+            'request_headers': headers,
+            'request_data': data,
+            'response_headers': dict(response.headers),
+            'response_data': response.json(),
+            'response_status': response.status_code,
         })
 
     globals = {
         'settings': settings,
         'request': do_request,
-        'requests': requests,
+        'requests': reqs,
         'vars': vars,
     }
 
@@ -322,7 +342,7 @@ def run_scenario(scenario, vars):
             pass
 
     execfile(filename, globals)
-    rv = {'requests': requests}
+    rv = {'requests': reqs}
     with open(os.path.join(OUTPUT_PATH, scenario + '.json'), 'w') as f:
         json.dump(rv, f, indent=2)
         f.write('\n')
