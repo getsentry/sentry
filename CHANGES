@@ -1,12 +1,12 @@
 Version 8.0.0
 -------------
 
+Version 8 of Sentry introduces a brand new frontend. Most of the application has been overhauled
+and rewritten on top of React and our web API. Additionally many new features have been exposed
+related to user assigned and release tracking.
+
 - The ``public`` setting on projects has been removed
   - This also removes ``SENTRY_ALLOW_PUBLIC_PROJECTS``
-
-Version 7.8.0
--------------
-
 - Clients which were only sending ``sentry_key`` and not using CORS will no
   longer be able to authenticate.
 - All incoming events now log through ``sentry.api``, which will additionally
