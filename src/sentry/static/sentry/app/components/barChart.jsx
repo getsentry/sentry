@@ -1,10 +1,21 @@
 import $ from "jquery";
 import moment from "moment";
 import React from "react";
-import TooltipTrigger from "./tooltipTrigger";
 import { valueIsEqual } from "../utils";
+import TooltipMixin from "../mixins/tooltip";
 
 var BarChart = React.createClass({
+  mixins: [
+    TooltipMixin(function () {
+      return {
+        html: true,
+        placement: this.props.placement,
+        selector: ".tip",
+        viewport: this.props.viewport
+      };
+    })
+  ],
+
   propTypes: {
     points: React.PropTypes.arrayOf(React.PropTypes.shape({
       x: React.PropTypes.number.isRequired,
@@ -33,30 +44,8 @@ var BarChart = React.createClass({
     };
   },
 
-  componentDidMount() {
-    this.attachTooltips();
-  },
-
-  componentWillUnmount() {
-    this.removeTooltips();
-    $(this.getDOMNode()).unbind();
-  },
-
   shouldComponentUpdate(nextProps, nextState) {
     return !valueIsEqual(this.props, nextProps, true);
-  },
-
-  attachTooltips() {
-    $(this.getDOMNode()).tooltip({
-      html: true,
-      placement: this.props.placement,
-      selector: ".tip",
-      viewport: this.props.viewport
-    });
-  },
-
-  removeTooltips() {
-    $(this.getDOMNode()).tooltip("destroy");
   },
 
   floatFormat(number, places) {

@@ -11,10 +11,15 @@ import LoadingIndicator from "../components/loadingIndicator";
 import {compareArrays, valueIsEqual} from "../utils";
 import classNames from "classnames";
 import {userDisplayName} from "../utils/formatters";
+import TooltipMixin from "../mixins/tooltip";
 
 var AssigneeSelector = React.createClass({
   mixins: [
-    Reflux.listenTo(GroupStore, "onGroupChange")
+    Reflux.listenTo(GroupStore, "onGroupChange"),
+    TooltipMixin({
+      html: true,
+      selector: ".tip"
+    })
   ],
 
   propTypes: {
@@ -30,26 +35,6 @@ var AssigneeSelector = React.createClass({
       filter: '',
       loading: false
     };
-  },
-
-  componentDidMount() {
-    this.attachTooltips();
-  },
-
-  componentWillUnmount() {
-    this.removeTooltips();
-    $(this.getDOMNode()).unbind();
-  },
-
-  attachTooltips() {
-    $(this.getDOMNode()).tooltip({
-      html: true,
-      selector: ".tip"
-    });
-  },
-
-  removeTooltips() {
-    $(this.getDOMNode()).tooltip("destroy");
   },
 
   componentWillReceiveProps(nextProps) {

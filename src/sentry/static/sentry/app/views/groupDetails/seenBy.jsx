@@ -4,29 +4,16 @@ import moment from "moment";
 import Gravatar from "../../components/gravatar";
 import GroupState from "../../mixins/groupState";
 import {userDisplayName} from "../../utils/formatters";
+import TooltipMixin from "../../mixins/tooltip";
 
 var GroupSeenBy = React.createClass({
-  mixins: [GroupState],
-
-  componentDidMount() {
-    this.attachTooltips();
-  },
-
-  componentWillUnmount() {
-    this.removeTooltips();
-    $(this.getDOMNode()).unbind();
-  },
-
-  attachTooltips() {
-    $(this.getDOMNode()).tooltip({
+  mixins: [
+    GroupState,
+    TooltipMixin({
       html: true,
       selector: ".tip"
-    });
-  },
-
-  removeTooltips() {
-    $(this.getDOMNode()).tooltip("destroy");
-  },
+    })
+  ],
 
   render() {
     var group = this.getGroup();
