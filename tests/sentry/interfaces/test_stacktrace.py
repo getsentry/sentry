@@ -7,7 +7,7 @@ import mock
 from exam import fixture
 
 from sentry.interfaces.stacktrace import (
-    Frame, Stacktrace, get_context, trim_frames
+    Frame, Stacktrace, get_context, slim_frame_data
 )
 from sentry.models import Event
 from sentry.testutils import TestCase
@@ -342,24 +342,40 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
 
 
-class TrimFramesTest(TestCase):
+class SlimFrameDataTest(TestCase):
     def test_under_max(self):
         value = {'frames': [{'filename': 'foo'}]}
-        trim_frames(value)
+        slim_frame_data(value)
         assert len(value['frames']) == 1
         assert value.get('frames_omitted') is None
 
     def test_over_max(self):
         values = []
         for n in xrange(5):
-            values.append({'filename': 'frame %d' % n})
+            values.append({
+                'filename': 'frame %d' % n,
+                'vars': {},
+                'pre_context': [],
+                'post_context': [],
+            })
         value = {'frames': values}
-        trim_frames(value, max_frames=4)
+        slim_frame_data(value, 4)
 
-        assert len(value['frames']) == 4
+        assert len(value['frames']) == 5
 
         for value, num in zip(values[:2], xrange(2)):
             assert value['filename'] == 'frame %d' % num
+            assert value['vars'] is not None
+            assert value['pre_context'] is not None
+            assert value['post_context'] is not None
 
-        for value, num in zip(values[2:], xrange(3, 5)):
+        assert values[2]['filename'] == 'frame 2'
+        assert 'vars' not in values[2]
+        assert 'pre_context' not in values[2]
+        assert 'post_context' not in values[2]
+
+        for value, num in zip(values[3:], xrange(3, 5)):
             assert value['filename'] == 'frame %d' % num
+            assert value['vars'] is not None
+            assert value['pre_context'] is not None
+            assert value['post_context'] is not None

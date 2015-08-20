@@ -114,21 +114,24 @@ def remove_filename_outliers(filename):
     return _filename_version_re.sub('<version>/', filename)
 
 
-def trim_frames(stacktrace, max_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES):
-    # TODO: this doesnt account for cases where the client has already omitted
-    # frames
+def slim_frame_data(stacktrace, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
+    """
+    Removes various excess metadata from middle frames which go beyond
+    ``max_frames``.
+    """
     frames = stacktrace['frames']
     frames_len = len(frames)
 
-    if frames_len <= max_frames:
+    if frames_len <= frame_allowance:
         return
 
-    half_max = max_frames / 2
-
-    stacktrace['frames_omitted'] = (half_max, frames_len - half_max)
+    half_max = frame_allowance / 2
 
     for n in xrange(half_max, frames_len - half_max):
-        del frames[half_max]
+        # remove heavy components
+        frames[half_max].pop('vars', None)
+        frames[half_max].pop('pre_context', None)
+        frames[half_max].pop('post_context', None)
 
 
 def validate_bool(value, required=True):
@@ -430,7 +433,7 @@ class Stacktrace(Interface):
     def to_python(cls, data):
         assert data.get('frames')
 
-        trim_frames(data)
+        slim_frame_data(data)
 
         kwargs = {
             'frames': [
