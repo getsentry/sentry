@@ -11,6 +11,7 @@ var Gravatar = React.createClass({
 
   getDefaultProps() {
     return {
+      className: "avatar",
       size: 64
     };
   },
@@ -37,7 +38,7 @@ var Gravatar = React.createClass({
     }
 
     return (
-      <img src={this.buildGravatarUrl()} className="avatar"/>
+      <img src={this.buildGravatarUrl()} className={this.props.className} title={this.props.title}/>
     );
   }
 });
