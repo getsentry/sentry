@@ -16,6 +16,8 @@ from sentry.db.models import (
 
 
 class Node(BaseModel):
+    __core__ = False
+
     id = models.CharField(max_length=40, primary_key=True)
     data = GzippedDictField()
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)

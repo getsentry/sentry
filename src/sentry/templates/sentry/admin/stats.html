@@ -22,13 +22,28 @@
     </div>
   </div>
 
+  <div class="box">
+    <div class="box-header">
+      <h4>API Responses</h4>
+    </div>
+    <div class="box-content with-padding">
+      <div id="blk_api_chart" style="height:250px"></div>
+    </div>
+  </div>
+
   <script>
   $(function(){
-    var rawData = {"events.total": null, "events.dropped": null};
+    var $projectData = $('#project_data');
+    var rawData = {
+      "events.total": null,
+      "events.dropped": null,
+      "client-api.all-versions.responses.2xx": null,
+      "client-api.all-versions.responses.4xx": null,
+      "client-api.all-versions.responses.5xx": null
+    };
     var statsEndpoint = '{{ URL_PREFIX }}/api/0/internal/stats/';
     var stats = {received: [], rejected: []};
     var systemTotal = {received: 0, rejected: 0, accepted: 0};
-    var pendingRequests = 2;
 
     $.each(rawData, function(statName, _) {
       // query the organization stats via a separate call as its possible the project stats
@@ -54,12 +69,25 @@
 
     function requestFinished() {
       if (rawData['events.total'] && rawData['events.dropped']) {
-        processData();
-        renderChart();
+        processOrgData();
+        renderOrgChart();
+      }
+      if (rawData['client-api.all-versions.responses.2xx'] && rawData['client-api.all-versions.responses.4xx'] && rawData['client-api.all-versions.responses.5xx']) {
+        renderApiChart();
       }
     }
 
-    function processData() {
+    function processRawSeries(series) {
+      var result = [];
+      var item;
+      for (var i = 0; i < series.length; i++) {
+        item = series[i];
+        result.push([item[0] * 1000, item[1]]);
+      }
+      return result;
+    }
+
+    function processOrgData() {
       var oReceived = 0;
       var oRejected = 0;
       var sReceived = {};
@@ -95,11 +123,11 @@
       });
     }
 
-    function renderChart() {
+    function renderOrgChart() {
       var points = [
         {
           data: stats.accepted,
-          label: 'Stored',
+          label: 'Accepted',
           color: 'rgba(86, 175, 232, 1)',
           shadowSize: 0,
           stack: true,
@@ -129,6 +157,52 @@
       }), document.getElementById('blk_chart'));
 
       $('#rate').text(systemTotal.avgRate + ' avg EPM');
+    }
+
+    function renderApiChart() {
+      var points = [
+        {
+          data: processRawSeries(rawData['client-api.all-versions.responses.4xx']),
+          color: 'rgb(86, 175, 232)',
+          shadowSize: 0,
+          label: '4xx',
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        },
+        {
+          data: processRawSeries(rawData['client-api.all-versions.responses.5xx']),
+          color: 'rgb(244, 63, 32)',
+          shadowSize: 0,
+          label: '5xx',
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        },
+        {
+          data: processRawSeries(rawData['client-api.all-versions.responses.2xx']),
+          label: '2xx',
+          color: 'rgb(78, 222, 73)',
+          shadowSize: 0,
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        }
+      ];
+
+      React.render(React.createFactory(Sentry.FlotChart)({
+         className: "chart",
+         plotData: points
+      }), document.getElementById('blk_api_chart'));
     }
   });
   </script>
