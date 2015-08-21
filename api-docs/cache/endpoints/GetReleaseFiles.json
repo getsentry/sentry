@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetReleaseFiles",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/",
+  "doc": "List a Release's Files\n``````````````````````\n\nRetrieve a list of files for a given release.",
+  "section": "releases",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.release_files.ReleaseFilesEndpoint:get"
+}

@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "PutGroupDetails",
+  "path": "/api/0/groups/{group_id}/",
+  "doc": "Update an aggregate\n```````````````````\n\nUpdates an individual aggregate's attributes.  Only the attributes\nsubmitted are modified.\n\nAttributes:\n\n- ``status``: ``\"resolved\"``, ``\"unresolved\"``, ``\"muted\"``\n- ``hasSeen``: `true`, false`\n- ``isBookmarked``: `true`, false`\n- ``assignedTo``: user id",
+  "section": "events",
+  "method": "PUT",
+  "internal_path": "sentry.api.endpoints.group_details.GroupDetailsEndpoint:put"
+}

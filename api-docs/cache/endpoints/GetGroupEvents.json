@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetGroupEvents",
+  "path": "/api/0/groups/{group_id}/events/",
+  "doc": "List Available Samples\n``````````````````````\n\nThis endpoint lists an aggregate's available samples.",
+  "section": "events",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.group_events.GroupEventsEndpoint:get"
+}

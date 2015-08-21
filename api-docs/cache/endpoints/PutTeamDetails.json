@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "PutTeamDetails",
+  "path": "/api/0/teams/{organization_slug}/{team_slug}/",
+  "doc": "Update a Team\n`````````````\n\nUpdate various attributes and configurable settings for the given\nteam.",
+  "section": "teams",
+  "method": "PUT",
+  "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:put"
+}

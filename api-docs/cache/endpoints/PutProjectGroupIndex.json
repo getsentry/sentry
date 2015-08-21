@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "PutProjectGroupIndex",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/groups/",
+  "doc": "Bulk Mutate a List of Aggregates\n````````````````````````````````\n\nBulk mutate various attributes on aggregates.\n\n- For non-status updates, the 'id' parameter is required.\n- For status updates, the 'id' parameter may be omitted for a batch\n  \"update all\" query.\n- An optional 'status' parameter may be used to restrict mutations to\n  only events with the given status.\n\nAttributes:\n\n- ``status``: resolved, unresolved, muted\n- ``hasSeen``: true, false\n- ``isBookmarked``: true, false\n- ``isPublic``: true, false\n- ``merge``: true, false\n\nIf any ids are out of scope this operation will succeed without\nany data mutation.",
+  "section": "events",
+  "method": "PUT",
+  "internal_path": "sentry.api.endpoints.project_group_index.ProjectGroupIndexEndpoint:put"
+}

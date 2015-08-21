@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "PutOrganizationDetails",
+  "path": "/api/0/organizations/{organization_slug}/",
+  "doc": "Update an Organization\n``````````````````````\n\nUpdate various attributes and configurable settings for the given\norganization.",
+  "section": "organizations",
+  "method": "PUT",
+  "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:put"
+}

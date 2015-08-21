@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetTeamProjectIndex",
+  "path": "/api/0/teams/{organization_slug}/{team_slug}/projects/",
+  "doc": "List a Team's Projects\n``````````````````````\n\nReturn a list of projects bound to a team.\n\n    {method} {path}",
+  "section": "teams",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.team_project_index.TeamProjectIndexEndpoint:get"
+}

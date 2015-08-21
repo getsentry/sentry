@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetProjectEvents",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/events/",
+  "doc": "List a Project's Available Samples\n``````````````````````````````````\n\nReturn a list of sampled events bound to a project.",
+  "section": "events",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.project_events.ProjectEventsEndpoint:get"
+}

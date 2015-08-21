@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "DeleteProjectGroupIndex",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/groups/",
+  "doc": "Bulk Remove a List of Aggregates\n````````````````````````````````\n\nPermanently remove the given aggregates.\n\nOnly queries by 'id' are accepted.\n\nIf any ids are out of scope this operation will succeed without\nany data mutation.",
+  "section": "events",
+  "method": "DELETE",
+  "internal_path": "sentry.api.endpoints.project_group_index.ProjectGroupIndexEndpoint:delete"
+}

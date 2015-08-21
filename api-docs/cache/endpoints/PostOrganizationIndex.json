@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "PostOrganizationIndex",
+  "path": "/api/0/organizations/",
+  "doc": "Create a New Organization\n`````````````````````````\n\nCreate a new organization.",
+  "section": "organizations",
+  "method": "POST",
+  "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:post"
+}
