@@ -14,15 +14,12 @@
     <div class="page-header">
       <h3>API Overiew</h3>
     </div>
-    <p>You are viewing documention for version 0 of the Sentry web API.</p>
 
-    <h4 id="current-version">Current Version</h4>
-
-    <p>The current version of the API is dubbed <strong>v0</strong> and is considered to be in a draft phase. <strong>While we don't expect public endpoints to add change greatly, keep in mind that the API is still under development.</strong></p>
+    <p>The current version of the API is dubbed <strong>v0</strong> and is considered to be in a draft phase. <strong>While we don't expect public endpoints to change greatly, keep in mind that the API is still under development.</strong></p>
 
     <h4 id="schema">Schema</h4>
 
-    <p>All API requests should be made to the /api/0/ prefix, and will return JSON as the response:</p>
+    <p>All API requests should be made to the <code>/api/0/</code> prefix, and will return JSON as the response:</p>
 
     <pre>$ curl -i {{ SENTRY_URL_PREFIX }}/api/0/
 
@@ -35,6 +32,8 @@
   Allow: GET, HEAD, OPTIONS
 
   {"version": "0"}</pre>
+
+    <p>Note: All endpoints also require a trailing slash!</p>
 
     <h4 id="http-verbs">HTTP Verbs</h4>
 
