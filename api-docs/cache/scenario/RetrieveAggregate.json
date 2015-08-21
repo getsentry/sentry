@@ -1,0 +1,308 @@
+{
+  "requests": [
+    {
+      "request": {
+        "path": "/api/0/groups/1/",
+        "data": null,
+        "method": "GET",
+        "headers": {
+          "Host": "app.getsentry.com"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-language": "en-us",
+          "vary": "Accept-Language, Cookie",
+          "server": "WSGIServer/0.1 Python/2.7.6",
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "date": "Fri, 21 Aug 2015 14:57:15 GMT",
+          "content-type": "application/json"
+        },
+        "reason": "OK",
+        "data": {
+          "seenBy": [],
+          "timeSpent": null,
+          "lastSeen": "2015-08-21T14:57:10Z",
+          "id": "1",
+          "userReportCount": 0,
+          "numComments": 0,
+          "stats": {
+            "30d": [
+              [
+                1437523200,
+                274076
+              ],
+              [
+                1437609600,
+                407309
+              ],
+              [
+                1437696000,
+                412009
+              ],
+              [
+                1437782400,
+                410215
+              ],
+              [
+                1437868800,
+                408301
+              ],
+              [
+                1437955200,
+                406223
+              ],
+              [
+                1438041600,
+                405719
+              ],
+              [
+                1438128000,
+                413473
+              ],
+              [
+                1438214400,
+                425541
+              ],
+              [
+                1438300800,
+                403121
+              ],
+              [
+                1438387200,
+                409134
+              ],
+              [
+                1438473600,
+                415248
+              ],
+              [
+                1438560000,
+                412207
+              ],
+              [
+                1438646400,
+                411900
+              ],
+              [
+                1438732800,
+                415257
+              ],
+              [
+                1438819200,
+                409443
+              ],
+              [
+                1438905600,
+                396094
+              ],
+              [
+                1438992000,
+                418727
+              ],
+              [
+                1439078400,
+                419398
+              ],
+              [
+                1439164800,
+                418215
+              ],
+              [
+                1439251200,
+                413494
+              ],
+              [
+                1439337600,
+                408692
+              ],
+              [
+                1439424000,
+                413751
+              ],
+              [
+                1439510400,
+                418980
+              ],
+              [
+                1439596800,
+                408658
+              ],
+              [
+                1439683200,
+                396292
+              ],
+              [
+                1439769600,
+                414620
+              ],
+              [
+                1439856000,
+                413029
+              ],
+              [
+                1439942400,
+                409344
+              ],
+              [
+                1440028800,
+                353316
+              ],
+              [
+                1440115200,
+                121778
+              ]
+            ],
+            "24h": [
+              [
+                1440079200,
+                17894
+              ],
+              [
+                1440082800,
+                18981
+              ],
+              [
+                1440086400,
+                17814
+              ],
+              [
+                1440090000,
+                12602
+              ],
+              [
+                1440093600,
+                7874
+              ],
+              [
+                1440097200,
+                11503
+              ],
+              [
+                1440100800,
+                12331
+              ],
+              [
+                1440104400,
+                6697
+              ],
+              [
+                1440108000,
+                7299
+              ],
+              [
+                1440111600,
+                7804
+              ],
+              [
+                1440115200,
+                9184
+              ],
+              [
+                1440118800,
+                8625
+              ],
+              [
+                1440122400,
+                8699
+              ],
+              [
+                1440126000,
+                7391
+              ],
+              [
+                1440129600,
+                10206
+              ],
+              [
+                1440133200,
+                8143
+              ],
+              [
+                1440136800,
+                8220
+              ],
+              [
+                1440140400,
+                6614
+              ],
+              [
+                1440144000,
+                7934
+              ],
+              [
+                1440147600,
+                5559
+              ],
+              [
+                1440151200,
+                6878
+              ],
+              [
+                1440154800,
+                7445
+              ],
+              [
+                1440158400,
+                7173
+              ],
+              [
+                1440162000,
+                8901
+              ],
+              [
+                1440165600,
+                10806
+              ]
+            ]
+          },
+          "culprit": "raven.scripts.runner in main",
+          "title": "This is an example Python exception",
+          "pluginActions": [],
+          "assignedTo": null,
+          "logger": null,
+          "annotations": [],
+          "status": "unresolved",
+          "tags": {},
+          "isPublic": false,
+          "permalink": "https://app.getsentry.com/the-interstellar-jurisdiction/pump-station/group/1/",
+          "firstRelease": {
+            "dateReleased": null,
+            "url": null,
+            "data": {},
+            "dateCreated": "2015-08-21T14:57:10.237Z",
+            "lastEvent": null,
+            "version": "acc477bd2a6e02bacf9953f8929ea79583a20e0a",
+            "firstEvent": null,
+            "shortVersion": "acc477bd2a6e",
+            "dateStarted": null,
+            "newGroups": 0,
+            "ref": null
+          },
+          "shareId": "322e31",
+          "firstSeen": "2015-08-21T14:57:10Z",
+          "count": "1",
+          "hasSeen": false,
+          "level": "error",
+          "isBookmarked": false,
+          "project": {
+            "name": "Pump Station",
+            "slug": "pump-station"
+          },
+          "lastRelease": null,
+          "activity": [
+            {
+              "type": "first_seen",
+              "user": null,
+              "data": {},
+              "id": "None",
+              "dateCreated": "2015-08-21T14:57:10Z"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "ident": "RetrieveAggregate"
+}

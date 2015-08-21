@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "DeleteOrganizationDetails",
+  "path": "/api/0/organizations/{organization_slug}/",
+  "doc": "Delete an Organization\n``````````````````````\n\nSchedules an organization for deletion.\n\n**Note:** Deletion happens asynchronously and therefor is not\nimmediate.  However once deletion has begun the state of a project\nchanges and will be hidden from most public views.",
+  "section": "organizations",
+  "method": "DELETE",
+  "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:delete"
+}

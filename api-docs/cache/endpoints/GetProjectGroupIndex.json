@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetProjectGroupIndex",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/groups/",
+  "doc": "List a Project's Aggregates\n```````````````````````````\n\nReturn a list of aggregates bound to a project.\n\nA default query of 'is:resolved' is applied. To return results\nwith other statuses send an new query value (i.e. ?query= for all\nresults).\n\nAny standard Sentry structured search query can be passed via the\n``query`` parameter.\n\nThe ``statsPeriod`` parameter can be used to select the timeline\nstats which should be present. Possible values are: '' (disable),\n'24h', '14d'",
+  "section": "events",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.project_group_index.ProjectGroupIndexEndpoint:get"
+}

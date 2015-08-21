@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "DeleteReleaseDetails",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
+  "doc": "Delete a Release\n````````````````\n\nPermanently remove a release and all of its files.",
+  "section": "releases",
+  "method": "DELETE",
+  "internal_path": "sentry.api.endpoints.release_details.ReleaseDetailsEndpoint:delete"
+}

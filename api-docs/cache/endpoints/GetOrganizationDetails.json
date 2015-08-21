@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetOrganizationDetails",
+  "path": "/api/0/organizations/{organization_slug}/",
+  "doc": "Retrieve an Organization\n````````````````````````\n\nReturn details on an individual organization including various details\nsuch as membership access, features, and teams.",
+  "section": "organizations",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:get"
+}

@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "DeleteGroupDetails",
+  "path": "/api/0/groups/{group_id}/",
+  "doc": "Delete an Aggregate\n```````````````````\n\nDeletes an individual aggregate.",
+  "section": "events",
+  "method": "DELETE",
+  "internal_path": "sentry.api.endpoints.group_details.GroupDetailsEndpoint:delete"
+}

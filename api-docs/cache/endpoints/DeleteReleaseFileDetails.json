@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "DeleteReleaseFileDetails",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/{file_id}/",
+  "doc": "Delete a File\n`````````````\n\nPermanently remove a file from a release.\n\nThis will also remove the physical file from storage.",
+  "section": "releases",
+  "method": "DELETE",
+  "internal_path": "sentry.api.endpoints.release_file_details.ReleaseFileDetailsEndpoint:delete"
+}

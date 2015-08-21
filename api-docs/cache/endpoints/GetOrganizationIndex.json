@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetOrganizationIndex",
+  "path": "/api/0/organizations/",
+  "doc": "List your Organizations\n```````````````````````\n\nReturn a list of organizations available to the authenticated session.",
+  "section": "organizations",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:get"
+}

@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetTeamDetails",
+  "path": "/api/0/teams/{organization_slug}/{team_slug}/",
+  "doc": "Retrieve a Team\n```````````````\n\nReturn details on an individual team.\n\n    {method} {path}",
+  "section": "teams",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:get"
+}

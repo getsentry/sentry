@@ -1,0 +1,9 @@
+{
+  "scenarios": [],
+  "endpoint_name": "GetGroupTagKeyValues",
+  "path": "/api/0/groups/{group_id}/tags/{key}/values/",
+  "doc": "List a Tag's Values\n```````````````````\n\nReturn a list of values associated with this key.",
+  "section": "events",
+  "method": "GET",
+  "internal_path": "sentry.api.endpoints.group_tagkey_values.GroupTagKeyValuesEndpoint:get"
+}
