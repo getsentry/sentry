@@ -18,6 +18,17 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
+from sentry.utils.apidocs import scenario, associate_scenarios
+
+
+@scenario('RetrieveAggregate')
+def retrieve_aggregate_scenario(runner):
+    project = runner.vars['default_project']
+    group = Group.objects.get(project=project)
+    return runner.request(
+        method='GET',
+        path='/groups/%s/' % group.id,
+    )
 
 
 class GroupSerializer(serializers.Serializer):
@@ -92,6 +103,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return {'version': version}
         return serialize(release, request.user)
 
+    @associate_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
         """
         Retrieve an Aggregate
