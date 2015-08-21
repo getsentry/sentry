@@ -75,6 +75,22 @@ var ActionLink = React.createClass({
     );
   },
 
+  shouldConfirm(numSelectedItems) {
+    // By default, should confirm ...
+    var shouldConfirm = true;
+
+    // Unless `neverConfirm` is true, then return false
+    if (this.props.neverConfirm === true) {
+      shouldConfirm = false;
+
+    // Unless `onlyIfBulk` is true, then return false if all items are not selected
+    } else if (this.props.onlyIfBulk === true && (!this.props.selectAllActive || numSelectedItems === 1)) {
+      shouldConfirm = false;
+    }
+
+    return shouldConfirm;
+  },
+
   renderOverlay() {
     if (!this.state.isModalOpen) {
       return null;
@@ -85,17 +101,7 @@ var ActionLink = React.createClass({
       throw new Error('ActionModal rendered without any selected groups');
     }
 
-    var shouldConfirm = true;
-    // if skipConfirm is set we never actually show the modal
-    if (this.props.neverConfirm === true) {
-      shouldConfirm = false;
-    // if onlyIfBulk is set and we've selected a single item, we skip
-    // showing the modal
-    } else if (this.props.onlyIfBulk === true && !this.props.selectAllActive) {
-      shouldConfirm = false;
-    }
-
-    if (!shouldConfirm) {
+    if (!this.shouldConfirm(selectedItemIds.size)) {
       this.handleActionSelected();
       this.state.isModalOpen = false;
       return null;
