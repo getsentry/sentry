@@ -53,6 +53,6 @@ describe("ActionLink", function() {
       expect(actionLink.shouldConfirm(1)).to.be.false;
       expect(actionLink.shouldConfirm(2)).to.be.false;
       expect(actionLink.shouldConfirm(25)).to.be.false;
-    })
+    });
   });
 });
