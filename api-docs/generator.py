@@ -2,10 +2,8 @@ import os
 import zlib
 import json
 import click
-import base64
 import urlparse
 import logging
-import requests
 
 from pytz import utc
 from datetime import datetime, timedelta
@@ -20,20 +18,19 @@ SENTRY_CONFIG = os.path.join(HERE, 'sentry.conf.py')
 from sentry.utils import runner
 runner.configure(config_path=SENTRY_CONFIG, skip_backend_validation=True)
 from django.conf import settings
-from django.db.models import Model
 
 # Fair game from here
 from django.core.management import call_command
 
 from sentry.app import tsdb
-from sentry import models
 from sentry.models import User, Team, Project, Release, \
     Organization, OrganizationMember, Activity, ApiKey
 from sentry.utils.samples import create_sample_event
+from sentry.utils.apidocs import Runner, iter_scenarios, \
+    iter_endpoints, get_sections
 
 
-SCENARIO_PATH = os.path.join(HERE, 'scenarios')
-OUTPUT_PATH = os.path.join(HERE, 'examples')
+OUTPUT_PATH = os.path.join(HERE, 'cache')
 HOST = urlparse.urlparse(settings.SENTRY_URL_PREFIX).netloc
 
 
@@ -70,11 +67,13 @@ def create_sample_time_series(event):
             (tsdb.models.group, group.id),
         ), now, count)
         tsdb.incr_multi((
-            (tsdb.models.organization_total_received, group.project.organization_id),
+            (tsdb.models.organization_total_received,
+             group.project.organization_id),
             (tsdb.models.project_total_received, group.project.id),
         ), now, int(count * 1.1))
         tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected, group.project.organization_id),
+            (tsdb.models.organization_total_rejected,
+             group.project.organization_id),
             (tsdb.models.project_total_rejected, group.project.id),
         ), now, int(count * 0.1))
         now = now - timedelta(seconds=1)
@@ -86,11 +85,13 @@ def create_sample_time_series(event):
             (tsdb.models.group, group.id),
         ), now, count)
         tsdb.incr_multi((
-            (tsdb.models.organization_total_received, group.project.organization_id),
+            (tsdb.models.organization_total_received,
+             group.project.organization_id),
             (tsdb.models.project_total_received, group.project.id),
         ), now, int(count * 1.1))
         tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected, group.project.organization_id),
+            (tsdb.models.organization_total_rejected,
+             group.project.organization_id),
             (tsdb.models.project_total_rejected, group.project.id),
         ), now, int(count * 0.1))
         now = now - timedelta(hours=1)
@@ -283,69 +284,22 @@ class SentryBox(object):
         return event
 
 
-def iter_scenarios():
-    for filename in sorted(os.listdir(SCENARIO_PATH)):
-        if filename.endswith('.py'):
-            yield filename[:-3]
+def dump_json(path, data):
+    path = os.path.join(OUTPUT_PATH, path)
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        for line in json.dumps(data, indent=2).splitlines():
+            f.write(line.rstrip() + '\n')
 
 
-def run_scenario(scenario, vars):
-    report('scenario', 'Running scenario "%s"' % scenario)
-    filename = os.path.join(SCENARIO_PATH, scenario + '.py')
-
-    reqs = []
-
-    def do_request(method, path, headers=None, data=None):
-        path = '/api/0/' + path.lstrip('/')
-        headers = dict(headers or {})
-        headers['Host'] = 'app.getsentry.com'
-        req_headers = dict(headers)
-        req_headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
-            vars['api_key'].key.encode('utf-8')))
-
-        body = None
-        if data is not None:
-            body = json.dumps(data)
-            headers['Content-Type'] = 'application/json'
-
-        url = 'http://127.0.0.1:%s%s' % (
-            settings.SENTRY_APIDOCS_WEB_PORT,
-            path,
-        )
-
-        response = requests.request(method=method, url=url,
-                                    headers=req_headers, data=body)
-
-        reqs.append({
-            'method': method,
-            'path': path,
-            'request_headers': headers,
-            'request_data': data,
-            'response_headers': dict(response.headers),
-            'response_data': response.json(),
-            'response_status': response.status_code,
-        })
-
-    globals = {
-        'settings': settings,
-        'request': do_request,
-        'requests': reqs,
-        'vars': vars,
-    }
-
-    for attr in dir(models):
-        value = getattr(models, attr, None)
-        try:
-            if issubclass(value, Model):
-                globals[attr] = value
-        except Exception:
-            pass
-
-    execfile(filename, globals)
-    rv = {'requests': reqs}
-    with open(os.path.join(OUTPUT_PATH, scenario + '.json'), 'w') as f:
-        json.dump(rv, f, indent=2)
-        f.write('\n')
+def run_scenario(vars, scenario_ident, func):
+    runner = Runner(vars, scenario_ident)
+    report('scenario', 'Running scenario "%s"' % scenario_ident)
+    func(runner)
+    dump_json('scenario/%s.json' % scenario_ident, runner.to_json())
 
 
 @click.command()
@@ -375,14 +329,26 @@ def cli():
             'org': org,
             'api_key': api_key,
             'me': user,
+            'default_project': projects[0]['project'],
+            'default_release': projects[0]['release'],
+            'default_event': projects[0]['events'][0],
             'teams': [{
                 'team': team,
                 'projects': projects,
             }],
         }
 
-        for scenario in iter_scenarios():
-            run_scenario(scenario, vars)
+        for scenario_ident, func in iter_scenarios():
+            run_scenario(vars, scenario_ident, func)
+
+        report('docs', 'Exporting endpoint documentation')
+        for endpoint in iter_endpoints():
+            report('endpoint', 'Exporting docs for "%s"' %
+                   endpoint['endpoint_name'])
+            dump_json('endpoints/%s.json' % endpoint['endpoint_name'], endpoint)
+
+        report('docs', 'Exporting sections')
+        dump_json('sections.json', get_sections())
 
 
 if __name__ == '__main__':
