@@ -11,7 +11,7 @@ var GroupListHeader = React.createClass({
           <div className="hidden-sm hidden-xs stream-actions-graph col-md-2 col-md-offset-1 align-right">
             Last 24 hours
           </div>
-          <div className="stream-actions-occurrences align-right col-md-1 col-sm-2 col-xs-2">events</div>
+          <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">events</div>
           <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">users</div>
         </div>
       </div>

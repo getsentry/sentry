@@ -174,7 +174,7 @@ var StreamGroup = React.createClass({
               {data.title}
             </Router.Link>
           </h3>
-          <div className="event-message truncate hidden-md hidden-lg hidden-sm visible-xs">
+          <div className="event-message truncate">
             <span className="message">{data.culprit}</span>
           </div>
           <div className="event-extra">
@@ -200,9 +200,6 @@ var StreamGroup = React.createClass({
                   </Router.Link>
                 </li>
               }
-              <li className="event-culprit hidden-xs">
-                {data.culprit}
-              </li>
               {data.annotations.map((annotation, key) => {
                 return (
                   <li className="event-annotation"
@@ -219,7 +216,7 @@ var StreamGroup = React.createClass({
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} />
         </div>
-        <div className="col-md-1 col-xs-2 event-occurrences align-right">
+        <div className="col-md-1 col-xs-2 event-count align-right">
           <Count value={data.count} />
         </div>
         <div className="col-md-1 col-xs-2 event-users align-right">

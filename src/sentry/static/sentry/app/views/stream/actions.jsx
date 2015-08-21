@@ -275,7 +275,7 @@ var StreamActions = React.createClass({
             </li>
           </ul>
         </div>
-        <div className="stream-actions-occurrences align-right col-md-1 col-sm-2 col-xs-2"> events</div>
+        <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2"> events</div>
         <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2"> users</div>
       </div>
     );

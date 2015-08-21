@@ -77,7 +77,7 @@
     padding-top: 12px;
   }
 
-  .stream-actions-occurrences,
+  .stream-actions-count,
   .stream-actions-users {
     padding-top: 12px;
     font-size: 13px;
@@ -296,28 +296,30 @@
 
     h3 {
       font-size: 16px;
-      line-height: 1.1;
-      letter-spacing: -0.25px;
-      margin: 0 0 -1px;
-      display: inline-block;
+      line-height: 1;
+      margin: 0 0 5px;
+      font-weight: 600;
       a {
-        color: @grayDark;
+        color: #222;
       }
     }
 
     .event-message, .event-extra {
-      line-height: 1.2;
-      color: lighten(@gray, 12);
+      line-height: 1;
     }
 
     .event-message {
-      font-size: 95%;
-      margin-bottom: 5px;
+      font-weight: 100;
+      font-size: 14px;
+      text-style: italic;
+      margin-bottom: 7px;
+      color: @gray;
+    }
+    .event-extra {
+      color: @gray-light;
     }
 
     .event-extra {
-      margin-top: 2px;
-
       ul {
         .list-unstyled;
         margin-left: -9px;
@@ -326,11 +328,11 @@
         li {
           float: left;
           margin: 0 0 5px 9px;
-          font-size: 13px;
+          font-size: 12px;
           line-height: 1;
           border-right: 1px solid lighten(@trim, 6);
           padding-right: 9px;
-          height: 13px;
+          height: 12px;
 
           &:last-child {
             border: 0;
@@ -348,11 +350,7 @@
 
           .icon {
             margin-right: 4px;
-            font-size: 12px;
-          }
-
-          .icon-comments {
-            font-size: 11px;
+            font-size: 10px;
           }
 
           .tag-label {
@@ -394,16 +392,16 @@
     }
   }
 
-  .event-culprit {
-    max-width: 180px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  .event-assignee,
+  .event-graph,
+  .event-users,
+  .event-count {
+    padding-top: 28px;
+    line-height: 24px;
   }
 
   .event-assignee {
     color: #B5B9BD;
-    padding-top: 20px;
     text-align: center;
 
     .dropdown-menu {
@@ -412,12 +410,7 @@
     }
   }
 
-  .event-graph {
-    padding-top: 24px;
-  }
-
-  .event-users, .event-occurrences {
-    padding-top: 21px;
+  .event-users, .event-count {
     span {
       .stream-count;
       .transition(all linear .3s);
@@ -429,6 +422,13 @@
         color: #111;
       }
     }
+  }
+
+  .sparkline a {
+    height: 24px;
+  }
+  .sparkline a:before {
+    background-color: inherit;
   }
 
   &.group-list-small {
@@ -591,7 +591,7 @@
   }
 
   .stream-actions {
-    .stream-actions-occurrences, .stream-actions-users {
+    .stream-actions-count, .stream-actions-users {
       font-size: 13px;
       padding-top: 12px;
     }
@@ -599,7 +599,7 @@
 }
 
 @media(max-width: 767px) {
-  .event-users, .event-occurrences {
+  .event-users, .event-count {
     padding-top: 33px !important;
   }
 }
