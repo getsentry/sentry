@@ -140,12 +140,33 @@ var Stream = React.createClass({
 
     var url = this.getGroupListEndpoint();
 
+    var router = this.context.router;
+    var requestParams = $.extend({}, router.getCurrentQuery(), {
+      limit: this.props.maxItems,
+      statsPeriod: this.state.statsPeriod
+    });
+
+    if (!requestParams.hasOwnProperty("query")) {
+      requestParams.query = this.props.defaultQuery;
+    }
+
     if (this.lastRequest) {
       this.lastRequest.cancel();
     }
 
     this.lastRequest = api.request(url, {
+      method: 'GET',
+      data: requestParams,
       success: (data, _, jqXHR) => {
+        // Was this the result of an event SHA search? If so, redirect
+        // to corresponding group details
+        if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
+          let params = $.extend({}, router.getCurrentParams(), {
+            groupId: data[0].id
+          });
+          return void this.context.router.transitionTo('groupDetails', params);
+        }
+
         this._streamManager.push(data);
 
         this.setState({
@@ -172,17 +193,10 @@ var Stream = React.createClass({
   },
 
   getGroupListEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = $.extend({}, router.getCurrentQuery());
-    queryParams.limit = this.props.maxItems;
-    queryParams.statsPeriod = this.state.statsPeriod;
-    if (!queryParams.hasOwnProperty("query")) {
-      queryParams.query = this.props.defaultQuery;
-    }
-    var querystring = $.param(queryParams);
+    var router = this.context.router,
+      params = router.getCurrentParams();
 
-    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
+    return '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
   },
 
   onRealtimeChange(realtime) {
