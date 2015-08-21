@@ -55,7 +55,7 @@ class Client {
     var data = options.data;
     var id = this.uniqueId();
 
-    if (typeof data !== "undefined") {
+    if (typeof data !== "undefined" && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
