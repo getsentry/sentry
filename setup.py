@@ -50,6 +50,7 @@ ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 
 dev_requires = [
     'flake8>=2.0,<2.1',
+    'Click',
 ]
 
 tests_require = [
