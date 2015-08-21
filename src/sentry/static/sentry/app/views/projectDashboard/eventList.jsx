@@ -57,7 +57,7 @@ var EventNode = React.createClass({
               </ul>
             </div>
           </div>
-          <div className="col-xs-2 event-occurrences align-right">
+          <div className="col-xs-2 event-count align-right">
             <Count value={group.count} />
           </div>
           <div className="col-xs-2 event-users align-right">
