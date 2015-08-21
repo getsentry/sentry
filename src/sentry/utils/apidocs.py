@@ -170,13 +170,18 @@ class Runner(object):
         response = requests.request(method=method, url=url,
                                     headers=req_headers, data=body)
         rv = {
-            'method': method,
-            'path': path,
-            'request_headers': headers,
-            'request_data': data,
-            'response_headers': dict(response.headers),
-            'response_data': response.json(),
-            'response_status': response.status_code,
+            'request': {
+                'method': method,
+                'path': path,
+                'headers': headers,
+                'data': data,
+            },
+            'response': {
+                'headers': dict(response.headers),
+                'status': response.status_code,
+                'reason': response.reason,
+                'data': response.json(),
+            }
         }
 
         self.requests.append(rv)
