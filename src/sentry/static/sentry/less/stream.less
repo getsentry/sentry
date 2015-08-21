@@ -78,9 +78,11 @@
   }
 
   .stream-actions-count,
-  .stream-actions-users {
+  .stream-actions-users,
+  .stream-actions-level {
     padding-top: 12px;
     font-size: 13px;
+    text-transform: lowercase;
   }
 
   .realtime-paused {
@@ -394,10 +396,36 @@
 
   .event-assignee,
   .event-graph,
+  .event-priority,
   .event-users,
   .event-count {
     padding-top: 28px;
     line-height: 24px;
+  }
+
+  .event-priority span {
+    margin-top: 4px;
+    border-radius: 16px;
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    background-color: #cfd3da;
+    text-indent: -10000em;
+    font-size: 0;
+    overflow: hidden;
+
+    &.level-info {
+      background-color: #2788ce;
+    }
+    &.level-warning {
+      background-color: #f18500;
+    }
+    &.level-error {
+      background-color: #f43f20;
+    }
+    &.level-fatal {
+      background-color: #d20f2a;
+    }
   }
 
   .event-assignee {

@@ -134,7 +134,7 @@ var StreamActions = React.createClass({
   render() {
     return (
       <div className="stream-actions row">
-        <div className="stream-actions-left col-md-7 col-sm-8 col-xs-8">
+        <div className="stream-actions-left col-md-6 col-sm-8 col-xs-8">
           <div className="checkbox">
             <input type="checkbox" className="chk-select-all"
                    onChange={this.onSelectAll}
@@ -275,8 +275,9 @@ var StreamActions = React.createClass({
             </li>
           </ul>
         </div>
-        <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2"> events</div>
-        <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2"> users</div>
+        <div className="stream-actions-level align-right col-md-1 hidden-xs">Level</div>
+        <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">Events</div>
+        <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">Users</div>
       </div>
     );
   }
