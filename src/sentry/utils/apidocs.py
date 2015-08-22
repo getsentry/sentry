@@ -160,6 +160,11 @@ class Runner(object):
 
         response = requests.request(method=method, url=url,
                                     headers=req_headers, data=body)
+        response_headers = dict(response.headers)
+        # Don't want those
+        response_headers.pop('server', None)
+        response_headers.pop('date', None)
+
         rv = {
             'request': {
                 'method': method,
@@ -168,7 +173,7 @@ class Runner(object):
                 'data': data,
             },
             'response': {
-                'headers': dict(response.headers),
+                'headers': response_headers,
                 'status': response.status_code,
                 'reason': response.reason,
                 'data': response.json(),
