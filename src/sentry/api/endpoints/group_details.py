@@ -18,7 +18,7 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
-from sentry.utils.apidocs import scenario, associate_scenarios
+from sentry.utils.apidocs import scenario
 
 
 @scenario('RetrieveAggregate')
@@ -103,7 +103,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return {'version': version}
         return serialize(release, request.user)
 
-    @associate_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
         """
         Retrieve an Aggregate
@@ -111,6 +110,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         Return details on an individual aggregate.  Aggregates are also
         sometimes referred to as groups.
+
+        .. sentry:api-scenario:: RetrieveAggregate
         """
         # TODO(dcramer): handle unauthenticated/public response
         data = serialize(group, request.user)

@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "DeleteTeamDetails",
   "path": "/api/0/teams/{organization_slug}/{team_slug}/",
   "doc": "Delete a Team\n`````````````\n\nSchedules a team for deletion.\n\n**Note:** Deletion happens asynchronously and therefor is not\nimmediate.  However once deletion has begun the state of a project\nchanges and will be hidden from most public views.",

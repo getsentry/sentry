@@ -299,7 +299,7 @@ def run_scenario(vars, scenario_ident, func):
     runner = Runner(vars, scenario_ident)
     report('scenario', 'Running scenario "%s"' % scenario_ident)
     func(runner)
-    dump_json('scenario/%s.json' % scenario_ident, runner.to_json())
+    dump_json('scenarios/%s.json' % scenario_ident, runner.to_json())
 
 
 @click.command()

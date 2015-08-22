@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "GetProjectTagKeyValues",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/tags/{key}/values/",
   "doc": "List a Tag's Values\n```````````````````\n\nReturn a list of values associated with this key.",

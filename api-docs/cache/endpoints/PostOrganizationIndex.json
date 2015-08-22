@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "PostOrganizationIndex",
   "path": "/api/0/organizations/",
   "doc": "Create a New Organization\n`````````````````````````\n\nCreate a new organization.",

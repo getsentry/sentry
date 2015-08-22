@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "GetReleaseDetails",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
   "doc": "Retrieve a Release\n``````````````````\n\nReturn details on an individual release.",

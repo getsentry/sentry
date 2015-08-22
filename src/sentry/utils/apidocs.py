@@ -19,10 +19,10 @@ scenarios = {}
 
 
 def simplify_regex(pattern):
-    """
-    Clean up urlpattern regexes into something somewhat readable by Mere Humans:
-    turns something like "^(?P<sport_slug>\w+)/athletes/(?P<athlete_slug>\w+)/$"
-    into "{sport_slug}/athletes/{athlete_slug}/"
+    """Clean up urlpattern regexes into something somewhat readable by
+    Mere Humans: turns something like
+    "^(?P<sport_slug>\w+)/athletes/(?P<athlete_slug>\w+)/$" into
+    "{sport_slug}/athletes/{athlete_slug}/"
     """
     pattern = optional_group_matcher.sub(lambda m: '[%s]' % m.group(1), pattern)
 
@@ -90,7 +90,6 @@ def extract_endpoint_info(pattern, internal_endpoint):
             method=method_name,
             doc=doc,
             section=section.name.lower(),
-            scenarios=getattr(method, 'api_scenarios', None) or [],
             internal_path='%s:%s' % (
                 get_endpoint_path(internal_endpoint),
                 method.__name__
@@ -113,14 +112,6 @@ def scenario(ident):
     def decorator(f):
         scenarios[ident] = f
         f.api_scenario_ident = ident
-        return f
-    return decorator
-
-
-def associate_scenarios(scenarios):
-    def decorator(f):
-        f.api_scenarios = [getattr(x, 'api_scenario_ident', x)
-                           for x in scenarios]
         return f
     return decorator
 
@@ -152,8 +143,8 @@ class Runner(object):
     def request(self, method, path, headers=None, data=None):
         path = '/api/0/' + path.lstrip('/')
         headers = dict(headers or {})
-        headers['Host'] = 'app.getsentry.com'
         req_headers = dict(headers)
+        req_headers['Host'] = 'app.getsentry.com'
         req_headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
             self.vars['api_key'].key.encode('utf-8')))
 

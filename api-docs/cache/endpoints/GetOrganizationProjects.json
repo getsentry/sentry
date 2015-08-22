@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "GetOrganizationProjects",
   "path": "/api/0/organizations/{organization_slug}/projects/",
   "doc": "List an Organization's Projects\n```````````````````````````````\n\nReturn a list of projects bound to a organization.",

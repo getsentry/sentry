@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "PutReleaseDetails",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
   "doc": "Update a Release\n````````````````\n\nUpdate a release.",
