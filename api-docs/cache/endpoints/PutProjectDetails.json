@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "PutProjectDetails",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/",
   "doc": "Update a Project\n````````````````\n\nUpdate various attributes and configurable settings for the given\nproject.",

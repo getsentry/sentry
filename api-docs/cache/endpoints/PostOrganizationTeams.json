@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "PostOrganizationTeams",
   "path": "/api/0/organizations/{organization_slug}/teams/",
   "doc": "Create a new Team\n``````````````````\n\nCreate a new team bound to an organization.",

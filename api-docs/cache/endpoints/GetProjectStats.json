@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "GetProjectStats",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/stats/",
   "doc": "Retrieve Event Counts for a Project\n```````````````````````````````````\n\n**Draft:** This endpoint may change in the future without notice.\n\nReturn a set of points representing a normalized timestamp and the\nnumber of events seen in the period.\n\nQuery ranges are limited to Sentry's configured time-series\nresolutions.\n\nParameters:\n\n- since: a timestamp to set the start of the query\n- until: a timestamp to set the end of the query\n- resolution: an explicit resolution to search for (i.e. 10s)\n\n**Note:** resolution should not be used unless you're familiar\nwith Sentry internals as it's restricted to pre-defined values.",

@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "DeleteProjectKeyDetails",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/",
   "doc": "Delete a Client Key\n```````````````````\n\nDelete a client key.",

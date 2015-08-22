@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "PostTeamProjectIndex",
   "path": "/api/0/teams/{organization_slug}/{team_slug}/projects/",
   "doc": "Create a New Project\n````````````````````\n\nCreate a new project bound to a team.",

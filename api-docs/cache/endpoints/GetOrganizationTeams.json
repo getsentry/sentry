@@ -1,5 +1,4 @@
 {
-  "scenarios": [],
   "endpoint_name": "GetOrganizationTeams",
   "path": "/api/0/organizations/{organization_slug}/teams/",
   "doc": "List an Organization's Teams\n````````````````````````````\n\nReturn a list of teams bound to a organization.",
