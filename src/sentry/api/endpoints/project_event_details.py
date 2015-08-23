@@ -13,7 +13,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, event_id):
         """
-        Retrieve an event for a project
+        Retrieve an Event for a Project
         ```````````````````````````````
 
         Return details on an individual event.
