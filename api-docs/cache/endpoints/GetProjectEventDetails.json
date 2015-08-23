@@ -1,5 +1,5 @@
 {
-  "doc": "Retrieve an event for a project\n\nReturn details on an individual event.\n\n    {method} {path}",
+  "doc": "Retrieve an event for a project\n```````````````````````````````\n\nReturn details on an individual event.",
   "endpoint_name": "GetProjectEventDetails",
   "internal_path": "sentry.api.endpoints.project_event_details.ProjectEventDetailsEndpoint:get",
   "method": "GET",
