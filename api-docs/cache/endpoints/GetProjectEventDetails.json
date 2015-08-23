@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "GetProjectEventDetails",
-  "path": "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/",
   "doc": "Retrieve an event for a project\n\nReturn details on an individual event.\n\n    {method} {path}",
-  "section": "events",
+  "endpoint_name": "GetProjectEventDetails",
+  "internal_path": "sentry.api.endpoints.project_event_details.ProjectEventDetailsEndpoint:get",
   "method": "GET",
-  "internal_path": "sentry.api.endpoints.project_event_details.ProjectEventDetailsEndpoint:get"
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/",
+  "section": "events",
+  "title": "Retrieve an event for a project"
 }

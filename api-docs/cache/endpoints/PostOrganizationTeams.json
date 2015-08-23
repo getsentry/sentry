@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "PostOrganizationTeams",
-  "path": "/api/0/organizations/{organization_slug}/teams/",
   "doc": "Create a new Team\n``````````````````\n\nCreate a new team bound to an organization.",
-  "section": "organizations",
+  "endpoint_name": "PostOrganizationTeams",
+  "internal_path": "sentry.api.endpoints.organization_teams.OrganizationTeamsEndpoint:post",
   "method": "POST",
-  "internal_path": "sentry.api.endpoints.organization_teams.OrganizationTeamsEndpoint:post"
+  "path": "/api/0/organizations/{organization_slug}/teams/",
+  "section": "organizations",
+  "title": "Create a new Team"
 }

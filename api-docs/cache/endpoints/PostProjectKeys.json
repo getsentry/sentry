@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "PostProjectKeys",
-  "path": "/api/0/projects/{organization_slug}/{project_slug}/keys/",
   "doc": "Create a new Client Key\n```````````````````````\n\nCreate a new client key bound to a project.",
-  "section": "projects",
+  "endpoint_name": "PostProjectKeys",
+  "internal_path": "sentry.api.endpoints.project_keys.ProjectKeysEndpoint:post",
   "method": "POST",
-  "internal_path": "sentry.api.endpoints.project_keys.ProjectKeysEndpoint:post"
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/keys/",
+  "section": "projects",
+  "title": "Create a new Client Key"
 }

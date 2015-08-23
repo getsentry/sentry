@@ -1,8 +1,79 @@
 {
-  "organizations": "Organizations",
-  "releases": "Releases",
-  "teams": "Teams",
-  "accounts": "Accounts",
-  "events": "Events",
-  "projects": "Projects"
+  "sections": {
+    "accounts": {
+      "entries": {},
+      "title": "Accounts"
+    },
+    "events": {
+      "entries": {
+        "DeleteGroupDetails": "Delete an Aggregate",
+        "DeleteProjectGroupIndex": "Bulk Remove a List of Aggregates",
+        "GetGroupDetails": "Retrieve an Aggregate",
+        "GetGroupEvents": "List Available Samples",
+        "GetGroupEventsLatest": "Latest Sample",
+        "GetGroupTagKeyDetails": "List Tag Details",
+        "GetGroupTagKeyValues": "List a Tag's Values",
+        "GetProjectEventDetails": "Retrieve an event for a project",
+        "GetProjectEvents": "List a Project's Available Samples",
+        "GetProjectGroupIndex": "List a Project's Aggregates",
+        "PutGroupDetails": "Update an aggregate",
+        "PutProjectGroupIndex": "Bulk Mutate a List of Aggregates"
+      },
+      "title": "Events"
+    },
+    "organizations": {
+      "entries": {
+        "DeleteOrganizationDetails": "Delete an Organization",
+        "GetOrganizationDetails": "Retrieve an Organization",
+        "GetOrganizationIndex": "List your Organizations",
+        "GetOrganizationProjects": "List an Organization's Projects",
+        "GetOrganizationStats": "Retrieve Event Counts for an Organization",
+        "GetOrganizationTeams": "List an Organization's Teams",
+        "PostOrganizationIndex": "Create a New Organization",
+        "PostOrganizationTeams": "Create a new Team",
+        "PutOrganizationDetails": "Update an Organization"
+      },
+      "title": "Organizations"
+    },
+    "projects": {
+      "entries": {
+        "DeleteProjectDetails": "Delete a Project",
+        "DeleteProjectKeyDetails": "Delete a Client Key",
+        "GetProjectDetails": "Retrieve a Project",
+        "GetProjectKeys": "List a Project's Client Keys",
+        "GetProjectStats": "Retrieve Event Counts for a Project",
+        "GetProjectTagKeyValues": "List a Tag's Values",
+        "PostProjectKeys": "Create a new Client Key",
+        "PutProjectDetails": "Update a Project",
+        "PutProjectKeyDetails": "Update a Client Key"
+      },
+      "title": "Projects"
+    },
+    "releases": {
+      "entries": {
+        "DeleteReleaseDetails": "Delete a Release",
+        "DeleteReleaseFileDetails": "Delete a File",
+        "GetProjectReleases": "List a Project's Releases",
+        "GetReleaseDetails": "Retrieve a Release",
+        "GetReleaseFileDetails": "Retrieve a File",
+        "GetReleaseFiles": "List a Release's Files",
+        "PostProjectReleases": "Create a New Release",
+        "PostReleaseFiles": "Upload a New File",
+        "PutReleaseDetails": "Update a Release",
+        "PutReleaseFileDetails": "Update a File"
+      },
+      "title": "Releases"
+    },
+    "teams": {
+      "entries": {
+        "DeleteTeamDetails": "Delete a Team",
+        "GetTeamDetails": "Retrieve a Team",
+        "GetTeamProjectIndex": "List a Team's Projects",
+        "GetTeamStats": "Retrieve Event Counts for a Team",
+        "PostTeamProjectIndex": "Create a New Project",
+        "PutTeamDetails": "Update a Team"
+      },
+      "title": "Teams"
+    }
+  }
 }

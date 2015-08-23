@@ -85,10 +85,13 @@ def extract_endpoint_info(pattern, internal_endpoint):
         endpoint_name = method.__name__.title() + internal_endpoint.__name__
         if endpoint_name.endswith('Endpoint'):
             endpoint_name = endpoint_name[:-8]
+        title = next((line.strip() for line in doc.splitlines()
+                      if line.strip()), None)
         yield dict(
             path=API_PREFIX + path.lstrip('/'),
             method=method_name,
             doc=doc,
+            title=title,
             section=section.name.lower(),
             internal_path='%s:%s' % (
                 get_endpoint_path(internal_endpoint),
@@ -150,7 +153,7 @@ class Runner(object):
 
         body = None
         if data is not None:
-            body = json.dumps(data)
+            body = json.dumps(data, sort_keys=True)
             headers['Content-Type'] = 'application/json'
 
         url = 'http://127.0.0.1:%s%s' % (

@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "GetOrganizationIndex",
-  "path": "/api/0/organizations/",
   "doc": "List your Organizations\n```````````````````````\n\nReturn a list of organizations available to the authenticated session.",
-  "section": "organizations",
+  "endpoint_name": "GetOrganizationIndex",
+  "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:get",
   "method": "GET",
-  "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:get"
+  "path": "/api/0/organizations/",
+  "section": "organizations",
+  "title": "List your Organizations"
 }

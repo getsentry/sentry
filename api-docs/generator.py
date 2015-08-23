@@ -291,7 +291,7 @@ def dump_json(path, data):
     except OSError:
         pass
     with open(path, 'w') as f:
-        for line in json.dumps(data, indent=2).splitlines():
+        for line in json.dumps(data, indent=2, sort_keys=True).splitlines():
             f.write(line.rstrip() + '\n')
 
 
@@ -341,14 +341,24 @@ def cli():
         for scenario_ident, func in iter_scenarios():
             run_scenario(vars, scenario_ident, func)
 
+        section_mapping = {}
+
         report('docs', 'Exporting endpoint documentation')
         for endpoint in iter_endpoints():
             report('endpoint', 'Exporting docs for "%s"' %
                    endpoint['endpoint_name'])
+            section_mapping.setdefault(endpoint['section'], []) \
+                .append((endpoint['endpoint_name'],
+                         endpoint['title']))
             dump_json('endpoints/%s.json' % endpoint['endpoint_name'], endpoint)
 
         report('docs', 'Exporting sections')
-        dump_json('sections.json', get_sections())
+        dump_json('sections.json', {
+            'sections': dict((section, {
+                'title': title,
+                'entries': dict(section_mapping.get(section, ())),
+            }) for section, title in get_sections().iteritems())
+        })
 
 
 if __name__ == '__main__':

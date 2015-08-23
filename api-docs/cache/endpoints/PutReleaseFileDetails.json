@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "PutReleaseFileDetails",
-  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/{file_id}/",
   "doc": "Update a File\n`````````````\n\nUpdate metadata about an existing file.",
-  "section": "releases",
+  "endpoint_name": "PutReleaseFileDetails",
+  "internal_path": "sentry.api.endpoints.release_file_details.ReleaseFileDetailsEndpoint:put",
   "method": "PUT",
-  "internal_path": "sentry.api.endpoints.release_file_details.ReleaseFileDetailsEndpoint:put"
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/{file_id}/",
+  "section": "releases",
+  "title": "Update a File"
 }

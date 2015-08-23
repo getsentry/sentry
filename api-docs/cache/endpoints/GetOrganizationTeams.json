@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "GetOrganizationTeams",
-  "path": "/api/0/organizations/{organization_slug}/teams/",
   "doc": "List an Organization's Teams\n````````````````````````````\n\nReturn a list of teams bound to a organization.",
-  "section": "organizations",
+  "endpoint_name": "GetOrganizationTeams",
+  "internal_path": "sentry.api.endpoints.organization_teams.OrganizationTeamsEndpoint:get",
   "method": "GET",
-  "internal_path": "sentry.api.endpoints.organization_teams.OrganizationTeamsEndpoint:get"
+  "path": "/api/0/organizations/{organization_slug}/teams/",
+  "section": "organizations",
+  "title": "List an Organization's Teams"
 }

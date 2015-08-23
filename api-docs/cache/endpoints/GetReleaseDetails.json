@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "GetReleaseDetails",
-  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
   "doc": "Retrieve a Release\n``````````````````\n\nReturn details on an individual release.",
-  "section": "releases",
+  "endpoint_name": "GetReleaseDetails",
+  "internal_path": "sentry.api.endpoints.release_details.ReleaseDetailsEndpoint:get",
   "method": "GET",
-  "internal_path": "sentry.api.endpoints.release_details.ReleaseDetailsEndpoint:get"
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
+  "section": "releases",
+  "title": "Retrieve a Release"
 }
