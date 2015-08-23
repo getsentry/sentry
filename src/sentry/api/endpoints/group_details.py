@@ -186,7 +186,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
     def put(self, request, group):
         """
-        Update an aggregate
+        Update an Aggregate
         ```````````````````
 
         Updates an individual aggregate's attributes.  Only the attributes
