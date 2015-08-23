@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "DeleteTeamDetails",
-  "path": "/api/0/teams/{organization_slug}/{team_slug}/",
   "doc": "Delete a Team\n`````````````\n\nSchedules a team for deletion.\n\n**Note:** Deletion happens asynchronously and therefor is not\nimmediate.  However once deletion has begun the state of a project\nchanges and will be hidden from most public views.",
-  "section": "teams",
+  "endpoint_name": "DeleteTeamDetails",
+  "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:delete",
   "method": "DELETE",
-  "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:delete"
+  "path": "/api/0/teams/{organization_slug}/{team_slug}/",
+  "section": "teams",
+  "title": "Delete a Team"
 }

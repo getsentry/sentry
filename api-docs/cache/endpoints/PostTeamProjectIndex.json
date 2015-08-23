@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "PostTeamProjectIndex",
-  "path": "/api/0/teams/{organization_slug}/{team_slug}/projects/",
   "doc": "Create a New Project\n````````````````````\n\nCreate a new project bound to a team.",
-  "section": "teams",
+  "endpoint_name": "PostTeamProjectIndex",
+  "internal_path": "sentry.api.endpoints.team_project_index.TeamProjectIndexEndpoint:post",
   "method": "POST",
-  "internal_path": "sentry.api.endpoints.team_project_index.TeamProjectIndexEndpoint:post"
+  "path": "/api/0/teams/{organization_slug}/{team_slug}/projects/",
+  "section": "teams",
+  "title": "Create a New Project"
 }

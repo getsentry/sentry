@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "GetTeamStats",
-  "path": "/api/0/teams/{organization_slug}/{team_slug}/stats/",
   "doc": "Retrieve Event Counts for a Team\n````````````````````````````````\n\n**Draft:** This endpoint may change in the future without notice.\n\nReturn a set of points representing a normalized timestamp and the\nnumber of events seen in the period.\n\nQuery ranges are limited to Sentry's configured time-series\nresolutions.\n\nParameters:\n\n- ``since``: a timestamp to set the start of the query\n- ``until``: a timestamp to set the end of the query\n- ``resolution``: an explicit resolution to search for (i.e. 10s)\n\n**Note:** resolution should not be used unless you're familiar\nwith Sentry internals as it's restricted to pre-defined values.",
-  "section": "teams",
+  "endpoint_name": "GetTeamStats",
+  "internal_path": "sentry.api.endpoints.team_stats.TeamStatsEndpoint:get",
   "method": "GET",
-  "internal_path": "sentry.api.endpoints.team_stats.TeamStatsEndpoint:get"
+  "path": "/api/0/teams/{organization_slug}/{team_slug}/stats/",
+  "section": "teams",
+  "title": "Retrieve Event Counts for a Team"
 }

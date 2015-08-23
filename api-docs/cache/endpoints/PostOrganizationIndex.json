@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "PostOrganizationIndex",
-  "path": "/api/0/organizations/",
   "doc": "Create a New Organization\n`````````````````````````\n\nCreate a new organization.",
-  "section": "organizations",
+  "endpoint_name": "PostOrganizationIndex",
+  "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:post",
   "method": "POST",
-  "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:post"
+  "path": "/api/0/organizations/",
+  "section": "organizations",
+  "title": "Create a New Organization"
 }

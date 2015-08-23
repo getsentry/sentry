@@ -1,8 +1,9 @@
 {
-  "endpoint_name": "GetReleaseFiles",
-  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/",
   "doc": "List a Release's Files\n``````````````````````\n\nRetrieve a list of files for a given release.",
-  "section": "releases",
+  "endpoint_name": "GetReleaseFiles",
+  "internal_path": "sentry.api.endpoints.release_files.ReleaseFilesEndpoint:get",
   "method": "GET",
-  "internal_path": "sentry.api.endpoints.release_files.ReleaseFilesEndpoint:get"
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/",
+  "section": "releases",
+  "title": "List a Release's Files"
 }
