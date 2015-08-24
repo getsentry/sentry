@@ -163,7 +163,7 @@ var StreamGroup = React.createClass({
 
     return (
       <li className={className} onClick={this.toggleSelect}>
-        <div className="col-md-6 col-xs-8 event-details">
+        <div className="col-md-7 col-xs-8 event-details">
           {this.props.canSelect &&
             <div className="checkbox">
               <GroupCheckBox id={data.id} />
