@@ -143,6 +143,7 @@ var ExceptionInterface = React.createClass({
             platform={evt.platform}/> :
 
           <ExceptionContent
+            view={stackView}
             values={data.values}
             platform={evt.platform}
             newestFirst={newestFirst}/>
