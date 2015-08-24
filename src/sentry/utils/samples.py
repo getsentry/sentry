@@ -68,8 +68,7 @@ def load_data(platform, default=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None, tags=None,
-                        release=None):
+def create_sample_event(project, platform=None, default=None, **kwargs):
     if not platform:
         platform = project.platform
 
@@ -83,11 +82,7 @@ def create_sample_event(project, platform=None, default=None, tags=None,
     if not data:
         return
 
-    if tags:
-        data['tags'] = tags
-
-    if release:
-        data['release'] = release
+    data.update(kwargs)
 
     manager = EventManager(data)
     manager.normalize()
