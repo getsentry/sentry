@@ -27,7 +27,7 @@ var GroupEventHeader = React.createClass({
           Older Sample <span className="icon-arrow-right"></span>
         </a>
         <h4>
-          <time>{moment.utc(event.dateCreated).format('lll')}</time>
+          <time>{moment(event.dateCreated).format('lll')}</time>
           <span>[<FileSize bytes={event.size} />]</span>
           <div>
             <small>ID: {event.eventID}</small>

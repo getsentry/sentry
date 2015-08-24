@@ -14,7 +14,7 @@ var DateTime = React.createClass({
     }
 
     return (
-      <time>{moment.utc(date).local().format('LLL z')}</time>
+      <time>{moment(date).format('LLL z')}</time>
     );
   }
 });
