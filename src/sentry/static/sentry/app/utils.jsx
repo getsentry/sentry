@@ -156,7 +156,7 @@ export default {
   },
 
   nl2br(str) {
-    return str.replace(/\r?\n/, '<br />');
+    return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
   },
 
   escape(str) {
