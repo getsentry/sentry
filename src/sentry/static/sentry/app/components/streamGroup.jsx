@@ -210,14 +210,16 @@ var StreamGroup = React.createClass({
             </ul>
           </div>
         </div>
+        <div className="event-priority col-md-1 hidden-sm hidden-xs align-right">
+          <span className={"level-" + data.level} title={"level-" + data.level}>
+            <span className="icon-triangle"/>
+          </span>
+        </div>
         <div className="event-assignee col-md-1 hidden-sm hidden-xs">
           <AssigneeSelector id={data.id} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
           <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} />
-        </div>
-        <div className="event-priority col-md-1 hidden-sm hidden-xs align-right">
-          <span className={"level-" + data.level}>{data.level}</span>
         </div>
         <div className="col-md-1 col-xs-2 event-count align-right">
           <Count value={data.count} />
