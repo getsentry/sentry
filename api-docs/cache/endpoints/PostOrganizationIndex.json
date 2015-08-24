@@ -1,9 +1,11 @@
 {
-  "doc": "Create a New Organization\n`````````````````````````\n\nCreate a new organization.",
   "endpoint_name": "PostOrganizationIndex",
   "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:post",
   "method": "POST",
   "path": "/api/0/organizations/",
   "section": "organizations",
+  "text": [
+    "Create a new organization."
+  ],
   "title": "Create a New Organization"
 }

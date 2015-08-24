@@ -1,9 +1,22 @@
 {
-  "doc": "List a Project's Aggregates\n```````````````````````````\n\nReturn a list of aggregates bound to a project.\n\nA default query of 'is:resolved' is applied. To return results\nwith other statuses send an new query value (i.e. ?query= for all\nresults).\n\nAny standard Sentry structured search query can be passed via the\n``query`` parameter.\n\nThe ``statsPeriod`` parameter can be used to select the timeline\nstats which should be present. Possible values are: '' (disable),\n'24h', '14d'",
   "endpoint_name": "GetProjectGroupIndex",
   "internal_path": "sentry.api.endpoints.project_group_index.ProjectGroupIndexEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/groups/",
   "section": "events",
+  "text": [
+    "Return a list of aggregates bound to a project.",
+    "",
+    "A default query of 'is:resolved' is applied. To return results",
+    "with other statuses send an new query value (i.e. ?query= for all",
+    "results).",
+    "",
+    "Any standard Sentry structured search query can be passed via the",
+    "``query`` parameter.",
+    "",
+    "The ``statsPeriod`` parameter can be used to select the timeline",
+    "stats which should be present. Possible values are: '' (disable),",
+    "'24h', '14d'"
+  ],
   "title": "List a Project's Aggregates"
 }

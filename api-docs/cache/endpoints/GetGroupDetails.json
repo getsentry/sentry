@@ -1,9 +1,14 @@
 {
-  "doc": "Retrieve an Aggregate\n`````````````````````\n\nReturn details on an individual aggregate.  Aggregates are also\nsometimes referred to as groups.\n\n.. sentry:api-scenario:: RetrieveAggregate",
   "endpoint_name": "GetGroupDetails",
   "internal_path": "sentry.api.endpoints.group_details.GroupDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/",
   "section": "events",
+  "text": [
+    "Return details on an individual aggregate.  Aggregates are also",
+    "sometimes referred to as groups.",
+    "",
+    ".. sentry:api-scenario:: RetrieveAggregate"
+  ],
   "title": "Retrieve an Aggregate"
 }

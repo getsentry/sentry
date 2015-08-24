@@ -13,10 +13,10 @@
         "GetGroupEventsLatest": "Latest Sample",
         "GetGroupTagKeyDetails": "List Tag Details",
         "GetGroupTagKeyValues": "List a Tag's Values",
-        "GetProjectEventDetails": "Retrieve an event for a project",
+        "GetProjectEventDetails": "Retrieve an Event for a Project",
         "GetProjectEvents": "List a Project's Available Samples",
         "GetProjectGroupIndex": "List a Project's Aggregates",
-        "PutGroupDetails": "Update an aggregate",
+        "PutGroupDetails": "Update an Aggregate",
         "PutProjectGroupIndex": "Bulk Mutate a List of Aggregates"
       },
       "title": "Events"

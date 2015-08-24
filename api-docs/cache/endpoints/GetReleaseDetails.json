@@ -1,9 +1,11 @@
 {
-  "doc": "Retrieve a Release\n``````````````````\n\nReturn details on an individual release.",
   "endpoint_name": "GetReleaseDetails",
   "internal_path": "sentry.api.endpoints.release_details.ReleaseDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
   "section": "releases",
+  "text": [
+    "Return details on an individual release."
+  ],
   "title": "Retrieve a Release"
 }

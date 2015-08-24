@@ -1,9 +1,11 @@
 {
-  "doc": "Retrieve a Project\n``````````````````\n\nReturn details on an individual project.",
   "endpoint_name": "GetProjectDetails",
   "internal_path": "sentry.api.endpoints.project_details.ProjectDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/",
   "section": "projects",
+  "text": [
+    "Return details on an individual project."
+  ],
   "title": "Retrieve a Project"
 }

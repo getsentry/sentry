@@ -1,9 +1,11 @@
 {
-  "doc": "Retrieve a File\n```````````````\n\nReturn details on an individual file within a release.",
   "endpoint_name": "GetReleaseFileDetails",
   "internal_path": "sentry.api.endpoints.release_file_details.ReleaseFileDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/{file_id}/",
   "section": "releases",
+  "text": [
+    "Return details on an individual file within a release."
+  ],
   "title": "Retrieve a File"
 }

@@ -1,9 +1,15 @@
 {
-  "doc": "Delete an Organization\n``````````````````````\n\nSchedules an organization for deletion.\n\n**Note:** Deletion happens asynchronously and therefor is not\nimmediate.  However once deletion has begun the state of a project\nchanges and will be hidden from most public views.",
   "endpoint_name": "DeleteOrganizationDetails",
   "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/organizations/{organization_slug}/",
   "section": "organizations",
+  "text": [
+    "Schedules an organization for deletion.",
+    "",
+    "**Note:** Deletion happens asynchronously and therefor is not",
+    "immediate.  However once deletion has begun the state of a project",
+    "changes and will be hidden from most public views."
+  ],
   "title": "Delete an Organization"
 }
