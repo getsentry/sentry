@@ -3,9 +3,12 @@
 from sentry.utils.runner import configure
 configure()
 
+import itertools
+
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from hashlib import md5
 from pytz import utc
 from random import randint
 
@@ -15,6 +18,14 @@ from sentry.models import (
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport
 )
 from sentry.utils.samples import create_sample_event
+
+PLATFORMS = itertools.cycle([
+    'ruby',
+    'php',
+    'python',
+    'java',
+    'javascript',
+])
 
 
 def create_system_time_series():
@@ -187,6 +198,18 @@ def main(num_events=1):
                     platform='php',
                     release=release.version,
                     message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
+                )
+
+
+            # Add a bunch of additional dummy events to support pagination
+            for _ in range(45):
+                platform = PLATFORMS.next()
+                create_sample_event(
+                    project=project,
+                    platform=platform,
+                    release=release.version,
+                    message='This is a mostly useless example %s exception' % platform,
+                    checksum=md5(platform + str(_)).hexdigest(),
                 )
 
             Activity.objects.create(
