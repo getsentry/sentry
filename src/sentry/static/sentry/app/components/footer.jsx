@@ -1,9 +1,14 @@
 import React from "react";
 import ConfigStore from "../stores/configStore";
+import HookStore from "../stores/hookStore";
 
 var Footer = React.createClass({
   render() {
     var config = ConfigStore.getConfig();
+    var children = [];
+    HookStore.get('footer').forEach((cb) => {
+      children.push(cb());
+    });
 
     return (
       <footer>
@@ -17,6 +22,7 @@ var Footer = React.createClass({
             Sentry {config.version.current}
           </div>
           <a href="/" className="icon-sentry-logo"></a>
+          {children}
         </div>
       </footer>
     );
