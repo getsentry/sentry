@@ -3,7 +3,6 @@ import Sticky from "react-sticky";
 import DateTime from "../../components/dateTime";
 import FileSize from "../../components/fileSize";
 import GroupEventEntries from "../../components/eventEntries";
-import GroupEventHeader from "./eventHeader";
 import GroupState from "../../mixins/groupState";
 import Gravatar from "../../components/gravatar";
 import PropTypes from "../../proptypes";
