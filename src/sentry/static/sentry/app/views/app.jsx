@@ -1,5 +1,6 @@
 import React from "react";
 import api from "../api";
+import moment from "moment-timezone";
 import Alerts from "../components/alerts";
 import AlertActions from "../actions/alertActions.jsx";
 import ConfigStore from "../stores/configStore";
@@ -23,6 +24,10 @@ var App = React.createClass({
 
   componentWillMount() {
     ConfigStore.loadInitialData(this.props.config);
+
+    // Configure global timezone
+    var user = ConfigStore.get('user');
+    moment.tz.setDefault(user.options.timezone);
 
     api.request('/organizations/', {
       success: (data) => {

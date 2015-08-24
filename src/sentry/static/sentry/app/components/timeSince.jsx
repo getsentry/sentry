@@ -43,7 +43,7 @@ var TimeSince = React.createClass({
     }
 
     return (
-      <time>{moment.utc(date).fromNow(true)} {this.props.suffix || ''}</time>
+      <time>{moment(date).fromNow(true)} {this.props.suffix || ''}</time>
     );
   }
 });

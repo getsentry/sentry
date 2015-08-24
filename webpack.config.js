@@ -39,6 +39,10 @@ var config = {
         loader: "babel-loader",
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules)/
+      },
+      {
+        include: /\.json$/,
+        loader: "json-loader"
       }
     ]
   },
