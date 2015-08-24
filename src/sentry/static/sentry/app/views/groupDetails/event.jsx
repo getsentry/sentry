@@ -1,6 +1,7 @@
 import React from "react";
 import Sticky from "react-sticky";
 import DateTime from "../../components/dateTime";
+import FileSize from "../../components/fileSize";
 import GroupEventEntries from "../../components/eventEntries";
 import GroupEventHeader from "./eventHeader";
 import GroupState from "../../mixins/groupState";
@@ -94,6 +95,8 @@ var GroupEvent = React.createClass({
               <dd><TimeSince date={evt.dateCreated} /></dd>
               <dt>Date:</dt>
               <dd><DateTime date={evt.dateCreated} /></dd>
+              <dt>Size:</dt>
+              <dd><FileSize bytes={evt.size} /></dd>
             </dl>
             {evt.user &&
               <UserWidget data={evt.user} />
