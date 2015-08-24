@@ -1,9 +1,12 @@
 {
-  "doc": "Retrieve an Organization\n````````````````````````\n\nReturn details on an individual organization including various details\nsuch as membership access, features, and teams.",
   "endpoint_name": "GetOrganizationDetails",
   "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/organizations/{organization_slug}/",
   "section": "organizations",
+  "text": [
+    "Return details on an individual organization including various details",
+    "such as membership access, features, and teams."
+  ],
   "title": "Retrieve an Organization"
 }

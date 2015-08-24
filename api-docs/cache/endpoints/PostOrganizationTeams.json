@@ -1,9 +1,11 @@
 {
-  "doc": "Create a new Team\n``````````````````\n\nCreate a new team bound to an organization.",
   "endpoint_name": "PostOrganizationTeams",
   "internal_path": "sentry.api.endpoints.organization_teams.OrganizationTeamsEndpoint:post",
   "method": "POST",
   "path": "/api/0/organizations/{organization_slug}/teams/",
   "section": "organizations",
+  "text": [
+    "Create a new team bound to an organization."
+  ],
   "title": "Create a new Team"
 }

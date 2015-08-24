@@ -1,9 +1,11 @@
 {
-  "doc": "Latest Sample\n`````````````\n\nRetrieves the details of the latest sample for an aggregate.",
   "endpoint_name": "GetGroupEventsLatest",
   "internal_path": "sentry.api.endpoints.group_events_latest.GroupEventsLatestEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/events/latest/",
   "section": "events",
+  "text": [
+    "Retrieves the details of the latest sample for an aggregate."
+  ],
   "title": "Latest Sample"
 }

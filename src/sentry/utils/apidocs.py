@@ -67,6 +67,34 @@ def get_endpoint_path(internal_endpoint):
     )
 
 
+def extract_title_and_text(doc):
+    title = None
+    iterable = iter((doc or u'').splitlines())
+    clean_end = False
+
+    for line in iterable:
+        line = line.strip()
+        if title is None:
+            if not line:
+                continue
+            title = line
+        elif line[0] * len(line) == line:
+            clean_end = True
+            break
+        else:
+            break
+
+    lines = []
+    if clean_end:
+        for line in iterable:
+            if line.strip():
+                lines.append(line)
+                break
+    lines.extend(iterable)
+
+    return title, lines
+
+
 def extract_endpoint_info(pattern, internal_endpoint):
     from sentry.constants import HTTP_METHODS
     path = simplify_regex(pattern.regex.pattern)
@@ -85,13 +113,12 @@ def extract_endpoint_info(pattern, internal_endpoint):
         endpoint_name = method.__name__.title() + internal_endpoint.__name__
         if endpoint_name.endswith('Endpoint'):
             endpoint_name = endpoint_name[:-8]
-        title = next((line.strip() for line in doc.splitlines()
-                      if line.strip()), None)
+        title, text = extract_title_and_text(doc)
         yield dict(
             path=API_PREFIX + path.lstrip('/'),
             method=method_name,
-            doc=doc,
             title=title,
+            text=text,
             section=section.name.lower(),
             internal_path='%s:%s' % (
                 get_endpoint_path(internal_endpoint),

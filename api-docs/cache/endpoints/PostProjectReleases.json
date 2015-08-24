@@ -1,9 +1,11 @@
 {
-  "doc": "Create a New Release\n````````````````````\n\nCreate a new release for the given project.",
   "endpoint_name": "PostProjectReleases",
   "internal_path": "sentry.api.endpoints.project_releases.ProjectReleasesEndpoint:post",
   "method": "POST",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/",
   "section": "releases",
+  "text": [
+    "Create a new release for the given project."
+  ],
   "title": "Create a New Release"
 }

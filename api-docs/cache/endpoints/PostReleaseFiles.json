@@ -1,9 +1,18 @@
 {
-  "doc": "Upload a New File\n`````````````````\n\nUpload a new file for the given release.\n\nUnlike other API requests, files must be uploaded using the\ntraditional multipart/form-data content-type.\n\nThe optional 'name' attribute should reflect the absolute path\nthat this file will be referenced as. For example, in the case of\nJavaScript you might specify the full web URI.",
   "endpoint_name": "PostReleaseFiles",
   "internal_path": "sentry.api.endpoints.release_files.ReleaseFilesEndpoint:post",
   "method": "POST",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/",
   "section": "releases",
+  "text": [
+    "Upload a new file for the given release.",
+    "",
+    "Unlike other API requests, files must be uploaded using the",
+    "traditional multipart/form-data content-type.",
+    "",
+    "The optional 'name' attribute should reflect the absolute path",
+    "that this file will be referenced as. For example, in the case of",
+    "JavaScript you might specify the full web URI."
+  ],
   "title": "Upload a New File"
 }

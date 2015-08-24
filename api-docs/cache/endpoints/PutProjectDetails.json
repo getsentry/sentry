@@ -1,9 +1,12 @@
 {
-  "doc": "Update a Project\n````````````````\n\nUpdate various attributes and configurable settings for the given\nproject.",
   "endpoint_name": "PutProjectDetails",
   "internal_path": "sentry.api.endpoints.project_details.ProjectDetailsEndpoint:put",
   "method": "PUT",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/",
   "section": "projects",
+  "text": [
+    "Update various attributes and configurable settings for the given",
+    "project."
+  ],
   "title": "Update a Project"
 }

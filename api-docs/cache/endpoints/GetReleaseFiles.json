@@ -1,9 +1,11 @@
 {
-  "doc": "List a Release's Files\n``````````````````````\n\nRetrieve a list of files for a given release.",
   "endpoint_name": "GetReleaseFiles",
   "internal_path": "sentry.api.endpoints.release_files.ReleaseFilesEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/",
   "section": "releases",
+  "text": [
+    "Retrieve a list of files for a given release."
+  ],
   "title": "List a Release's Files"
 }

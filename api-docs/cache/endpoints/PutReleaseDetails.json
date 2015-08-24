@@ -1,9 +1,11 @@
 {
-  "doc": "Update a Release\n````````````````\n\nUpdate a release.",
   "endpoint_name": "PutReleaseDetails",
   "internal_path": "sentry.api.endpoints.release_details.ReleaseDetailsEndpoint:put",
   "method": "PUT",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
   "section": "releases",
+  "text": [
+    "Update a release."
+  ],
   "title": "Update a Release"
 }

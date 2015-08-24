@@ -1,9 +1,11 @@
 {
-  "doc": "Update a Client Key\n```````````````````\n\nUpdate a client key.",
   "endpoint_name": "PutProjectKeyDetails",
   "internal_path": "sentry.api.endpoints.project_key_details.ProjectKeyDetailsEndpoint:put",
   "method": "PUT",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/",
   "section": "projects",
+  "text": [
+    "Update a client key."
+  ],
   "title": "Update a Client Key"
 }

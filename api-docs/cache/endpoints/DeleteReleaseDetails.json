@@ -1,9 +1,11 @@
 {
-  "doc": "Delete a Release\n````````````````\n\nPermanently remove a release and all of its files.",
   "endpoint_name": "DeleteReleaseDetails",
   "internal_path": "sentry.api.endpoints.release_details.ReleaseDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
   "section": "releases",
+  "text": [
+    "Permanently remove a release and all of its files."
+  ],
   "title": "Delete a Release"
 }
