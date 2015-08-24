@@ -263,8 +263,8 @@ var StreamActions = React.createClass({
             </a>
           </div>
         </div>
-        <div className="hidden-sm stream-actions-assignee col-md-1">
-        </div>
+        <div className="hidden-sm stream-actions-assignee col-md-1"></div>
+        <div className="stream-actions-level col-md-1 hidden-xs"></div>
         <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
           <ul className="toggle-graph">
             <li className={this.props.statsPeriod === '24h' ? 'active' : ''}>
@@ -275,7 +275,6 @@ var StreamActions = React.createClass({
             </li>
           </ul>
         </div>
-        <div className="stream-actions-level align-right col-md-1 hidden-xs">Level</div>
         <div className="stream-actions-count align-right col-md-1 col-sm-2 col-xs-2">Events</div>
         <div className="stream-actions-users align-right col-md-1 col-sm-2 col-xs-2">Users</div>
       </div>
@@ -284,4 +283,3 @@ var StreamActions = React.createClass({
 });
 
 export default StreamActions;
-

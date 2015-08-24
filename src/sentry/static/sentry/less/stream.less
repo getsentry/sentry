@@ -401,28 +401,24 @@
     line-height: 24px;
   }
 
-  .event-priority span {
-    margin-top: 4px;
-    border-radius: 16px;
-    width: 16px;
-    height: 16px;
+  .event-priority > span {
     display: inline-block;
-    background-color: #cfd3da;
-    text-indent: -10000em;
     font-size: 0;
-    overflow: hidden;
+    margin-top: 4px;
+    .square(20px);
+    border-radius: 50%;
 
     &.level-info {
-      background-color: @blue;
+      border: 3px solid @blue;
     }
     &.level-warning {
-      background-color: @yellow;
+      border: 3px solid @yellow;
     }
     &.level-error {
-      background-color: @sentry-orange;
+      border: 3px solid @sentry-orange;
     }
     &.level-fatal {
-      background-color: @red;
+      border: 3px solid @red;
     }
   }
 
