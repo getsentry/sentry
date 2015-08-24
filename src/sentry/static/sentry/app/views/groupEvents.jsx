@@ -130,26 +130,27 @@ var GroupEvents = React.createClass({
     });
 
     return (
-      <div className="event-list">
-        <table className="table">
-          <thead>
-            <th>ID</th>
-            {tagList.map((tag, tagIdx) => {
-              return (
-                <th key={tagIdx}>
-                  {tag[0]}
-                </th>
-              );
-            })}
-            {hasUser &&
-              <th>User</th>
-            }
-          </thead>
-          <tbody>
-            {children}
-          </tbody>
-        </table>
-
+      <div>
+        <div className="event-list">
+          <table className="table">
+            <thead>
+              <th>ID</th>
+              {tagList.map((tag, tagIdx) => {
+                return (
+                  <th key={tagIdx}>
+                    {tag[0]}
+                  </th>
+                );
+              })}
+              {hasUser &&
+                <th>User</th>
+              }
+            </thead>
+            <tbody>
+              {children}
+            </tbody>
+          </table>
+        </div>
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
