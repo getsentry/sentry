@@ -153,6 +153,8 @@ var StreamGroup = React.createClass({
       className += " isMuted";
     }
 
+    className += " level-" + data.level;
+
     var routeParams = {
       orgId: params.orgId,
       projectId: params.projectId,
@@ -209,11 +211,6 @@ var StreamGroup = React.createClass({
               })}
             </ul>
           </div>
-        </div>
-        <div className="event-priority col-md-1 hidden-sm hidden-xs align-right">
-          <span className={"level-" + data.level} title={"level-" + data.level}>
-            <span className="icon-triangle"/>
-          </span>
         </div>
         <div className="event-assignee col-md-1 hidden-sm hidden-xs">
           <AssigneeSelector id={data.id} />
