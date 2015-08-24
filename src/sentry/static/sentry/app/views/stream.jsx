@@ -14,6 +14,8 @@ import StreamGroup from '../components/streamGroup';
 import StreamActions from './stream/actions';
 import StreamFilters from './stream/filters';
 import utils from "../utils";
+import Sticky from 'react-sticky';
+
 
 var Stream = React.createClass({
   mixins: [
@@ -337,18 +339,21 @@ var Stream = React.createClass({
           onSortChange={this.onSortChange}
           onFilterChange={this.onFilterChange}
           onSearch={this.onSearch} />
-        <div className="group-header">
-          <StreamActions
-            orgId={params.orgId}
-            projectId={params.projectId}
-            onSelectStatsPeriod={this.onSelectStatsPeriod}
-            onRealtimeChange={this.onRealtimeChange}
-            realtimeActive={this.state.realtimeActive}
-            statsPeriod={this.state.statsPeriod}
-            groupIds={this.state.groupIds} />
-        </div>
-        {this.renderStreamBody()}
-        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+          <div className="group-header">
+            <Sticky>
+              <StreamActions
+                orgId={params.orgId}
+                projectId={params.projectId}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onRealtimeChange={this.onRealtimeChange}
+                realtimeActive={this.state.realtimeActive}
+                statsPeriod={this.state.statsPeriod}
+                groupIds={this.state.groupIds} />
+            </Sticky>
+          </div>
+          {this.renderStreamBody()}
+          <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+
       </div>
     );
   }

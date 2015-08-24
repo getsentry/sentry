@@ -14,11 +14,32 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15);
+    background: #fbfcfc; // alpha transparency too slow, so using fixed color
+    margin: 0 auto;
   }
 }
 
+@media(max-width:1200px) {
+  .sticky .stream-actions {
+    border: none;
+    padding-left: 16px; // 15 + 1px border
+    padding-right: 26px; // 15 + 1px border + original 10px
+  }
+}
+
+@media (min-width: 1300px) {
+  .sticky .stream-actions {
+    width: 1220px !important;
+  }
+}
 .sticky+.group-list {
   margin-top: 64px;
+}
+
+.group-header {
+  // needs fixed height so that stream doesn't "pop" up
+  // when stream actions turn "sticky"
+  height: 49px;
 }
 
 .stream-no-bulk-actions {
