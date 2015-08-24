@@ -31,6 +31,7 @@
     "react-router": "^0.13.3",
     "react-sticky": "^2.1.0",
     "reflux": "^0.2.8",
+    "select2": "^3.5.1",
     "selectize": "^0.12.1",
     "webpack": "^1.9.10"
   },

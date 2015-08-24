@@ -24,6 +24,7 @@ var config = {
       "react-bootstrap",
       "reflux",
       "selectize",
+      "select2",
       "flot/jquery.flot",
       "flot/jquery.flot.stack",
       "flot/jquery.flot.time",
