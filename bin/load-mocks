@@ -180,6 +180,26 @@ def main(num_events=1):
                 )[0],
             )
 
+            Activity.objects.create(
+                type=Activity.RELEASE,
+                project=project,
+                ident=release.version,
+                user=user,
+                data={'version': release.version},
+            )
+
+            # Add a bunch of additional dummy events to support pagination
+            for _ in range(45):
+                platform = PLATFORMS.next()
+                create_sample_event(
+                    project=project,
+                    platform=platform,
+                    release=release.version,
+                    level=LEVELS.next(),
+                    message='This is a mostly useless example %s exception' % platform,
+                    checksum=md5(platform + str(_)).hexdigest(),
+                )
+
             for _ in range(num_events):
                 event1 = create_sample_event(
                     project=project,
@@ -207,27 +227,6 @@ def main(num_events=1):
                     release=release.version,
                     message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
                 )
-
-
-            # Add a bunch of additional dummy events to support pagination
-            for _ in range(45):
-                platform = PLATFORMS.next()
-                create_sample_event(
-                    project=project,
-                    platform=platform,
-                    release=release.version,
-                    level=LEVELS.next(),
-                    message='This is a mostly useless example %s exception' % platform,
-                    checksum=md5(platform + str(_)).hexdigest(),
-                )
-
-            Activity.objects.create(
-                type=Activity.RELEASE,
-                project=project,
-                ident=release.version,
-                user=user,
-                data={'version': release.version},
-            )
 
             with transaction.atomic():
                 try:
