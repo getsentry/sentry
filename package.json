@@ -29,7 +29,7 @@
     "react-day-picker": "^1.0.3",
     "react-document-title": "^1.0.2",
     "react-router": "^0.13.3",
-    "react-sticky": "^2.1.0",
+    "react-sticky": "^2.5.2",
     "reflux": "^0.2.8",
     "select2": "^3.5.1",
     "selectize": "^0.12.1",
