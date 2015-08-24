@@ -7,6 +7,27 @@ import EventTags from "./eventTags";
 import PropTypes from "../proptypes";
 import utils from "../utils";
 
+var hasMultipartMessage = function(evt) {
+  var message = evt.message;
+  return (message.indexOf('\n') !== -1 || message.length > 100);
+};
+
+var EventMessage = React.createClass({
+  render() {
+    return (
+      <EventDataSection
+          group={this.props.group}
+          event={this.props.event}
+          type="message"
+          title="Message">
+        <p dangerouslySetInnerHTML={{
+          __html: utils.nl2br(utils.urlize(utils.escape(this.props.event.message)))
+        }} />
+      </EventDataSection>
+    );
+  }
+});
+
 var EventErrors = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -194,6 +215,9 @@ var EventEntries = React.createClass({
 
     return (
       <div>
+        {hasMultipartMessage(evt) &&
+          <EventMessage group={group} event={evt} />
+        }
         {!utils.objectIsEmpty(evt.errors) &&
           <EventErrors
             group={group}
