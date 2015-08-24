@@ -186,6 +186,7 @@ def main(num_events=1):
                     project=project,
                     platform='php',
                     release=release.version,
+                    message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
                 )
 
             Activity.objects.create(
