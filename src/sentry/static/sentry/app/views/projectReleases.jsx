@@ -23,7 +23,7 @@ var ReleaseList = React.createClass({
       <ul className="release-list">
           {this.props.releaseList.map((release) => {
             return (
-              <li className="release">
+              <li className="release" key={release.version}>
                 <div className="row">
                   <div className="col-sm-8 col-xs-6">
                     <h4><Version version={release.version} /></h4>
