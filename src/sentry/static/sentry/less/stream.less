@@ -41,7 +41,7 @@
 .group-header {
   // needs fixed height so that stream doesn't "pop" up
   // when stream actions turn "sticky"
-  height: 48px;
+  height: 49px;
 }
 
 .stream-no-bulk-actions {
@@ -52,12 +52,13 @@
 
 .stream-actions {
   background: #f7f8f9;
+  border: 1px solid darken(@trim, 2);
   border-bottom: 0;
   border-radius: 2px 2px 0 0;
   box-shadow: 0 1px 0 @trim;
   margin: 0;
   padding-right: 10px;
-  height: 48px;
+  height: 49px;
 
   .btn-group > .btn {
     color: inherit;
@@ -157,6 +158,8 @@
 
 .group-list {
   background: #fff;
+  border: 1px solid darken(@trim, 2);
+  box-shadow: 0 1px 0 rgba(52, 60, 69, 0.02);
   border-radius: 2px;
   // position: relative;
 }
@@ -231,10 +234,11 @@
       content: "";
       top: 11px;
       right: auto;
-      left: 0;
+      bottom: -1px;
+      left: -1px;
       height: 17px;
       width: 5px;
-      border-radius: 2px;
+      border-radius: 0 2px 2px 0;
       z-index: 100;
       .transition(all .2s ease-in-out);
     }
@@ -292,6 +296,20 @@
     &:first-child {
       .event-cell{
         border-top: 0;
+      }
+    }
+
+    &:last-child {
+      border-bottom-color: transparent;
+      border-radius: 0 0 2px 2px;
+      .event-cell {
+        border-bottom: 1px solid #E9EBEC;
+      }
+      .event-details {
+        border-radius: 0 0 0 4px;
+      }
+      .event-users {
+        border-radius: 0 0 4px 0;
       }
     }
   }
