@@ -210,8 +210,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
         In case the API call is invoked in a user context, these
         attributes can also be modified:
 
-        - ``hasSeen``: `true`, false`
-        - ``isBookmarked``: `true`, false`
+        - ``hasSeen``: `true`, `false`
+        - ``isBookmarked``: `true`, `false`
 
         .. sentry:api-scenario:: UpdateAggregate
         """
