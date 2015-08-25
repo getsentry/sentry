@@ -122,7 +122,7 @@ def get_default_context(request, existing_context=None, team=None):
         context['selectedProject'] = serialize(project, user)
 
     if not existing_context or 'ACCESS' not in existing_context:
-        context['ACCESSS'] = access.from_user(
+        context['ACCESS'] = access.from_user(
             user=user,
             organization=organization,
         ).to_django_context()
