@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
@@ -23,11 +23,20 @@ from sentry.utils.apidocs import scenario
 
 @scenario('RetrieveAggregate')
 def retrieve_aggregate_scenario(runner):
-    project = runner.vars['default_project']
-    group = Group.objects.get(project=project)
-    return runner.request(
+    group = Group.objects.get(project=runner.default_project)
+    runner.request(
         method='GET',
         path='/groups/%s/' % group.id,
+    )
+
+
+@scenario('UpdateAggregate')
+def update_aggregate_scenario(runner):
+    group = Group.objects.get(project=runner.default_project)
+    runner.request(
+        method='PUT',
+        path='/groups/%s/' % group.id,
+        data={'status': 'unresolved'}
     )
 
 
@@ -109,7 +118,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         `````````````````````
 
         Return details on an individual aggregate.  Aggregates are also
-        sometimes referred to as groups.
+        sometimes referred to as groups.  This returns the basic stats for
+        the group (the bar graph), some overall numbers (number of comments,
+        user reports) as well as the summarized event data.
 
         .. sentry:api-scenario:: RetrieveAggregate
         """
@@ -190,14 +201,19 @@ class GroupDetailsEndpoint(GroupEndpoint):
         ```````````````````
 
         Updates an individual aggregate's attributes.  Only the attributes
-        submitted are modified.
-
-        Attributes:
+        submitted are modified.  The following attributes are supported
+        for all keys:
 
         - ``status``: ``"resolved"``, ``"unresolved"``, ``"muted"``
+        - ``assignedTo``: user id
+
+        In case the API call is invoked in a user context, these
+        attributes can also be modified:
+
         - ``hasSeen``: `true`, false`
         - ``isBookmarked``: `true`, false`
-        - ``assignedTo``: user id
+
+        .. sentry:api-scenario:: UpdateAggregate
         """
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():

@@ -5,11 +5,9 @@ import click
 import urlparse
 import logging
 
-from pytz import utc
-from datetime import datetime, timedelta
+from datetime import datetime
 from subprocess import Popen, PIPE
 from contextlib import contextmanager
-from random import randint
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 SENTRY_CONFIG = os.path.join(HERE, 'sentry.conf.py')
@@ -22,11 +20,7 @@ from django.conf import settings
 # Fair game from here
 from django.core.management import call_command
 
-from sentry.app import tsdb
-from sentry.models import User, Team, Project, Release, \
-    Organization, OrganizationMember, Activity, ApiKey
-from sentry.utils.samples import create_sample_event
-from sentry.utils.apidocs import Runner, iter_scenarios, \
+from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, \
     iter_endpoints, get_sections
 
 
@@ -52,49 +46,6 @@ def report(category, message, fg=None):
         click.style(category, fg=fg),
         message
     ))
-
-
-def create_sample_time_series(event):
-    report('ts', 'Creating sample time series for #%s' % event.id)
-    group = event.group
-
-    now = datetime.utcnow().replace(tzinfo=utc)
-
-    for _ in xrange(60):
-        count = randint(1, 10)
-        tsdb.incr_multi((
-            (tsdb.models.project, group.project.id),
-            (tsdb.models.group, group.id),
-        ), now, count)
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_received,
-             group.project.organization_id),
-            (tsdb.models.project_total_received, group.project.id),
-        ), now, int(count * 1.1))
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected,
-             group.project.organization_id),
-            (tsdb.models.project_total_rejected, group.project.id),
-        ), now, int(count * 0.1))
-        now = now - timedelta(seconds=1)
-
-    for _ in xrange(24 * 30):
-        count = randint(100, 1000)
-        tsdb.incr_multi((
-            (tsdb.models.project, group.project.id),
-            (tsdb.models.group, group.id),
-        ), now, count)
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_received,
-             group.project.organization_id),
-            (tsdb.models.project_total_received, group.project.id),
-        ), now, int(count * 1.1))
-        tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected,
-             group.project.organization_id),
-            (tsdb.models.project_total_rejected, group.project.id),
-        ), now, int(count * 0.1))
-        now = now - timedelta(hours=1)
 
 
 def launch_redis():
@@ -195,94 +146,6 @@ class SentryBox(object):
             self.sentry.kill()
             self.sentry.wait()
 
-    def create_user(self, mail):
-        report('data', 'Creating user "%s"' % mail)
-        user, _ = User.objects.get_or_create(
-            username=mail,
-            defaults={
-                'email': mail,
-            }
-        )
-        user.set_password('dummy')
-        user.save()
-        return user
-
-    def create_org(self, name, owner):
-        report('data', 'Creating org "%s"' % name)
-        org, _ = Organization.objects.get_or_create(
-            name=name,
-            defaults={
-                'owner': owner,
-            },
-        )
-
-        dummy_member, _ = OrganizationMember.objects.get_or_create(
-            user=owner,
-            organization=org,
-            defaults={
-                'has_global_access': False,
-            }
-        )
-
-        if dummy_member.has_global_access:
-            dummy_member.update(has_global_access=False)
-
-        return org
-
-    def create_api_key(self, org, label='Default'):
-        report('data', 'Creating API key for "%s"' % org.name)
-        return ApiKey.objects.get_or_create(
-            organization=org,
-            label=label,
-            scopes=(1 << len(ApiKey.scopes.keys())) - 1,
-        )[0]
-
-    def create_team(self, name, org):
-        report('data', 'Creating team "%s"' % name)
-        return Team.objects.get_or_create(
-            name=name,
-            defaults={
-                'organization': org,
-            },
-        )[0]
-
-    def create_project(self, name, team, org):
-        report('data', 'Creating project "%s"' % name)
-        return Project.objects.get_or_create(
-            team=team,
-            name=name,
-            defaults={
-                'organization': org,
-            }
-        )[0]
-
-    def create_release(self, project, user, version=None):
-        if version is None:
-            version = os.urandom(20).encode('hex')
-        report('data', 'Creating release "%s" for %s' % (version, project))
-        release = Release.objects.get_or_create(
-            version=version,
-            project=project,
-        )[0]
-        Activity.objects.create(
-            type=Activity.RELEASE,
-            project=project,
-            ident=version,
-            user=user,
-            data={'version': version},
-        )
-        return release
-
-    def create_event(self, project, release):
-        report('event', 'Creating event for %s' % project.id)
-        event = create_sample_event(
-            project=project,
-            platform='python',
-            release=release.version,
-        )
-        create_sample_time_series(event)
-        return event
-
 
 def dump_json(path, data):
     path = os.path.join(OUTPUT_PATH, path)
@@ -296,7 +159,7 @@ def dump_json(path, data):
 
 
 def run_scenario(vars, scenario_ident, func):
-    runner = Runner(vars, scenario_ident)
+    runner = Runner(scenario_ident, **vars)
     report('scenario', 'Running scenario "%s"' % scenario_ident)
     func(runner)
     dump_json('scenarios/%s.json' % scenario_ident, runner.to_json())
@@ -305,20 +168,25 @@ def run_scenario(vars, scenario_ident, func):
 @click.command()
 def cli():
     """API docs dummy generator."""
-    with SentryBox() as box:
-        user = box.create_user('john@interstellar.invalid')
-        org = box.create_org('The Interstellar Jurisdiction',
-                             owner=user)
-        api_key = box.create_api_key(org)
+    with SentryBox():
+        utils = MockUtils()
+        report('org', 'Creating user and organization')
+        user = utils.create_user('john@interstellar.invalid')
+        org = utils.create_org('The Interstellar Jurisdiction',
+                               owner=user)
+        api_key = utils.create_api_key(org)
 
-        team = box.create_team('Powerful Abolitionist',
-                               org=org)
+        report('org', 'Creating team')
+        team = utils.create_team('Powerful Abolitionist',
+                                 org=org)
 
         projects = []
         for project_name in 'Pump Station', 'Prime Mover':
-            project = box.create_project(project_name, team=team, org=org)
-            release = box.create_release(project=project, user=user)
-            event = box.create_event(project=project, release=release)
+            report('project', 'Creating project "%s"' % project_name)
+            project = utils.create_project(project_name, team=team, org=org)
+            release = utils.create_release(project=project, user=user)
+            report('event', 'Creating event for "%s"' % project_name)
+            event = utils.create_event(project=project, release=release)
             projects.append({
                 'project': project,
                 'release': release,
@@ -329,9 +197,7 @@ def cli():
             'org': org,
             'api_key': api_key,
             'me': user,
-            'default_project': projects[0]['project'],
-            'default_release': projects[0]['release'],
-            'default_event': projects[0]['events'][0],
+            'api_key': api_key,
             'teams': [{
                 'team': team,
                 'projects': projects,

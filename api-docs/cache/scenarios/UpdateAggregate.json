@@ -1,0 +1,52 @@
+{
+  "ident": "UpdateAggregate",
+  "requests": [
+    {
+      "request": {
+        "data": {
+          "status": "unresolved"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "PUT",
+        "path": "/api/0/groups/1/"
+      },
+      "response": {
+        "data": {
+          "annotations": [],
+          "assignedTo": null,
+          "count": "1",
+          "culprit": "raven.scripts.runner in main",
+          "firstSeen": "2015-08-25T18:08:03Z",
+          "hasSeen": false,
+          "id": "1",
+          "isBookmarked": false,
+          "isPublic": false,
+          "lastSeen": "2015-08-25T18:08:03Z",
+          "level": "error",
+          "logger": null,
+          "numComments": 0,
+          "permalink": "https://app.getsentry.com/the-interstellar-jurisdiction/pump-station/group/1/",
+          "project": {
+            "name": "Pump Station",
+            "slug": "pump-station"
+          },
+          "shareId": "322e31",
+          "status": "unresolved",
+          "tags": {},
+          "timeSpent": null,
+          "title": "This is an example Python exception"
+        },
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ]
+}
