@@ -25,20 +25,20 @@ var UserWidget = React.createClass({
         <h6><span>User</span></h6>
         <dl>
           {user.id && [
-            <dt>ID:</dt>,
-            <dd>{user.id}</dd>
+            <dt key="id-label">ID:</dt>,
+            <dd key="id">{user.id}</dd>
           ]}
           {user.email && [
-            <dt>Email:</dt>,
-            <dd>{user.email}</dd>
+            <dt key="email-label">Email:</dt>,
+            <dd key="email">{user.email}</dd>
           ]}
           {user.username && [
-            <dt>Username:</dt>,
-            <dd>{user.username}</dd>
+            <dt key="username-label">Username:</dt>,
+            <dd key="username">{user.username}</dd>
           ]}
           {user.ipAddress && [
-            <dt>IP:</dt>,
-            <dd>{user.ipAddress}</dd>
+            <dt key="ipAddress-label">IP:</dt>,
+            <dd key="ipAddress">{user.ipAddress}</dd>
           ]}
         </dl>
         <div className="btn-group hidden">
