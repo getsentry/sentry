@@ -1,0 +1,11 @@
+{
+  "endpoint_name": "get-organization-projects",
+  "internal_path": "sentry.api.endpoints.organization_projects.OrganizationProjectsEndpoint:get",
+  "method": "GET",
+  "path": "/api/0/organizations/{organization_slug}/projects/",
+  "section": "organizations",
+  "text": [
+    "Return a list of projects bound to a organization."
+  ],
+  "title": "List an Organization's Projects"
+}

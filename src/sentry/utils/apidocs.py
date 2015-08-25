@@ -10,6 +10,7 @@ from django.conf import settings
 optional_group_matcher = re.compile(r'\(\?\:(.+)\)')
 named_group_matcher = re.compile(r'\(\?P<(\w+)>[^\)]+\)')
 non_named_group_matcher = re.compile(r'\(.*?\)')
+camel_re = re.compile(r'([A-Z]+)([a-z])')
 
 
 API_PREFIX = '/api/0/'
@@ -95,6 +96,17 @@ def extract_title_and_text(doc):
     return title, lines
 
 
+def camelcase_to_dashes(string):
+    def handler(match):
+        camel, regular = match.groups()
+        if len(camel) != 1:
+            camel = camel[:-1].lower() + '-' + camel[-1].lower()
+        else:
+            camel = camel.lower()
+        return '-' + camel + regular.lower()
+    return camel_re.sub(handler, string).lstrip('-')
+
+
 def extract_endpoint_info(pattern, internal_endpoint):
     from sentry.constants import HTTP_METHODS
     path = simplify_regex(pattern.regex.pattern)
@@ -113,6 +125,7 @@ def extract_endpoint_info(pattern, internal_endpoint):
         endpoint_name = method.__name__.title() + internal_endpoint.__name__
         if endpoint_name.endswith('Endpoint'):
             endpoint_name = endpoint_name[:-8]
+        endpoint_name = camelcase_to_dashes(endpoint_name)
         title, text = extract_title_and_text(doc)
         yield dict(
             path=API_PREFIX + path.lstrip('/'),

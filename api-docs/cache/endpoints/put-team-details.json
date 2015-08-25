@@ -1,0 +1,12 @@
+{
+  "endpoint_name": "put-team-details",
+  "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:put",
+  "method": "PUT",
+  "path": "/api/0/teams/{organization_slug}/{team_slug}/",
+  "section": "teams",
+  "text": [
+    "Update various attributes and configurable settings for the given",
+    "team."
+  ],
+  "title": "Update a Team"
+}

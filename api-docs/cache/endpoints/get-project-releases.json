@@ -1,0 +1,14 @@
+{
+  "endpoint_name": "get-project-releases",
+  "internal_path": "sentry.api.endpoints.project_releases.ProjectReleasesEndpoint:get",
+  "method": "GET",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/",
+  "section": "releases",
+  "text": [
+    "Retrieve a list of releases for a given project.",
+    "",
+    "To find releases for a given version the 'query' parameter may be to",
+    "create a \"version STARTS WITH\" filter."
+  ],
+  "title": "List a Project's Releases"
+}

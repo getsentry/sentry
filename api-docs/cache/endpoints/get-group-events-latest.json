@@ -1,0 +1,11 @@
+{
+  "endpoint_name": "get-group-events-latest",
+  "internal_path": "sentry.api.endpoints.group_events_latest.GroupEventsLatestEndpoint:get",
+  "method": "GET",
+  "path": "/api/0/groups/{group_id}/events/latest/",
+  "section": "events",
+  "text": [
+    "Retrieves the details of the latest sample for an aggregate."
+  ],
+  "title": "Latest Sample"
+}
