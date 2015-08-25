@@ -50,33 +50,16 @@ var GroupList = React.createClass({
     var params = this.context.router.getCurrentParams();
 
     this._streamManager = new utils.StreamManager(GroupStore);
-    this._poller = new utils.CursorPoller({
-      success: this.onRealtimePoll,
-      endpoint: this.getGroupListEndpoint()
-    });
-    this._poller.enable();
 
     this.fetchData();
   },
 
   routeDidChange() {
-    this._poller.disable();
     this.fetchData();
   },
 
   componentWillUnmount() {
-    this._poller.disable();
     GroupStore.loadInitialData([]);
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.realtimeActive !== this.state.realtimeActive) {
-      if (this.state.realtimeActive) {
-        this._poller.enable();
-      } else {
-        this._poller.disable();
-      }
-    }
   },
 
   fetchData() {
@@ -102,11 +85,6 @@ var GroupList = React.createClass({
           error: true,
           loading: false
         });
-      },
-      complete: () => {
-        if (this.state.realtimeActive) {
-          this._poller.enable();
-        }
       }
     });
   },
@@ -121,15 +99,6 @@ var GroupList = React.createClass({
     var querystring = jQuery.param(queryParams);
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/?' + querystring;
-  },
-
-  onRealtimePoll(data, links) {
-    this._streamManager.unshift(data);
-    if (!utils.valueIsEqual(this.state.pageLinks, links, true)) {
-      this.setState({
-        pageLinks: links,
-      });
-    }
   },
 
   onGroupChange() {
