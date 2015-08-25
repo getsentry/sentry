@@ -60,6 +60,9 @@ class Access(BaseAccess):
 
 
 def from_user(user, organization):
+    if not organization:
+        return DEFAULT
+
     if user.is_superuser:
         return Access(
             scopes=SCOPES,
@@ -68,9 +71,6 @@ def from_user(user, organization):
             teams=organization.team_set.all(),
             sso_is_valid=True,
         )
-
-    if not organization:
-        return DEFAULT
 
     if user.is_anonymous():
         return DEFAULT

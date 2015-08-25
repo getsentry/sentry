@@ -17,6 +17,7 @@ from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.api.serializers.base import serialize
+from sentry.auth import access
 from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import AnonymousUser, Project, Team, ProjectOption
 
@@ -119,6 +120,12 @@ def get_default_context(request, existing_context=None, team=None):
         context['selectedTeam'] = serialize(team, user)
     if project:
         context['selectedProject'] = serialize(project, user)
+
+    if not existing_context or 'ACCESS' not in existing_context:
+        context['ACCESSS'] = access.from_user(
+            user=user,
+            organization=organization,
+        ).to_django_context()
 
     return context
 
