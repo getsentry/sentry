@@ -104,6 +104,9 @@ var GroupStore = Reflux.createStore({
       return;
     }
     group.activity.unshift(data);
+    if (data.type === 'note')
+      group.numComments += 1;
+    
     this.trigger(new Set([id]));
   },
 
