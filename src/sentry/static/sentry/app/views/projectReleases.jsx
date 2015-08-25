@@ -66,8 +66,7 @@ var ProjectReleases = React.createClass({
   },
 
   propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired,
-    pageLinks: ''
+    setProjectNavSection: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -77,7 +76,8 @@ var ProjectReleases = React.createClass({
       releaseList: [],
       loading: true,
       error: false,
-      query: queryParams.query || this.props.defaultQuery
+      query: queryParams.query || this.props.defaultQuery,
+      pageLinks: ''
     };
   },
 
