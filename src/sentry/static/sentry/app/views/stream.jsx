@@ -306,7 +306,9 @@ var Stream = React.createClass({
 
   renderLoading() {
     return (
-      <LoadingIndicator />
+      <div className="box">
+        <LoadingIndicator />
+      </div>
     );
   },
 
