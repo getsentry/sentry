@@ -7,7 +7,6 @@ sentry.models.tagkey
 """
 from __future__ import absolute_import, print_function
 
-from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -17,7 +16,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import BaseManager
 from sentry.utils.cache import cache
-from sentry.utils.http import absolute_uri
 
 
 # TODO(dcramer): pull in enum library
@@ -50,13 +48,6 @@ class TagKey(Model):
     """
     __core__ = False
 
-    DEFAULT_URL_NAME = 'sentry-explore-tag'
-    URL_NAMES = {
-        'sentry:user': 'sentry-users',
-        'sentry:filename': 'sentry-explore-code',
-        'sentry:function': 'sentry-explore-code-by-function',
-    }
-
     project = FlexibleForeignKey('sentry.Project')
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
@@ -80,18 +71,6 @@ class TagKey(Model):
         return self.label \
             or TAG_LABELS.get(self.key) \
             or self.key.replace('_', ' ').title()
-
-    def get_absolute_url(self):
-        # HACK(dcramer): quick and dirty way to support code/users
-        try:
-            url_name = self.URL_NAMES[self.key]
-        except KeyError:
-            url_name = self.DEFAULT_URL_NAME
-            return absolute_uri(reverse(url_name, args=[
-                self.project.organization.slug, self.project.slug, self.key]))
-
-        return absolute_uri(reverse(url_name, args=[
-            self.project.organization.slug, self.project.slug]))
 
     def get_audit_log_data(self):
         return {

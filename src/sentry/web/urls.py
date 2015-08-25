@@ -20,8 +20,7 @@ import sentry.web.frontend.projects.tags
 
 from sentry.web import api
 from sentry.web.frontend import (
-    accounts, generic, groups, events,
-    admin, users, explore, explore_code,
+    accounts, generic, groups, events, admin
 )
 
 from sentry.web.frontend.admin_queue import AdminQueueView
@@ -334,30 +333,6 @@ urlpatterns += patterns('',
     # TV dashboard
     url(r'^(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
         name='sentry-wall'),
-
-    # Explore - Users
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/$',
-        users.user_list, name='sentry-users'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/(?P<user_id>\d+)/$',
-        users.user_details, name='sentry-user-details'),
-
-    # Explore - Code
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/$', explore_code.list_tag,
-        {'selection': 'filenames'}, name='sentry-explore-code'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/function/$', explore_code.list_tag,
-        {'selection': 'functions'}, name='sentry-explore-code-by-function'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/filename/(?P<tag_id>\d+)/$',
-        explore_code.tag_details, {'selection': 'filenames'}, name='sentry-explore-code-details'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/function/(?P<tag_id>\d+)/$',
-        explore_code.tag_details, {'selection': 'functions'}, name='sentry-explore-code-details-by-function'),
-
-    # Explore
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/$', explore.tag_list,
-        name='sentry-explore'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/$', explore.tag_value_list,
-        name='sentry-explore-tag'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/(?P<value_id>\d+)/$', explore.tag_value_details,
-        name='sentry-explore-tag-value'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', ReactPageView.as_view(),
         name='sentry-group'),
