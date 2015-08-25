@@ -66,7 +66,7 @@
 
   .checkbox {
     position: absolute;
-    left: 40px;
+    left: 34px;
     top: 4px;
   }
 
@@ -89,7 +89,7 @@
 
   .stream-actions-left {
     position: relative;
-    padding: 10px 0 10px 44px;
+    padding: 10px 0 10px 38px;
 
     .checkbox {
       position: absolute;
@@ -232,11 +232,13 @@
     .event-details:after {
       position: absolute;
       content: "";
-      top: -1px;
+      top: 11px;
       right: auto;
       bottom: -1px;
       left: -1px;
-      width: 3px;
+      height: 16px;
+      width: 5px;
+      border-radius: 0 2px 2px 0;
       z-index: 100;
       .transition(all .2s ease-in-out);
     }
@@ -295,9 +297,6 @@
       .event-cell{
         border-top: 0;
       }
-      .event-details:after {
-        top: 0;
-      }
     }
 
     &:last-child {
@@ -325,12 +324,12 @@
 
   .checkbox {
     position: absolute;
-    left: 40px;
+    left: 34px;
     top: -1px;
   }
 
   .event-details {
-    padding: 12px 0 8px 44px;
+    padding: 12px 0 8px 38px;
 
     h3 {
       font-size: 16px;
