@@ -3,9 +3,16 @@ import OverlayMixin from "react-bootstrap/OverlayMixin";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 import React from "react";
 import SelectedGroupStore from "../../stores/selectedGroupStore";
+import TooltipMixin from "../../mixins/tooltip";
 
 var ActionLink = React.createClass({
-  mixins: [OverlayMixin, PureRenderMixin],
+  mixins: [
+    OverlayMixin, PureRenderMixin,
+    TooltipMixin({
+      html: false,
+      container: 'body'
+    })
+  ],
 
   propTypes: {
     actionLabel: React.PropTypes.string,
@@ -68,8 +75,12 @@ var ActionLink = React.createClass({
     if (this.props.disabled) {
       className += ' disabled';
     }
+    className += ' tip';
     return (
-      <a title={this.props.buttonTitle} className={className} disabled={this.props.disabled} onClick={this.handleToggle}>
+      <a title={this.props.tooltip || this.props.buttonTitle}
+         className={className}
+         disabled={this.props.disabled}
+         onClick={this.handleToggle}>
         {this.props.children}
       </a>
     );
