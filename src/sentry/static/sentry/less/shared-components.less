@@ -919,30 +919,38 @@ table.integrations {
 * ============================================================================
 */
 
+.project-select > a {
+  font-weight: 600;
+}
+
 .project-dropdown {
   .dropdown-toggle {
-    border: 1px solid transparent;
-    border-radius: 50%;
-    padding: 0 3px 1px;
-    .btn-default;
+    border: 1px solid @trim;
+    border-radius: 2px;
+    height: 20px;
+    width: 21px;
+    line-height: 21px;
+    // text-align: center;
     position: relative;
-    top: -1px;
+    top: -2px;
 
-    margin-left: 6px;
+    margin-left: 10px;
     display: inline-block;
     vertical-align: middle;
 
     .icon-arrow-down {
-      font-size: 12px !important;
-      top: 1px;
-      color: lighten(@gray, 15);
+      position: relative;
+      top: 0px;
+      left: 2px;
+      font-size: 15px !important;
+      color: @gray;
     }
   }
 
   .dropdown-menu {
     width: 320px;
     padding-bottom: 0;
-    left: -146px;
+    left: -140px;
     .clearfix;
 
     &:before {
