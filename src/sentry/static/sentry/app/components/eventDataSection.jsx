@@ -5,7 +5,7 @@ var GroupEventDataSection = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
     event: PropTypes.Event.isRequired,
-    title: React.PropTypes.any.isRequired,
+    title: React.PropTypes.any,
     type: React.PropTypes.string.isRequired,
     wrapTitle: React.PropTypes.bool
   },
