@@ -1,0 +1,14 @@
+{
+  "endpoint_name": "get-group-details",
+  "internal_path": "sentry.api.endpoints.group_details.GroupDetailsEndpoint:get",
+  "method": "GET",
+  "path": "/api/0/groups/{group_id}/",
+  "section": "events",
+  "text": [
+    "Return details on an individual aggregate.  Aggregates are also",
+    "sometimes referred to as groups.",
+    "",
+    ".. sentry:api-scenario:: RetrieveAggregate"
+  ],
+  "title": "Retrieve an Aggregate"
+}

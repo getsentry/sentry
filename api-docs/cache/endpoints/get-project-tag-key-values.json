@@ -1,0 +1,11 @@
+{
+  "endpoint_name": "get-project-tag-key-values",
+  "internal_path": "sentry.api.endpoints.project_tagkey_values.ProjectTagKeyValuesEndpoint:get",
+  "method": "GET",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/tags/{key}/values/",
+  "section": "projects",
+  "text": [
+    "Return a list of values associated with this key."
+  ],
+  "title": "List a Tag's Values"
+}

@@ -1,0 +1,11 @@
+{
+  "endpoint_name": "get-project-keys",
+  "internal_path": "sentry.api.endpoints.project_keys.ProjectKeysEndpoint:get",
+  "method": "GET",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/keys/",
+  "section": "projects",
+  "text": [
+    "Return a list of client keys bound to a project."
+  ],
+  "title": "List a Project's Client Keys"
+}

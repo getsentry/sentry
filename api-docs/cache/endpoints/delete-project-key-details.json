@@ -1,0 +1,11 @@
+{
+  "endpoint_name": "delete-project-key-details",
+  "internal_path": "sentry.api.endpoints.project_key_details.ProjectKeyDetailsEndpoint:delete",
+  "method": "DELETE",
+  "path": "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/",
+  "section": "projects",
+  "text": [
+    "Delete a client key."
+  ],
+  "title": "Delete a Client Key"
+}
