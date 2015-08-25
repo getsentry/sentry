@@ -8,7 +8,6 @@ import ListLink from "../components/listLink";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import ProjectState from "../mixins/projectState";
-import PropTypes from "../proptypes";
 import StreamGroup from "../components/streamGroup";
 import TimeSince from "../components/timeSince";
 import utils from "../utils";
@@ -28,7 +27,7 @@ var ReleaseDetails = React.createClass({
   },
 
   childContextTypes: {
-    release: PropTypes.AnyModel
+    release: React.PropTypes.object
   },
 
   getChildContext() {
