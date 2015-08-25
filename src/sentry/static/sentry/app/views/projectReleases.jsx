@@ -66,7 +66,8 @@ var ProjectReleases = React.createClass({
   },
 
   propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
+    setProjectNavSection: React.PropTypes.func.isRequired,
+    pageLinks: ''
   },
 
   getInitialState() {
