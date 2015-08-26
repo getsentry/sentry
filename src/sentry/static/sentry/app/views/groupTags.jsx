@@ -5,7 +5,6 @@ import Count from "../components/count";
 import GroupState from "../mixins/groupState";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
-import PropTypes from "../proptypes";
 
 var GroupTags = React.createClass({
   mixins: [
@@ -129,4 +128,3 @@ var GroupTags = React.createClass({
 });
 
 export default GroupTags;
-

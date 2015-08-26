@@ -8,7 +8,6 @@ import Gravatar from "../components/gravatar";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
-import PropTypes from "../proptypes";
 
 var GroupEvents = React.createClass({
   contextTypes: {
@@ -158,4 +157,3 @@ var GroupEvents = React.createClass({
 });
 
 export default GroupEvents;
-

@@ -8,7 +8,7 @@ import GroupChart from "./streamGroupChart";
 import GroupStore from "../stores/groupStore";
 import SelectedGroupStore from "../stores/selectedGroupStore";
 import TimeSince from "./timeSince";
-import {compareArrays, valueIsEqual} from "../utils";
+import {valueIsEqual} from "../utils";
 
 var GroupCheckBox = React.createClass({
   mixins: [

@@ -7,8 +7,6 @@ import ConfigStore from "../stores/configStore";
 import Indicators from "../components/indicators";
 import LoadingIndicator from "../components/loadingIndicator";
 import OrganizationStore from "../stores/organizationStore";
-import PropTypes from "../proptypes";
-import {Link} from "react-router";
 
 var App = React.createClass({
   propTypes: {
@@ -81,4 +79,3 @@ var App = React.createClass({
 });
 
 export default App;
-

@@ -1,5 +1,4 @@
 import React from "react";
-import moment from "moment";
 import DatePicker from "react-datepicker";
 
 var DateTimeInput = React.createClass({
@@ -20,8 +19,6 @@ var DateTimeInput = React.createClass({
 
   render() {
     var {dateValue, timeValue} = this.state;
-
-    var selectedDay = moment(dateValue, "L", true).toDate();
 
     return (
       <div>
@@ -59,4 +56,3 @@ var DateTimeInput = React.createClass({
 });
 
 export default DateTimeInput;
-

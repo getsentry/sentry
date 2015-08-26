@@ -1,5 +1,4 @@
 import React from "react";
-import Router from "react-router";
 import api from "../api";
 import Gravatar from "../components/gravatar";
 import LoadingError from "../components/loadingError";
@@ -60,7 +59,6 @@ var OrganizationMembers = React.createClass({
   },
 
   getOrganizationMembersEndpoint() {
-    var router = this.context.router;
     var params = this.getCurrentParams();
     return '/organizations/' + params.orgId + '/members/';
   },
@@ -129,4 +127,3 @@ var OrganizationMembers = React.createClass({
 });
 
 export default OrganizationMembers;
-

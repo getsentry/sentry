@@ -6,11 +6,9 @@ import GroupStore from "../stores/groupStore";
 import DropdownLink from "./dropdownLink";
 import MemberListStore from "../stores/memberListStore";
 import MenuItem from "./menuItem";
-import PropTypes from "../proptypes";
 import LoadingIndicator from "../components/loadingIndicator";
-import {compareArrays, valueIsEqual} from "../utils";
-import classNames from "classnames";
 import {userDisplayName} from "../utils/formatters";
+import {valueIsEqual} from "../utils";
 import TooltipMixin from "../mixins/tooltip";
 
 var AssigneeSelector = React.createClass({

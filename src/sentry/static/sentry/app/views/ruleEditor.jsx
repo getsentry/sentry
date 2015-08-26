@@ -1,11 +1,8 @@
 import React from "react";
-import Reflux from "reflux";
-import Router from "react-router";
 import $ from "jquery";
 import api from "../api";
 import IndicatorStore from '../stores/indicatorStore';
 import Selectize from "../components/selectize";
-import utils from "../utils";
 
 var RuleNode = React.createClass({
   componentDidMount() {
@@ -161,9 +158,9 @@ var RuleEditor = React.createClass({
       success: () => {
         window.location.href = (rule.id ? '../../' : '../');
       },
-      error: (data) => {
+      error: (response) => {
         this.setState({
-          error: data || 'Unknown error',
+          error: response || 'Unknown error',
           loading: false
         });
       },
@@ -236,4 +233,3 @@ var RuleEditor = React.createClass({
 });
 
 export default RuleEditor;
-

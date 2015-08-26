@@ -6,7 +6,6 @@ import GroupState from "../mixins/groupState";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
-import PropTypes from "../proptypes";
 
 var GroupTagValues = React.createClass({
   mixins: [GroupState],
@@ -126,4 +125,3 @@ var GroupTagValues = React.createClass({
 });
 
 export default GroupTagValues;
-

@@ -1,5 +1,4 @@
 import $ from "jquery";
-import moment from "moment";
 import React from "react";
 import api from "../api";
 import ConfigStore from "../stores/configStore";
@@ -11,7 +10,6 @@ import OrganizationHomeContainer from "../components/organizationHomeContainer";
 import OrganizationState from "../mixins/organizationState";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 import RouteMixin from "../mixins/routeMixin";
-import utils from "../utils";
 
 var getPercent = (item, total) => {
   if (total === 0) {
@@ -21,47 +19,6 @@ var getPercent = (item, total) => {
     return '0%';
   }
   return parseInt(item / total * 100) + '%';
-};
-
-var timeUnitSize = {
-  "second": 1000,
-  "minute": 60 * 1000,
-  "hour": 60 * 60 * 1000,
-  "day": 24 * 60 * 60 * 1000,
-  "month": 30 * 24 * 60 * 60 * 1000,
-  "quarter": 3 * 30 * 24 * 60 * 60 * 1000,
-  "year": 365.2425 * 24 * 60 * 60 * 1000
-};
-
-var tickFormatter = (value, axis) => {
-  var d = moment(value);
-
-  var t = axis.tickSize[0] * timeUnitSize[axis.tickSize[1]];
-  var span = axis.max - axis.min;
-  var fmt;
-
-  if (t < timeUnitSize.minute) {
-    fmt = 'LT';
-  } else if (t < timeUnitSize.day) {
-    fmt = 'LT';
-    if (span < 2 * timeUnitSize.day) {
-      fmt = 'LT';
-    } else {
-      fmt = 'MMM D LT';
-    }
-  } else if (t < timeUnitSize.month) {
-    fmt = 'MMM D';
-  } else if (t < timeUnitSize.year) {
-    if (span < timeUnitSize.year) {
-      fmt = 'MMM';
-    } else {
-      fmt = 'MMM YY';
-    }
-  } else {
-    fmt = 'YY';
-  }
-
-  return d.format(fmt);
 };
 
 var ProjectTable = React.createClass({
@@ -90,9 +47,6 @@ var ProjectTable = React.createClass({
         </thead>
         <tbody>
           {$.map(projectTotals, (item) => {
-            var acceptedPercent = parseInt(item.accepted / orgTotal.accepted * 100);
-            var receivedPercent = parseInt(item.received / orgTotal.received * 100);
-            var rejectedPercent = parseInt(item.rejected / orgTotal.rejected * 100);
             var project = projectMap[item.id];
 
             return (
@@ -304,8 +258,6 @@ var OrganizationStats = React.createClass({
   },
 
   processProjectData() {
-    var sReceived = {};
-    var sRejected = {};
     var rawProjectData = this.state.rawProjectData;
     var projectTotals = [];
     $.each(rawProjectData.received, (projectId, data) => {
@@ -412,4 +364,3 @@ var OrganizationStats = React.createClass({
 });
 
 export default OrganizationStats;
-

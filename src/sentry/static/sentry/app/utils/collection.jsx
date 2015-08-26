@@ -85,7 +85,7 @@ Collection.prototype.pop = function pop(item) {
   if (idx === -1) {
     return;
   }
-  result = this[idx];
+  let result = this[idx];
   this.splice(idx, idx + 1);
   return result;
 };
@@ -115,4 +115,3 @@ Collection.prototype.update = function update(item) {
 };
 
 export default Collection;
-

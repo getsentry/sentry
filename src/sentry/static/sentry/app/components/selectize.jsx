@@ -1,6 +1,59 @@
 import React from "react";
 import $ from "jquery";
 
+function identicalArray(a1, a2){
+  return (
+      a1.length === a2.length &&
+      !a1.some(function(e, idx) { return a2[idx] !== e; })
+  );
+}
+
+const selectizeOptNames = [
+  'delimiter',
+  'diacritics',
+  'create',
+  'createOnBlur',
+  'createFilter',
+  'highlight',
+  'persist',
+  'openOnFocus',
+  'maxOptions',
+  'maxItems',
+  'hideSelected',
+  'scrollDuration',
+  'loadThrottle',
+  'preload',
+  'dropdownParent',
+  'addPrecedence',
+  'selectOnTab',
+  'options',
+  'dataAttr',
+  'valueField',
+  'optgroupValueField',
+  'labelField',
+  'optgroupLabelField',
+  'optgroupField',
+  'sortField',
+  'searchField',
+  'searchConjunction',
+  'optgroupOrder',
+  'load',
+  'score',
+  'render',
+
+  // Unofficial, but works as expected.
+  'placeholder'
+];
+
+var handledProps = {
+  children:     true,
+  value:        true,
+  disabled:     true,
+  placeholder:  true,
+  onChange:     true,
+  options:      true,
+};
+
 var Selectize = React.createClass({
   getDefaultProps() {
     return {
@@ -156,58 +209,4 @@ var Selectize = React.createClass({
   }
 });
 
-function identicalArray(a1, a2){
-  return (
-      a1.length === a2.length &&
-      !a1.some(function(e, idx) { return a2[idx] !== e; })
-  );
-}
-
-const selectizeOptNames = [
-  'delimiter',
-  'diacritics',
-  'create',
-  'createOnBlur',
-  'createFilter',
-  'highlight',
-  'persist',
-  'openOnFocus',
-  'maxOptions',
-  'maxItems',
-  'hideSelected',
-  'scrollDuration',
-  'loadThrottle',
-  'preload',
-  'dropdownParent',
-  'addPrecedence',
-  'selectOnTab',
-  'options',
-  'dataAttr',
-  'valueField',
-  'optgroupValueField',
-  'labelField',
-  'optgroupLabelField',
-  'optgroupField',
-  'sortField',
-  'searchField',
-  'searchConjunction',
-  'optgroupOrder',
-  'load',
-  'score',
-  'render',
-
-  // Unofficial, but works as expected.
-  'placeholder'
-];
-
-var handledProps = {
-  children:     true,
-  value:        true,
-  disabled:     true,
-  placeholder:  true,
-  onChange:     true,
-  options:      true,
-};
-
 export default Selectize;
-

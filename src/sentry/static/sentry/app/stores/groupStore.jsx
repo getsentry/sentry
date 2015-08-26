@@ -1,9 +1,7 @@
-
 import jQuery from "jquery";
 import Reflux from "reflux";
 import AlertActions from "../actions/alertActions";
 import GroupActions from '../actions/groupActions';
-import MemberListStore from "../stores/memberListStore";
 import utils from "../utils";
 
 var ERR_CHANGE_ASSIGNEE = 'Unable to change assignee. Please try again.';
@@ -106,7 +104,7 @@ var GroupStore = Reflux.createStore({
     group.activity.unshift(data);
     if (data.type === 'note')
       group.numComments += 1;
-    
+
     this.trigger(new Set([id]));
   },
 
@@ -267,4 +265,3 @@ var GroupStore = Reflux.createStore({
 });
 
 export default GroupStore;
-

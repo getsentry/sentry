@@ -49,6 +49,7 @@ var ContextData = React.createClass({
       );
     }
 
+    /*eslint no-shadow:0*/
     function walk(value, depth) {
       var i = 0, children = [];
       if (value === null) {
@@ -133,4 +134,3 @@ var ContextData = React.createClass({
 });
 
 export default ContextData;
-

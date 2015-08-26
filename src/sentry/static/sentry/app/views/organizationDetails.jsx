@@ -7,7 +7,6 @@ import Header from "../components/header";
 import HookStore from "../stores/hookStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
-import OrganizationState from "../mixins/organizationState";
 import PropTypes from "../proptypes";
 import RouteMixin from "../mixins/routeMixin";
 import TeamStore from "../stores/teamStore";
@@ -124,4 +123,3 @@ var OrganizationDetails = React.createClass({
 });
 
 export default OrganizationDetails;
-
