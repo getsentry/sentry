@@ -1,4 +1,3 @@
-/*jshint expr: true*/
 var React = require("react/addons");
 
 var FilterSelectLink = require("app/views/stream/filterSelectLink");

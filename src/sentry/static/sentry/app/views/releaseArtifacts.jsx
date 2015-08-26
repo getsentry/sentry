@@ -77,7 +77,6 @@ var ReleaseArtifacts = React.createClass({
       <div>
         <table className="table">
           {this.state.fileList.map((file) => {
-            console.log(file);
             return (
               <tr>
                 <td><strong>{file.name}</strong></td>

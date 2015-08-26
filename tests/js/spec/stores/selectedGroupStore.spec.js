@@ -1,4 +1,3 @@
-/*jshint expr: true*/
 var GroupStore = require('app/stores/groupStore');
 var SelectedGroupStore = require('app/stores/selectedGroupStore');
 
