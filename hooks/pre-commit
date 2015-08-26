@@ -31,10 +31,7 @@ def py_lint(files_modified):
 
 def js_lint(files_modified):
     has_errors = False
-    if os.system('node_modules/.bin/jshint src'):
-        has_errors = True
-
-    if os.system('node_modules/.bin/jsxhint --jsx-only src'):
+    if os.system('npm run-script lint'):
         has_errors = True
 
     return has_errors
