@@ -1,11 +1,9 @@
 import React from "react";
 import Router from "react-router";
 import jQuery from "jquery";
-import AppState from "../mixins/appState";
 import ConfigStore from "../stores/configStore";
 import DropdownLink from "../components/dropdownLink";
 import MenuItem from "../components/menuItem";
-import {escape} from "../utils";
 
 var ProjectSelector = React.createClass({
   childContextTypes: {
@@ -86,7 +84,6 @@ var ProjectSelector = React.createClass({
     var projectId = this.props.projectId;
     var org = this.props.organization;
     var filter = this.state.filter;
-    var urlPrefix = ConfigStore.get('urlPrefix');
     var children = [];
     var activeTeam;
     var activeProject;
@@ -153,7 +150,6 @@ var ProjectHeader = React.createClass({
     var routeParams = this.context.router.getCurrentParams();
     var navSection = this.props.activeSection;
     var urlPrefix = ConfigStore.get('urlPrefix');
-    var user = ConfigStore.get('user');
     var project = this.props.project;
     var org = this.props.organization;
 

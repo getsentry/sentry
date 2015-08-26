@@ -2,9 +2,7 @@ import React from "react";
 import Reflux from "reflux";
 import $ from "jquery";
 import Cookies from "js-cookie";
-import moment from "moment";
 import api from "../api";
-import GroupActions from "../actions/groupActions";
 import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
@@ -129,7 +127,6 @@ var Stream = React.createClass({
         this._poller.disable();
       }
     }
-    var groupList = this.refs.groupList;
   },
 
   fetchData() {

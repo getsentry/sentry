@@ -1,5 +1,4 @@
 import React from "react";
-import Router from "react-router";
 import utils from "../utils";
 
 var Pagination = React.createClass({
@@ -49,4 +48,3 @@ var Pagination = React.createClass({
 });
 
 export default Pagination;
-

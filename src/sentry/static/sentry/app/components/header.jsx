@@ -6,7 +6,6 @@ import Gravatar from "./gravatar";
 import MenuItem from "./menuItem";
 import OrganizationState from "../mixins/organizationState";
 import OrganizationStore from "../stores/organizationStore";
-import UserInfo from "./userInfo";
 import {Link} from "react-router";
 
 var UserNav = React.createClass({
@@ -121,4 +120,3 @@ var Header = React.createClass({
 });
 
 export default Header;
-

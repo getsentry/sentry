@@ -1,13 +1,10 @@
-import $ from "jquery";
 import React from "react";
-import Router from "react-router";
 import api from "../api";
 import Gravatar from "../components/gravatar";
 import GroupState from "../mixins/groupState";
 import GroupStore from "../stores/groupStore";
 import IndicatorStore from "../stores/indicatorStore";
 import MemberListStore from "../stores/memberListStore";
-import PropTypes from "../proptypes";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 import TimeSince from "../components/timeSince";
 import utils from "../utils";
@@ -202,4 +199,3 @@ var GroupActivity = React.createClass({
 });
 
 export default GroupActivity;
-

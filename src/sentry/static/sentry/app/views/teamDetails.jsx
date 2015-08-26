@@ -1,7 +1,5 @@
 import React from "react";
-import Reflux from "reflux";
 import Router from "react-router";
-import api from "../api";
 import LoadingIndicator from "../components/loadingIndicator";
 import OrganizationState from "../mixins/organizationState";
 import PropTypes from "../proptypes";
@@ -54,8 +52,8 @@ var TeamDetails = React.createClass({
     var router = this.context.router;
     var params = router.getCurrentParams();
     var teamSlug = params.teamId;
-    var team = org.teams.filter((team) => {
-      return team.slug === teamSlug;
+    var team = org.teams.filter((t) => {
+      return t.slug === teamSlug;
     })[0];
 
     this.setState({

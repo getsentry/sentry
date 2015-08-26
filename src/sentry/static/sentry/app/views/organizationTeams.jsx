@@ -5,7 +5,6 @@ import BarChart from "../components/barChart";
 import ConfigStore from "../stores/configStore";
 import OrganizationHomeContainer from "../components/organizationHomeContainer";
 import OrganizationState from "../mixins/organizationState";
-var PureRenderMixin = require("react/addons").addons.PureRenderMixin;
 import PropTypes from "../proptypes";
 import TeamStore from "../stores/teamStore";
 import {defined, sortArray} from "../utils";
@@ -142,10 +141,6 @@ var SlimTeamList = React.createClass({
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     var teamNodes = this.props.teamList.map((team, teamIdx) => {
-      var teamRouteParams = {
-        orgId: org.slug,
-        teamId: team.slug
-      };
       return (
         <tr key={team.slug}>
           <td>

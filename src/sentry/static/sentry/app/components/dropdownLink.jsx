@@ -1,7 +1,6 @@
 import joinClasses from "react/lib/joinClasses";
 import classNames from "classnames";
 import React from "react";
-import $ from "jquery";
 
 require("bootstrap/js/dropdown");
 
@@ -64,4 +63,3 @@ var DropdownLink = React.createClass({
 });
 
 export default DropdownLink;
-

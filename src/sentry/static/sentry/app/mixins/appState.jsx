@@ -1,6 +1,4 @@
-import React from "react";
 import OrganizationStore from "../stores/organizationStore";
-import PropTypes from "../proptypes";
 
 var AppState = {
   getOrganizationList() {
@@ -9,4 +7,3 @@ var AppState = {
 };
 
 export default AppState;
-

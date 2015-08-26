@@ -1,4 +1,4 @@
-
+import React from "react";
 import Reflux from "reflux";
 import LoadingIndicator from '../components/loadingIndicator';
 
@@ -25,4 +25,3 @@ var IndicatorStore = Reflux.createStore({
 });
 
 export default IndicatorStore;
-

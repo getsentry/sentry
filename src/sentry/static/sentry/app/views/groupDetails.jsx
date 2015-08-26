@@ -8,7 +8,6 @@ import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import PropTypes from "../proptypes";
-import utils from "../utils";
 
 var GroupDetails = React.createClass({
   contextTypes: {
@@ -117,4 +116,3 @@ var GroupDetails = React.createClass({
 });
 
 export default GroupDetails;
-

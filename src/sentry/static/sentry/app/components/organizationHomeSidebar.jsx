@@ -1,4 +1,3 @@
-import jQuery from "jquery";
 import React from "react";
 import ConfigStore from "../stores/configStore";
 import HookStore from "../stores/hookStore";
