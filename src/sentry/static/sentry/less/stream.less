@@ -16,7 +16,7 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15);
-    background: #f7f8f9; // alpha transparency too slow, so using fixed color
+    background: #fafbfb; // alpha transparency too slow, so using fixed color
     margin: 0 auto;
   }
 }
@@ -51,9 +51,9 @@
 }
 
 .stream-actions {
-  background: #f7f8f9;
-  border: 1px solid darken(@trim, 2);
-  border-bottom: 0;
+  background: #fafbfb;
+  border: 1px solid @trim;
+  border-bottom: none;
   border-radius: 2px 2px 0 0;
   box-shadow: 0 1px 0 @trim;
   margin: 0;
@@ -158,7 +158,8 @@
 
 .group-list {
   background: #fff;
-  border: 1px solid darken(@trim, 2);
+  border: 1px solid @trim;
+  border-top: 1px solid lighten(@trim, 5);
   box-shadow: 0 1px 0 rgba(52, 60, 69, 0.02);
   border-radius: 2px;
   // position: relative;
@@ -550,7 +551,6 @@
 
       &.highlight {
         a {
-          font-weight: 600;
           color: @gray-dark;
           font-size: 95%;
         }
