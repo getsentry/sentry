@@ -1,5 +1,6 @@
 import React from "react";
 import Reflux from "reflux";
+import Router from "react-router";
 import api from "../api";
 import BarChart from "../components/barChart";
 import ConfigStore from "../stores/configStore";

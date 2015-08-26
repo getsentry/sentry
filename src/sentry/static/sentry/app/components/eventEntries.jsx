@@ -193,13 +193,15 @@ var EventEntries = React.createClass({
           console.error('Unregistered interface: ' + entry.type);
           return null;
         }
-        return <Component
-                  key={"entry-" + entryIdx}
-                  group={group}
-                  event={evt}
-                  type={entry.type}
-                  data={entry.data}
-                  isShare={isShare} />;
+        return (
+          <Component
+            key={"entry-" + entryIdx}
+            group={group}
+            event={evt}
+            type={entry.type}
+            data={entry.data}
+            isShare={isShare} />
+        );
       } catch (ex) {
         // TODO(dcramer): this should log to Sentry
         return (
