@@ -66,5 +66,48 @@
     "no-unreachable": 2,             // http://eslint.org/docs/rules/no-unreachable
     "use-isnan": 2,                  // http://eslint.org/docs/rules/use-isnan
     "block-scoped-var": 2,           // http://eslint.org/docs/rules/block-scoped-var
+
+    /**
+     * Best practices
+     */
+    "consistent-return": 2,          // http://eslint.org/docs/rules/consistent-return
+    "curly": 0,                      // http://eslint.org/docs/rules/curly [REVISIT ME]
+    "default-case": 2,               // http://eslint.org/docs/rules/default-case
+    "dot-notation": [2, {            // http://eslint.org/docs/rules/dot-notation
+      "allowKeywords": true
+    }],
+    "eqeqeq": 0,                     // http://eslint.org/docs/rules/eqeqeq [REVISIT ME]
+    "guard-for-in": 0,               // http://eslint.org/docs/rules/guard-for-in [REVISIT ME]
+    "no-caller": 2,                  // http://eslint.org/docs/rules/no-caller
+    "no-else-return": 0,             // http://eslint.org/docs/rules/no-else-return [REVISIT ME]
+    "no-eq-null": 2,                 // http://eslint.org/docs/rules/no-eq-null
+    "no-eval": 2,                    // http://eslint.org/docs/rules/no-eval
+    "no-extend-native": 2,           // http://eslint.org/docs/rules/no-extend-native
+    "no-extra-bind": 2,              // http://eslint.org/docs/rules/no-extra-bind
+    "no-fallthrough": 2,             // http://eslint.org/docs/rules/no-fallthrough
+    "no-floating-decimal": 2,        // http://eslint.org/docs/rules/no-floating-decimal
+    "no-implied-eval": 2,            // http://eslint.org/docs/rules/no-implied-eval
+    "no-lone-blocks": 2,             // http://eslint.org/docs/rules/no-lone-blocks
+    "no-loop-func": 2,               // http://eslint.org/docs/rules/no-loop-func
+    "no-multi-str": 2,               // http://eslint.org/docs/rules/no-multi-str
+    "no-native-reassign": 2,         // http://eslint.org/docs/rules/no-native-reassign
+    "no-new": 2,                     // http://eslint.org/docs/rules/no-new
+    "no-new-func": 2,                // http://eslint.org/docs/rules/no-new-func
+    "no-new-wrappers": 2,            // http://eslint.org/docs/rules/no-new-wrappers
+    "no-octal": 2,                   // http://eslint.org/docs/rules/no-octal
+    "no-octal-escape": 2,            // http://eslint.org/docs/rules/no-octal-escape
+    "no-param-reassign": 0,          // http://eslint.org/docs/rules/no-param-reassign [REVISIT ME]
+    "no-proto": 2,                   // http://eslint.org/docs/rules/no-proto
+    "no-redeclare": 2,               // http://eslint.org/docs/rules/no-redeclare
+    "no-return-assign": 2,           // http://eslint.org/docs/rules/no-return-assign
+    "no-script-url": 2,              // http://eslint.org/docs/rules/no-script-url
+    "no-self-compare": 2,            // http://eslint.org/docs/rules/no-self-compare
+    "no-sequences": 2,               // http://eslint.org/docs/rules/no-sequences
+    "no-throw-literal": 2,           // http://eslint.org/docs/rules/no-throw-literal
+    "no-with": 2,                    // http://eslint.org/docs/rules/no-with
+    "radix": 2,                      // http://eslint.org/docs/rules/radix
+    "vars-on-top": 0,                // http://eslint.org/docs/rules/vars-on-top
+    "wrap-iife": [2, "any"],         // http://eslint.org/docs/rules/wrap-iife
+    "yoda": 2,                       // http://eslint.org/docs/rules/yoda
   }
 }

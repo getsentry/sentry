@@ -75,7 +75,7 @@ Collection.prototype.unshift = function unshift(items) {
 Collection.prototype.get = function get(key) {
   var idx = this.indexOf(key);
   if (idx === -1) {
-    return;
+    return null;
   }
   return this[idx];
 };
@@ -83,7 +83,7 @@ Collection.prototype.get = function get(key) {
 Collection.prototype.pop = function pop(item) {
   var idx = this.indexOf(this.options.key(item));
   if (idx === -1) {
-    return;
+    return null;
   }
   let result = this[idx];
   this.splice(idx, idx + 1);
