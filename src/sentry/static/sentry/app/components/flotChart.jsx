@@ -8,21 +8,6 @@ require('flot/jquery.flot.stack');
 require('flot/jquery.flot.time');
 require('flot-tooltip/jquery.flot.tooltip');
 
-var average = (a) => {
-  var m, s;
-  var r = {mean: 0, variance: 0, deviation: 0}, t = a.length;
-  for (s = 0, l = t; l--; s += a[l]);
-  for (m = r.mean = s / t, l = t, s = 0; l--; s += Math.pow(a[l] - m, 2));
-  r.deviation = Math.sqrt(r.variance = s / t);
-  return r;
-};
-
-var percentile = (a, nth) => {
-  a = a.sort();
-  a.slice(0, a.length - Math.floor(nth / a.length));
-  return average(a);
-};
-
 var timeUnitSize = {
   "second": 1000,
   "minute": 60 * 1000,

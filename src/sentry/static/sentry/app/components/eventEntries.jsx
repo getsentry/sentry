@@ -126,7 +126,7 @@ var EventPackageData = React.createClass({
   render() {
     var packages = this.props.event.packages;
     var packageKeys = [];
-    for (var key in packages) {
+    for (let key in packages) {
       packageKeys.push(key);
     }
     packageKeys.sort();

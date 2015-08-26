@@ -1,5 +1,4 @@
 import React from "react";
-import Reflux from "reflux";
 import Router from "react-router";
 import api from "../api";
 import Count from "../components/count";
@@ -8,9 +7,7 @@ import ListLink from "../components/listLink";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import ProjectState from "../mixins/projectState";
-import StreamGroup from "../components/streamGroup";
 import TimeSince from "../components/timeSince";
-import utils from "../utils";
 import Version from "../components/version";
 
 var ReleaseDetails = React.createClass({
@@ -45,7 +42,6 @@ var ReleaseDetails = React.createClass({
   },
 
   componentWillMount() {
-    var params = this.context.router.getCurrentParams();
     this.props.setProjectNavSection('releases');
     this.fetchData();
   },
