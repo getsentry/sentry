@@ -18,6 +18,8 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
 
             {method} {path}
 
+        The ``query`` parameter can be used to to perform a "starts with" match
+        on values.
         """
         if key in ('release', 'user', 'filename', 'function'):
             lookup_key = 'sentry:{0}'.format(key)
@@ -37,6 +39,10 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
             project=project,
             key=tagkey.key,
         )
+
+        query = request.GET.get('query')
+        if query:
+            queryset = queryset.filter(value__istartswith=query)
 
         return self.paginate(
             request=request,
