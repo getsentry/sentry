@@ -60,14 +60,13 @@ var BarChart = React.createClass({
     return (
       '<span>' +
         timeMoment.format("LL") + '<br />' +
-        timeMoment.format("LT") + ' &mdash;&rsaquo; ' + nextMoment.format("LT") +
+        timeMoment.format("LT") + '  &#8594; ' + nextMoment.format("LT") +
       '</span>'
     );
   },
 
   timeLabelAsDay(point) {
     var timeMoment = moment(point.x * 1000);
-    var nextMoment = timeMoment.clone().add(59, "minute");
 
     return (
       '<span>' +
@@ -82,8 +81,9 @@ var BarChart = React.createClass({
 
     return (
       '<span>' +
-        timeMoment.format("lll") + '<br />' +
-        '&mdash;&rsaquo; ' + nextMoment.format("lll") +
+        // e.g. Aug 23rd, 12:50 pm
+        timeMoment.format("MMM Do, h:mm a") +
+        ' &#8594 ' + nextMoment.format("MMM Do, h:mm a") +
       '</span>'
     );
   },
