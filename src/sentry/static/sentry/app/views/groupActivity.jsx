@@ -42,6 +42,8 @@ var formatActivity = function(item) {
       return `assigned this event to ${assignee}`;
     case "unassigned":
       return "unassigned this event";
+    default:
+      return ""; // should never hit (?)
   }
 };
 

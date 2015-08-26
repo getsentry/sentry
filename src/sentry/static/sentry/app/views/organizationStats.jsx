@@ -18,7 +18,7 @@ var getPercent = (item, total) => {
   if (item === 0) {
     return '0%';
   }
-  return parseInt(item / total * 100) + '%';
+  return parseInt(item / total * 100, 10) + '%';
 };
 
 var ProjectTable = React.createClass({
