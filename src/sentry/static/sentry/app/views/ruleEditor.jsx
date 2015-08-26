@@ -149,14 +149,17 @@ var RuleEditor = React.createClass({
     var rule = this.props.rule;
     var project = this.props.project;
     var org = this.props.organization;
-    var endpoint = '/projects/' + org.slug + '/' + project.slug + '/rules/' + rule.id + '/';
+    var endpoint = '/projects/' + org.slug + '/' + project.slug + '/rules/';
+    if (rule.id) {
+      endpoint += rule.id + '/';
+    }
 
     var loadingIndicator = IndicatorStore.add('Saving...');
     api.request(endpoint, {
-      method: "PUT",
+      method: (rule.id ? "PUT" : "POST"),
       data: data,
       success: () => {
-        window.location.href = '../../';
+        window.location.href = (rule.id ? '../../' : '../');
       },
       error: (data) => {
         this.setState({
