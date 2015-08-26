@@ -8,7 +8,9 @@ from sentry.models import Rule
 class RuleSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
-            'id': str(obj.id),
+            # XXX(dcramer): we currently serialize unsaved rule objects
+            # as part of the rule editor
+            'id': str(obj.id) if obj.id else None,
             'conditions': obj.data.get('conditions', []),
             'actions': obj.data.get('actions', []),
             'actionMatch': obj.data.get('action_match', 'all'),
