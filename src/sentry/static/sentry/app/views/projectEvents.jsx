@@ -185,8 +185,10 @@ var ProjectEvents = React.createClass({
   renderEventNodes(ids) {
     var params = this.context.router.getCurrentParams();
     var nodes = ids.map((id) => {
-      return <EventRow key={id} id={id} orgSlug={params.orgId}
-          projectSlug={params.projectId} />;
+      return (
+        <EventRow key={id} id={id} orgSlug={params.orgId}
+            projectSlug={params.projectId} />
+      );
     });
 
     return <table className="event-list">{nodes}</table>;
@@ -247,4 +249,3 @@ var ProjectEvents = React.createClass({
 });
 
 export default ProjectEvents;
-

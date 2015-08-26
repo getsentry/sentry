@@ -276,10 +276,12 @@ var GroupOverview = React.createClass({
 
               <h6><span>Tags</span></h6>
               {tagList.map((data) => {
-                return <TagDistributionMeter
+                return (
+                  <TagDistributionMeter
                     group={group}
                     name={data[0]}
-                    tag={data[1]} />;
+                    tag={data[1]} />
+                );
               })}
             </div>
           </div>
