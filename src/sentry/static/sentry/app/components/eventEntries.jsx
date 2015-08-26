@@ -20,7 +20,7 @@ var EventMessage = React.createClass({
           event={this.props.event}
           type="message"
           title="Message">
-        <p dangerouslySetInnerHTML={{
+        <pre className="plain" dangerouslySetInnerHTML={{
           __html: utils.nl2br(utils.urlize(utils.escape(this.props.event.message)))
         }} />
       </EventDataSection>
