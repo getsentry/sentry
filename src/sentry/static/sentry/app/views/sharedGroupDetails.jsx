@@ -1,6 +1,4 @@
 import React from "react";
-import Reflux from "reflux";
-import Router from "react-router";
 import jQuery from "jquery";
 import api from "../api";
 import Count from "../components/count";
@@ -148,4 +146,3 @@ var SharedGroupDetails = React.createClass({
 });
 
 export default SharedGroupDetails;
-

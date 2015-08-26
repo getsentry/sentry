@@ -2,10 +2,8 @@ import React from "react";
 import Reflux from "reflux";
 import Router from "react-router";
 import api from "../api";
-import ConfigStore from "../stores/configStore";
 import DocumentTitle from "react-document-title";
 import MemberListStore from "../stores/memberListStore";
-import {modelsEqual} from "../utils";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import ProjectHeader from "../components/projectHeader";
@@ -155,4 +153,3 @@ var ProjectDetails = React.createClass({
 });
 
 export default ProjectDetails;
-

@@ -1,7 +1,6 @@
 import React from "react";
 import OrganizationHomeSidebar from "./organizationHomeSidebar";
 import OrganizationState from "../mixins/organizationState";
-import Loading from "../components/loadingIndicator";
 
 var OrganizationHomeContainer = React.createClass({
   mixins: [OrganizationState],

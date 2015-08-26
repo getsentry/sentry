@@ -1,18 +1,13 @@
 import React from "react";
-import Router from "react-router";
 import api from "../api";
 import ApiMixin from "../mixins/apiMixin";
-import GroupChart from "./groupDetails/chart";
 import GroupEvent from "./groupDetails/event";
 import GroupEventToolbar from "./groupDetails/eventToolbar";
 import GroupState from "../mixins/groupState";
 import MutedBox from "../components/mutedBox";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
-import PropTypes from "../proptypes";
 import RouteMixin from "../mixins/routeMixin";
-import TimeSince from "../components/timeSince";
-import utils from "../utils";
 
 
 var GroupEventDetails = React.createClass({
@@ -108,4 +103,3 @@ var GroupEventDetails = React.createClass({
 });
 
 export default GroupEventDetails;
-

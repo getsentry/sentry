@@ -1,6 +1,5 @@
 import React from "react";
 import Reflux from "reflux";
-import Router from "react-router";
 import jQuery from "jquery";
 import api from "../api";
 import GroupListHeader from "../components/groupListHeader";
@@ -8,9 +7,7 @@ import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import ProjectState from "../mixins/projectState";
-import PropTypes from "../proptypes";
 import StreamGroup from "../components/streamGroup";
-import TimeSince from "../components/timeSince";
 import utils from "../utils";
 
 var GroupList = React.createClass({
@@ -47,8 +44,6 @@ var GroupList = React.createClass({
   },
 
   componentWillMount() {
-    var params = this.context.router.getCurrentParams();
-
     this._streamManager = new utils.StreamManager(GroupStore);
 
     this.fetchData();

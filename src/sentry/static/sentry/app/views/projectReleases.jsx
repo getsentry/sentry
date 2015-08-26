@@ -1,7 +1,5 @@
 import jQuery from "jquery";
 import React from "react";
-import Reflux from "reflux";
-import Router from "react-router";
 import api from "../api";
 import Count from "../components/count";
 import LoadingError from "../components/loadingError";
@@ -9,7 +7,6 @@ import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 import RouteMixin from "../mixins/routeMixin";
 import TimeSince from "../components/timeSince";
-import utils from "../utils";
 import Version from "../components/version";
 import SearchBar from "../views/stream/searchBar.jsx";
 

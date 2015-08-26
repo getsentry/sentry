@@ -1,6 +1,4 @@
-
 import Reflux from "reflux";
-import AlertMessage from '../components/alertMessage';
 import AlertActions from '../actions/alertActions';
 
 var AlertStore = Reflux.createStore({
@@ -31,4 +29,3 @@ var AlertStore = Reflux.createStore({
 });
 
 export default AlertStore;
-
