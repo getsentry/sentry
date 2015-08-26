@@ -412,11 +412,13 @@
     .list-unstyled();
     margin-bottom: 0;
 
+    > li {
+      padding-top: 15px;
+    }
+
     .activity-note {
-      border-top: 1px solid lighten(@trim, 9);
       position: relative;
       margin-bottom: 15px;
-      padding-top: 15px;
 
       .avatar {
         position: absolute;
@@ -481,8 +483,6 @@
     }
 
     .activity-item {
-      padding: 10px 0;
-      border-top: 1px solid lighten(@trim, 9);
       position: relative;
       font-size: 13px;
       color: lighten(@gray, 10);
@@ -495,7 +495,6 @@
         background-repeat: no-repeat;
         background-position: center center;
         border-radius: 2px;
-        top: 10px;
         left: 0;
 
         &.sentry {

@@ -7,7 +7,7 @@ import logging
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption, TagKey
+from sentry.models import ProjectKey, ProjectKeyStatus, TagKey
 from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
@@ -153,15 +153,3 @@ class ManageProjectTagsTest(TestCase):
         assert 'site' in tag_list
         assert 'url' in tag_list
         assert 'os' in tag_list
-
-        resp = self.client.post(self.path, {
-            'filters': ['site', 'url'],
-            'annotations': ['os'],
-        })
-        assert resp.status_code == 302
-        enabled_filters = ProjectOption.objects.get_value(
-            self.project, 'tags')
-        assert sorted(enabled_filters) == ['site', 'url']
-        enabled_annotations = ProjectOption.objects.get_value(
-            self.project, 'annotations')
-        assert enabled_annotations == ['os']
