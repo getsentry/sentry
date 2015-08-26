@@ -17,6 +17,8 @@ function getCookie(name) {
   return cookieValue;
 }
 
+csrftoken = getCookie("csrf");
+
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
@@ -24,7 +26,7 @@ function csrfSafeMethod(method) {
 jQuery.ajaxSetup({
   beforeSend: function(xhr, settings) {
     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader("X-CSRFToken", getCookie('csrf'));
+      xhr.setRequestHeader("X-CSRFToken", csrftoken);
     }
   }
 });
