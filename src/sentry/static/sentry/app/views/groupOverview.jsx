@@ -300,7 +300,7 @@ var GroupOverview = React.createClass({
                       orgId: orgId,
                       groupId: group.id,
                       eventId: evt.id
-                    }} className="btn btn-sm btn-default">More Details</Router.Link>
+                    }}>More Details</Router.Link>
                     </div>
                     This summary is based on the most recent event in this aggregate.
                   </div>

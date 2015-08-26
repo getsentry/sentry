@@ -919,10 +919,6 @@ table.integrations {
 * ============================================================================
 */
 
-.project-select > a {
-  font-weight: 600;
-}
-
 .project-dropdown {
   .dropdown-toggle {
     border: 1px solid @trim;
@@ -1115,7 +1111,7 @@ table.integrations {
         display: block;
         border-radius: 0;
         min-height: 2px;
-        background: lighten(@gray, 12);
+        background: lighten(@gray, 10);
       }
     }
   }
@@ -1589,7 +1585,7 @@ pre.clippy {
   box-shadow: 0 1px 0 rgba(52, 60, 69, .02);
 
   .box-header {
-    background: rgba(249, 250, 251, 0.6);
+    background: #fafbfb;
     color: @gray-dark;
     line-height: 1;
     padding: 0 20px;
@@ -1599,8 +1595,10 @@ pre.clippy {
     line-height: 54px;
 
     &.box-header-borderless {
-      background: none;
       border: 0;
+      font-size: 15px;
+      line-height: 50px;
+      height: 48px;
     }
 
     a {
@@ -1824,7 +1822,7 @@ pre.clippy {
 .dropdown-menu {
   top: 32px;
   border: none;
-  border-radius: 3px;
+  border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(52, 60, 69, .2), 0 1px 2px rgba(70, 82, 98, .1);
   -webkit-background-clip: padding-box;
   -moz-background-clip: padding;
@@ -2007,7 +2005,7 @@ pre.clippy {
       padding: 0 0 10px;
       border: 0;
       background: none;
-      color: #aaafc0;
+      color: lighten(@gray, 22);
       min-width: 30px;
       text-align: center;
 
@@ -2027,7 +2025,7 @@ pre.clippy {
         border-bottom: 3px solid @blue;
         background: none;
         color: @gray-dark;
-        font-weight: 600;
+        font-weight: 400;
       }
     }
   }
