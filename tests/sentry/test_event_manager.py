@@ -116,7 +116,8 @@ class EventManagerTest(TransactionTestCase):
             message='foo', event_id='a' * 32,
             fingerprint=['a' * 32],
         ))
-        event = manager.save(1)
+        with self.tasks():
+            event = manager.save(1)
 
         manager = EventManager(self.make_event(
             message='foo bar', event_id='b' * 32,
@@ -130,6 +131,23 @@ class EventManagerTest(TransactionTestCase):
         assert group.times_seen == 2
         assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
         assert group.message == event2.message
+
+    def test_differentiates_with_fingerprint(self):
+        manager = EventManager(self.make_event(
+            message='foo', event_id='a' * 32,
+            fingerprint=['{{ default }}', 'a' * 32],
+        ))
+        with self.tasks():
+            event = manager.save(1)
+
+        manager = EventManager(self.make_event(
+            message='foo bar', event_id='b' * 32,
+            fingerprint=['a' * 32],
+        ))
+        with self.tasks():
+            event2 = manager.save(1)
+
+        assert event.group_id != event2.group_id
 
     def test_unresolves_group(self):
         # N.B. EventManager won't unresolve the group unless the event2 has a
