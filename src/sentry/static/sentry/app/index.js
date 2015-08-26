@@ -30,13 +30,15 @@ function sameOrigin(url) {
       !(/^(\/\/|http:|https:).*/.test(url));
 }
 
-function safeMethod(method) {
+function csrfSafeMethod(method) {
+  // these HTTP methods do not require CSRF protection
   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
-
-jQuery(document).ajaxSend(function(event, xhr, settings) {
-  if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
-    xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+jQuery.ajaxSetup({
+  beforeSend: function(xhr, settings) {
+    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+      xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    }
   }
 });
 
