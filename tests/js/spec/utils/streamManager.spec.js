@@ -1,4 +1,3 @@
-/*jshint expr: true*/
 var Reflux = require('reflux');
 var StreamManager = require('app/utils/streamManager');
 

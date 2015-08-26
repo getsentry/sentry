@@ -1,4 +1,5 @@
-/*jshint expr: true*/
+
+
 var React = require("react/addons");
 var Cookies = require("js-cookie");
 

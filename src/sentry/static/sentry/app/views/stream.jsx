@@ -163,7 +163,7 @@ var Stream = React.createClass({
         // Was this the result of an event SHA search? If so, redirect
         // to corresponding group details
         if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
-          let params = $.extend({}, router.getCurrentParams(), {
+          const params = $.extend({}, router.getCurrentParams(), {
             groupId: data[0].id
           });
           return void this.context.router.transitionTo('groupDetails', params);

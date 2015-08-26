@@ -21,6 +21,7 @@ var Count = React.createClass({
 
       number = parseInt(number, 10);
 
+      /*eslint no-cond-assign:0*/
       for (var i=0; (b=this.numberFormats[i]); i++){
           x = b[0];
           y = b[1];
@@ -47,4 +48,3 @@ var Count = React.createClass({
 });
 
 export default Count;
-

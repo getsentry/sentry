@@ -189,6 +189,7 @@ var EventEntries = React.createClass({
       try {
         var Component = this.interfaces[entry.type];
         if (!Component) {
+          /*eslint no-console:0*/
           console.error('Unregistered interface: ' + entry.type);
           return;
         }
@@ -243,4 +244,3 @@ var EventEntries = React.createClass({
 });
 
 export default EventEntries;
-
