@@ -17,7 +17,7 @@ function getCookie(name) {
   return cookieValue;
 }
 
-csrftoken = getCookie("csrf");
+var csrftoken = getCookie("csrf");
 
 function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
