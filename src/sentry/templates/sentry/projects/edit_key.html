@@ -39,32 +39,32 @@
               <div class="form-group">
                   <label>{% trans "DSN" %}</label>
                   <div class="controls">
-                      <div class="form-control disabled">{{ key.dsn_private }}</div>
+                      <div class="form-control disabled auto-select">{{ key.dsn_private }}</div>
                   </div>
               </div>
               <div class="form-group">
                   <label>{% trans "DSN (Public)" %}</label>
                   <div class="controls">
-                      <div class="form-control disabled">{{ key.dsn_public }}</div>
+                      <div class="form-control disabled auto-select">{{ key.dsn_public }}</div>
                   </div>
                   <div class="help-block">{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Use your public DSN with browser-based clients such as <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</div>
               </div>
               <div class="form-group">
                   <label>{% trans "Public Key" %}</label>
                   <div class="controls">
-                      <div class="form-control disabled">{{ key.public_key }}</div>
+                      <div class="form-control disabled auto-select">{{ key.public_key }}</div>
                   </div>
               </div>
               <div class="form-group">
                   <label>{% trans "Secret Key" %}</label>
                   <div class="controls">
-                      <div class="form-control disabled">{{ key.secret_key }}</div>
+                      <div class="form-control disabled auto-select">{{ key.secret_key }}</div>
                   </div>
               </div>
               <div class="form-group">
                   <label>{% trans "Project ID" %}</label>
                   <div class="controls">
-                      <div class="form-control disabled">{{ key.project_id }}</div>
+                      <div class="form-control disabled auto-select">{{ key.project_id }}</div>
                   </div>
               </div>
             </div>
@@ -74,17 +74,4 @@
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </div>
     </form>
-    <script>
-    $('.dsn-credentials .form-control').click(function() {
-      if (document.selection) {
-        var range = document.body.createTextRange();
-        range.moveToElementText(this);
-        range.select();
-      } else if (window.getSelection) {
-        var range = document.createRange();
-        range.selectNode(this);
-        window.getSelection().addRange(range);
-      }
-    });
-    </script>
 {% endblock %}

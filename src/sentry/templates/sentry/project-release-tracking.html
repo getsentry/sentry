@@ -37,7 +37,7 @@ Raven.config({
           {% csrf_token %}
             <p>Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.</p>
             <p>
-              <pre style="display:inline-block;margin-bottom:0" class="clippy">{{ token }}</pre>
+              <code style="display:inline-block" class="auto-select">{{ token }}</code>
               <button type="submit" class="btn btn-sm btn-danger" name="op" value="regenerate-token">Regenerate Token</button>
             </p>
         </form>
