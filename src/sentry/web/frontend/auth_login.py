@@ -42,7 +42,6 @@ class AuthLoginView(BaseView):
         op = request.POST.get('op')
         return AuthenticationForm(
             request, request.POST if op == 'login' else None,
-            prefix='login-',
             captcha=bool(request.session.get('needs_captcha')),
         )
 
@@ -50,7 +49,6 @@ class AuthLoginView(BaseView):
         op = request.POST.get('op')
         return RegistrationForm(
             request.POST if op == 'register' else None,
-            prefix='register-',
             captcha=bool(request.session.get('needs_captcha')),
         )
 
