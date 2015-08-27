@@ -52,7 +52,7 @@ def load_data(platform, default=None):
         'my.package': '1.0.0',
     }
     data['sentry.interfaces.Http'] = {
-        "cookies": {},
+        "cookies": 'foo=bar;biz=baz',
         "url": "http://example.com/foo",
         "headers": {
             "Referer": "http://example.com",
