@@ -28,6 +28,26 @@ var ProjectSelector = React.createClass({
     });
   },
 
+  onKeyUp(e) {
+    if (event.key === 'Escape' || event.keyCode === 27) {
+      // blur handler should additionally hide dropdown
+      this.close();
+    }
+  },
+
+  onFilterBlur() {
+    // HACK: setTimeout because blur might be caused by clicking
+    // project link; in which case, will close dropdown before
+    // link click is processed. Why 200ms? Decently short time
+    // period that seemed to work in all browsers.
+    setTimeout(() => this.close(), 200);
+  },
+
+  close() {
+    this.setState({ filter: '' });
+    this.refs.dropdownLink.close();
+  },
+
   highlight(text, highlightText) {
     if (!highlightText) {
       return text;
@@ -64,14 +84,13 @@ var ProjectSelector = React.createClass({
   },
 
   onOpen(event) {
-    jQuery(this.refs.filter.getDOMNode()).focus();
+    this.refs.filter.getDOMNode().focus();
   },
 
-  onClose(event) {
+  onClose() {
     this.setState({
       filter: ''
     });
-    jQuery(this.refs.filter.getDOMNode()).val('');
   },
 
   componentDidUpdate(prevProps, prevState) {
@@ -128,11 +147,17 @@ var ProjectSelector = React.createClass({
     return (
       <div className="project-select" ref="container">
         <Router.Link to="stream" params={projectRouteParams}>{activeProjectName}</Router.Link>
-        <DropdownLink title="" topLevelClasses="project-dropdown"
+        <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
           <li className="project-filter" key="_filter">
-            <input type="text" placeholder="Filter projects"
-                   onKeyUp={this.onFilterChange} ref="filter" />
+            <input
+              value={this.state.filter}
+              type="text"
+              placeholder="Filter projects"
+              onChange={this.onFilterChange}
+              onKeyUp={this.onKeyUp}
+              onBlur={this.onFilterBlur}
+              ref="filter" />
           </li>
           {children}
         </DropdownLink>
