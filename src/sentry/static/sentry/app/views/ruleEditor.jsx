@@ -160,7 +160,7 @@ var RuleEditor = React.createClass({
       },
       error: (response) => {
         this.setState({
-          error: response || 'Unknown error',
+          error: response.responseJSON || {'__all__': 'Unknown error'},
           loading: false
         });
       },
@@ -168,6 +168,12 @@ var RuleEditor = React.createClass({
         IndicatorStore.remove(loadingIndicator);
       }
     });
+  },
+
+  hasError(field) {
+    var {error} = this.state;
+    if (!error) return false;
+    return !!error[field];
   },
 
   render() {
@@ -199,7 +205,7 @@ var RuleEditor = React.createClass({
             <h6>
               Every time
               <Selectize ref="actionMatch"
-                      className="selectize-inline"
+                      className={"selectize-inline" + (this.hasError('actionMatch') ? ' error' : '')}
                       defaultValue={actionMatch}
                       required={true}>
                 <option value="all">all</option>
@@ -209,12 +215,20 @@ var RuleEditor = React.createClass({
               of these conditions are met:
             </h6>
 
+            {this.hasError('conditions') &&
+              <p className="error">Ensure at least one condition is enabled and all required fields are filled in.</p>
+            }
+
             <RuleNodeList nodes={this.props.conditions}
               initialItems={conditions}
               className="rule-condition-list"
               onChange={this.onConditionsChange} />
 
             <h6>Take these actions:</h6>
+
+            {this.hasError('actions') &&
+              <p className="error">Ensure at least one condition is enabled and all required fields are filled in.</p>
+            }
 
             <RuleNodeList nodes={this.props.actions}
               initialItems={actions}
