@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:post",
   "method": "POST",
   "path": "/api/0/organizations/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "Create a new organization."

@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.project_details.ProjectDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/",
+  "scenarios": [],
   "section": "projects",
   "text": [
     "Schedules a project for deletion.",

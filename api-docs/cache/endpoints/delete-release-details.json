@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.release_details.ReleaseDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/",
+  "scenarios": [],
   "section": "releases",
   "text": [
     "Permanently remove a release and all of its files."

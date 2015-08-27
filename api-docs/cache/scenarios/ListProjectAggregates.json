@@ -1,0 +1,287 @@
+{
+  "ident": "ListProjectAggregates",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "method": "GET",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?statsPeriod=24h"
+      },
+      "response": {
+        "data": [
+          {
+            "annotations": [],
+            "assignedTo": null,
+            "count": "1",
+            "culprit": "javax.servlet.ServletException",
+            "firstSeen": "2015-08-27T18:36:06Z",
+            "hasSeen": false,
+            "id": "2",
+            "isBookmarked": false,
+            "isPublic": false,
+            "lastSeen": "2015-08-27T18:36:06Z",
+            "level": "error",
+            "logger": null,
+            "numComments": 0,
+            "permalink": "https://app.getsentry.com/the-interstellar-jurisdiction/pump-station/group/2/",
+            "project": {
+              "name": "Pump Station",
+              "slug": "pump-station"
+            },
+            "shareId": "322e32",
+            "stats": {
+              "24h": [
+                [
+                  1440612000,
+                  15174
+                ],
+                [
+                  1440615600,
+                  13641
+                ],
+                [
+                  1440619200,
+                  14216
+                ],
+                [
+                  1440622800,
+                  14121
+                ],
+                [
+                  1440626400,
+                  12480
+                ],
+                [
+                  1440630000,
+                  12812
+                ],
+                [
+                  1440633600,
+                  12700
+                ],
+                [
+                  1440637200,
+                  13711
+                ],
+                [
+                  1440640800,
+                  15791
+                ],
+                [
+                  1440644400,
+                  13457
+                ],
+                [
+                  1440648000,
+                  12886
+                ],
+                [
+                  1440651600,
+                  13985
+                ],
+                [
+                  1440655200,
+                  12904
+                ],
+                [
+                  1440658800,
+                  13676
+                ],
+                [
+                  1440662400,
+                  14877
+                ],
+                [
+                  1440666000,
+                  16004
+                ],
+                [
+                  1440669600,
+                  13009
+                ],
+                [
+                  1440673200,
+                  9560
+                ],
+                [
+                  1440676800,
+                  8629
+                ],
+                [
+                  1440680400,
+                  8909
+                ],
+                [
+                  1440684000,
+                  8754
+                ],
+                [
+                  1440687600,
+                  7340
+                ],
+                [
+                  1440691200,
+                  8454
+                ],
+                [
+                  1440694800,
+                  11259
+                ],
+                [
+                  1440698400,
+                  9022
+                ]
+              ]
+            },
+            "status": "unresolved",
+            "tags": {},
+            "timeSpent": null,
+            "title": "This is an example Java exception"
+          },
+          {
+            "annotations": [],
+            "assignedTo": null,
+            "count": "1",
+            "culprit": "raven.scripts.runner in main",
+            "firstSeen": "2015-08-27T18:36:04Z",
+            "hasSeen": false,
+            "id": "1",
+            "isBookmarked": false,
+            "isPublic": false,
+            "lastSeen": "2015-08-27T18:36:04Z",
+            "level": "error",
+            "logger": null,
+            "numComments": 0,
+            "permalink": "https://app.getsentry.com/the-interstellar-jurisdiction/pump-station/group/1/",
+            "project": {
+              "name": "Pump Station",
+              "slug": "pump-station"
+            },
+            "shareId": "322e31",
+            "stats": {
+              "24h": [
+                [
+                  1440612000,
+                  14059
+                ],
+                [
+                  1440615600,
+                  15258
+                ],
+                [
+                  1440619200,
+                  15693
+                ],
+                [
+                  1440622800,
+                  14020
+                ],
+                [
+                  1440626400,
+                  14830
+                ],
+                [
+                  1440630000,
+                  15685
+                ],
+                [
+                  1440633600,
+                  12746
+                ],
+                [
+                  1440637200,
+                  12680
+                ],
+                [
+                  1440640800,
+                  14078
+                ],
+                [
+                  1440644400,
+                  15456
+                ],
+                [
+                  1440648000,
+                  14726
+                ],
+                [
+                  1440651600,
+                  11834
+                ],
+                [
+                  1440655200,
+                  13315
+                ],
+                [
+                  1440658800,
+                  13340
+                ],
+                [
+                  1440662400,
+                  12514
+                ],
+                [
+                  1440666000,
+                  13276
+                ],
+                [
+                  1440669600,
+                  11594
+                ],
+                [
+                  1440673200,
+                  9433
+                ],
+                [
+                  1440676800,
+                  7218
+                ],
+                [
+                  1440680400,
+                  7804
+                ],
+                [
+                  1440684000,
+                  10991
+                ],
+                [
+                  1440687600,
+                  8282
+                ],
+                [
+                  1440691200,
+                  8321
+                ],
+                [
+                  1440694800,
+                  10036
+                ],
+                [
+                  1440698400,
+                  10478
+                ]
+              ]
+            },
+            "status": "unresolved",
+            "tags": {},
+            "timeSpent": null,
+            "title": "This is an example Python exception"
+          }
+        ],
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "link": "<https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?statsPeriod=24h&cursor=1440700566:0:1>; rel=\"previous\"; results=\"false\"; cursor=\"1440700566:0:1\", <https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?statsPeriod=24h&cursor=1440700564:0:0>; rel=\"next\"; results=\"false\"; cursor=\"1440700564:0:0\"",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

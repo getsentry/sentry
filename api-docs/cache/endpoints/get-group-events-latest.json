@@ -3,9 +3,14 @@
   "internal_path": "sentry.api.endpoints.group_events_latest.GroupEventsLatestEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/events/latest/",
+  "scenarios": [
+    "GetLatestGroupSample"
+  ],
   "section": "events",
   "text": [
-    "Retrieves the details of the latest sample for an aggregate."
+    "Retrieves the details of the latest sample for an aggregate.",
+    "",
+    ":pparam int group_id: the ID of the group to get the latest sample of."
   ],
   "title": "Latest Sample"
 }

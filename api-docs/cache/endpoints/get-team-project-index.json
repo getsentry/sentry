@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.team_project_index.TeamProjectIndexEndpoint:get",
   "method": "GET",
   "path": "/api/0/teams/{organization_slug}/{team_slug}/projects/",
+  "scenarios": [],
   "section": "teams",
   "text": [
     "Return a list of projects bound to a team.",

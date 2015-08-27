@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_teams.OrganizationTeamsEndpoint:post",
   "method": "POST",
   "path": "/api/0/organizations/{organization_slug}/teams/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "Create a new team bound to an organization."

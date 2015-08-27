@@ -8,6 +8,7 @@ import requests
 from pytz import utc
 from datetime import datetime, timedelta
 from random import randint
+from contextlib import contextmanager
 
 from django.conf import settings
 
@@ -139,6 +140,7 @@ def extract_endpoint_info(pattern, internal_endpoint):
             method=method_name,
             title=title,
             text=text,
+            scenarios=getattr(method, 'api_scenarios', None) or [],
             section=section.name.lower(),
             internal_path='%s:%s' % (
                 get_endpoint_path(internal_endpoint),
@@ -162,6 +164,13 @@ def scenario(ident):
     def decorator(f):
         scenarios[ident] = f
         f.api_scenario_ident = ident
+        return f
+    return decorator
+
+
+def attach_scenarios(scenarios):
+    def decorator(f):
+        f.api_scenarios = [x.api_scenario_ident for x in scenarios]
         return f
     return decorator
 
@@ -301,12 +310,13 @@ class MockUtils(object):
         )
         return release
 
-    def create_event(self, project, release):
+    def create_event(self, project, release, platform='python', raw=True):
         from sentry.utils.samples import create_sample_event
         event = create_sample_event(
             project=project,
-            platform='python',
+            platform=platform,
             release=release.version,
+            raw=raw
         )
         create_sample_time_series(event)
         return event
@@ -319,8 +329,9 @@ class Runner(object):
     so that the scenarios can be run separately if needed.
     """
 
-    def __init__(self, ident, api_key, org, me, teams=None):
+    def __init__(self, ident, func, api_key, org, me, teams=None):
         self.ident = ident
+        self.func = func
         self.requests = []
 
         self.utils = MockUtils()
@@ -329,6 +340,10 @@ class Runner(object):
         self.org = org
         self.me = me
         self.teams = teams
+
+    @property
+    def default_team(self):
+        return self.teams[0]['team']
 
     @property
     def default_project(self):
@@ -341,6 +356,21 @@ class Runner(object):
     @property
     def default_event(self):
         return self.teams[0]['projects'][0]['events']
+
+    @contextmanager
+    def isolated_project(self, project_name):
+        project = self.utils.create_project(project_name,
+                                            team=self.default_team,
+                                            org=self.org)
+        release = self.utils.create_release(project=project, user=self.me)
+        self.utils.create_event(project=project, release=release,
+                                platform='python')
+        self.utils.create_event(project=project, release=release,
+                                platform='java')
+        try:
+            yield project
+        finally:
+            project.delete()
 
     def request(self, method, path, headers=None, data=None):
         path = '/api/0/' + path.lstrip('/')
@@ -368,6 +398,13 @@ class Runner(object):
         response_headers.pop('server', None)
         response_headers.pop('date', None)
 
+        if response.headers.get('Content-Type') == 'application/json':
+            response_data = response.json()
+            is_json = True
+        else:
+            response_data = response.text
+            is_json = False
+
         rv = {
             'request': {
                 'method': method,
@@ -379,7 +416,8 @@ class Runner(object):
                 'headers': response_headers,
                 'status': response.status_code,
                 'reason': response.reason,
-                'data': response.json(),
+                'data': response_data,
+                'is_json': is_json,
             }
         }
 
@@ -387,7 +425,11 @@ class Runner(object):
         return rv
 
     def to_json(self):
+        doc = extract_documentation(self.func)
+        title, text = extract_title_and_text(doc)
         return {
             'ident': self.ident,
             'requests': self.requests,
+            'title': title,
+            'text': text,
         }

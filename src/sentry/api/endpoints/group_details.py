@@ -18,12 +18,12 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
-from sentry.utils.apidocs import scenario
+from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 @scenario('RetrieveAggregate')
 def retrieve_aggregate_scenario(runner):
-    group = Group.objects.get(project=runner.default_project)
+    group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='GET',
         path='/groups/%s/' % group.id,
@@ -32,12 +32,22 @@ def retrieve_aggregate_scenario(runner):
 
 @scenario('UpdateAggregate')
 def update_aggregate_scenario(runner):
-    group = Group.objects.get(project=runner.default_project)
+    group = Group.objects.filter(project=runner.default_project).first()
     runner.request(
         method='PUT',
         path='/groups/%s/' % group.id,
         data={'status': 'unresolved'}
     )
+
+
+@scenario('DeleteAggregate')
+def delete_aggregate_scenario(runner):
+    with runner.isolated_project('Boring Mushrooms') as project:
+        group = Group.objects.filter(project=project).first()
+        runner.request(
+            method='DELETE',
+            path='/groups/%s/' % group.id,
+        )
 
 
 class GroupSerializer(serializers.Serializer):
@@ -112,6 +122,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return {'version': version}
         return serialize(release, request.user)
 
+    @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
         """
         Retrieve an Aggregate
@@ -122,7 +133,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         the group (the bar graph), some overall numbers (number of comments,
         user reports) as well as the summarized event data.
 
-        .. sentry:api-scenario:: RetrieveAggregate
+        :pparam int group_id: the ID of the group to retrieve.
         """
         # TODO(dcramer): handle unauthenticated/public response
         data = serialize(group, request.user)
@@ -195,6 +206,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return Response(data)
 
+    @attach_scenarios([update_aggregate_scenario])
     def put(self, request, group):
         """
         Update an Aggregate
@@ -212,8 +224,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         - ``hasSeen``: `true`, `false`
         - ``isBookmarked``: `true`, `false`
-
-        .. sentry:api-scenario:: UpdateAggregate
         """
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
@@ -335,12 +345,15 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         return Response(serialize(group, request.user))
 
+    @attach_scenarios([delete_aggregate_scenario])
     def delete(self, request, group):
         """
-        Delete an Aggregate
+        Remove an Aggregate
         ```````````````````
 
-        Deletes an individual aggregate.
+        Removes an individual aggregate.
+
+        :pparam int group_id: the ID of the group to delete.
         """
         from sentry.tasks.deletion import delete_group
 

@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:put",
   "method": "PUT",
   "path": "/api/0/organizations/{organization_slug}/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "Update various attributes and configurable settings for the given",

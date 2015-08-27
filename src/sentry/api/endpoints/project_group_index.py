@@ -22,8 +22,42 @@ from sentry.search.utils import parse_query
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.cursors import Cursor
+from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+
+
+@scenario('BulkUpdateAggregates')
+def bulk_update_aggregates_scenario(runner):
+    project = runner.default_project
+    group1, group2 = Group.objects.filter(project=project)[:2]
+    runner.request(
+        method='PUT',
+        path='/projects/%s/%s/groups/?id=%s&id=%s' % (
+            runner.org.slug, project.slug, group1.id, group2.id),
+        data={'status': 'unresolved', 'isPublic': False}
+    )
+
+
+@scenario('BulkRemoveAggregates')
+def bulk_remove_aggregates_scenario(runner):
+    with runner.isolated_project('Amazing Plumbing') as project:
+        group1, group2 = Group.objects.filter(project=project)[:2]
+        runner.request(
+            method='DELETE',
+            path='/projects/%s/%s/groups/?id=%s&id=%s' % (
+                runner.org.slug, project.slug, group1.id, group2.id),
+        )
+
+
+@scenario('ListProjectAggregates')
+def list_project_aggregates_scenario(runner):
+    project = runner.default_project
+    runner.request(
+        method='GET',
+        path='/projects/%s/%s/groups/?statsPeriod=24h' % (
+            runner.org.slug, project.slug),
+    )
 
 
 class GroupSerializer(serializers.Serializer):
@@ -55,23 +89,32 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     # status=<x>
     # <tag>=<value>
     # statsPeriod=24h
+    @attach_scenarios([list_project_aggregates_scenario])
     def get(self, request, project):
         """
         List a Project's Aggregates
         ```````````````````````````
 
-        Return a list of aggregates bound to a project.
+        Return a list of aggregates bound to a project.  All parameters are
+        supplied as query string parameters.
 
-        A default query of 'is:resolved' is applied. To return results
-        with other statuses send an new query value (i.e. ?query= for all
+        A default query of ``is:resolved`` is applied. To return results
+        with other statuses send an new query value (i.e. ``?query=`` for all
         results).
-
-        Any standard Sentry structured search query can be passed via the
-        ``query`` parameter.
 
         The ``statsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: '' (disable),
         '24h', '14d'
+
+        :qparam string statsPeriod: an optional stat period (can be one of
+                                    ``"24h"``, ``"14d"``, and ``""``).
+        :qparam querystring query: an optional Sentry structured search
+                                   query.  If not provided an implied
+                                   ``"is:resolved"`` is assumed.)
+        :pparam string organization_slug: the slug of the organization the
+                                          groups belong to.
+        :pparam string project_slug: the slug of the project the groups
+                                     belong to.
         """
         query_kwargs = {
             'project': project,
@@ -183,29 +226,53 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return response
 
+    @attach_scenarios([bulk_update_aggregates_scenario])
     def put(self, request, project):
         """
         Bulk Mutate a List of Aggregates
         ````````````````````````````````
 
-        Bulk mutate various attributes on aggregates.
+        Bulk mutate various attributes on aggregates.  The list of groups
+        to modify is given through the `id` query parameter.  It is repeated
+        for each group that should be modified.
 
-        - For non-status updates, the 'id' parameter is required.
-        - For status updates, the 'id' parameter may be omitted for a batch
-          "update all" query.
-        - An optional 'status' parameter may be used to restrict mutations to
-          only events with the given status.
+        - For non-status updates, the `id` query parameter is required.
+        - For status updates, the `id` query parameter may be omitted
+          for a batch "update all" query.
+        - An optional `status` query parameter may be used to restrict
+          mutations to only events with the given status.
 
-        Attributes:
-
-        - ``status``: resolved, unresolved, muted
-        - ``hasSeen``: true, false
-        - ``isBookmarked``: true, false
-        - ``isPublic``: true, false
-        - ``merge``: true, false
+        The following attributes can be modified and are supplied as
+        JSON object in the body:
 
         If any ids are out of scope this operation will succeed without
         any data mutation.
+
+        :qparam int id: a list of IDs of the groups to be mutated.  This
+                        parameter shall be repeated for each group.  It
+                        is optional only if a status is mutated in which
+                        case an implicit `update all` is assumed.
+        :qparam string status: optionally limits the query to groups of the
+                               specified status.  Valid values are
+                               ``"resolved"``, ``"unresolved"`` and
+                               ``"muted"``.
+        :pparam string organization_slug: the slug of the organization the
+                                          groups belong to.
+        :pparam string project_slug: the slug of the project the groups
+                                     belong to.
+        :param string status: the new status for the groups.  Valid values
+                              are ``"resolved"``, ``"unresolved"`` and
+                              ``"muted"``.
+        :param boolean isPublic: sets the group to public or private.
+        :param boolean merge: allows to merge or unmerge different groups.
+        :param boolean hasSeen: in case this API call is invoked with a user
+                                context this allows changing of the flag
+                                that indicates if the user has seen the
+                                event.
+        :param boolean isBookmarked: in case this API call is invoked with a
+                                     user context this allows changing of
+                                     the bookmark flag.
+        :auth: required
         """
         group_ids = request.GET.getlist('id')
         if group_ids:
@@ -366,17 +433,27 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return Response(result)
 
+    @attach_scenarios([bulk_remove_aggregates_scenario])
     def delete(self, request, project):
         """
         Bulk Remove a List of Aggregates
         ````````````````````````````````
 
-        Permanently remove the given aggregates.
+        Permanently remove the given aggregates. The list of groups to
+        modify is given through the `id` query parameter.  It is repeated
+        for each group that should be removed.
 
         Only queries by 'id' are accepted.
 
         If any ids are out of scope this operation will succeed without
         any data mutation.
+
+        :qparam int id: a list of IDs of the groups to be removed.  This
+                        parameter shall be repeated for each group.
+        :pparam string organization_slug: the slug of the organization the
+                                          groups belong to.
+        :pparam string project_slug: the slug of the project the groups
+                                     belong to.
         """
         group_ids = request.GET.getlist('id')
         if group_ids:

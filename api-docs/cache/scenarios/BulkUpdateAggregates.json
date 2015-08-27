@@ -1,0 +1,35 @@
+{
+  "ident": "BulkUpdateAggregates",
+  "requests": [
+    {
+      "request": {
+        "data": {
+          "isPublic": false,
+          "status": "unresolved"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "PUT",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?id=2&id=1"
+      },
+      "response": {
+        "data": {
+          "isPublic": false,
+          "status": "unresolved"
+        },
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

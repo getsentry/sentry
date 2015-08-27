@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.project_event_details.ProjectEventDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/events/{event_id}/",
+  "scenarios": [],
   "section": "events",
   "text": [
     "Return details on an individual event."

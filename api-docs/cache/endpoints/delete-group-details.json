@@ -3,9 +3,14 @@
   "internal_path": "sentry.api.endpoints.group_details.GroupDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/groups/{group_id}/",
+  "scenarios": [
+    "DeleteAggregate"
+  ],
   "section": "events",
   "text": [
-    "Deletes an individual aggregate."
+    "Removes an individual aggregate.",
+    "",
+    ":pparam int group_id: the ID of the group to delete."
   ],
-  "title": "Delete an Aggregate"
+  "title": "Remove an Aggregate"
 }

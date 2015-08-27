@@ -1,0 +1,26 @@
+{
+  "ident": "DeleteAggregate",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "method": "DELETE",
+        "path": "/api/0/groups/7/"
+      },
+      "response": {
+        "data": "",
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": false,
+        "reason": "ACCEPTED",
+        "status": 202
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}
