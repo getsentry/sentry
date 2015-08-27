@@ -14,5 +14,5 @@ from sentry.models import ProjectKey
 
 class EditProjectKeyForm(forms.ModelForm):
     class Meta:
-        fields = ('label', 'roles')
+        fields = ('label',)
         model = ProjectKey
