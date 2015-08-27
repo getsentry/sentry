@@ -17,29 +17,42 @@ from urlparse import parse_qsl, urlsplit, urlunsplit
 
 from sentry.constants import HTTP_METHODS
 from sentry.interfaces.base import Interface
-from sentry.utils.safe import trim, trim_dict
+from sentry.utils import json
+from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.web.helpers import render_to_string
 
 
 def format_headers(value):
-    return dict(
-        (k.title(), v)
-        for k, v in value.iteritems()
-    )
+    if not value:
+        return ()
+
+    if isinstance(value, dict):
+        value = value.items()
+
+    result = []
+    cookie_header = None
+    for k, v in value:
+        if k.lower() == 'cookie':
+            cookie_header = v
+        else:
+            result.append((k.title(), v))
+    return result, cookie_header
 
 
 def format_cookies(value):
-    return dict(
+    if not value:
+        return ()
+
+    if isinstance(value, basestring):
+        value = parse_qsl(value, keep_blank_values=True)
+
+    if isinstance(value, dict):
+        value = value.items()
+
+    return [
         (k.encode('utf8').strip(), v)
-        for k, v in value.iteritems()
-    )
-
-
-def format_body(value):
-    return dict(
-        (k.encode('utf8'), v.encode('utf8'))
-        for k, v in value.iteritems()
-    )
+        for k, v in value
+    ]
 
 
 class Http(Interface):
@@ -115,41 +128,22 @@ class Http(Interface):
         # strip them out
         headers = data.get('headers')
         if headers:
-            headers = format_headers(headers)
-            if 'Cookie' in headers:
-                if not cookies:
-                    cookies = headers.pop('Cookie')
-                else:
-                    del headers['Cookie']
-            headers = trim_dict(headers)
+            headers, cookie_header = format_headers(headers)
+            if not cookies and cookie_header:
+                cookies = cookie_header
         else:
             headers = {}
 
         body = data.get('data')
-        # TODO(dcramer): a list as a body is not even close to valid
         if isinstance(body, dict):
-            body = trim_dict(dict(
-                (k, v or '')
-                for k, v in body.iteritems()
-            ))
-        elif body:
+            body = json.dumps(body)
+
+        if body:
             body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
-            if headers.get('Content-Type') == cls.FORM_TYPE and '=' in body:
-                body = dict(parse_qsl(body, True))
 
-        # if cookies were a string, convert to a dict
-        # parse_qsl will parse both acceptable formats:
-        #  a=b&c=d
-        # and
-        #  a=b;c=d
-        if isinstance(cookies, basestring):
-            cookies = dict(parse_qsl(cookies, keep_blank_values=True))
-        elif not cookies:
-            cookies = {}
-
-        kwargs['cookies'] = format_cookies(trim_dict(cookies))
+        kwargs['cookies'] = trim_pairs(format_cookies(cookies))
         kwargs['env'] = trim_dict(data.get('env') or {})
-        kwargs['headers'] = headers
+        kwargs['headers'] = trim_pairs(headers)
         kwargs['data'] = body
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
         kwargs['fragment'] = trim(fragment, 256)
@@ -184,18 +178,29 @@ class Http(Interface):
         return _('Request')
 
     def get_api_context(self, is_public=False):
+        data = self.data
+        if isinstance(data, dict):
+            data = json.dumps(data)
+
+        cookies = self.cookies or ()
+        if isinstance(cookies, dict):
+            cookies = sorted(self.cookies.items())
+
+        headers = self.headers or ()
+        if isinstance(headers, dict):
+            headers = sorted(self.headers.items())
+
         data = {
             'method': self.method,
             'url': self.url,
             'query': self.query_string,
             'fragment': self.fragment,
-            'data': self.data,
-            # TODO(dcramer): scrub headers for IPs/etc when is_public
-            'headers': self.headers or None,
+            'data': data,
+            'headers': headers,
         }
         if not is_public:
             data.update({
-                'cookies': self.cookies or None,
+                'cookies': cookies,
                 'env': self.env or None,
             })
         return data
