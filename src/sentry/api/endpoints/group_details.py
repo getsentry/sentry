@@ -133,7 +133,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         the group (the bar graph), some overall numbers (number of comments,
         user reports) as well as the summarized event data.
 
-        :pparam int group_id: the ID of the group to retrieve.
+        :pparam string group_id: the ID of the group to retrieve.
         :auth: required
         """
         # TODO(dcramer): handle unauthenticated/public response
@@ -216,7 +216,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         Updates an individual aggregate's attributes.  Only the attributes
         submitted are modified.
 
-        :pparam int group_id: the ID of the group to retrieve.
+        :pparam string group_id: the ID of the group to retrieve.
         :param string status: the new status for the groups.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
                               ``"muted"``.
@@ -359,7 +359,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         Removes an individual aggregate.
 
-        :pparam int group_id: the ID of the group to delete.
+        :pparam string group_id: the ID of the group to delete.
         :auth: required
         """
         from sentry.tasks.deletion import delete_group

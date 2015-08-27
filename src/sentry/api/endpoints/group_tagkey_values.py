@@ -30,7 +30,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
         Return a list of values associated with this key.
 
-        :pparam int group_id: the ID of the group to retrieve.
+        :pparam string group_id: the ID of the group to retrieve.
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """

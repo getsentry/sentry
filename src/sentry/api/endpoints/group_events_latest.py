@@ -30,7 +30,7 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
 
         Retrieves the details of the latest sample for an aggregate.
 
-        :pparam int group_id: the ID of the group to get the latest sample of.
+        :pparam string group_id: the ID of the group to get the latest sample of.
         """
         event = group.get_latest_event()
         if not event:
