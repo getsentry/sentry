@@ -407,3 +407,10 @@ def format_userinfo(user):
         escape(user.username),
         escape(username),
     ))
+
+
+@register.inclusion_tag('sentry/includes/captcha.html')
+def load_captcha():
+    return {
+        'api_key': settings.RECAPTCHA_PUBLIC_KEY,
+    }
