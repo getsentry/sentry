@@ -51,6 +51,10 @@ class EventSerializer(Serializer):
             error_result = {
                 'type': error['type'],
                 'message': message,
+                'data': {
+                    k: v for k, v in error.items()
+                    if k != 'type'
+                },
             }
             errors.append(error_result)
 
