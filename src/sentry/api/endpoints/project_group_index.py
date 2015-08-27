@@ -115,6 +115,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                           groups belong to.
         :pparam string project_slug: the slug of the project the groups
                                      belong to.
+        :auth: required
         """
         query_kwargs = {
             'project': project,
@@ -454,6 +455,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                           groups belong to.
         :pparam string project_slug: the slug of the project the groups
                                      belong to.
+        :auth: required
         """
         group_ids = request.GET.getlist('id')
         if group_ids:

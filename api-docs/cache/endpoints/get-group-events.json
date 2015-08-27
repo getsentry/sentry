@@ -3,10 +3,15 @@
   "internal_path": "sentry.api.endpoints.group_events.GroupEventsEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/events/",
-  "scenarios": [],
+  "scenarios": [
+    "ListAvailableSamples"
+  ],
   "section": "events",
   "text": [
-    "This endpoint lists an aggregate's available samples."
+    "This endpoint lists an aggregate's available samples.",
+    "",
+    ":pparam int group_id: the ID of the group to retrieve.",
+    ":auth: required"
   ],
   "title": "List Available Samples"
 }

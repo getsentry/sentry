@@ -355,7 +355,7 @@ class Runner(object):
 
     @property
     def default_event(self):
-        return self.teams[0]['projects'][0]['events']
+        return self.teams[0]['projects'][0]['events'][0]
 
     @contextmanager
     def isolated_project(self, project_name):

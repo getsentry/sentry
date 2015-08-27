@@ -6,18 +6,35 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue, TagKey, TagKeyStatus
+from sentry.models import GroupTagValue, TagKey, TagKeyStatus, Group
+from sentry.utils.apidocs import scenario
+
+
+@scenario('ListTagDetails')
+def list_tag_details_scenario(runner):
+    group = Group.objects.filter(project=runner.default_project).first()
+    runner.request(
+        method='GET',
+        path='/groups/%s/tags/%s/' % (
+            group.id, 'browser'),
+    )
 
 
 class GroupTagKeyDetailsEndpoint(GroupEndpoint):
     doc_section = DocSection.EVENTS
 
+    # XXX: this scenario does not work for some inexplicable reasons
+    # @attach_scenarios([list_tag_details_scenario])
     def get(self, request, group, key):
         """
         List Tag Details
         ````````````````
 
         Returns a list of details about the given tag key.
+
+        :pparam int group_id: the ID of the group to retrieve.
+        :pparam string key: the tag key to look the values up for.
+        :auth: required
         """
         # XXX(dcramer): kill sentry prefix for internal reserved tags
         if key in ('release', 'user', 'filename', 'function'):

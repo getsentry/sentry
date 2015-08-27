@@ -32,6 +32,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
 
         :pparam int group_id: the ID of the group to retrieve.
         :pparam string key: the tag key to look the values up for.
+        :auth: required
         """
         # XXX(dcramer): kill sentry prefix for internal reserved tags
         if key in ('release', 'user', 'filename', 'function'):
