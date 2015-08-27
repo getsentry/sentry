@@ -307,6 +307,19 @@
   });
   </script>
   {% endblock %}
+  <script>
+  $('.auto-select').click(function() {
+    if (document.selection) {
+      var range = document.body.createTextRange();
+      range.moveToElementText(this);
+      range.select();
+    } else if (window.getSelection) {
+      var range = document.createRange();
+      range.selectNode(this);
+      window.getSelection().addRange(range);
+    }
+  });
+  </script>
   <script type="text/javascript">
   $(function() {
     // This is duplicated from <ProjectSelector>
