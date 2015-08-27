@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_teams.OrganizationTeamsEndpoint:get",
   "method": "GET",
   "path": "/api/0/organizations/{organization_slug}/teams/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "Return a list of teams bound to a organization."

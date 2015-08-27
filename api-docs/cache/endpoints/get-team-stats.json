@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.team_stats.TeamStatsEndpoint:get",
   "method": "GET",
   "path": "/api/0/teams/{organization_slug}/{team_slug}/stats/",
+  "scenarios": [],
   "section": "teams",
   "text": [
     "**Draft:** This endpoint may change in the future without notice.",

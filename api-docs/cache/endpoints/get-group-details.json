@@ -3,6 +3,9 @@
   "internal_path": "sentry.api.endpoints.group_details.GroupDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/",
+  "scenarios": [
+    "RetrieveAggregate"
+  ],
   "section": "events",
   "text": [
     "Return details on an individual aggregate.  Aggregates are also",
@@ -10,7 +13,7 @@
     "the group (the bar graph), some overall numbers (number of comments,",
     "user reports) as well as the summarized event data.",
     "",
-    ".. sentry:api-scenario:: RetrieveAggregate"
+    ":pparam int group_id: the ID of the group to retrieve."
   ],
   "title": "Retrieve an Aggregate"
 }

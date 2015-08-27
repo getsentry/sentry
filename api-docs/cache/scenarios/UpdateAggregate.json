@@ -18,12 +18,12 @@
           "assignedTo": null,
           "count": "1",
           "culprit": "raven.scripts.runner in main",
-          "firstSeen": "2015-08-25T18:08:03Z",
+          "firstSeen": "2015-08-27T18:36:04Z",
           "hasSeen": false,
           "id": "1",
           "isBookmarked": false,
           "isPublic": false,
-          "lastSeen": "2015-08-25T18:08:03Z",
+          "lastSeen": "2015-08-27T18:36:04Z",
           "level": "error",
           "logger": null,
           "numComments": 0,
@@ -44,9 +44,12 @@
           "content-type": "application/json",
           "vary": "Accept-Language, Cookie"
         },
+        "is_json": true,
         "reason": "OK",
         "status": 200
       }
     }
-  ]
+  ],
+  "text": [],
+  "title": null
 }

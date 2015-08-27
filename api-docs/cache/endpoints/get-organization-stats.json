@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_stats.OrganizationStatsEndpoint:get",
   "method": "GET",
   "path": "/api/0/organizations/{organization_slug}/stats/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "**Draft:** This endpoint may change in the future without notice.",

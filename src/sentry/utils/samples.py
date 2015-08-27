@@ -70,7 +70,8 @@ def load_data(platform, default=None):
     return data
 
 
-def create_sample_event(project, platform=None, default=None, **kwargs):
+def create_sample_event(project, platform=None, default=None, raw=True,
+                        **kwargs):
     if not platform:
         platform = project.platform
 
@@ -88,4 +89,4 @@ def create_sample_event(project, platform=None, default=None, **kwargs):
 
     manager = EventManager(data)
     manager.normalize()
-    return manager.save(project.id, raw=True)
+    return manager.save(project.id, raw=raw)

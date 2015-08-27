@@ -6,7 +6,7 @@
     },
     "events": {
       "entries": {
-        "delete-group-details": "Delete an Aggregate",
+        "delete-group-details": "Remove an Aggregate",
         "delete-project-group-index": "Bulk Remove a List of Aggregates",
         "get-group-details": "Retrieve an Aggregate",
         "get-group-events": "List Available Samples",

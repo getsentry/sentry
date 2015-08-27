@@ -3,9 +3,13 @@
   "internal_path": "sentry.api.endpoints.group_tagkey_values.GroupTagKeyValuesEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/tags/{key}/values/",
+  "scenarios": [],
   "section": "events",
   "text": [
-    "Return a list of values associated with this key."
+    "Return a list of values associated with this key.",
+    "",
+    ":pparam int group_id: the ID of the group to retrieve.",
+    ":pparam string key: the tag key to look the values up for."
   ],
   "title": "List a Tag's Values"
 }

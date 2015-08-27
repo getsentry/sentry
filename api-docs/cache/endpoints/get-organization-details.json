@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/organizations/{organization_slug}/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "Return details on an individual organization including various details",

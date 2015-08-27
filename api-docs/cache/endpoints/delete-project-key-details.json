@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.project_key_details.ProjectKeyDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/",
+  "scenarios": [],
   "section": "projects",
   "text": [
     "Delete a client key."

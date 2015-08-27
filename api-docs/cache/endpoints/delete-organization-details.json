@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_details.OrganizationDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/organizations/{organization_slug}/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "Schedules an organization for deletion.",

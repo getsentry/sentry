@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:delete",
   "method": "DELETE",
   "path": "/api/0/teams/{organization_slug}/{team_slug}/",
+  "scenarios": [],
   "section": "teams",
   "text": [
     "Schedules a team for deletion.",

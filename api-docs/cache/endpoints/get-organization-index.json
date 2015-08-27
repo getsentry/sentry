@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.organization_index.OrganizationIndexEndpoint:get",
   "method": "GET",
   "path": "/api/0/organizations/",
+  "scenarios": [],
   "section": "organizations",
   "text": [
     "Return a list of organizations available to the authenticated session."

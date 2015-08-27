@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.project_releases.ProjectReleasesEndpoint:post",
   "method": "POST",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/",
+  "scenarios": [],
   "section": "releases",
   "text": [
     "Create a new release for the given project."

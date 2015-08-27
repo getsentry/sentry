@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.group_tagkey_details.GroupTagKeyDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/tags/{key}/",
+  "scenarios": [],
   "section": "events",
   "text": [
     "Returns a list of details about the given tag key."

@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.group_events.GroupEventsEndpoint:get",
   "method": "GET",
   "path": "/api/0/groups/{group_id}/events/",
+  "scenarios": [],
   "section": "events",
   "text": [
     "This endpoint lists an aggregate's available samples."

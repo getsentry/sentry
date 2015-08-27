@@ -3,6 +3,9 @@
   "internal_path": "sentry.api.endpoints.group_details.GroupDetailsEndpoint:put",
   "method": "PUT",
   "path": "/api/0/groups/{group_id}/",
+  "scenarios": [
+    "UpdateAggregate"
+  ],
   "section": "events",
   "text": [
     "Updates an individual aggregate's attributes.  Only the attributes",
@@ -15,10 +18,8 @@
     "In case the API call is invoked in a user context, these",
     "attributes can also be modified:",
     "",
-    "- ``hasSeen``: `true`, false`",
-    "- ``isBookmarked``: `true`, false`",
-    "",
-    ".. sentry:api-scenario:: UpdateAggregate"
+    "- ``hasSeen``: `true`, `false`",
+    "- ``isBookmarked``: `true`, `false`"
   ],
   "title": "Update an Aggregate"
 }

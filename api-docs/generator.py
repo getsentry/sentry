@@ -127,6 +127,7 @@ class SentryBox(object):
     def __init__(self):
         self.redis = None
         self.sentry = None
+        self.task_runner = None
 
     def __enter__(self):
         self.redis = launch_redis()
@@ -159,7 +160,7 @@ def dump_json(path, data):
 
 
 def run_scenario(vars, scenario_ident, func):
-    runner = Runner(scenario_ident, **vars)
+    runner = Runner(scenario_ident, func, **vars)
     report('scenario', 'Running scenario "%s"' % scenario_ident)
     func(runner)
     dump_json('scenarios/%s.json' % scenario_ident, runner.to_json())
@@ -186,11 +187,15 @@ def cli():
             project = utils.create_project(project_name, team=team, org=org)
             release = utils.create_release(project=project, user=user)
             report('event', 'Creating event for "%s"' % project_name)
-            event = utils.create_event(project=project, release=release)
+
+            event1 = utils.create_event(project=project, release=release,
+                                        platform='python')
+            event2 = utils.create_event(project=project, release=release,
+                                        platform='java')
             projects.append({
                 'project': project,
                 'release': release,
-                'events': [event],
+                'events': [event1, event2],
             })
 
         vars = {

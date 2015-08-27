@@ -1,0 +1,27 @@
+{
+  "ident": "BulkRemoveAggregates",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "method": "DELETE",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/amazing-plumbing/groups/?id=6&id=5"
+      },
+      "response": {
+        "data": "",
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-length": "0",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": false,
+        "reason": "NO CONTENT",
+        "status": 204
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

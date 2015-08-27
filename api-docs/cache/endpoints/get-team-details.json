@@ -3,6 +3,7 @@
   "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/teams/{organization_slug}/{team_slug}/",
+  "scenarios": [],
   "section": "teams",
   "text": [
     "Return details on an individual team.",
