@@ -295,14 +295,16 @@ var GroupOverview = React.createClass({
                 <div className="box">
                   <div className="box-header box-header-borderless">
                     <div className="pull-right">
-                    <Router.Link to="groupEventDetails" params={{
+                    <Router.Link to="groupEventDetails"
+                    className="btn"  
+                    params={{
                       projectId: projectId,
                       orgId: orgId,
                       groupId: group.id,
                       eventId: evt.id
                     }}>More Details</Router.Link>
                     </div>
-                    This summary is based on the most recent event in this aggregate.
+                    <h3>This summary is based on the most recent event in this aggregate.</h3>
                   </div>
                 </div>
                 <GroupEventEntries

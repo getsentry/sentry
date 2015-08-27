@@ -115,12 +115,6 @@ var ExceptionInterface = React.createClass({
 
     var title = (
       <div>
-        {'Exception '}
-        {newestFirst ?
-          <small>(most recent call first)</small>
-        :
-          <small>(most recent call last)</small>
-        }
         <div className="btn-group">
           {data.hasSystemFrames &&
             <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App Only</a>
@@ -128,6 +122,14 @@ var ExceptionInterface = React.createClass({
           <a className={(stackView === "full" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "full")}>Full</a>
           <a className={(stackView === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
         </div>
+        <h3>
+          {'Exception '}
+          {newestFirst ?
+            <small>(most recent call first)</small>
+          :
+            <small>(most recent call last)</small>
+          }
+        </h3>
       </div>
     );
 
@@ -136,7 +138,8 @@ var ExceptionInterface = React.createClass({
           group={group}
           event={evt}
           type={this.props.type}
-          title={title}>
+          title={title}
+          wrapTitle={false}>
         {stackView === 'raw' ?
           <RawExceptionContent
             values={data.values}
@@ -154,4 +157,3 @@ var ExceptionInterface = React.createClass({
 });
 
 export default ExceptionInterface;
-

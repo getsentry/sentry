@@ -40,10 +40,10 @@ var ExpandedTeamList = React.createClass({
       <div className="box" key={team.slug}>
         <div className="box-header">
           <div className="pull-right actions hidden-xs">
-            <a className="leave-team" onClick={this.leaveTeam.bind(this, team)}>
+            <a className="leave-team btn btn-sm" onClick={this.leaveTeam.bind(this, team)}>
               Leave Team
             </a>
-            <a className="team-settings" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
+            <a className="team-settings btn btn-sm" href={urlPrefix + '/teams/' + team.slug + '/settings/'}>
               Team Settings
             </a>
           </div>
