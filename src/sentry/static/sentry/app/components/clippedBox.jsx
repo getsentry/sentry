@@ -23,6 +23,9 @@ var ClippedBox = React.createClass({
     var renderedHeight = this.getDOMNode().offsetHeight;
 
     if (renderedHeight > this.props.clipHeight ) {
+      /*eslint react/no-did-mount-set-state:0*/
+      // okay if this causes re-render; cannot determine until
+      // rendered first anyways
       this.setState({
         clipped: true
       });
