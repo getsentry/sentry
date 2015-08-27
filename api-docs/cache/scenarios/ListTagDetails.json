@@ -1,0 +1,29 @@
+{
+  "ident": "ListTagDetails",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "method": "GET",
+        "path": "/api/0/groups/1/tags/browser/"
+      },
+      "response": {
+        "data": {
+          "detail": ""
+        },
+        "headers": {
+          "allow": "GET, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "NOT FOUND",
+        "status": 404
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

@@ -1,12 +1,12 @@
 {
-  "ident": "GetLatestGroupSample",
+  "ident": "RetrieveEventForProject",
   "requests": [
     {
       "request": {
         "data": null,
         "headers": {},
         "method": "GET",
-        "path": "/api/0/groups/1/events/latest/"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/events/e18141e45c044cf8a06acc5425d883cc/"
       },
       "response": {
         "data": {
@@ -463,19 +463,6 @@
           },
           "platform": "python",
           "previousEventID": null,
-          "release": {
-            "data": {},
-            "dateCreated": "2015-08-27T21:35:20.679Z",
-            "dateReleased": null,
-            "dateStarted": null,
-            "firstEvent": null,
-            "lastEvent": null,
-            "newGroups": 0,
-            "ref": null,
-            "shortVersion": "f8a9324ea70f",
-            "url": null,
-            "version": "f8a9324ea70fa8918e6fa62b628fa6b587e986e9"
-          },
           "size": 6705,
           "tags": {
             "browser": "Chrome 28.0",

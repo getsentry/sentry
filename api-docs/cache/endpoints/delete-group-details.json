@@ -10,7 +10,8 @@
   "text": [
     "Removes an individual aggregate.",
     "",
-    ":pparam int group_id: the ID of the group to delete."
+    ":pparam int group_id: the ID of the group to delete.",
+    ":auth: required"
   ],
   "title": "Remove an Aggregate"
 }

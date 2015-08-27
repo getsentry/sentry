@@ -15,12 +15,12 @@
             "assignedTo": null,
             "count": "1",
             "culprit": "javax.servlet.ServletException",
-            "firstSeen": "2015-08-27T18:36:06Z",
+            "firstSeen": "2015-08-27T21:35:22Z",
             "hasSeen": false,
             "id": "2",
             "isBookmarked": false,
             "isPublic": false,
-            "lastSeen": "2015-08-27T18:36:06Z",
+            "lastSeen": "2015-08-27T21:35:22Z",
             "level": "error",
             "logger": null,
             "numComments": 0,
@@ -33,104 +33,104 @@
             "stats": {
               "24h": [
                 [
-                  1440612000,
-                  15174
-                ],
-                [
-                  1440615600,
-                  13641
-                ],
-                [
-                  1440619200,
-                  14216
-                ],
-                [
                   1440622800,
-                  14121
+                  16931
                 ],
                 [
                   1440626400,
-                  12480
+                  16071
                 ],
                 [
                   1440630000,
-                  12812
+                  17336
                 ],
                 [
                   1440633600,
-                  12700
+                  15778
                 ],
                 [
                   1440637200,
-                  13711
+                  16584
                 ],
                 [
                   1440640800,
-                  15791
+                  20527
                 ],
                 [
                   1440644400,
-                  13457
+                  16878
                 ],
                 [
                   1440648000,
-                  12886
+                  17599
                 ],
                 [
                   1440651600,
-                  13985
+                  16795
                 ],
                 [
                   1440655200,
-                  12904
+                  16549
                 ],
                 [
                   1440658800,
-                  13676
+                  18442
                 ],
                 [
                   1440662400,
-                  14877
+                  18716
                 ],
                 [
                   1440666000,
-                  16004
+                  19117
                 ],
                 [
                   1440669600,
-                  13009
+                  15424
                 ],
                 [
                   1440673200,
-                  9560
+                  15186
                 ],
                 [
                   1440676800,
-                  8629
+                  13555
                 ],
                 [
                   1440680400,
-                  8909
+                  12937
                 ],
                 [
                   1440684000,
-                  8754
+                  13331
                 ],
                 [
                   1440687600,
-                  7340
+                  12648
                 ],
                 [
                   1440691200,
-                  8454
+                  11618
                 ],
                 [
                   1440694800,
-                  11259
+                  15175
                 ],
                 [
                   1440698400,
-                  9022
+                  12367
+                ],
+                [
+                  1440702000,
+                  3837
+                ],
+                [
+                  1440705600,
+                  4755
+                ],
+                [
+                  1440709200,
+                  5426
                 ]
               ]
             },
@@ -144,12 +144,12 @@
             "assignedTo": null,
             "count": "1",
             "culprit": "raven.scripts.runner in main",
-            "firstSeen": "2015-08-27T18:36:04Z",
+            "firstSeen": "2015-08-27T21:35:20Z",
             "hasSeen": false,
             "id": "1",
             "isBookmarked": false,
             "isPublic": false,
-            "lastSeen": "2015-08-27T18:36:04Z",
+            "lastSeen": "2015-08-27T21:35:20Z",
             "level": "error",
             "logger": null,
             "numComments": 0,
@@ -162,104 +162,104 @@
             "stats": {
               "24h": [
                 [
-                  1440612000,
-                  14059
-                ],
-                [
-                  1440615600,
-                  15258
-                ],
-                [
-                  1440619200,
-                  15693
-                ],
-                [
                   1440622800,
-                  14020
+                  17440
                 ],
                 [
                   1440626400,
-                  14830
+                  18271
                 ],
                 [
                   1440630000,
-                  15685
+                  18651
                 ],
                 [
                   1440633600,
-                  12746
+                  17445
                 ],
                 [
                   1440637200,
-                  12680
+                  16918
                 ],
                 [
                   1440640800,
-                  14078
+                  18440
                 ],
                 [
                   1440644400,
-                  15456
+                  19694
                 ],
                 [
                   1440648000,
-                  14726
+                  18588
                 ],
                 [
                   1440651600,
-                  11834
+                  16728
                 ],
                 [
                   1440655200,
-                  13315
+                  17789
                 ],
                 [
                   1440658800,
-                  13340
+                  17209
                 ],
                 [
                   1440662400,
-                  12514
+                  16464
                 ],
                 [
                   1440666000,
-                  13276
+                  17661
                 ],
                 [
                   1440669600,
-                  11594
+                  16671
                 ],
                 [
                   1440673200,
-                  9433
+                  13339
                 ],
                 [
                   1440676800,
-                  7218
+                  11288
                 ],
                 [
                   1440680400,
-                  7804
+                  11267
                 ],
                 [
                   1440684000,
-                  10991
+                  14972
                 ],
                 [
                   1440687600,
-                  8282
+                  12872
                 ],
                 [
                   1440691200,
-                  8321
+                  12839
                 ],
                 [
                   1440694800,
-                  10036
+                  12950
                 ],
                 [
                   1440698400,
-                  10478
+                  13551
+                ],
+                [
+                  1440702000,
+                  4012
+                ],
+                [
+                  1440705600,
+                  4713
+                ],
+                [
+                  1440709200,
+                  4777
                 ]
               ]
             },
@@ -273,7 +273,7 @@
           "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
           "content-language": "en-us",
           "content-type": "application/json",
-          "link": "<https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?statsPeriod=24h&cursor=1440700566:0:1>; rel=\"previous\"; results=\"false\"; cursor=\"1440700566:0:1\", <https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?statsPeriod=24h&cursor=1440700564:0:0>; rel=\"next\"; results=\"false\"; cursor=\"1440700564:0:0\"",
+          "link": "<https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?statsPeriod=24h&cursor=1440711322:0:1>; rel=\"previous\"; results=\"false\"; cursor=\"1440711322:0:1\", <https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?statsPeriod=24h&cursor=1440711320:0:0>; rel=\"next\"; results=\"false\"; cursor=\"1440711320:0:0\"",
           "vary": "Accept-Language, Cookie"
         },
         "is_json": true,

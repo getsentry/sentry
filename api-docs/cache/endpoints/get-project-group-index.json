@@ -27,7 +27,8 @@
     ":pparam string organization_slug: the slug of the organization the",
     "                                  groups belong to.",
     ":pparam string project_slug: the slug of the project the groups",
-    "                             belong to."
+    "                             belong to.",
+    ":auth: required"
   ],
   "title": "List a Project's Aggregates"
 }
