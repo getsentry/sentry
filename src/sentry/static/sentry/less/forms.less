@@ -11,6 +11,12 @@
   position: relative;
   border-radius: 2px;
 
+  &.disabled {
+    background-color: #eee;
+    border-color: transparent;
+    color: @gray-dark;
+  }
+
   .placeholder(lighten(@gray, 28));
 
   &:focus {
