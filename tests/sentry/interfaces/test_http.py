@@ -29,8 +29,8 @@ class HttpTest(TestCase):
         assert result.fragment == ''
         assert result.query_string == ''
         assert result.data is None
-        assert result.cookies == {}
-        assert result.headers == {}
+        assert result.cookies == []
+        assert result.headers == []
         assert result.env == {}
         assert result.full_url == result.url
 
@@ -48,8 +48,8 @@ class HttpTest(TestCase):
         assert result.method == 'GET'
         assert result.query_string == 'foo=bar'
         assert result.fragment == 'foobar'
-        assert result.cookies == {'foo': 'bar'}
-        assert result.headers == {'X-Foo-Bar': 'baz'}
+        assert result.cookies == [('foo', 'bar')]
+        assert result.headers == [('X-Foo-Bar', 'baz')]
         assert result.env == {'bing': 'bong'}
         assert result.data == 'hello world'
 
@@ -65,7 +65,7 @@ class HttpTest(TestCase):
             url='http://example.com',
             data={'foo': 'bar'},
         ))
-        assert result.data == {'foo': 'bar'}
+        assert result.data == '{"foo":"bar"}'
 
     def test_form_encoded_data(self):
         result = Http.to_python(dict(
@@ -73,32 +73,32 @@ class HttpTest(TestCase):
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data='foo=bar',
         ))
-        assert result.data == {'foo': 'bar'}
+        assert result.data == 'foo=bar'
 
     def test_cookies_as_string(self):
         result = Http.to_python(dict(
             url='http://example.com',
             cookies='a=b;c=d',
         ))
-        assert result.cookies == {'a': 'b', 'c': 'd'}
+        assert result.cookies == [('a', 'b'), ('c', 'd')]
         result = Http.to_python(dict(
             url='http://example.com',
             cookies='a=b&c=d',
         ))
-        assert result.cookies == {'a': 'b', 'c': 'd'}
+        assert result.cookies == [('a', 'b'), ('c', 'd')]
 
     def test_cookies_in_header(self):
         result = Http.to_python(dict(
             url='http://example.com',
             headers={'Cookie': 'a=b;c=d'},
         ))
-        assert result.cookies == {'a': 'b', 'c': 'd'}
+        assert result.cookies == [('a', 'b'), ('c', 'd')]
         result = Http.to_python(dict(
             url='http://example.com',
             headers={'Cookie': 'a=b;c=d'},
             cookies={'foo': 'bar'},
         ))
-        assert result.cookies == {'foo': 'bar'}
+        assert result.cookies == [('foo', 'bar')]
 
     def test_query_string_and_fragment_as_params(self):
         result = Http.to_python(dict(

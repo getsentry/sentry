@@ -1,24 +1,27 @@
 import React from "react";
-import jQuery from "jquery";
 import ConfigStore from "../../stores/configStore";
 import ClippedBox from "../../components/clippedBox";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../proptypes";
-import {defined, objectIsEmpty} from "../../utils";
+import {objectIsEmpty} from "../../utils";
+import {getCurlCommand} from "./utils";
 
-var DefinitionList = React.createClass({
+export var DefinitionList = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },
 
   render() {
-    var children = [];
-    var data = this.props.data;
-    for (var key in data) {
-      children.push(<dt key={'dt-' + key }>{key}</dt>);
-      children.push(<dd key={'dd-' + key }><pre>{data[key]}</pre></dd>);
-    }
-    return <dl className="vars">{children}</dl>;
+    return (
+      <dl className="vars">
+        {this.props.data.map(function ([key, value]) {
+            return [
+              <dt key={'dt-' + key }>{key}</dt>,
+              <dd key={'dd-' + key }><pre>{value}</pre></dd>
+            ];
+        })}
+      </dl>
+    );
   }
 });
 
@@ -40,51 +43,14 @@ var RequestActions = React.createClass({
   }
 });
 
-var CurlHttpContent = React.createClass({
-  escapeQuotes(v) {
-    return v.replace(/"/g, '\\"');
+export var RichHttpContent = React.createClass({
+
+  objectToTupleArray(obj) {
+    return Object.keys(obj).map((k) => [k, obj[k]]);
   },
 
-  // TODO(dcramer): support cookies
-  getCurlCommand() {
-    var data = this.props.data;
-    var result = 'curl';
-    if (defined(data.method) && data.method !== 'GET') {
-      result += ' \\\n -X ' + data.method;
-    }
-    if (defined(data.headers['Accept-Encoding']) && data.headers['Accept-Encoding'].indexOf('gzip') === 1) {
-      result += ' \\\n --compressed';
-    }
-    for (var key in data.headers) {
-      result += ' \\\n -H "' + key + ': ' + this.escapeQuotes(data.headers[key]) + '"';
-    }
-    if (typeof data.data === "string") {
-      result += ' \\\n --data "' + this.escapeQuotes(data.data) + '"';
-    } else if (defined(data.data)) {
-      result += ' \\\n --data "' + this.escapeQuotes(jQuery.param(data.data)) + '"';
-    }
-    result += ' \\\n ' + data.url;
-    if (defined(data.query) && data.query) {
-      result += '?' + data.query;
-    }
-    return result;
-  },
-
-  render() {
-    return <pre>{this.getCurlCommand()}</pre>;
-  }
-});
-
-
-var RichHttpContent = React.createClass({
   render(){
-    var data = this.props.data;
-
-    var headers = [];
-    for (var key in data.headers) {
-      headers.push(<dt key={'dt-' + key }>{key}</dt>);
-      headers.push(<dd key={'dd-' + key }><pre>{data.headers[key]}</pre></dd>);
-    }
+    let data = this.props.data;
 
     return (
       <div>
@@ -105,7 +71,7 @@ var RichHttpContent = React.createClass({
         }
         {data.cookies &&
           <ClippedBox title="Cookies" defaultCollapsed>
-            <pre>{JSON.stringify(data.cookies, null, 2)}</pre>
+            <DefinitionList data={data.cookies} />
           </ClippedBox>
         }
         {!objectIsEmpty(data.headers) &&
@@ -115,9 +81,7 @@ var RichHttpContent = React.createClass({
         }
         {!objectIsEmpty(data.env) &&
           <ClippedBox title="Environment" defaultCollapsed>
-            <dl className="vars">
-              <DefinitionList data={data.env} />
-            </dl>
+            <DefinitionList data={this.objectToTupleArray(data.env)}/>
           </ClippedBox>
         }
       </div>
@@ -200,7 +164,7 @@ var RequestInterface = React.createClass({
           title={title}
           wrapTitle={false}>
         {view === "curl" ?
-          <CurlHttpContent data={data} />
+          <pre>{getCurlCommand(data)}</pre>
         :
           <RichHttpContent data={data} />
         }
