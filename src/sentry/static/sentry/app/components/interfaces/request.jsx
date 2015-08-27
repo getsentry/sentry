@@ -171,8 +171,6 @@ var RequestInterface = React.createClass({
 
     var title = (
       <div>
-        <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
-        <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
         <div className="pull-right">
           {!this.props.isShare &&
             <RequestActions organization={this.context.organization}
@@ -187,6 +185,10 @@ var RequestInterface = React.createClass({
           <a className={(view === "curl" ? "active" : "") + " btn btn-default btn-sm"}
              onClick={this.toggleView.bind(this, "curl")}><code>curl</code></a>
         </div>
+        <h3>
+          <strong>{data.method || 'GET'} <a href={fullUrl}>{parsedUrl.pathname}</a></strong>
+          <small style={{marginLeft: 20}}>{parsedUrl.hostname}</small>
+        </h3>
       </div>
     );
 
@@ -195,7 +197,8 @@ var RequestInterface = React.createClass({
           group={group}
           event={evt}
           type={this.props.type}
-          title={title}>
+          title={title}
+          wrapTitle={false}>
         {view === "curl" ?
           <CurlHttpContent data={data} />
         :

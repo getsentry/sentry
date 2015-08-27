@@ -1600,14 +1600,20 @@ pre.clippy {
     padding: 0 20px;
     border-radius: 2px 2px 0 0;
     border-bottom: 1px solid @trim;
-    height: 54px;
-    line-height: 54px;
+    padding-top: 5px;
+    padding-bottom: 4px;
+    .clearfix;
 
     &.box-header-borderless {
       border: 0;
       font-size: 15px;
-      line-height: 50px;
-      height: 48px;
+      h3 {
+        font-weight: 400;
+      }
+      .btn {
+        padding: 0;
+        padding-top: 3px;
+      }
     }
 
     a {
@@ -1622,6 +1628,10 @@ pre.clippy {
       margin: 0;
       font-weight: 600;
       line-height: inherit;
+      padding-top: 6px;
+      padding-bottom: 7px;
+      max-width: 80%;
+      line-height: 1.2;
 
       small {
         color: @gray;
@@ -1631,19 +1641,13 @@ pre.clippy {
 
     .pull-right {
       a, .btn {
-        margin-left: 10px;
+        margin-left: 6px;
       }
     }
 
     .btn-group {
       float: right;
-      margin-top: 14px;
       position: relative;
-    }
-
-    .btn {
-      position: relative;
-      top: -1px;
     }
 
     .nav-tabs {
