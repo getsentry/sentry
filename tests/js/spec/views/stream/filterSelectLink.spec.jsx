@@ -41,7 +41,7 @@ describe("FilterSelectLink", function() {
       var onSelect = this.sandbox.spy();
       var wrapper = React.render(<FilterSelectLink onSelect={onSelect} />, document.body);
 
-      TestUtils.Simulate.click(wrapper.getDOMNode().firstChild);
+      TestUtils.Simulate.click(wrapper.getDOMNode());
 
       expect(onSelect.called).to.be.true;
     });
