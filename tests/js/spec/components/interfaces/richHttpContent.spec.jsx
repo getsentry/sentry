@@ -91,5 +91,17 @@ describe("RichHttpContent", function () {
         foo: 'bar'
       });
     });
+
+    it("should return plain-text when JSON is not parseable", function () {
+      let out = this.elem.getBodySection({
+        headers: [
+          ['lol' , 'no'],
+          ['Content-Type', 'application/json']
+        ],
+        data: 'lol not json'
+      });
+
+      expect(out.type).to.eql('pre');
+    });
   });
 });
