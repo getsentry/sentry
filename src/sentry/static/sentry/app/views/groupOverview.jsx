@@ -296,7 +296,6 @@ var GroupOverview = React.createClass({
 
                     <div className="pull-right">
                     <Router.Link to="groupEventDetails"
-                    className=""
                     params={{
                       projectId: projectId,
                       orgId: orgId,
