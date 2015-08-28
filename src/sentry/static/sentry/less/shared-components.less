@@ -5,7 +5,7 @@
 
 .btn {
   border: 1px solid transparent;
-  border-radius: 2px;
+  border-radius: 3px;
   font-weight: 600;
   padding: 8px 16px;
   box-shadow: 0 1px 1px rgba(0,0,0, .04);
@@ -46,12 +46,12 @@
 .btn-default {
   color: @gray-dark;
   background-color: #fff;
-  border-color: @trim;
+  border-color: darken(@trim, 3);
 
   &:hover, &:focus, &:active {
     color: #34343f;
-    background-color: darken(#f1f2f3, 2);
-    border-color: darken(#cacccc, 5);
+    background-color: darken(@bgColor, .5);
+    border-color: darken(@trim, 6);
   }
 }
 
@@ -789,8 +789,7 @@ table.integrations {
     margin-top: -8px;
     font-size: 14px;
     background: #fff;
-    // height: 40px;
-    border-radius: 2px;
+    border-radius: 3px;
     box-shadow: inset 0 1px 0 rgba(52, 60, 69, 0.03);
     .transition(none);
     border-color: @trim;
@@ -811,7 +810,7 @@ table.integrations {
 }
 
 .search-dropdown {
-  box-shadow: 0 1px 3px rgba(70, 82, 98, .2);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .08);
   border: 1px solid darken(@trim, 6) !important;
   border-radius: 0 0 4px 4px;
   position: absolute;
@@ -924,11 +923,15 @@ table.integrations {
 * ============================================================================
 */
 
+.project-select > a {
+  font-weight: bold;
+}
+
 .project-dropdown {
   .dropdown-toggle {
-    border: 1px solid @trim;
+    border: 1px solid darken(@trim, 6);
     box-shadow: 0 1px 1px rgba(0,0,0, .03);
-    border-radius: 2px;
+    border-radius: 3px;
     height: 20px;
     width: 21px;
     line-height: 21px;
@@ -936,9 +939,14 @@ table.integrations {
     position: relative;
     top: -2px;
 
-    margin-left: 10px;
+    margin-left: 8px;
     display: inline-block;
     vertical-align: middle;
+
+    &:hover {
+      background: darken(@bgColor, .5);
+      border-color: darken(@trim, 6);
+    }
 
     .icon-arrow-down {
       position: relative;
@@ -1115,9 +1123,7 @@ table.integrations {
 
       span {
         display: block;
-        border-radius: 0;
         min-height: 2px;
-        background: lighten(@gray, 10);
       }
     }
   }
@@ -1172,8 +1178,8 @@ table.integrations {
 
     &:hover {
       > span {
-        background: lighten(@blue, 10%);
-        border-color: lighten(@blue, 10%);
+        background: @blue;
+        border-color: transparent;
       }
     }
 
@@ -1194,14 +1200,15 @@ table.integrations {
       bottom: 0;
       left: 1px;
       right: 1px;
-      background: lighten(@gray, 12);
+      background: lighten(@gray, 15);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0, .15);
       min-width: 1px;
       height: 0;
       overflow: hidden;
       text-indent: -9999px;
       text-align: left;
       min-height: 1px;
-      border-radius: 0;
+      border-radius: 1px;
     }
   }
 
@@ -1311,8 +1318,8 @@ table.integrations {
     }
 
     &:first-child {
-      border-top-left-radius: 2px;
-      border-bottom-left-radius: 2px;
+      border-top-left-radius: 3px;
+      border-bottom-left-radius: 3px;
 
       .tag-description {
         display: block !important;
@@ -1320,8 +1327,8 @@ table.integrations {
     }
 
     &:last-child {
-      border-top-right-radius: 2px;
-      border-bottom-right-radius: 2px;
+      border-top-right-radius: 3px;
+      border-bottom-right-radius: 3px;
     }
 
     &:nth-child(1) {
@@ -1369,7 +1376,7 @@ table.integrations {
     display: inline-block;
     width: 24px;
     height: 24px;
-    border-radius: 2px;
+    border-radius: 4px;
     position: relative;
     left: -2px;
     top: -1px;
@@ -1586,7 +1593,7 @@ pre.clippy {
 .box {
   background: #fff;
   border: 1px solid @trim;
-  border-radius: 2px;
+  border-radius: 3px;
   margin: 0 0 20px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, .03);
 
@@ -1595,7 +1602,7 @@ pre.clippy {
     color: @gray-dark;
     line-height: 1;
     padding: 0 20px;
-    border-radius: 2px 2px 0 0;
+    border-radius: 3px 3px 0 0;
     border-bottom: 1px solid @trim;
     padding-top: 9px;
     padding-bottom: 8px;
@@ -1604,6 +1611,8 @@ pre.clippy {
     &.box-header-borderless {
       border: 0;
       font-size: 15px;
+      border-radius: 3px;
+
       h3 {
         font-weight: 400;
       }
@@ -1793,7 +1802,7 @@ pre.clippy {
 
   &.alert-block {
     margin-bottom: 20px;
-    border-radius: 2px;
+    border-radius: 3px;
   }
 }
 
