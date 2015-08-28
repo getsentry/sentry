@@ -48,6 +48,17 @@
   .stream-actions-left, .event-details {
     padding-left: 20px !important;
   }
+  .group-header {
+    font-weight: bold;
+    .stream-actions-left {
+      padding-top: 10px;
+      padding-bottom: 0;
+    }
+
+    .stream-actions-graph {
+      font-size: 12px;
+    }
+  }
 }
 
 .stream-actions {
@@ -104,7 +115,7 @@
   .stream-actions-count,
   .stream-actions-users,
   .stream-actions-level {
-    color: @gray;
+    color: lighten(@gray, 10);
     padding-top: 11px;
     font-size: 12px;
     text-transform: uppercase;
@@ -140,7 +151,7 @@
       }
 
       a {
-        color: @gray;
+        color: lighten(@gray, 10);
         padding: 3px 4px 2px;
         border-radius: 3px;
         .transition(background .2s linear);
@@ -519,6 +530,19 @@
 .group-list-empty {
   padding: 40px;
   text-align: center;
+}
+
+.dashboard-widget {
+  .box-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: lighten(@gray, 10);
+
+    .align-right {
+      text-transform: uppercase;
+      padding-top: 8px;
+    }
+  }
 }
 
 // Generate .group positions for animating

@@ -162,7 +162,7 @@ var EventList = React.createClass({
     });
 
     return (
-      <div className="box">
+      <div className="box dashboard-widget">
         <div className="box-header clearfix">
           <div className="row">
             <div className="col-xs-8">
@@ -193,4 +193,3 @@ var EventList = React.createClass({
 });
 
 export default EventList;
-

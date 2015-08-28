@@ -82,20 +82,24 @@ var ProjectChart = React.createClass({
     });
 
     return (
-      <div className="bar-chart team-chart">
-        <h6>Last 7 days</h6>
-
-        {this.state.loading ?
-          <LoadingIndicator />
-        : (this.state.error ?
-          <LoadingError onRetry={this.fetchData} />
-        :
-          <BarChart points={points} className="sparkline" />
-        )}
+      <div className="box team-chart">
+        <div className="box-header">
+          <h3>Last 7 days</h3>
+        </div>
+        <div className="box-content with-padding">
+          <div className="bar-chart">
+            {this.state.loading ?
+              <LoadingIndicator />
+            : (this.state.error ?
+              <LoadingError onRetry={this.fetchData} />
+            :
+              <BarChart points={points} className="sparkline" />
+            )}
+          </div>
+        </div>
       </div>
     );
   }
 });
 
 export default ProjectChart;
-
