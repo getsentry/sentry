@@ -282,8 +282,8 @@ class ClientApiHelper(object):
                 raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
         elif not isinstance(value, datetime):
             # all timestamps are in UTC, but the marker is optional
-            if 'Z' in value:
-                value = data['timestamp'][:-1]
+            if value.endswith('Z'):
+                value = value[:-1]
             if '.' in value:
                 # Python doesn't support long microsecond values
                 # https://github.com/getsentry/sentry/issues/1610
