@@ -16,7 +16,7 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15);
-    background: #fafbfb; // alpha transparency too slow, so using fixed color
+    background: lighten(#f5f8fa, 1.75); // alpha transparency too slow, so using fixed color
     margin: 0 auto;
   }
 }
@@ -41,7 +41,7 @@
 .group-header {
   // needs fixed height so that stream doesn't "pop" up
   // when stream actions turn "sticky"
-  height: 49px;
+  height: 44px;
 }
 
 .stream-no-bulk-actions {
@@ -58,7 +58,7 @@
   box-shadow: 0 1px 0 @trim;
   margin: 0;
   padding-right: 10px;
-  height: 49px;
+  height: 44px;
 
   .btn-group > .btn {
     color: inherit;
@@ -67,7 +67,7 @@
   .checkbox {
     position: absolute;
     left: 34px;
-    top: 4px;
+    top: 1px;
   }
 
   .btn-group {
@@ -89,7 +89,7 @@
 
   .stream-actions-left {
     position: relative;
-    padding: 10px 0 10px 38px;
+    padding: 8px 0 8px 38px;
 
     .checkbox {
       position: absolute;
@@ -98,15 +98,17 @@
 
   .stream-actions-graph {
     font-size: 13px;
-    padding-top: 12px;
+    padding-top: 11px;
   }
 
   .stream-actions-count,
   .stream-actions-users,
   .stream-actions-level {
-    padding-top: 12px;
-    font-size: 13px;
-    text-transform: lowercase;
+    color: @gray;
+    padding-top: 11px;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: bold;
   }
 
   .realtime-paused {
@@ -126,6 +128,8 @@
     margin-bottom: 0;
     font-size: 11px;
     float: right;
+    text-transform: uppercase;
+    font-weight: bold;
 
     li {
       float: left;
@@ -136,7 +140,7 @@
       }
 
       a {
-        color: #454C50;
+        color: @gray;
         padding: 3px 4px 2px;
         border-radius: 3px;
         .transition(background .2s linear);
@@ -169,11 +173,9 @@
   .list-unstyled;
 
   .group {
+    color: @gray;
     position: relative;
     margin: 0;
-    // position: absolute;
-    // left: 15px;
-    // width: 100%;
     border-bottom: 1px solid lighten(@trim, 2);
     padding-right: 10px;
     background: #fff;
