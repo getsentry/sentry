@@ -36,13 +36,25 @@ class OrganizationIndexEndpoint(Endpoint):
             )
         return Response(serialize(organizations, request.user))
 
+    # XXX: endpoint useless for end-users as it needs user context.
     def post(self, request):
         """
         Create a New Organization
         `````````````````````````
 
-        Create a new organization.
+        Create a new organization owned by the request's user.  To create
+        an organization only the name is required.
+
+        :param string name: the human readable name for the new organization.
+        :param string slug: the unique URL slug for this organization.  If
+                            this is not provided a slug is automatically
+                            generated based on the name.
+        :auth: required, user-context-needed
         """
+        if not request.user.is_authenticated():
+            return Response({'detail': 'This endpoint requires user info'},
+                            status=401)
+
         serializer = OrganizationSerializer(data=request.DATA)
 
         if serializer.is_valid():
