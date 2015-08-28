@@ -1735,15 +1735,16 @@ pre.clippy {
 }
 
 .alert {
-  background: @gray;
-  color: #fff;
-  border: 0;
+  background: #FDFBF1;
+  color: #866938;
+  border: 1px solid #E2D2AD;
   font-weight: 400;
   padding: 10px 20px;
   border-radius: 0;
   margin: 0;
   font-size: 15px;
   line-height: 1.4;
+  box-shadow: 0 1px 1px rgba(0,0,0, .03);
 
   p:last-child {
     margin: 0;
@@ -1776,7 +1777,8 @@ pre.clippy {
 
     &:hover {
       box-shadow: none;
-      color: #fff;
+      font-weight: bold;
+      color: #66512c;
       opacity: 1;
     }
   }
@@ -1797,6 +1799,9 @@ pre.clippy {
 
 .alert-error {
   background: @red;
+  color: #fff;
+  border: 0;
+
   .icon:before {
     content: "\e615";
   }
@@ -1804,6 +1809,9 @@ pre.clippy {
 
 .alert-info {
   background: @blue;
+  color: #fff;
+  border: 0;
+
   .icon {
     display: none;
   }
