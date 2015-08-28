@@ -12,6 +12,15 @@ from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
+@scenario('GetProject')
+def get_project_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/projects/%s/%s/' % (
+            runner.org.slug, runner.default_project.slug)
+    )
+
+
 @scenario('DeleteProject')
 def delete_project_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
@@ -19,6 +28,23 @@ def delete_project_scenario(runner):
             method='DELETE',
             path='/projects/%s/%s/' % (
                 runner.org.slug, project.slug)
+        )
+
+
+@scenario('UpdateProject')
+def update_project_scenario(runner):
+    with runner.isolated_project('Plain Proxy') as project:
+        runner.request(
+            method='PUT',
+            path='/projects/%s/%s/' % (
+                runner.org.slug, project.slug),
+            data={
+                'name': 'Plane Proxy',
+                'slug': 'plane-proxy',
+                'options': {
+                    'sentry:origins': 'http://example.com\nhttp://example.invalid',
+                }
+            }
         )
 
 
@@ -40,12 +66,18 @@ class ProjectSerializer(serializers.ModelSerializer):
 class ProjectDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
 
+    @attach_scenarios([get_project_scenario])
     def get(self, request, project):
         """
         Retrieve a Project
         ``````````````````
 
         Return details on an individual project.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          project belongs to.
+        :pparam string project_slug: the slug of the project to delete.
+        :auth: required
         """
         data = serialize(project, request.user)
         data['options'] = {
@@ -59,6 +91,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
+    @attach_scenarios([update_project_scenario])
     @sudo_required
     def put(self, request, project):
         """
@@ -66,7 +99,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         ````````````````
 
         Update various attributes and configurable settings for the given
-        project.
+        project.  Only supplied values are updated.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          project belongs to.
+        :pparam string project_slug: the slug of the project to delete.
+        :param string name: the new name for the project.
+        :param string slug: the new slug for the project.
+        :param object options: optional options to override in the
+                               project settings.
+        :auth: required
         """
         serializer = ProjectSerializer(project, data=request.DATA, partial=True)
 

@@ -46,6 +46,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                                    used unless you are familiar with Sentry's
                                    internals as it's restricted to pre-defined
                                    values.
+        :auth: required
         """
         group = request.GET.get('group')
         if not group:
