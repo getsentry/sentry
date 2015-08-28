@@ -87,10 +87,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         that at present an organization can only be deleted from the
         Sentry UI.
 
-        .. note::
-           Deletion happens asynchronously and therefor is not immediate.
-           However once deletion has begun the state of a project changes
-           and will be hidden from most public views.
+        Deletion happens asynchronously and therefor is not immediate.
+        However once deletion has begun the state of a project changes and
+        will be hidden from most public views.
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
