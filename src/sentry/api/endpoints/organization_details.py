@@ -15,19 +15,9 @@ from sentry.models import (
     OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
-
-
-@scenario('DeleteOrganization')
-def delete_organization_scenario(runner):
-    with runner.isolated_org('Questionable Ethics') as org:
-        runner.request(
-            method='DELETE',
-            path='/organizations/%s/' % org.slug,
-        )
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -86,14 +76,16 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @attach_scenarios([delete_organization_scenario])
     @sudo_required
     def delete(self, request, organization):
         """
         Delete an Organization
         ``````````````````````
 
-        Schedules an organization for deletion.
+        Schedules an organization for deletion.  This API endpoint cannot
+        be invoked without a user context for security reasons.  This means
+        that at present an organization can only be deleted from the
+        Sentry UI.
 
         .. note::
            Deletion happens asynchronously and therefor is not immediate.
@@ -102,7 +94,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
+        :auth: required, user-context-needed
         """
+        if not request.user.is_authenticated():
+            return Response({'detail': 'This request requires a user.'},
+                            status=401)
+
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
 
