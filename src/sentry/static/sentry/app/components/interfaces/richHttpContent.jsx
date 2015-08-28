@@ -30,7 +30,7 @@ var RichHttpContent = React.createClass({
             <pre>{data.data}</pre>
           </ClippedBox>
         }
-        {data.cookies &&
+        {data.cookies && !objectIsEmpty(data.cookies) &&
           <ClippedBox title="Cookies" defaultCollapsed>
             <DefinitionList data={data.cookies} />
           </ClippedBox>

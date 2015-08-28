@@ -9,10 +9,10 @@ var DefinitionList = React.createClass({
     return (
       <dl className="vars">
         {this.props.data.map(function ([key, value]) {
-            return [
-              <dt key={'dt-' + key }>{key}</dt>,
-              <dd key={'dd-' + key }><pre>{value}</pre></dd>
-            ];
+          return [
+            <dt key={'dt-' + key }>{key}</dt>,
+            <dd key={'dd-' + key }><pre>{value}</pre></dd>
+          ];
         })}
       </dl>
     );
