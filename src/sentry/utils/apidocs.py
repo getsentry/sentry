@@ -380,7 +380,9 @@ class Runner(object):
         finally:
             org.delete()
 
-    def request(self, method, path, headers=None, data=None):
+    def request(self, method, path, headers=None, data=None, api_key=None):
+        if api_key is None:
+            api_key = self.api_key
         path = '/api/0/' + path.lstrip('/')
         headers = dict(headers or {})
 
@@ -392,7 +394,7 @@ class Runner(object):
         req_headers = dict(headers)
         req_headers['Host'] = 'app.getsentry.com'
         req_headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
-            self.api_key.key.encode('utf-8')))
+            api_key.key.encode('utf-8')))
 
         url = 'http://127.0.0.1:%s%s' % (
             settings.SENTRY_APIDOCS_WEB_PORT,
