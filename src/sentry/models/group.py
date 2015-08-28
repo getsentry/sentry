@@ -37,6 +37,9 @@ class GroupStatus(object):
     UNRESOLVED = 0
     RESOLVED = 1
     MUTED = 2
+    PENDING_DELETION = 3
+    DELETION_IN_PROGRESS = 4
+    PENDING_MERGE = 5
 
 
 class GroupManager(BaseManager):

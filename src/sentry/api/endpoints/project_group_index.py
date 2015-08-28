@@ -363,6 +363,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             for group in group_list:
                 if group == primary_group:
                     continue
+                group.update(status=GroupStatus.PENDING_MERGE)
                 merge_group.delay(
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
