@@ -11,7 +11,7 @@ from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('DeleteClientKeys')
+@scenario('DeleteClientKey')
 def delete_key_scenario(runner):
     key = runner.utils.create_client_key(runner.default_project)
     runner.request(
@@ -22,6 +22,18 @@ def delete_key_scenario(runner):
     )
 
 
+@scenario('UpdateClientKey')
+def update_key_scenario(runner):
+    key = runner.utils.create_client_key(runner.default_project)
+    runner.request(
+        method='PUT',
+        path='/projects/%s/%s/keys/%s/' % (
+            runner.org.slug, runner.default_project.slug,
+            key.public_key),
+        data={'name': 'Quite Positive Key'}
+    )
+
+
 class KeySerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=False)
 
@@ -29,12 +41,21 @@ class KeySerializer(serializers.Serializer):
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
 
+    @attach_scenarios([update_key_scenario])
     def put(self, request, project, key_id):
         """
         Update a Client Key
         ```````````````````
 
-        Update a client key.
+        Update a client key.  This can be used to rename a key.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          client keys belong to.
+        :pparam string project_slug: the slug of the project the client keys
+                                     belong to.
+        :pparam string key_id: the ID of the key to update.
+        :param string name: the new name for the client key.
+        :auth: required
         """
         try:
             key = ProjectKey.objects.get(

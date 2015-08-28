@@ -15,10 +15,14 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         List a Tag's Values
         ```````````````````
 
-        Return a list of values associated with this key.
+        Return a list of values associated with this key.  The `query`
+        parameter can be used to to perform a "starts with" match on
+        values.
 
-        The ``query`` parameter can be used to to perform a "starts with"
-        match on values.
+        :pparam string organization_slug: the slug of the organization.
+        :pparam string project_slug: the slug of the project.
+        :pparam string key: the tag key to look up.
+        :auth: required
         """
         if key in ('release', 'user', 'filename', 'function'):
             lookup_key = 'sentry:{0}'.format(key)
