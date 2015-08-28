@@ -31,7 +31,8 @@ def py_lint(files_modified):
 
 def js_lint(files_modified):
     has_errors = False
-    if os.system('npm run-script lint'):
+    files_modified = filter(lambda x: x.endswith(('.js', '.jsx')), files_modified)
+    if files_modified and os.system('npm run-script lint'):
         has_errors = True
 
     return has_errors
