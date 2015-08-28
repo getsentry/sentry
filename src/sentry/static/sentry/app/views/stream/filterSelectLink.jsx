@@ -19,21 +19,17 @@ var FilterSelectLink = React.createClass({
 
   render() {
     var className = this.props.extraClass;
-    var isActive;
 
     if (this.props.isActive) {
-      isActive = 'active';
+      className += ' active';
     }
 
     return (
-      <li className={isActive}>
-        <a className={className} onClick={this.onSelect}>
-          {this.props.label}
-        </a>
-      </li>
+      <a className={className} onClick={this.onSelect}>
+        {this.props.label}
+      </a>
     );
   }
 });
 
 export default FilterSelectLink;
-
