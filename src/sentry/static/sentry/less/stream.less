@@ -66,7 +66,7 @@
 
   .checkbox {
     position: absolute;
-    left: 34px;
+    left: 40px;
     top: 1px;
   }
 
@@ -89,7 +89,7 @@
 
   .stream-actions-left {
     position: relative;
-    padding: 8px 0 8px 38px;
+    padding: 8px 0 8px 54px;
 
     .checkbox {
       position: absolute;
@@ -181,16 +181,16 @@
     background: #fff;
     .transition(all .4s ease-in-out);
 
-    &.level-info .event-details:after {
+    &.level-info .error-level {
       background: @blue;
     }
-    &.level-warning .event-details:after {
+    &.level-warning .error-level {
       background: @yellow;
     }
-    &.level-error .event-details:after {
+    &.level-error .error-level {
       background: @sentry-orange;
     }
-    &.level-fatal .event-details:after {
+    &.level-fatal .error-level {
       background: @red;
     }
 
@@ -232,19 +232,19 @@
       }
     }
 
-    .event-details:after {
-      position: absolute;
-      content: "";
-      top: 11px;
-      right: auto;
-      bottom: -1px;
-      left: -1px;
-      height: 17px;
-      width: 5px;
-      border-radius: 0 2px 2px 0;
-      z-index: 100;
-      .transition(all .2s ease-in-out);
-    }
+    // .event-details:after {
+    //   position: absolute;
+    //   content: "";
+    //   top: 11px;
+    //   right: auto;
+    //   bottom: -1px;
+    //   left: -1px;
+    //   height: 17px;
+    //   width: 5px;
+    //   border-radius: 0 2px 2px 0;
+    //   z-index: 100;
+    //   .transition(all .2s ease-in-out);
+    // }
 
     &.selected {
       background: lighten(@blue, 46);
@@ -327,18 +327,36 @@
 
   .checkbox {
     position: absolute;
-    left: 34px;
-    top: -1px;
+    left: 40px;
+    top: 21px;
   }
 
   .event-details {
-    padding: 12px 0 8px 38px;
+    padding: 12px 0 8px 54px;
 
     h3 {
       font-size: 17px;
       line-height: 1.1;
       margin: 0 0 5px;
       font-weight: 600;
+
+      .error-level {
+        position: absolute;
+        left: -6px;
+        top: 13px;
+        font-size: 10px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+        color: #fff;
+        background: @gray-light;
+        padding: 2px 4px;
+        width: 50px;
+        display: block;
+        float: left;
+        border-radius: 2px;
+        margin-right: 5px;
+      }
 
       a {
         color: darken(@gray-dark, 4);
