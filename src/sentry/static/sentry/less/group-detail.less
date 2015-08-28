@@ -5,19 +5,20 @@
 
 .group-detail {
   position: relative;
-  margin: -5px 0 30px;
+  margin: -5px 0 20px;
 
   &:before {
     position: absolute;
     content: "";
     display: block;
     top: -25px;
-    left: 0;
-    right: 0;
+    left: -1000px;
+    right: -1000px;
     bottom: -1px;
     background: #fff;
-    border-bottom: 1px solid lighten(@trim, 5);
+    border-bottom: 1px solid @trim;
     z-index: -1;
+    box-shadow: 0 1px 1px rgba(0,0,0, .03);
   }
 
   h3 {
@@ -287,7 +288,7 @@
     color: @gray-dark;
 
     > span {
-      background: #fff;
+      background: @bgColor;
       padding-right: 7px;
     }
 
@@ -295,7 +296,7 @@
       display: block;
       position: absolute;
       content: "";
-      border-top: 1px solid lighten(@trim, 9);
+      border-top: 1px solid lighten(@trim, 3);
       left: 0;
       right: 0;
       top: 50%;

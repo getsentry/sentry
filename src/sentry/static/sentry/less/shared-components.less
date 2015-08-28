@@ -8,12 +8,10 @@
   border-radius: 2px;
   font-weight: 600;
   padding: 8px 16px;
+  box-shadow: 0 1px 1px rgba(0,0,0, .04);
 
   .transition(all .1s);
 
-  &:active {
-    box-shadow: none;
-  }
   &.disabled {
     color: #CED3D6;
     border-color: #E3E5E6;
@@ -49,7 +47,6 @@
   color: @gray-dark;
   background-color: #fff;
   border-color: @trim;
-  box-shadow: none;
 
   &:hover, &:focus, &:active {
     color: #34343f;
@@ -62,7 +59,6 @@
   color: #ffffff;
   background-color: @blue;
   border-color: darken(@blue, 15);
-  box-shadow: none;
 
   &:hover, &:focus, &:active {
     background-color: darken(@blue, 5);
@@ -931,6 +927,7 @@ table.integrations {
 .project-dropdown {
   .dropdown-toggle {
     border: 1px solid @trim;
+    box-shadow: 0 1px 1px rgba(0,0,0, .03);
     border-radius: 2px;
     height: 20px;
     width: 21px;
@@ -1286,7 +1283,7 @@ table.integrations {
     }
 
     .tag-description {
-      background-color: #fff;
+      background-color: @bgColor;
       position: absolute;
       text-align: right;
       top: -1px;
@@ -1590,18 +1587,18 @@ pre.clippy {
   background: #fff;
   border: 1px solid @trim;
   border-radius: 2px;
-  margin: 0 0 30px;
-  box-shadow: 0 1px 0 rgba(52, 60, 69, .02);
+  margin: 0 0 20px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .03);
 
   .box-header {
-    background: #fafbfb;
+    background: lighten(#f5f8fa, 1.75);
     color: @gray-dark;
     line-height: 1;
     padding: 0 20px;
     border-radius: 2px 2px 0 0;
     border-bottom: 1px solid @trim;
-    padding-top: 5px;
-    padding-bottom: 4px;
+    padding-top: 9px;
+    padding-bottom: 8px;
     .clearfix;
 
     &.box-header-borderless {
@@ -1629,7 +1626,7 @@ pre.clippy {
       font-weight: 600;
       line-height: inherit;
       padding-top: 6px;
-      padding-bottom: 7px;
+      padding-bottom: 5px;
       max-width: 80%;
       line-height: 1.2;
 
