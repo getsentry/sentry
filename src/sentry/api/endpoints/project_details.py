@@ -9,6 +9,17 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, Project, ProjectStatus
 from sentry.tasks.deletion import delete_project
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('DeleteProject')
+def delete_project_scenario(runner):
+    with runner.isolated_project('Plain Proxy') as project:
+        runner.request(
+            method='DELETE',
+            path='/projects/%s/%s/' % (
+                runner.org.slug, project.slug)
+        )
 
 
 def clean_newline_inputs(value):
@@ -95,6 +106,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @attach_scenarios([delete_project_scenario])
     @sudo_required
     def delete(self, request, project):
         """
@@ -103,9 +115,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         Schedules a project for deletion.
 
-        **Note:** Deletion happens asynchronously and therefor is not
-        immediate.  However once deletion has begun the state of a project
-        changes and will be hidden from most public views.
+        Deletion happens asynchronously and therefor is not immediate.
+        However once deletion has begun the state of a project changes and
+        will be hidden from most public views.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          project belongs to.
+        :pparam string project_slug: the slug of the project to delete.
+        :auth: required
         """
         if project.is_internal_project():
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',

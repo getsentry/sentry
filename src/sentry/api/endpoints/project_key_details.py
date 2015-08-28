@@ -8,6 +8,18 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('DeleteClientKeys')
+def delete_key_scenario(runner):
+    key = runner.utils.create_client_key(runner.default_project)
+    runner.request(
+        method='DELETE',
+        path='/projects/%s/%s/keys/%s/' % (
+            runner.org.slug, runner.default_project.slug,
+            key.public_key)
+    )
 
 
 class KeySerializer(serializers.Serializer):
@@ -55,12 +67,20 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             return Response(serialize(key, request.user), status=200)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @attach_scenarios([delete_key_scenario])
     def delete(self, request, project, key_id):
         """
         Delete a Client Key
         ```````````````````
 
         Delete a client key.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          client keys belong to.
+        :pparam string project_slug: the slug of the project the client keys
+                                     belong to.
+        :pparam string key_id: the ID of the key to delete.
+        :auth: required
         """
         try:
             key = ProjectKey.objects.get(

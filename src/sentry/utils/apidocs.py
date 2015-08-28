@@ -274,6 +274,13 @@ class MockUtils(object):
             scopes=(1 << len(ApiKey.scopes.keys())) - 1,
         )[0]
 
+    def create_client_key(self, project, label='Default'):
+        from sentry.models import ProjectKey
+        return ProjectKey.objects.get_or_create(
+            project=project,
+            label=label
+        )[0]
+
     def create_team(self, name, org):
         from sentry.models import Team
         return Team.objects.get_or_create(
