@@ -2,6 +2,7 @@ import React from "react";
 
 import ClippedBox from "./clippedBox";
 import ContextData from "./contextData";
+import {logException} from "../utils/logging";
 import EventDataSection from "./eventDataSection";
 import EventTags from "./eventTags";
 import PropTypes from "../proptypes";
@@ -24,6 +25,36 @@ var EventMessage = React.createClass({
           __html: utils.nl2br(utils.urlize(utils.escape(this.props.event.message)))
         }} />
       </EventDataSection>
+    );
+  }
+});
+
+var EventErrorItem = React.createClass({
+  getInitialState(){
+    return {
+      isOpen: false,
+    };
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state.isOpen != nextState.isOpen) {
+      return true;
+    }
+  },
+
+  toggle() {
+    this.setState({isOpen: !this.state.isOpen});
+  },
+
+  render() {
+    var error = this.props.error;
+    var isOpen = this.state.isOpen;
+    return (
+      <li>
+        {error.message}
+        <small> <a style={{marginLeft: 10}} onClick={this.toggle}>{isOpen ? 'Collapse' : 'Expand'}</a></small>
+        <pre style={{display: isOpen ? 'block' : 'none'}}>{JSON.stringify(error.data, null, 2)}</pre>
+      </li>
     );
   }
 });
@@ -68,7 +99,7 @@ var EventErrors = React.createClass({
         <ul style={{display: isOpen ? 'block' : 'none'}}>
           {errors.map((error, errorIdx) => {
             return (
-              <li key={errorIdx}>{error.message}</li>
+              <EventErrorItem key={errorIdx} error={error} />
             );
           })}
         </ul>
@@ -203,7 +234,7 @@ var EventEntries = React.createClass({
             isShare={isShare} />
         );
       } catch (ex) {
-        // TODO(dcramer): this should log to Sentry
+        logException(ex);
         return (
           <EventDataSection
               group={group}

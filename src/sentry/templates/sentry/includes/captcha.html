@@ -1,0 +1,23 @@
+{% if api_key %}
+<script>
+  (function(window){
+    var captchaNodes = $('.g-recaptcha');
+    if (captchaNodes.length) {
+      window.recaptchaCallback = function(){
+        var sitekey = '{{ api_key }}';
+        captchaNodes.each(function(){
+          grecaptcha.render(this, {
+            'sitekey': sitekey
+          });
+        });
+      };
+      var sNew = document.createElement("script");
+      sNew.async = true;
+      sNew.defer = true;
+      sNew.src = "https://www.google.com/recaptcha/api.js?onload=recaptchaCallback&render=explicit";
+      var s0 = document.getElementsByTagName('script')[0];
+      s0.parentNode.insertBefore(sNew, s0);
+    }
+  }(window));
+</script>
+{% endif %}

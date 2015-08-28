@@ -51,12 +51,6 @@ var StacktraceInterface = React.createClass({
 
     var title = (
       <div>
-        {'Stacktrace '}
-        {newestFirst ?
-          <small>(most recent call last)</small>
-        :
-          <small>(most recent call first)</small>
-        }
         <div className="btn-group">
           {data.hasSystemFrames &&
             <a className={(stackView === "app" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "app")}>App Only</a>
@@ -64,6 +58,14 @@ var StacktraceInterface = React.createClass({
           <a className={(stackView === "full" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "full")}>Full</a>
           <a className={(stackView === "raw" ? "active" : "") + " btn btn-default btn-sm"} onClick={this.toggleStack.bind(this, "raw")}>Raw</a>
         </div>
+        <h3>
+          {'Stacktrace '}
+          {newestFirst ?
+            <small>(most recent call last)</small>
+          :
+            <small>(most recent call first)</small>
+          }
+        </h3>
       </div>
     );
 
