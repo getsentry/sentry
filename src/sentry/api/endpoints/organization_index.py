@@ -7,6 +7,15 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, Organization
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('ListYourOrganizations')
+def list_your_organizations_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/organizations/'
+    )
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -18,12 +27,18 @@ class OrganizationIndexEndpoint(Endpoint):
     doc_section = DocSection.ORGANIZATIONS
     permission_classes = (OrganizationPermission,)
 
+    @attach_scenarios([list_your_organizations_scenario])
     def get(self, request):
         """
         List your Organizations
         ```````````````````````
 
-        Return a list of organizations available to the authenticated session.
+        Return a list of organizations available to the authenticated
+        session.  This is particularly useful for requests with an
+        user bound context.  For API key based requests this will
+        only return the organization that belongs to the key.
+
+        :auth: required
         """
         if request.auth:
             if hasattr(request.auth, 'project'):

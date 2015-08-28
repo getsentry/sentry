@@ -15,9 +15,33 @@ from sentry.models import (
     OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
+from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
+
+
+@scenario('RetrieveOrganization')
+def retrieve_organization_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/organizations/%s/' % runner.org.slug
+    )
+
+
+@scenario('UpdateOrganization')
+def update_organization_scenario(runner):
+    with runner.isolated_org('Badly Misnamed') as org:
+        api_key = runner.utils.create_api_key(org)
+        runner.request(
+            method='PUT',
+            path='/organizations/%s/' % org.slug,
+            data={
+                'name': 'Impeccably Designated',
+                'slug': 'impeccably-designated',
+            },
+            api_key=api_key
+        )
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -35,6 +59,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
 
+    @attach_scenarios([retrieve_organization_scenario])
     def get(self, request, organization):
         """
         Retrieve an Organization
@@ -42,6 +67,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         Return details on an individual organization including various details
         such as membership access, features, and teams.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :auth: required
         """
         context = serialize(
             organization,
@@ -50,6 +79,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         )
         return Response(context)
 
+    @attach_scenarios([update_organization_scenario])
     @sudo_required
     def put(self, request, organization):
         """
@@ -58,6 +88,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         Update various attributes and configurable settings for the given
         organization.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :param string name: an optional new name for the organization.
+        :param string slug: an optional new slug for the organization.  Needs
+                            to be available and unique.
+        :auth: required
         """
         serializer = OrganizationSerializer(organization, data=request.DATA,
                                             partial=True)

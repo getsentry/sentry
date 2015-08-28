@@ -6,33 +6,46 @@ from sentry.app import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import Project, Team
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('RetrieveEventCountsOrganization')
+def retrieve_event_counts_organization(runner):
+    runner.request(
+        method='GET',
+        path='/organizations/%s/stats/' % runner.org.slug
+    )
 
 
 class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
     doc_section = DocSection.ORGANIZATIONS
 
+    @attach_scenarios([retrieve_event_counts_organization])
     def get(self, request, organization):
         """
         Retrieve Event Counts for an Organization
         `````````````````````````````````````````
 
-        **Draft:** This endpoint may change in the future without notice.
+        .. caution::
+           This endpoint may change in the future without notice.
 
         Return a set of points representing a normalized timestamp and the
         number of events seen in the period.
 
-        Query ranges are limited to Sentry's configured time-series
-        resolutions.
-
-        Parameters:
-
-        - ``since``: a timestamp to set the start of the query
-        - ``until``: a timestamp to set the end of the query
-        - ``resolution``: an explicit resolution to search for (i.e. 10s)
-        - ``stat``: the name of the stat to query (received, rejected)
-
-        **Note:** resolution should not be used unless you're familiar
-        with Sentry internals as it's restricted to pre-defined values.
+        :pparam string organization_slug: the slug of the organization for
+                                          which the stats should be
+                                          retrieved.
+        :qparam string stat: the name of the stat to query (``"received"``,
+                             ``"rejected"``)
+        :qparam timestamp since: a timestamp to set the start of the query
+                                 in seconds since UNIX epoch.
+        :qparam timestamp until: a timestamp to set the end of the query
+                                 in seconds since UNIX epoch.
+        :qparam string resolution: an explicit resolution to search
+                                   for (eg: ``10s``).  This should not be
+                                   used unless you are familiar with Sentry's
+                                   internals as it's restricted to pre-defined
+                                   values.
         """
         group = request.GET.get('group')
         if not group:
