@@ -321,6 +321,15 @@ class GroupDetailsEndpoint(GroupEndpoint):
         """
         from sentry.tasks.deletion import delete_group
 
-        delete_group.delay(object_id=group.id)
+        updated = Group.objects.filter(
+            id=group.id,
+        ).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+            ]
+        ).update(status=GroupStatus.PENDING_DELETION)
+        if updated:
+            delete_group.delay(object_id=group.id)
 
         return Response(status=202)

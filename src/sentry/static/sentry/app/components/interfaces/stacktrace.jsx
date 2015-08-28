@@ -74,7 +74,8 @@ var StacktraceInterface = React.createClass({
           group={group}
           event={evt}
           type={this.props.type}
-          title={title}>
+          title={title}
+          wrapTitle={false}>
         {stackView === "raw" ?
           <pre className="traceback plain">
             {rawStacktraceContent(data, this.props.platform)}
@@ -92,4 +93,3 @@ var StacktraceInterface = React.createClass({
 });
 
 export default StacktraceInterface;
-

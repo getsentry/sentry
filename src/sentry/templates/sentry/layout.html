@@ -137,7 +137,7 @@
                        ref="filter" />
               </li>
               {% for n_team, n_project_list in TEAM_LIST %}
-                <li class="team-name">{{ team.name }}</li>
+                <li class="team-name">{{ n_team.name }}</li>
                 {% for n_project in n_project_list %}
                   <li><a href="{% url 'sentry-stream' organization.slug n_project.slug %}">{{ n_project.name }}</a></li>
                 {% endfor %}

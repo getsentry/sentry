@@ -106,6 +106,10 @@ class GroupSerializer(Serializer):
             status_label = 'resolved'
         elif status == GroupStatus.MUTED:
             status_label = 'muted'
+        elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
+            status_label = 'pending_deletion'
+        elif status == GroupStatus.PENDING_MERGE:
+            status_label = 'pending_merge'
         else:
             status_label = 'unresolved'
 

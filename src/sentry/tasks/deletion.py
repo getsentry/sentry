@@ -135,14 +135,17 @@ def delete_project(object_id, continuous=True, **kwargs):
 @retry
 def delete_group(object_id, continuous=True, **kwargs):
     from sentry.models import (
-        Group, GroupHash, GroupRuleStatus, GroupTagKey, GroupTagValue,
-        EventMapping
+        EventMapping, Group, GroupHash, GroupRuleStatus, GroupStatus,
+        GroupTagKey, GroupTagValue
     )
 
     try:
         group = Group.objects.get(id=object_id)
     except Group.DoesNotExist:
         return
+
+    if group.status != GroupStatus.DELETION_IN_PROGRESS:
+        group.update(status=GroupStatus.DELETION_IN_PROGRESS)
 
     bulk_model_list = (
         GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping
