@@ -69,8 +69,7 @@ def spawn_sentry():
     cl = Popen(['sentry', '--config=' + SENTRY_CONFIG, 'runserver',
                 '-v', '0', '--noreload', '--nothreading',
                 '--no-watchers', '--traceback',
-                '127.0.0.1:%s' % settings.SENTRY_APIDOCS_WEB_PORT],
-               stdout=open('/dev/null', 'r+'))
+                '127.0.0.1:%s' % settings.SENTRY_APIDOCS_WEB_PORT])
     return cl
 
 
