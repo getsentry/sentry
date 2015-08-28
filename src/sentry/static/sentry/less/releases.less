@@ -15,6 +15,12 @@
   color: lighten(@gray, 10);
 }
 
+.release-search {
+  .search-input {
+    margin-top: -6px;
+  }
+}
+
 .release-list {
   .list-unstyled;
   border: 1px solid @trim;
@@ -59,13 +65,13 @@
 
 .release-details {
   position: relative;
-  margin: -5px 0 20px;
+  margin: 0 0 20px;
 
   &:before {
     position: absolute;
     content: "";
     display: block;
-    top: -25px;
+    top: -20px;
     left: -1000px;
     right: -1000px;
     bottom: -1px;

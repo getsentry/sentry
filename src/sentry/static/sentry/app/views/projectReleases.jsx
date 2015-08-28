@@ -202,7 +202,7 @@ var ProjectReleases = React.createClass({
           <div className="col-sm-7">
             <h3>Releases</h3>
           </div>
-          <div className="col-sm-5">
+          <div className="col-sm-5 release-search">
             <SearchBar defaultQuery=""
               placeholder="Search for a release."
               query={this.state.query}
