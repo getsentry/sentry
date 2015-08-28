@@ -15,9 +15,19 @@ from sentry.models import (
     OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
+from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
+
+
+@scenario('DeleteOrganization')
+def delete_organization_scenario(runner):
+    with runner.isolated_org('Questionable Ethics') as org:
+        runner.request(
+            method='DELETE',
+            path='/organizations/%s/' % org.slug,
+        )
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -76,6 +86,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @attach_scenarios([delete_organization_scenario])
     @sudo_required
     def delete(self, request, organization):
         """
@@ -84,9 +95,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         Schedules an organization for deletion.
 
-        **Note:** Deletion happens asynchronously and therefor is not
-        immediate.  However once deletion has begun the state of a project
-        changes and will be hidden from most public views.
+        .. note::
+           Deletion happens asynchronously and therefor is not immediate.
+           However once deletion has begun the state of a project changes
+           and will be hidden from most public views.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
         """
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
