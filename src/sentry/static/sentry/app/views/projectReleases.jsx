@@ -198,7 +198,7 @@ var ProjectReleases = React.createClass({
   render() {
     return (
       <div>
-        <div className="row">
+        <div className="row release-list-header">
           <div className="col-sm-7">
             <h3>Releases</h3>
           </div>
@@ -211,7 +211,7 @@ var ProjectReleases = React.createClass({
             />
           </div>
         </div>
-        <div className="release-header">
+        <div className="release-group-header">
           <div className="row">
             <div className="col-sm-8 col-xs-6">Version</div>
             <div className="col-sm-2 col-xs-3 release-stats align-right">
