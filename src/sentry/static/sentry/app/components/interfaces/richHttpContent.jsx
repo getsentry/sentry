@@ -31,10 +31,15 @@ var RichHttpContent = React.createClass({
 
   getBodySection(data) {
     let contentType = data.headers.find(h => h[0] === 'Content-Type');
+    contentType = contentType && contentType[1];
 
-    switch (contentType && contentType[1]) {
+    switch (contentType) {
       case 'application/json':
-        return <ContextData data={JSON.parse(data.data)} />;
+        try {
+          // Sentry API abbreviates long JSON strings, which cannot be parsed ...
+          return <ContextData data={JSON.parse(data.data)} />;
+        } catch (e) { /* do nothing */ }
+        return <pre>{data.data}</pre>
       case 'application/x-www-form-urlencoded':
         return <DefinitionList data={this.objectToTupleArray(queryString.parse(data.data))}/>
       default:
