@@ -35,7 +35,7 @@ var RichHttpContent = React.createClass({
         }
 
         {data.data &&
-          <ClippedBox title="body">
+          <ClippedBox title="Body">
             {this.getDataSection(data)}
           </ClippedBox>
         }
