@@ -62,7 +62,7 @@ var EventErrors = React.createClass({
           type="errors"
           className="errors">
         <p>
-          <a className="btn btn-default btn-sm pull-right" onClick={this.toggle}>{isOpen ? 'Hide' : 'Show'}</a>
+          <a className="pull-right" onClick={this.toggle}>{isOpen ? 'Hide' : 'Show'}</a>
           There {numErrors != 1 ? ('were ' + numErrors + ' errors') : 'was 1 error'} encountered while processing this event.
         </p>
         <ul style={{display: isOpen ? 'block' : 'none'}}>

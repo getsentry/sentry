@@ -1089,20 +1089,33 @@ div.commands {
 }
 
 .box.errors {
-  border-color: @red;
-  background: #fff;
-  color: #000;
+  border-color: #DAB9BB;
+  background: #FFF7F7;
+  color: #381618;
+  font-size: 15px;
 
   .box-content {
-    p {
-      color: #d21c25;
+    padding: 10px 20px;
+
+    a {
       font-weight: bold;
+      color: #6D292D;
+      &:hover {
+        color: darken(#6D292D, 10%);
+      }
+    }
+
+    p {
+      margin: 0;
+      color: #9A3A40;
+      line-height: 1.5;
+
       .btn {
         margin-left: 5px;
       }
     }
     ul {
-      margin-bottom: 20px;
+      margin: 10px 0;
       li {
         margin-bottom: 5px;
       }

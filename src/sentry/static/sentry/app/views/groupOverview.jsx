@@ -292,11 +292,11 @@ var GroupOverview = React.createClass({
               <LoadingError onRetry={this.fetchData} />
             :
               <div>
-                <div className="box">
-                  <div className="box-header box-header-borderless">
+                <div className="alert alert-block">
+
                     <div className="pull-right">
                     <Router.Link to="groupEventDetails"
-                    className="btn"  
+                    className=""
                     params={{
                       projectId: projectId,
                       orgId: orgId,
@@ -304,8 +304,7 @@ var GroupOverview = React.createClass({
                       eventId: evt.id
                     }}>More Details</Router.Link>
                     </div>
-                    <h3>This summary is based on the most recent event in this aggregate.</h3>
-                  </div>
+                    This summary is based on the most recent event in this aggregate.
                 </div>
                 <GroupEventEntries
                     group={group}
