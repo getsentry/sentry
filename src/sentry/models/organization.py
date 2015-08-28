@@ -122,7 +122,7 @@ class Organization(Model):
         super(Organization, self).save(*args, **kwargs)
 
     def delete(self):
-        if self.is_default():
+        if self.is_default:
             raise Exception('You cannot delete the the default organization.')
         return super(Organization, self).delete()
 
