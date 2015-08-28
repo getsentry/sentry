@@ -12,7 +12,8 @@
   "globals": {
     "require": false,
     "expect": false,
-    "sinon": false
+    "sinon": false,
+    "Raven": true
   },
   "plugins": [
     "react"

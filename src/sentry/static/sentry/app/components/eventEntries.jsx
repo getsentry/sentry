@@ -2,6 +2,7 @@ import React from "react";
 
 import ClippedBox from "./clippedBox";
 import ContextData from "./contextData";
+import {logException} from "../utils/logging";
 import EventDataSection from "./eventDataSection";
 import EventTags from "./eventTags";
 import PropTypes from "../proptypes";
@@ -233,7 +234,7 @@ var EventEntries = React.createClass({
             isShare={isShare} />
         );
       } catch (ex) {
-        // TODO(dcramer): this should log to Sentry
+        logException(ex);
         return (
           <EventDataSection
               group={group}
