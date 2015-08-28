@@ -171,7 +171,7 @@ var StreamGroup = React.createClass({
           }
           <h3 className="truncate">
             <Router.Link to="groupDetails" params={routeParams}>
-              <span className="error-level level-error truncate">{data.level}</span>
+              <span className="error-level truncate">{data.level}</span>
               <span className="icon icon-soundoff"></span>
               <span className="icon icon-bookmark"></span>
               {data.title}
