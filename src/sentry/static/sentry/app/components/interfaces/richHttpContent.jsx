@@ -1,13 +1,21 @@
 import React from "react";
+
 import ClippedBox from "../../components/clippedBox";
 import DefinitionList from "./definitionList";
-
+import ContextData from "../contextData";
 import {objectIsEmpty} from "../../utils";
 
 var RichHttpContent = React.createClass({
 
   objectToTupleArray(obj) {
     return Object.keys(obj).map((k) => [k, obj[k]]);
+  },
+
+  getBodySection(data) {
+    let contentType = data.headers.find(h => h[0] === 'Content-Type');
+    return contentType && contentType[1] === 'application/json'
+      ? <ContextData data={JSON.parse(data.data)} />
+      : <pre>{data.data}</pre>;
   },
 
   render(){
@@ -25,11 +33,13 @@ var RichHttpContent = React.createClass({
             <pre>{data.fragment}</pre>
           </ClippedBox>
         }
+
         {data.data &&
-          <ClippedBox title="Body">
-            <pre>{data.data}</pre>
+          <ClippedBox title="body">
+            {this.getDataSection(data)}
           </ClippedBox>
         }
+
         {data.cookies && !objectIsEmpty(data.cookies) &&
           <ClippedBox title="Cookies" defaultCollapsed>
             <DefinitionList data={data.cookies} />
