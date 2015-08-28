@@ -55,6 +55,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-searchbutton <https://github.com/timmyomahony/sentry-searchbutton>`_
 * `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
 * `sentry-statsd <https://github.com/dreadatour/sentry-statsd>`_
+* `sentry-teamwork <https://github.com/getsentry/sentry-teamwork>`_
 * `sentry-top <https://github.com/getsentry/sentry-top>`_
 * `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
