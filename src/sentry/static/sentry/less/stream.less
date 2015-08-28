@@ -533,7 +533,23 @@
 }
 
 .filter-nav {
-  margin-top: -3px;
+  margin-top: -12px;
+  margin-bottom: 18px;
+
+  .stream-sort {
+    .list-unstyled;
+    margin-left: 10px;
+    margin-bottom: 0;
+
+   .dropdown-toggle {
+      line-height: 38px;
+      color: @gray;
+    }
+
+    .dropdown.open .dropdown-toggle {
+      color: @gray-dark;
+    }
+  }
 
   .nav-tabs {
     margin: 0;

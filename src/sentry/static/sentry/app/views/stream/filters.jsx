@@ -70,26 +70,27 @@ var StreamFilters = React.createClass({
     return (
       <div className="filter-nav stream-header">
         <div className="row">
-          <div className="col-sm-7 primary-filters">
-            <ul className="nav nav-tabs">
+          <div className="col-sm-4 primary-filters">
+            <div className="btn-group btn-group-justified">
               <FilterSelectLink label="All Events"
                 isActive={activeButton === 'all'}
                 onSelect={this.onFilterChange.bind(this, {})}
-                extraClass="btn-all-events" />
+                extraClass="btn btn-all-events" />
               <FilterSelectLink label="Bookmarks"
                 isActive={activeButton === 'bookmarks'}
                 onSelect={this.onFilterChange.bind(this, {bookmarks: "1"})}
-                extraClass="btn-middle btn-bookmarks" />
+                extraClass="btn btn-middle btn-bookmarks" />
               <FilterSelectLink label="Assigned"
                 isActive={activeButton === 'assigned'}
                 onSelect={this.onFilterChange.bind(this, {assigned: "1"})}
-                extraClass="btn-assigned" />
-              <li className="divider" />
-              <li className="highlight">
-                <SortOptions
-                  sort={this.props.sort}
-                  onSelect={this.props.onSortChange} />
-              </li>
+                extraClass="btn btn-assigned" />
+            </div>
+          </div>
+          <div className="col-sm-3">
+            <ul className="stream-sort">
+              <SortOptions
+                sort={this.props.sort}
+                onSelect={this.props.onSortChange} />
             </ul>
           </div>
           <div className="col-sm-5">
