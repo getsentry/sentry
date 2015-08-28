@@ -372,6 +372,14 @@ class Runner(object):
         finally:
             project.delete()
 
+    @contextmanager
+    def isolated_org(self, org_name):
+        org = self.utils.create_org(org_name, owner=self.me)
+        try:
+            yield org
+        finally:
+            org.delete()
+
     def request(self, method, path, headers=None, data=None):
         path = '/api/0/' + path.lstrip('/')
         headers = dict(headers or {})
