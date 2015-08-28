@@ -22,6 +22,14 @@ def create_new_team_scenario(runner):
     )
 
 
+@scenario('ListOrganizationTeams')
+def list_organization_teams_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/organizations/%s/teams/' % runner.org.slug
+    )
+
+
 class TeamSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
     slug = serializers.CharField(max_length=200, required=False)
@@ -30,12 +38,17 @@ class TeamSerializer(serializers.Serializer):
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
 
+    @attach_scenarios([list_organization_teams_scenario])
     def get(self, request, organization):
         """
         List an Organization's Teams
         ````````````````````````````
 
         Return a list of teams bound to a organization.
+
+        :pparam string organization_slug: the slug of the organization for
+                                          which the teams should be listed.
+        :auth: required
         """
         # TODO(dcramer): this should be system-wide default for organization
         # based endpoints
