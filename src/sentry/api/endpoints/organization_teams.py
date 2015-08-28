@@ -8,6 +8,18 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('CreateNewTeam')
+def create_new_team_scenario(runner):
+    runner.request(
+        method='POST',
+        path='/organizations/%s/teams/' % runner.org.slug,
+        data={
+            'name': 'Ancient Gabelers',
+        }
+    )
 
 
 class TeamSerializer(serializers.Serializer):
@@ -38,12 +50,22 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         return Response(serialize(
             team_list, request.user, TeamWithProjectsSerializer()))
 
+    @attach_scenarios([create_new_team_scenario])
     def post(self, request, organization):
         """
         Create a new Team
         ``````````````````
 
-        Create a new team bound to an organization.
+        Create a new team bound to an organization.  Only the name of the
+        team is needed to create it, the slug can be auto generated.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :param string name: the name of the organization.
+        :param string slug: the optional slug for this organization.  If
+                            not provided it will be auto generated from the
+                            name.
+        :auth: required
         """
         serializer = TeamSerializer(data=request.DATA)
 
