@@ -314,7 +314,7 @@ class ClientApiHelper(object):
         # TODO(dcramer): move project out of the data packet
         data['project'] = project.id
 
-        data.setdefault('errors', [])
+        data['errors'] = []
 
         if not data.get('message'):
             data['message'] = '<no message value>'
