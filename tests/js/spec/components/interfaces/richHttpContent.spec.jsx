@@ -59,7 +59,7 @@ describe("RichHttpContent", function () {
       expect(out.type).to.eql('pre');
     });
 
-    it("should return a DefinitionList element when Content-Type is application/x-www-form-urlencoded", function () {
+    it("should return a DefinitionList element when Content-Type is x-www-form-urlencoded", function () {
       var out = this.elem.getBodySection({
         headers: [
           ['lol' , 'no'],
@@ -74,6 +74,17 @@ describe("RichHttpContent", function () {
         ['foo', 'bar'],
         ['bar', 'baz']
       ]);
+    });
+
+    it("should return plain-text when Content-Type is x-www-form-urlencoded and query string cannot be parsed", function () {
+      let out = this.elem.getBodySection({
+        headers: [
+          ['Content-Type', 'application/x-www-form-urlencoded']
+        ],
+        data: 'foo=hello%2...' // note: broken URL encoded value (%2 vs %2F)
+      });
+
+      expect(out.type).to.eql('pre');
     });
 
     it("should return a ContextData element when Content-Type is application/json", function () {
