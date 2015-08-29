@@ -35,7 +35,7 @@ var RichHttpContent = React.createClass({
 
     switch (contentType) {
       case 'application/x-www-form-urlencoded':
-        return <DefinitionList data={this.objectToTupleArray(queryString.parse(data.data))}/>
+        return this.getQueryStringOrRaw(data.data);
       case 'application/json':
         // falls through
       default:
@@ -46,9 +46,20 @@ var RichHttpContent = React.createClass({
     }
   },
 
+  getQueryStringOrRaw(data) {
+    try {
+      // Sentry API abbreviates long query stirng values, sometimes resulting in
+      // an un-parsable querystring ... stay safe kids
+      return <DefinitionList data={this.objectToTupleArray(queryString.parse(data))}/>
+    } catch (e) {
+      return <pre>{data}</pre>
+    }
+  },
+
   getJsonOrRaw(data) {
     try {
-      // Sentry API abbreviates long JSON strings, which cannot be parsed ...
+      // Sentry API abbreviates long JSON strings, resulting in an un-parsable
+      // JSON string ... stay safe kids
       return <ContextData data={JSON.parse(data)} />;
     } catch (e) {
       return <pre>{data}</pre>
