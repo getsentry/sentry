@@ -106,7 +106,7 @@ class Http(Interface):
                 if query_string[0] == '?':
                     # remove '?' prefix
                     query_string = query_string[1:]
-            kwargs['query_string'] = trim(query_string, 1024)
+            kwargs['query_string'] = trim(query_string, 4096)
         else:
             kwargs['query_string'] = ''
 
