@@ -3,19 +3,67 @@ import React from "react";
 import ClippedBox from "../../components/clippedBox";
 import DefinitionList from "./definitionList";
 import ContextData from "../contextData";
+
 import {objectIsEmpty} from "../../utils";
+import queryString from "query-string";
 
 var RichHttpContent = React.createClass({
 
+  /**
+   * Converts an object of body/querystring key/value pairs
+   * into a tuple of [key, value] pairs.
+   *
+   * Note that the query-string parser returns dupes like this:
+   *   { foo: ['bar', 'baz'] } // ?foo=bar&bar=baz
+   *
+   * This method accounts for this.
+   */
   objectToTupleArray(obj) {
-    return Object.keys(obj).map((k) => [k, obj[k]]);
+    return Object.keys(obj).reduce((out, k) => {
+      let val = obj[k];
+      return out.concat(
+        {}.toString.call(val) === '[object Array]' ?
+          val.map(v => [k, v]) : // key has multiple values (array)
+          [[k, val]]             // key has single value
+      );
+    }, []);
   },
 
   getBodySection(data) {
     let contentType = data.headers.find(h => h[0] === 'Content-Type');
-    return contentType && contentType[1] === 'application/json'
-      ? <ContextData data={JSON.parse(data.data)} />
-      : <pre>{data.data}</pre>;
+    contentType = contentType && contentType[1];
+
+    switch (contentType) {
+      case 'application/x-www-form-urlencoded':
+        return this.getQueryStringOrRaw(data.data);
+      case 'application/json':
+        // falls through
+      default:
+        // Even if Content-Type isn't JSON, attempt to serialize it as JSON
+        // anyways. Many HTTP requests contains JSON bodies, despite not having
+        // matching Content-Type.
+        return this.getJsonOrRaw(data.data);
+    }
+  },
+
+  getQueryStringOrRaw(data) {
+    try {
+      // Sentry API abbreviates long query stirng values, sometimes resulting in
+      // an un-parsable querystring ... stay safe kids
+      return <DefinitionList data={this.objectToTupleArray(queryString.parse(data))}/>
+    } catch (e) {
+      return <pre>{data}</pre>
+    }
+  },
+
+  getJsonOrRaw(data) {
+    try {
+      // Sentry API abbreviates long JSON strings, resulting in an un-parsable
+      // JSON string ... stay safe kids
+      return <ContextData data={JSON.parse(data)} />;
+    } catch (e) {
+      return <pre>{data}</pre>
+    }
   },
 
   render(){
@@ -25,7 +73,7 @@ var RichHttpContent = React.createClass({
       <div>
         {data.query &&
           <ClippedBox title="Query String">
-            <pre>{data.query}</pre>
+            <DefinitionList data={this.objectToTupleArray(queryString.parse(data.query))}/>
           </ClippedBox>
         }
         {data.fragment &&

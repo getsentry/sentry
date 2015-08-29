@@ -24,6 +24,7 @@
     "moment": "^2.10.5",
     "moment-timezone": "^0.4.0",
     "node-libs-browser": "^0.5.2",
+    "query-string": "^2.4.0",
     "raven-js": "^1.1.19",
     "react": "^0.13.3",
     "react-bootstrap": "^0.13.0",
