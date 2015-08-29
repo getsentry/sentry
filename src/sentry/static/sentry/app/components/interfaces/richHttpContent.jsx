@@ -34,16 +34,24 @@ var RichHttpContent = React.createClass({
     contentType = contentType && contentType[1];
 
     switch (contentType) {
-      case 'application/json':
-        try {
-          // Sentry API abbreviates long JSON strings, which cannot be parsed ...
-          return <ContextData data={JSON.parse(data.data)} />;
-        } catch (e) { /* do nothing */ }
-        return <pre>{data.data}</pre>
       case 'application/x-www-form-urlencoded':
         return <DefinitionList data={this.objectToTupleArray(queryString.parse(data.data))}/>
+      case 'application/json':
+        // falls through
       default:
-        return <pre>{data.data}</pre>;
+        // Even if Content-Type isn't JSON, attempt to serialize it as JSON
+        // anyways. Many HTTP requests contains JSON bodies, despite not having
+        // matching Content-Type.
+        return this.getJsonOrRaw(data.data);
+    }
+  },
+
+  getJsonOrRaw(data) {
+    try {
+      // Sentry API abbreviates long JSON strings, which cannot be parsed ...
+      return <ContextData data={JSON.parse(data)} />;
+    } catch (e) {
+      return <pre>{data}</pre>
     }
   },
 
