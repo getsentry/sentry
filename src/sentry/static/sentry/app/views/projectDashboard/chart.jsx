@@ -1,5 +1,6 @@
 import React from "react";
 import Router from "react-router";
+import moment from "moment";
 import api from "../../api";
 import BarChart from "../../components/barChart";
 import LoadingError from "../../components/loadingError";
@@ -21,7 +22,8 @@ var ProjectChart = React.createClass({
     return {
       loading: true,
       error: false,
-      stats: []
+      stats: [],
+      dateSince: (new Date().getTime() / 1000) - (3600 * 24 * 7)
     };
   },
 
@@ -58,7 +60,7 @@ var ProjectChart = React.createClass({
 
     api.request(endpoint, {
       query: {
-        since: (new Date().getTime() / 1000) - (3600 * 24 * 7)
+        since: this.state.dateSince
       },
       success: (data) => {
         this.setState({
@@ -82,10 +84,7 @@ var ProjectChart = React.createClass({
     });
 
     return (
-      <div className="box team-chart">
-        <div className="box-header">
-          <h3>Last 7 days</h3>
-        </div>
+      <div className="box project-chart">
         <div className="box-content with-padding">
           <div className="bar-chart">
             {this.state.loading ?
@@ -93,7 +92,10 @@ var ProjectChart = React.createClass({
             : (this.state.error ?
               <LoadingError onRetry={this.fetchData} />
             :
-              <BarChart points={points} className="sparkline" />
+              <div className="chart-wrapper">
+                <BarChart points={points} className="sparkline" />
+                <small className="date-legend">{moment(this.state.dateSince * 1000).format("LL")}</small>
+              </div>
             )}
           </div>
         </div>
