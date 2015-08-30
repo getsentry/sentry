@@ -2,72 +2,8 @@ import React from "react";
 import ConfigStore from "../../../stores/configStore";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../../proptypes";
-import rawStacktraceContent from "./rawStacktraceContent";
-import StacktraceContent from "./stacktraceContent";
-import {defined} from "../../../utils";
-
-var ExceptionContent = React.createClass({
-  propTypes: {
-    view: React.PropTypes.string.isRequired,
-    platform: React.PropTypes.string,
-    newestFirst: React.PropTypes.bool
-  },
-
-  render() {
-    var stackView = this.props.view;
-    var children = this.props.values.map((exc, excIdx) => {
-      return (
-        <div key={excIdx}>
-          <h4>
-            <span>{exc.type}</span>
-          </h4>
-          {exc.value &&
-            <pre className="exc-message">{exc.value}</pre>
-          }
-          {defined(exc.stacktrace) &&
-            <StacktraceContent
-                data={exc.stacktrace}
-                includeSystemFrames={stackView === "full"}
-                platform={this.props.platform}
-                newestFirst={this.props.newestFirst} />
-          }
-        </div>
-      );
-    });
-    if (this.props.newestFirst) {
-      children.reverse();
-    }
-
-    // TODO(dcramer): implement exceptions omitted
-    return (
-      <div>
-        {children}
-      </div>
-    );
-  }
-});
-
-var RawExceptionContent = React.createClass({
-  propTypes: {
-    platform: React.PropTypes.string
-  },
-
-  render() {
-    var children = this.props.values.map((exc, excIdx) => {
-      return (
-        <pre key={excIdx} className="traceback plain">
-          {rawStacktraceContent(exc.stacktrace, this.props.platform, exc)}
-        </pre>
-      );
-    });
-
-    return (
-      <div>
-        {children}
-      </div>
-    );
-  }
-});
+import ExceptionContent from "./exceptionContent";
+import RawExceptionContent from "./rawExceptionContent";
 
 var ExceptionInterface = React.createClass({
   propTypes: {
