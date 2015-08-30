@@ -1,13 +1,11 @@
 import React from "react";
-import Sticky from "react-sticky";
 import DateTime from "../../components/dateTime";
 import FileSize from "../../components/fileSize";
-import GroupEventEntries from "../../components/eventEntries";
+import GroupEventEntries from "../../components/events/eventEntries";
 import GroupState from "../../mixins/groupState";
 import Gravatar from "../../components/gravatar";
 import PropTypes from "../../proptypes";
 import TimeSince from "../../components/timeSince";
-import utils from "../../utils";
 import Version from "../../components/version";
 
 

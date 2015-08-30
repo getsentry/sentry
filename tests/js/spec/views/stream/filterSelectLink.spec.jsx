@@ -1,11 +1,9 @@
 var React = require("react/addons");
 
 var FilterSelectLink = require("app/views/stream/filterSelectLink");
-var stubReactComponents = require("../../../helpers/stubReactComponent");
 
 var TestUtils = React.addons.TestUtils;
 var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
-var findWithType = TestUtils.findRenderedComponentWithType;
 
 describe("FilterSelectLink", function() {
 
