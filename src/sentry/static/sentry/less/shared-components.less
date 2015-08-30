@@ -1108,16 +1108,6 @@ table.integrations {
     margin-bottom: 20px;
     position: relative;
 
-    &:before {
-      display: block;
-      position: absolute;
-      content: "";
-      top: 1px;
-      left: 0;
-      right: 0;
-      height: 50%;
-    }
-
     a {
       height: 90px;
       position: relative;
@@ -1183,17 +1173,6 @@ table.integrations {
         background: @blue;
         border-color: transparent;
       }
-    }
-
-    &:before {
-      content: "";
-      display: block;
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 1px;
-      right: 1px;
-      background: rgba(38, 73, 112, 0.04);
     }
 
     > span {
@@ -1779,7 +1758,7 @@ pre.clippy {
     right: 8px;
     box-shadow: none;
     .transition(opacity .15s);
-    color: #fff;
+    color: #ddd;
     background: 0;
     border: 0;
     font-size: 22px;
@@ -1788,7 +1767,7 @@ pre.clippy {
     &:hover {
       box-shadow: none;
       font-weight: bold;
-      color: #66512c;
+      color: #fff;
       opacity: 1;
     }
   }
@@ -1831,7 +1810,7 @@ pre.clippy {
   background: @green;
   color: #fff;
   border: 0;
-  
+
   .icon:before {
     content: "\e60a";
   }
