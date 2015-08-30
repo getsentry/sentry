@@ -98,6 +98,7 @@ install_requires = [
     'pytest-django',
     'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
+    'PyYAML>=3.11,<4.0',
     'raven>=5.3.0',
     'redis>=2.7.0,<2.11.0',
     'requests[security]>=2.7.0,<2.8.0',
@@ -107,7 +108,6 @@ install_requires = [
     'statsd>=3.1.0,<3.2.0',
     'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
-    'ua-parser>=0.3.5',
     'urllib3>=1.7.1,<1.8.0',
     'rb',
 ]
