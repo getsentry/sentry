@@ -1,4 +1,5 @@
 include setup.py package.json README.rst MANIFEST.in LICENSE AUTHORS
+recursive-include src/sentry/utils/ua_parser *.yaml
 recursive-include src/sentry/templates *
 recursive-include src/sentry/locale *
 recursive-include src/sentry/data *
