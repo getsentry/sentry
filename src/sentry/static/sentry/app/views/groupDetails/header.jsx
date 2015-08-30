@@ -8,7 +8,6 @@ import GroupSeenBy from "./seenBy";
 import IndicatorStore from "../../stores/indicatorStore";
 import ListLink from "../../components/listLink";
 import ProjectState from "../../mixins/projectState";
-import PropTypes from "../../proptypes";
 
 var GroupHeader = React.createClass({
   mixins: [ProjectState],

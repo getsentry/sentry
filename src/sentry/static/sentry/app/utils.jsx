@@ -1,3 +1,4 @@
+/*eslint no-use-before-define:0*/
 var modelsEqual = function(obj1, obj2) {
   if (!obj1 && !obj2)
     return true;
@@ -6,6 +7,61 @@ var modelsEqual = function(obj1, obj2) {
   if (obj2.id && !obj1)
     return false;
   return obj1.id === obj2.id;
+};
+
+var arrayIsEqual = function(arr, other, deep) {
+  // if the other array is a falsy value, return
+  if (!arr && !other) {
+    return true;
+  }
+
+  if (!arr || !other) {
+    return false;
+  }
+
+  // compare lengths - can save a lot of time
+  if (arr.length != other.length) {
+    return false;
+  }
+
+  for (var i = 0, l = Math.max(arr.length, other.length); i < l; i++) {
+    return valueIsEqual(arr[i], other[i], deep);
+  }
+};
+
+var valueIsEqual = function(value, other, deep) {
+  if (value === other) {
+    return true;
+  } else if (value instanceof Array || other instanceof Array) {
+    if (arrayIsEqual(value, other, deep)) {
+      return true;
+    }
+  } else if (value instanceof Object || other instanceof Object) {
+    if (objectMatchesSubset(value, other, deep)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+var objectMatchesSubset = function(obj, other, deep){
+  var k;
+
+  if (deep !== true) {
+    for (k in other) {
+      if (obj[k] != other[k]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  for (k in other) {
+    if (!valueIsEqual(obj[k], other[k], deep)) {
+      return false;
+    }
+  }
+  return true;
 };
 
 var compareArrays = function(arr1, arr2, compFunc) {
@@ -35,61 +91,6 @@ var compareArrays = function(arr1, arr2, compFunc) {
     }
   }
   return true;
-};
-
-var objectMatchesSubset = function(obj, other, deep){
-  var k;
-
-  if (deep !== true) {
-    for (k in other) {
-      if (obj[k] != other[k]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  for (k in other) {
-    if (!valueIsEqual(obj[k], other[k], deep)) {
-      return false;
-    }
-  }
-  return true;
-};
-
-var valueIsEqual = function(value, other, deep) {
-  if (value === other) {
-    return true;
-  } else if (value instanceof Array || other instanceof Array) {
-    if (arrayIsEqual(value, other, deep)) {
-      return true;
-    }
-  } else if (value instanceof Object || other instanceof Object) {
-    if (objectMatchesSubset(value, other, deep)) {
-      return true;
-    }
-  }
-  return false;
-};
-
-var arrayIsEqual = function(arr, other, deep) {
-  // if the other array is a falsy value, return
-  if (!arr && !other) {
-    return true;
-  }
-
-  if (!arr || !other) {
-    return false;
-  }
-
-  // compare lengths - can save a lot of time
-  if (arr.length != other.length) {
-    return false;
-  }
-
-  for (var i = 0, l = Math.max(arr.length, other.length); i < l; i++) {
-    return valueIsEqual(arr[i], other[i], deep);
-  }
 };
 
 export default {
@@ -190,4 +191,3 @@ export default {
   StreamManager: require('./utils/streamManager'),
   CursorPoller: require('./utils/cursorPoller')
 };
-

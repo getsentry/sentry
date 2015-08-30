@@ -1,5 +1,4 @@
 import React from "react";
-import Router from "react-router";
 import moment from "moment";
 import api from "../../api";
 import BarChart from "../../components/barChart";

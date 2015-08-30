@@ -91,6 +91,7 @@ var ExceptionInterface = React.createClass({
         newestFirst = false;
         break;
       case "default":
+      default:
         newestFirst = (platform !== "python");
     }
 

@@ -26,7 +26,8 @@ var StacktraceInterface = React.createClass({
       case "newestLast":
         newestFirst = false;
         break;
-      case "default":
+      case "default": // is "default" a valid value? or bad case statement
+      default:
         newestFirst = (platform === "python");
     }
 

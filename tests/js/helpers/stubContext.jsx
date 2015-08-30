@@ -50,4 +50,4 @@ function stubContext(BaseComponent, context) {
   return StubbedContextHandler;
 }
 
-module.exports = stubContext;
+export default stubContext;

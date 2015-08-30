@@ -34,6 +34,7 @@ class Client {
   }
 
   wrapCallback(id, func, cleanup) {
+    /*eslint consistent-return:0*/
     if (typeof func === "undefined") {
       return;
     }
@@ -223,4 +224,3 @@ class Client {
 }
 
 export default new Client();
-

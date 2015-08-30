@@ -125,6 +125,7 @@ var EventList = React.createClass({
         minutes = "60";
         break;
       case "24h":
+      default:
         minutes = "1440";
         break;
     }

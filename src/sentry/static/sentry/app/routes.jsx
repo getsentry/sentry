@@ -19,7 +19,6 @@ import ProjectDashboard from "./views/projectDashboard";
 import ProjectEvents from "./views/projectEvents";
 import ProjectDetails from "./views/projectDetails";
 import ProjectReleases from "./views/projectReleases";
-import PropTypes from "./proptypes";
 import ReleaseAllEvents from "./views/releaseAllEvents";
 import ReleaseArtifacts from "./views/releaseArtifacts";
 import ReleaseDetails from "./views/releaseDetails";
@@ -27,7 +26,6 @@ import ReleaseNewEvents from "./views/releaseNewEvents";
 import RouteNotFound from "./views/routeNotFound";
 import SharedGroupDetails from "./views/sharedGroupDetails";
 import Stream from "./views/stream";
-import TeamDetails from "./views/teamDetails";
 
 var routes = (
   <Route name="app" path="/" handler={App}>
@@ -64,4 +62,3 @@ var routes = (
 );
 
 export default routes;
-

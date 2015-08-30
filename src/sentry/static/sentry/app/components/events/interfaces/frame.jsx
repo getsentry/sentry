@@ -117,9 +117,9 @@ var Frame = React.createClass({
               key="errors">{data.errors.join(", ")}</li>
           }
           {data.context.map((line) => {
-            var className = "expandable";
+            var liClassName = "expandable";
             if (line[0] === data.lineNo) {
-              className += " active";
+              liClassName += " active";
             }
 
             var lineWs;
@@ -130,9 +130,13 @@ var Frame = React.createClass({
               lineWs = '';
               lineCode = '';
             }
-            return <li className={className} key={line[0]}><span className="ws">{
-              lineWs}</span><span className="contextline">{lineCode
-            }</span> <span className="icon-plus"></span></li>;
+            return (
+              <li className={liClassName} key={line[0]}>
+                <span className="ws">{
+                lineWs}</span><span className="contextline">{lineCode
+                }</span> <span className="icon-plus"></span>
+              </li>
+            );
           })}
           {!objectIsEmpty(data.vars) &&
             <FrameVariables data={data.vars} key="vars" />

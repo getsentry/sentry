@@ -5,6 +5,7 @@ import api from "../../api";
 import BarChart from "../../components/barChart";
 import ConfigStore from "../../stores/configStore";
 import PropTypes from "../../proptypes";
+import {sortArray} from "../../utils";
 
 var ExpandedTeamList = React.createClass({
   propTypes: {
