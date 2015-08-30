@@ -9,10 +9,9 @@ from __future__ import absolute_import
 
 import sentry
 
-from ua_parser.user_agent_parser import Parse
-
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
+from sentry.utils.ua_parser import Parse
 
 
 class UserAgentPlugin(TagPlugin):
