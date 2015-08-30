@@ -1,27 +1,10 @@
 import React from "react";
-import ConfigStore from "../../../stores/configStore";
 import GroupEventDataSection from "../eventDataSection";
 import PropTypes from "../../../proptypes";
 import RichHttpContent from "./richHttpContent";
 import {getCurlCommand} from "./utils";
 
-var RequestActions = React.createClass({
-  render(){
-    var org = this.props.organization;
-    var project = this.props.project;
-    var group = this.props.group;
-    var evt = this.props.event;
-    var urlPrefix = (
-      ConfigStore.get('urlPrefix') + '/' + org.slug + '/' +
-      project.slug + '/group/' + group.id
-    );
-
-    return (
-      <a href={urlPrefix + '/events/' + evt.id + '/replay/'}
-         className="btn btn-sm btn-default">Replay Request</a>
-    );
-  }
-});
+import RequestActions from "./requestActions";
 
 var RequestInterface = React.createClass({
   propTypes: {
