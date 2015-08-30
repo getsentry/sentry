@@ -3,7 +3,7 @@ import Reflux from "reflux";
 import $ from "jquery";
 import Cookies from "js-cookie";
 import api from "../api";
-import EventRow from "../components/eventRow";
+import EventRow from "../components/events/eventRow";
 import EventActions from "./projectEvents/actions";
 import EventStore from "../stores/eventStore";
 import LoadingError from "../components/loadingError";

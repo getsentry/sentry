@@ -8,7 +8,7 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 import RouteMixin from "../mixins/routeMixin";
-import StreamGroup from '../components/streamGroup';
+import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
 import StreamFilters from './stream/filters';
 import utils from "../utils";
