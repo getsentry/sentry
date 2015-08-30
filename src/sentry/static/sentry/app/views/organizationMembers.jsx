@@ -3,7 +3,7 @@ import api from "../api";
 import Gravatar from "../components/gravatar";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
-import OrganizationHomeContainer from "../components/organizationHomeContainer";
+import OrganizationHomeContainer from "../components/organizations/homeContainer";
 import OrganizationState from "../mixins/organizationState";
 import RouteMixin from "../mixins/routeMixin";
 

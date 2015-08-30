@@ -7,7 +7,7 @@ import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import ProjectState from "../mixins/projectState";
-import StreamGroup from "../components/streamGroup";
+import StreamGroup from "../components/stream/group";
 import utils from "../utils";
 
 var GroupList = React.createClass({

@@ -1,15 +1,9 @@
 var React = require("react/addons");
-var Cookies = require("js-cookie");
 
 var api = require("app/api");
 var OrganizationTeams = require("app/views/organizationTeams");
-var stubReactComponents = require("../../helpers/stubReactComponent");
 var stubRouter = require("../../helpers/stubRouter");
 var stubContext = require("../../helpers/stubContext");
-
-var TestUtils = React.addons.TestUtils;
-var findWithClass = TestUtils.findRenderedDOMComponentWithClass;
-var findWithType = TestUtils.findRenderedComponentWithType;
 
 describe("OrganizationTeams", function() {
 
