@@ -1,8 +1,6 @@
 import React from "react";
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
-import SearchDropdown from "./searchDropdown";
-
 var SearchBar = React.createClass({
   contextTypes: {
     router: React.PropTypes.func

@@ -1,12 +1,8 @@
 import React from "react";
-import $ from "jquery";
-var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
-import DateSelector from "./dateSelector";
 import FilterSelectLink from "./filterSelectLink";
 import SearchBar from "./searchBar";
 import SearchDropdown from "./searchDropdown";
-import utils from "../../utils";
 import SortOptions from "./sortOptions";
 
 var StreamFilters = React.createClass({

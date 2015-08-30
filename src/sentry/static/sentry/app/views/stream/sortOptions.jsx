@@ -36,6 +36,7 @@ var SortOptions = React.createClass({
       case 'freq':
         return 'Frequency';
       case 'date':
+      default:
         return 'Last Seen';
     }
   },

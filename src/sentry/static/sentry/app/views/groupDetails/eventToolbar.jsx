@@ -1,5 +1,5 @@
+import Router from "react-router";
 import React from "react";
-import Sticky from 'react-sticky';
 import PropTypes from "../../proptypes";
 import utils from "../../utils";
 
@@ -81,4 +81,3 @@ var GroupEventToolbar  = React.createClass({
 });
 
 export default GroupEventToolbar ;
-

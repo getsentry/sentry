@@ -2,7 +2,6 @@ import React from "react";
 import Reflux from "reflux";
 import api from "../../api";
 import ActionLink from "./actionLink";
-import GroupStore from "../../stores/groupStore";
 import DropdownLink from "../../components/dropdownLink";
 import IndicatorStore from "../../stores/indicatorStore";
 import MenuItem from "../../components/menuItem";

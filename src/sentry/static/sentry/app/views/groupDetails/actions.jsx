@@ -1,5 +1,4 @@
 import React from "react";
-import Router from "react-router";
 import api from "../../api";
 import DropdownLink from "../../components/dropdownLink";
 import GroupState from "../../mixins/groupState";
@@ -133,4 +132,3 @@ var GroupActions = React.createClass({
 });
 
 export default GroupActions;
-

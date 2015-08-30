@@ -1,6 +1,5 @@
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 import React from "react";
-import moment from "moment";
 import DateTimeInput from "../../components/dateTimeInput";
 import DropdownLink from "../../components/dropdownLink";
 import MenuItem from "../../components/menuItem";
