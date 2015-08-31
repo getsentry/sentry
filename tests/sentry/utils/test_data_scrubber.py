@@ -150,6 +150,16 @@ class SensitiveDataFilterTest(TestCase):
         result = proc.sanitize('foo', "foo 4242424242424242")
         self.assertEquals(result, proc.MASK)
 
+    def test_sanitize_url(self):
+        proc = SensitiveDataFilter()
+        result = proc.sanitize('foo', 'pg://matt:pass@localhost/1')
+        self.assertEquals(result, 'pg://matt:%s@localhost/1' % proc.MASK)
+        # Make sure we don't mess up any other url.
+        # This url specifically if passed through urlunsplit(urlsplit()),
+        # it'll change the value.
+        result = proc.sanitize('foo', 'postgres:///path')
+        self.assertEquals(result, 'postgres:///path')
+
     def test_sanitize_http_body(self):
         data = {
             'sentry.interfaces.Http': {
