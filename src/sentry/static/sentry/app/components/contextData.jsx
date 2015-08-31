@@ -70,9 +70,15 @@ function analyzeStringForRepr(value) {
     var isQuoted = looksLikeQuotedString(value);
     rv.isMultiLine = looksLikeMultiLineString(value);
 
-    if (!isQuoted && !rv.isMultiLine) {
+    if (!isQuoted) {
       rv.quotedInPostprocessing = true;
-      rv.repr = JSON.stringify(value);
+      // quote single line strings properly like JSON
+      if (!rv.isMultiLine) {
+        rv.repr = JSON.stringify(value);
+      // for multi-line strings add triple string markers instead.
+      } else {
+        rv.repr = '"""' + rv.repr + '"""';
+      }
     }
   }
 
