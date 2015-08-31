@@ -1,9 +1,9 @@
+import {markdown} from "markdown";
 import React from "react";
 import Gravatar from "../../components/gravatar";
 import GroupState from "../../mixins/groupState";
 import MemberListStore from "../../stores/memberListStore";
 import TimeSince from "../../components/timeSince";
-import utils from "../../utils";
 
 import NoteInput from "./noteInput";
 
@@ -68,14 +68,14 @@ var GroupActivity = React.createClass({
       var label = formatActivity(item);
 
       if (item.type === 'note') {
-        var noteBody = utils.nl2br(utils.urlize(utils.escape(item.data.text)));
+        var noteBody = markdown.toHTML(item.data.text);
         return (
           <li className="activity-note" key={itemIdx}>
             {avatar}
             <div className="activity-bubble">
               <TimeSince date={item.dateCreated} />
               <div className="activity-author">{authorName}</div>
-              <p dangerouslySetInnerHTML={{__html: noteBody}} />
+              <div dangerouslySetInnerHTML={{__html: noteBody}} />
             </div>
           </li>
         );
