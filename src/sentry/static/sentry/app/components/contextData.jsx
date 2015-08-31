@@ -1,7 +1,7 @@
 import React from 'react';
 import jQuery from 'jquery';
 
-function looksLikeRepr(value) {
+function looksLikeObjectRepr(value) {
   var a = value[0];
   var z = value[value.length - 1];
   if (a == '<' && z == '>') {
@@ -14,6 +14,69 @@ function looksLikeRepr(value) {
     return true;
   }
   return false;
+}
+
+function looksLikeQuotedString(value) {
+  var a = value[0];
+  var z = value[value.length - 1];
+  if ((a === '"' || a === "'") && a === z) {
+    return true;
+  }
+  var match = value.match(/^[\w\d._-]+["']/);
+  if (match && match[0][match[0].length - 1] === z) {
+    return true;
+  }
+  return false;
+}
+
+function looksLikeMultiLineString(value) {
+  return !!value.match(/[\r\n]/);
+}
+
+function padNumbersInString(string) {
+  return string.replace(/(\d+)/g, function(num) {
+    var isNegative = false;
+    num = parseInt(num, 10);
+    if (num < 0) {
+      num *= -1;
+      isNegative = true;
+    }
+    var s = '0000000000000' + num;
+    s = s.substr(s.length - (isNegative ? 11 : 12));
+    if (isNegative) {
+      s = '-' + s;
+    }
+    return s;
+  });
+}
+
+function naturalSort(a, b) {
+  a = padNumbersInString(a);
+  b = padNumbersInString(b);
+  return a === b ? 0 : a < b ? -1 : 1;
+}
+
+function analyzeStringForRepr(value) {
+  var rv = {
+    preferredRepr: value,
+    isString: true,
+    isMultiLine: false,
+    quotedInPostprocessing: false
+  };
+
+  if (looksLikeObjectRepr(value)) {
+    rv.isString = false;
+  } else {
+    var isQuoted = looksLikeQuotedString(value);
+    rv.isMultiLine = looksLikeMultiLineString(value);
+
+    if (!isQuoted && !rv.isMultiLine) {
+      rv.quotedInPostprocessing = true;
+      rv.repr = JSON.stringify(value);
+    }
+  }
+
+  return rv;
 }
 
 
@@ -57,7 +120,14 @@ var ContextData = React.createClass({
       } else if (value === true || value === false) {
         return <span className="val-bool">{value ? 'True' : 'False'}</span>;
       } else if (typeof value === 'string' || value instanceof String) {
-        return <span className={looksLikeRepr(value) ? 'val-repr' : 'val-string'}>{value}</span>;
+        var valueInfo = analyzeStringForRepr(value);
+        return (
+          <span className={
+            (valueInfo.isString ? 'val-string' : 'val-repr') +
+            (valueInfo.quotedInPostprocessing ? ' val-auto-quoted' : '')
+            (valueInfo.isMultiLine ? ' val-string-multiline' : '')}>{
+              valueInfo.repr}</span>
+        );
       } else if (typeof value === 'number' || value instanceof Number) {
         return <span className="val-number">{value}</span>;
       } else if (value instanceof Array) {
@@ -79,6 +149,7 @@ var ContextData = React.createClass({
         );
       } else {
         var keys = Object.keys(value);
+        keys.sort(naturalSort);
         for (i = 0; i < keys.length; i++) {
           var key = keys[i];
           children.push(
