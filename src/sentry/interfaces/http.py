@@ -128,11 +128,6 @@ class Http(Interface):
         # strip them out
         headers = data.get('headers')
         if headers:
-            # Headers may be in the format:
-            #   [('Content-Type', 'plain/text')]
-            # So we want to coerce into a dict
-            if isinstance(headers, (list, tuple)):
-                headers = dict(headers)
             headers, cookie_header = format_headers(headers)
             if not cookies and cookie_header:
                 cookies = cookie_header
