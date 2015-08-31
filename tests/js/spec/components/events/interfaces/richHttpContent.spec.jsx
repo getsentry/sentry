@@ -25,23 +25,27 @@ describe("RichHttpContent", function () {
     this.sandbox.restore();
   });
 
-  describe("objectToTupleArray", function () {
-    it("should convert a key/value object to an array of key/value tuples", function () {
+  describe("objectToSortedTupleArray", function () {
+    it("should convert a key/value object to a sorted array of key/value tuples", function () {
       let elem = this.elem;
-      expect(elem.objectToTupleArray({
+      expect(elem.objectToSortedTupleArray({
+        awe: 'some',
         foo: 'bar',
         bar: 'baz'
       })).to.eql([
-        ['foo', 'bar'], ['bar', 'baz']
+        // note sorted alphabetically by key
+        ['awe', 'some'],
+        ['bar', 'baz'],
+        ['foo', 'bar']
       ]);
 
-      expect(elem.objectToTupleArray({
+      expect(elem.objectToSortedTupleArray({
         foo: ['bar', 'baz']
       })).to.eql([
         ['foo', 'bar'], ['foo', 'baz']
       ]);
 
-      expect(elem.objectToTupleArray({
+      expect(elem.objectToSortedTupleArray({
         foo: ''
       })).to.eql([
         ['foo', '']
@@ -71,8 +75,8 @@ describe("RichHttpContent", function () {
       // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
       expect(out.props.className).to.eql('DefinitionList');
       expect(out.props.data).to.eql([
-        ['foo', 'bar'],
-        ['bar', 'baz']
+        ['bar', 'baz'],
+        ['foo', 'bar']
       ]);
     });
 

@@ -16,6 +16,7 @@ var config = {
       "bootstrap/js/tooltip",
       "crypto-js/md5",
       "jquery",
+      "markdown",
       "moment",
       "raven-js",
       "react/addons",

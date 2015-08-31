@@ -11,14 +11,14 @@ var RichHttpContent = React.createClass({
 
   /**
    * Converts an object of body/querystring key/value pairs
-   * into a tuple of [key, value] pairs.
+   * into a tuple of [key, value] pairs, and sorts them.
    *
    * Note that the query-string parser returns dupes like this:
    *   { foo: ['bar', 'baz'] } // ?foo=bar&bar=baz
    *
    * This method accounts for this.
    */
-  objectToTupleArray(obj) {
+  objectToSortedTupleArray(obj) {
     return Object.keys(obj).reduce((out, k) => {
       let val = obj[k];
       return out.concat(
@@ -26,12 +26,14 @@ var RichHttpContent = React.createClass({
           val.map(v => [k, v]) : // key has multiple values (array)
           [[k, val]]             // key has single value
       );
-    }, []);
+    }, []).sort(function ([keyA], [keyB]) {
+      return keyA < keyB ? -1 : 1;
+    });
   },
 
   getBodySection(data) {
     let contentType = data.headers.find(h => h[0] === 'Content-Type');
-    contentType = contentType && contentType[1];
+    contentType = contentType && contentType[1].split(';')[0].toLowerCase();
 
     switch (contentType) {
       case 'application/x-www-form-urlencoded':
@@ -50,7 +52,7 @@ var RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query stirng values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <DefinitionList data={this.objectToTupleArray(queryString.parse(data))}/>
+      return <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data))}/>
     } catch (e) {
       return <pre>{data}</pre>
     }
@@ -68,12 +70,11 @@ var RichHttpContent = React.createClass({
 
   render(){
     let data = this.props.data;
-
     return (
       <div>
         {data.query &&
           <ClippedBox title="Query String">
-            <DefinitionList data={this.objectToTupleArray(queryString.parse(data.query))}/>
+            <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data.query))}/>
           </ClippedBox>
         }
         {data.fragment &&
@@ -100,7 +101,7 @@ var RichHttpContent = React.createClass({
         }
         {!objectIsEmpty(data.env) &&
           <ClippedBox title="Environment" defaultCollapsed>
-            <DefinitionList data={this.objectToTupleArray(data.env)}/>
+            <DefinitionList data={this.objectToSortedTupleArray(data.env)}/>
           </ClippedBox>
         }
       </div>

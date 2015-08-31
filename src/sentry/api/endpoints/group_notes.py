@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django import forms
 from django.utils import timezone
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -13,8 +12,8 @@ from sentry.models import Activity
 from sentry.utils.functional import extract_lazy_object
 
 
-class NewNoteForm(forms.Form):
-    text = forms.CharField()
+class NoteSerializer(serializers.Serializer):
+    text = serializers.CharField()
 
 
 class GroupNotesEndpoint(GroupEndpoint):
@@ -35,25 +34,28 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
     def post(self, request, group):
-        form = NewNoteForm(request.DATA)
-        if not form.is_valid():
-            return Response('{"error": "form"}', status=status.HTTP_400_BAD_REQUEST)
+        serializer = NoteSerializer(data=request.DATA)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = dict(serializer.object)
 
         if Activity.objects.filter(
             group=group,
             type=Activity.NOTE,
             user=request.user,
-            data=form.cleaned_data,
+            data=data,
             datetime__gte=timezone.now() - timedelta(hours=1)
         ).exists():
-            return Response('{"error": "duplicate"}', status=status.HTTP_400_BAD_REQUEST)
+            return Response('{"detail": "You have already posted that comment."}',
+                            status=status.HTTP_400_BAD_REQUEST)
 
         activity = Activity.objects.create(
             group=group,
             project=group.project,
             type=Activity.NOTE,
             user=extract_lazy_object(request.user),
-            data=form.cleaned_data,
+            data=data,
         )
 
         activity.send_notification()

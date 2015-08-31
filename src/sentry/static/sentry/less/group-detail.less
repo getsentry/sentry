@@ -349,23 +349,34 @@
   position: relative;
   margin-bottom: 0;
 
+  .activity-notes {
+    .nav {
+      padding: 5px 15px 0;
+      margin: 0 -10px 0 0;
+      border-bottom: 1px solid @trim;
+      > li a {
+        padding-bottom: 5px;
+      }
+    }
+  }
+
   .activity-field {
     .form-control();
     padding: 0 10px 0 0;
     margin: 0 0 15px;
     .transition(padding .2s ease-in-out);
 
-    textarea {
+    textarea, .note-preview {
       display: block;
       width: 100%;
-      max-height: 38px;
+      min-height: 38px;
+      max-height: 1000px;
       max-width: 100%;
       margin: 0;
       .transition(.2s ease-in-out all);
       border: 0;
       padding: 15px 0 0 17px;
-      margin-bottom: 10px;
-      overflow: hidden;
+      overflow: auto;
 
       .placeholder(lighten(@gray, 28));
 
@@ -374,34 +385,30 @@
       }
     }
 
+    textarea { margin-bottom: 10px; }
+
     .activity-actions {
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      right: 0;
-      text-align: right;
+      height: 35px;
+      line-height: 35px;
+      margin-right: -10px;
+      padding-left: 15px;
       border-top: 1px solid @trim;
-      opacity: 0;
-      visibility: hidden;
       .transition(opacity .2s ease-in-out);
 
       .btn {
+        float: right;
         font-size: 13px;
         margin: -1px -1px -1px;
         border-radius: 0 0 2px;
       }
     }
 
-    &.expanded {
-      padding-bottom: 35px;
+    &.error {
+      border-color: @red;
 
-      textarea {
-        max-height: 1000px;
-      }
-
-      .activity-actions {
-        opacity: 1;
-        visibility: visible;
+      .activity-actions .btn {
+        border-bottom-color: @red;
+        border-right-color: @red;
       }
     }
   }
@@ -1142,6 +1149,11 @@ pre.val, span.val {
 
 .val-string {
   color: darken(@purple, 5);
+}
+
+.val-string.val-auto-quoted,
+.val-string-multiline {
+  color: darken(@teal, 5);
 }
 
 .val-repr {
