@@ -1,3 +1,4 @@
+import {markdown} from "markdown";
 import React from "react";
 import api from "../../api";
 import GroupStore from "../../stores/groupStore";
@@ -12,8 +13,17 @@ var NoteInput = React.createClass({
       loading: false,
       error: false,
       expanded: false,
+      preview: false,
       value: ''
     };
+  },
+
+  toggleEdit() {
+    this.setState({preview: false});
+  },
+
+  togglePreview() {
+    this.setState({preview: true});
   },
 
   onSubmit(e) {
@@ -40,6 +50,7 @@ var NoteInput = React.createClass({
       success: (data) => {
         this.setState({
           value: '',
+          preview: false,
           expanded: false,
           loading: false
         });
@@ -80,10 +91,23 @@ var NoteInput = React.createClass({
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
-          <textarea placeholder="Add details or updates to this event"
-                    onChange={this.onChange}
-                    onFocus={this.expand} onBlur={this.maybeCollapse}
-                    value={this.state.value} />
+          <ul className="nav nav-tabs">
+            <li className={!this.state.preview ? "active" : ""}>
+              <a onClick={this.toggleEdit}>Edit</a>
+            </li>
+            <li className={this.state.preview ? "active" : ""}>
+              <a onClick={this.togglePreview}>Preview</a>
+            </li>
+          </ul>
+          {this.state.preview ?
+            <div className="note-preview"
+                 dangerouslySetInnerHTML={{__html: markdown.toHTML(this.state.value)}} />
+          :
+            <textarea placeholder="Add details or updates to this event"
+                      onChange={this.onChange}
+                      onFocus={this.expand} onBlur={this.maybeCollapse}
+                      value={this.state.value} />
+          }
           <div className="activity-actions">
             <button className="btn btn-default" type="submit"
                     disabled={this.state.loading}>Leave comment</button>

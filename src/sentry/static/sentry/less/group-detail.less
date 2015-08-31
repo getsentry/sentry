@@ -349,23 +349,34 @@
   position: relative;
   margin-bottom: 0;
 
+  .activity-notes {
+    .nav {
+      padding: 5px 15px 0;
+      margin: 0 -10px 0 0;
+      border-bottom: 1px solid @trim;
+      > li a {
+        padding-bottom: 5px;
+      }
+    }
+  }
+
   .activity-field {
     .form-control();
-    padding: 0 10px 0 0;
+    padding: 0 10px 35px 0;
     margin: 0 0 15px;
     .transition(padding .2s ease-in-out);
 
-    textarea {
+    textarea, .note-preview {
       display: block;
       width: 100%;
-      max-height: 38px;
+      min-height: 38px;
+      max-height: 1000px;
       max-width: 100%;
       margin: 0;
       .transition(.2s ease-in-out all);
       border: 0;
       padding: 15px 0 0 17px;
-      margin-bottom: 10px;
-      overflow: hidden;
+      overflow: auto;
 
       .placeholder(lighten(@gray, 28));
 
@@ -374,6 +385,8 @@
       }
     }
 
+    textarea { margin-bottom: 10px; }
+
     .activity-actions {
       position: absolute;
       left: 0;
@@ -381,27 +394,12 @@
       right: 0;
       text-align: right;
       border-top: 1px solid @trim;
-      opacity: 0;
-      visibility: hidden;
       .transition(opacity .2s ease-in-out);
 
       .btn {
         font-size: 13px;
         margin: -1px -1px -1px;
         border-radius: 0 0 2px;
-      }
-    }
-
-    &.expanded {
-      padding-bottom: 35px;
-
-      textarea {
-        max-height: 1000px;
-      }
-
-      .activity-actions {
-        opacity: 1;
-        visibility: visible;
       }
     }
   }
