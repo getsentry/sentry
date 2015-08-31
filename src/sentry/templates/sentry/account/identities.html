@@ -11,7 +11,7 @@
         <legend>{% trans "Current Identities" %}</legend>
     </fieldset>
     {% if not identity_list %}
-        <p>{% trans "There are no identities associated with this account." %}</p>
+        <div class="well">{% trans "There are no identities associated with this account." %}</div>
     {% else %}
         <table class="table simple-table">
             <thead>
