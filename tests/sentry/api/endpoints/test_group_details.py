@@ -153,6 +153,24 @@ class GroupUpdateTest(APITestCase):
         assert not GroupSeen.objects.filter(
             group=group, user=self.user).exists()
 
+    def test_mark_seen_as_non_member(self):
+        user = self.create_user('foo@example.com', is_superuser=True)
+        self.login_as(user=user)
+
+        group = self.create_group()
+
+        url = reverse('sentry-api-0-group-details', kwargs={
+            'group_id': group.id
+        })
+        response = self.client.put(url, data={
+            'hasSeen': '1',
+        }, format='json')
+
+        assert response.status_code == 200, response.content
+
+        assert not GroupSeen.objects.filter(
+            group=group, user=self.user).exists()
+
 
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
