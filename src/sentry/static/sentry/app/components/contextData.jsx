@@ -16,19 +16,6 @@ function looksLikeObjectRepr(value) {
   return false;
 }
 
-function looksLikeQuotedString(value) {
-  var a = value[0];
-  var z = value[value.length - 1];
-  if ((a === '"' || a === "'") && a === z) {
-    return true;
-  }
-  var match = value.match(/^[\w\d._-]+["']/);
-  if (match && match[0][match[0].length - 1] === z) {
-    return true;
-  }
-  return false;
-}
-
 function looksLikeMultiLineString(value) {
   return !!value.match(/[\r\n]/);
 }
@@ -61,25 +48,19 @@ function analyzeStringForRepr(value) {
     repr: value,
     isString: true,
     isMultiLine: false,
-    quotedInPostprocessing: false
+    isStripped: false
   };
+
+  // stripped for security reasons
+  if (value.match(/^['"]?\*{8,}['"]?$/)) {
+    rv.isStripped = true;
+    return rv;
+  }
 
   if (looksLikeObjectRepr(value)) {
     rv.isString = false;
   } else {
-    var isQuoted = looksLikeQuotedString(value);
     rv.isMultiLine = looksLikeMultiLineString(value);
-
-    if (!isQuoted) {
-      rv.quotedInPostprocessing = true;
-      // quote single line strings properly like JSON
-      if (!rv.isMultiLine) {
-        rv.repr = JSON.stringify(value);
-      // for multi-line strings add triple string markers instead.
-      } else {
-        rv.repr = '"""' + rv.repr + '"""';
-      }
-    }
   }
 
   return rv;
@@ -130,7 +111,7 @@ var ContextData = React.createClass({
         return (
           <span className={
             (valueInfo.isString ? 'val-string' : 'val-repr') +
-            (valueInfo.quotedInPostprocessing ? ' val-auto-quoted' : '') +
+            (valueInfo.isStripped ? ' val-stripped' : '') +
             (valueInfo.isMultiLine ? ' val-string-multiline' : '')}>{
               valueInfo.repr}</span>
         );
