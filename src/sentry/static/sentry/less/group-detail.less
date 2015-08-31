@@ -362,7 +362,7 @@
 
   .activity-field {
     .form-control();
-    padding: 0 10px 35px 0;
+    padding: 0 10px 0 0;
     margin: 0 0 15px;
     .transition(padding .2s ease-in-out);
 
@@ -388,18 +388,27 @@
     textarea { margin-bottom: 10px; }
 
     .activity-actions {
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      right: 0;
-      text-align: right;
+      height: 35px;
+      line-height: 35px;
+      margin-right: -10px;
+      padding-left: 15px;
       border-top: 1px solid @trim;
       .transition(opacity .2s ease-in-out);
 
       .btn {
+        float: right;
         font-size: 13px;
         margin: -1px -1px -1px;
         border-radius: 0 0 2px;
+      }
+    }
+
+    &.error {
+      border-color: @red;
+
+      .activity-actions .btn {
+        border-bottom-color: @red;
+        border-right-color: @red;
       }
     }
   }

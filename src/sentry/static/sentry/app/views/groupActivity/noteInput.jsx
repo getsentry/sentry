@@ -12,6 +12,7 @@ var NoteInput = React.createClass({
     return {
       loading: false,
       error: false,
+      errorJSON: null,
       expanded: false,
       preview: false,
       value: ''
@@ -31,7 +32,8 @@ var NoteInput = React.createClass({
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
+      errorJSON: null,
     });
 
     var loadingIndicator = IndicatorStore.add('Posting comment..');
@@ -41,10 +43,12 @@ var NoteInput = React.createClass({
       data: {
         text: this.state.value
       },
-      error: () => {
+      error: (error) => {
         this.setState({
           loading: false,
-          error: true
+          preview: false,
+          error: true,
+          errorJSON: JSON.parse(error.responseJSON)
         });
       },
       success: (data) => {
@@ -77,14 +81,12 @@ var NoteInput = React.createClass({
   },
 
   render() {
+    var {error, errorJSON, loading, preview, value} = this.state
     var classNames = 'activity-field';
-    if (this.state.expanded) {
-      classNames += ' expanded';
-    }
-    if (this.state.error) {
+    if (error) {
       classNames += ' error';
     }
-    if (this.state.loading) {
+    if (loading) {
       classNames += ' loading';
     }
 
@@ -92,25 +94,29 @@ var NoteInput = React.createClass({
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
           <ul className="nav nav-tabs">
-            <li className={!this.state.preview ? "active" : ""}>
+            <li className={!preview ? "active" : ""}>
               <a onClick={this.toggleEdit}>Edit</a>
             </li>
-            <li className={this.state.preview ? "active" : ""}>
+            <li className={preview ? "active" : ""}>
               <a onClick={this.togglePreview}>Preview</a>
             </li>
           </ul>
-          {this.state.preview ?
+          {preview ?
             <div className="note-preview"
-                 dangerouslySetInnerHTML={{__html: markdown.toHTML(this.state.value)}} />
+                 dangerouslySetInnerHTML={{__html: markdown.toHTML(value)}} />
           :
             <textarea placeholder="Add details or updates to this event"
                       onChange={this.onChange}
                       onFocus={this.expand} onBlur={this.maybeCollapse}
-                      value={this.state.value} />
+                      required={true}
+                      value={value} />
           }
           <div className="activity-actions">
+            {errorJSON && errorJSON.detail &&
+              <small className="error">{errorJSON.detail}</small>
+            }
             <button className="btn btn-default" type="submit"
-                    disabled={this.state.loading}>Leave comment</button>
+                    disabled={loading}>Leave comment</button>
           </div>
         </div>
       </form>
