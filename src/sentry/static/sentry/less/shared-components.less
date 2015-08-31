@@ -2503,11 +2503,12 @@ pre.clippy {
 */
 
 .well {
-  border: 1px solid #E9EBEC;
+  border: 1px solid @trim;
   box-shadow: none;
-  background: #fff;
-  padding: 14px 20px;
+  background: @bgColor;
+  padding: 15px 20px;
   margin-bottom: 20px;
+  border-radius: 3px;
 
   &.important {
     background: @yellow;

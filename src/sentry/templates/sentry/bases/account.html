@@ -13,7 +13,7 @@
 <div class="box">
     <div class="box-content with-padding" style="padding-bottom: 20px;">
       {% block nav %}
-        <ul class="nav nav-tabs" style="padding-bottom: 10px;">
+        <ul class="nav nav-tabs border-bottom">
           <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
           <li{% if page == 'appearance' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-appearance' %}">{% trans "Appearance" %}</a></li>
           <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-notifications' %}">{% trans "Notifications" %}</a></li>
