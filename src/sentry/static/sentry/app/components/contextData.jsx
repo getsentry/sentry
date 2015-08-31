@@ -58,7 +58,7 @@ function naturalSort(a, b) {
 
 function analyzeStringForRepr(value) {
   var rv = {
-    preferredRepr: value,
+    repr: value,
     isString: true,
     isMultiLine: false,
     quotedInPostprocessing: false
@@ -124,7 +124,7 @@ var ContextData = React.createClass({
         return (
           <span className={
             (valueInfo.isString ? 'val-string' : 'val-repr') +
-            (valueInfo.quotedInPostprocessing ? ' val-auto-quoted' : '')
+            (valueInfo.quotedInPostprocessing ? ' val-auto-quoted' : '') +
             (valueInfo.isMultiLine ? ' val-string-multiline' : '')}>{
               valueInfo.repr}</span>
         );
