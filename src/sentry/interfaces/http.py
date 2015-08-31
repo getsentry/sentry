@@ -132,7 +132,7 @@ class Http(Interface):
             if not cookies and cookie_header:
                 cookies = cookie_header
         else:
-            headers = {}
+            headers = ()
 
         body = data.get('data')
         if isinstance(body, dict):
