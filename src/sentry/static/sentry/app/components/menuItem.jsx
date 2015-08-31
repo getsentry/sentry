@@ -40,13 +40,16 @@ var MenuItem = React.createClass({
             query={this.props.query}
             title={this.props.title}
             onClick={this.handleClick}
+            className={this.props.linkClassName}
             tabIndex="-1">
           {this.props.children}
         </Router.Link>
       );
     }
     return (
-      <a title={this.props.title} onClick={this.handleClick} href={this.props.href} tabIndex="-1">
+      <a title={this.props.title} onClick={this.handleClick}
+          href={this.props.href} className={this.props.linkClassName}
+          tabIndex="-1">
         {this.props.children}
       </a>
     );

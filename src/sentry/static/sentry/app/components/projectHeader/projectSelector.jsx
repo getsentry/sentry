@@ -1,6 +1,7 @@
 import React from "react";
 import Router from "react-router";
 import jQuery from "jquery";
+import ConfigStore from "../../stores/configStore";
 import DropdownLink from "../dropdownLink";
 import MenuItem from "../menuItem";
 
@@ -74,11 +75,56 @@ var ProjectSelector = React.createClass({
       projectId: project.slug
     };
 
+    var label = this.getProjectLabel(team, project);
+
+    if (!this.props.router) {
+      return (
+        <MenuItem key={project.slug} href={this.getRawLink(project)}
+            linkClassName={project.slug == this.props.projectId && 'active'}>
+          {this.highlight(label, highlightText)}
+        </MenuItem>
+      );
+    }
+
     return (
       <MenuItem key={project.slug} to="projectDetails"
             params={projectRouteParams}>
-        {this.highlight(project.name, highlightText)}
+        {this.highlight(label, highlightText)}
       </MenuItem>
+    );
+  },
+
+  getProjectLabel(team, project) {
+    var label = project.name;
+    if (label.indexOf(team.name) === -1) {
+      label = team.name + ' / ' + project.name;
+    }
+    return label;
+  },
+
+  getRawLink(project) {
+    var org = this.props.organization;
+    var urlPrefix = ConfigStore.get('urlPrefix');
+    return urlPrefix + '/' + org.slug + '/' + project.slug + '/';
+  },
+
+  getLinkNode(team, project) {
+    var org = this.props.organization;
+    var label = this.getProjectLabel(team, project);
+
+    if (!this.props.router) {
+      return (
+        <a href={this.getRawLink(project)}>{label}</a>
+      )
+    }
+
+    var projectRouteParams = {
+      orgId: org.slug,
+      projectId: project.slug
+    };
+
+    return (
+      <Router.Link to="stream" params={projectRouteParams}>{label}</Router.Link>
     );
   },
 
@@ -99,22 +145,16 @@ var ProjectSelector = React.createClass({
   },
 
   render() {
-    var projectId = this.props.projectId;
     var org = this.props.organization;
     var filter = this.state.filter;
     var children = [];
     var activeTeam;
     var activeProject;
-    var projectRouteParams = {
-      orgId: org.slug,
-      projectId: projectId
-    };
 
     org.teams.forEach((team) => {
       if (!team.isMember) {
         return;
       }
-      var hasTeam = false;
       team.projects.forEach((project) => {
         if (project.slug == this.props.projectId) {
           activeTeam = team;
@@ -124,28 +164,13 @@ var ProjectSelector = React.createClass({
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
-        if (!hasTeam) {
-          children.push((
-            <li className="team-name" key={'_team' + team.slug}>
-              {this.highlight(team.name, this.state.filter)}
-            </li>
-          ));
-          hasTeam = true;
-        }
         children.push(this.getProjectNode(team, project, this.state.filter));
       });
     });
 
-    var activeProjectName;
-    if (activeProject.name.indexOf(activeTeam.name) === -1) {
-      activeProjectName = activeTeam.name + ' / ' + activeProject.name;
-    } else {
-      activeProjectName = activeProject.name;
-    }
-
     return (
       <div className="project-select" ref="container">
-        <Router.Link to="stream" params={projectRouteParams}>{activeProjectName}</Router.Link>
+        {this.getLinkNode(activeTeam, activeProject)}
         <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
             onOpen={this.onOpen} onClose={this.onClose}>
           <li className="project-filter" key="_filter">
