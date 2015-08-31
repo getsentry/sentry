@@ -24,7 +24,7 @@ var SearchDropdown = React.createClass({
             <p className="search-example">assigned:[me|user@example.com]</p>
           </li>
           <li className="search-autocomplete-item">
-            <span className="icon"><strong>#</strong></span>
+            <span className="icon icon-hash">#</span>
             <h4><span className="search-description">or paste an event id to jump straight to it</span></h4>
           </li>
         </ul>
