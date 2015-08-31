@@ -50,9 +50,9 @@ function padNumbersInString(string) {
   });
 }
 
-function naturalSort(a, b) {
-  a = padNumbersInString(a);
-  b = padNumbersInString(b);
+function naturalCaseInsensitiveSort(a, b) {
+  a = padNumbersInString(a).toLowerCase();
+  b = padNumbersInString(b).toLowerCase();
   return a === b ? 0 : a < b ? -1 : 1;
 }
 
@@ -149,7 +149,7 @@ var ContextData = React.createClass({
         );
       } else {
         var keys = Object.keys(value);
-        keys.sort(naturalSort);
+        keys.sort(naturalCaseInsensitiveSort);
         for (i = 0; i < keys.length; i++) {
           var key = keys[i];
           children.push(
