@@ -233,7 +233,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.object
+        result = dict(serializer.object)
 
         # validate that we've passed a selector for non-status bulk operations
         if not group_ids and result.keys() != ['status']:
@@ -360,16 +360,22 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         # endpoint
         if result.get('merge') and len(group_list) > 1:
             primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
+            children = []
             for group in group_list:
                 if group == primary_group:
                     continue
+                children.append(group)
                 group.update(status=GroupStatus.PENDING_MERGE)
                 merge_group.delay(
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
                 )
+            result['merge'] = {
+                'parent': str(primary_group.id),
+                'children': [str(g.id) for g in children],
+            }
 
-        return Response(dict(result))
+        return Response(result)
 
     def delete(self, request, project):
         """
