@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import re
 import six
+from urlparse import urlsplit, urlunsplit
 
 from sentry.constants import DEFAULT_SCRUBBED_FIELDS
 
@@ -71,10 +72,30 @@ class SensitiveDataFilter(object):
         if value is None:
             return
 
-        if isinstance(value, six.string_types) and self.VALUES_RE.search(value):
-            return self.MASK
+        if isinstance(value, six.string_types):
+            if self.VALUES_RE.search(value):
+                return self.MASK
 
-        if isinstance(key, basestring):
+            # Check if the value is a url-like object
+            # that contains a password
+            # e.g. postgres://foo:password@example.com/db
+            if '//' in value:
+                pieces = urlsplit(value)
+
+                # The following is slightly modified from CPython
+                # source to avoid repeating ourselves:
+                # https://hg.python.org/cpython/file/2.7/Lib/urlparse.py#l87
+                netloc = pieces.netloc
+                if '@' in netloc:
+                    userinfo, host = netloc.rsplit('@', 1)
+                    if ':' in userinfo:
+                        netloc = '%s:%s@%s' % (userinfo.split(':', 1)[0], self.MASK, host)
+                        # Using urlunsplit here is safe because we're guaranteeing netloc
+                        # has a value. If netloc were empty, we could yield incorrect
+                        # results.
+                        return urlunsplit((pieces[0], netloc) + pieces[2:])
+
+        if isinstance(key, six.string_types):
             key = key.lower()
         else:
             key = ''
