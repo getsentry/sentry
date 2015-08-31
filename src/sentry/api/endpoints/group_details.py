@@ -227,7 +227,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             group.status = STATUS_CHOICES[result['status']]
             group.save()
 
-        if result.get('hasSeen'):
+        if result.get('hasSeen') and group.project.member_set.filter(user=request.user).exists():
             instance, created = create_or_update(
                 GroupSeen,
                 group=group,

@@ -2,7 +2,8 @@ import React from "react";
 import Router from "react-router";
 import ApiMixin from "../../mixins/apiMixin";
 import PropTypes from "../../proptypes";
-import utils from "../../utils";
+import TooltipMixin from "../../mixins/tooltip";
+import {escape, percent} from "../../utils";
 
 var TagDistributionMeter = React.createClass({
   contextTypes: {
@@ -16,7 +17,12 @@ var TagDistributionMeter = React.createClass({
   },
 
   mixins: [
-    ApiMixin
+    ApiMixin,
+    TooltipMixin({
+      html: true,
+      selector: ".segment",
+      container: "body"
+    })
   ],
 
   getInitialState() {
@@ -89,7 +95,7 @@ var TagDistributionMeter = React.createClass({
     });
 
     var hasOther = (totalVisible < totalValues);
-    var otherPct = utils.percent(totalValues - totalVisible, totalValues);
+    var otherPct = percent(totalValues - totalVisible, totalValues);
     var otherPctLabel = Math.floor(otherPct);
 
     var currentParams = this.context.router.getCurrentParams();
@@ -105,14 +111,15 @@ var TagDistributionMeter = React.createClass({
         <h6><span>{this.props.name}</span></h6>
         <div className="segments">
           {data.topValues.map((value) => {
-            var pct = utils.percent(value.count, totalValues);
+            var pct = percent(value.count, totalValues);
             var pctLabel = Math.floor(pct);
 
             return (
               <Router.Link
                   className="segment" style={{width: pct + "%"}}
                   to="groupTagValues"
-                  params={params}>
+                  params={params}
+                  title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
                 <span className="tag-description">
                   <span className="tag-percentage">{pctLabel}%</span>
                   <span className="tag-label">{value.name}</span>
@@ -124,7 +131,8 @@ var TagDistributionMeter = React.createClass({
             <Router.Link
                 className="segment" style={{width: otherPct + "%"}}
                 to="groupTagValues"
-                params={params}>
+                params={params}
+                title={'Other<br/>' + otherPctLabel + '%'}>
               <span className="tag-description">
                 <span className="tag-percentage">{otherPctLabel}%</span>
                 <span className="tag-label">Other</span>
