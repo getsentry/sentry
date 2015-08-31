@@ -297,7 +297,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     )
                     activity.send_notification()
 
-        if result.get('hasSeen'):
+        if result.get('hasSeen') and project.member_set.filter(user=request.user).exists():
             for group in group_list:
                 instance, created = create_or_update(
                     GroupSeen,
