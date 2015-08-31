@@ -70,13 +70,6 @@ var RichHttpContent = React.createClass({
 
   render(){
     let data = this.props.data;
-    data.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    data.query='a=b&c=d&awe=foo';
-    data.data = {
-      'a': 'foo',
-      'b': 'derp',
-      'awesome': 'whee'
-    };
     return (
       <div>
         {data.query &&
