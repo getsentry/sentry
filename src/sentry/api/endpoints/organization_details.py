@@ -3,16 +3,16 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamWithProjectsSerializer
-from sentry.auth import access
+from sentry.api.serializers.models.organization import (
+    DetailedOrganizationSerializer
+)
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationAccessRequest,
-    OrganizationStatus, Team, TeamStatus
+    AuditLogEntryEvent, Organization,
+    OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
 
@@ -45,26 +45,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             {method} {path}
 
         """
-        team_list = list(Team.objects.filter(
-            organization=organization,
-            status=TeamStatus.VISIBLE,
-        ))
-
-        feature_list = []
-        if features.has('organizations:sso', organization, actor=request.user):
-            feature_list.append('sso')
-
-        if getattr(organization.flags, 'allow_joinleave'):
-            feature_list.append('open-membership')
-
-        context = serialize(organization, request.user)
-        context['access'] = access.from_user(request.user, organization).scopes
-        context['features'] = feature_list
-        context['teams'] = serialize(
-            team_list, request.user, TeamWithProjectsSerializer())
-        context['pendingAccessRequests'] = OrganizationAccessRequest.objects.filter(
-            team__organization=organization,
-        ).count()
+        context = serialize(
+            organization,
+            request.user,
+            DetailedOrganizationSerializer(),
+        )
         return Response(context)
 
     @sudo_required

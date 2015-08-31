@@ -4,6 +4,9 @@ from django import template
 from django.utils.html import mark_safe
 
 from sentry.api.serializers.base import serialize as serialize_func
+from sentry.api.serializers.models.organization import (
+    DetailedOrganizationSerializer
+)
 from sentry.utils import json
 
 
@@ -26,3 +29,19 @@ def convert_to_json(obj, escape=False):
     if escape:
         data = data.replace('<', '&lt;').replace('>', '&gt;')
     return mark_safe(data)
+
+
+@register.simple_tag(takes_context=True)
+def serialize_detailed_org(context, obj):
+    if 'request' in context:
+        user = context['request'].user
+    else:
+        user = None
+
+    context = serialize_func(
+        obj,
+        user,
+        DetailedOrganizationSerializer(),
+    )
+
+    return mark_safe(json.dumps(context))
