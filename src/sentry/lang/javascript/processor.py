@@ -19,7 +19,7 @@ from urlparse import urlparse, urljoin, urlsplit
 from sentry import http
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, Project, Release, ReleaseFile
+from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
@@ -424,7 +424,7 @@ class SourceProcessor(object):
             version=data['release'],
         )
 
-    def process(self, data):
+    def process(self, project, data):
         stacktraces = self.get_stacktraces(data)
         if not stacktraces:
             logger.debug('No stacktrace for event %r', data['event_id'])
@@ -434,10 +434,6 @@ class SourceProcessor(object):
         if not frames:
             logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
             return
-
-        project = Project.objects.get_from_cache(
-            id=data['project'],
-        )
 
         data.setdefault('errors', [])
         errors = data['errors']

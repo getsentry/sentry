@@ -46,6 +46,7 @@
                     <p>{% blocktrans %}This will restrict requests based on the <code>Origin</code> and <code>Referer</code> headers.{% endblocktrans %}</p>
                     {{ field|as_crispy_field }}
                 {% endwith %}
+                {{ form.scrape_javascript|as_crispy_field }}
                 {{ form.token|as_crispy_field }}
             </fieldset>
             <div class="form-actions">

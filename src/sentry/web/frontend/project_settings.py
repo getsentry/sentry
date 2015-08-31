@@ -55,6 +55,11 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Prevent IP addresses from being stored for new events.'),
         required=False
     )
+    scrape_javascript = forms.BooleanField(
+        label=_('Enable JavaScript source fetching'),
+        help_text=_('Allow Sentry to scrape missing JavaScript source context when possible.'),
+        required=False,
+    )
 
     class Meta:
         fields = ('name', 'platform', 'public', 'team', 'slug')
@@ -177,6 +182,7 @@ class ProjectSettingsView(ProjectView):
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
+                'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
             },
         )
 
@@ -186,7 +192,7 @@ class ProjectSettingsView(ProjectView):
         if form.is_valid():
             project = form.save()
             for opt in ('origins', 'resolve_age', 'scrub_data', 'sensitive_fields',
-                        'scrub_ip_address', 'token'):
+                        'scrape_javascript', 'scrub_ip_address', 'token'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))
