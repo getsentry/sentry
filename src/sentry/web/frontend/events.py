@@ -39,7 +39,7 @@ def replay_event(request, organization, project, group, event_id):
     # TODO(mattrobenolt): Add Cookie as a header
     http = interfaces['sentry.interfaces.Http']
     if http.headers:
-        headers = '\n'.join('%s: %s' % (k, v) for k, v in http.headers.iteritems() if k[0].upper() == k[0])
+        headers = '\n'.join('%s: %s' % (k, v) for k, v in http.headers if k[0].upper() == k[0])
     else:
         headers = ''
 

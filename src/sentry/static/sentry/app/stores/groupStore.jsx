@@ -221,12 +221,19 @@ var GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
-  onMergeSuccess(changeId, itemIds, response) {
-    itemIds.forEach(itemId => {
+  onMergeSuccess(changeId, mergedIds, response) {
+    mergedIds.forEach(itemId => {
       this.clearStatus(itemId, 'merge');
     });
+
+    // Remove all but parent id (items were merged into this one)
+    var mergedIdSet = new Set(mergedIds);
+    this.items = this.items.filter(
+      (item) => !mergedIdSet.has(item.id) || item.id === response.merge.parent
+    );
+
     AlertActions.addAlert(OK_SCHEDULE_MERGE, 'success');
-    this.trigger(new Set(itemIds));
+    this.trigger(new Set(mergedIds));
   },
 
   onUpdate(changeId, itemIds, data) {

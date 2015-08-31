@@ -132,7 +132,7 @@ class Http(Interface):
             if not cookies and cookie_header:
                 cookies = cookie_header
         else:
-            headers = {}
+            headers = ()
 
         body = data.get('data')
         if isinstance(body, dict):
@@ -146,7 +146,7 @@ class Http(Interface):
         kwargs['headers'] = trim_pairs(headers)
         kwargs['data'] = body
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
-        kwargs['fragment'] = trim(fragment, 256)
+        kwargs['fragment'] = trim(fragment, 1024)
 
         return cls(**kwargs)
 
