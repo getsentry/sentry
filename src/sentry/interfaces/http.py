@@ -156,7 +156,7 @@ class Http(Interface):
         kwargs['headers'] = headers
         kwargs['data'] = body
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
-        kwargs['fragment'] = trim(fragment, 256)
+        kwargs['fragment'] = trim(fragment, 1024)
 
         return cls(**kwargs)
 
