@@ -421,7 +421,10 @@ class GroupUpdateTest(APITestCase):
         }, format='json')
         assert response.status_code == 200
         assert response.data == {
-            'merge': True,
+            'merge': {
+                'parent': str(group2.id),
+                'children': [str(group1.id), str(group3.id)],
+            },
         }
 
         assert len(merge_group.mock_calls) == 2
