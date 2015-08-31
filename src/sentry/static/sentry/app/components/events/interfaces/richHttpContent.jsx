@@ -33,7 +33,7 @@ var RichHttpContent = React.createClass({
 
   getBodySection(data) {
     let contentType = data.headers.find(h => h[0] === 'Content-Type');
-    contentType = contentType && contentType[1];
+    contentType = contentType && contentType[1].split(';')[0].toLowerCase();
 
     switch (contentType) {
       case 'application/x-www-form-urlencoded':
