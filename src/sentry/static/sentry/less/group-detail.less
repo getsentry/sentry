@@ -1149,11 +1149,22 @@ pre.val, span.val {
 
 .val-string {
   color: darken(@purple, 5);
+  background: white;
+  border-radius: 3px;
+  padding: 2px 4px;
+  margin: -2px -4px;
 }
 
-.val-string.val-auto-quoted,
 .val-string-multiline {
-  color: darken(@teal, 5);
+  background: white;
+  display: block!important;
+  margin: 0px 0px 0px 15px;
+  overflow: auto;
+}
+
+.val-stripped {
+  color: darken(@red, 5);
+  background: transparent;
 }
 
 .val-repr {
@@ -1184,6 +1195,8 @@ pre.val, span.val {
 
   .val-dict-key, .val-dict-key .val-string {
     color: @red;
+    background: transparent;
+    border-radius: none;
   }
 }
 
