@@ -26,7 +26,9 @@ var App = React.createClass({
 
     // Configure global timezone
     var user = ConfigStore.get('user');
-    moment.tz.setDefault(user.options.timezone);
+    if (user) {
+      moment.tz.setDefault(user.options.timezone);
+    }
 
     api.request('/organizations/', {
       success: (data) => {
