@@ -4,7 +4,9 @@ import json
 import base64
 import inspect
 import requests
+import mimetypes
 
+from StringIO import StringIO
 from pytz import utc
 from datetime import datetime, timedelta
 from random import randint
@@ -162,6 +164,8 @@ def iter_endpoints():
 
 def scenario(ident):
     def decorator(f):
+        if ident in scenarios:
+            raise RuntimeError('Scenario duplicate: %s' % ident)
         scenarios[ident] = f
         f.api_scenario_ident = ident
         return f
@@ -317,6 +321,24 @@ class MockUtils(object):
         )
         return release
 
+    def create_release_file(self, project, release, path,
+                            content_type=None, contents=None):
+        from sentry.models import File, ReleaseFile
+        if content_type is None:
+            content_type = mimetypes.guess_type(path)[0] or 'text/plain'
+            if content_type.startswith('text/'):
+                content_type += '; encoding=utf-8'
+        f = File(name=path.rsplit('/', 1)[-1], type='release.file', headers={
+            'Content-Type': content_type
+        })
+        f.putfile(StringIO(contents or ''))
+        return ReleaseFile.objects.create(
+            project=project,
+            release=release,
+            file=f,
+            name=path
+        )
+
     def create_event(self, project, release, platform='python', raw=True):
         from sentry.utils.samples import create_sample_event
         event = create_sample_event(
@@ -387,16 +409,29 @@ class Runner(object):
         finally:
             org.delete()
 
-    def request(self, method, path, headers=None, data=None, api_key=None):
+    def request(self, method, path, headers=None, data=None, api_key=None,
+                format='json'):
         if api_key is None:
             api_key = self.api_key
         path = '/api/0/' + path.lstrip('/')
         headers = dict(headers or {})
 
+        request_is_json = True
         body = None
+        files = None
+        was_multipart = False
         if data is not None:
-            body = json.dumps(data, sort_keys=True)
-            headers['Content-Type'] = 'application/json'
+            if format == 'json':
+                body = json.dumps(data, sort_keys=True)
+                headers['Content-Type'] = 'application/json'
+            elif format == 'multipart':
+                files = {}
+                for key, value in data.items():
+                    if hasattr(value, 'read') or isinstance(value, tuple):
+                        files[key] = value
+                        del data[key]
+                        was_multipart = True
+                body = data
 
         req_headers = dict(headers)
         req_headers['Host'] = 'app.getsentry.com'
@@ -408,9 +443,10 @@ class Runner(object):
             path,
         )
 
-        response = requests.request(method=method, url=url,
+        response = requests.request(method=method, url=url, files=files,
                                     headers=req_headers, data=body)
         response_headers = dict(response.headers)
+
         # Don't want those
         response_headers.pop('server', None)
         response_headers.pop('date', None)
@@ -422,12 +458,18 @@ class Runner(object):
             response_data = response.text
             is_json = False
 
+        if was_multipart:
+            headers['Content-Type'] = response.request.headers['content-type']
+            data = response.request.body
+            request_is_json = False
+
         rv = {
             'request': {
                 'method': method,
                 'path': path,
                 'headers': headers,
                 'data': data,
+                'is_json': request_is_json,
             },
             'response': {
                 'headers': response_headers,
