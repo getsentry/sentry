@@ -113,6 +113,40 @@ class MessageBuilderTest(TestCase):
         )
 
     @patch('sentry.utils.email.make_msgid')
+    def test_add_groupemailthread(self, make_msgid):
+        make_msgid.return_value = 'abc123'
+
+        msg = MessageBuilder(
+            subject='Test',
+            body='hello world',
+            html_body='<b>hello world</b>',
+            reference=self.group,
+        )
+        msg.send(['foo@example.com'])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ['foo@example.com']
+        assert out.subject == 'Test', 'First message should not have Re: prefix'
+        assert out.extra_headers['Message-Id'] == 'abc123'
+        assert 'In-Reply-To' not in out.extra_headers
+        assert 'References' not in out.extra_headers
+        assert out.body == 'hello world'
+        assert len(out.alternatives) == 1
+        assert out.alternatives[0] == (
+            '<html><body><b>hello world</b></body></html>',
+            'text/html',
+        )
+
+        # Our new EmailThread row was added
+        assert GroupEmailThread.objects.count() == 1
+        thread = GroupEmailThread.objects.all()[0]
+        assert thread.msgid == 'abc123'
+        assert thread.email == 'foo@example.com'
+        assert thread.group == self.group
+
+    @patch('sentry.utils.email.make_msgid')
     def test_reply_reference(self, make_msgid):
         make_msgid.return_value = 'abc123'
 
@@ -129,7 +163,7 @@ class MessageBuilderTest(TestCase):
 
         out = mail.outbox[0]
         assert out.to == ['foo@example.com']
-        assert out.subject == 'Test', 'First message should not have Re: prefix'
+        assert out.subject == 'Re: Test'
         assert out.extra_headers['Message-Id'] == 'abc123'
         assert 'In-Reply-To' not in out.extra_headers
         assert 'References' not in out.extra_headers

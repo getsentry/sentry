@@ -174,19 +174,21 @@ class MessageBuilder(object):
         subject = self.subject
 
         if self.reply_reference is not None:
-            # Only send emails that reference Group objects for now
-            assert isinstance(self.reply_reference, Group)
+            reference = self.reply_reference
+            subject = 'Re: %s' % subject
+        else:
+            reference = self.reference
+
+        if isinstance(reference, Group):
             thread, created = GroupEmailThread.objects.get_or_create(
                 email=to,
-                group=self.reply_reference,
+                group=reference,
                 defaults={
-                    'project': self.reply_reference.project,
+                    'project': reference.project,
                     'msgid': message_id,
-                }
+                },
             )
-
             if not created:
-                subject = 'Re: %s' % subject
                 headers.setdefault('In-Reply-To', thread.msgid)
                 headers.setdefault('References', thread.msgid)
 

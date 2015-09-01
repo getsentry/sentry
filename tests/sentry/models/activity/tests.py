@@ -30,7 +30,7 @@ class SendNotificationTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == '[Sentry] [foo Bar] ERROR: Foo bar'
+        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
         assert msg.to == [self.user.email]
 
     def test_release(self):
