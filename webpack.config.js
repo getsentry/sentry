@@ -44,7 +44,7 @@ var config = {
         exclude: /(vendor|node_modules)/
       },
       {
-        include: /\.json$/,
+        test: /\.json$/,
         loader: "json-loader"
       }
     ]
