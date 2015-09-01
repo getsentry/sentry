@@ -1,6 +1,8 @@
+from mock import patch
+
 from django.core import mail
 
-from sentry.models import User, UserOption
+from sentry.models import User, UserOption, GroupEmailThread
 from sentry.testutils import TestCase
 from sentry.utils.email import MessageBuilder
 
@@ -85,7 +87,10 @@ class MessageBuilderTest(TestCase):
             'foo@example.com',
         ]
 
-    def test_message_id(self):
+    @patch('sentry.utils.email.make_msgid')
+    def test_message_id(self, make_msgid):
+        make_msgid.return_value = 'abc123'
+
         msg = MessageBuilder(
             subject='Test',
             body='hello world',
@@ -99,7 +104,7 @@ class MessageBuilderTest(TestCase):
         out = mail.outbox[0]
         assert out.to == ['foo@example.com']
         assert out.subject == 'Test'
-        assert out.extra_headers['Message-Id'] == '<activity/%s@localhost>' % self.activity.pk
+        assert out.extra_headers['Message-Id'] == 'abc123'
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
@@ -107,7 +112,10 @@ class MessageBuilderTest(TestCase):
             'text/html',
         )
 
-    def test_in_reply_to(self):
+    @patch('sentry.utils.email.make_msgid')
+    def test_reply_reference(self, make_msgid):
+        make_msgid.return_value = 'abc123'
+
         msg = MessageBuilder(
             subject='Test',
             body='hello world',
@@ -121,16 +129,46 @@ class MessageBuilderTest(TestCase):
 
         out = mail.outbox[0]
         assert out.to == ['foo@example.com']
-        assert out.subject == 'Re: Test'
-        assert out.extra_headers['Message-Id'] == '<activity/%s@localhost>' % self.activity.pk
-        assert out.extra_headers['In-Reply-To'] == '<group/%s@localhost>' % self.group.pk
-        assert out.extra_headers['References'] == '<group/%s@localhost>' % self.group.pk
+        assert out.subject == 'Test', 'First message should not have Re: prefix'
+        assert out.extra_headers['Message-Id'] == 'abc123'
+        assert 'In-Reply-To' not in out.extra_headers
+        assert 'References' not in out.extra_headers
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
             '<html><body><b>hello world</b></body></html>',
             'text/html',
         )
+
+        # Our new EmailThread row was added
+        assert GroupEmailThread.objects.count() == 1
+        thread = GroupEmailThread.objects.all()[0]
+        assert thread.msgid == 'abc123'
+        assert thread.email == 'foo@example.com'
+        assert thread.group == self.group
+
+        # new msgid for the next message
+        make_msgid.return_value = '321cba'
+        msg.send(['foo@example.com'])
+
+        assert len(mail.outbox) == 2
+
+        out = mail.outbox[1]
+        assert out.to == ['foo@example.com']
+        assert out.subject == 'Re: Test'
+        assert out.extra_headers['Message-Id'] == '321cba'
+        assert out.extra_headers['In-Reply-To'] == 'abc123'
+        assert out.extra_headers['References'] == 'abc123'
+        assert out.body == 'hello world'
+        assert len(out.alternatives) == 1
+        assert out.alternatives[0] == (
+            '<html><body><b>hello world</b></body></html>',
+            'text/html',
+        )
+
+        # Our new GroupEmailThread row was added
+        assert GroupEmailThread.objects.count() == 1, 'Should not have added a new row'
+        assert GroupEmailThread.objects.all()[0].msgid == 'abc123', 'msgid should not have changed'
 
     def test_get_built_messages(self):
         msg = MessageBuilder(

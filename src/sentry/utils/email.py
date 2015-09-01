@@ -7,7 +7,10 @@ sentry.utils.email
 """
 from __future__ import absolute_import
 
+import os
+import time
 import toronado
+from random import randrange
 
 from django.conf import settings
 from django.core.mail import get_connection, EmailMultiAlternatives
@@ -16,6 +19,7 @@ from django.utils.encoding import force_bytes
 from django.utils.functional import cached_property
 from email.utils import parseaddr
 
+from sentry.models import GroupEmailThread, Group
 from sentry.web.helpers import render_to_string
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -41,10 +45,6 @@ def group_id_to_email(group_id):
     return '@'.join((signed_data.replace(':', '+'), SMTP_HOSTNAME))
 
 
-def email_id_for_model(model):
-    return '<%s/%s@%s>' % (type(model).__name__.lower(), model.pk, FROM_EMAIL_DOMAIN)
-
-
 def domain_from_email(email):
     email = parseaddr(email)[1]
     try:
@@ -52,6 +52,26 @@ def domain_from_email(email):
     except IndexError:
         # The email address is likely malformed or something
         return email
+
+
+# Slightly modified version of Django's
+# `django.core.mail.message:make_msgid` becuase we need
+# to override the domain. If we ever upgrade to
+# django 1.8, we can/should replace this.
+def make_msgid(domain):
+    """Returns a string suitable for RFC 2822 compliant Message-ID, e.g:
+    <20020201195627.33539.96671@nightshade.la.mastaler.com>
+    Optional idstring if given is a string used to strengthen the
+    uniqueness of the message id.  Optional domain if given provides the
+    portion of the message id after the '@'.  It defaults to the locally
+    defined hostname.
+    """
+    timeval = time.time()
+    utcdate = time.strftime('%Y%m%d%H%M%S', time.gmtime(timeval))
+    pid = os.getpid()
+    randint = randrange(100000)
+    msgid = '<%s.%s.%s@%s>' % (utcdate, pid, randint, domain)
+    return msgid
 
 
 FROM_EMAIL_DOMAIN = domain_from_email(settings.DEFAULT_FROM_EMAIL)
@@ -93,16 +113,6 @@ class MessageBuilder(object):
         if self.template:
             return render_to_string(self.template, self.context)
         return self._txt_body
-
-    @cached_property
-    def message_id(self):
-        if self.reference is not None:
-            return email_id_for_model(self.reference)
-
-    @cached_property
-    def reply_to_id(self):
-        if self.reply_reference is not None:
-            return email_id_for_model(self.reply_reference)
 
     def add_users(self, user_ids, project=None):
         from sentry.models import User, UserOption
@@ -157,15 +167,28 @@ class MessageBuilder(object):
         if reply_to:
             headers.setdefault('Reply-To', reply_to)
 
-        if self.message_id is not None:
-            headers.setdefault('Message-Id', self.message_id)
+        # Every message sent needs a unique message id
+        message_id = make_msgid(FROM_EMAIL_DOMAIN)
+        headers.setdefault('Message-Id', message_id)
 
         subject = self.subject
 
-        if self.reply_to_id is not None:
-            headers.setdefault('In-Reply-To', self.reply_to_id)
-            headers.setdefault('References', self.reply_to_id)
-            subject = 'Re: %s' % subject
+        if self.reply_reference is not None:
+            # Only send emails that reference Group objects for now
+            assert isinstance(self.reply_reference, Group)
+            thread, created = GroupEmailThread.objects.get_or_create(
+                email=to,
+                group=self.reply_reference,
+                defaults={
+                    'project': self.reply_reference.project,
+                    'msgid': message_id,
+                }
+            )
+
+            if not created:
+                subject = 'Re: %s' % subject
+                headers.setdefault('In-Reply-To', thread.msgid)
+                headers.setdefault('References', thread.msgid)
 
         msg = EmailMultiAlternatives(
             subject,
