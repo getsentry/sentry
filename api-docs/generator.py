@@ -75,28 +75,18 @@ def spawn_sentry():
 
 @contextmanager
 def management_connection():
-    from psycopg2 import connect
+    from sqlite3 import connect
     cfg = settings.DATABASES['default']
-    con = connect(host=cfg['HOST'],
-                  port=cfg['PORT'] or None,
-                  password=cfg['PASSWORD'] or None,
-                  user=cfg['USER'],
-                  database='postgres')
+    con = connect(cfg['NAME'])
     try:
-        con.cursor().execute('COMMIT')
+        con.cursor()
         yield con
     finally:
         con.close()
 
 
 def init_db():
-    report('db', 'Dropping old database')
-    cfg = settings.DATABASES['default']
-    with management_connection() as con:
-        con.cursor().execute('DROP DATABASE IF EXISTS "%s"' % cfg['NAME'])
-    report('db', 'Creating new database')
-    with management_connection() as con:
-        con.cursor().execute('CREATE DATABASE "%s"' % cfg['NAME'])
+    drop_db()
     report('db', 'Migrating database (this can time some time)')
     call_command('syncdb', migrate=True, interactive=False,
                  traceback=True, verbosity=0)
@@ -104,12 +94,14 @@ def init_db():
 
 def drop_db():
     report('db', 'Dropping database')
-    cfg = settings.DATABASES['default']
-    with management_connection() as con:
-        con.cursor().execute('DROP DATABASE "%s"' % cfg['NAME'])
+    try:
+        os.remove(settings.DATABASES['default']['NAME'])
+    except (OSError, IOError):
+        pass
 
 
 def forcefully_disconnect_clients():
+    return
     report('db', 'Disconnecting database connections')
     cfg = settings.DATABASES['default']
     with management_connection() as con:
