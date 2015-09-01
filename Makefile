@@ -78,7 +78,6 @@ test-cli:
 
 test-js:
 	@echo "--> Running JavaScript tests"
-	@npm install
 	@node_modules/.bin/webpack
 	@npm run test
 	@echo ""
