@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "../../proptypes";
 import Router from "react-router";
+import {isUrl} from "../../utils";
 
 var EventTags = React.createClass({
   contextTypes: {
@@ -28,6 +29,11 @@ var EventTags = React.createClass({
             query={{query: key + ':' + '"' + value + '"'}}>
             {value}
           </Router.Link>
+          {isUrl(value) &&
+            <a href={value} className="external">
+              <em className="icon-browser" />
+            </a>
+          }
         </li>
       );
     }
