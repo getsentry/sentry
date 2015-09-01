@@ -6,6 +6,7 @@ import Count from "../components/count";
 import GroupState from "../mixins/groupState";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
+import {percent} from "../utils";
 
 var GroupTags = React.createClass({
   mixins: [
@@ -73,7 +74,7 @@ var GroupTags = React.createClass({
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
         var valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
-          var pct = parseInt(tagValue.count / tag.totalValues * 100, 10);
+          var pct = percent(tagValue.count, tag.totalValues);
           var params = router.getCurrentParams();
           return (
             <li key={tagValueIdx}>
@@ -119,7 +120,7 @@ var GroupTags = React.createClass({
 
     return (
       <div>
-        <h5>Values seen in the last 7 days.</h5>
+        <h5>Data is based on events seen in the last 7 days.</h5>
         <div className="row">
           {children}
         </div>
