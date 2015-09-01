@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="box">
-    <div class="box-content with-padding" style="padding-bottom: 20px;">
+    <div class="box-content with-padding">
       {% block nav %}
         <ul class="nav nav-tabs border-bottom">
           <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
