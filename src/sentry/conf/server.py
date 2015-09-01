@@ -726,7 +726,7 @@ SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = ''
 
 # URL to embed in js documentation
-SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.19/jquery,native/raven.min.js'
+SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.20/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
