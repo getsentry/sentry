@@ -100,19 +100,6 @@ def drop_db():
         pass
 
 
-def forcefully_disconnect_clients():
-    return
-    report('db', 'Disconnecting database connections')
-    cfg = settings.DATABASES['default']
-    with management_connection() as con:
-        con.cursor().execute('''
-            SELECT pg_terminate_backend(pg_stat_activity.pid)
-            FROM pg_stat_activity
-            WHERE pg_stat_activity.datname = %s
-              AND pid <> pg_backend_pid();
-        ''', (cfg['NAME'],))
-
-
 class SentryBox(object):
 
     def __init__(self):
@@ -127,7 +114,6 @@ class SentryBox(object):
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        forcefully_disconnect_clients()
         drop_db()
         if self.redis is not None:
             report('redis', 'Stopping redis server')
@@ -158,8 +144,12 @@ def run_scenario(vars, scenario_ident, func):
 
 
 @click.command()
-def cli():
+@click.option('--output-path', type=click.Path())
+def cli(output_path):
     """API docs dummy generator."""
+    global OUTPUT_PATH
+    if output_path is not None:
+        OUTPUT_PATH = os.path.abspath(output_path)
     with SentryBox():
         utils = MockUtils()
         report('org', 'Creating user and organization')
