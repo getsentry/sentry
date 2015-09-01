@@ -1,7 +1,7 @@
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-develop: update-submodules setup-git
+develop: update-submodules
 	@echo "--> Installing dependencies"
 	npm install
 	pip install "setuptools>=0.9.8"
