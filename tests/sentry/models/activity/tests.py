@@ -30,11 +30,8 @@ class SendNotificationTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: Foo bar'
+        assert msg.subject == '[Sentry] [foo Bar] ERROR: Foo bar'
         assert msg.to == [self.user.email]
-        assert msg.extra_headers['Message-Id'] == '<activity/%s@localhost>' % activity.pk
-        assert msg.extra_headers['In-Reply-To'] == '<group/%s@localhost>' % self.group.pk
-        assert msg.extra_headers['References'] == '<group/%s@localhost>' % self.group.pk
 
     def test_release(self):
         user_foo = self.create_user('foo@example.com')
