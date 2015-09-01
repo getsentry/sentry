@@ -1,4 +1,4 @@
-
+import moment from "moment-timezone";
 import Reflux from "reflux";
 
 var ConfigStore = Reflux.createStore({
@@ -24,6 +24,12 @@ var ConfigStore = Reflux.createStore({
   loadInitialData(config) {
     config.features = new Set(config.features || []);
     this.config = config;
+
+    // TODO(dcramer): abstract this out of ConfigStore
+    if (config.user) {
+      moment.tz.setDefault(config.user.options.timezone);
+    }
+
     this.trigger(config);
   }
 });
