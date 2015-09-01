@@ -8,6 +8,7 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 import TimeSince from "../components/timeSince";
+import {isUrl} from "../utils";
 
 var GroupTagValues = React.createClass({
   mixins: [GroupState],
@@ -98,12 +99,16 @@ var GroupTagValues = React.createClass({
         <td>{pct}%</td>
           <td>
             <Router.Link
-                className="tag-bar"
                 to="stream"
                 params={params}
                 query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
               {tagValue.name}
             </Router.Link>
+            {isUrl(tagValue.value) &&
+              <a href={tagValue.value} className="external">
+                <em className="icon-browser" />
+              </a>
+            }
           </td>
           <td>
             <TimeSince date={tagValue.lastSeen} />

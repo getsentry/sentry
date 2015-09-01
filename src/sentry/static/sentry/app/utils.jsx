@@ -160,6 +160,10 @@ export default {
     return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
   },
 
+  isUrl(str) {
+    return (str.indexOf('http://') !== -1) || (str.indexOf('https://') !== -1);
+  },
+
   escape(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   },
