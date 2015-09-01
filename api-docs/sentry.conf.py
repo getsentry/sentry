@@ -34,12 +34,8 @@ SENTRY_ADMIN_EMAIL = 'admin@getsentry.com'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': '_sentry_apidocs',
-        'USER': getpass.getuser(),
-        'PASSWORD': '',
-        'HOST': '127.0.0.1',
-        'PORT': '',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/sentry_apidocs.db',
     }
 }
 SENTRY_USE_BIG_INTS = True
