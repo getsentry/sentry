@@ -7,6 +7,7 @@ import GroupState from "../mixins/groupState";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
+import TimeSince from "../components/timeSince";
 
 var GroupTagValues = React.createClass({
   mixins: [GroupState],
@@ -93,32 +94,42 @@ var GroupTagValues = React.createClass({
       var pct = parseInt(tagValue.count / tagKey.totalValues * 100, 10);
       var params = router.getCurrentParams();
       return (
-        <li key={tagValueIdx}>
-          <Router.Link
-              className="tag-bar"
-              to="stream"
-              params={params}
-              query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
-            <span className="tag-bar-background" style={{width: pct + '%'}}></span>
-            <span className="tag-bar-label">{tagValue.name}</span>
-            <span className="tag-bar-count"><Count value={tagValue.count} /></span>
-          </Router.Link>
-        </li>
+        <tr key={tagValueIdx}>
+        <td>{pct}%</td>
+          <td>
+            <Router.Link
+                className="tag-bar"
+                to="stream"
+                params={params}
+                query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
+              {tagValue.name}
+            </Router.Link>
+          </td>
+          <td>
+            <TimeSince date={tagValue.lastSeen} />
+          </td>
+        </tr>
       );
     });
 
     return (
       <div>
-        <div className="box">
-          <div className="box-header">
-            <h3>{tagKey.name} (<Count value={tagKey.totalValues} />)</h3>
-          </div>
-          <div className="box-content with-padding">
-            <ul className="list-unstyled">
-              {children}
-            </ul>
-          </div>
-        </div>
+        <h3>
+          {tagKey.name + ' '}
+          <small><Count value={tagKey.totalValues} /> unique historical values</small>
+        </h3>
+        <table className="table table-striped">
+          <thead>
+            <tr>
+              <th style={{width: 30}}>%</th>
+              <th>Value</th>
+              <th style={{width: 200}}>Last Seen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {children}
+          </tbody>
+        </table>
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
