@@ -1,8 +1,0 @@
-<h6 class="nav-header">API Reference</h6>
-<ul class="nav nav-stacked">
-    <li><a href="{% url 'sentry-api-0-help' %}">Overview</a></li>
-    {% for section in api_sections %}
-      <li><a href="{% url 'sentry-api-0-help-section' section.id %}">{{ section.name }}</a></li>
-    {% endfor %}
-    <li><a href="https://docs.getsentry.com/hosted/clientdev/">Client Specification</a></li>
-</ul>
