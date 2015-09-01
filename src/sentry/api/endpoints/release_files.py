@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from StringIO import StringIO
+
 from django.db import IntegrityError, transaction
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -10,6 +12,39 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import File, Release, ReleaseFile
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('UploadReleaseFile')
+def upload_file_scenario(runner):
+    runner.request(
+        method='POST',
+        path='/projects/%s/%s/releases/%s/files/' % (
+            runner.org.slug, runner.default_project.slug,
+            runner.default_release.version),
+        data={
+            'header': 'Content-Type:text/plain; encoding=utf-8',
+            'name': '/demo/hello.py',
+            'file': ('hello.py', StringIO('print "Hello World!"')),
+        },
+        format='multipart'
+    )
+
+
+@scenario('ListReleaseFiles')
+def list_files_scenario(runner):
+    runner.utils.create_release_file(
+        project=runner.default_project,
+        release=runner.default_release,
+        path='/demo/message-for-you.txt',
+        contents='Hello World!'
+    )
+    runner.request(
+        method='GET',
+        path='/projects/%s/%s/releases/%s/files/' % (
+            runner.org.slug, runner.default_project.slug,
+            runner.default_release.version)
+    )
 
 
 class ConditionalContentNegotiation(DefaultContentNegotiation):
@@ -30,12 +65,20 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
     content_negotiation_class = ConditionalContentNegotiation
 
+    @attach_scenarios([list_files_scenario])
     def get(self, request, project, version):
         """
         List a Release's Files
         ``````````````````````
 
         Retrieve a list of files for a given release.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          release belongs to.
+        :pparam string project_slug: the slug of the project to list the
+                                     release files of.
+        :pparam string version: the version identifier of the release.
+        :auth: required
         """
         try:
             release = Release.objects.get(
@@ -51,6 +94,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
         return Response(serialize(file_list, request.user))
 
+    @attach_scenarios([upload_file_scenario])
     def post(self, request, project, version):
         """
         Upload a New File
@@ -64,6 +108,20 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         The optional 'name' attribute should reflect the absolute path
         that this file will be referenced as. For example, in the case of
         JavaScript you might specify the full web URI.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          release belongs to.
+        :pparam string project_slug: the slug of the project to change the
+                                     release of.
+        :pparam string version: the version identifier of the release.
+        :param string name: the name (full path) of the file.
+        :param file file: the multipart encoded file.
+        :param string header: this parameter can be supplied multiple times
+                              to attach headers to the file.  Each header
+                              is a string in the format ``key:value``.  For
+                              instance it can be used to define a content
+                              type.
+        :auth: required
         """
         try:
             release = Release.objects.get(
