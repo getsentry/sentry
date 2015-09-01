@@ -335,6 +335,7 @@ a.external {
   font-size: 11px;
   padding: 0 5px;
   color: #aaa;
+  line-height: 1;
 }
 
 table.vars {
@@ -2613,7 +2614,9 @@ ul.tag-list {
     border-radius: 3px;
     margin: 0 20px 5px 0;
 
-    a.external { line-height: 1; }
+    span:nth-child(2) {
+      color: #aaa;
+    }
   }
 }
 
