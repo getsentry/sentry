@@ -9,6 +9,29 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('GetTeam')
+def get_team_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/teams/%s/%s/' % (
+            runner.org.slug, runner.default_team.slug)
+    )
+
+
+@scenario('UpdateTeam')
+def update_team_scenario(runner):
+    team = runner.utils.create_team('The Obese Philosophers', runner.org)
+    runner.request(
+        method='PUT',
+        path='/teams/%s/%s/' % (
+            runner.org.slug, team.slug),
+        data={
+            'name': 'The Inflated Philosophers'
+        }
+    )
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -26,6 +49,7 @@ class TeamSerializer(serializers.ModelSerializer):
 class TeamDetailsEndpoint(TeamEndpoint):
     doc_section = DocSection.TEAMS
 
+    @attach_scenarios([get_team_scenario])
     def get(self, request, team):
         """
         Retrieve a Team
@@ -33,14 +57,17 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         Return details on an individual team.
 
-            {method} {path}
-
+        :pparam string organization_slug: the slug of the organization the
+                                          team belongs to.
+        :pparam string team_slug: the slug of the team to get.
+        :auth: required
         """
         context = serialize(team, request.user)
         context['organization'] = serialize(team.organization, request.user)
 
         return Response(context)
 
+    @attach_scenarios([update_team_scenario])
     @sudo_required
     def put(self, request, team):
         """
@@ -49,6 +76,14 @@ class TeamDetailsEndpoint(TeamEndpoint):
 
         Update various attributes and configurable settings for the given
         team.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team belongs to.
+        :pparam string team_slug: the slug of the team to get.
+        :param string name: the new name for the team.
+        :param string slug: a new slug for the team.  It has to be unique
+                            and available.
+        :auth: required
         """
         serializer = TeamSerializer(team, data=request.DATA, partial=True)
         if serializer.is_valid():
