@@ -65,7 +65,7 @@ def manage_projects(request):
         project_list = project_list.filter(name__icontains=project_query)
 
     sort = request.GET.get('sort')
-    if sort not in ('name', 'date', 'events'):
+    if sort not in ('name', 'date'):
         sort = 'date'
 
     if sort == 'date':
@@ -93,7 +93,7 @@ def manage_users(request):
         user_list = user_list.filter(email__icontains=user_query)
 
     sort = request.GET.get('sort')
-    if sort not in ('name', 'joined', 'login', 'projects'):
+    if sort not in ('name', 'joined', 'login'):
         sort = 'joined'
 
     if sort == 'joined':
