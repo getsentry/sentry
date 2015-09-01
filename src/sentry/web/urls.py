@@ -117,7 +117,6 @@ urlpatterns += patterns(
         name='sentry-release-hook'),
     url(r'^api/embed/error-page/$', ErrorPageEmbedView.as_view(),
         name='sentry-error-page-embed'),
-    url(r'^api/', include('sentry.api.help_urls')),
 
     # Auth
     url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthLinkIdentityView.as_view(),
