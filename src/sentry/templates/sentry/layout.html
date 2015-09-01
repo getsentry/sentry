@@ -3,6 +3,7 @@
 {% load sentry_dsn %}
 {% load sentry_features %}
 {% load sentry_helpers %}
+{% load sentry_react %}
 
 {% load sentry_status %}
 {% get_sentry_version %}
@@ -38,6 +39,8 @@
 
       window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
     }());
+
+    Sentry.ConfigStore.loadInitialData({% get_react_config %});
   </script>
 
   {% include "sentry/includes/ravenjs.html" %}

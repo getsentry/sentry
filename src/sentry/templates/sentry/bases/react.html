@@ -15,24 +15,6 @@
   $(function(){
     Router.run(Sentry.routes, Router.HistoryLocation, function(Handler) {
       React.render(React.createFactory(Handler)({
-        config: {
-          singleOrganization: {% if SINGLE_ORGANIZATION %}true{% else %}false{% endif %},
-          urlPrefix: '{{ URL_PREFIX }}',
-          version: {
-            current: '{{ sentry_version.current }}',
-            latest: '{{ sentry_version.latest }}',
-            upgradeAvailable: {% if sentry_version.upgrade_available %}true{% else %}false{% endif %}
-          },
-          features: {{ features }},
-          mediaUrl: '{% url 'sentry-media' "sentry" '' %}',
-        {% if request.user.is_authenticated %}
-          isAuthenticated: true,
-          user: {% serialize request.user %}
-        {% else %}
-          isAuthenticated: false,
-          user: null
-        {% endif %}
-        }
       }), document.getElementById('blk_router'));
     });
   });

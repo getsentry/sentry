@@ -1,19 +1,13 @@
 import React from "react";
 import api from "../api";
 import Router from "react-router";
-import moment from "moment-timezone";
 import Alerts from "../components/alerts";
 import AlertActions from "../actions/alertActions.jsx";
-import ConfigStore from "../stores/configStore";
 import Indicators from "../components/indicators";
 import LoadingIndicator from "../components/loadingIndicator";
 import OrganizationStore from "../stores/organizationStore";
 
 var App = React.createClass({
-  propTypes: {
-    config: React.PropTypes.object.isRequired
-  },
-
   getInitialState() {
     return {
       loading: false,
@@ -22,14 +16,6 @@ var App = React.createClass({
   },
 
   componentWillMount() {
-    ConfigStore.loadInitialData(this.props.config);
-
-    // Configure global timezone
-    var user = ConfigStore.get('user');
-    if (user) {
-      moment.tz.setDefault(user.options.timezone);
-    }
-
     api.request('/organizations/', {
       success: (data) => {
         OrganizationStore.load(data);
