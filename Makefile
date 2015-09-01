@@ -8,10 +8,10 @@ develop-only: update-submodules
 	# order matters here, base package must install first
 	pip install -e .
 	pip install "file://`pwd`#egg=sentry[dev]"
-	pip install "file://`pwd`#egg=sentry[tests]"
-	@echo ""
 
 develop: update-submodules setup-git develop-only
+	pip install "file://`pwd`#egg=sentry[tests]"
+	@echo ""
 
 dev-postgres: develop
 	pip install "file://`pwd`#egg=sentry[postgres]"
