@@ -501,8 +501,8 @@ class Stacktrace(Interface):
         stack_invalid = (
             len(frames) == 1 and frames[0].lineno == 1
             and frames[0].function in ('?', None) and frames[0].is_url()
-            and not frames[0].filename.endswith('.js')
         )
+
         if stack_invalid:
             return []
 
