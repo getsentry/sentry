@@ -17,9 +17,9 @@ MEMBERSHIP_CHOICES = (
 
 
 class EditOrganizationMemberForm(forms.ModelForm):
-    type = CustomTypedChoiceField(label=_('Membership Type'), choices=(), coerce=int)
+    type = CustomTypedChoiceField(label=_('Role'), choices=(), coerce=int)
     has_global_access = forms.BooleanField(
-        label=_('This member should have access to all teams within the organization.'),
+        label=_('This member should have global access within the organization (including all teams).'),
         required=False,
     )
     teams = forms.ModelMultipleChoiceField(
