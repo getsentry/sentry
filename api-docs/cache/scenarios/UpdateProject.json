@@ -1,0 +1,54 @@
+{
+  "ident": "UpdateProject",
+  "requests": [
+    {
+      "request": {
+        "data": {
+          "name": "Plane Proxy",
+          "options": {
+            "sentry:origins": "http://example.com\nhttp://example.invalid"
+          },
+          "slug": "plane-proxy"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "is_json": true,
+        "method": "PUT",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/plain-proxy/"
+      },
+      "response": {
+        "data": {
+          "dateCreated": "2015-09-01T13:35:30.845Z",
+          "features": [
+            "quotas",
+            "user-reports"
+          ],
+          "id": "8",
+          "isPublic": false,
+          "name": "Plane Proxy",
+          "options": {
+            "sentry:origins": "http://example.com\nhttp://example.invalid",
+            "sentry:resolve_age": 0
+          },
+          "permission": {
+            "admin": true,
+            "owner": true
+          },
+          "slug": "plane-proxy"
+        },
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

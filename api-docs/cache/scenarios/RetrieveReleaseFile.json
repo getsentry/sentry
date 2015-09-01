@@ -1,0 +1,37 @@
+{
+  "ident": "RetrieveReleaseFile",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "is_json": true,
+        "method": "GET",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64/files/3/"
+      },
+      "response": {
+        "data": {
+          "dateCreated": "2015-09-01T13:35:30.618Z",
+          "headers": {
+            "Content-Type": "text/plain; encoding=utf-8"
+          },
+          "id": "3",
+          "name": "/demo/readme.txt",
+          "sha1": "2ef7bde608ce5404e97d5f042f95f89f1c232871",
+          "size": 12
+        },
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

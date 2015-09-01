@@ -3,10 +3,17 @@
   "internal_path": "sentry.api.endpoints.project_details.ProjectDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/",
-  "scenarios": [],
+  "scenarios": [
+    "GetProject"
+  ],
   "section": "projects",
   "text": [
-    "Return details on an individual project."
+    "Return details on an individual project.",
+    "",
+    ":pparam string organization_slug: the slug of the organization the",
+    "                                  project belongs to.",
+    ":pparam string project_slug: the slug of the project to delete.",
+    ":auth: required"
   ],
   "title": "Retrieve a Project"
 }

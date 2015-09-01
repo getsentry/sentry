@@ -10,6 +10,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
+        "is_json": true,
         "method": "PUT",
         "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?id=2&id=1"
       },

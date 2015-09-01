@@ -1,0 +1,45 @@
+{
+  "ident": "CreateNewRelease",
+  "requests": [
+    {
+      "request": {
+        "data": {
+          "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+          "version": "2.0rc2"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "is_json": true,
+        "method": "POST",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/"
+      },
+      "response": {
+        "data": {
+          "data": {},
+          "dateCreated": "2015-09-01T13:35:22.117Z",
+          "dateReleased": "2015-09-01T13:35:22.117Z",
+          "dateStarted": null,
+          "firstEvent": null,
+          "lastEvent": null,
+          "newGroups": 0,
+          "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+          "shortVersion": "2.0rc2",
+          "url": null,
+          "version": "2.0rc2"
+        },
+        "headers": {
+          "allow": "GET, POST, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "CREATED",
+        "status": 201
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

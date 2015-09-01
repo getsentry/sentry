@@ -11,7 +11,7 @@
     "Updates an individual aggregate's attributes.  Only the attributes",
     "submitted are modified.",
     "",
-    ":pparam int group_id: the ID of the group to retrieve.",
+    ":pparam string group_id: the ID of the group to retrieve.",
     ":param string status: the new status for the groups.  Valid values",
     "                      are ``\"resolved\"``, ``\"unresolved\"`` and",
     "                      ``\"muted\"``.",

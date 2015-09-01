@@ -3,10 +3,16 @@
   "internal_path": "sentry.api.endpoints.organization_projects.OrganizationProjectsEndpoint:get",
   "method": "GET",
   "path": "/api/0/organizations/{organization_slug}/projects/",
-  "scenarios": [],
+  "scenarios": [
+    "ListOrganizationProjects"
+  ],
   "section": "organizations",
   "text": [
-    "Return a list of projects bound to a organization."
+    "Return a list of projects bound to a organization.",
+    "",
+    ":pparam string organization_slug: the slug of the organization for",
+    "                                  which the projects should be listed.",
+    ":auth: required"
   ],
   "title": "List an Organization's Projects"
 }

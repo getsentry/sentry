@@ -1,0 +1,42 @@
+{
+  "ident": "UpdateClientKey",
+  "requests": [
+    {
+      "request": {
+        "data": {
+          "name": "Quite Positive Key"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "is_json": true,
+        "method": "PUT",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/keys/c4db0675a8514ffbbe072b761ddfcafb/"
+      },
+      "response": {
+        "data": {
+          "dateCreated": "2015-09-01T13:35:30.678Z",
+          "dsn": {
+            "public": "https://c4db0675a8514ffbbe072b761ddfcafb@app.getsentry.com//2",
+            "secret": "https://c4db0675a8514ffbbe072b761ddfcafb:88432f70e8ba465cb01f61b901e804bf@app.getsentry.com//2"
+          },
+          "id": "c4db0675a8514ffbbe072b761ddfcafb",
+          "label": "Quite Positive Key",
+          "public": "c4db0675a8514ffbbe072b761ddfcafb",
+          "secret": "88432f70e8ba465cb01f61b901e804bf"
+        },
+        "headers": {
+          "allow": "PUT, DELETE, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

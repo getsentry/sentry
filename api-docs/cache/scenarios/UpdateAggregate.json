@@ -9,6 +9,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
+        "is_json": true,
         "method": "PUT",
         "path": "/api/0/groups/1/"
       },
@@ -18,12 +19,12 @@
           "assignedTo": null,
           "count": "1",
           "culprit": "raven.scripts.runner in main",
-          "firstSeen": "2015-08-27T21:35:20Z",
+          "firstSeen": "2015-09-01T13:35:07Z",
           "hasSeen": false,
           "id": "1",
           "isBookmarked": false,
           "isPublic": false,
-          "lastSeen": "2015-08-27T21:35:20Z",
+          "lastSeen": "2015-09-01T13:35:07Z",
           "level": "error",
           "logger": null,
           "numComments": 0,

@@ -3,12 +3,17 @@
   "internal_path": "sentry.api.endpoints.team_details.TeamDetailsEndpoint:get",
   "method": "GET",
   "path": "/api/0/teams/{organization_slug}/{team_slug}/",
-  "scenarios": [],
+  "scenarios": [
+    "GetTeam"
+  ],
   "section": "teams",
   "text": [
     "Return details on an individual team.",
     "",
-    "    {method} {path}"
+    ":pparam string organization_slug: the slug of the organization the",
+    "                                  team belongs to.",
+    ":pparam string team_slug: the slug of the team to get.",
+    ":auth: required"
   ],
   "title": "Retrieve a Team"
 }
