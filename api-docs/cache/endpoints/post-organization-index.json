@@ -6,7 +6,14 @@
   "scenarios": [],
   "section": "organizations",
   "text": [
-    "Create a new organization."
+    "Create a new organization owned by the request's user.  To create",
+    "an organization only the name is required.",
+    "",
+    ":param string name: the human readable name for the new organization.",
+    ":param string slug: the unique URL slug for this organization.  If",
+    "                    this is not provided a slug is automatically",
+    "                    generated based on the name.",
+    ":auth: required, user-context-needed"
   ],
   "title": "Create a New Organization"
 }

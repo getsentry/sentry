@@ -1,0 +1,40 @@
+{
+  "ident": "ListYourOrganizations",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "is_json": true,
+        "method": "GET",
+        "path": "/api/0/organizations/"
+      },
+      "response": {
+        "data": [
+          {
+            "dateCreated": "2015-09-01T13:35:06.944Z",
+            "id": "2",
+            "isGlobal": false,
+            "name": "The Interstellar Jurisdiction",
+            "permission": {
+              "admin": true,
+              "owner": true
+            },
+            "slug": "the-interstellar-jurisdiction"
+          }
+        ],
+        "headers": {
+          "allow": "GET, POST, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

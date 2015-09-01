@@ -3,10 +3,19 @@
   "internal_path": "sentry.api.endpoints.release_files.ReleaseFilesEndpoint:get",
   "method": "GET",
   "path": "/api/0/projects/{organization_slug}/{project_slug}/releases/{version}/files/",
-  "scenarios": [],
+  "scenarios": [
+    "ListReleaseFiles"
+  ],
   "section": "releases",
   "text": [
-    "Retrieve a list of files for a given release."
+    "Retrieve a list of files for a given release.",
+    "",
+    ":pparam string organization_slug: the slug of the organization the",
+    "                                  release belongs to.",
+    ":pparam string project_slug: the slug of the project to list the",
+    "                             release files of.",
+    ":pparam string version: the version identifier of the release.",
+    ":auth: required"
   ],
   "title": "List a Release's Files"
 }

@@ -1,0 +1,110 @@
+{
+  "ident": "ListOrganizationProjects",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "is_json": true,
+        "method": "GET",
+        "path": "/api/0/organizations/the-interstellar-jurisdiction/projects/"
+      },
+      "response": {
+        "data": [
+          {
+            "dateCreated": "2015-09-01T13:35:11.554Z",
+            "features": [
+              "quotas",
+              "user-reports"
+            ],
+            "id": "3",
+            "isPublic": false,
+            "name": "Prime Mover",
+            "permission": {
+              "admin": true,
+              "owner": true
+            },
+            "slug": "prime-mover",
+            "team": {
+              "dateCreated": "2015-09-01T13:35:06.964Z",
+              "id": "2",
+              "isMember": false,
+              "isPending": false,
+              "name": "Powerful Abolitionist",
+              "permission": {
+                "admin": true,
+                "owner": true
+              },
+              "slug": "powerful-abolitionist"
+            }
+          },
+          {
+            "dateCreated": "2015-09-01T13:35:06.970Z",
+            "features": [
+              "quotas",
+              "user-reports"
+            ],
+            "id": "2",
+            "isPublic": false,
+            "name": "Pump Station",
+            "permission": {
+              "admin": true,
+              "owner": true
+            },
+            "slug": "pump-station",
+            "team": {
+              "dateCreated": "2015-09-01T13:35:06.964Z",
+              "id": "2",
+              "isMember": false,
+              "isPending": false,
+              "name": "Powerful Abolitionist",
+              "permission": {
+                "admin": true,
+                "owner": true
+              },
+              "slug": "powerful-abolitionist"
+            }
+          },
+          {
+            "dateCreated": "2015-09-01T13:35:22.079Z",
+            "features": [
+              "quotas",
+              "user-reports"
+            ],
+            "id": "5",
+            "isPublic": false,
+            "name": "The Spoiled Yoghurt",
+            "permission": {
+              "admin": true,
+              "owner": true
+            },
+            "slug": "the-spoiled-yoghurt",
+            "team": {
+              "dateCreated": "2015-09-01T13:35:06.964Z",
+              "id": "2",
+              "isMember": false,
+              "isPending": false,
+              "name": "Powerful Abolitionist",
+              "permission": {
+                "admin": true,
+                "owner": true
+              },
+              "slug": "powerful-abolitionist"
+            }
+          }
+        ],
+        "headers": {
+          "allow": "GET, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

@@ -1,0 +1,56 @@
+{
+  "ident": "ListReleases",
+  "requests": [
+    {
+      "request": {
+        "data": null,
+        "headers": {},
+        "is_json": true,
+        "method": "GET",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/"
+      },
+      "response": {
+        "data": [
+          {
+            "data": {},
+            "dateCreated": "2015-09-01T13:35:22.117Z",
+            "dateReleased": "2015-09-01T13:35:22.117Z",
+            "dateStarted": null,
+            "firstEvent": null,
+            "lastEvent": null,
+            "newGroups": 0,
+            "ref": "6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb",
+            "shortVersion": "2.0rc2",
+            "url": null,
+            "version": "2.0rc2"
+          },
+          {
+            "data": {},
+            "dateCreated": "2015-09-01T13:35:06.983Z",
+            "dateReleased": null,
+            "dateStarted": null,
+            "firstEvent": null,
+            "lastEvent": null,
+            "newGroups": 0,
+            "ref": null,
+            "shortVersion": "4aeb08e0edfb",
+            "url": null,
+            "version": "4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64"
+          }
+        ],
+        "headers": {
+          "allow": "GET, POST, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "link": "<https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/?&cursor=4:0:1>; rel=\"previous\"; results=\"false\"; cursor=\"4:0:1\", <https://app.getsentry.com/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/?&cursor=1:0:0>; rel=\"next\"; results=\"false\"; cursor=\"1:0:0\"",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

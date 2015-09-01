@@ -1,0 +1,41 @@
+{
+  "ident": "UpdateReleaseFile",
+  "requests": [
+    {
+      "request": {
+        "data": {
+          "name": "/demo/goodbye.txt"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "is_json": true,
+        "method": "PUT",
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64/files/4/"
+      },
+      "response": {
+        "data": {
+          "dateCreated": "2015-09-01T13:35:34.894Z",
+          "headers": {
+            "Content-Type": "text/plain; encoding=utf-8"
+          },
+          "id": "4",
+          "name": "/demo/goodbye.txt",
+          "sha1": "94d6b21e962a9fc65889617ec1f17a1e2fe11b65",
+          "size": 15
+        },
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}

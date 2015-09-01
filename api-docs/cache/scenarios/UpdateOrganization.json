@@ -1,0 +1,43 @@
+{
+  "ident": "UpdateOrganization",
+  "requests": [
+    {
+      "request": {
+        "data": {
+          "name": "Impeccably Designated",
+          "slug": "impeccably-designated"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "is_json": true,
+        "method": "PUT",
+        "path": "/api/0/organizations/badly-misnamed/"
+      },
+      "response": {
+        "data": {
+          "dateCreated": "2015-09-01T13:35:30.716Z",
+          "id": "3",
+          "isGlobal": false,
+          "name": "Impeccably Designated",
+          "permission": {
+            "admin": true,
+            "owner": true
+          },
+          "slug": "impeccably-designated"
+        },
+        "headers": {
+          "allow": "GET, PUT, DELETE, HEAD, OPTIONS",
+          "content-language": "en-us",
+          "content-type": "application/json",
+          "vary": "Accept-Language, Cookie"
+        },
+        "is_json": true,
+        "reason": "OK",
+        "status": 200
+      }
+    }
+  ],
+  "text": [],
+  "title": null
+}
