@@ -8,7 +8,7 @@ import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 import TimeSince from "../components/timeSince";
-import {isUrl} from "../utils";
+import {isUrl, percent} from "../utils";
 
 var GroupTagValues = React.createClass({
   mixins: [GroupState],
@@ -92,7 +92,7 @@ var GroupTagValues = React.createClass({
     var router = this.context.router;
     var tagKey = this.state.tagKey;
     var children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
-      var pct = parseInt(tagValue.count / tagKey.totalValues * 100, 10);
+      var pct = percent(tagValue.count, tagKey.totalValues);
       var params = router.getCurrentParams();
       return (
         <tr key={tagValueIdx}>
@@ -121,8 +121,11 @@ var GroupTagValues = React.createClass({
       <div>
         <h3>
           {tagKey.name + ' '}
-          <small><Count value={tagKey.totalValues} /> unique historical values</small>
+          <small><Count value={tagKey.uniqueValues} /> unique historical values</small>
         </h3>
+        <div className="alert alert-info alert-block">
+          Data is based on events seen in the last 7 days.
+        </div>
         <table className="table table-striped">
           <thead>
             <tr>
