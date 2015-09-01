@@ -7,6 +7,28 @@ from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Project, AuditLogEntryEvent
+from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+@scenario('ListTeamProjects')
+def list_team_projects_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/teams/%s/%s/projects/' % (
+            runner.org.slug, runner.default_team.slug)
+    )
+
+
+@scenario('CreateNewProject')
+def create_project_scenario(runner):
+    runner.request(
+        method='POST',
+        path='/teams/%s/%s/projects/' % (
+            runner.org.slug, runner.default_team.slug),
+        data={
+            'name': 'The Spoiled Yoghurt'
+        }
+    )
 
 
 class ProjectSerializer(serializers.Serializer):
@@ -25,8 +47,10 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
 
         Return a list of projects bound to a team.
 
-            {method} {path}
-
+        :pparam string organization_slug: the slug of the organization the
+                                          team belongs to.
+        :pparam string team_slug: the slug of the team to list the projects of.
+        :auth: required
         """
         if request.user.is_authenticated():
             results = list(Project.objects.get_for_user(
