@@ -11,15 +11,15 @@
         },
         "is_json": true,
         "method": "PUT",
-        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64/files/4/"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/65407d0eebf52cdc7c90d9df761ccc8027e5250e/files/3/"
       },
       "response": {
         "data": {
-          "dateCreated": "2015-09-01T13:35:34.894Z",
+          "dateCreated": "2015-09-01T20:47:19.146Z",
           "headers": {
             "Content-Type": "text/plain; encoding=utf-8"
           },
-          "id": "4",
+          "id": "3",
           "name": "/demo/goodbye.txt",
           "sha1": "94d6b21e962a9fc65889617ec1f17a1e2fe11b65",
           "size": 15

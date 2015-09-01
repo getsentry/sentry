@@ -7,21 +7,21 @@
         "headers": {},
         "is_json": true,
         "method": "GET",
-        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64/"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/65407d0eebf52cdc7c90d9df761ccc8027e5250e/"
       },
       "response": {
         "data": {
           "data": {},
-          "dateCreated": "2015-09-01T13:35:06.983Z",
+          "dateCreated": "2015-09-01T20:46:53.707Z",
           "dateReleased": null,
           "dateStarted": null,
           "firstEvent": null,
           "lastEvent": null,
           "newGroups": 0,
           "ref": null,
-          "shortVersion": "4aeb08e0edfb",
+          "shortVersion": "65407d0eebf5",
           "url": null,
-          "version": "4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64"
+          "version": "65407d0eebf52cdc7c90d9df761ccc8027e5250e"
         },
         "headers": {
           "allow": "GET, PUT, DELETE, HEAD, OPTIONS",

@@ -7,15 +7,15 @@
         "headers": {},
         "is_json": true,
         "method": "GET",
-        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64/files/3/"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/65407d0eebf52cdc7c90d9df761ccc8027e5250e/files/2/"
       },
       "response": {
         "data": {
-          "dateCreated": "2015-09-01T13:35:30.618Z",
+          "dateCreated": "2015-09-01T20:47:15.101Z",
           "headers": {
             "Content-Type": "text/plain; encoding=utf-8"
           },
-          "id": "3",
+          "id": "2",
           "name": "/demo/readme.txt",
           "sha1": "2ef7bde608ce5404e97d5f042f95f89f1c232871",
           "size": 12

@@ -11,19 +11,19 @@
         },
         "is_json": true,
         "method": "PUT",
-        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/keys/c4db0675a8514ffbbe072b761ddfcafb/"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/keys/87dd5f9e8ff541e68d3ed03099023203/"
       },
       "response": {
         "data": {
-          "dateCreated": "2015-09-01T13:35:30.678Z",
+          "dateCreated": "2015-09-01T20:47:15.142Z",
           "dsn": {
-            "public": "https://c4db0675a8514ffbbe072b761ddfcafb@app.getsentry.com//2",
-            "secret": "https://c4db0675a8514ffbbe072b761ddfcafb:88432f70e8ba465cb01f61b901e804bf@app.getsentry.com//2"
+            "public": "https://87dd5f9e8ff541e68d3ed03099023203@app.getsentry.com//2",
+            "secret": "https://87dd5f9e8ff541e68d3ed03099023203:4159246983484fad8a7b6ac584febeb6@app.getsentry.com//2"
           },
-          "id": "c4db0675a8514ffbbe072b761ddfcafb",
+          "id": "87dd5f9e8ff541e68d3ed03099023203",
           "label": "Quite Positive Key",
-          "public": "c4db0675a8514ffbbe072b761ddfcafb",
-          "secret": "88432f70e8ba465cb01f61b901e804bf"
+          "public": "87dd5f9e8ff541e68d3ed03099023203",
+          "secret": "4159246983484fad8a7b6ac584febeb6"
         },
         "headers": {
           "allow": "PUT, DELETE, OPTIONS",

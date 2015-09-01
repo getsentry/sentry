@@ -15,15 +15,15 @@
       },
       "response": {
         "data": {
-          "dateCreated": "2015-09-01T13:35:22.052Z",
+          "dateCreated": "2015-09-01T20:47:06.667Z",
           "dsn": {
-            "public": "https://8db964f07977481da6171a0c37c7add5@app.getsentry.com//2",
-            "secret": "https://8db964f07977481da6171a0c37c7add5:4831e9c61fc246a6b991c31b8a226abf@app.getsentry.com//2"
+            "public": "https://0563ac784acd4a849ce28e38c9c49221@app.getsentry.com//2",
+            "secret": "https://0563ac784acd4a849ce28e38c9c49221:b72753a6c7ed446eb65bb2ac7410b7b0@app.getsentry.com//2"
           },
-          "id": "8db964f07977481da6171a0c37c7add5",
+          "id": "0563ac784acd4a849ce28e38c9c49221",
           "label": "Fabulous Key",
-          "public": "8db964f07977481da6171a0c37c7add5",
-          "secret": "4831e9c61fc246a6b991c31b8a226abf"
+          "public": "0563ac784acd4a849ce28e38c9c49221",
+          "secret": "b72753a6c7ed446eb65bb2ac7410b7b0"
         },
         "headers": {
           "allow": "GET, POST, HEAD, OPTIONS",
