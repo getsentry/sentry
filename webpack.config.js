@@ -18,6 +18,7 @@ var config = {
       "jquery",
       "markdown",
       "moment",
+      "moment-timezone",
       "raven-js",
       "react/addons",
       "react-datepicker",
