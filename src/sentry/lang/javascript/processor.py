@@ -365,7 +365,7 @@ def generate_module(src):
 
 
 def generate_culprit(frame):
-    return '%s in %s' % (frame.module, frame.function)
+    return '%s in %s' % (frame.module or frame.filename, frame.function)
 
 
 class SourceProcessor(object):
@@ -450,8 +450,8 @@ class SourceProcessor(object):
         return data
 
     def fix_culprit(self, data, stacktraces):
-        culprit_frame = stacktraces[0][1].frames[-1]
-        if culprit_frame.module and culprit_frame.function:
+        culprit_frame = stacktraces[-1][1].frames[-1]
+        if culprit_frame.filename and culprit_frame.function:
             data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
 
     def update_stacktraces(self, stacktraces):
