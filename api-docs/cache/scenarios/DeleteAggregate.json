@@ -7,7 +7,7 @@
         "headers": {},
         "is_json": true,
         "method": "DELETE",
-        "path": "/api/0/groups/7/"
+        "path": "/api/0/groups/5/"
       },
       "response": {
         "data": "",

@@ -7,7 +7,7 @@
         "headers": {},
         "is_json": true,
         "method": "DELETE",
-        "path": "/api/0/projects/the-interstellar-jurisdiction/amazing-plumbing/groups/?id=6&id=5"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/amazing-plumbing/groups/?id=5&id=6"
       },
       "response": {
         "data": "",

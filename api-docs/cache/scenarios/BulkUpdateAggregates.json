@@ -12,7 +12,7 @@
         },
         "is_json": true,
         "method": "PUT",
-        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?id=2&id=1"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/groups/?id=1&id=2"
       },
       "response": {
         "data": {

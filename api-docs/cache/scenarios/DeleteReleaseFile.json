@@ -7,7 +7,7 @@
         "headers": {},
         "is_json": true,
         "method": "DELETE",
-        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/4aeb08e0edfb0c09bcd72380cb4927a85a2d3d64/files/1/"
+        "path": "/api/0/projects/the-interstellar-jurisdiction/pump-station/releases/65407d0eebf52cdc7c90d9df761ccc8027e5250e/files/1/"
       },
       "response": {
         "data": "",
