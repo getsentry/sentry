@@ -28,7 +28,11 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             {method} {path}
 
         """
-        results = list(Project.objects.get_for_user(team=team, user=request.user))
+        if request.user.is_authenticated():
+            results = list(Project.objects.get_for_user(
+                team=team, user=request.user))
+        else:
+            results = list(Project.objects.filter(team=team))
 
         return Response(serialize(results, request.user))
 
