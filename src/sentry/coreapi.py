@@ -76,6 +76,10 @@ class InvalidTimestamp(Exception):
     pass
 
 
+class InvalidFingerprint(Exception):
+    pass
+
+
 class Auth(object):
     def __init__(self, auth_vars, is_public=False):
         self.client = auth_vars.get('sentry_client')
@@ -310,6 +314,17 @@ class ClientApiHelper(object):
 
         return data
 
+    def _process_fingerprint(self, data):
+        if not isinstance(data['fingerprint'], (list, tuple)):
+            raise InvalidFingerprint
+
+        result = []
+        for bit in data['fingerprint']:
+            if not isinstance(bit, (basestring, int, float)):
+                raise InvalidFingerprint
+            result.append(unicode(bit))
+        return result
+
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet
         data['project'] = project.id
@@ -354,6 +369,19 @@ class ClientApiHelper(object):
                     'value': data['timestamp'],
                 })
                 del data['timestamp']
+
+        if 'fingerprint' in data:
+            try:
+                self._process_fingerprint(data)
+            except InvalidFingerprint as e:
+                self.log.info(
+                    'Discarded invalid value for fingerprint: %r',
+                    data['fingerprint'], exc_info=True)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'fingerprint',
+                    'value': data['fingerprint'],
+                })
 
         if data.get('modules') and type(data['modules']) != dict:
             self.log.info(

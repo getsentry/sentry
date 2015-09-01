@@ -8,8 +8,8 @@ from datetime import datetime
 from uuid import UUID
 
 from sentry.coreapi import (
-    APIError, APIUnauthorized, Auth, ClientApiHelper, InvalidTimestamp,
-    get_interface
+    APIError, APIUnauthorized, Auth, ClientApiHelper, InvalidFingerprint,
+    InvalidTimestamp, get_interface
 )
 from sentry.testutils import TestCase
 
@@ -62,6 +62,25 @@ class ProjectFromAuthTest(BaseAPITest):
     def test_invalid_secret(self):
         auth = Auth({'sentry_key': self.pk.public_key, 'sentry_secret': 'z'})
         self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+
+
+class ProcessFingerprintTest(BaseAPITest):
+    def test_invalid_as_string(self):
+        self.assertRaises(InvalidFingerprint, self.helper._process_fingerprint, {
+            'fingerprint': '2012-01-01T10:30:45',
+        })
+
+    def test_invalid_component(self):
+        self.assertRaises(InvalidFingerprint, self.helper._process_fingerprint, {
+            'fingerprint': ['foo', ['bar']],
+        })
+
+    def simple(self):
+        data = self.helper._process_fingerprint({
+            'fingerprint': ['{{default}}', 1, 'bar', 4.5],
+        })
+        self.assertTrue('fingerprint' in data)
+        self.assertEquals(data['fingerprint'], ['{{default}}', '1', 'bar', '4.5'])
 
 
 class ProcessDataTimestampTest(BaseAPITest):
