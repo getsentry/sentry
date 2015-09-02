@@ -238,20 +238,24 @@ class BaseManager(Manager):
         return create_or_update(self.model, **kwargs)
 
     def bind_nodes(self, object_list, *node_names):
-        from sentry import app
+        from sentry.app import nodestore
 
         object_node_list = []
         for name in node_names:
-            object_node_list.extend((getattr(i, name) for i in object_list if getattr(i, name).id))
+            object_node_list.extend(
+                ((i, getattr(i, name))
+                for i in object_list
+                if getattr(i, name).id)
+            )
 
-        node_ids = [n.id for n in object_node_list]
+        node_ids = [n.id for _, n in object_node_list]
         if not node_ids:
             return
 
-        node_results = app.nodestore.get_multi(node_ids)
+        node_results = nodestore.get_multi(node_ids)
 
-        for node in object_node_list:
-            node.bind_data(node_results.get(node.id) or {})
+        for item, node in object_node_list:
+            node.bind_data(node_results.get(node.id) or {}, ref=item.pk)
 
     def uncache_object(self, instance_id):
         pk_name = self.model._meta.pk.name
