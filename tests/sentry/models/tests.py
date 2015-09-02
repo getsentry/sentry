@@ -143,4 +143,4 @@ class EventNodeStoreTest(TestCase):
 
         Event.objects.bind_nodes([event], 'data')
 
-        assert event.data.ref == event.pk
+        assert event.data.ref == event.group.id

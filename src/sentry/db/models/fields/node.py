@@ -38,7 +38,8 @@ class NodeIntegrityFailure(Exception):
 
 
 class NodeData(collections.MutableMapping):
-    def __init__(self, id, data=None):
+    def __init__(self, field, id, data=None):
+        self.field = field
         self.id = id
         self.ref = None
         self._node_data = data
@@ -64,6 +65,12 @@ class NodeData(collections.MutableMapping):
             return '<%s: id=%s data=%r>' % (
                 cls_name, self.id, repr(self._node_data))
         return '<%s: id=%s>' % (cls_name, self.id,)
+
+    def get_ref(self, instance):
+        ref_func = self.field.ref_func
+        if not ref_func:
+            return
+        return ref_func(instance)
 
     @memoize
     def data(self):
@@ -91,7 +98,9 @@ class NodeData(collections.MutableMapping):
         self._node_data = data
 
     def bind_ref(self, instance):
-        self.data['_ref'] = instance.pk
+        ref = self.get_ref(instance)
+        if ref:
+            self.data['_ref'] = ref
 
 
 class NodeField(GzippedDictField):
@@ -100,6 +109,10 @@ class NodeField(GzippedDictField):
     to an external node.
     """
     __metaclass__ = models.SubfieldBase
+
+    def __init__(self, *args, **kwargs):
+        self.ref_func = kwargs.pop('ref_func', None)
+        super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
         super(NodeField, self).contribute_to_class(cls, name)
@@ -134,7 +147,7 @@ class NodeField(GzippedDictField):
             node_id = None
             data = value
 
-        return NodeData(node_id, data)
+        return NodeData(self, node_id, data)
 
     def get_prep_value(self, value):
         from sentry.app import nodestore

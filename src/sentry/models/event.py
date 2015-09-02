@@ -38,7 +38,7 @@ class Event(Model):
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
-    data = NodeField(blank=True, null=True)
+    data = NodeField(blank=True, null=True, ref_func=lambda x: x.group_id or x.group.id)
 
     objects = BaseManager()
 
