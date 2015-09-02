@@ -134,3 +134,13 @@ class EventNodeStoreTest(TestCase):
 
         with pytest.raises(NodeIntegrityFailure):
             Event.objects.bind_nodes([event], 'data')
+
+    def test_accepts_valid_ref(self):
+        invalid_event = self.create_event()
+        event = self.create_event()
+        event.data.bind_ref(event)
+        event.save()
+
+        Event.objects.bind_nodes([event], 'data')
+
+        assert event.data.ref == event.pk
