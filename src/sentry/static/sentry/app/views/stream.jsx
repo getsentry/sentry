@@ -50,6 +50,7 @@ var Stream = React.createClass({
       loading: true,
       error: false,
       query: this.props.defaultQuery,
+      sort: this.props.defaultSort,
       filter: {}
     }, this.getQueryStringState());
   },
@@ -96,18 +97,25 @@ var Stream = React.createClass({
       filter = { assigned: "1" };
     }
 
-    var query = (
+    var query =
       currentQuery.hasOwnProperty("query") ?
       currentQuery.query :
-      this.props.defaultQuery);
-    var statsPeriod = (
+      this.props.defaultQuery;
+
+    var sort =
+      currentQuery.hasOwnProperty("sort") ?
+      currentQuery.sort :
+      this.props.defaultSort;
+
+    var statsPeriod =
       currentQuery.hasOwnProperty("statsPeriod") ?
       currentQuery.statsPeriod :
-      this.props.defaultStatsPeriod);
+      this.props.defaultStatsPeriod;
 
     return {
       filter: filter,
       query: query,
+      sort: sort,
       statsPeriod: statsPeriod
     };
   },
@@ -331,7 +339,9 @@ var Stream = React.createClass({
 
     return (
       <div>
-        <StreamFilters query={this.state.query}
+        <StreamFilters
+          query={this.state.query}
+          sort={this.state.sort}
           defaultQuery={this.props.defaultQuery}
           onSortChange={this.onSortChange}
           onFilterChange={this.onFilterChange}
