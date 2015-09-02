@@ -388,10 +388,9 @@ class EventManager(object):
         using = group._state.db
 
         event.group = group
+        event.group_id = group.id
         # store a reference to the group id to guarantee validation of isolation
-        # TODO(dcramer): ideally NodeField would do this itself, but it's unable
-        # to
-        event.data.bind_ref(group)
+        event.data.bind_ref(event)
 
         try:
             with transaction.atomic():
