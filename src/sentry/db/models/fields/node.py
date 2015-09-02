@@ -13,6 +13,7 @@ import logging
 import six
 import warnings
 
+from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
 from south.modelsinspector import add_introspection_rules
@@ -28,9 +29,18 @@ __all__ = ('NodeField',)
 logger = logging.getLogger('sentry')
 
 
+class NodeUnpopulated(Exception):
+    pass
+
+
+class NodeIntegrityFailure(Exception):
+    pass
+
+
 class NodeData(collections.MutableMapping):
     def __init__(self, id, data=None):
         self.id = id
+        self.ref = None
         self._node_data = data
 
     def __getitem__(self, key):
@@ -57,19 +67,31 @@ class NodeData(collections.MutableMapping):
 
     @memoize
     def data(self):
-        from sentry import app
+        from sentry.app import nodestore
 
         if self._node_data is not None:
             return self._node_data
 
         elif self.id:
-            warnings.warn('You should populate node data before accessing it.')
-            return app.nodestore.get(self.id) or {}
+            if settings.DEBUG:
+                raise NodeUnpopulated('You should populate node data before accessing it.')
+            else:
+                warnings.warn('You should populate node data before accessing it.')
+            self.bind_data(nodestore.get(self.id) or {})
+            return self._node_data
 
         return {}
 
-    def bind_data(self, data):
+    def bind_data(self, data, ref=None):
+        self.ref = data.pop('_ref', ref)
+        if ref is not None and self.ref != ref:
+            raise NodeIntegrityFailure('Node reference for %s is invalid: %s != %s' % (
+                self.id, ref, self.ref,
+            ))
         self._node_data = data
+
+    def bind_ref(self, instance):
+        self.data['_ref'] = instance.pk
 
 
 class NodeField(GzippedDictField):
@@ -87,13 +109,13 @@ class NodeField(GzippedDictField):
             weak=False)
 
     def on_delete(self, instance, **kwargs):
-        from sentry import app
+        from sentry.app import nodestore
 
         value = getattr(instance, self.name)
         if not value.id:
             return
 
-        app.nodestore.delete(value.id)
+        nodestore.delete(value.id)
 
     def to_python(self, value):
         if isinstance(value, six.string_types) and value:
@@ -115,7 +137,7 @@ class NodeField(GzippedDictField):
         return NodeData(node_id, data)
 
     def get_prep_value(self, value):
-        from sentry import app
+        from sentry.app import nodestore
 
         if not value and self.null:
             # save ourselves some storage
@@ -124,9 +146,9 @@ class NodeField(GzippedDictField):
         # TODO(dcramer): we should probably do this more intelligently
         # and manually
         if not value.id:
-            value.id = app.nodestore.create(value.data)
+            value.id = nodestore.create(value.data)
         else:
-            app.nodestore.set(value.id, value.data)
+            nodestore.set(value.id, value.data)
 
         return compress(pickle.dumps({
             'node_id': value.id
