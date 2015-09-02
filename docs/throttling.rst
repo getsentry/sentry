@@ -94,7 +94,7 @@ firewall, in our case, IPTables. If you're not sure how IPTables works,
 take a look at `Ubuntu's IPTables How-to
 <https://help.ubuntu.com/community/IptablesHowTo>`_.
 
-A sampe configuration, which will limit a single IP from bursting more
+A sample configuration, which will limit a single IP from bursting more
 than 5 messages in a 10 second period might look like this::
 
     # create a new chain for rate limiting
