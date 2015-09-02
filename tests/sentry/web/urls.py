@@ -9,7 +9,8 @@ admin.autodiscover()
 
 from . import views
 
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^fake-login$', views.fake_login, name='sentry-fake-login'),
     url(r'^trigger-500$', views.raise_exc, name='sentry-raise-exc'),
