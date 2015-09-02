@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 
 from sentry.models import (
-    Activity, Event, Group, Organization, Project, Rule, Team
+    Activity, Event, Group, Organization, Project, Rule, Team,
 )
 from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
@@ -36,16 +36,23 @@ class MailPreview(object):
 
 @login_required
 def new_event(request):
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
     team = Team(
         id=1,
         slug='example',
         name='Example',
+        organization=org,
     )
     project = Project(
         id=1,
         slug='example',
         name='Example',
         team=team,
+        organization=org,
     )
     group = Group(
         id=1,
@@ -81,6 +88,7 @@ def new_event(request):
             'link': 'http://example.com/link',
             'interfaces': interface_list,
             'tags': event.get_tags(),
+            'project_label': project.name,
         },
     )
 
@@ -91,16 +99,23 @@ def new_event(request):
 
 @login_required
 def new_note(request):
+    org = Organization(
+        id=1,
+        slug='example',
+        name='Example',
+    )
     team = Team(
         id=1,
         slug='example',
         name='Example',
+        organization=org,
     )
     project = Project(
         id=1,
         slug='example',
         name='Example',
         team=team,
+        organization=org,
     )
     group = Group(
         id=1,
@@ -121,10 +136,10 @@ def new_note(request):
     )
 
     preview = MailPreview(
-        html_template='sentry/emails/new_note.html',
-        text_template='sentry/emails/new_note.txt',
+        html_template='sentry/emails/activity/note.html',
+        text_template='sentry/emails/activity/note.txt',
         context={
-            'text': note.data['text'],
+            'data': note.data,
             'author': note.user,
             'date': note.datetime,
             'group': group,
