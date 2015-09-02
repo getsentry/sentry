@@ -27,7 +27,7 @@ class GroupEmailThread(Model):
     email = models.EmailField()
     project = FlexibleForeignKey('sentry.Project', related_name="groupemail_set")
     group = FlexibleForeignKey('sentry.Group', related_name="groupemail_set")
-    msgid = models.CharField(max_length=100, unique=True)
+    msgid = models.CharField(max_length=100)
     date = models.DateTimeField(default=timezone.now, db_index=True)
 
     objects = BaseManager()
@@ -35,6 +35,9 @@ class GroupEmailThread(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_groupemailthread'
-        unique_together = ('email', 'group')
+        unique_together = (
+            ('email', 'group'),
+            ('email', 'msgid'),
+        )
 
     __repr__ = sane_repr('email', 'group_id', 'msgid')
