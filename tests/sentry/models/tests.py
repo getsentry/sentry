@@ -128,9 +128,9 @@ class EventNodeStoreTest(TestCase):
 
     def test_screams_bloody_murder_when_ref_fails(self):
         group1 = self.create_group()
-        invalid_event = self.create_event(group1)
+        invalid_event = self.create_event(group=group1)
         group2 = self.create_group()
-        event = self.create_event(group2)
+        event = self.create_event(group=group2)
         event.data.bind_ref(invalid_event)
         event.save()
 
