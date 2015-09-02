@@ -78,7 +78,8 @@ if settings.DEBUG:
     from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
     from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 
-    urlpatterns += patterns('',
+    urlpatterns += patterns(
+        '',
         url(r'^debug/mail/new-event/$',
             sentry.web.frontend.debug.mail.new_event),
         url(r'^debug/mail/new-note/$',
@@ -95,7 +96,8 @@ if settings.DEBUG:
             DebugTriggerErrorView.as_view()),
     )
 
-urlpatterns += patterns('',
+urlpatterns += patterns(
+    '',
     # Store endpoints first since they are the most active
     url(r'^api/store/$', api.StoreView.as_view(),
         name='sentry-api-store'),

@@ -48,7 +48,8 @@ def handler_healthcheck(request):
         return HttpResponse('ok')
 
 
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^500/', handler500, name='error-500'),
     url(r'^404/', handler404, name='error-400'),
