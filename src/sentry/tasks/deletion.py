@@ -136,7 +136,7 @@ def delete_project(object_id, continuous=True, **kwargs):
 def delete_group(object_id, continuous=True, **kwargs):
     from sentry.models import (
         EventMapping, Group, GroupHash, GroupRuleStatus, GroupStatus,
-        GroupTagKey, GroupTagValue
+        GroupTagKey, GroupTagValue, GroupEmailThread,
     )
 
     try:
@@ -148,7 +148,8 @@ def delete_group(object_id, continuous=True, **kwargs):
         group.update(status=GroupStatus.DELETION_IN_PROGRESS)
 
     bulk_model_list = (
-        GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey, EventMapping
+        GroupHash, GroupRuleStatus, GroupTagValue, GroupTagKey,
+        EventMapping, GroupEmailThread,
     )
     for model in bulk_model_list:
         has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)
