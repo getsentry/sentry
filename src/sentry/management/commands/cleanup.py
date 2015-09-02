@@ -16,7 +16,7 @@ from optparse import make_option
 from sentry.app import nodestore
 from sentry.models import (
     Activity, Event, EventMapping, Group, GroupRuleStatus, GroupTagValue,
-    LostPasswordHash, TagValue
+    LostPasswordHash, TagValue, GroupEmailThread,
 )
 from sentry.utils import db
 from sentry.utils.threadpool import ThreadPool
@@ -41,6 +41,7 @@ class Command(BaseCommand):
         (GroupTagValue, 'last_seen'),
         (Activity, 'datetime'),
         (TagValue, 'last_seen'),
+        (GroupEmailThread, 'date'),
     )
 
     GENERIC_DELETES = (
