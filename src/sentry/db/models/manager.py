@@ -255,7 +255,8 @@ class BaseManager(Manager):
         node_results = nodestore.get_multi(node_ids)
 
         for item, node in object_node_list:
-            node.bind_data(node_results.get(node.id) or {}, ref=item.pk)
+            data = node_results.get(node.id) or {}
+            node.bind_data(data, ref=node.get_ref(item))
 
     def uncache_object(self, instance_id):
         pk_name = self.model._meta.pk.name
