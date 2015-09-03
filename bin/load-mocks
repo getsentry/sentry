@@ -12,7 +12,7 @@ from hashlib import md5
 from pytz import utc
 from random import randint
 
-from sentry.app import tsdb
+from sentry.app import tsdb, buffer
 from sentry.models import (
     Activity, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport
@@ -254,6 +254,9 @@ def main(num_events=1):
             create_sample_time_series(event3)
             create_sample_time_series(event4)
 
+            if hasattr(buffer, 'process_pending'):
+                print('    > Processing pending buffers')
+                buffer.process_pending()
 
         OrganizationAccessRequest.objects.create_or_update(
             member=dummy_member,
@@ -272,7 +275,6 @@ def main(num_events=1):
 
 
 if __name__ == '__main__':
-    from django.conf import settings
     settings.CELERY_ALWAYS_EAGER = True
 
     from optparse import OptionParser
