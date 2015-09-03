@@ -90,6 +90,12 @@
         <a href="/" class="logo"><span class="icon-sentry-logo"></span></a>
         {% endblock %}
 
+        <ul class="global-nav pull-right">
+          {% block global_nav %}
+          <li><a href="https://docs.getsentry.com">{% trans "Docs" %}</a></li>
+          {% endblock %}
+        </ul>
+
         {% if not SINGLE_ORGANIZATION and request.user.is_authenticated and organization %}
         {% block org_selector %}
         <div class="org-selector pull-right">
@@ -111,11 +117,6 @@
         </div>
         {% endblock %}
         {% endif %}
-        <ul class="global-nav pull-right">
-          {% block global_nav %}
-          <li><a href="https://docs.getsentry.com">{% trans "Docs" %}</a></li>
-          {% endblock %}
-        </ul>
       </div>
     </header>
     {% endblock %}
