@@ -19,6 +19,7 @@ import warnings
 from functools import partial
 
 USE_GEVENT = os.environ.get('USE_GEVENT') == '1'
+SKIP_BACKEND_VALIDATION = os.environ.get('SKIP_BACKEND_VALIDATION') == '1'
 
 KEY_LENGTH = 40
 
@@ -322,7 +323,7 @@ def initialize_app(config, skip_backend_validation=False):
 
     initialize_receivers()
 
-    if not skip_backend_validation:
+    if not (skip_backend_validation or SKIP_BACKEND_VALIDATION):
         validate_backends()
 
 
