@@ -1,6 +1,6 @@
 import React from "react";
 import Reflux from "reflux";
-import $ from "jquery";
+import jQuery from "jquery";
 import Cookies from "js-cookie";
 import api from "../api";
 import EventRow from "../components/events/eventRow";
@@ -124,7 +124,7 @@ var ProjectEvents = React.createClass({
     var params = router.getCurrentParams();
     var queryParams = router.getCurrentQuery();
     queryParams.limit = 50;
-    var querystring = $.param(queryParams);
+    var querystring = jQuery.param(queryParams);
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/events/?' + querystring;
   },
@@ -157,8 +157,9 @@ var ProjectEvents = React.createClass({
   onPage(cursor) {
     var router = this.context.router;
     var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
-    queryParams.cursor = cursor;
+    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+      cursor: cursor
+    });
 
     router.transitionTo('events', params, queryParams);
   },

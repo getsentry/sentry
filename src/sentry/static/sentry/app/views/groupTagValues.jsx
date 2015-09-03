@@ -1,6 +1,6 @@
 import React from "react";
 import Router from "react-router";
-import $ from "jquery";
+import jQuery from "jquery";
 import api from "../api";
 import Count from "../components/count";
 import GroupState from "../mixins/groupState";
@@ -35,7 +35,7 @@ var GroupTagValues = React.createClass({
     var router = this.context.router;
     var params = router.getCurrentParams();
     var queryParams = router.getCurrentQuery();
-    var querystring = $.param(queryParams);
+    var querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,
@@ -76,8 +76,9 @@ var GroupTagValues = React.createClass({
 
   onPage(cursor) {
     var router = this.context.router;
-    var queryParams = router.getCurrentQuery();
-    queryParams.cursor = cursor;
+    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+      cursor: cursor
+    });
 
     router.transitionTo('groupTagValues', router.getCurrentParams(), queryParams);
   },

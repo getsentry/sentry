@@ -1,4 +1,4 @@
-import $ from "jquery";
+import jQuery from "jquery";
 import React from "react";
 import Router from "react-router";
 import api from "../api";
@@ -31,7 +31,7 @@ var GroupEvents = React.createClass({
 
   fetchData() {
     var queryParams = this.context.router.getCurrentQuery();
-    var querystring = $.param(queryParams);
+    var querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,
@@ -58,8 +58,9 @@ var GroupEvents = React.createClass({
 
   onPage(cursor) {
     var router = this.context.router;
-    var queryParams = router.getCurrentQuery();
-    queryParams.cursor = cursor;
+    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+      cursor: cursor
+    });
 
     router.transitionTo('groupEvents', this.context.router.getCurrentParams(), queryParams);
   },
