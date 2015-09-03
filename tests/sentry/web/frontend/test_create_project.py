@@ -47,13 +47,11 @@ class CreateProjectTest(TestCase):
         resp = self.client.post(path, {
             'name': 'bar',
             'team': team.slug,
-            'platform': 'python',
         })
         assert resp.status_code == 302, resp.context['form'].errors
 
         project = Project.objects.get(team__organization=organization, name='bar')
 
-        assert project.platform == 'python'
         assert project.team == team
 
         redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])

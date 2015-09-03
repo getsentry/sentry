@@ -34,8 +34,8 @@ admin.site.register(Broadcast, BroadcastAdmin)
 
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'organization', 'platform', 'status', 'date_added')
-    list_filter = ('status', 'platform', 'public')
+    list_display = ('name', 'slug', 'organization', 'status', 'date_added')
+    list_filter = ('status', 'public')
     search_fields = ('name', 'organization__slug', 'organization__name', 'team__slug',
                      'team__name', 'slug')
     raw_id_fields = ('team', 'organization')

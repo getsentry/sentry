@@ -38,7 +38,7 @@ class Command(BaseCommand):
         if options['platform'] not in PLATFORM_LIST:
             raise CommandError('Invalid platform. Must specify one of: %s' % ', '.join(PLATFORM_LIST))
 
-        platform = options['platform'] or project.platform
+        platform = options['platform']
         event = create_sample_event(project, platform)
         if not event:
             raise CommandError('Unable to create an event for platform %r' % (str(platform),))

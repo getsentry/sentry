@@ -23,7 +23,7 @@ logger = get_task_logger(__name__)
 
 def _capture_stats(event, is_new):
     group = event.group
-    platform = group.platform or group.project.platform
+    platform = group.platform
     if not platform:
         return
     platform = PLATFORM_ROOTS.get(platform, platform)

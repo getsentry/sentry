@@ -21,7 +21,7 @@ class AddProjectWithTeamForm(AddProjectForm):
     )
 
     class Meta:
-        fields = ('name', 'team', 'platform')
+        fields = ('name', 'team')
         model = Project
 
     def __init__(self, user, team_list, *args, **kwargs):
