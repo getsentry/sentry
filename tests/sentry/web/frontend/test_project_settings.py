@@ -77,7 +77,6 @@ class ProjectSettingsTest(TestCase):
         resp = self.client.post(self.path, {
             'name': 'bar',
             'slug': self.project.slug,
-            'platform': 'python',
             'team': self.team.id,
             'scrub_data': '1',
             'token': 'foobar',

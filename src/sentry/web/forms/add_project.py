@@ -17,16 +17,9 @@ class AddProjectForm(forms.ModelForm):
         }),
         help_text='Using the repository name generally works well.',
     )
-    platform = forms.ChoiceField(
-        choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
-        widget=forms.Select(attrs={
-            'data-placeholder': _('Select a platform'),
-        }),
-        help_text='Your platform choice helps us setup some defaults for this project.',
-    )
 
     class Meta:
-        fields = ('name', 'platform')
+        fields = ('name',)
         model = Project
 
     def save(self, actor, team, ip_address):
@@ -44,6 +37,6 @@ class AddProjectForm(forms.ModelForm):
             data=project.get_audit_log_data(),
         )
 
-        create_sample_event(project)
+        create_sample_event(project, platform='javascript')
 
         return project

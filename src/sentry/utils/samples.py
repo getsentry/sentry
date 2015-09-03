@@ -69,9 +69,6 @@ def load_data(platform, default=None):
 
 def create_sample_event(project, platform=None, default=None, tags=None,
                         release=None):
-    if not platform:
-        platform = project.platform
-
     if not platform and not default:
         return
 
