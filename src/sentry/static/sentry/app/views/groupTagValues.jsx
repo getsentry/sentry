@@ -107,7 +107,7 @@ var GroupTagValues = React.createClass({
             </Router.Link>
             {isUrl(tagValue.value) &&
               <a href={tagValue.value} className="external">
-                <em className="icon-browser" />
+                <em className="icon-open" />
               </a>
             }
           </td>
