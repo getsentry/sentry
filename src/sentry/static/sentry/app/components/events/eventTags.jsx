@@ -34,7 +34,7 @@ var EventTags = React.createClass({
           </Router.Link>
           {isUrl(value) &&
             <a href={value} className="external">
-              <em className="icon-browser" />
+              <em className="icon-open" />
             </a>
           }
         </li>
