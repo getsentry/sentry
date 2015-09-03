@@ -1,7 +1,6 @@
 import Router from "react-router";
 import React from "react";
 import PropTypes from "../../proptypes";
-import utils from "../../utils";
 
 var GroupEventToolbar  = React.createClass({
   propTypes: {
@@ -46,22 +45,6 @@ var GroupEventToolbar  = React.createClass({
       ),
     ];
 
-    var entryLinks = evt.entries.map(function(entry, entryIdx){
-      return (
-        <li key={entryIdx}>
-          <a href={"#" + entry.type}>{utils.toTitleCase(entry.type)}</a>
-        </li>
-      );
-    });
-
-    if (!utils.objectIsEmpty(evt.context)) {
-      entryLinks.push((
-        <li key="extra">
-          <a href="#extra">Extra</a>
-        </li>
-      ));
-    }
-
     return (
       <div className="event-toolbar">
         <div className="pull-right">
@@ -71,10 +54,7 @@ var GroupEventToolbar  = React.createClass({
             <a className="btn btn-default"><span className="icon-skip-forward"></span></a>
           </div>
         </div>
-        <ul className="nav nav-tabs">
-          <li className="active"><a href="#tags">Tags</a></li>
-          {entryLinks}
-        </ul>
+        <h4>Event Details <small>{evt.eventID}</small></h4>
       </div>
     );
   }
