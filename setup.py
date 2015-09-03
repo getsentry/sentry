@@ -23,6 +23,7 @@ any application.
 """
 from __future__ import absolute_import
 
+import os
 import datetime
 import json
 import os.path
@@ -47,6 +48,7 @@ for m in ('multiprocessing', 'billiard'):
         pass
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
+IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
     'flake8>=2.0,<2.1',
@@ -102,7 +104,7 @@ install_requires = [
     'PyYAML>=3.11,<4.0',
     'raven>=5.3.0',
     'redis>=2.10.3,<2.11.0',
-    'requests[security]>=2.7.0,<2.8.0',
+    'requests%s>=2.7.0,<2.8.0' % (IS_LIGHT_BUILD and '[security]' or ''),
     'simplejson>=3.1.0,<3.4.0',
     'six>=1.6.0,<2.0.0',
     'setproctitle>=1.1.7,<1.2.0',
@@ -128,7 +130,8 @@ mysql_requires = [
 
 class DevelopWithBuildStatic(develop):
     def install_for_development(self):
-        self.run_command('build_static')
+        if not IS_LIGHT_BUILD:
+            self.run_command('build_static')
         return develop.install_for_development(self)
 
 
