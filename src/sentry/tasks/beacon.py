@@ -47,13 +47,6 @@ def send_beacon():
         install_id = sha1(uuid4().hex).hexdigest()
         options.set('sentry:install-id', install_id)
 
-    internal_project_ids = filter(bool, [
-        settings.SENTRY_PROJECT, settings.SENTRY_FRONTEND_PROJECT,
-    ])
-    platform_list = list(set(Project.objects.exclude(
-        id__in=internal_project_ids,
-    ).values_list('platform', flat=True)))
-
     end = timezone.now()
     events_24h = tsdb.get_sums(
         model=tsdb.models.internal,
@@ -69,7 +62,6 @@ def send_beacon():
         'data': {
             # TODO(dcramer): we'd also like to get an idea about the throughput
             # of the system (i.e. events in 24h)
-            'platforms': platform_list,
             'users': User.objects.count(),
             'projects': Project.objects.count(),
             'teams': Team.objects.count(),

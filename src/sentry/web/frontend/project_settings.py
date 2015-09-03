@@ -24,8 +24,6 @@ BLANK_CHOICE = [("", "")]
 class EditProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Project Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('Production')}))
-    platform = forms.ChoiceField(choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
-        widget=forms.Select(attrs={'data-placeholder': _('Select a platform')}))
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
@@ -61,7 +59,7 @@ class EditProjectForm(forms.ModelForm):
     )
 
     class Meta:
-        fields = ('name', 'platform', 'team', 'slug')
+        fields = ('name', 'team', 'slug')
         model = Project
 
     def __init__(self, request, organization, team_list, data, instance, *args, **kwargs):
