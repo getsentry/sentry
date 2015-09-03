@@ -87,7 +87,6 @@ class CreateTeamTest(TestCase):
             'op': 'continue',
             'step': '1',
             'ctwizard-1-name': 'bar',
-            'ctwizard-1-platform': 'python',
         })
         assert resp.status_code == 302
 
@@ -98,7 +97,6 @@ class CreateTeamTest(TestCase):
         project = Project.objects.get(team=team)
 
         assert project.name == 'bar'
-        assert project.platform == 'python'
 
         redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
 
