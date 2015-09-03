@@ -972,10 +972,15 @@ table.integrations {
   }
 
   .dropdown-menu {
-    width: 250px;
+    min-width: 250px;
+    max-width: 500px;
+    width: auto;
     padding-bottom: 0;
     left: 0;
     .clearfix;
+    overflow: auto;
+    max-height: 500px;
+    white-space: nowrap;
 
     &:before {
       left: 11px;
@@ -986,8 +991,6 @@ table.integrations {
     }
 
     .project-filter {
-      width: 100%;
-      float: none;
       padding: 0;
       margin-bottom: -1px;
 
@@ -1010,7 +1013,15 @@ table.integrations {
 
     li {
       position: relative;
-      padding: 3px 15px;
+      padding: 2px 5px 2px 15px;
+
+      &:nth-child(2) {
+        margin-top: 5px;
+      }
+
+      &:last-child {
+        margin-bottom: 5px;
+      }
 
       strong {
         font-weight: normal;
@@ -1021,8 +1032,7 @@ table.integrations {
       > a {
         .truncate();
         border-radius: 2px;
-        padding: 0;
-        padding-left: 6px;
+        padding: 0 0 0 6px;
         border-radius: 0;
         line-height: 1;
         margin: 4px 0 4px -9px;
