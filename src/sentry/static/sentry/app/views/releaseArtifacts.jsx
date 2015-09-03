@@ -1,10 +1,12 @@
 import React from "react";
 import PropTypes from "../proptypes";
+import jQuery from "jquery";
 
 import api from "../api";
 import FileSize from "../components/fileSize";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
+import Pagination from "../components/pagination";
 
 var ReleaseArtifacts = React.createClass({
   contextTypes: {
@@ -57,6 +59,14 @@ var ReleaseArtifacts = React.createClass({
     });
   },
 
+  onPage(cursor) {
+    var router = this.context.router;
+    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+      cursor: cursor
+    });
+
+    router.transitionTo('releaseArtifacts', router.getCurrentParams(), queryParams);
+  },
 
   render() {
     if (this.state.loading)
@@ -77,13 +87,14 @@ var ReleaseArtifacts = React.createClass({
         <table className="table">
           {this.state.fileList.map((file) => {
             return (
-              <tr>
+              <tr key={file.id}>
                 <td><strong>{file.name}</strong></td>
                 <td style={{width: 120}}><FileSize bytes={file.size} /></td>
               </tr>
             );
           })}
         </table>
+        <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>
     );
   }
