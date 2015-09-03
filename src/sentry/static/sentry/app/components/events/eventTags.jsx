@@ -1,6 +1,7 @@
 import React from "react";
 import PropTypes from "../../proptypes";
 import Router from "react-router";
+import EventDataSection from "./eventDataSection";
 import {isUrl} from "../../utils";
 
 var EventTags = React.createClass({
@@ -17,6 +18,8 @@ var EventTags = React.createClass({
     var params = this.context.router.getCurrentParams(),
       children = [],
       value;
+
+    var {group, event} = this.props;
 
     for (var key in this.props.event.tags) {
       value = this.props.event.tags[key];
@@ -43,16 +46,15 @@ var EventTags = React.createClass({
     }
 
     return (
-      <div id="tags" className="box">
-        <div className="box-header">
-          <h3>Tags</h3>
-        </div>
-        <div className="box-content with-padding">
-          <ul className="mini-tag-list">
-            {children}
-          </ul>
-        </div>
-      </div>
+      <EventDataSection
+          group={group}
+          event={event}
+          title="Tags"
+          type="tags">
+        <ul className="mini-tag-list">
+          {children}
+        </ul>
+      </EventDataSection>
     );
   }
 });

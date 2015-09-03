@@ -19,9 +19,11 @@ var GroupEventDataSection = React.createClass({
   render: function() {
     return (
       <div className={(this.props.className || '') + ' box'}>
-        <a name={this.props.type} />
         {this.props.title &&
           <div className="box-header">
+            <a name={this.props.type} href={'#' + this.props.type} className="permalink">
+              <em className="icon-browser" />
+            </a>
             {this.props.wrapTitle ?
               <h3>{this.props.title}</h3>
             :
