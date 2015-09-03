@@ -18,7 +18,14 @@ from django.core.exceptions import SuspiciousOperation
 from ipaddr import IPNetwork
 from requests.adapters import HTTPAdapter
 from requests.exceptions import SSLError
-from OpenSSL.SSL import ZeroReturnError
+
+# In case SSL is unavailable (light builds) we can't import this here.
+try:
+    from OpenSSL.SSL import ZeroReturnError
+except ImportError:
+    class ZeroReturnError(Exception):
+        pass
+
 from urlparse import urlparse
 
 USER_AGENT = 'sentry/{version} (https://getsentry.com)'.format(

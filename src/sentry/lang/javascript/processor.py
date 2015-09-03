@@ -10,11 +10,17 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
 from hashlib import md5
-from OpenSSL.SSL import ZeroReturnError
 from os.path import splitext
 from requests.exceptions import RequestException
 from simplejson import JSONDecodeError
 from urlparse import urlparse, urljoin, urlsplit
+
+# In case SSL is unavailable (light builds) we can't import this here.
+try:
+    from OpenSSL.SSL import ZeroReturnError
+except ImportError:
+    class ZeroReturnError(Exception):
+        pass
 
 from sentry import http
 from sentry.constants import MAX_CULPRIT_LENGTH
