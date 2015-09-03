@@ -1582,7 +1582,22 @@ pre.clippy {
     border-bottom: 1px solid @trim;
     padding-top: 9px;
     padding-bottom: 8px;
+    position: relative;
     .clearfix;
+
+    &:hover .permalink {
+      display: inline-block;
+    }
+
+    .permalink {
+      font-size: 10px;
+      line-height: 27px;
+      display: none;
+      position: absolute;
+      left: 7px;
+      top: 9px;
+      bottom: 8px;
+    }
 
     &.box-header-borderless {
       border: 0;

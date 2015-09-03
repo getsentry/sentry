@@ -81,7 +81,9 @@ var EventEntries = React.createClass({
     return (
       <div>
         {hasMultipartMessage(evt) &&
-          <EventMessage group={group} event={evt} />
+          <EventMessage
+            group={group}
+            event={evt} />
         }
         {!utils.objectIsEmpty(evt.errors) &&
           <EventErrors
@@ -89,18 +91,18 @@ var EventEntries = React.createClass({
             event={evt} />
         }
         <EventTags
-            group={group}
-            event={evt} />
+          group={group}
+          event={evt} />
         {entries}
         {!utils.objectIsEmpty(evt.context) &&
           <EventExtraData
-              group={group}
-              event={evt} />
+            group={group}
+            event={evt} />
         }
         {!utils.objectIsEmpty(evt.packages) &&
           <EventPackageData
-              group={group}
-              event={evt} />
+            group={group}
+            event={evt} />
         }
       </div>
     );
