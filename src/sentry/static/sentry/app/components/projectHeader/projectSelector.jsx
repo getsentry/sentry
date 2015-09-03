@@ -146,7 +146,7 @@ var ProjectSelector = React.createClass({
 
   render() {
     var org = this.props.organization;
-    var filter = this.state.filter;
+    var filter = this.state.filter.toLowerCase();
     var children = [];
     var activeTeam;
     var activeProject;
