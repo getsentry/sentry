@@ -127,3 +127,11 @@ class DateTimePaginator(Paginator):
 
     def _value_from_cursor(self, cursor):
         return datetime.fromtimestamp(cursor.value).replace(tzinfo=timezone.utc)
+
+
+class OffsetPaginator(Paginator):
+    def _get_item_key(self, item):
+        return 0
+
+    def _value_from_cursor(self, cursor):
+        return 0

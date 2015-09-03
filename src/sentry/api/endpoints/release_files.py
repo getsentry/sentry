@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -88,11 +89,17 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        file_list = list(ReleaseFile.objects.filter(
+        file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file').order_by('name'))
+        ).select_related('file').order_by('name')
 
-        return Response(serialize(file_list, request.user))
+        return self.paginate(
+            request=request,
+            queryset=file_list,
+            order_by='name',
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(x, request.user),
+        )
 
     @attach_scenarios([upload_file_scenario])
     def post(self, request, project, version):
