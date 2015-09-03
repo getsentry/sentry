@@ -68,14 +68,14 @@ var ProjectSelector = React.createClass({
     );
   },
 
-  getProjectNode(team, project, highlightText) {
+  getProjectNode(team, project, highlightText, hasSingleTeam) {
     var org = this.props.organization;
     var projectRouteParams = {
       orgId: org.slug,
       projectId: project.slug
     };
 
-    var label = this.getProjectLabel(team, project);
+    var label = this.getProjectLabel(team, project, hasSingleTeam);
 
     if (!this.props.router) {
       return (
@@ -94,9 +94,9 @@ var ProjectSelector = React.createClass({
     );
   },
 
-  getProjectLabel(team, project) {
+  getProjectLabel(team, project, hasSingleTeam) {
     var label = project.name;
-    if (label.indexOf(team.name) === -1) {
+    if (!hasSingleTeam && label.indexOf(team.name) === -1) {
       label = team.name + ' / ' + project.name;
     }
     return label;
@@ -150,6 +150,7 @@ var ProjectSelector = React.createClass({
     var children = [];
     var activeTeam;
     var activeProject;
+    var hasSingleTeam = org.teams.length === 1;
 
     org.teams.forEach((team) => {
       if (!team.isMember) {
@@ -164,7 +165,7 @@ var ProjectSelector = React.createClass({
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
-        children.push(this.getProjectNode(team, project, this.state.filter));
+        children.push(this.getProjectNode(team, project, this.state.filter, hasSingleTeam));
       });
     });
 
