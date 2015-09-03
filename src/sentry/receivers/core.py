@@ -44,7 +44,6 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
         name='Internal',
         slug='internal',
         verbosity=verbosity,
-        platform='django',
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:
@@ -53,7 +52,6 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
             name='Frontend',
             slug='frontend',
             verbosity=verbosity,
-            platform='javascript'
         )
 
 

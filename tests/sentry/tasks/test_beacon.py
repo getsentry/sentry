@@ -14,8 +14,6 @@ class SendBeaconTest(TestCase):
     @patch('sentry.tasks.beacon.safe_urlopen')
     @patch('sentry.tasks.beacon.safe_urlread')
     def test_simple(self, safe_urlread, safe_urlopen):
-        self.create_project(platform='java')
-
         safe_urlread.return_value = json.dumps({
             'notices': [],
             'version': {'stable': '1.0.0'},
@@ -31,11 +29,10 @@ class SendBeaconTest(TestCase):
             'install_id': install_id,
             'version': sentry.get_version(),
             'data': {
-                'platforms': ['java'],
-                'organizations': 2,
-                'users': 2,
-                'projects': 2,
-                'teams': 2,
+                'organizations': 1,
+                'users': 1,
+                'projects': 1,
+                'teams': 1,
                 'events.24h': 0,
             },
             'admin_email': 'foo@example.com',
