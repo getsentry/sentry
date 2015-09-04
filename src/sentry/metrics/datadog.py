@@ -9,10 +9,10 @@ from .base import MetricsBackend
 
 class DatadogMetricsBackend(MetricsBackend):
     def __init__(self, prefix=None, **kwargs):
-        self._stats = ThreadStats()
-        self._stats.start()
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         initialize(**kwargs)
+        self._stats = ThreadStats()
+        self._stats.start()
         super(DatadogMetricsBackend, self).__init__(prefix=prefix)
 
     def __del__(self):
