@@ -9,6 +9,7 @@ var LoadingError = require("app/components/loadingError");
 var LoadingIndicator = require("app/components/loadingIndicator");
 var Stream = require("app/views/stream");
 var StreamGroup = require("app/components/stream/group");
+var StreamFilters = require("app/views/stream/filters");
 var stubReactComponents = require("../../helpers/stubReactComponent");
 var stubContext = require("../../helpers/stubContext");
 var stubRouter = require("../../helpers/stubRouter");
@@ -23,7 +24,7 @@ describe("Stream", function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(Api, "request");
-    stubReactComponents(this.sandbox, [StreamGroup]);
+    stubReactComponents(this.sandbox, [StreamGroup, StreamFilters]);
 
     var ContextStubbedStream = stubContext(Stream, {
       router: stubRouter({
