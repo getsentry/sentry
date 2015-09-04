@@ -214,14 +214,22 @@ class IssueTrackingPlugin(Plugin):
         if not issue_id:
             return tag_list
 
-        tag_list.append(format_html('<a href="{}">{}</a>',
-            self.get_issue_url(group=group, issue_id=issue_id),
-            self.get_issue_label(group=group, issue_id=issue_id),
-        ))
+        tag_list.append(self.get_issue_annotation_html(group=group, issue_id=issue_id))
 
         return tag_list
 
     def get_issue_doc_html(self, **kwargs):
         return ""
+
+    def get_issue_annotation_html(self, group, issue_id, **kwargs):
+        """
+        Given an issue_id (string) return a string representing the entire
+        HTML for the issue annotation.
+        """
+        return format_html(
+            '<a href="{}">{}</a>{}',
+            self.get_issue_url(group=group, issue_id=issue_id),
+            self.get_issue_label(group=group, issue_id=issue_id),
+        )
 
 IssuePlugin = IssueTrackingPlugin
