@@ -5,7 +5,7 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 import Pagination from "../../components/pagination";
 import RouteMixin from "../../mixins/routeMixin";
-import SearchBar from "../../views/stream/searchBar.jsx";
+import SearchBar from "./searchBar.jsx";
 
 import ReleaseList from "./releaseList";
 

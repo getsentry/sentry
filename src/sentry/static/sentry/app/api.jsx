@@ -50,7 +50,7 @@ class Client {
     };
   }
 
-  request(path, options) {
+  request(path, options = {}) {
     var query = $.param(options.query || "", true);
     var method = options.method || (options.data ? "POST" : "GET");
     var data = options.data;

@@ -31,7 +31,9 @@ var Stream = React.createClass({
 
   getDefaultProps() {
     return {
-      defaultQuery: "is:unresolved",
+      // intentional trailing whitespace / better UX for when uesrs focus on search input
+      defaultQuery: "is:unresolved ",
+
       defaultSort: "date",
       defaultStatsPeriod: "24h",
       maxItems: 25
