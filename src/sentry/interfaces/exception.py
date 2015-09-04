@@ -43,7 +43,7 @@ class SingleException(Interface):
     def to_python(cls, data):
         assert data.get('type') or data.get('value')
 
-        if data.get('stacktrace'):
+        if data.get('stacktrace') and data['stacktrace'].get('frames'):
             stacktrace = Stacktrace.to_python(data['stacktrace'])
         else:
             stacktrace = None
