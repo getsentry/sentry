@@ -217,6 +217,14 @@ class SingleExceptionTest(TestCase):
             value='ValueError',
         ))
 
+    def test_throws_away_empty_stacktrace(self):
+        result = SingleException.to_python(dict(
+            type='ValueError',
+            value='foo',
+            stacktrace={'frames': []},
+        ))
+        assert not result.stacktrace
+
 
 class TrimExceptionsTest(TestCase):
     def test_under_max(self):
