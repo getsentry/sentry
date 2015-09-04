@@ -15,6 +15,19 @@ from sentry.web.helpers import render_to_string
 from ipaddr import IPAddress
 
 
+def validate_email(value, required=True):
+    if not required and not value:
+        return
+
+    if not isinstance(value, basestring):
+        raise TypeError('object of type %r is not an email address' % type(value).__name__)
+
+    # safe to assume an email address at least has a @ in it.
+    if '@' not in value:
+        raise ValueError('malformed email address')
+    return value
+
+
 def validate_ip(value, required=True):
     if not required and not value:
         return
@@ -51,7 +64,7 @@ class User(Interface):
 
         kwargs = {
             'id': trim(data.pop('id', None), 128),
-            'email': trim(data.pop('email', None), 128),
+            'email': trim(validate_email(data.pop('email', None), False), 128),
             'username': trim(data.pop('username', None), 128),
             'ip_address': validate_ip(data.pop('ip_address', None), False),
         }
