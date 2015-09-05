@@ -237,7 +237,7 @@ setup(
         'Framework :: Django',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
-        'Operating System :: OS Independent',
+        'Operating System :: POSIX :: Linux',
         'Topic :: Software Development'
     ],
 )
