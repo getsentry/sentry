@@ -1736,15 +1736,22 @@ div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; 
 
 dl.flat {
     margin-bottom: 1em;
-}
-dl.flat dt {
-    float: left;
-    clear: left;
-    width: 90px;
-    padding-bottom: 5px;
-}
-dl.flat dd {
-    padding-bottom: 5px;
+
+    dt {
+        float: left;
+        width: 90px;
+        padding-bottom: 5px;
+    }
+
+    dd {
+        padding-bottom: 5px;
+
+        &::after {
+            clear: both;
+            content: " ";
+            display: block;
+        }
+    }
 }
 
 #full-message {
