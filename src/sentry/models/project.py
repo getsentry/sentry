@@ -23,6 +23,7 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.cache import Lock
 from sentry.utils.http import absolute_uri
 
 
@@ -107,8 +108,12 @@ class Project(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name, organization=self.organization)
-        super(Project, self).save(*args, **kwargs)
+            lock_key = 'slug:project'
+            with Lock(lock_key):
+                slugify_instance(self, self.name, organization=self.organization)
+            super(Project, self).save(*args, **kwargs)
+        else:
+            super(Project, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-stream', args=[
