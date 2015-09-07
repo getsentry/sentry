@@ -20,6 +20,7 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.cache import Lock
 
 
 class TeamManager(BaseManager):
@@ -135,8 +136,12 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name, organization=self.organization)
-        super(Team, self).save(*args, **kwargs)
+            lock_key = 'slug:team'
+            with Lock(lock_key):
+                slugify_instance(self, self.name, organization=self.organization)
+            super(Team, self).save(*args, **kwargs)
+        else:
+            super(Team, self).save(*args, **kwargs)
 
     def get_owner_name(self):
         if not self.owner:

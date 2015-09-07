@@ -20,6 +20,7 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.cache import Lock
 
 
 # TODO(dcramer): pull in enum library
@@ -118,8 +119,13 @@ class Organization(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-        super(Organization, self).save(*args, **kwargs)
+            lock_key = 'slug:organization'
+            with Lock(lock_key):
+                slugify_instance(self, self.name,
+                                 reserved=RESERVED_ORGANIZATION_SLUGS)
+            super(Organization, self).save(*args, **kwargs)
+        else:
+            super(Organization, self).save(*args, **kwargs)
 
     def delete(self):
         if self.is_default:
