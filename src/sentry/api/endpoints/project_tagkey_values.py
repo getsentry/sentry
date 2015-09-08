@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import TagKey, TagKeyStatus, TagValue
 
@@ -50,6 +51,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by='value',
+            paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
