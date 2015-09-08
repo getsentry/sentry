@@ -22,7 +22,7 @@ class OrganizationPermission(ScopedPermission):
             return request.auth.organization_id == organization.id
 
         request.access = access.from_user(request.user, organization)
-        allowed_scopes = set(self.scope_map[request.method])
+        allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
