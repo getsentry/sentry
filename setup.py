@@ -66,7 +66,6 @@ tests_require = [
     'pytest-timeout',
     'python-coveralls',
     'responses',
-    'riak',
 ]
 
 
@@ -111,7 +110,7 @@ install_requires = [
     'statsd>=3.1.0,<3.2.0',
     'South==1.0.1',
     'toronado>=0.0.4,<0.1.0',
-    'urllib3>=1.7.1,<1.8.0',
+    'urllib3>=1.11,<1.12',
     'rb',
 ]
 
