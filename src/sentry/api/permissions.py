@@ -45,7 +45,7 @@ class ScopedPermission(permissions.BasePermission):
         if not request.auth:
             return request.user.is_authenticated()
 
-        allowed_scopes = set(self.scope_map[request.method])
+        allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
