@@ -28,10 +28,12 @@ export function getCurlCommand(data) {
     result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
   }
 
-  result += ' \\\n ' + data.url;
+  result += ' \\\n "' + data.url;
 
   if (defined(data.query) && data.query) {
     result += '?' + data.query;
   }
+
+  result += '"'
   return result;
 }
