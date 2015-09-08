@@ -214,7 +214,6 @@ class ConnectionManager(object):
         if len(self.connections) == 0:
             self.force_revive()
 
-        print method, path
         try:
             for _ in xrange(self.max_retries):
                 conn = self.strategy.next(self.connections)
