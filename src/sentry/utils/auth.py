@@ -54,7 +54,7 @@ def find_users(username, with_valid_password=True):
         if '@' in username:
             # email isn't guaranteed unique
             return list(qs.filter(email__iexact=username))
-    return None
+    return []
 
 
 class EmailAuthBackend(ModelBackend):
