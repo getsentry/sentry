@@ -214,6 +214,10 @@ class ConnectionManager(object):
         if len(self.connections) == 0:
             self.force_revive()
 
+        # We don't need strict host checking since our client is enforcing
+        # the correct behavior anyways
+        kwargs.setdefault('assert_same_host', False)
+
         try:
             for _ in xrange(self.max_retries):
                 conn = self.strategy.next(self.connections)
