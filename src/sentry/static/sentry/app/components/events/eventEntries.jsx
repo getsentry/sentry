@@ -10,11 +10,6 @@ import EventMessage from "./message";
 import PropTypes from "../../proptypes";
 import utils from "../../utils";
 
-var hasMultipartMessage = function(evt) {
-  var message = evt.message;
-  return (message.indexOf('\n') !== -1 || message.length > 100);
-};
-
 var EventEntries = React.createClass({
   propTypes: {
     group: PropTypes.Group.isRequired,
@@ -80,11 +75,9 @@ var EventEntries = React.createClass({
 
     return (
       <div>
-        {hasMultipartMessage(evt) &&
-          <EventMessage
-            group={group}
-            event={evt} />
-        }
+        <EventMessage
+          group={group}
+          event={evt} />
         {!utils.objectIsEmpty(evt.errors) &&
           <EventErrors
             group={group}
