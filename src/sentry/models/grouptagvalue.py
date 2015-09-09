@@ -64,7 +64,7 @@ class GroupTagValue(Model):
                     FROM sentry_messagefiltervalue
                     WHERE group_id = %s
                     AND key = %s
-                    AND last_seen > NOW() - INTERVAL '7 days'
+                    ORDER BY last_seen DESC
                     LIMIT 10000
                 ) as a
             """, [group_id, key])
@@ -89,7 +89,7 @@ class GroupTagValue(Model):
                     FROM sentry_messagefiltervalue
                     WHERE group_id = %%s
                     AND key = %%s
-                    AND last_seen > NOW() - INTERVAL '7 days'
+                    ORDER BY last_seen DESC
                     LIMIT 10000
                 ) as a
                 ORDER BY times_seen DESC

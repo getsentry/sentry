@@ -119,11 +119,8 @@ var GroupTags = React.createClass({
     }
 
     return (
-      <div>
-        <h5>Data is based on events seen in the last 7 days.</h5>
-        <div className="row">
-          {children}
-        </div>
+      <div className="row">
+        {children}
       </div>
     );
   }
