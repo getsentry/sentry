@@ -118,8 +118,9 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
         method = 'POST' if (data or json) else 'GET'
 
     try:
-        response = getattr(session, method.lower())(
-            url,
+        response = session.request(
+            method=method,
+            url=url,
             allow_redirects=allow_redirects,
             timeout=timeout,
             verify=verify_ssl,
