@@ -33,13 +33,13 @@ class RiakNodeStorage(NodeStorage):
             warnings.warn("'protocol' has been deprecated",
                           DeprecationWarning)
         self.bucket = bucket
-        self.conn = RiakClient(**dict(
+        self.conn = RiakClient(
             hosts=nodes,
             max_retries=max_retries,
             multiget_pool_size=multiget_pool_size,
             cooldown=cooldown,
             tcp_keepalive=tcp_keepalive,
-        ))
+        )
 
     def set(self, id, data):
         data = json.dumps(data, separators=(',', ':'))
