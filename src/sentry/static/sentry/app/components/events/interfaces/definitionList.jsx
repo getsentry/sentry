@@ -3,7 +3,7 @@ import _ from "underscore";
 
 var DefinitionList = React.createClass({
   propTypes: {
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.array.isRequired
   },
 
   render() {
