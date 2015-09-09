@@ -328,6 +328,28 @@ class StacktraceTest(TestCase):
         result = interface.get_stacktrace(event)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
 
+    def test_bad_input(self):
+        with self.assertRaises(AssertionError):
+            Frame.to_python({
+                'filename': 1,
+            })
+
+        with self.assertRaises(AssertionError):
+            Frame.to_python({
+                'filename': 'foo',
+                'abs_path': 1,
+            })
+
+        with self.assertRaises(AssertionError):
+            Frame.to_python({
+                'function': 1,
+            })
+
+        with self.assertRaises(AssertionError):
+            Frame.to_python({
+                'module': 1,
+            })
+
 
 class SlimFrameDataTest(TestCase):
     def test_under_max(self):
