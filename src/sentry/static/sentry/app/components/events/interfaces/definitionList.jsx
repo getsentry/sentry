@@ -13,7 +13,7 @@ var DefinitionList = React.createClass({
         {data.map(([key, value]) => {
           return [
             <dt key={'dt-' + key }>{key}</dt>,
-            <dd key={'dd-' + key }><pre>{value}</pre></dd>
+            <dd key={'dd-' + key }><pre>{value || '&nbsp;'}</pre></dd>
           ];
         })}
       </dl>
