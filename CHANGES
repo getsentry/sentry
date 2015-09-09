@@ -15,6 +15,8 @@ related to user assigned and release tracking.
 - The Cassandra nodestore backend was broken, and this has been resolved.
 - The ``has_perm`` plugin hook is no longer used.
 - Do not unconditionally map sys.stdout to sys.stderr
+- The HTTP interface's internal structure has greatly changed. Headers and Cookies are now lists. Body
+  is now stored as a string.
 
 Version 7.7.0
 -------------
