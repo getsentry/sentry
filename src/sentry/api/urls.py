@@ -9,6 +9,7 @@ from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
+from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
@@ -198,6 +199,9 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/events/latest/$',
         GroupEventsLatestEndpoint.as_view(),
         name='sentry-api-0-group-events-latest'),
+    url(r'^groups/(?P<group_id>\d+)/events/oldest/$',
+        GroupEventsOldestEndpoint.as_view(),
+        name='sentry-api-0-group-events-oldest'),
     url(r'^groups/(?P<group_id>\d+)/notes/$',
         GroupNotesEndpoint.as_view(),
         name='sentry-api-0-group-notes'),
