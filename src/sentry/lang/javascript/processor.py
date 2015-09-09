@@ -226,7 +226,7 @@ def fetch_url(url, project=None, release=None):
     )
 
     # Longer timeout since it may take longer to fetch some external urls
-    with Lock(lock_key, timeout=5):
+    with Lock(lock_key, timeout=15):
         return _fetch_url(url, project=project, release=release)
 
 
