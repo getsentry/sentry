@@ -41,7 +41,7 @@ var GroupEventDetails = React.createClass({
   fetchData() {
     var eventId = this.context.router.getCurrentParams().eventId || 'latest';
 
-    var url = (eventId === 'latest' ?
+    var url = (eventId === 'latest' || eventId === 'oldest' ?
       '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
       '/events/' + eventId + '/');
 
