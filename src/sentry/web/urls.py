@@ -11,6 +11,7 @@ __all__ = ('urlpatterns',)
 
 from django.conf.urls import include, patterns, url
 from django.conf import settings
+from django.views.generic import RedirectView
 
 import sentry.web.frontend.projects.keys
 import sentry.web.frontend.projects.plugins
@@ -132,10 +133,6 @@ urlpatterns += patterns(
     url(r'^auth/logout/$', AuthLogoutView.as_view(),
         name='sentry-logout'),
 
-    # Legacy URls
-    url(r'docs(?P<target>|/.*?)$', generic.docs_redirect),
-    url(r'api(?P<target>|/.*?)$', generic.api_docs_redirect),
-
     # Account
     url(r'^login-redirect/$', accounts.login_redirect,
         name='sentry-login-redirect'),
@@ -193,6 +190,14 @@ urlpatterns += patterns(
     # Admin - Plugins
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
         name='sentry-admin-configure-plugin'),
+
+    # Legacy Redirects
+    url(r'^docs/?$',
+        RedirectView.as_view(url='https://docs.getsentry.com/hosted/', permanent=False),
+        name='sentry-docs-redirect'),
+    url(r'^api/?$',
+        RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
+        name='sentry-api-docs-redirect'),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', ReactPageView.as_view(),
