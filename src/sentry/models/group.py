@@ -207,6 +207,18 @@ class Group(Model):
                 self._latest_event = None
         return self._latest_event
 
+    def get_oldest_event(self):
+        from sentry.models import Event
+
+        if not hasattr(self, '_oldest_event'):
+            try:
+                self._oldest_event = Event.objects.filter(
+                    group=self,
+                ).order_by('datetime')[0]
+            except IndexError:
+                self._oldest_event = None
+        return self._oldest_event
+
     def get_unique_tags(self, tag, since=None, order_by='-times_seen'):
         # TODO(dcramer): this has zero test coverage and is a critical path
         from sentry.models import GroupTagValue
