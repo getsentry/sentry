@@ -7,6 +7,7 @@ sentry.web.frontend.generic
 """
 from __future__ import absolute_import
 
+from django.http import HttpResponseRedirect
 from django.views.generic import TemplateView as BaseTemplateView
 
 from sentry.web.helpers import render_to_response
@@ -30,6 +31,16 @@ def static_media(request, **kwargs):
 def partial_static_media(request, path):
     path = 'app/templates/' + path
     return static_media(request, module='sentry', path=path)
+
+
+def docs_redirect(request, target):
+    return HttpResponseRedirect(
+        'https://docs.getsentry.com/hosted/%s' % target.strip('/'))
+
+
+def api_docs_redirect(request, target):
+    return HttpResponseRedirect(
+        'https://docs.getsentry.com/hosted/api/%s' % target.strip('/'))
 
 
 class TemplateView(BaseTemplateView):
