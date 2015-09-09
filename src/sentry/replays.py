@@ -1,10 +1,5 @@
 from __future__ import absolute_import
-
-import socket
-
-from httplib import HTTPConnection, HTTPSConnection
-from urllib import urlencode
-from urlparse import urlparse
+import requests
 
 
 class Replayer(object):
@@ -15,37 +10,22 @@ class Replayer(object):
         self.headers = headers
 
     def replay(self):
-        urlparts = urlparse(self.url)
-        if urlparts.scheme == 'http':
-            conn_cls = HTTPConnection
-        elif urlparts.scheme == 'https':
-            conn_cls = HTTPSConnection
-        else:
-            raise ValueError(self.url)
-
-        data = self.data
-        if isinstance(data, dict):
-            data = urlencode(data)
-
-        if urlparts.query:
-            full_url = urlparts.path + '?' + urlparts.query
-        else:
-            full_url = urlparts.path
-
-        conn = conn_cls(urlparts.netloc)
         try:
-            conn.request(self.method, full_url, data, self.headers or {})
-
-            response = conn.getresponse()
-        except socket.error as e:
+            response = requests.request(
+                self.method,
+                self.url,
+                data=self.data,
+                headers=self.headers or {}
+            )
+        except requests.RequestException as e:
             return {
                 'status': 'error',
                 'reason': str(e),
             }
 
         return {
-            'status': response.status,
+            'status': response.status_code,
             'reason': response.reason,
-            'headers': response.getheaders(),
-            'body': response.read(),
+            'headers': response.headers,
+            'body': response.content,
         }
