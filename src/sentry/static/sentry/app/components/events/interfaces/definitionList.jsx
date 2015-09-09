@@ -1,4 +1,5 @@
 import React from "react";
+import _ from "underscore";
 
 var DefinitionList = React.createClass({
   propTypes: {
@@ -6,9 +7,10 @@ var DefinitionList = React.createClass({
   },
 
   render() {
+    let data = _.sortBy(this.props.data, (key, value) => key);
     return (
       <dl className="vars">
-        {this.props.data.map(function ([key, value]) {
+        {data.map(([key, value]) => {
           return [
             <dt key={'dt-' + key }>{key}</dt>,
             <dd key={'dd-' + key }><pre>{value}</pre></dd>
