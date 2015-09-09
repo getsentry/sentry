@@ -381,7 +381,6 @@ CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
     Queue('cleanup', routing_key='cleanup'),
-    Queue('sourcemaps', routing_key='sourcemaps'),
     Queue('search', routing_key='search'),
     Queue('events', routing_key='events'),
     Queue('update', routing_key='update'),
