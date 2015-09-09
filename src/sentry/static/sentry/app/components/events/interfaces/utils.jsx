@@ -18,7 +18,13 @@ export function getCurlCommand(data) {
     result += ' \\\n --compressed';
   }
 
-  for (let header of data.headers) {
+  // sort headers
+  let headers = data.headers.sort(function (a, b) {
+    return a[0] === b[0] ? 0 :
+      a[0] < b[0] ? -1 : 1;
+  });
+
+  for (let header of headers) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1]) + '"';
   }
 
