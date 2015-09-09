@@ -11,47 +11,74 @@ var GroupEventToolbar  = React.createClass({
   },
 
   render() {
-    var orgId = this.props.orgId;
-    var projectId = this.props.projectId;
-    var groupId = this.props.group.id;
-    var evt = this.props.event;
+    let evt = this.props.event;
 
-    var eventNavNodes = [
-      (evt.nextEventID ?
+    let params = {
+      orgId: this.props.orgId,
+      projectId: this.props.projectId,
+      groupId: this.props.group.id
+    };
+
+    let eventNavNodes = [
+      (evt.previousEventID ?
         <Router.Link
-            key="next"
+            key="oldest"
             to="groupEventDetails"
-            params={{orgId: orgId,
-                     projectId: projectId,
-                     groupId: groupId,
-                     eventId: evt.nextEventID}}
-            className="btn btn-default">Newer</Router.Link>
+            params={Object.assign({}, params, {
+              eventId: 'oldest'
+            })}
+            className="btn btn-default">
+            <span className="icon-skip-back"></span>
+        </Router.Link>
       :
-        <a key="next"
-           className="btn btn-default disabled">Newer</a>
+        <a key="oldest"
+          className="btn btn-default disabled"><span className="icon-skip-back"></span></a>
       ),
       (evt.previousEventID ?
         <Router.Link
             key="prev"
             to="groupEventDetails"
-            params={{orgId: orgId,
-                     projectId: projectId,
-                     groupId: groupId,
-                     eventId: evt.previousEventID}}
+            params={Object.assign({}, params, {
+              eventId: evt.previousEventID
+             })}
             className="btn btn-default">Older</Router.Link>
       :
         <a key="prev"
            className="btn btn-default disabled">Older</a>
       ),
+      (evt.nextEventID ?
+        <Router.Link
+            key="next"
+            to="groupEventDetails"
+            params={Object.assign({}, params, {
+              eventId: evt.nextEventID
+            })}
+            className="btn btn-default">Newer</Router.Link>
+      :
+        <a key="next"
+           className="btn btn-default disabled">Newer</a>
+      ),
+      (evt.nextEventID ?
+        <Router.Link
+          key="latest"
+          to="groupEventDetails"
+          params={Object.assign({}, params, {
+            eventId: 'latest'
+          })}
+          className="btn btn-default">
+          <span className="icon-skip-forward"></span>
+        </Router.Link>
+      :
+        <a key="latest"
+          className="btn btn-default disabled"><span className="icon-skip-forward"></span></a>
+      )
     ];
 
     return (
       <div className="event-toolbar">
         <div className="pull-right">
           <div className="btn-group">
-            <a className="btn btn-default disabled"><span className="icon-skip-back"></span></a>
             {eventNavNodes}
-            <a className="btn btn-default"><span className="icon-skip-forward"></span></a>
           </div>
         </div>
         <h4>Event Details <small>{evt.eventID}</small></h4>
