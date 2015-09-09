@@ -26,15 +26,18 @@ class UserAgentPlugin(TagPlugin):
             return []
         if not http.headers:
             return []
-        if 'User-Agent' not in http.headers:
-            return []
-        ua = Parse(http.headers['User-Agent'])
-        if not ua:
-            return []
-        result = self.get_tag_from_ua(ua)
-        if not result:
-            return []
-        return [result]
+
+        output = []
+        for key, value in http.headers:
+            if key != 'User-Agent':
+                continue
+            ua = Parse(value)
+            if not ua:
+                continue
+            result = self.get_tag_from_ua(ua)
+            if result:
+                output.append(result)
+        return result
 
 
 class BrowserPlugin(UserAgentPlugin):
