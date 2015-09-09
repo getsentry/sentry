@@ -132,6 +132,9 @@ urlpatterns += patterns(
     url(r'^auth/logout/$', AuthLogoutView.as_view(),
         name='sentry-logout'),
 
+    # Legacy URls
+    url(r'docs(?P<target>|/.*?)$', generic.docs_redirect),
+    url(r'api(?P<target>|/.*?)$', generic.api_docs_redirect),
 
     # Account
     url(r'^login-redirect/$', accounts.login_redirect,
