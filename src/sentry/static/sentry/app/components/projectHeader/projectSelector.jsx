@@ -22,14 +22,14 @@ var ProjectSelector = React.createClass({
     };
   },
 
-  onFilterChange(e) {
+  onFilterChange(evt) {
     this.setState({
-      filter: e.target.value
+      filter: evt.target.value
     });
   },
 
-  onKeyUp(e) {
-    if (event.key === 'Escape' || event.keyCode === 27) {
+  onKeyUp(evt) {
+    if (evt.key === 'Escape' || evt.keyCode === 27) {
       // blur handler should additionally hide dropdown
       this.close();
     }
