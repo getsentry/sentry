@@ -119,6 +119,7 @@ var GroupOverview = React.createClass({
               {tagList.map((data) => {
                 return (
                   <TagDistributionMeter
+                    key={data[0]}
                     group={group}
                     name={data[0]}
                     tag={data[1]} />

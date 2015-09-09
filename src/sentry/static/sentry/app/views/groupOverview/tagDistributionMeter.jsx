@@ -116,6 +116,7 @@ var TagDistributionMeter = React.createClass({
 
             return (
               <Router.Link
+                  key={value}
                   className="segment" style={{width: pct + "%"}}
                   to="groupTagValues"
                   params={params}
@@ -129,6 +130,7 @@ var TagDistributionMeter = React.createClass({
           })}
           {hasOther &&
             <Router.Link
+                key="other"
                 className="segment" style={{width: otherPct + "%"}}
                 to="groupTagValues"
                 params={params}
