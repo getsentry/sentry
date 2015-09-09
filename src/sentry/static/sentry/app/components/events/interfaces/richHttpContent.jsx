@@ -32,37 +32,29 @@ var RichHttpContent = React.createClass({
   },
 
   getBodySection(data) {
+    /*eslint no-empty:0*/
     let contentType = data.headers.find(h => h[0] === 'Content-Type');
     contentType = contentType && contentType[1].split(';')[0].toLowerCase();
 
-    switch (contentType) {
-      case 'application/x-www-form-urlencoded':
-        return this.getQueryStringOrRaw(data.data);
-      case 'application/json':
-        // falls through
-      default:
-        // Even if Content-Type isn't JSON, attempt to serialize it as JSON
-        // anyways. Many HTTP requests contains JSON bodies, despite not having
-        // matching Content-Type.
-        return this.getJsonOrRaw(data.data);
+    // Ignoring Content-Type, we immediately just check if the body is parseable
+    // as JSON. Why? Because many applications don't set proper Content-Type values,
+    // e.g. x-www-form-urlencoded  actually contains JSON.
+    try {
+      return <ContextData data={JSON.parse(data.data)} />;
+    } catch (e) {}
+
+    if (contentType === 'application/x-www-form-urlencoded') {
+      return this.getQueryStringOrRaw(data.data);
+    } else {
+      return <pre>{data}</pre>
     }
   },
 
   getQueryStringOrRaw(data) {
     try {
-      // Sentry API abbreviates long query stirng values, sometimes resulting in
+      // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
       return <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data))}/>
-    } catch (e) {
-      return <pre>{data}</pre>
-    }
-  },
-
-  getJsonOrRaw(data) {
-    try {
-      // Sentry API abbreviates long JSON strings, resulting in an un-parsable
-      // JSON string ... stay safe kids
-      return <ContextData data={JSON.parse(data)} />;
     } catch (e) {
       return <pre>{data}</pre>
     }

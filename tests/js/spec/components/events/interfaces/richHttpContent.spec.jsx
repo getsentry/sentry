@@ -110,7 +110,7 @@ describe("RichHttpContent", function () {
     it("should return a ContextData element when content is JSON, ignoring Content-Type", function () {
       var out = this.elem.getBodySection({
         headers: [
-          ['Content-Type', 'text/plain']
+          ['Content-Type', 'application/x-www-form-urlencoded']
         ], // no content-type header,
         data: JSON.stringify({foo: 'bar'})
       });
