@@ -93,11 +93,14 @@ var GroupTagValues = React.createClass({
     var router = this.context.router;
     var tagKey = this.state.tagKey;
     var children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
-      var pct = percent(tagValue.count, tagKey.totalValues);
+      var pct = Math.round(percent(tagValue.count, tagKey.totalValues) * 100) / 100;
       var params = router.getCurrentParams();
       return (
         <tr key={tagValueIdx}>
-        <td>{pct}%</td>
+          <td className="bar-cell">
+            <span className="bar" style={{width: pct + '%'}}></span>
+            <span className="label">{pct}%</span>
+          </td>
           <td>
             <Router.Link
                 to="stream"
