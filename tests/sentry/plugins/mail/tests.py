@@ -201,3 +201,15 @@ class MailPluginTest(TestCase):
                                   project=project, user=user4)
 
         assert user4.pk not in self.plugin.get_sendable_users(project)
+
+    def test_notify_users_with_utf8_subject(self):
+        group = self.create_group(message=u'רונית מגן')
+        event = self.create_event(group=group, message='Hello world')
+
+        notification = Notification(event=event)
+
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
+            self.plugin.notify(notification)
+
+        msg = mail.outbox[0]
+        assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
