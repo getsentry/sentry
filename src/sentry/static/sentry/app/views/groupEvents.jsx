@@ -1,9 +1,11 @@
-import jQuery from "jquery";
 import React from "react";
 import Router from "react-router";
 import api from "../api";
-import DateTime from "../components/dateTime";
+
 import GroupState from "../mixins/groupState";
+import RouteMixin from "../mixins/routeMixin";
+
+import DateTime from "../components/dateTime";
 import Gravatar from "../components/gravatar";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
@@ -14,7 +16,10 @@ var GroupEvents = React.createClass({
     router: React.PropTypes.func
   },
 
-  mixins: [GroupState],
+  mixins: [
+    GroupState,
+    RouteMixin
+  ],
 
   getInitialState() {
     return {
@@ -31,14 +36,15 @@ var GroupEvents = React.createClass({
 
   fetchData() {
     var queryParams = this.context.router.getCurrentQuery();
-    var querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,
       error: false
     });
 
-    api.request('/groups/' + this.getGroup().id + '/events/?' + querystring, {
+    api.request(`/groups/${this.getGroup().id}/events/`, {
+      method: 'GET',
+      data: queryParams,
       success: (data, _, jqXHR) => {
         this.setState({
           eventList: data,
@@ -56,9 +62,13 @@ var GroupEvents = React.createClass({
     });
   },
 
+  routeDidChange() {
+    this.fetchData();
+  },
+
   onPage(cursor) {
     var router = this.context.router;
-    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+    var queryParams = Object.assign({}, router.getCurrentQuery(), {
       cursor: cursor
     });
 
