@@ -26,7 +26,7 @@ from sentry import http
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
-from sentry.utils.cache import cache, Lock
+from sentry.utils.cache import cache
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
 
@@ -221,16 +221,6 @@ def fetch_url(url, project=None, release=None):
 
     Attempts to fetch from the cache.
     """
-    lock_key = 'source:lock:%s' % (
-        md5(url.encode('utf-8')).hexdigest(),
-    )
-
-    # Longer timeout since it may take longer to fetch some external urls
-    with Lock(lock_key, timeout=15):
-        return _fetch_url(url, project=project, release=release)
-
-
-def _fetch_url(url, project=None, release=None):
     cache_key = 'source:cache:v2:%s' % (
         md5(url.encode('utf-8')).hexdigest(),
     )
