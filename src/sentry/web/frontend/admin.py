@@ -58,7 +58,7 @@ def manage_projects(request):
     project_list = Project.objects.filter(
         status=0,
         team__isnull=False,
-    ).select_related('owner', 'team')
+    ).select_related('team')
 
     project_query = request.GET.get('pquery')
     if project_query:
@@ -255,7 +255,7 @@ def list_user_projects(request, user_id):
 
 @requires_admin
 def manage_teams(request):
-    team_list = Team.objects.order_by('-date_added').select_related('owner')
+    team_list = Team.objects.order_by('-date_added')
 
     team_query = request.GET.get('tquery')
     if team_query:
