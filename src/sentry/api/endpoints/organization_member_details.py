@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -8,7 +9,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
-    AuditLogEntryEvent, AuthProvider, OrganizationMember,
+    AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember,
     OrganizationMemberType
 )
 
@@ -127,8 +128,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         audit_data = om.get_audit_log_data()
 
-        # TODO(dcramer): we should probably clean up AuthIdentity here
-        om.delete()
+        with transaction.atomic():
+            AuthIdentity.objects.filter(
+                user=om.user,
+                auth_provider__organization=organization,
+            ).delete()
+
+            om.delete()
 
         self.create_audit_entry(
             request=request,
