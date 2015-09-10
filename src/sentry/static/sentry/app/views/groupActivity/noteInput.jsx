@@ -29,7 +29,10 @@ var NoteInput = React.createClass({
 
   onSubmit(e) {
     e.preventDefault();
+    this.submitForm();
+  },
 
+  submitForm() {
     this.setState({
       loading: true,
       error: false,
@@ -70,6 +73,11 @@ var NoteInput = React.createClass({
     this.setState({value: e.target.value});
   },
 
+  onKeyDown(e) {
+    // Auto submit the form on [meta] + Enter
+    e.key === 'Enter' && e.metaKey && this.submitForm();
+  },
+
   expand() {
     this.setState({expanded: true});
   },
@@ -107,6 +115,7 @@ var NoteInput = React.createClass({
           :
             <textarea placeholder="Add details or updates to this event"
                       onChange={this.onChange}
+                      onKeyDown={this.onKeyDown}
                       onFocus={this.expand} onBlur={this.maybeCollapse}
                       required={true}
                       value={value} />
