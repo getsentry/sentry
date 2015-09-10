@@ -127,16 +127,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         audit_data = om.get_audit_log_data()
 
-        if om.user_id == organization.owner_id:
-            # TODO(dcramer): while we still maintain an owner field on
-            # organization we need to ensure it transfers
-            organization.owner = OrganizationMember.objects.filter(
-                organization=om.organization,
-                type=OrganizationMemberType.OWNER,
-                user__isnull=False,
-            ).exclude(id=om.id)[0].user
-            organization.save()
-
         # TODO(dcramer): we should probably clean up AuthIdentity here
         om.delete()
 

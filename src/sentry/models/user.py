@@ -88,12 +88,10 @@ class User(BaseModel, AbstractBaseUser):
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models import (
-            AuditLogEntry, Activity, AuthIdentity, GroupBookmark, Organization,
+            AuditLogEntry, Activity, AuthIdentity, GroupBookmark,
             OrganizationMember, UserOption
         )
 
-        for obj in Organization.objects.filter(owner=from_user):
-            obj.update(owner=to_user)
         for obj in OrganizationMember.objects.filter(user=from_user):
             with transaction.atomic():
                 try:

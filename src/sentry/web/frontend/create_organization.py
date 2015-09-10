@@ -32,9 +32,7 @@ class CreateOrganizationView(BaseView):
     def handle(self, request):
         form = self.get_form(request)
         if form.is_valid():
-            org = form.save(commit=False)
-            org.owner = request.user
-            org.save()
+            org = form.save()
 
             OrganizationMember.objects.create(
                 organization=org,

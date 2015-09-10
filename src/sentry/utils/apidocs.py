@@ -254,12 +254,9 @@ class MockUtils(object):
         from sentry.models import Organization, OrganizationMember
         org, _ = Organization.objects.get_or_create(
             name=name,
-            defaults={
-                'owner': owner,
-            },
         )
 
-        dummy_member, _ = OrganizationMember.objects.get_or_create(
+        dummy_member, _ = OrganizationMember.objects.create(
             user=owner,
             organization=org,
             defaults={

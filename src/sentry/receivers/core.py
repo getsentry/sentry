@@ -11,8 +11,8 @@ from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.models import (
-    Organization, Project, User, Team, ProjectKey,
-    TagKey, TagValue, GroupTagValue, GroupTagKey, Activity
+    Organization, OrganizationMember, OrganizationMemberType, Project, User,
+    Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey, Activity
 )
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils import db
@@ -72,9 +72,17 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     org, _ = Organization.objects.get_or_create(
         slug='sentry',
         defaults={
-            'owner': user,
             'name': 'Sentry',
         }
+    )
+
+    OrganizationMember.objects.get_or_create(
+        user=user,
+        organization=org,
+        defaults={
+            'type': OrganizationMemberType.OWNER,
+            'has_global_access': True,
+        },
     )
 
     team, _ = Team.objects.get_or_create(
