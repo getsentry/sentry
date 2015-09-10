@@ -93,7 +93,7 @@ var GroupTagValues = React.createClass({
     var router = this.context.router;
     var tagKey = this.state.tagKey;
     var children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
-      var pct = Math.toFixed(percent(tagValue.count, tagKey.totalValues), 2);
+      var pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
       var params = router.getCurrentParams();
       return (
         <tr key={tagValueIdx}>
