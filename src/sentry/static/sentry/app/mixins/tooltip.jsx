@@ -21,7 +21,10 @@ export default function (options) {
     },
 
     removeTooltips() {
-      $(this.getDOMNode()).tooltip("destroy");
+      $(this.getDOMNode())
+        .tooltip("destroy") // destroy tooltips on parent ...
+        .find(options.selector)
+          .tooltip("destroy"); // ... and descendents
     }
   };
 }
