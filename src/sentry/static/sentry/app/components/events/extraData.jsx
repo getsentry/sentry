@@ -1,7 +1,10 @@
 import React from "react";
-import EventDataSection from "./eventDataSection";
-import ContextData from "../contextData";
+import _ from "underscore";
+
 import PropTypes from "../../proptypes";
+
+import EventDataSection from "./eventDataSection";
+import DefinitionList from "./interfaces/definitionList";
 
 var EventExtraData = React.createClass({
   propTypes: {
@@ -14,16 +17,9 @@ var EventExtraData = React.createClass({
   },
 
   render() {
-    var children = [];
-    var context = this.props.event.context;
-    for (var key in context) {
-      children.push(<dt key={'dt-' + key}>{key}</dt>);
-      children.push((
-        <dd key={'dd-' + key}>
-          <ContextData data={context[key]} />
-        </dd>
-      ));
-    }
+    let extraDataArray = _.chain(this.props.event.context)
+      .map((val, key) => [key, val])
+      .value();
 
     return (
       <EventDataSection
@@ -31,9 +27,7 @@ var EventExtraData = React.createClass({
           event={this.props.event}
           type="extra"
           title="Additional Data">
-        <dl className="vars">
-          {children}
-        </dl>
+          <DefinitionList data={extraDataArray} isContextData={true}/>
       </EventDataSection>
     );
   }
