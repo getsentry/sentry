@@ -154,6 +154,14 @@ class Organization(Model):
             'flags': self.flags,
         }
 
+    def get_default_owner(self):
+        from sentry.models import OrganizationMemberType, User
+
+        return User.objects.filter(
+            sentry_orgmember_set__type=OrganizationMemberType.OWNER,
+            sentry_orgmember_set__organization=self,
+        )[0]
+
     def merge_to(from_org, to_org):
         from sentry.models import (
             ApiKey, AuditLogEntry, OrganizationMember, OrganizationMemberTeam,
