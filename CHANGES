@@ -17,6 +17,7 @@ related to user assigned and release tracking.
 - Do not unconditionally map sys.stdout to sys.stderr
 - The HTTP interface's internal structure has greatly changed. Headers and Cookies are now lists. Body
   is now stored as a string.
+- Removed the ``Project.platform`` column.
 
 Version 7.7.0
 -------------
