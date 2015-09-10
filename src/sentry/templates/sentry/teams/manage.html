@@ -28,13 +28,6 @@
           {% endfor %}
         </fieldset>
 
-        {% if form.owner %}
-          <fieldset>
-            <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
-              {{ form.owner|as_crispy_field }}
-          </fieldset>
-        {% endif %}
-
         <fieldset class="form-actions">
           <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
