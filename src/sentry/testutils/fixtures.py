@@ -78,11 +78,20 @@ class Fixtures(object):
         )
 
     def create_organization(self, **kwargs):
-        kwargs.setdefault('name', uuid4().hex)
-        if not kwargs.get('owner'):
-            kwargs['owner'] = self.user
+        owner = kwargs.pop('owner', None)
+        if not owner:
+            owner = self.user
 
-        return Organization.objects.create(**kwargs)
+        kwargs.setdefault('name', uuid4().hex)
+
+        org = Organization.objects.create(owner=owner, **kwargs)
+        self.create_member(
+            organization=org,
+            user=owner,
+            type=OrganizationMemberType.OWNER,
+            has_global_access=True,
+        )
+        return org
 
     def create_member(self, teams=None, **kwargs):
         kwargs.setdefault('type', OrganizationMemberType.MEMBER)

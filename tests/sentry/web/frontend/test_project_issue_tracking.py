@@ -9,7 +9,8 @@ from sentry.testutils import TestCase
 class ProjectIssueTrackingTest(TestCase):
     def setUp(self):
         super(ProjectIssueTrackingTest, self).setUp()
-        self.organization = self.create_organization()
+        self.owner = self.create_user()
+        self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(team=self.team)
 
@@ -20,7 +21,7 @@ class ProjectIssueTrackingTest(TestCase):
         ])
 
     def test_renders_with_context(self):
-        self.login_as(self.organization.owner)
+        self.login_as(self.owner)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/project-issue-tracking.html')

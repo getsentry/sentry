@@ -11,7 +11,7 @@ from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.models import (
-    Organization, OrganizationMemberType, Project, User, Team, ProjectKey,
+    Organization, Project, User, Team, ProjectKey,
     TagKey, TagValue, GroupTagValue, GroupTagKey, Activity
 )
 from sentry.signals import buffer_incr_complete, regression_signal
@@ -137,20 +137,6 @@ def create_keys_for_project(instance, created, **kwargs):
         )
 
 
-def create_org_member_for_owner(instance, created, **kwargs):
-    if not created:
-        return
-
-    if not instance.owner:
-        return
-
-    instance.member_set.get_or_create(
-        user=instance.owner,
-        type=OrganizationMemberType.OWNER,
-        has_global_access=True,
-    )
-
-
 @buffer_incr_complete.connect(sender=TagValue, weak=False)
 def record_project_tag_count(filters, created, **kwargs):
     from sentry import app
@@ -219,11 +205,5 @@ post_save.connect(
     handle_db_failure(create_keys_for_project),
     sender=Project,
     dispatch_uid="create_keys_for_project",
-    weak=False,
-)
-post_save.connect(
-    handle_db_failure(create_org_member_for_owner),
-    sender=Organization,
-    dispatch_uid="create_org_member_for_owner",
     weak=False,
 )

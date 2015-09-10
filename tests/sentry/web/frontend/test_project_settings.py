@@ -57,7 +57,8 @@ class OriginsFieldTest(TestCase):
 class ProjectSettingsTest(TestCase):
     def setUp(self):
         super(ProjectSettingsTest, self).setUp()
-        self.organization = self.create_organization()
+        self.owner = self.create_user()
+        self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(team=self.team)
 
@@ -66,14 +67,14 @@ class ProjectSettingsTest(TestCase):
         return reverse('sentry-manage-project', args=[self.organization.slug, self.project.slug])
 
     def test_renders_with_context(self):
-        self.login_as(self.organization.owner)
+        self.login_as(self.owner)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/projects/manage.html')
         assert resp.context['project'] == self.project
 
     def test_valid_params(self):
-        self.login_as(self.organization.owner)
+        self.login_as(self.owner)
         resp = self.client.post(self.path, {
             'name': 'bar',
             'slug': self.project.slug,
