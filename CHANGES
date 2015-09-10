@@ -18,6 +18,7 @@ related to user assigned and release tracking.
 - The HTTP interface's internal structure has greatly changed. Headers and Cookies are now lists. Body
   is now stored as a string.
 - Removed the ``Project.platform`` column.
+- Removed the ``Project.organization`` column.
 
 Version 7.7.0
 -------------
