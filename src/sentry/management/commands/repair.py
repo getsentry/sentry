@@ -14,53 +14,16 @@ class Command(BaseCommand):
     help = 'Attempts to repair any invalid data within Sentry'
 
     def handle(self, **options):
-        from django.db.models import Q
-        from sentry.constants import RESERVED_ORGANIZATION_SLUGS
-        from sentry.models import Organization, Project, Team, ProjectKey
-        from sentry.db.models import update
-        from sentry.db.models.utils import slugify_instance
+        from sentry.models import Project, ProjectKey
         from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
-
-        print("Correcting data on organizations")
-        queryset = Organization.objects.filter(
-            slug__isnull=True,
-        )
-        for org in RangeQuerySetWrapperWithProgressBar(queryset):
-            slugify_instance(org, org.name, RESERVED_ORGANIZATION_SLUGS)
-            org.save()
-
-        # Create teams for any projects that are missing them
-        print("Correcting data on projects")
-        queryset = Project.objects.filter(
-            Q(team__isnull=True) | Q(organization__isnull=True),
-        ).select_related('owner')
-        for project in RangeQuerySetWrapperWithProgressBar(queryset):
-            if not project.team:
-                organization = Organization(
-                    name=project.name,
-                    owner=project.owner,
-                )
-                slugify_instance(organization, organization.name, RESERVED_ORGANIZATION_SLUGS)
-                organization.save()
-
-                team = Team(
-                    name=project.name,
-                    owner=project.owner,
-                    oprganization=organization,
-                )
-                slugify_instance(team, team.name, RESERVED_ORGANIZATION_SLUGS)
-                team.save()
-
-            update(project, organization=team.organization, team=team)
 
         # Create missing project keys
         print("Creating missing project keys")
-        queryset = Team.objects.all()
-        for team in RangeQuerySetWrapperWithProgressBar(queryset):
-            for project in team.project_set.all():
-                try:
-                    ProjectKey.objects.get_or_create(
-                        project=project,
-                    )
-                except ProjectKey.MultipleObjectsReturned:
-                    pass
+        queryset = Project.objects.all()
+        for project in RangeQuerySetWrapperWithProgressBar(queryset):
+            try:
+                ProjectKey.objects.get_or_create(
+                    project=project,
+                )
+            except ProjectKey.MultipleObjectsReturned:
+                pass
