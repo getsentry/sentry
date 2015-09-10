@@ -7,7 +7,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import features
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization
+    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember,
+    OrganizationMemberType
 )
 from sentry.web.frontend.base import BaseView
 
@@ -34,6 +35,13 @@ class CreateOrganizationView(BaseView):
             org = form.save(commit=False)
             org.owner = request.user
             org.save()
+
+            OrganizationMember.objects.create(
+                organization=org,
+                user=request.user,
+                type=OrganizationMemberType.OWNER,
+                has_global_access=True,
+            )
 
             AuditLogEntry.objects.create(
                 organization=org,
