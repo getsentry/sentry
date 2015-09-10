@@ -37,7 +37,7 @@ class UserAgentPlugin(TagPlugin):
             result = self.get_tag_from_ua(ua)
             if result:
                 output.append(result)
-        return result
+        return output
 
 
 class BrowserPlugin(UserAgentPlugin):
