@@ -81,7 +81,7 @@ var NoteInput = React.createClass({
   },
 
   render() {
-    var {error, errorJSON, loading, preview, value} = this.state
+    var {error, errorJSON, loading, preview, value} = this.state;
     var classNames = 'activity-field';
     if (error) {
       classNames += ' error';

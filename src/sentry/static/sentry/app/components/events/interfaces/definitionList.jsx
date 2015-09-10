@@ -12,7 +12,7 @@ var DefinitionList = React.createClass({
   getDefaultProps() {
     return {
       isContextData: false
-    }
+    };
   },
 
   render() {

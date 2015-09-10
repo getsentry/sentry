@@ -2,7 +2,7 @@ import React from "react";
 
 import MenuItem from "../menuItem";
 import DropdownLink from "../dropdownLink";
-import AppState from "../../mixins/appState"
+import AppState from "../../mixins/appState";
 import OrganizationStore from "../../stores/organizationStore";
 import ConfigStore from "../../stores/configStore";
 

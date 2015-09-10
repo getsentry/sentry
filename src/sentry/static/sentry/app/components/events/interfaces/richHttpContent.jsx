@@ -46,7 +46,7 @@ var RichHttpContent = React.createClass({
     if (contentType === 'application/x-www-form-urlencoded') {
       return this.getQueryStringOrRaw(data.data);
     } else {
-      return <pre>{data}</pre>
+      return <pre>{data}</pre>;
     }
   },
 
@@ -54,9 +54,9 @@ var RichHttpContent = React.createClass({
     try {
       // Sentry API abbreviates long query string values, sometimes resulting in
       // an un-parsable querystring ... stay safe kids
-      return <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data))}/>
+      return <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data))}/>;
     } catch (e) {
-      return <pre>{data}</pre>
+      return <pre>{data}</pre>;
     }
   },
 
