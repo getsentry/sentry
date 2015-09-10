@@ -27,7 +27,8 @@ var GroupEventToolbar  = React.createClass({
             params={Object.assign({}, params, {
               eventId: 'oldest'
             })}
-            className="btn btn-default">
+            className="btn btn-default"
+            title="Oldest">
             <span className="icon-skip-back"></span>
         </Router.Link>
       :
@@ -65,7 +66,8 @@ var GroupEventToolbar  = React.createClass({
           params={Object.assign({}, params, {
             eventId: 'latest'
           })}
-          className="btn btn-default">
+          className="btn btn-default"
+          title="Newest">
           <span className="icon-skip-forward"></span>
         </Router.Link>
       :
