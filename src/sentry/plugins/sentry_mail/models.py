@@ -11,6 +11,7 @@ import sentry
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry.plugins import register
@@ -40,6 +41,8 @@ class MailPlugin(NotificationPlugin):
             return
 
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
+        subject_prefix = force_text(subject_prefix)
+        subject = force_text(subject)
 
         msg = MessageBuilder(
             subject='%s%s' % (subject_prefix, subject),
