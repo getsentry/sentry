@@ -1,4 +1,4 @@
-import {markdown} from "markdown";
+import marked from "marked";
 import React from "react";
 import Gravatar from "../../components/gravatar";
 import GroupState from "../../mixins/groupState";
@@ -68,7 +68,7 @@ var GroupActivity = React.createClass({
       var label = formatActivity(item);
 
       if (item.type === 'note') {
-        var noteBody = markdown.toHTML(item.data.text);
+        var noteBody = marked(item.data.text);
         return (
           <li className="activity-note" key={itemIdx}>
             {avatar}
