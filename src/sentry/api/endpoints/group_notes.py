@@ -2,18 +2,15 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.models import Activity
 from sentry.utils.functional import extract_lazy_object
-
-
-class NoteSerializer(serializers.Serializer):
-    text = serializers.CharField()
 
 
 class GroupNotesEndpoint(GroupEndpoint):
