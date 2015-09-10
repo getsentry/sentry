@@ -62,86 +62,82 @@ var TagDistributionMeter = React.createClass({
     });
   },
 
+  /**
+   * Render segments of tag distribution
+   *
+   * e.g.
+   *
+   * .--------.-----.----------------.
+   * |  web-1 |web-2|     other      |
+   * `--------'-----'----------------'
+   */
+
+  renderSegments() {
+    let data = this.state.data;
+    let totalValues = data.totalValues;
+
+    let totalVisible = data.topValues.reduce((sum, value) => sum + value.count, 0);
+
+    let hasOther = totalVisible < totalValues;
+    let otherPct = percent(totalValues - totalVisible, totalValues);
+    let otherPctLabel = Math.floor(otherPct);
+
+    let params = Object.assign({}, this.context.router.getCurrentParams());
+    params.tagKey = this.props.tag;
+
+    return (
+      <div className="segments">
+        {data.topValues.map((value) => {
+          var pct = percent(value.count, totalValues);
+          var pctLabel = Math.floor(pct);
+
+          return (
+            <Router.Link
+                key={value.value}
+                className="segment" style={{width: pct + "%"}}
+                to="groupTagValues"
+                params={params}
+                title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
+              <span className="tag-description">
+                <span className="tag-percentage">{pctLabel}%</span>
+                <span className="tag-label">{value.name}</span>
+              </span>
+            </Router.Link>
+          );
+        })}
+        {hasOther &&
+          <Router.Link
+              key="other"
+              className="segment" style={{width: otherPct + "%"}}
+              to="groupTagValues"
+              params={params}
+              title={'Other<br/>' + otherPctLabel + '%'}>
+            <span className="tag-description">
+              <span className="tag-percentage">{otherPctLabel}%</span>
+              <span className="tag-label">Other</span>
+            </span>
+          </Router.Link>
+        }
+      </div>
+    );
+  },
+
+  renderBody() {
+    if (this.state.loading || this.state.error)
+      return null;
+
+    if (!this.state.data.totalValues)
+      return <p>No recent data.</p>;
+
+    return this.renderSegments();
+  },
+
+
   render() {
-    if (this.state.loading)
-      return (
-        <div className="distribution-graph">
-          <h6><span>{this.props.name}</span></h6>
-        </div>
-      );
-
-    if (this.state.error)
-      return (
-        <div className="distribution-graph">
-          <h6><span>{this.props.name}</span></h6>
-        </div>
-      );
-
-    var data = this.state.data;
-    var totalValues = data.totalValues;
-
-    if (!totalValues) {
-      return (
-        <div className="distribution-graph">
-          <h6><span>{this.props.name}</span></h6>
-          <p>No recent data.</p>
-        </div>
-      );
-    }
-
-    var totalVisible = 0;
-    data.topValues.forEach((value) => {
-      totalVisible += value.count;
-    });
-
-    var hasOther = (totalVisible < totalValues);
-    var otherPct = percent(totalValues - totalVisible, totalValues);
-    var otherPctLabel = Math.floor(otherPct);
-
-    var currentParams = this.context.router.getCurrentParams();
-    var params = {
-      orgId: currentParams.orgId,
-      projectId: currentParams.projectId,
-      groupId: currentParams.groupId,
-      tagKey: this.props.tag
-    };
-
     return (
       <div className="distribution-graph">
         <h6><span>{this.props.name}</span></h6>
-        <div className="segments">
-          {data.topValues.map((value) => {
-            var pct = percent(value.count, totalValues);
-            var pctLabel = Math.floor(pct);
-
-            return (
-              <Router.Link
-                  key={value}
-                  className="segment" style={{width: pct + "%"}}
-                  to="groupTagValues"
-                  params={params}
-                  title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
-                <span className="tag-description">
-                  <span className="tag-percentage">{pctLabel}%</span>
-                  <span className="tag-label">{value.name}</span>
-                </span>
-              </Router.Link>
-            );
-          })}
-          {hasOther &&
-            <Router.Link
-                key="other"
-                className="segment" style={{width: otherPct + "%"}}
-                to="groupTagValues"
-                params={params}
-                title={'Other<br/>' + otherPctLabel + '%'}>
-              <span className="tag-description">
-                <span className="tag-percentage">{otherPctLabel}%</span>
-                <span className="tag-label">Other</span>
-              </span>
-            </Router.Link>
-          }
-        </div>
+        {this.renderBody()}
       </div>
     );
   }
