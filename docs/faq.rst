@@ -50,7 +50,10 @@ and users?
         configure()
 
         # Do something crazy
-        from sentry.models import Team, Project, ProjectKey, User, Organization
+        from sentry.models import (
+            Team, Project, ProjectKey, User, Organization, OrganizationMember,
+            OrganizationmemberType
+        )
 
         user = User()
         user.username = 'admin'
@@ -61,8 +64,14 @@ and users?
 
         organization = Organization()
         organization.name = 'MyOrg'
-        organization.owner = user
         organization.save()
+
+        OrganizationMember.objects.create(
+            organization=organization,
+            user=user,
+            type=OrganizationMemberType.OWNER,
+            has_global_access=True,
+        )
 
         team = Team()
         team.name = 'Sentry'

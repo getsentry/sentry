@@ -84,7 +84,7 @@ class Fixtures(object):
 
         kwargs.setdefault('name', uuid4().hex)
 
-        org = Organization.objects.create(owner=owner, **kwargs)
+        org = Organization.objects.create(**kwargs)
         self.create_member(
             organization=org,
             user=owner,
