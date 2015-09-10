@@ -67,7 +67,7 @@ class RemoveProjectView(ProjectView):
                 request, messages.SUCCESS,
                 _(u'The project %r was scheduled for deletion.') % (project.name.encode('utf-8'),))
 
-            return HttpResponseRedirect(reverse('sentry-organization-home', args=[team.organization.id]))
+            return HttpResponseRedirect(reverse('sentry-organization-home', args=[team.organization.slug]))
 
         context = {
             'form': form,
