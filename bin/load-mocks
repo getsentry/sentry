@@ -11,7 +11,7 @@ from random import randint
 from sentry.app import tsdb
 from sentry.models import (
     Activity, User, Organization, OrganizationAccessRequest,
-    OrganizationMember, Project, Team
+    OrganizationMember, OrganizationMemberType, Project, Team
 )
 from sentry.utils.samples import create_sample_event
 
@@ -109,10 +109,16 @@ def main():
         print('Mocking org {}'.format('Default'))
         org, _ = Organization.objects.get_or_create(
             name='Default',
-            defaults={
-                'owner': user,
-            },
         )
+
+    OrganizationMember.objects.get_or_create(
+        user=user,
+        organization=org,
+        defaults={
+            'type': OrganizationMemberType.OWNER,
+            'has_global_access': True,
+        }
+    )
 
     dummy_member, _ = OrganizationMember.objects.get_or_create(
         user=dummy_user,
