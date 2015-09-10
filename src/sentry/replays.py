@@ -1,5 +1,6 @@
 from __future__ import absolute_import
-import requests
+from requests import RequestException
+from sentry.http import safe_urlopen
 
 
 class Replayer(object):
@@ -11,13 +12,13 @@ class Replayer(object):
 
     def replay(self):
         try:
-            response = requests.request(
-                self.method,
-                self.url,
+            response = safe_urlopen(
+                url=self.url,
+                method=self.method,
                 data=self.data,
                 headers=self.headers or {}
             )
-        except requests.RequestException as e:
+        except RequestException as e:
             return {
                 'status': 'error',
                 'reason': str(e),
