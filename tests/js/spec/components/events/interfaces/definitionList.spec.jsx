@@ -34,7 +34,7 @@ describe('DefinitionList', function () {
       expect(dds[1].getDOMNode().textContent).to.eql('y');
     });
 
-    it("should use a non-breaking space for values that are an empty string", function () {
+    it("should use a single space for values that are an empty string", function () {
       var data = [
         ['b', 'y'], ['a', ''] // empty string
       ];
@@ -45,7 +45,7 @@ describe('DefinitionList', function () {
       expect(dts[1].getDOMNode().textContent).to.eql('b');
 
       var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
-      expect(dds[0].getDOMNode().textContent).to.eql('&nbsp;');
+      expect(dds[0].getDOMNode().textContent).to.eql(' ');
       expect(dds[1].getDOMNode().textContent).to.eql('y');
     });
   });
