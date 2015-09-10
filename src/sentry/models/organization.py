@@ -81,7 +81,7 @@ class Organization(Model):
     """
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
-    owner = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    owner = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     status = BoundedPositiveIntegerField(choices=(
         (OrganizationStatus.VISIBLE, _('Visible')),
         (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),
