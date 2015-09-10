@@ -16,7 +16,7 @@ var config = {
       "bootstrap/js/tooltip",
       "crypto-js/md5",
       "jquery",
-      "markdown",
+      "marked",
       "moment",
       "moment-timezone",
       "raven-js",

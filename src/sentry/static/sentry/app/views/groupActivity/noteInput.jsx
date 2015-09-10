@@ -1,4 +1,4 @@
-import {markdown} from "markdown";
+import marked from "marked";
 import React from "react";
 import api from "../../api";
 import GroupStore from "../../stores/groupStore";
@@ -103,7 +103,7 @@ var NoteInput = React.createClass({
           </ul>
           {preview ?
             <div className="note-preview"
-                 dangerouslySetInnerHTML={{__html: markdown.toHTML(value)}} />
+                 dangerouslySetInnerHTML={{__html: marked(value)}} />
           :
             <textarea placeholder="Add details or updates to this event"
                       onChange={this.onChange}
