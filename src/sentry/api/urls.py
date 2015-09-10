@@ -11,6 +11,7 @@ from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
+from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
@@ -205,6 +206,9 @@ urlpatterns = patterns(
     url(r'^groups/(?P<group_id>\d+)/notes/$',
         GroupNotesEndpoint.as_view(),
         name='sentry-api-0-group-notes'),
+    url(r'^groups/(?P<group_id>\d+)/notes/(?P<note_id>[^\/]+)/$',
+        GroupNotesDetailsEndpoint.as_view(),
+        name='sentry-api-0-group-notes-details'),
     url(r'^groups/(?P<group_id>\d+)/stats/$',
         GroupStatsEndpoint.as_view(),
         name='sentry-api-0-group-stats'),
