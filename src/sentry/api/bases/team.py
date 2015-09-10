@@ -26,7 +26,7 @@ class TeamPermission(ScopedPermission):
         if not request.access.has_team(team):
             return False
 
-        allowed_scopes = set(self.scope_map[request.method])
+        allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
