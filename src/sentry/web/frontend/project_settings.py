@@ -154,14 +154,9 @@ class ProjectSettingsView(ProjectView):
 
     def get_form(self, request, project):
         organization = project.organization
-        if request.user.is_superuser:
-            accessing_user = organization.owner
-        else:
-            accessing_user = request.user
-
         team_list = Team.objects.get_for_user(
             organization=organization,
-            user=accessing_user,
+            user=request.user,
             access=OrganizationMemberType.ADMIN,
         )
 
