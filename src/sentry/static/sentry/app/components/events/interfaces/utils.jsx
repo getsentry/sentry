@@ -40,6 +40,6 @@ export function getCurlCommand(data) {
     result += '?' + data.query;
   }
 
-  result += '"'
+  result += '"';
   return result;
 }

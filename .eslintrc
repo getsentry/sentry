@@ -64,6 +64,7 @@
     "no-obj-calls": 2,               // http://eslint.org/docs/rules/no-obj-calls
     "no-sparse-arrays": 2,           // http://eslint.org/docs/rules/no-sparse-arrays
     "no-unreachable": 2,             // http://eslint.org/docs/rules/no-unreachable
+    "semi": [2, "always"],           // http://eslint.org/docs/rules/semi.html
     "use-isnan": 2,                  // http://eslint.org/docs/rules/use-isnan
     "block-scoped-var": 2,           // http://eslint.org/docs/rules/block-scoped-var
 

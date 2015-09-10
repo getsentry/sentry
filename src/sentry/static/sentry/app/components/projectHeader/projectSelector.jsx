@@ -115,7 +115,7 @@ var ProjectSelector = React.createClass({
     if (!this.props.router) {
       return (
         <a href={this.getRawLink(project)}>{label}</a>
-      )
+      );
     }
 
     var projectRouteParams = {
