@@ -80,6 +80,10 @@ class GroupSerializer(Serializer):
                     value = tag_counts[key].get(item.id, 0)
                 except KeyError:
                     value = 0
+
+                if key.startswith('sentry:'):
+                    key = key.split('sentry:', 1)[-1]
+
                 tags[key] = {
                     'name': label,
                     'count': value,
