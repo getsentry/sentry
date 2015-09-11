@@ -351,20 +351,19 @@
 
   .activity-notes {
     .nav {
-      padding: 5px 15px 0;
-      margin: 0 -10px 0 0;
+      padding: 7px 15px 0;
       border-bottom: 1px solid @trim;
+      margin-bottom: 0;
       > li a {
+        font-size: 15px;
         padding-bottom: 5px;
       }
     }
   }
 
   .activity-field {
-    .form-control();
-    padding: 0 10px 0 0;
-    margin: 0 0 15px;
     .transition(padding .2s ease-in-out);
+    margin: -8px -12px;
 
     textarea, .note-preview {
       display: block;
@@ -385,12 +384,15 @@
       }
     }
 
+    .note-preview {
+      padding-bottom: 14px;
+    }
+
     textarea { margin-bottom: 10px; }
 
     .activity-actions {
       height: 35px;
       line-height: 35px;
-      margin-right: -10px;
       padding-left: 15px;
       border-top: 1px solid @trim;
       .transition(opacity .2s ease-in-out);
@@ -404,7 +406,8 @@
     }
 
     &.error {
-      border-color: @red;
+      border: 1px solid @red;
+      margin: -9px -13px;
 
       .activity-actions .btn {
         border-bottom-color: @red;

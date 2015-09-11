@@ -89,8 +89,13 @@ var GroupActivity = React.createClass({
       <div className="row">
         <div className="col-md-9">
           <div className="activity-container">
-            <NoteInput group={group} />
             <ul className="activity">
+              <li className="activity-note">
+
+                <div className="activity-bubble">
+                  <NoteInput group={group} />
+                </div>
+              </li>
               {children}
             </ul>
           </div>
