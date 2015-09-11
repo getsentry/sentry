@@ -7,8 +7,8 @@ var SharedGroupHeader = React.createClass({
     var group = this.props.group,
         userCount = 0;
 
-    if (group.tags["sentry:user"] !== undefined) {
-      userCount = group.tags["sentry:user"].count;
+    if (group.tags.user !== undefined) {
+      userCount = group.tags.user.count;
     }
 
     return (
