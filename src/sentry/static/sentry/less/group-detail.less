@@ -351,20 +351,19 @@
 
   .activity-notes {
     .nav {
-      padding: 5px 15px 0;
-      margin: 0 -10px 0 0;
+      padding: 7px 15px 0;
       border-bottom: 1px solid @trim;
+      margin-bottom: 0;
       > li a {
+        font-size: 15px;
         padding-bottom: 5px;
       }
     }
   }
 
   .activity-field {
-    .form-control();
-    padding: 0 10px 0 0;
-    margin: 0 0 15px;
     .transition(padding .2s ease-in-out);
+    margin: -10px -15px;
 
     textarea, .note-preview {
       display: block;
@@ -385,12 +384,15 @@
       }
     }
 
+    .note-preview {
+      padding-bottom: 14px;
+    }
+
     textarea { margin-bottom: 10px; }
 
     .activity-actions {
       height: 35px;
       line-height: 35px;
-      margin-right: -10px;
       padding-left: 15px;
       border-top: 1px solid @trim;
       .transition(opacity .2s ease-in-out);
@@ -399,12 +401,13 @@
         float: right;
         font-size: 13px;
         margin: -1px -1px -1px;
-        border-radius: 0 0 2px;
+        border-radius: 0 0 3px;
       }
     }
 
     &.error {
-      border-color: @red;
+      border: 1px solid @red;
+      margin: -11px -16px;
 
       .activity-actions .btn {
         border-bottom-color: @red;
@@ -418,17 +421,22 @@
     margin-bottom: 0;
 
     > li {
-      padding-top: 15px;
+      padding-bottom: 20px;
     }
 
     .activity-note {
       position: relative;
-      margin-bottom: 15px;
+
+      &:hover {
+        .editor-tools {
+          display: inline !important;
+        }
+      }
 
       .avatar {
         position: absolute;
         left: 0;
-        top: 15px;
+        top: 0;
         .square(32px);
       }
 
@@ -436,9 +444,9 @@
         background: #fff;
         border: 1px solid @trim;
         margin-left: 42px;
-        border-radius: 2px;
+        border-radius: 3px;
         font-size: 13px;
-        padding: 8px 12px;
+        padding: 10px 15px;
         position: relative;
 
         &:before {
@@ -451,7 +459,7 @@
           border-right: 7px solid @trim;
           position: absolute;
           left: -7px;
-          top: 9px;
+          top: 10px;
         }
 
         &:after {
@@ -464,7 +472,7 @@
           border-right: 6px solid #fff;
           position: absolute;
           left: -6px;
-          top: 10px;
+          top: 11px;
         }
 
         p {
@@ -477,6 +485,19 @@
           small {
             font-weight: 300;
             margin-left: 10px;
+          }
+
+          .editor-tools {
+            display: none;
+
+            a {
+              padding: 0 7px;
+              border-left: 1px solid lighten(@gray, 40);
+              color: lighten(@gray, 30);
+              &:hover { color: #666; }
+              &:hover.danger { color: #d21c25; }
+              &:first-child { margin-left: 7px; }
+            }
           }
         }
 
@@ -491,26 +512,44 @@
       position: relative;
       font-size: 13px;
       color: lighten(@gray, 10);
+      padding-left: 42px;
+
+      &:before {
+        position: absolute;
+        display: block;
+        content: "";
+        top: 11px;
+        left: 0;
+        right: 0;
+        border-top: 1px solid lighten(@trim, 6);
+        z-index: -1;
+      }
 
       .avatar {
-        width: 20px;
-        height: 20px;
-        position: absolute;
-        background-size: 20px 20px;
-        background-repeat: no-repeat;
-        background-position: center center;
+        width: 18px;
+        height: 18px;
+        margin-right: 3px;
         border-radius: 2px;
+        position: relative;
+        top: -2px;
         left: 0;
+        z-index: 2;
+        display: inline-block;
 
         &.sentry {
           color: @gray;
-          font-size: 18px;
+          font-size: 16px;
+          background: @bgColor;
+          top: -4px;
         }
       }
 
       time {
-        float: right;
         color: lighten(@gray, 25);
+        margin-left: 5px;
+        float: right;
+        background: @bgColor;
+        padding-left: 8px;
       }
 
       .activity-author {
@@ -519,8 +558,10 @@
       }
 
       .activity-item-content {
-        padding-left: 42px;
-        margin-right: 100px;
+        display: inline;
+        padding: 0 8px;
+        margin-left: -8px;
+        background: @bgColor;
       }
     }
   }
