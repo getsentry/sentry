@@ -9,13 +9,17 @@ var NoteInput = React.createClass({
   mixins: [PureRenderMixin],
 
   getInitialState() {
+    var {item} = this.props;
+    var updating = !!item;
+
     return {
       loading: false,
       error: false,
       errorJSON: null,
       expanded: false,
       preview: false,
-      value: ''
+      updating: updating,
+      value: updating ? item.data.text : ''
     };
   },
 
@@ -39,9 +43,19 @@ var NoteInput = React.createClass({
       errorJSON: null,
     });
 
+    if (this.state.updating) {
+      this.update();
+    } else {
+      this.create();
+    }
+  },
+
+  create() {
+    var {group} = this.props;
+
     var loadingIndicator = IndicatorStore.add('Posting comment..');
 
-    api.request('/groups/' + this.props.group.id + '/notes/', {
+    api.request('/groups/' + group.id + '/notes/', {
       method: 'POST',
       data: {
         text: this.state.value
@@ -61,7 +75,41 @@ var NoteInput = React.createClass({
           expanded: false,
           loading: false
         });
-        GroupStore.addActivity(this.props.group.id, data);
+        GroupStore.addActivity(group.id, data);
+        this.finish();
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
+  update() {
+    var {group, item} = this.props;
+
+    var loadingIndicator = IndicatorStore.add('Updating comment..');
+
+    api.request('/groups/' + group.id + '/notes/' + item.id + '/', {
+      method: 'PUT',
+      data: {
+        text: this.state.value
+      },
+      error: (error) => {
+        this.setState({
+          loading: false,
+          preview: false,
+          error: true,
+          errorJSON: JSON.parse(error.responseJSON)
+        });
+      },
+      success: (data) => {
+        this.setState({
+          preview: false,
+          expanded: false,
+          loading: false
+        });
+        GroupStore.updateActivity(group.id, item.id, {text: this.state.value});
+        this.finish();
       },
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
@@ -78,8 +126,28 @@ var NoteInput = React.createClass({
     e.key === 'Enter' && e.metaKey && this.submitForm();
   },
 
-  expand() {
+  onCancel(e) {
+    e.preventDefault();
+    this.finish();
+  },
+
+  finish() {
+    this.props.onFinish && this.props.onFinish();
+  },
+
+  expand(e) {
     this.setState({expanded: true});
+
+    // HACK: Move cursor to end of text after autoFocus
+    // we do this my making sure this is only done on the first
+    // onFocus event
+    if (!this.state._hasFocused) {
+      this.setState({_hasFocused: true});
+      var value = e.target.value;
+      e.target.value = '';
+      e.target.value = value;
+    }
+
   },
 
   maybeCollapse() {
@@ -89,7 +157,7 @@ var NoteInput = React.createClass({
   },
 
   render() {
-    var {error, errorJSON, loading, preview, value} = this.state;
+    var {error, errorJSON, loading, preview, updating, value} = this.state;
     var classNames = 'activity-field';
     if (error) {
       classNames += ' error';
@@ -97,6 +165,8 @@ var NoteInput = React.createClass({
     if (loading) {
       classNames += ' loading';
     }
+
+    var btnText = updating ? 'Update' : 'Leave Comment';
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
@@ -118,6 +188,7 @@ var NoteInput = React.createClass({
                       onKeyDown={this.onKeyDown}
                       onFocus={this.expand} onBlur={this.maybeCollapse}
                       required={true}
+                      autoFocus={true}
                       value={value} />
           }
           <div className="activity-actions">
@@ -125,7 +196,9 @@ var NoteInput = React.createClass({
               <small className="error">{errorJSON.detail}</small>
             }
             <button className="btn btn-default" type="submit"
-                    disabled={loading}>Leave comment</button>
+                    disabled={loading}>{btnText}</button>
+            {updating &&
+              <button className="btn btn-danger" onClick={this.onCancel}>Cancel</button>}
           </div>
         </div>
       </form>
