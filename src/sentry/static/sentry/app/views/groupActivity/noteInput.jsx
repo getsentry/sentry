@@ -196,7 +196,7 @@ var NoteInput = React.createClass({
               <small className="error">{errorJSON.detail}</small>
             }
             <button className="btn btn-default" type="submit"
-                    disabled={loading}>{btnText}</button>
+                    disabled={loading}>{btnText} Comment</button>
             {updating &&
               <button className="btn btn-danger" onClick={this.onCancel}>Cancel</button>}
           </div>
