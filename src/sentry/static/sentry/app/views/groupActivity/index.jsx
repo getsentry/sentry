@@ -3,6 +3,7 @@ import Gravatar from "../../components/gravatar";
 import GroupState from "../../mixins/groupState";
 import MemberListStore from "../../stores/memberListStore";
 import TimeSince from "../../components/timeSince";
+import ConfigStore from "../../stores/configStore";
 
 import NoteContainer from "./noteContainer";
 import NoteInput from "./noteInput";
@@ -55,6 +56,7 @@ var GroupActivity = React.createClass({
 
   render() {
     var group = this.props.group;
+    var me = ConfigStore.get('user');
 
     var children = group.activity.map((item, itemIdx) => {
       var avatar = (item.user ?
@@ -90,7 +92,7 @@ var GroupActivity = React.createClass({
           <div className="activity-container">
             <ul className="activity">
               <li className="activity-note">
-
+                <Gravatar email={me.email} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <NoteInput group={group} />
                 </div>
