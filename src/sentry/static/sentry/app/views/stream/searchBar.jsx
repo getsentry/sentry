@@ -54,7 +54,8 @@ var SearchBar = React.createClass({
         },
         {
           desc: 'or paste an event id to jump straight to it',
-          className: 'icon-hash'
+          className: 'icon-hash',
+          value: ''
         }
       ]
     };
