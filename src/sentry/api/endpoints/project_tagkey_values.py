@@ -38,18 +38,25 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         except TagKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        queryset = TagValue.objects.filter(
-            project=project,
-            key=tagkey.key,
-        )
-
         query = request.GET.get('query')
         if query:
-            queryset = queryset.filter(value__istartswith=query)
+            # not quite optimal, but best we can do with ORM
+            queryset = TagValue.objects.filter(
+                id__in=TagValue.objects.filter(
+                    project=project,
+                    key=tagkey.key,
+                ).order_by('-times_seen')[:10000]
+            ).filter(value__istartswith=query)
+
+        else:
+            queryset = TagValue.objects.filter(
+                project=project,
+                key=tagkey.key,
+            )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by='-times_seen',
             on_results=lambda x: serialize(x, request.user),
         )
