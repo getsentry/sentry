@@ -1,8 +1,6 @@
 import React from "react";
-
 import FilterSelectLink from "./filterSelectLink";
 import SearchBar from "./searchBar";
-import SearchDropdown from "./searchDropdown";
 import SortOptions from "./sortOptions";
 
 var StreamFilters = React.createClass({
@@ -19,12 +17,6 @@ var StreamFilters = React.createClass({
       onFilterChange: function() {},
       onSortChange: function() {},
       onSearch: function() {}
-    };
-  },
-
-  getInitialState() {
-    return {
-      activeButton: null
     };
   },
 
@@ -90,12 +82,13 @@ var StreamFilters = React.createClass({
             </ul>
           </div>
           <div className="col-sm-5">
-            <SearchBar defaultQuery={this.props.defaultQuery}
+            <SearchBar
+              ref="searchBar"
+              defaultQuery={this.props.defaultQuery}
               placeholder="Search for events, users, tags, and everything else."
               query={this.props.query}
-              onSearch={this.props.onSearch}>
-              <SearchDropdown dropdownVisible={this.state.dropdownVisible} />
-            </SearchBar>
+              onSearch={this.props.onSearch}
+              />
           </div>
         </div>
       </div>
