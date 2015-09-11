@@ -11,11 +11,8 @@ function keyToName(key) {
 }
 
 function renderLine(key, value, name='') {
-  if (name === '') {
-    name = keyToName(key);
-  }
   return [
-    <dt key={key + "-label"}>{name}:</dt>,
+    <dt key={key + "-label"}>{name || keyToName(key)}:</dt>,
     <dd key={key}>{value.toString()}</dd>
   ];
 }
