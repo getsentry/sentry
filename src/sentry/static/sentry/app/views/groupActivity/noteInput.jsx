@@ -166,14 +166,14 @@ var NoteInput = React.createClass({
       classNames += ' loading';
     }
 
-    var btnText = updating ? 'Update' : 'Leave Comment';
+    var btnText = updating ? 'Save' : 'Post';
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? "active" : ""}>
-              <a onClick={this.toggleEdit}>Edit</a>
+              <a onClick={this.toggleEdit}>{updating ? "Edit" : "Write"}</a>
             </li>
             <li className={preview ? "active" : ""}>
               <a onClick={this.togglePreview}>Preview</a>
