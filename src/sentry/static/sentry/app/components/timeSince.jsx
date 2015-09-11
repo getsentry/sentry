@@ -43,7 +43,9 @@ var TimeSince = React.createClass({
     }
 
     return (
-      <time>{moment(date).fromNow(true)} {this.props.suffix || ''}</time>
+      <time
+        dateTime={date.toISOString()}
+        title={date.toString()}>{moment(date).fromNow(true)} {this.props.suffix || ''}</time>
     );
   }
 });
