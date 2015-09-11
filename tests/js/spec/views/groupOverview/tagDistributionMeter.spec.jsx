@@ -2,7 +2,7 @@ var React = require("react/addons");
 var TestUtils = React.addons.TestUtils;
 
 var api = require("app/api");
-var TagDistributionMeter = require("app/views/groupOverview/TagDistributionMeter");
+var TagDistributionMeter = require("app/views/groupOverview/tagDistributionMeter");
 var stubRouter = require("../../../helpers/stubRouter");
 var stubContext = require("../../../helpers/stubContext");
 
