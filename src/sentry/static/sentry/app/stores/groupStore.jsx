@@ -96,16 +96,62 @@ var GroupStore = Reflux.createStore({
     return this.statuses[id][status] || false;
   },
 
-  addActivity(id, data) {
-    var group = this.get(id);
-    if (!group) {
-      return;
+  indexOfActivity(group_id, id) {
+    var group = this.get(group_id);
+    if (!group) return -1;
+
+    for (var i = 0; i < group.activity.length; i++) {
+      if (group.activity[i].id === id) {
+        return i;
+      }
     }
-    group.activity.unshift(data);
+    return -1;
+  },
+
+  addActivity(id, data, index=-1) {
+    var group = this.get(id);
+    if (!group) return;
+
+    // insert into beginning by default
+    if (index === -1) {
+      group.activity.unshift(data);
+    } else {
+      group.activity.splice(index, 0, data);
+    }
     if (data.type === 'note')
-      group.numComments += 1;
+      group.numComments++;
 
     this.trigger(new Set([id]));
+  },
+
+  updateActivity(group_id, id, data) {
+    var group = this.get(group_id);
+    if (!group) return;
+
+    var index = this.indexOfActivity(group_id, id);
+    if (index === -1) return;
+
+    // Here, we want to merge the new `data` being passed in
+    // into the existing `data` object. This effectively
+    // allows passing in an object of only changes.
+    group.activity[index].data = Object.assign(group.activity[index].data, data);
+    this.trigger(new Set([group.id]));
+  },
+
+  removeActivity(group_id, id) {
+    var group = this.get(group_id);
+    if (!group) return -1;
+
+    var index = this.indexOfActivity(group.id, id);
+    if (index === -1) return -1;
+
+    var activity = group.activity.splice(index, 1);
+
+    if (activity[0].type === 'note')
+      group.numComments--;
+
+    this.trigger(new Set([group.id]));
+    return index;
   },
 
   get(id) {

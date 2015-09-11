@@ -1,10 +1,11 @@
-import marked from "marked";
 import React from "react";
 import Gravatar from "../../components/gravatar";
 import GroupState from "../../mixins/groupState";
 import MemberListStore from "../../stores/memberListStore";
 import TimeSince from "../../components/timeSince";
+import ConfigStore from "../../stores/configStore";
 
+import NoteContainer from "./noteContainer";
 import NoteInput from "./noteInput";
 
 var formatActivity = function(item) {
@@ -55,37 +56,30 @@ var GroupActivity = React.createClass({
 
   render() {
     var group = this.props.group;
+    var me = ConfigStore.get('user');
 
     var children = group.activity.map((item, itemIdx) => {
       var avatar = (item.user ?
         <Gravatar email={item.user.email} size={64} className="avatar" /> :
         <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
 
-      var authorName = (item.user ?
-        item.user.name :
-        'Sentry');
+      var author = {
+        name: item.user ? item.user.name : 'Sentry',
+        avatar: avatar,
+      };
 
       var label = formatActivity(item);
 
       if (item.type === 'note') {
-        var noteBody = marked(item.data.text);
         return (
-          <li className="activity-note" key={itemIdx}>
-            {avatar}
-            <div className="activity-bubble">
-              <TimeSince date={item.dateCreated} />
-              <div className="activity-author">{authorName}</div>
-              <div dangerouslySetInnerHTML={{__html: noteBody}} />
-            </div>
-          </li>
+          <NoteContainer group={group} item={item} key={itemIdx} author={author} />
         );
       } else {
         return (
           <li className="activity-item" key={itemIdx}>
-            {avatar}
             <TimeSince date={item.dateCreated} />
             <div className="activity-item-content">
-              <span className="activity-author">{authorName}</span> {label}
+              {author.avatar} <span className="activity-author">{author.name}</span> {label}
             </div>
           </li>
         );
@@ -96,8 +90,13 @@ var GroupActivity = React.createClass({
       <div className="row">
         <div className="col-md-9">
           <div className="activity-container">
-            <NoteInput group={group} />
             <ul className="activity">
+              <li className="activity-note">
+                <Gravatar email={me.email} size={64} className="avatar" />
+                <div className="activity-bubble">
+                  <NoteInput group={group} />
+                </div>
+              </li>
               {children}
             </ul>
           </div>

@@ -19,6 +19,10 @@ var LinkWithConfirmation = React.createClass({
   },
 
   onConfirm() {
+    this.setState({
+      isModalOpen: false
+    });
+
     this.props.onConfirm();
   },
 
