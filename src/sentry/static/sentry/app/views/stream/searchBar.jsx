@@ -297,6 +297,10 @@ var SearchBar = React.createClass({
     }
   },
 
+  isDefaultDropdown() {
+    return this.state.searchItems === this.props.defaultSearchItems;
+  },
+
   updateAutoCompleteState(autoCompleteItems, tagName) {
     autoCompleteItems = autoCompleteItems.map(item => {
       let out = {
@@ -318,7 +322,7 @@ var SearchBar = React.createClass({
       return out;
     });
 
-    if (autoCompleteItems.length > 0) {
+    if (autoCompleteItems.length > 0 && !this.isDefaultDropdown()) {
       autoCompleteItems[0].active = true;
     }
 
@@ -346,7 +350,7 @@ var SearchBar = React.createClass({
       searchItems[state.activeSearchItem].active = true;
       this.setState({ searchItems: searchItems.slice(0) });
 
-    } else if (event.key === 'Tab') {
+    } else if ((event.key === 'Tab' || event.key === 'Enter') && !this.isDefaultDropdown()) {
       this.onAutoComplete(searchItems[state.activeSearchItem].value);
     }
   },
