@@ -512,26 +512,44 @@
       position: relative;
       font-size: 13px;
       color: lighten(@gray, 10);
+      // text-align: center;
+
+      &:before {
+        position: absolute;
+        display: block;
+        content: "";
+        top: 11px;
+        left: 0;
+        right: 0;
+        border-top: 1px solid lighten(@trim, 6);
+        z-index: -1;
+      }
 
       .avatar {
-        width: 20px;
-        height: 20px;
-        position: absolute;
-        background-size: 20px 20px;
-        background-repeat: no-repeat;
-        background-position: center center;
+        width: 18px;
+        height: 18px;
+        margin-right: 3px;
         border-radius: 2px;
+        position: relative;
+        top: -2px;
         left: 0;
+        z-index: 2;
+        display: inline-block;
 
         &.sentry {
           color: @gray;
-          font-size: 18px;
+          font-size: 16px;
+          background: @bgColor;
+          top: -4px;
         }
       }
 
       time {
-        float: right;
         color: lighten(@gray, 25);
+        margin-left: 5px;
+        float: right;
+        background: @bgColor;
+        padding-left: 8px;
       }
 
       .activity-author {
@@ -540,8 +558,9 @@
       }
 
       .activity-item-content {
-        padding-left: 42px;
-        margin-right: 100px;
+        display: inline;
+        padding: 0 8px 0 0;
+        background: @bgColor;
       }
     }
   }
