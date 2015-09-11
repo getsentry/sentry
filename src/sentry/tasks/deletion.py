@@ -54,9 +54,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def delete_team(object_id, continuous=True, **kwargs):
-    from sentry.models import (
-        Team, TeamStatus, Project, AccessGroup,
-    )
+    from sentry.models import Team, TeamStatus, Project
 
     try:
         t = Team.objects.get(id=object_id)
@@ -74,13 +72,6 @@ def delete_team(object_id, continuous=True, **kwargs):
             delete_team.delay(object_id=object_id, countdown=15)
         return
 
-    model_list = (AccessGroup,)
-
-    has_more = delete_objects(model_list, relation={'team': t}, logger=logger)
-    if has_more:
-        if continuous:
-            delete_team.delay(object_id=object_id, countdown=15)
-        return
     t.delete()
 
 
