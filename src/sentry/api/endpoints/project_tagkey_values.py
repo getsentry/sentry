@@ -5,6 +5,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import TagKey, TagKeyStatus, TagValue
+from sentry.utils.db import is_postgres
 
 
 class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
@@ -38,15 +39,22 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         except TagKey.DoesNotExist:
             raise ResourceDoesNotExist
 
+        base_queryset = TagValue.objects.filter(
+            project=project,
+            key=tagkey.key,
+        )
+
         query = request.GET.get('query')
         if query:
-            # not quite optimal, but best we can do with ORM
-            queryset = TagValue.objects.filter(
-                id__in=TagValue.objects.filter(
-                    project=project,
-                    key=tagkey.key,
-                ).order_by('-times_seen')[:10000]
-            ).filter(value__istartswith=query)
+            if is_postgres():
+                # not quite optimal, but best we can do with ORM
+                queryset = TagValue.objects.filter(
+                    id__in=base_queryset.order_by('-times_seen')[:10000]
+                )
+            else:
+                # MySQL can't handle an `IN` with a `LIMIT` clause
+                queryset = base_queryset
+            queryset = queryset.filter(value__istartswith=query)
 
         else:
             queryset = TagValue.objects.filter(
