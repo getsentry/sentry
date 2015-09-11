@@ -85,6 +85,16 @@ class Activity(Model):
             if self.event:
                 self.event.update(num_comments=F('num_comments') + 1)
 
+    def delete(self, *args, **kwargs):
+        super(Activity, self).delete(*args, **kwargs)
+
+        # HACK: support Group.num_comments
+        if self.type == Activity.NOTE:
+            self.group.update(num_comments=F('num_comments') - 1)
+
+            if self.event:
+                self.event.update(num_comments=F('num_comments') - 1)
+
     def get_recipients(self):
         from sentry.models import UserOption
 
