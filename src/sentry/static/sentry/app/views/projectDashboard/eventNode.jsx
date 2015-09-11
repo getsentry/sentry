@@ -32,8 +32,8 @@ var EventNode = React.createClass({
   render() {
     var group = this.props.group;
 
-    var userCount = (group.tags["sentry:user"] !== undefined ?
-      userCount = group.tags["sentry:user"].count :
+    var userCount = (group.tags.user !== undefined ?
+      userCount = group.tags.user.count :
       0);
 
     return (
