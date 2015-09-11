@@ -89,8 +89,8 @@ var StreamGroup = React.createClass({
     var data = this.state.data;
     var userCount = 0;
 
-    if (data.tags["sentry:user"] !== undefined) {
-      userCount = data.tags["sentry:user"].count;
+    if (data.tags.user !== undefined) {
+      userCount = data.tags.user.count;
     }
 
     var className = "group row";
