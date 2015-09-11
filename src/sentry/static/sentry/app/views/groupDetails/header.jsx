@@ -71,8 +71,8 @@ var GroupHeader = React.createClass({
         userCount = 0,
         features = this.getProjectFeatures();
 
-    if (group.tags["sentry:user"] !== undefined) {
-      userCount = group.tags["sentry:user"].count;
+    if (group.tags.user !== undefined) {
+      userCount = group.tags.user.count;
     }
 
     var className = "group-detail";
