@@ -1,5 +1,6 @@
 import React from "react";
 import Reflux from "reflux";
+import classNames from "classnames";
 import api from "../api";
 import Gravatar from "../components/gravatar";
 import GroupStore from "../stores/groupStore";
@@ -155,7 +156,7 @@ var AssigneeSelector = React.createClass({
 
     return (
       <div ref="container">
-        <div className={className}>
+        <div className={classNames(className, "tip")} title={tooltipTitle} >
           {loading ?
             <LoadingIndicator mini={true} />
           :
@@ -164,7 +165,7 @@ var AssigneeSelector = React.createClass({
               onOpen={this.onDropdownOpen}
               onClose={this.onDropdownClose}
               title={assignedTo ?
-                <Gravatar email={assignedTo.email} title={tooltipTitle} className="avatar tip"
+                <Gravatar email={assignedTo.email} className="avatar"
                           size={48} />
                 :
                 <span className="icon-user" />
