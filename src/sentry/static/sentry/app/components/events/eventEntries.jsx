@@ -7,6 +7,7 @@ import EventExtraData from "./extraData";
 import EventPackageData from "./packageData";
 import EventTags from "./eventTags";
 import EventMessage from "./message";
+import EventUser from "./user";
 import PropTypes from "../../proptypes";
 import utils from "../../utils";
 
@@ -86,6 +87,11 @@ var EventEntries = React.createClass({
         <EventTags
           group={group}
           event={evt} />
+        {!utils.objectIsEmpty(evt.user) &&
+          <EventUser
+            group={group}
+            event={evt} />
+        }
         {entries}
         {!utils.objectIsEmpty(evt.context) &&
           <EventExtraData
