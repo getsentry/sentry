@@ -75,14 +75,14 @@ var EventEntries = React.createClass({
 
     return (
       <div>
-        <EventMessage
-          group={group}
-          event={evt} />
         {!utils.objectIsEmpty(evt.errors) &&
           <EventErrors
             group={group}
             event={evt} />
         }
+        <EventMessage
+          group={group}
+          event={evt} />
         <EventTags
           group={group}
           event={evt} />
