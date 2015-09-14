@@ -8,12 +8,35 @@ var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 var SearchDropdown = React.createClass({
   mixins: [PureRenderMixin],
 
-  defaultProps: {
-    onClick: function () {}
+  getDefaultProps() {
+    return {
+      searchSubstring: '',
+      onClick: function () {}
+    };
   },
 
   onClick(itemValue) {
     this.props.onClick(itemValue);
+  },
+
+  renderDescription(item) {
+    let searchSubstring = this.props.searchSubstring;
+    if (!searchSubstring)
+      return item.desc;
+
+    let text = item.desc;
+    let idx = text.toLowerCase().indexOf(searchSubstring.toLowerCase());
+
+    if (idx === -1)
+      return item.desc;
+
+    return (
+      <span>
+        {text.substr(0, idx)}
+        <strong>{text.substr(idx, searchSubstring.length)}</strong>
+        {text.substr(idx + searchSubstring.length)}
+      </span>
+    );
   },
 
   render() {
@@ -26,7 +49,7 @@ var SearchDropdown = React.createClass({
               return (
                 <li key={item.value || item.desc} className={classNames("search-autocomplete-item", item.active && 'active')} onClick={this.onClick.bind(this, item.value)}>
                   <span className={classNames("icon", item.className)}></span>
-                  <h4>{ item.title && item.title + ' - '}<span className="search-description">{item.desc}</span></h4>
+                  <h4>{ item.title && item.title + ' - '}<span className="search-description">{this.renderDescription(item)}</span></h4>
                   {item.example ?
                     <p className="search-example">{item.example}</p> : ''
                   }
