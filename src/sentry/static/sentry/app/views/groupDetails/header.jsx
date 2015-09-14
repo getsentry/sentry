@@ -152,7 +152,11 @@ var GroupHeader = React.createClass({
           </div>
         </div>
         <ul className="nav nav-tabs">
-          <ListLink to="groupOverview" params={params}>
+          <ListLink to="groupOverview" params={params} isActive={function (to) {
+            // "Details" tab is active for overview *or* event details
+            let router = this.context.router;
+            return router.isActive('groupOverview') || router.isActive('groupEventDetails');
+          }}>
             Details
           </ListLink>
           <ListLink to="groupEvents" params={params}>
