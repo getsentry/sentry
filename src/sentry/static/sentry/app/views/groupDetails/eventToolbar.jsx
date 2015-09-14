@@ -85,8 +85,8 @@ var GroupEventToolbar  = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>Event <small>{evt.eventID}</small></h4>
-        <span><DateTime date={evt.dateCreated} /> &#40;<FileSize bytes={evt.size} />&#41;</span>
+        <h4>Event {evt.eventID}</h4>
+        <span><DateTime date={evt.dateCreated} /> <span className="file-size">&#40;<FileSize bytes={evt.size} />&#41;</span></span>
       </div>
     );
   }
