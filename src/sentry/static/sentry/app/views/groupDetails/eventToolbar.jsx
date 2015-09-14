@@ -1,6 +1,8 @@
 import Router from "react-router";
 import React from "react";
 import PropTypes from "../../proptypes";
+import DateTime from "../../components/dateTime";
+import FileSize from "../../components/fileSize";
 
 var GroupEventToolbar  = React.createClass({
   propTypes: {
@@ -83,7 +85,8 @@ var GroupEventToolbar  = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>Event Details <small>{evt.eventID}</small></h4>
+        <h4>Event <small>{evt.eventID}</small></h4>
+        <span><DateTime date={evt.dateCreated} /> &#40;<FileSize bytes={evt.size} />&#41;</span>
       </div>
     );
   }
