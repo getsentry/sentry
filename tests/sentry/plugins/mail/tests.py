@@ -119,7 +119,7 @@ class MailPluginTest(TestCase):
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify(notification)
 
-        _send_mail.assert_called_once()
+        assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('group'), group)
@@ -149,7 +149,7 @@ class MailPluginTest(TestCase):
         with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify(notification)
 
-        _send_mail.assert_called_once()
+        assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
         assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
             self.team.name, self.project.name)
