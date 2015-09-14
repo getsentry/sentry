@@ -21,7 +21,7 @@ var EventUser = React.createClass({
     user.id && children.push(['ID', user.id]);
     user.email && children.push(['Email', user.email]);
     user.username && children.push(['Username', user.username]);
-    user.ipAddress && children.push(['IP', user.ipAddress]);
+    user.ip_address && children.push(['IP Address', user.ip_address]);
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {
