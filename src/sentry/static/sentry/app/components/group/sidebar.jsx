@@ -3,14 +3,9 @@ import GroupChart from "./chart";
 import GroupState from "../../mixins/groupState";
 import SeenInfo from "./seenInfo";
 import TagDistributionMeter from "./tagDistributionMeter";
-import PropTypes from "../../proptypes";
 
 var GroupSidebar = React.createClass({
   mixins: [GroupState],
-
-  propTypes: {
-    event: PropTypes.Event.isRequired
-  },
 
   render(){
     var orgId = this.getOrganization().slug;
