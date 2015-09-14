@@ -61,5 +61,18 @@ describe('DefinitionList', function () {
       var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
       expect(dds[0].getDOMNode().textContent).to.eql('false');
     });
+
+    it("shouldn't blow up on null", function () {
+      var data = [
+        ['a', null]
+      ];
+      var elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
+
+      var dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
+      expect(dts[0].getDOMNode().textContent).to.eql('a');
+
+      var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
+      expect(dds[0].getDOMNode().textContent).to.eql('null');
+    });
   });
 });
