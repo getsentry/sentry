@@ -65,6 +65,7 @@ var SearchBar = React.createClass({
     return {
       query: this.props.query || this.props.defaultQuery,
 
+      searchTerm: '',
       searchItems: [],
       activeSearchItem: 0,
 
@@ -215,7 +216,7 @@ var SearchBar = React.createClass({
       method: "GET",
       success: (values) => {
         this.setState({ loading: false });
-        callback(values.map(v => '"' + v.value + '"'), tag.key);
+        callback(values.map(v => '"' + v.value + '"'), tag.key, query);
       }
     });
   }, 300),
@@ -267,6 +268,7 @@ var SearchBar = React.createClass({
     {
       // show default "help" search terms
       return void this.setState({
+        searchTerm: '',
         searchItems: this.props.defaultSearchItems,
         activeSearchItem: 0
       });
@@ -282,13 +284,17 @@ var SearchBar = React.createClass({
       matchValue = last;
       autoCompleteItems = this.getTagKeys(matchValue);
 
+      this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(autoCompleteItems, matchValue);
     } else {
       [tagName, query] = last.split(':');
+      this.setState({searchTerm: query});
 
       let tag = this.getTag(tagName);
       if (!tag)
-        return void this.setState({ searchItems: [] });
+        return void this.setState({
+          searchItems: []
+        });
 
       return void (
         tag.predefined
@@ -442,6 +448,7 @@ var SearchBar = React.createClass({
                 items={this.state.searchItems}
                 onClick={this.onAutoComplete}
                 loading={this.state.loading}
+                searchSubstring={this.state.searchTerm}
                 />
             </div>
           }
