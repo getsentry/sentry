@@ -3,6 +3,7 @@ import React from "react";
 import api from "../../api";
 import GroupStore from "../../stores/groupStore";
 import IndicatorStore from "../../stores/indicatorStore";
+import {logException} from "../../utils/logging";
 import {getItem, setItem} from "../../utils/localStorage";
 
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
@@ -47,10 +48,14 @@ var NoteInput = React.createClass({
     // Nothing changed
     if (this.state.value === nextState.value) return;
 
-    setItem(localStorageKey, JSON.stringify({
-      groupId: this.props.group.id,
-      value: nextState.value
-    }));
+    try {
+      setItem(localStorageKey, JSON.stringify({
+        groupId: this.props.group.id,
+        value: nextState.value
+      }));
+    } catch(ex) {
+      logException(ex);
+    }
   },
 
   toggleEdit() {
