@@ -161,6 +161,16 @@ class Organization(Model):
             sentry_orgmember_set__organization=self,
         )[0]
 
+    def has_single_owner(self):
+        from sentry.models import OrganizationMember, OrganizationMemberType
+        count = OrganizationMember.objects.filter(
+            organization=self,
+            type=OrganizationMemberType.OWNER,
+            has_global_access=True,
+            user__isnull=False,
+        ).count()
+        return count == 1
+
     def merge_to(from_org, to_org):
         from sentry.models import (
             ApiKey, AuditLogEntry, OrganizationMember, OrganizationMemberTeam,
