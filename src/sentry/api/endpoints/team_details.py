@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -79,6 +81,10 @@ class TeamDetailsEndpoint(TeamEndpoint):
         However once deletion has begun the state of a project changes and will
         be hidden from most public views.
         """
+        logging.getLogger('sentry.deletions').info(
+            'Team %s/%s (id=%s) removal requested by user (id=%s)',
+            team.organization.slug, team.slug, team.id, request.user.id)
+
         updated = Team.objects.filter(
             id=team.id,
             status=TeamStatus.VISIBLE,

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -110,6 +112,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         """
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
+
+        logging.getLogger('sentry.deletions').info(
+            'Organization %s (id=%s) removal requested by user (id=%s)',
+            organization.slug, organization.id, request.user.id)
 
         updated = Organization.objects.filter(
             id=organization.id,
