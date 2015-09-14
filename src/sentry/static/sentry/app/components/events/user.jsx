@@ -4,6 +4,14 @@ import Gravatar from "../../components/gravatar";
 import DefinitionList from "./interfaces/definitionList";
 import EventDataSection from "./eventDataSection";
 
+function keyToName(key) {
+  // Take a given key, and transform it from
+  // camel case to title case
+  if (!key) return '';
+  key = key[0].toUpperCase() + key.slice(1);
+  return key.replace(/_/g, ' ');
+}
+
 var EventUser = React.createClass({
   render() {
     var user = this.props.event.user;
@@ -17,7 +25,7 @@ var EventUser = React.createClass({
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {
-      children.push([key, value]);
+      children.push([keyToName(key), value]);
     });
 
     return (
