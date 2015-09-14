@@ -13,6 +13,14 @@
 <div class="box">
     <div class="box-content with-padding">
       {% block nav %}
+        <div class="dropdown pull-right anchor-right">
+          <a class="dropdown-toggle" data-toggle="dropdown">
+            More <i class="icon-arrow-down"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-right">
+            <li><a href="{% url 'sentry-remove-account' %}">{% trans "Close Account" %}</a></li>
+          </ul>
+        </div>
         <ul class="nav nav-tabs border-bottom">
           <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
           <li{% if page == 'appearance' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-appearance' %}">{% trans "Appearance" %}</a></li>
