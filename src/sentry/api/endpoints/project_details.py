@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -169,6 +171,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if project.is_internal_project():
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',
                             status=status.HTTP_403_FORBIDDEN)
+
+        logging.getLogger('sentry.deletions').info(
+            'Project %s/%s (id=%s) removal requested by user (id=%s)',
+            project.organization.slug, project.slug, project.id, request.user.id)
 
         updated = Project.objects.filter(
             id=project.id,

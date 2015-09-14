@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django import forms
 from django.contrib.auth import logout
 
@@ -47,6 +49,10 @@ class RemoveAccountView(BaseView):
             for result in org_results:
                 if result['single_owner']:
                     orgs_to_remove.add(result['organization'].slug)
+
+            logging.getLogger('sentry.deletions').info(
+                'User (id=%s) removal requested by self',
+                request.user.id)
 
             for org_slug in orgs_to_remove:
                 client.delete('/organizations/{}/'.format(org_slug),

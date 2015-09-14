@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import mock
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Project, ProjectStatus
@@ -51,12 +49,9 @@ class RemoveProjectTest(TestCase):
         assert resp.context['team'] == self.team
         assert resp.context['project'] == self.project
 
-    @mock.patch('sentry.web.frontend.remove_project.delete_project')
-    def test_deletion_flow(self, delete_project):
+    def test_deletion_flow(self):
         self.login_as(self.owner)
 
         resp = self.client.post(self.path, {})
         assert resp.status_code == 302
-        delete_project.delay.assert_called_once_with(
-            object_id=self.project.id)
         assert Project.objects.get(id=self.project.id).status == ProjectStatus.PENDING_DELETION
