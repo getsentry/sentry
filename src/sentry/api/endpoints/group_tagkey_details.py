@@ -51,9 +51,9 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         except TagKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        total_values = GroupTagValue.get_value_count(group.id, key)
+        total_values = GroupTagValue.get_value_count(group.id, lookup_key)
 
-        top_values = GroupTagValue.get_top_values(group.id, key, limit=3)
+        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=3)
 
         data = {
             'key': key,
