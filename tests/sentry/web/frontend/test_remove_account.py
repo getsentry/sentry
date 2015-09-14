@@ -101,23 +101,3 @@ class RemoveAccountTest(TestCase):
         assert Organization.objects.get(
             id=self.organization3.id,
         ).status == OrganizationStatus.VISIBLE
-
-    # def test_cannot_remove_default(self):
-    #     Organization.objects.all().delete()
-
-    #     org = self.create_organization()
-
-    #     self.login_as(self.user)
-
-    #     url = reverse('sentry-api-0-organization-details', kwargs={
-    #         'organization_slug': org.slug,
-    #     })
-
-    #     with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
-    #         resp = self.client.post(self.path)
-
-    #     assert resp.status_code == 302
-
-    #     organization = Organization.objects.get(id=org.id)
-
-    #     assert organization.status == OrganizationStatus.VISIBLE
