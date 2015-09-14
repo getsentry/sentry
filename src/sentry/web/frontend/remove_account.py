@@ -58,13 +58,16 @@ class RemoveAccountView(BaseView):
                 client.delete('/organizations/{}/'.format(org_slug),
                               request.user, is_sudo=True)
 
-            OrganizationMember.objects.filter(
-                organization__in=[
-                    o.id for o in org_list
-                    if o.slug in avail_org_slugs.difference(orgs_to_remove)
-                ],
-                user=request.user,
-            ).delete()
+            remaining_org_ids = [
+                o.id for o in org_list
+                if o.slug in avail_org_slugs.difference(orgs_to_remove)
+            ]
+
+            if remaining_org_ids:
+                OrganizationMember.objects.filter(
+                    organization__in=remaining_org_ids,
+                    user=request.user,
+                ).delete()
 
             User.objects.filter(
                 id=request.user.id,
