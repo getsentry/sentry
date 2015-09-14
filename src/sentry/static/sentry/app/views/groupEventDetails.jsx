@@ -1,8 +1,9 @@
 import React from "react";
 import api from "../api";
 import ApiMixin from "../mixins/apiMixin";
-import GroupEvent from "./groupDetails/event";
+import EventEntries from "../components/events/eventEntries";
 import GroupEventToolbar from "./groupDetails/eventToolbar";
+import GroupSidebar from "../components/group/sidebar";
 import GroupState from "../mixins/groupState";
 import MutedBox from "../components/mutedBox";
 import LoadingError from "../components/loadingError";
@@ -82,21 +83,28 @@ var GroupEventDetails = React.createClass({
 
     return (
       <div>
-        <MutedBox status={group.status} />
-        {evt &&
-          <GroupEventToolbar
-              group={group}
-              event={evt}
-              orgId={params.orgId}
-              projectId={params.projectId} />
-        }
-        {this.state.loading ?
-          <LoadingIndicator />
-        : (this.state.error ?
-          <LoadingError onRetry={this.fetchData} />
-        :
-          <GroupEvent group={group} event={evt} />
-        )}
+        <div className="row event">
+          <div className="col-md-9">
+            <MutedBox status={group.status} />
+            {evt &&
+              <GroupEventToolbar
+                  group={group}
+                  event={evt}
+                  orgId={params.orgId}
+                  projectId={params.projectId} />
+            }
+            {this.state.loading ?
+              <LoadingIndicator />
+            : (this.state.error ?
+              <LoadingError onRetry={this.fetchData} />
+            :
+              <EventEntries group={group} event={evt} />
+            )}
+          </div>
+          <div className="col-md-3">
+            <GroupSidebar group={group} />
+          </div>
+        </div>
       </div>
     );
   }
