@@ -8,9 +8,7 @@ var EventErrorItem = React.createClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (this.state.isOpen != nextState.isOpen) {
-      return true;
-    }
+    return this.state.isOpen !== nextState.isOpen;
   },
 
   toggle() {
