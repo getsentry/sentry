@@ -41,17 +41,27 @@ describe("SearchBar", function() {
 
   describe("getQueryTerms()", function () {
     it ("should extract query terms from a query string", function () {
-      let searchBar = React.render(<this.ContextStubbedSearchBar/>, document.body).refs.wrapped;
-      let query;
-
-      query = "tagname: ";
-      expect(searchBar.getQueryTerms(query, query.length)).to.eql(["tagname:"]);
+      let query = "tagname: ";
+      expect(SearchBar.getQueryTerms(query, query.length)).to.eql(["tagname:"]);
 
       query = "tagname:derp browser:";
-      expect(searchBar.getQueryTerms(query, query.length)).to.eql(["tagname:derp", "browser:"]);
+      expect(SearchBar.getQueryTerms(query, query.length)).to.eql(["tagname:derp", "browser:"]);
 
       query = "   browser:\"Chrome 33.0\"    ";
-      expect(searchBar.getQueryTerms(query, query.length)).to.eql(["browser:\"Chrome 33.0\""]);
+      expect(SearchBar.getQueryTerms(query, query.length)).to.eql(["browser:\"Chrome 33.0\""]);
+    });
+  });
+
+  describe("getLastTermIndex()", function () {
+    it("should provide the index of the last query term, given cursor index", function () {
+      let query = "tagname:";
+      expect(SearchBar.getLastTermIndex(query, 0)).to.eql(8);
+
+      query = "tagname:foo"; // 'f' (index 9)
+      expect(SearchBar.getLastTermIndex(query, 9)).to.eql(11);
+
+      query = "tagname:foo anothertag:bar"; // 'f' (index 9)
+      expect(SearchBar.getLastTermIndex(query, 9)).to.eql(11);
     });
   });
 

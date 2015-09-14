@@ -91,6 +91,27 @@ var SearchBar = React.createClass({
     });
   },
 
+  statics: {
+    /**
+     * Given a query, and the current cursor position, return the string-delimiting
+     * index of the search term designated by the cursor.
+     */
+    getLastTermIndex(query, cursor) {
+      // TODO: work with quoted-terms
+      let cursorOffset = query.slice(cursor).search(/\s|$/);
+      return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+    },
+
+    /**
+     * Returns an array of query terms, including incomplete terms
+     *
+     * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+     */
+    getQueryTerms(query, cursor) {
+      return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
+    }
+  },
+
   blur() {
     this.refs.searchInput.getDOMNode().blur();
   },
@@ -139,15 +160,6 @@ var SearchBar = React.createClass({
 
   getCursorPosition() {
     return this.refs.searchInput.getDOMNode().selectionStart;
-  },
-
-  /**
-   * Returns an array of query terms, including incomplete terms
-   *
-   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-   */
-  getQueryTerms(query, cursor) {
-    return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
   },
 
   /**
@@ -259,7 +271,9 @@ var SearchBar = React.createClass({
 
     var cursor = this.getCursorPosition();
     var query = this.state.query;
-    let terms = this.getQueryTerms(query);
+
+    let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
+    let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
 
     if (!terms || // no terms
         terms.length === 0 || // no terms
@@ -366,7 +380,8 @@ var SearchBar = React.createClass({
     let cursor = this.getCursorPosition();
     let query = this.state.query;
 
-    let terms = this.getQueryTerms(query);
+    let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
+    let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
     let newQuery;
 
     // If not postfixed with : (tag value), add trailing space
@@ -377,7 +392,7 @@ var SearchBar = React.createClass({
     } else {
       let last = terms.pop();
 
-      newQuery = query.slice(0, cursor); // get text preceding cursor
+      newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
       newQuery = last.indexOf(':') > -1
         // tag key present: replace everything after colon with replaceText
@@ -385,7 +400,7 @@ var SearchBar = React.createClass({
         // no tag key present: replace last token with replaceText
         : newQuery.replace(/\S+$/, replaceText);
 
-      newQuery = newQuery.concat(query.slice(cursor));
+      newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
     // prevent enter keypress from losing focus
