@@ -51,6 +51,7 @@ from sentry.web.frontend.project_release_tracking import ProjectReleaseTrackingV
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
+from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_team import RemoveTeamView
@@ -153,6 +154,8 @@ urlpatterns += patterns(
         name='sentry-account-settings-identities'),
     url(r'^account/settings/notifications/$', accounts.notification_settings,
         name='sentry-account-settings-notifications'),
+    url(r'^account/remove/$', RemoveAccountView.as_view(),
+        name='sentry-remove-account'),
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Admin
