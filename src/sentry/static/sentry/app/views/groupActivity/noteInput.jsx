@@ -3,14 +3,30 @@ import React from "react";
 import api from "../../api";
 import GroupStore from "../../stores/groupStore";
 import IndicatorStore from "../../stores/indicatorStore";
+import {getItem, setItem} from "../../utils/localStorage";
+
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
+const localStorageKey = 'noteinput:latest';
 
 var NoteInput = React.createClass({
   mixins: [PureRenderMixin],
 
   getInitialState() {
-    var {item} = this.props;
+    var {item, group} = this.props;
     var updating = !!item;
+    var defaultText = '';
+
+    if (updating) {
+      defaultText = item.data.text;
+    } else {
+      var storage = getItem(localStorageKey);
+      if (storage) {
+        var {groupId, value} = JSON.parse(storage);
+        if (groupId === group.id) {
+          defaultText = value;
+        }
+      }
+    }
 
     return {
       loading: false,
@@ -19,8 +35,22 @@ var NoteInput = React.createClass({
       expanded: false,
       preview: false,
       updating: updating,
-      value: updating ? item.data.text : ''
+      value: defaultText
     };
+  },
+
+  componentWillUpdate(nextProps, nextState) {
+    // We can't support this when editing an existing Note since it'll
+    // clobber the other storages
+    if (this.state.updating) return;
+
+    // Nothing changed
+    if (this.state.value === nextState.value) return;
+
+    setItem(localStorageKey, JSON.stringify({
+      groupId: this.props.group.id,
+      value: nextState.value
+    }));
   },
 
   toggleEdit() {
