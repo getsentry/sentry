@@ -48,5 +48,18 @@ describe('DefinitionList', function () {
       expect(dds[0].getDOMNode().textContent).to.eql(' ');
       expect(dds[1].getDOMNode().textContent).to.eql('y');
     });
+
+    it("should coerce non-strings into strings", function () {
+      var data = [
+        ['a', false]
+      ];
+      var elem = TestUtils.renderIntoDocument(<DefinitionList data={data} />);
+
+      var dts = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dt');
+      expect(dts[0].getDOMNode().textContent).to.eql('a');
+
+      var dds = TestUtils.scryRenderedDOMComponentsWithTag(elem, 'dd');
+      expect(dds[0].getDOMNode().textContent).to.eql('false');
+    });
   });
 });
