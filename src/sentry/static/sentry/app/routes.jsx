@@ -10,7 +10,6 @@ import GroupEventDetails from "./views/groupEventDetails";
 import GroupEvents from "./views/groupEvents";
 import GroupTags from "./views/groupTags";
 import GroupTagValues from "./views/groupTagValues";
-import GroupOverview from "./views/groupOverview";
 import GroupUserReports from "./views/groupUserReports";
 import OrganizationDetails from "./views/organizationDetails";
 import OrganizationStats from "./views/organizationStats";
@@ -47,7 +46,8 @@ var routes = (
         </Route>
         <Route name="groupDetails" path="group/:groupId/" handler={GroupDetails}
                ignoreScrollBehavior>
-          <DefaultRoute name="groupOverview" handler={GroupOverview} />
+          <DefaultRoute name="groupOverview" handler={GroupEventDetails} />
+
           <Route name="groupActivity" path="activity/" handler={GroupActivity} />
           <Route name="groupEventDetails" path="events/:eventId/" handler={GroupEventDetails} />
           <Route name="groupEvents" path="events/" handler={GroupEvents} />

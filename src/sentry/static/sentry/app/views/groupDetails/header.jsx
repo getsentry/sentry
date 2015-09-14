@@ -153,10 +153,10 @@ var GroupHeader = React.createClass({
         </div>
         <ul className="nav nav-tabs">
           <ListLink to="groupOverview" params={params}>
-            Overview
+            Details
           </ListLink>
           <ListLink to="groupEvents" params={params}>
-            Events
+            Similar Events
           </ListLink>
           <ListLink to="groupActivity" params={params}>
             Comments <span className="badge animated">{group.numComments}</span>
