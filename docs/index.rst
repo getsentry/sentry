@@ -19,6 +19,7 @@ running on your own infrastructure.
    throttling
    tsdb
    inbound-mail
+   internal-metrics
    performance
    cli
    health-checks
