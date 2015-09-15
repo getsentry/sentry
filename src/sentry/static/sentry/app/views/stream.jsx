@@ -114,6 +114,10 @@ var Stream = React.createClass({
       currentQuery.statsPeriod :
       this.props.defaultStatsPeriod;
 
+    if (statsPeriod !== '14d' && statsPeriod !== '24h') {
+      statsPeriod = this.props.defaultStatsPeriod;
+    }
+
     return {
       filter: filter,
       query: query,
