@@ -16,7 +16,7 @@ the gzipped json blob-as-text pattern.
 The backend provides no options, so it should simply be set to an empty
 dict.
 
-::
+.. code-block:: python
 
     SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
     SENTRY_NODESTORE_OPTIONS = {}
@@ -37,7 +37,7 @@ Some notes on your Riak installation:
 - We recommend ``n=2`` for replicas, but if the data isn't extremely
   important, ``n=1`` is fine.
 
-::
+.. code-block:: python
 
     SENTRY_NODESTORE = 'sentry.nodestore.riak.RiakNodeStorage'
     SENTRY_NODESTORE_OPTIONS = {
@@ -63,7 +63,7 @@ Riak.
 The Sentry Cassandra backend only operates over the native CQL interface,
 so requires Cassandra 1.2+.
 
-::
+.. code-block:: python
 
     CREATE KEYSPACE sentry WITH replication = {
       'class': 'SimpleStrategy',
@@ -81,7 +81,7 @@ so requires Cassandra 1.2+.
       compression={'sstable_compression': 'SnappyCompressor'};
 
 
-::
+.. code-block:: python
 
     SENTRY_NODESTORE = 'sentry.nodestore.cassandra.CassandraNodeStorage'
     SENTRY_NODESTORE_OPTIONS = {

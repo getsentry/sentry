@@ -24,6 +24,8 @@ never be used outside of such.
 
 The data reported is minimal and it greatly helps the development team
 behind Sentry. With that said, you can disable the beacon with the
-following setting::
+following setting:
+
+.. code-block:: python
 
 	SENTRY_BEACON = False
