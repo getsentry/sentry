@@ -9,7 +9,9 @@ Choosing a Backend
 ------------------
 
 To specify a backend, simply modify the ``SENTRY_TSDB`` and
-``SENTRY_TSDB_OPTIONS`` values in your configuration::
+``SENTRY_TSDB_OPTIONS`` values in your configuration:
+
+.. code-block:: python
 
     SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
     SENTRY_TSDB_OPTIONS = {}
@@ -18,7 +20,9 @@ To specify a backend, simply modify the ``SENTRY_TSDB`` and
 The Redis Backend
 -----------------
 
-Configuration is fairly straight forward::
+Configuration is fairly straight forward:
+
+.. code-block:: python
 
     SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
     SENTRY_TSDB_OPTIONS = {
@@ -33,7 +37,9 @@ Configuration is fairly straight forward::
 Because the Redis buffer relies on the Nydus package, this gives you the
 ability to specify multiple nodes and have keys automatically distributed.
 It's unlikely that you'll need this functionality, but if you do, a simple
-configuration might look like this::
+configuration might look like this:
+
+.. code-block:: python
 
     SENTRY_TSDB_OPTIONS = {
         'hosts': {

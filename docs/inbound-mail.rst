@@ -30,7 +30,9 @@ Create a new route in mailgun::
     Description:
       Sentry inbound handler
 
-Configure Sentry with the appropriate settings::
+Configure Sentry with the appropriate settings:
+
+.. code-block:: python
 
     # Your Mailgun API key (used to verify incoming webhooks)
     MAILGUN_API_KEY = ''
@@ -98,7 +100,9 @@ Configure an Nginx route as an SMTP mail proxy::
     }
 
 
-And finally, update Sentry with the appropriate settings::
+And finally, update Sentry with the appropriate settings:
+
+.. code-block:: python
 
     # Set the SMTP hostname to your configured inbound domain
     SENTRY_SMTP_HOSTNAME = 'inbound.sentry.example.com'

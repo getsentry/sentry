@@ -14,9 +14,9 @@ Running a Worker
 Workers can be run by using the Sentry CLI. Specifically, you call out to celery,
 which is the worker manager process of the Celery library.
 
-::
+.. code-block:: bash
 
-    sentry celery worker -B
+    $ sentry celery worker -B
 
 .. note:: You will need to run both celery workers and celerybeat. In our
           example, the -B flag runs a beat instance (in addition to the worker),
