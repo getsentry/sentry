@@ -26,10 +26,11 @@ def get_auth_providers():
     ]
 
 
-def get_login_redirect(request):
-    default = reverse('sentry')
+def get_login_redirect(request, default=None):
+    if default is None:
+        default = reverse('sentry')
     login_url = request.session.pop('_next', None) or default
-    if '//' in login_url:
+    if login_url.startswith(('http://', 'https://')):
         login_url = default
     elif login_url.startswith(reverse('sentry-login')):
         login_url = default

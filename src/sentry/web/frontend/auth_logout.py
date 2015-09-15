@@ -1,17 +1,17 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
 from django.contrib.auth import logout
 
 from sentry.models import AnonymousUser
 from sentry.web.frontend.base import BaseView
+from sentry.utils.auth import get_login_redirect
 
 
 class AuthLogoutView(BaseView):
     auth_required = False
 
     def handle(self, request):
+        rv = get_login_redirect(request)
         logout(request)
         request.user = AnonymousUser()
-
-        return self.redirect(reverse('sentry'))
+        return self.redirect(rv)
