@@ -242,7 +242,7 @@ class MockUtils(object):
         from sentry.models import User
         user, _ = User.objects.get_or_create(
             username=mail,
-            default={
+            defaults={
                 'email': mail,
             }
         )
@@ -259,7 +259,7 @@ class MockUtils(object):
         dummy_member, _ = OrganizationMember.objects.create(
             user=owner,
             organization=org,
-            default={
+            defaults={
                 'has_global_access': False,
             }
         )
@@ -288,7 +288,7 @@ class MockUtils(object):
         from sentry.models import Team
         return Team.objects.get_or_create(
             name=name,
-            default={
+            defaults={
                 'organization': org,
             },
         )[0]
@@ -298,7 +298,7 @@ class MockUtils(object):
         return Project.objects.get_or_create(
             team=team,
             name=name,
-            default={
+            defaults={
                 'organization': org,
             }
         )[0]
