@@ -9,7 +9,7 @@ var MutedBox = React.createClass({
       return null;
     }
     return (
-      <div className="alert alert-info">
+      <div className="alert alert-info alert-block">
         This event has been muted. You will not be notified of any changes and it will not show up in the default feed.
       </div>
     );
