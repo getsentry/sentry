@@ -69,7 +69,7 @@ class EventSerializer(Serializer):
             'user': attrs['user'],
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
-            'tags': dict(obj.get_tags(with_internal=False)),
+            'tags': dict(obj.get_tags()),
             'platform': obj.platform,
             'dateCreated': obj.datetime,
             'timeSpent': obj.time_spent,
