@@ -33,6 +33,7 @@ environment:
 
     SENTRY_METRICS_BACKEND = 'sentry.metrics.datadog.DatadogMetricsBackend'
     SENTRY_METRICS_OPTIONS = {
-        'api_key': ‘...',
-        'app_key': ‘...',
+        'api_key': '...',
+        'app_key': '...',
+        'tags': {},
     }
