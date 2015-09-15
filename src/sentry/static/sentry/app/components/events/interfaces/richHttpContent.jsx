@@ -46,7 +46,7 @@ var RichHttpContent = React.createClass({
     if (contentType === 'application/x-www-form-urlencoded') {
       return this.getQueryStringOrRaw(data.data);
     } else {
-      return <pre>{data}</pre>;
+      return <pre>{data.data}</pre>;
     }
   },
 
