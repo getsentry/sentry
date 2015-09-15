@@ -85,7 +85,6 @@ var GroupEventDetails = React.createClass({
       <div>
         <div className="row event">
           <div className="col-md-9">
-            <MutedBox status={group.status} />
             {evt &&
               <GroupEventToolbar
                   group={group}
@@ -93,6 +92,7 @@ var GroupEventDetails = React.createClass({
                   orgId={params.orgId}
                   projectId={params.projectId} />
             }
+            <MutedBox status={group.status} />
             {this.state.loading ?
               <LoadingIndicator />
             : (this.state.error ?
