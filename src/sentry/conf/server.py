@@ -722,7 +722,7 @@ SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
 SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'
 SENTRY_METRICS_OPTIONS = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
-SENTRY_METRICS_PREFIX = ''
+SENTRY_METRICS_PREFIX = 'sentry.'
 
 # URL to embed in js documentation
 SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.20/jquery,native/raven.min.js'
