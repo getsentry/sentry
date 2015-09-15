@@ -11,6 +11,8 @@ from __future__ import absolute_import
 __all__ = ('Stacktrace',)
 
 import re
+from types import NoneType
+from six import string_types
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -148,6 +150,11 @@ class Frame(Interface):
     def to_python(cls, data):
         abs_path = data.get('abs_path')
         filename = data.get('filename')
+        function = data.get('function')
+        module = data.get('module')
+
+        for v in (abs_path, filename, function, module):
+            assert isinstance(v, (string_types, NoneType))
 
         # absolute path takes priority over filename
         # (in the end both will get set)
@@ -165,7 +172,7 @@ class Frame(Interface):
             else:
                 filename = abs_path
 
-        assert filename or data.get('function') or data.get('module')
+        assert filename or function or module
 
         context_locals = data.get('vars') or {}
         if isinstance(context_locals, (list, tuple)):
@@ -196,8 +203,8 @@ class Frame(Interface):
         kwargs = {
             'abs_path': trim(abs_path, 256),
             'filename': trim(filename, 256),
-            'module': trim(data.get('module'), 256),
-            'function': trim(data.get('function'), 256),
+            'module': trim(module, 256),
+            'function': trim(function, 256),
             'in_app': validate_bool(data.get('in_app'), False),
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
