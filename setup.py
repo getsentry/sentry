@@ -108,7 +108,7 @@ install_requires = [
     'toronado>=0.0.4,<0.1.0',
     'ua-parser>=0.3.5',
     'urllib3>=1.11,<1.12',
-    'rb',
+    'rb>=1.1.0,<2.0.0',
 ]
 
 postgres_requires = [
