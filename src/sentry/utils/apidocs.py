@@ -256,7 +256,7 @@ class MockUtils(object):
             name=name,
         )
 
-        dummy_member, _ = OrganizationMember.objects.create(
+        dummy_member, _ = OrganizationMember.objects.get_or_create(
             user=owner,
             organization=org,
             defaults={
