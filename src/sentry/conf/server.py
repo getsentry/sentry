@@ -191,6 +191,8 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
     'sentry.middleware.proxy.SetRemoteAddrFromForwardedFor',
     'sentry.middleware.debug.NoIfModifiedSinceMiddleware',
+    'sentry.middleware.stats.RequestTimingMiddleware',
+    'sentry.middleware.stats.ResponseCodeMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
