@@ -15,7 +15,6 @@ class DatadogMetricsBackend(MetricsBackend):
             self.host = kwargs.pop('host')
         else:
             self.host = get_hostname()
-        initialize(**kwargs)
         self._stats = ThreadStats()
         self._stats.start()
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
