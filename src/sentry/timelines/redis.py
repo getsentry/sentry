@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import functools
 import itertools
 import logging
 import time
@@ -127,36 +126,55 @@ class RedisBackend(Backend):
             pipeline.execute()
 
     def schedule(self, cutoff, chunk=1000):
+        """
+        Moves timelines that are ready to be digested from the ``WAITING`` to
+        the ``READY`` state.
+        """
         # TODO: This doesn't lead to a fair balancing of workers, ideally each
         # scheduling task would be executed by a different process for each
         # host.
         for connection in itertools.imap(self.cluster.get_local_client, self.cluster.hosts):
             # TODO: Scheduling for each host should be protected by a lease.
-            get_remaining_items = functools.partial(
-                connection.zrangebyscore,
-                self.prefix_key(make_schedule_key(WAITING_STATE)),
-                min=0,
-                max=cutoff,
-                withscores=True,
-                start=0,
-                num=chunk,
-            )
+            while True:
+                items = connection.zrangebyscore(
+                    self.prefix_key(make_schedule_key(WAITING_STATE)),
+                    min=0,
+                    max=cutoff,
+                    withscores=True,
+                    start=0,
+                    num=chunk,
+                )
 
-            # TODO: This should just break when the fetch size < chunk size.
-            items = get_remaining_items()
-            while items:
+                # XXX: Redis will error if we try and execute an empty
+                # transaction. If there are no items to move between states, we
+                # need to exit the loop now. (This can happen on the first
+                # iteration of the loop if there is nothing to do, or on a
+                # subsequent iteration if there was exactly the same number of
+                # items to change states as the chunk size.)
+                if not items:
+                    break
+
                 with connection.pipeline() as pipeline:
                     pipeline.multi()
-                    # TODO: It would be marginally more efficient to just
-                    # execute two commands with all of the keys, since we
-                    # already have them in memory.
-                    for key, timestamp in items:
-                        pipeline.zrem(self.prefix_key(make_schedule_key(WAITING_STATE)), key)
-                        pipeline.zadd(self.prefix_key(make_schedule_key(READY_STATE)), timestamp, key)
+
+                    pipeline.zrem(
+                        self.prefix_key(make_schedule_key(WAITING_STATE)),
+                        *[key for key, timestamp in items]
+                    )
+
+                    pipeline.zadd(
+                        self.prefix_key(make_schedule_key(READY_STATE)),
+                        *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
+                    )
+
                     yield items
+
                     pipeline.execute()
 
-                items = get_remaining_items()
+                # If we retrieved less than the chunk size of items, we don't
+                # need try to retrieve more items.
+                if len(items) < chunk:
+                    break
 
     def maintenance(self, timeout):
         raise NotImplementedError
@@ -215,9 +233,9 @@ class RedisBackend(Backend):
             with connection.pipeline() as pipeline:
                 pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
                 pipeline.multi()
-                pipeline.delete(digest_key)
-                for key, score in records:
-                    pipeline.delete(self.prefix_key(make_record_key(timeline, key)))
+
+                record_keys = [self.prefix_key(make_record_key(timeline, key)) for key, score in records]
+                pipeline.delete(digest_key, *record_keys)
                 pipeline.zrem(self.prefix_key(make_schedule_key(READY_STATE)), timeline)
                 pipeline.zadd(self.prefix_key(make_schedule_key(WAITING_STATE)), time.time() + self.interval, timeline)  # TODO: Better interval?
                 pipeline.execute()
@@ -231,8 +249,6 @@ class RedisBackend(Backend):
                 if connection.zcard(timeline_key) is 0:
                     pipeline.zrem(self.prefix_key(make_schedule_key(READY_STATE)), timeline)
                     pipeline.zrem(self.prefix_key(make_schedule_key(WAITING_STATE)), timeline)
-                    # TODO: This needs to observe failures, and reschedule as
-                    # normal if the transaction fails due to a watch.
                     pipeline.execute()
 
         # If there were records in the digest, we need to schedule it so that
