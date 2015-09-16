@@ -15,6 +15,7 @@ var ProjectHeader = React.createClass({
     var urlPrefix = ConfigStore.get('urlPrefix');
     var project = this.props.project;
     var org = this.props.organization;
+    var access = new Set(org.access);
 
     return (
       <div>
@@ -37,11 +38,13 @@ var ProjectHeader = React.createClass({
                     Releases
                   </Router.Link>
                 </li>
-                <li className={navSection == 'settings' ? 'active': ''}>
-                  <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
-                    Settings
-                  </a>
-                </li>
+                {access.has('project:write') &&
+                  <li className={navSection == 'settings' ? 'active': ''}>
+                    <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
+                      Settings
+                    </a>
+                  </li>
+                }
               </ul>
             </div>
             <ProjectSelector
