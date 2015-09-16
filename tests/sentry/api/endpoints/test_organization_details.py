@@ -65,7 +65,7 @@ class OrganizationDeleteTest(APITestCase):
 
         mock_delete_organization.delay.assert_called_once_with(
             object_id=org.id,
-            countdown=60 * 5,
+            countdown=3600,
         )
 
     def test_as_admin(self):
