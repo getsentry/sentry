@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-import socket
-
 from mock import patch
+
+from datadog.util.hostname import get_hostname
 
 from sentry.metrics.datadog import DatadogMetricsBackend
 from sentry.testutils import TestCase
@@ -18,7 +18,7 @@ class DatadogMetricsBackendTest(TestCase):
         mock_incr.assert_called_once_with(
             'sentrytest.foo', 1,
             tags=['instance:bar'],
-            host=socket.gethostname(),
+            host=get_hostname(),
         )
 
     @patch('datadog.threadstats.base.ThreadStats.timing')
@@ -28,5 +28,5 @@ class DatadogMetricsBackendTest(TestCase):
             'sentrytest.foo', 30,
             sample_rate=1,
             tags=['instance:bar'],
-            host=socket.gethostname(),
+            host=get_hostname(),
         )
