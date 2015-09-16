@@ -130,7 +130,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             status=ProjectStatus.VISIBLE,
         ).update(status=ProjectStatus.PENDING_DELETION)
         if updated:
-            delete_project.delay(object_id=project.id)
+            delete_project.delay(object_id=project.id, countdown=3600)
 
             self.create_audit_entry(
                 request=request,
