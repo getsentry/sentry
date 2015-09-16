@@ -152,7 +152,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if updated:
             delete_organization.delay(
                 object_id=organization.id,
-                countdown=60 * 60,
+                countdown=3600,
             )
 
             self.create_audit_entry(
