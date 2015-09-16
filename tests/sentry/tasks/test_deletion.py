@@ -1,17 +1,38 @@
 from mock import patch
 
 from sentry.models import (
-    GroupTagKey, GroupTagValue, TagKey, TagValue, Team
+    GroupTagKey, GroupTagValue, Organization, OrganizationStatus, TagKey,
+    TagValue, Team, TeamStatus
 )
-from sentry.tasks.deletion import delete_tag_key, delete_team
+from sentry.tasks.deletion import (
+    delete_organization, delete_tag_key, delete_team
+)
 from sentry.testutils import TestCase
+
+
+class DeleteOrganizationTest(TestCase):
+    def test_simple(self):
+        org = self.create_organization(
+            name='test',
+            status=OrganizationStatus.PENDING_DELETION,
+        )
+        team1 = self.create_team(organization=org, name='test1')
+        team2 = self.create_team(organization=org, name='test2')
+
+        with self.tasks():
+            delete_organization(object_id=org.id)
+
+        assert not Organization.objects.filter(id=org.id).exists()
 
 
 class DeleteTeamTest(TestCase):
     def test_simple(self):
-        team = self.create_team(name='test', slug='test')
-        project1 = self.create_project(team=team, name='test1', slug='test1')
-        project2 = self.create_project(team=team, name='test2', slug='test2')
+        team = self.create_team(
+            name='test',
+            status=TeamStatus.PENDING_DELETION,
+        )
+        project1 = self.create_project(team=team, name='test1')
+        project2 = self.create_project(team=team, name='test2')
 
         with self.tasks():
             delete_team(object_id=team.id)
