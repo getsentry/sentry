@@ -5,6 +5,8 @@ __all__ = ['DatadogMetricsBackend']
 from datadog import initialize, ThreadStats
 from datadog.util.hostname import get_hostname
 
+from sentry.utils.cache import memoize
+
 from .base import MetricsBackend
 
 
@@ -15,22 +17,37 @@ class DatadogMetricsBackend(MetricsBackend):
             self.host = kwargs.pop('host')
         else:
             self.host = get_hostname()
-        self._stats = ThreadStats()
-        self._stats.start()
-        # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         initialize(**kwargs)
         super(DatadogMetricsBackend, self).__init__(prefix=prefix)
 
     def __del__(self):
-        self._stats.stop()
+        self.stats.stop()
 
-    def incr(self, key, amount=1, sample_rate=1):
-        self._stats.increment(self._get_key(key), amount,
-                              sample_rate=sample_rate,
-                              tags=self.tags,
-                              host=self.host)
+    @memoize
+    def stats(self):
+        instance = ThreadStats()
+        instance.start()
+        return instance
 
-    def timing(self, key, value, sample_rate=1):
-        self._stats.timing(self._get_key(key), value, sample_rate=sample_rate,
-                           tags=self.tags,
-                           host=self.host)
+    def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):
+        if tags is None:
+            tags = {}
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags['instance'] = instance
+        self.stats.increment(self._get_key(key), amount,
+                             sample_rate=sample_rate,
+                             tags=tags,
+                             host=self.host)
+
+    def timing(self, key, value, instance=None, tags=None, sample_rate=1):
+        if tags is None:
+            tags = {}
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags['instance'] = instance
+        self.stats.timing(self._get_key(key), value, sample_rate=sample_rate,
+                          tags=tags,
+                          host=self.host)
