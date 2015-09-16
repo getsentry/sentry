@@ -28,9 +28,6 @@ logger = logging.getLogger(__name__)
 
 Record = namedtuple('Record', 'key value timestamp')
 
-WAITING_STATE = 'waiting'
-READY_STATE = 'ready'
-
 
 ADD_TO_SCHEDULE_SCRIPT = """\
 -- Ensures an timeline is scheduled to be digested.
@@ -65,35 +62,67 @@ class CompressedPickleCodec(object):
         return pickle.loads(zlib.decompress(value))
 
 
+WAITING_STATE = 'w'
+READY_STATE = 'r'
+
+
+def make_schedule_key(state):
+    return 's:{0}'.format(state)
+
+
+def make_timeline_key(timeline):
+    return 't:{0}'.format(timeline)
+
+
+def make_digest_key(timeline):
+    return '{0}:d'.format(make_timeline_key(timeline))
+
+
+def make_record_key(timeline, record):
+    return '{0}:r:{1}'.format(make_timeline_key(timeline), record)
+
+
 class RedisBackend(Backend):
     def __init__(self, **options):
         if not options:
             options = settings.SENTRY_REDIS_OPTIONS
 
-        # TODO: Allow setting an instance prefix, and prepend all keys.
         self.cluster = Cluster(options['hosts'])
+
+        # TODO: Make this configurable.
+        self.prefix = 'digests'
 
         # TODO: Allow this to be configured (probably via a import path.)
         self.codec = CompressedPickleCodec()
 
         self.interval = 60 * 5
 
-    def make_key(self, timeline, record):
-        # TODO: Can use a shorter key here.
-        return '{timeline}/records/{record}'.format(timeline=timeline, record=record)
+    def prefix_key(self, key):
+        return '{0}:{1}'.format(self.prefix, key)
 
     def add(self, timeline, record):
-        connection = self.cluster.get_local_client_for_key(timeline)
+        timeline_key = self.prefix_key(make_timeline_key(timeline))
+        record_key = self.prefix_key(make_record_key(timeline, record.key))
+
+        connection = self.cluster.get_local_client_for_key(timeline_key)
         with connection.pipeline() as pipeline:
             pipeline.multi()
+
             # TODO: This actually should be SETEX, but need to figure out what the
             # correct TTL would be, based on scheduling, etc.
+            pipeline.set(record_key, self.codec.encode(record.value))
+
             # TODO: Prefix the entry with the timestamp (lexicographically
             # sortable) to ensure that we can maintain abitrary precision:
             # http://redis.io/commands/ZADD#elements-with-the-same-score
-            pipeline.set(self.make_key(timeline, record.key), self.codec.encode(record.value))
-            pipeline.zadd(timeline, record.timestamp, record.key)
-            add_to_schedule((WAITING_STATE, READY_STATE), (timeline, record.timestamp), pipeline)
+            pipeline.zadd(timeline_key, record.timestamp, record.key)
+
+            add_to_schedule(
+                map(self.prefix_key, map(make_schedule_key, (WAITING_STATE, READY_STATE))),
+                (timeline, record.timestamp),
+                pipeline,
+            )
+
             # TODO: Trim the timeline if it is over the defined capacity.
             pipeline.execute()
 
@@ -102,8 +131,18 @@ class RedisBackend(Backend):
         # scheduling task would be executed by a different process for each
         # host.
         for connection in itertools.imap(self.cluster.get_local_client, self.cluster.hosts):
-            get_remaining_items = functools.partial(connection.zrangebyscore, WAITING_STATE, 0, cutoff, withscores=True, start=0, num=chunk)
+            # TODO: Scheduling for each host should be protected by a lease.
+            get_remaining_items = functools.partial(
+                connection.zrangebyscore,
+                self.prefix_key(make_schedule_key(WAITING_STATE)),
+                min=0,
+                max=cutoff,
+                withscores=True,
+                start=0,
+                num=chunk,
+            )
 
+            # TODO: This should just break when the fetch size < chunk size.
             items = get_remaining_items()
             while items:
                 with connection.pipeline() as pipeline:
@@ -112,8 +151,8 @@ class RedisBackend(Backend):
                     # execute two commands with all of the keys, since we
                     # already have them in memory.
                     for key, timestamp in items:
-                        pipeline.zrem(WAITING_STATE, key)
-                        pipeline.zadd(READY_STATE, timestamp, key)
+                        pipeline.zrem(self.prefix_key(make_schedule_key(WAITING_STATE)), key)
+                        pipeline.zadd(self.prefix_key(make_schedule_key(READY_STATE)), timestamp, key)
                     yield items
                     pipeline.execute()
 
@@ -124,21 +163,21 @@ class RedisBackend(Backend):
 
     @contextmanager
     def digest(self, timeline):
-        connection = self.cluster.get_local_client_for_key(timeline)
+        timeline_key = self.prefix_key(make_timeline_key(timeline))
+        digest_key = self.prefix_key(make_digest_key(timeline))
 
         # TODO: Need to wrap this whole section in a lease to try and avoid data races.
-
-        # TODO: Can use a shorter key here.
-        digest_key = '{timeline}/digest'.format(timeline=timeline)
+        connection = self.cluster.get_local_client_for_key(timeline_key)
 
         with connection.pipeline() as pipeline:
             pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
+
             if pipeline.exists(digest_key):
                 pipeline.multi()
-                pipeline.zunionstore(digest_key, (timeline, digest_key), aggregate='max')
+                pipeline.zunionstore(digest_key, (timeline_key, digest_key), aggregate='max')
             else:
                 pipeline.multi()
-                pipeline.rename(timeline, digest_key)
+                pipeline.rename(timeline_key, digest_key)
                 try:
                     pipeline.execute()
                 except ResponseError as error:
@@ -154,7 +193,7 @@ class RedisBackend(Backend):
         def get_records_for_digest():
             with connection.pipeline(transaction=False) as pipeline:
                 for key, timestamp in records:
-                    pipeline.get(self.make_key(timeline, key))
+                    pipeline.get(self.prefix_key(make_record_key(timeline, key)))
 
                 for (key, timestamp), value in zip(records, pipeline.execute()):
                     # We have to handle failures if the key does not exist --
@@ -175,20 +214,20 @@ class RedisBackend(Backend):
                 pipeline.multi()
                 pipeline.delete(digest_key)
                 for key, score in records:
-                    pipeline.delete(self.make_key(timeline, key))
-                pipeline.zrem(READY_STATE, timeline)
-                pipeline.zadd(WAITING_STATE, time.time() + self.interval, timeline)  # TODO: Better interval?
+                    pipeline.delete(self.prefix_key(make_record_key(timeline, key)))
+                pipeline.zrem(self.prefix_key(make_schedule_key(READY_STATE)), timeline)
+                pipeline.zadd(self.prefix_key(make_schedule_key(WAITING_STATE)), time.time() + self.interval, timeline)  # TODO: Better interval?
                 pipeline.execute()
 
         def unschedule():
             with connection.pipeline() as pipeline:
                 # Watch the timeline to ensure that no other transactions add
                 # events to the timeline while we are trying to delete it.
-                pipeline.watch(timeline)
+                pipeline.watch(timeline_key)
                 pipeline.multi()
-                if connection.zcard(timeline) is 0:
-                    pipeline.zrem(READY_STATE, timeline)
-                    pipeline.zrem(WAITING_STATE, timeline)
+                if connection.zcard(timeline_key) is 0:
+                    pipeline.zrem(self.prefix_key(make_schedule_key(READY_STATE)), timeline)
+                    pipeline.zrem(self.prefix_key(make_schedule_key(WAITING_STATE)), timeline)
                     # TODO: This needs to observe failures, and reschedule as
                     # normal if the transaction fails due to a watch.
                     pipeline.execute()
@@ -203,5 +242,5 @@ class RedisBackend(Backend):
             try:
                 unschedule()
             except WatchError:
-                logger.debug('Could not remove timeline from schedule, rescheduling instead.')
+                logger.debug('Could not remove timeline from schedule, rescheduling instead')
                 reschedule()

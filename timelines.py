@@ -74,3 +74,12 @@ with timer('Digested {0} timelines'.format(len(ready))):
             i = 0
             for i, record in enumerate(records, 1):
                 pass
+
+
+# Check to make sure we're not leaking any data.
+
+with timelines.cluster.all() as client:
+    result = client.keys('*')
+
+for host, value in result.value.iteritems():
+    assert not value
