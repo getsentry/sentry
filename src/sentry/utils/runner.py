@@ -311,6 +311,11 @@ def initialize_app(config):
     settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
 
+    from django.utils import timezone
+    from sentry.app import env
+    env.data['config'] = config.get('config_path')
+    env.data['start_date'] = timezone.now()
+
 
 def validate_backends():
     from sentry import app
@@ -409,17 +414,11 @@ def on_configure(config, skip_backend_validation=False):
     At this point we can force import on various things such as models
     as all of settings should be correctly configured.
     """
-    from django.utils import timezone
-    from sentry.app import env
-
     settings = config['settings']
 
     if USE_GEVENT:
         from django.db import connections
         connections['default'].allow_thread_sharing = True
-
-    env.data['config'] = config.get('config_path')
-    env.data['start_date'] = timezone.now()
 
     skip_migration_if_applied(
         settings, 'kombu.contrib.django', 'djkombu_queue')
