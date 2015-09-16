@@ -116,8 +116,8 @@ var SearchBar = React.createClass({
     this.refs.searchInput.getDOMNode().blur();
   },
 
-  onSubmit(event) {
-    event.preventDefault();
+  onSubmit(evt) {
+    evt.preventDefault();
     this.blur();
     this.props.onSearch(this.state.query);
   },
@@ -144,15 +144,15 @@ var SearchBar = React.createClass({
     }, this.DROPDOWN_BLUR_DURATION);
   },
 
-  onQueryChange(event) {
+  onQueryChange(evt) {
     this.setState(
-      { query: event.target.value },
+      { query: evt.target.value },
       () => this.updateAutoCompleteItems()
     );
   },
 
-  onKeyUp(event) {
-    if (event.key === 'Escape' || event.keyCode === 27) {
+  onKeyUp(evt) {
+    if (evt.key === 'Escape' || evt.keyCode === 27) {
       // blur handler should additionally hide dropdown
       this.blur();
     }
@@ -353,25 +353,25 @@ var SearchBar = React.createClass({
     });
   },
 
-  onKeyDown(event) {
+  onKeyDown(evt) {
     let state = this.state;
     let searchItems = state.searchItems;
 
     if (!searchItems.length)
       return;
 
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
       // Move active selection up/down
       delete searchItems[state.activeSearchItem].active;
 
-      state.activeSearchItem = event.key === 'ArrowDown'
+      state.activeSearchItem = evt.key === 'ArrowDown'
         ? Math.min(state.activeSearchItem + 1, searchItems.length - 1)
         : Math.max(state.activeSearchItem - 1, 0);
 
       searchItems[state.activeSearchItem].active = true;
       this.setState({ searchItems: searchItems.slice(0) });
 
-    } else if ((event.key === 'Tab' || event.key === 'Enter') && !this.isDefaultDropdown()) {
+    } else if ((evt.key === 'Tab' || evt.key === 'Enter') && !this.isDefaultDropdown()) {
       this.onAutoComplete(searchItems[state.activeSearchItem].value);
     }
   },

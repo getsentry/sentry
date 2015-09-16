@@ -9,8 +9,8 @@ var FrameVariables = React.createClass({
 
   // make sure that clicking on the variables does not actually do
   // anything on the containing element.
-  preventToggling(event) {
-    event.stopPropagation();
+  preventToggling(evt) {
+    evt.stopPropagation();
   },
 
   render() {

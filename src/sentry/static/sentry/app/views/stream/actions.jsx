@@ -126,7 +126,7 @@ var StreamActions = React.createClass({
     SelectedGroupStore.toggleSelectAll();
   },
 
-  onRealtimeChange(event) {
+  onRealtimeChange(evt) {
     this.props.onRealtimeChange(!this.props.realtimeActive);
   },
 

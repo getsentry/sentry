@@ -52,15 +52,15 @@ var ActionLink = React.createClass({
     });
   },
 
-  handleActionAll(event) {
-    this.props.onAction(event, this.props.actionTypes.ALL);
+  handleActionAll(evt) {
+    this.props.onAction(evt, this.props.actionTypes.ALL);
     this.setState({
       isModalOpen: false
     });
   },
 
-  handleActionSelected(event) {
-    this.props.onAction(event, this.props.actionTypes.SELECTED);
+  handleActionSelected(evt) {
+    this.props.onAction(evt, this.props.actionTypes.SELECTED);
     this.setState({
       isModalOpen: false
     });
