@@ -15,6 +15,7 @@ from django.http import HttpResponseRedirect
 from threading import local
 
 from sentry.plugins.base.response import Response
+from sentry.plugins.base.configuration import default_plugin_config
 
 
 class PluginMount(type):
@@ -322,6 +323,10 @@ class IPlugin2(local):
         >>>     return MyReleaseHook
         """
         return []
+
+    def configure(self, project, request):
+        """Configures the plugin."""
+        return default_plugin_config(self, project, request)
 
 
 class Plugin2(IPlugin2):

@@ -19,7 +19,7 @@ from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Count
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
@@ -33,7 +33,7 @@ from sentry.web.forms import (
     NewUserForm, ChangeUserForm, RemoveUserForm, TestEmailForm)
 from sentry.web.decorators import requires_admin
 from sentry.web.helpers import (
-    render_to_response, plugin_config, render_to_string)
+    render_to_response, render_to_string)
 
 
 def configure_plugin(request, slug):
@@ -41,9 +41,9 @@ def configure_plugin(request, slug):
     if not plugin.has_site_conf():
         return HttpResponseRedirect(reverse('sentry'))
 
-    action, view = plugin_config(plugin, None, request)
-    if action == 'redirect':
-        return HttpResponseRedirect(request.path)
+    view = plugin.configure(request)
+    if isinstance(view, HttpResponse):
+        return view
 
     return render_to_response('sentry/admin/plugins/configure.html', {
         'plugin': plugin,

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -11,7 +11,6 @@ from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins, NotificationPlugin
 from sentry.web.forms.projects import NotificationSettingsForm
 from sentry.web.frontend.base import ProjectView
-from sentry.web.helpers import plugin_config
 
 OK_SETTINGS_SAVED = _('Your settings were saved successfully.')
 
@@ -83,13 +82,9 @@ class ProjectNotificationsView(ProjectView):
 
                 form = plugin.project_conf_form
                 if form is not None:
-                    action, view = plugin_config(plugin, project, request)
-                    if action == 'redirect':
-                        messages.add_message(
-                            request, messages.SUCCESS,
-                            constants.OK_PLUGIN_SAVED.format(name=plugin.get_title()),
-                        )
-                        return HttpResponseRedirect(request.path)
+                    view = plugin.configure(request, project=project)
+                    if isinstance(view, HttpResponse):
+                        return view
                     enabled_plugins.append((plugin, mark_safe(content + view)))
                 elif content:
                     enabled_plugins.append((plugin, mark_safe(content)))

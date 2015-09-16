@@ -10,14 +10,14 @@ from __future__ import absolute_import
 from django.contrib import messages
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_ADMIN
 from sentry.plugins import plugins
 from sentry.web.decorators import has_access
-from sentry.web.helpers import render_to_response, plugin_config
+from sentry.web.helpers import render_to_response
 
 
 @has_access(MEMBER_ADMIN)
@@ -57,17 +57,9 @@ def configure_project_plugin(request, organization, project, slug):
     if not plugin.can_enable_for_projects():
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.organization.slug, project.slug]))
 
-    form = plugin.project_conf_form
-    if form is None:
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.organization.slug, project.slug]))
-
-    action, view = plugin_config(plugin, project, request)
-    if action == 'redirect':
-        messages.add_message(
-            request, messages.SUCCESS,
-            _('Your settings were saved successfully.'))
-
-        return HttpResponseRedirect(request.path)
+    view = plugin.configure(request, project=project)
+    if isinstance(view, HttpResponse):
+        return view
 
     context = csrf(request)
     context.update({
@@ -81,7 +73,8 @@ def configure_project_plugin(request, organization, project, slug):
         'plugin_is_enabled': plugin.is_enabled(project),
     })
 
-    return render_to_response('sentry/projects/plugins/configure.html', context, request)
+    return render_to_response('sentry/projects/plugins/configure.html',
+                              context, request)
 
 
 @has_access(MEMBER_ADMIN)
