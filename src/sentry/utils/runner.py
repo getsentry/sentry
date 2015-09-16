@@ -239,25 +239,25 @@ def generate_settings():
     return output
 
 
-def install_plugins(settings):
+def install_plugin_apps(settings):
+    # entry_points={
+    #    'sentry.apps': [
+    #         'phabricator = sentry_phabricator'
+    #     ],
+    # },
+    installed_apps = list(settings.INSTALLED_APPS)
+    for ep in pkg_resources.iter_entry_points('sentry.apps'):
+        installed_apps.append(ep.module_name)
+    settings.INSTALLED_APPS = tuple(installed_apps)
+
+
+def register_plugins(settings):
     from sentry.plugins import register
     # entry_points={
     #    'sentry.plugins': [
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    installed_apps = list(settings.INSTALLED_APPS)
-    for ep in pkg_resources.iter_entry_points('sentry.apps'):
-        try:
-            plugin = ep.load()
-        except Exception:
-            import sys
-            import traceback
-
-            sys.stderr.write("Failed to load app %r:\n%s\n" % (ep.name, traceback.format_exc()))
-        else:
-            installed_apps.append(ep.module_name)
-    settings.INSTALLED_APPS = tuple(installed_apps)
 
     for ep in pkg_resources.iter_entry_points('sentry.plugins'):
         try:
@@ -289,24 +289,14 @@ def initialize_gevent():
         make_psycopg_green()
 
 
-def initialize_app(config, skip_backend_validation=False):
-    from django.utils import timezone
-    from sentry.app import env
-
-    if USE_GEVENT:
-        from django.db import connections
-        connections['default'].allow_thread_sharing = True
-
-    env.data['config'] = config.get('config_path')
-    env.data['start_date'] = timezone.now()
-
+def initialize_app(config):
     settings = config['settings']
 
     fix_south(settings)
 
-    install_plugins(settings)
+    apply_legacy_settings(settings)
 
-    apply_legacy_settings(config)
+    install_plugin_apps(settings)
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
@@ -320,11 +310,6 @@ def initialize_app(config, skip_backend_validation=False):
 
     settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
-
-    initialize_receivers()
-
-    if not (skip_backend_validation or SKIP_BACKEND_VALIDATION):
-        validate_backends()
 
 
 def validate_backends():
@@ -356,9 +341,7 @@ def show_big_error(message):
     sys.stderr.write('\n')
 
 
-def apply_legacy_settings(config):
-    settings = config['settings']
-
+def apply_legacy_settings(settings):
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
     if hasattr(settings, 'SENTRY_USE_QUEUE'):
         warnings.warn('SENTRY_USE_QUEUE is deprecated. Please use CELERY_ALWAYS_EAGER instead. '
@@ -419,16 +402,36 @@ def skip_migration_if_applied(settings, app_name, table_name,
         skip_if_table_exists(migration.forwards), migration)
 
 
-def on_configure(config):
+def on_configure(config, skip_backend_validation=False):
     """
     Executes after settings are full installed and configured.
+
+    At this point we can force import on various things such as models
+    as all of settings should be correctly configured.
     """
+    from django.utils import timezone
+    from sentry.app import env
+
     settings = config['settings']
+
+    if USE_GEVENT:
+        from django.db import connections
+        connections['default'].allow_thread_sharing = True
+
+    env.data['config'] = config.get('config_path')
+    env.data['start_date'] = timezone.now()
 
     skip_migration_if_applied(
         settings, 'kombu.contrib.django', 'djkombu_queue')
     skip_migration_if_applied(
         settings, 'social_auth', 'social_auth_association')
+
+    register_plugins(settings)
+
+    initialize_receivers()
+
+    if not (skip_backend_validation or SKIP_BACKEND_VALIDATION):
+        validate_backends()
 
 
 def configure(config_path=None, skip_backend_validation=False):
@@ -439,9 +442,9 @@ def configure(config_path=None, skip_backend_validation=False):
         default_settings='sentry.conf.server',
         settings_initializer=generate_settings,
         settings_envvar='SENTRY_CONF',
-        initializer=partial(
-            initialize_app, skip_backend_validation=skip_backend_validation),
-        on_configure=on_configure,
+        initializer=initialize_app,
+        on_configure=partial(
+            on_configure, skip_backend_validation=skip_backend_validation)
     )
 
 
