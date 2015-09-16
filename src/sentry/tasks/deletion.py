@@ -22,7 +22,7 @@ logger = get_task_logger(__name__)
 @retry
 def delete_organization(object_id, continuous=True, **kwargs):
     from sentry.models import (
-        Organization, OrganizationMember, OrganizationStatus, Team
+        Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus
     )
 
     try:
@@ -30,11 +30,15 @@ def delete_organization(object_id, continuous=True, **kwargs):
     except Team.DoesNotExist:
         return
 
+    if o.status == OrganizationStatus.VISIBLE:
+        raise ValueError('Aborting organization deletion as status is invalid')
+
     if o.status != OrganizationStatus.DELETION_IN_PROGRESS:
         o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
     for team in Team.objects.filter(organization=o).order_by('id')[:1]:
         logger.info('Removing Team id=%s where organization=%s', team.id, o.id)
+        team.update(status=TeamStatus.DELETION_IN_PROGRESS)
         delete_team(team.id, continuous=False)
         if continuous:
             delete_organization.delay(object_id=object_id, countdown=15)
@@ -54,12 +58,15 @@ def delete_organization(object_id, continuous=True, **kwargs):
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
 def delete_team(object_id, continuous=True, **kwargs):
-    from sentry.models import Team, TeamStatus, Project
+    from sentry.models import Team, TeamStatus, Project, ProjectStatus
 
     try:
         t = Team.objects.get(id=object_id)
     except Team.DoesNotExist:
         return
+
+    if t.status == TeamStatus.VISIBLE:
+        raise ValueError('Aborting team deletion as status is invalid')
 
     if t.status != TeamStatus.DELETION_IN_PROGRESS:
         t.update(status=TeamStatus.DELETION_IN_PROGRESS)
@@ -67,6 +74,7 @@ def delete_team(object_id, continuous=True, **kwargs):
     # Delete 1 project at a time since this is expensive by itself
     for project in Project.objects.filter(team=t).order_by('id')[:1]:
         logger.info('Removing Project id=%s where team=%s', project.id, t.id)
+        project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
         delete_project(project.id, continuous=False)
         if continuous:
             delete_team.delay(object_id=object_id, countdown=15)
@@ -89,6 +97,9 @@ def delete_project(object_id, continuous=True, **kwargs):
         p = Project.objects.get(id=object_id)
     except Project.DoesNotExist:
         return
+
+    if p.status == ProjectStatus.VISIBLE:
+        raise ValueError('Aborting project deletion as status is invalid')
 
     if p.status != ProjectStatus.DELETION_IN_PROGRESS:
         p.update(status=ProjectStatus.DELETION_IN_PROGRESS)
