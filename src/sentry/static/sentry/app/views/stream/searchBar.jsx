@@ -403,9 +403,6 @@ var SearchBar = React.createClass({
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
-    // prevent enter keypress from losing focus
-    event.preventDefault();
-
     this.setState({
       query: newQuery
     }, () => {
