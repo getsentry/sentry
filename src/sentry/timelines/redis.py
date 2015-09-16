@@ -73,12 +73,20 @@ def make_timeline_key(timeline):
     return 't:{0}'.format(timeline)
 
 
+def make_iteration_key(timeline):
+    return '{0}:i'.format(make_timeline_key(timeline))
+
+
 def make_digest_key(timeline):
     return '{0}:d'.format(make_timeline_key(timeline))
 
 
 def make_record_key(timeline, record):
     return '{0}:r:{1}'.format(make_timeline_key(timeline), record)
+
+
+def backoff(duration, maximum=2):
+    return lambda iteration: duration << min(iteration, maximum)
 
 
 class RedisBackend(Backend):
@@ -94,7 +102,7 @@ class RedisBackend(Backend):
         # TODO: Allow this to be configured (probably via a import path.)
         self.codec = CompressedPickleCodec()
 
-        self.interval = 60 * 5
+        self.backoff = backoff(60 * 5)
 
     def prefix_key(self, key):
         return '{0}:{1}'.format(self.prefix, key)
@@ -110,6 +118,10 @@ class RedisBackend(Backend):
             # TODO: This actually should be SETEX, but need to figure out what the
             # correct TTL would be, based on scheduling, etc.
             pipeline.set(record_key, self.codec.encode(record.value))
+
+            # TODO: This probably should just be rolled into some sort of
+            # metadata key instead of something specifically for backoff.
+            pipeline.set(self.prefix_key(make_iteration_key(timeline)), 0, nx=True)
 
             # TODO: Prefix the entry with the timestamp (lexicographically
             # sortable) to ensure that we can maintain abitrary precision:
@@ -211,6 +223,9 @@ class RedisBackend(Backend):
         # the timeline "capacity".)
         records = connection.zrevrange(digest_key, 0, -1, withscores=True)
 
+        # TODO: This should gracefully handle the iteration key being evicted.
+        iteration = int(connection.get(self.prefix_key(make_iteration_key(timeline))))
+
         def get_records_for_digest():
             with connection.pipeline(transaction=False) as pipeline:
                 for key, timestamp in records:
@@ -237,7 +252,8 @@ class RedisBackend(Backend):
                 record_keys = [self.prefix_key(make_record_key(timeline, key)) for key, score in records]
                 pipeline.delete(digest_key, *record_keys)
                 pipeline.zrem(self.prefix_key(make_schedule_key(READY_STATE)), timeline)
-                pipeline.zadd(self.prefix_key(make_schedule_key(WAITING_STATE)), time.time() + self.interval, timeline)  # TODO: Better interval?
+                pipeline.zadd(self.prefix_key(make_schedule_key(WAITING_STATE)), time.time() + self.backoff(iteration + 1), timeline)
+                pipeline.set(self.prefix_key(make_iteration_key(timeline)), iteration + 1)
                 pipeline.execute()
 
         def unschedule():
@@ -247,6 +263,7 @@ class RedisBackend(Backend):
                 pipeline.watch(timeline_key)
                 pipeline.multi()
                 if connection.zcard(timeline_key) is 0:
+                    pipeline.delete(self.prefix_key(make_iteration_key(timeline)))
                     pipeline.zrem(self.prefix_key(make_schedule_key(READY_STATE)), timeline)
                     pipeline.zrem(self.prefix_key(make_schedule_key(WAITING_STATE)), timeline)
                     pipeline.execute()
