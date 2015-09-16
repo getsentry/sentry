@@ -458,6 +458,11 @@ LOGGING = {
             'filters': ['sentry:internal'],
             'class': 'raven.contrib.django.handlers.SentryHandler',
         },
+        'audit': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
         'console:api': {
             'level': 'WARNING',
             'class': 'logging.StreamHandler',
@@ -487,6 +492,9 @@ LOGGING = {
         'sentry.api': {
             'handlers': ['console:api', 'sentry'],
             'propagate': False,
+        },
+        'sentry.deletions': {
+            'handlers': ['audit'],
         },
         'sentry.errors': {
             'handlers': ['console'],
