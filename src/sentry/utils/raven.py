@@ -60,6 +60,7 @@ class SentryInternalClient(DjangoClient):
         except DatabaseError:
             self.error_logger.error('Unable to fetch internal project',
                                     exc_info=True)
+            return
         except Project.DoesNotExist:
             self.error_logger.error('Internal project (id=%s) does not exist',
                                     settings.SENTRY_PROJECT)
