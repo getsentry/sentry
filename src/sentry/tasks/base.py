@@ -18,7 +18,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            key = 'jobs.duration'.format(name=name)
+            key = 'jobs.duration'
             if stat_suffix:
                 instance = '{}.{}'.format(name, stat_suffix(*args, **kwargs))
             else:
