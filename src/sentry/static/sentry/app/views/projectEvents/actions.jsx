@@ -18,7 +18,7 @@ var EventActions = React.createClass({
     };
   },
 
-  onRealtimeChange(event) {
+  onRealtimeChange(evt) {
     this.props.onRealtimeChange(!this.props.realtimeActive);
   },
 

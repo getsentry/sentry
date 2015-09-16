@@ -128,7 +128,7 @@ var ProjectSelector = React.createClass({
     );
   },
 
-  onOpen(event) {
+  onOpen(evt) {
     this.refs.filter.getDOMNode().focus();
   },
 
