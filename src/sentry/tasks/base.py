@@ -18,10 +18,12 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            key = 'jobs.duration.{name}'.format(name=name)
+            key = 'jobs.duration'.format(name=name)
             if stat_suffix:
-                key += '.{key}'.format(key=stat_suffix(*args, **kwargs))
-            with metrics.timer(key):
+                instance = '{}.{}'.format(name, stat_suffix(*args, **kwargs))
+            else:
+                instance = name
+            with metrics.timer(key, instance=instance):
                 result = func(*args, **kwargs)
             return result
         return app.task(name=name, **kwargs)(_wrapped)

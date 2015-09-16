@@ -38,30 +38,34 @@ def _sampled_value(value):
     return value
 
 
-def _incr_internal(key, amount):
+def _incr_internal(key, instance=None, tags=None, amount=1):
     from sentry.app import tsdb
 
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     if _should_sample():
         amount = _sampled_value(amount)
-        tsdb.incr(tsdb.models.internal, key, count=amount)
+        if instance:
+            full_key = '{}.{}'.format(key, instance)
+        else:
+            full_key = key
+        tsdb.incr(tsdb.models.internal, full_key, count=amount)
 
 
-def incr(key, amount=1):
+def incr(key, instance=None, tags=None, amount=1):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    _incr_internal(key, amount)
-    backend.incr(key, amount, sample_rate)
+    _incr_internal(key, instance, tags, amount)
+    backend.incr(key, amount, instance, tags, sample_rate)
 
 
-def timing(key, value):
+def timing(key, value, instance=None, tags=None):
     # TODO(dcramer): implement timing for tsdb
     # TODO(dcramer): implement sampling for timing
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    backend.timing(key, value, sample_rate)
+    backend.timing(key, value, instance, tags, sample_rate)
 
 
 @contextmanager
-def timer(key):
+def timer(key, instance=None, tags=None):
     start = time()
     yield
-    timing(key, time() - start)
+    timing(key, time() - start, instance, tags)
