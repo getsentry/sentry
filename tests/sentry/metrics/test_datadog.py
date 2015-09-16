@@ -18,7 +18,7 @@ class DatadogMetricsBackendTest(TestCase):
         mock_incr.assert_called_once_with(
             'sentrytest.foo', 1,
             sample_rate=1,
-            tags={'instance': 'bar'},
+            tags=['instance:bar'],
             host=socket.gethostname(),
         )
 
@@ -28,6 +28,6 @@ class DatadogMetricsBackendTest(TestCase):
         mock_timing.assert_called_once_with(
             'sentrytest.foo', 30,
             sample_rate=1,
-            tags={'instance': 'bar'},
+            tags=['instance:bar'],
             host=socket.gethostname(),
         )
