@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import itertools
 import logging
+import random
 import time
 import zlib
 from collections import namedtuple
@@ -104,6 +105,9 @@ class RedisBackend(Backend):
 
         self.backoff = backoff(60 * 5)
 
+        self.capacity = 1000
+        self.trim_chance = 1.0 / self.capacity
+
     def prefix_key(self, key):
         return '{0}:{1}'.format(self.prefix, key)
 
@@ -134,7 +138,15 @@ class RedisBackend(Backend):
                 pipeline,
             )
 
-            # TODO: Trim the timeline if it is over the defined capacity.
+            # XXX: This should be implemented in Lua to make this atomic and
+            # reduce round trip time (right now this can delete record data
+            # that has already been moved into a digest.)
+            if random.random() <= self.trim_chance:
+                keys = connection.zrevrange(timeline_key, self.capacity, -1)
+                if keys:
+                    connection.delete(*[self.prefix_key(make_record_key(timeline, key)) for key in keys])
+                    connection.zrem(timeline_key, *keys)
+
             pipeline.execute()
 
     def schedule(self, cutoff, chunk=1000):
@@ -242,7 +254,7 @@ class RedisBackend(Backend):
                         # TODO: Could make this lazy, but that might be unnecessary complexity.
                         yield Record(key, self.codec.decode(value), timestamp)
 
-        yield get_records_for_digest()
+        yield itertools.islice(get_records_for_digest(), self.capacity)
 
         def reschedule():
             with connection.pipeline() as pipeline:
