@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.safestring import mark_safe
 
 from sentry import constants
 from sentry.models import OrganizationMemberType
 from sentry.plugins import plugins, IssueTrackingPlugin
 from sentry.web.frontend.base import ProjectView
-from sentry.web.helpers import plugin_config
 
 
 class ProjectIssueTrackingView(ProjectView):
@@ -54,13 +53,9 @@ class ProjectIssueTrackingView(ProjectView):
 
                 form = plugin.project_conf_form
                 if form is not None:
-                    action, view = plugin_config(plugin, project, request)
-                    if action == 'redirect':
-                        messages.add_message(
-                            request, messages.SUCCESS,
-                            constants.OK_PLUGIN_SAVED.format(name=plugin.get_title()),
-                        )
-                        return HttpResponseRedirect(request.path)
+                    view = plugin.configure(request, project=project)
+                    if isinstance(view, HttpResponse):
+                        return view
                 elif content:
                     enabled_plugins.append((plugin, mark_safe(content)))
                 enabled_plugins.append((plugin, mark_safe(content + view)))

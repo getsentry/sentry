@@ -13,13 +13,11 @@ from django.conf import settings
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
-from django.utils.safestring import mark_safe
 
-from sentry import options
 from sentry.api.serializers.base import serialize
 from sentry.auth import access
 from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import AnonymousUser, Project, Team, ProjectOption
+from sentry.models import AnonymousUser, Project, Team
 
 logger = logging.getLogger('sentry')
 
@@ -160,77 +158,3 @@ def render_to_response(template, context=None, request=None, status=200,
     response.status_code = status
     response['Content-Type'] = content_type
     return response
-
-
-def plugin_config(plugin, project, request):
-    """
-    Configure the plugin site wide.
-
-    Returns a tuple composed of a redirection boolean and the content to
-    be displayed.
-    """
-    NOTSET = object()
-
-    plugin_key = plugin.get_conf_key()
-    if project:
-        form_class = plugin.project_conf_form
-        template = plugin.project_conf_template
-    else:
-        form_class = plugin.site_conf_form
-        template = plugin.site_conf_template
-
-    test_results = None
-
-    initials = plugin.get_form_initial(project)
-    for field in form_class.base_fields:
-        key = '%s:%s' % (plugin_key, field)
-        if project:
-            value = ProjectOption.objects.get_value(project, key, NOTSET)
-        else:
-            value = options.get(key)
-        if value is not NOTSET:
-            initials[field] = value
-
-    form = form_class(
-        request.POST if request.POST.get('plugin') == plugin.slug else None,
-        initial=initials,
-        prefix=plugin_key
-    )
-    if form.is_valid():
-        if 'action_test' in request.POST and plugin.is_testable():
-            try:
-                test_results = plugin.test_configuration(project)
-            except Exception as exc:
-                if hasattr(exc, 'read') and callable(exc.read):
-                    test_results = '%s\n%s' % (exc, exc.read())
-                else:
-                    logging.exception('Plugin(%s) raised an error during test', plugin_key)
-                    test_results = 'There was an internal error with the Plugin'
-            if not test_results:
-                test_results = 'No errors returned'
-        else:
-            for field, value in form.cleaned_data.iteritems():
-                key = '%s:%s' % (plugin_key, field)
-                if project:
-                    ProjectOption.objects.set_value(project, key, value)
-                else:
-                    options.set(key, value)
-
-            return ('redirect', None)
-
-    # TODO(mattrobenolt): Reliably determine if a plugin is configured
-    # if hasattr(plugin, 'is_configured'):
-    #     is_configured = plugin.is_configured(project)
-    # else:
-    #     is_configured = True
-    is_configured = True
-
-    from django.template.loader import render_to_string
-    return ('display', mark_safe(render_to_string(template, {
-        'form': form,
-        'request': request,
-        'plugin': plugin,
-        'plugin_description': plugin.get_description() or '',
-        'plugin_test_results': test_results,
-        'plugin_is_configured': is_configured,
-    }, context_instance=RequestContext(request))))

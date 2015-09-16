@@ -18,6 +18,7 @@ from threading import local
 from sentry.auth import access
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
+from sentry.plugins.base.configuration import default_plugin_config
 
 
 class PluginMount(type):
@@ -392,6 +393,10 @@ class IPlugin(local, PluggableViewMixin):
         Returns True if this plugin is able to be tested.
         """
         return hasattr(self, 'test_configuration')
+
+    def configure(self, request, project=None):
+        """Configures the plugin."""
+        return default_plugin_config(self, project, request)
 
 
 class Plugin(IPlugin):
