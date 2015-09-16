@@ -72,12 +72,12 @@ var StreamGroup = React.createClass({
     });
   },
 
-  toggleSelect(event) {
-    if (event.target.tagName === 'A')
+  toggleSelect(evt) {
+    if (evt.target.tagName === 'A')
       return;
-    if (event.target.tagName === 'INPUT')
+    if (evt.target.tagName === 'INPUT')
       return;
-    if (jQuery(event.target).parents('a').length !== 0)
+    if (jQuery(evt.target).parents('a').length !== 0)
       return;
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
