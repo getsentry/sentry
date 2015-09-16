@@ -55,7 +55,7 @@ class RequestTimingMiddleware(object):
         if not hasattr(request, '_view_path'):
             return
 
-        metrics.timing('view.response', instance=request._view_path, tags={
+        metrics.incr('view.response', instance=request._view_path, tags={
             'method': request.method,
             'status_code': status_code,
         })
