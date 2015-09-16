@@ -40,7 +40,7 @@ with timer('Loaded {0} records to {1} timelines'.format(n_records, n_timelines))
 ready = set()
 
 with timer('Scheduled timelines for digestion'):
-    for chunk in timelines.schedule(time.time(), 10):
+    for chunk in timelines.schedule(time.time()):
         for timeline, timestamp in chunk:
             ready.add(timeline)
 
