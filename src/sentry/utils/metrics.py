@@ -54,7 +54,7 @@ def _incr_internal(key, instance=None, tags=None, amount=1):
 def incr(key, instance=None, tags=None, amount=1):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     _incr_internal(key, instance, tags, amount)
-    backend.incr(key, amount, instance, tags, sample_rate)
+    backend.incr(key, instance, tags, amount, sample_rate)
 
 
 def timing(key, value, instance=None, tags=None):
