@@ -27,8 +27,8 @@ var SearchBar = React.createClass({
     this.refs.searchInput.getDOMNode().blur();
   },
 
-  onSubmit(event) {
-    event.preventDefault();
+  onSubmit(evt) {
+    evt.preventDefault();
     this.blur();
     this.props.onSearch(this.state.query);
   },
@@ -50,8 +50,8 @@ var SearchBar = React.createClass({
     this.setState({ dropdownVisible: false });
   },
 
-  onQueryChange(event) {
-    this.setState({ query: event.target.value });
+  onQueryChange(evt) {
+    this.setState({ query: evt.target.value });
   },
 
   render() {

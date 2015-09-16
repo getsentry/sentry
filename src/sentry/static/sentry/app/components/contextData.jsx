@@ -79,9 +79,9 @@ var ContextData = React.createClass({
   },
 
   renderValue(value) {
-    function toggle(event) {
-      jQuery(event.target).parent().toggleClass('val-toggle-open');
-      event.preventDefault();
+    function toggle(evt) {
+      jQuery(evt.target).parent().toggleClass('val-toggle-open');
+      evt.preventDefault();
     }
 
     function makeToggle(highUp, childCount, children) {
