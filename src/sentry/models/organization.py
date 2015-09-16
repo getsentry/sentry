@@ -147,6 +147,7 @@ class Organization(Model):
 
     def get_audit_log_data(self):
         return {
+            'id': self.id,
             'slug': self.slug,
             'name': self.name,
             'status': self.status,
