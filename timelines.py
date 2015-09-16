@@ -65,12 +65,12 @@ with timer('Digested {0} timelines'.format(len(ready))):
                 pass
 
 
-# Run the scheduler again.
+# Run the scheduler again (using a future cutoff time to accomodate for backoff.)
 
 ready.clear()
 
 with timer('Scheduled timelines for digestion'):
-    for chunk in timelines.schedule(time.time() + timelines.interval):
+    for chunk in timelines.schedule(time.time() + timelines.backoff(1)):
         for timeline, timestamp in chunk:
             ready.add(timeline)
 
