@@ -3,6 +3,7 @@ from sentry.utils.runner import configure
 configure()
 
 import contextlib
+import functools
 import logging
 import random
 import sys
@@ -28,11 +29,18 @@ def timer(preamble):
 n_timelines = int(sys.argv[1])
 n_records = int(sys.argv[2])
 
-with timer('Loaded {0} records to {1} timelines'.format(n_records, n_timelines)):
+calls = []
+
+with timer('Generated {0} records to be loaded into {1} timelines'.format(n_records, n_timelines)):
     for i in xrange(0, n_records):
         p = random.randint(1, n_timelines)
         record = Record(uuid.uuid1().hex, 'payload', time.time())
-        timelines.add('projects/{0}'.format(p), record)
+        calls.append(functools.partial(timelines.add, 'projects/{0}'.format(p), record))
+
+
+with timer('Loaded {0} records'.format(len(calls))):
+    for call in calls:
+        call()
 
 
 # Move them into the "ready" state.
@@ -51,6 +59,8 @@ with timer('Digested {0} timelines'.format(len(ready))):
     for timeline in ready:
         with timelines.digest(timeline) as records:
             i = 0
+
+            # Iterate through the records to ensure that all data is deserialized.
             for i, record in enumerate(records, 1):
                 pass
 
