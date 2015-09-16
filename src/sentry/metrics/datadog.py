@@ -29,7 +29,11 @@ class DatadogMetricsBackend(MetricsBackend):
         super(DatadogMetricsBackend, self).__init__(prefix=prefix)
 
     def __del__(self):
-        self.stats.stop()
+        try:
+            self.stats.stop()
+        except TypeError:
+            # TypeError: 'NoneType' object is not callable
+            pass
 
     @memoize
     def stats(self):
