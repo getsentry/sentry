@@ -341,11 +341,14 @@ class EventManager(object):
         # this propagates into Event
         data['tags'] = tags
 
-        # Calculate the checksum from the first highest scoring interface
-        if checksum:
-            hashes = [checksum]
-        elif fingerprint:
+        data['fingerprint'] = fingerprint or '{{ default }}'
+
+        # prioritize fingerprint over checksum as its likely the client defaulted
+        # a checksum whereas the fingerprint was explicit
+        if fingerprint:
             hashes = map(md5_from_hash, get_hashes_from_fingerprint(event, fingerprint))
+        elif checksum:
+            hashes = [checksum]
         else:
             hashes = map(md5_from_hash, get_hashes_for_event(event))
 
