@@ -80,7 +80,9 @@ class ProjectDeleteTest(APITestCase):
         assert response.status_code == 204
 
         mock_delete_project.delay.assert_called_once_with(
-            object_id=project.id)
+            object_id=project.id,
+            countdown=3600,
+        )
 
         assert Project.objects.get(id=project.id).status == ProjectStatus.PENDING_DELETION
 

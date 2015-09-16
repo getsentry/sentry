@@ -71,7 +71,7 @@ class TeamDeleteTest(APITestCase):
 
         delete_team.delay.assert_called_once_with(
             object_id=team.id,
-            countdown=60 * 5,
+            countdown=3600,
         )
 
     def test_as_admin(self):
