@@ -12,8 +12,13 @@ class StatsdMetricsBackend(MetricsBackend):
         self.client = statsd.StatsClient(host=host, port=port)
         super(StatsdMetricsBackend, self).__init__(**kwargs)
 
-    def incr(self, key, amount=1, sample_rate=1):
-        self.client.incr(self._get_key(key), amount, sample_rate)
+    def _full_key(self, key, instance=None):
+        if instance:
+            return '{}.{}'.format(key, instance)
+        return key
 
-    def timing(self, key, value, sample_rate=1):
-        self.client.timing(self._get_key(key), value, sample_rate)
+    def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):
+        self.client.incr(self._full_key(self._get_key(key)), amount, sample_rate)
+
+    def timing(self, key, value, instance=None, tags=None, sample_rate=1):
+        self.client.timing(self._full_key(self._get_key(key)), value, sample_rate)

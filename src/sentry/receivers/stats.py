@@ -10,8 +10,7 @@ def record_instance_creation(instance, created, **kwargs):
     if not created:
         return
 
-    metrics.incr('objects.created.all')
-    metrics.incr('objects.created.types.{0}'.format(instance._meta.db_table))
+    metrics.incr('objects.created', instance=instance._meta.db_table)
 
 post_save.connect(
     record_instance_creation,
@@ -28,8 +27,7 @@ def record_task_signal(signal, name):
     def handler(task, **kwargs):
         if not isinstance(task, basestring):
             task = _get_task_name(task)
-        metrics.incr('jobs.{0}.{1}'.format(name, task))
-        metrics.incr('jobs.all.{0}'.format(name))
+        metrics.incr('jobs.{0}'.format(name), instance=task)
 
     signal.connect(
         handler,

@@ -21,8 +21,8 @@ class MetricsBackend(local):
     def _should_sample(self, sample_rate):
         return sample_rate >= 1 or random() >= 1 - sample_rate
 
-    def incr(self, key, amount=1, sample_rate=1):
+    def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):
         raise NotImplementedError
 
-    def timing(self, key, value, sample_rate=1):
+    def timing(self, key, value, instance=None, tags=None, sample_rate=1):
         raise NotImplementedError
