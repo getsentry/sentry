@@ -118,7 +118,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if updated:
             delete_organization.delay(
                 object_id=organization.id,
-                countdown=60 * 5,
+                countdown=60 * 60,
+            )
+
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=organization.id,
+                event=AuditLogEntryEvent.ORG_REMOVE,
+                data=organization.get_audit_log_data(),
             )
 
         return Response(status=204)
