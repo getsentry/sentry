@@ -10,6 +10,13 @@ from sentry.utils.cache import memoize
 from .base import MetricsBackend
 
 
+# XXX(dcramer): copied from sentry.utils.metrics
+def _sampled_value(value, sample_rate):
+    if sample_rate < 1:
+        value = int(value * (1.0 / sample_rate))
+    return value
+
+
 class DatadogMetricsBackend(MetricsBackend):
     def __init__(self, prefix=None, **kwargs):
         self.tags = kwargs.pop('tags', None)
@@ -38,8 +45,9 @@ class DatadogMetricsBackend(MetricsBackend):
             tags['instance'] = instance
         if tags:
             tags = ['{}:{}'.format(*i) for i in tags.items()]
+        # datadog does not implement sampling here
+        amount = _sampled_value(amount, sample_rate)
         self.stats.increment(self._get_key(key), amount,
-                             sample_rate=sample_rate,
                              tags=tags,
                              host=self.host)
 
