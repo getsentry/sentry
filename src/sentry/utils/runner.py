@@ -289,7 +289,7 @@ def initialize_gevent():
         make_psycopg_green()
 
 
-def initialize_app(config):
+def initialize_app(config, skip_backend_validation=False):
     settings = config['settings']
 
     fix_south(settings)
@@ -310,6 +310,17 @@ def initialize_app(config):
 
     settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+
+    if USE_GEVENT:
+        from django.db import connections
+        connections['default'].allow_thread_sharing = True
+
+    register_plugins(settings)
+
+    initialize_receivers()
+
+    if not (skip_backend_validation or SKIP_BACKEND_VALIDATION):
+        validate_backends()
 
     from django.utils import timezone
     from sentry.app import env
@@ -407,7 +418,7 @@ def skip_migration_if_applied(settings, app_name, table_name,
         skip_if_table_exists(migration.forwards), migration)
 
 
-def on_configure(config, skip_backend_validation=False):
+def on_configure(config):
     """
     Executes after settings are full installed and configured.
 
@@ -416,21 +427,10 @@ def on_configure(config, skip_backend_validation=False):
     """
     settings = config['settings']
 
-    if USE_GEVENT:
-        from django.db import connections
-        connections['default'].allow_thread_sharing = True
-
     skip_migration_if_applied(
         settings, 'kombu.contrib.django', 'djkombu_queue')
     skip_migration_if_applied(
         settings, 'social_auth', 'social_auth_association')
-
-    register_plugins(settings)
-
-    initialize_receivers()
-
-    if not (skip_backend_validation or SKIP_BACKEND_VALIDATION):
-        validate_backends()
 
 
 def configure(config_path=None, skip_backend_validation=False):
@@ -441,9 +441,9 @@ def configure(config_path=None, skip_backend_validation=False):
         default_settings='sentry.conf.server',
         settings_initializer=generate_settings,
         settings_envvar='SENTRY_CONF',
-        initializer=initialize_app,
-        on_configure=partial(
-            on_configure, skip_backend_validation=skip_backend_validation)
+        initializer=partial(
+            initialize_app, skip_backend_validation=skip_backend_validation),
+        on_configure=on_configure,
     )
 
 
