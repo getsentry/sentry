@@ -169,6 +169,9 @@ class RedisBackend(Backend):
         # TODO: Need to wrap this whole section in a lease to try and avoid data races.
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
+        if connection.zscore(self.prefix_key(make_schedule_key(READY_STATE)), timeline) is None:
+            raise Exception('Cannot digest timeline, timeline is not in the ready state.')
+
         with connection.pipeline() as pipeline:
             pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
 
