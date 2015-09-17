@@ -2,12 +2,19 @@ import React from "react";
 import classNames from "classnames";
 import {defined, objectIsEmpty} from "../../../utils";
 
+import TooltipMixin from "../../../mixins/tooltip";
 import FrameVariables from "./frameVariables";
 
 var Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },
+
+  mixins: [
+    TooltipMixin({
+      selector: ".expand-button"
+    })
+  ],
 
   getInitialState() {
     // isExpanded can be initialized to true via parent component;
@@ -25,7 +32,8 @@ var Frame = React.createClass({
     return filename.indexOf('http:') !== -1 || filename.indexOf('https:') !== -1;
   },
 
-  toggleContext() {
+  toggleContext(evt) {
+    evt && evt.preventDefault();
     this.setState({
       isExpanded: !this.state.isExpanded
     });
@@ -76,9 +84,14 @@ var Frame = React.createClass({
       outerClassName += " expanded";
     }
 
-    var context = '';
-    if (defined(data.context) && data.context.length) {
-      var startLineNo = data.context[0][0];
+    // delete data.context;
+
+    let context = '';
+
+    delete data.context;
+
+    if (defined(data.context) && data.context.length || !objectIsEmpty(data.vars)) {
+      var startLineNo = defined(data.context) ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
@@ -86,7 +99,7 @@ var Frame = React.createClass({
           <li className="expandable error"
               key="errors">{data.errors.join(", ")}</li>
           }
-          {data.context.map((line) => {
+          {(data.context || []).map((line) => {
             var liClassName = "expandable";
             if (line[0] === data.lineNo) {
               liClassName += " active";
@@ -108,17 +121,20 @@ var Frame = React.createClass({
               </li>
             );
           })}
+
           {!objectIsEmpty(data.vars) &&
             <FrameVariables data={data.vars} key="vars" />
           }
         </ol>
       );
     }
+
     // TODO(dcramer): implement popover annotations
     // TODO(dcramer): implement local vars
     return (
       <li className={className}>
-        <p>{title}</p>
+        <p>{title} <a onClick={(e) => { e.preventDefault(); this.toggleContext(); }} className="btn btn-sm btn-default btn-toggle"><span className="icon-plus"/></a>
+        </p>
         {context}
       </li>
     );
