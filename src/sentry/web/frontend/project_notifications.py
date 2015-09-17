@@ -26,7 +26,7 @@ class ProjectNotificationsView(ProjectView):
 
     def _handle_enable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
-        plugin.set_option('enabled', True, project)
+        plugin.enable(project)
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
@@ -34,7 +34,7 @@ class ProjectNotificationsView(ProjectView):
 
     def _handle_disable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
-        plugin.set_option('enabled', False, project)
+        plugin.disable(project)
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_DISABLED.format(name=plugin.get_title()),

@@ -27,7 +27,10 @@ def manage_plugins(request, organization, project):
         enabled = set(request.POST.getlist('plugin'))
         for plugin in plugins.all(version=None):
             if plugin.can_enable_for_projects():
-                plugin.set_option('enabled', plugin.slug in enabled, project)
+                if plugin.slug in enabled:
+                    plugin.enable(project)
+                else:
+                    plugin.disable(project)
 
         messages.add_message(
             request, messages.SUCCESS,
@@ -106,7 +109,7 @@ def enable_project_plugin(request, organization, project, slug):
     if plugin.is_enabled(project) or not plugin.can_enable_for_projects():
         return HttpResponseRedirect(redirect_to)
 
-    plugin.set_option('enabled', True, project)
+    plugin.enable()
 
     return HttpResponseRedirect(redirect_to)
 
@@ -124,6 +127,6 @@ def disable_project_plugin(request, organization, project, slug):
     if not (plugin.can_disable and plugin.is_enabled(project) and plugin.can_enable_for_projects()):
         return HttpResponseRedirect(redirect_to)
 
-    plugin.set_option('enabled', False, project)
+    plugin.disable()
 
     return HttpResponseRedirect(redirect_to)
