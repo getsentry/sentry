@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.models import Activity, Release
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -38,6 +39,7 @@ class ReleaseSerializer(serializers.Serializer):
     version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=64, required=True)
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
+    owner = UserField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
 
@@ -64,7 +66,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
         queryset = Release.objects.filter(
             project=project,
-        )
+        ).select_related('owner')
 
         if query:
             queryset = queryset.filter(
@@ -122,6 +124,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         version=result['version'],
                         ref=result.get('ref'),
                         url=result.get('url'),
+                        owner=result.get('owner'),
                         date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased') or timezone.now(),
                     )
