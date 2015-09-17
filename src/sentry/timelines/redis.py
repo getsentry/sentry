@@ -45,9 +45,23 @@ if score == false or tonumber(score) > tonumber(ARGV[2]) then
 end
 """
 
+TRUNCATE_TIMELINE_SCRIPT = """\
+-- Trims a timeline to a maximum number of records.
+-- KEYS: {TIMELINE}
+-- ARGV: {LIMIT}
+
+local keys = redis.call('ZREVRANGE', KEYS[1], ARGV[1], -1)
+for i, record in pairs(keys) do
+    redis.call('DEL', KEYS[1] .. ':r:' .. record)
+    redis.call('ZREM', KEYS[1], record)
+end
+return table.getn(keys)
+"""
+
 # XXX: Passing `None` as the first argument is a dirty hack to allow us to use
 # this more easily with the cluster
 add_to_schedule = Script(None, ADD_TO_SCHEDULE_SCRIPT)
+truncate_timeline = Script(None, TRUNCATE_TIMELINE_SCRIPT)
 
 
 def to_timestamp(value):
@@ -83,6 +97,8 @@ def make_digest_key(timeline):
 
 
 def make_record_key(timeline, record):
+    # XXX: Don't update this without updating the Lua script!
+    # TODO: Just interpolate the hierarchical part here into the script.
     return '{0}:r:{1}'.format(make_timeline_key(timeline), record)
 
 
@@ -138,16 +154,13 @@ class RedisBackend(Backend):
                 pipeline,
             )
 
-            # XXX: This should be implemented in Lua to make this atomic and
-            # reduce round trip time (right now this can delete record data
-            # that has already been moved into a digest.)
-            if random.random() <= self.trim_chance:
-                keys = connection.zrevrange(timeline_key, self.capacity, -1)
-                if keys:
-                    connection.delete(*[self.prefix_key(make_record_key(timeline, key)) for key in keys])
-                    connection.zrem(timeline_key, *keys)
+            should_truncate = random.random() <= self.trim_chance
+            if should_truncate:
+                truncate_timeline((timeline_key,), (self.capacity,), pipeline)
 
-            pipeline.execute()
+            results = pipeline.execute()
+            if should_truncate:
+                logger.info('Removed %s extra records from %s.', results[-1], timeline)
 
     def schedule(self, cutoff, chunk=1000):
         """
