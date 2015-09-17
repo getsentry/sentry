@@ -70,7 +70,7 @@ class ProjectReleaseListTest(APITestCase):
 
 
 class ProjectReleaseCreateTest(APITestCase):
-    def test_simple(self):
+    def test_minimal(self):
         self.login_as(user=self.user)
 
         team = self.create_team()
@@ -87,10 +87,11 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data['version']
 
-        assert Release.objects.filter(
+        release = Release.objects.get(
             project=project,
             version=response.data['version'],
-        ).exists()
+        )
+        assert not release.owner
 
     def test_duplicate(self):
         self.login_as(user=self.user)
@@ -110,3 +111,27 @@ class ProjectReleaseCreateTest(APITestCase):
         })
 
         assert response.status_code == 400, response.content
+
+    def test_features(self):
+        self.login_as(user=self.user)
+
+        team = self.create_team()
+        project = self.create_project(team=team, name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'owner': self.user.email,
+        })
+
+        assert response.status_code == 201, response.content
+        assert response.data['version']
+
+        release = Release.objects.get(
+            project=project,
+            version=response.data['version'],
+        )
+        assert release.owner == self.user
