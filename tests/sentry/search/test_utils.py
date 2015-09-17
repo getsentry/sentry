@@ -61,3 +61,7 @@ class ParseQueryTest(TestCase):
     def test_release(self):
         result = parse_query('release:bar', self.user)
         assert result == {'tags': {'sentry:release': 'bar'}, 'query': ''}
+
+    def test_padded_spacing(self):
+        result = parse_query('release:bar  foo   bar', self.user)
+        assert result == {'tags': {'sentry:release': 'bar'}, 'query': 'foo bar'}
