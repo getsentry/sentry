@@ -47,11 +47,13 @@ end
 
 TRUNCATE_TIMELINE_SCRIPT = """\
 -- Trims a timeline to a maximum number of records.
+-- Returns the number of keys that were deleted.
 -- KEYS: {TIMELINE}
 -- ARGV: {LIMIT}
 
 local keys = redis.call('ZREVRANGE', KEYS[1], ARGV[1], -1)
 for i, record in pairs(keys) do
+    -- TODO: This could probably be optimized into single operations.
     redis.call('DEL', KEYS[1] .. ':r:' .. record)
     redis.call('ZREM', KEYS[1], record)
 end
@@ -244,8 +246,9 @@ class RedisBackend(Backend):
                     # error, but it would be nice to be more specific.
                     logger.debug('Could not move timeline for digestion (likely has no contents.)')
 
-        # TODO: It might make sense to put a limit on this (corresponding to
-        # the timeline "capacity".)
+        # XXX: This must select all records, even though not all of them will
+        # be returned if they exceed the capacity, to ensure that all records
+        # will be garbage collected.
         records = connection.zrevrange(digest_key, 0, -1, withscores=True)
 
         # TODO: This should gracefully handle the iteration key being evicted.
