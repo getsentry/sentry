@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.serializers import serialize
-from sentry.models import Event, Release
+from sentry.models import Event, Release, UserReport
 
 
 class EventDetailsEndpoint(Endpoint):
@@ -66,7 +66,16 @@ class EventDetailsEndpoint(Endpoint):
         except IndexError:
             prev_event = None
 
+        try:
+            user_report = UserReport.objects.get(
+                event_id=event.event_id,
+                project=event.project,
+            )
+        except UserReport.DoesNotExist:
+            user_report = None
+
         data = serialize(event, request.user)
+        data['userReport'] = serialize(user_report, request.user)
         data['release'] = self._get_release_info(request, event)
 
         if next_event:
