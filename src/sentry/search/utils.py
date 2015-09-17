@@ -6,13 +6,17 @@ from sentry.utils.auth import find_users
 
 
 def parse_query(query, user):
-    # TODO(dcramer): make this better
+    # TODO(dcramer): handle query being wrapped in quotes
     tokens = query.split(' ')
 
     results = {'tags': {}, 'query': []}
 
     tokens_iter = iter(tokens)
     for token in tokens_iter:
+        # ignore empty tokens
+        if not token:
+            continue
+
         if ':' not in token:
             results['query'].append(token)
             continue
