@@ -28,13 +28,14 @@ def timer(preamble):
 
 n_timelines = int(sys.argv[1])
 n_records = int(sys.argv[2])
+payload = ' ' * 12000
 
 calls = []
 
 with timer('Generated {0} records to be loaded into {1} timelines'.format(n_records, n_timelines)):
     for i in xrange(0, n_records):
         p = random.randint(1, n_timelines)
-        record = Record(uuid.uuid1().hex, 'payload', time.time())
+        record = Record(uuid.uuid1().hex, payload, time.time())
         calls.append(functools.partial(timelines.add, 'projects/{0}'.format(p), record))
 
 
