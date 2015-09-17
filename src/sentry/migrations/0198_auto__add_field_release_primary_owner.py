@@ -8,15 +8,15 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'Release.primary_owner'
-        db.add_column('sentry_release', 'primary_owner',
+        # Adding field 'Release.owner'
+        db.add_column('sentry_release', 'owner',
                       self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'], null=True, blank=True),
                       keep_default=False)
 
 
     def backwards(self, orm):
-        # Deleting field 'Release.primary_owner'
-        db.delete_column('sentry_release', 'primary_owner_id')
+        # Deleting field 'Release.owner'
+        db.delete_column('sentry_release', 'owner_id')
 
 
     models = {
@@ -320,7 +320,7 @@ class Migration(SchemaMigration):
             'date_started': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'new_groups': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'}),
-            'primary_owner': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True', 'blank': 'True'}),
+            'owner': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True', 'blank': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'ref': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
             'url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
