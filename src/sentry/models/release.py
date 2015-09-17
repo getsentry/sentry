@@ -36,6 +36,8 @@ class Release(Model):
     # arbitrary data recorded with the release
     data = JSONField(default={})
     new_groups = BoundedPositiveIntegerField(default=0)
+    # generally the release manager, or the person initiating the process
+    owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
 
     class Meta:
         app_label = 'sentry'

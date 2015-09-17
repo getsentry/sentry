@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.api.serializers import Serializer, register
+from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Release, TagValue
 
 
@@ -15,10 +15,18 @@ class ReleaseSerializer(Serializer):
                 value__in=[o.version for o in item_list],
             )
         }
+        owners = {
+            k: v
+            for k, v in zip(
+                item_list, serialize([i.owner for i in item_list], user)
+            )
+        }
+
         result = {}
         for item in item_list:
             result[item] = {
                 'tag': tags.get(item.version),
+                'owner': owners[item],
             }
         return result
 
@@ -33,6 +41,7 @@ class ReleaseSerializer(Serializer):
             'dateCreated': obj.date_added,
             'data': obj.data,
             'newGroups': obj.new_groups,
+            'owner': attrs['owner'],
         }
         if attrs['tag']:
             d.update({
