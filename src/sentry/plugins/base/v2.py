@@ -137,6 +137,14 @@ class IPlugin2(local):
         from sentry.plugins.helpers import unset_option
         return unset_option(self._get_option_key(key), project, user)
 
+    def enable(self, project=None, user=None):
+        """Enable the plugin."""
+        self.set_option('enabled', True, project, user)
+
+    def disble(self, project=None, user=None):
+        """Disable the plugin."""
+        self.set_option('enabled', False, project, user)
+
     def get_conf_key(self):
         """
         Returns a string representing the configuration keyspace prefix for this plugin.
