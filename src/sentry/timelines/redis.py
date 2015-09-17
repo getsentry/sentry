@@ -34,14 +34,24 @@ ADD_TO_SCHEDULE_SCRIPT = """\
 -- KEYS: {WATING, READY}
 -- ARGV: {TIMELINE, TIMESTAMP}
 
--- Check to see if the timeline already exists in the "ready" set.
-if redis.call('ZSCORE', KEYS[2], ARGV[1]) then return end
+-- Check to see if the timeline exists in the "waiting" set (heuristics tell us
+-- that this should be more likely than it's presence in the ready set.)
+local waiting = redis.call('ZSCORE', KEYS[1], ARGV[1])
 
--- Otherwise, add the timeline to the "waiting" set, using the lower of the two
--- timestamps if the timeline already exists in the schedule.
-local score = redis.call('ZSCORE', KEYS[1], ARGV[1])
-if score == false or tonumber(score) > tonumber(ARGV[2]) then
+-- If the item already exists, update the score if the provided timestamp is
+-- less than the current score.
+if waiting ~= false then
+    if tonumber(waiting) > tonumber(ARGV[2]) then
+        redis.call('ZADD', KEYS[1], ARGV[2], ARGV[1])
+    end
+    return
+end
+
+-- Otherwise, check to see if the timeline already exists in the "ready" set.
+-- If oust doesn't, it needs to be added to the waiting set.
+if redis.call('ZSCORE', KEYS[2], ARGV[1]) == false then
     redis.call('ZADD', KEYS[1], ARGV[2], ARGV[1])
+    return
 end
 """
 
