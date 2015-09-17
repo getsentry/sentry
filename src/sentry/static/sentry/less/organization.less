@@ -191,21 +191,35 @@ table.project-list {
   margin-bottom: 0;
   font-size: 16px;
 
-  tbody tr td {
-    border: 0;
-    padding: 15px 20px !important;
-    height: 55px;
-    width: 150px;
+  tbody tr {
+    td {
+      border: 0;
+      padding: 15px 20px !important;
+      height: 55px;
+      width: 150px;
 
-    &:first-child {
-      width: auto;
+      &:first-child {
+        width: auto;
+
+        a {
+          color: @gray-dark;
+        }
+      }
+
+      &.project-chart {
+        width: 250px;
+        .sparkline a {
+          height: 20px;
+        }
+      }
+    }
+    &:hover.clickable td {
+      background-color: @bgColor;
+      cursor: pointer;
     }
 
-    &.project-chart {
-      width: 250px;
-      .sparkline a {
-        height: 20px;
-      }
+    &:hover td a {
+      color: @black;
     }
   }
 }

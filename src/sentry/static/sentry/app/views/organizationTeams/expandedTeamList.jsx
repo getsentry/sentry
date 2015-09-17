@@ -1,5 +1,4 @@
 import React from "react";
-import Router from "react-router";
 
 import api from "../../api";
 import BarChart from "../../components/barChart";
@@ -56,12 +55,19 @@ var ExpandedTeamList = React.createClass({
     );
   },
 
-  renderProject(project) {
-    var projectStats = this.props.projectStats;
+  toProjectDetails(project, event) {
     var projectRouteParams = {
       orgId: this.props.organization.slug,
       projectId: project.slug
     };
+
+    event.preventDefault();
+
+    this.context.router.transitionTo('projectDetails', projectRouteParams);
+  },
+
+  renderProject(project) {
+    var projectStats = this.props.projectStats;
     var chartData = null;
     if (projectStats[project.id]) {
       chartData = projectStats[project.id].map((point) => {
@@ -70,11 +76,12 @@ var ExpandedTeamList = React.createClass({
     }
 
     return (
-      <tr key={project.id}>
+      <tr key={project.id} className="clickable"
+          onClick={this.toProjectDetails.bind(this, project)}>
         <td>
-          <Router.Link to="projectDetails" params={projectRouteParams}>
+          <a onClick={this.toProjectDetails.bind(this, project)}>
             {project.name}
-          </Router.Link>
+          </a>
         </td>
         <td className="align-right project-chart">
           {chartData && <BarChart points={chartData} className="sparkline" /> }
