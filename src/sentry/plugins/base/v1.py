@@ -147,7 +147,7 @@ class IPlugin(local, PluggableViewMixin):
         """Enable the plugin."""
         self.set_option('enabled', True, project, user)
 
-    def disble(self, project=None, user=None):
+    def disable(self, project=None, user=None):
         """Disable the plugin."""
         self.set_option('enabled', False, project, user)
 
