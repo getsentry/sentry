@@ -109,7 +109,7 @@ def enable_project_plugin(request, organization, project, slug):
     if plugin.is_enabled(project) or not plugin.can_enable_for_projects():
         return HttpResponseRedirect(redirect_to)
 
-    plugin.enable()
+    plugin.enable(project)
 
     return HttpResponseRedirect(redirect_to)
 
@@ -127,6 +127,6 @@ def disable_project_plugin(request, organization, project, slug):
     if not (plugin.can_disable and plugin.is_enabled(project) and plugin.can_enable_for_projects()):
         return HttpResponseRedirect(redirect_to)
 
-    plugin.disable()
+    plugin.disable(project)
 
     return HttpResponseRedirect(redirect_to)
