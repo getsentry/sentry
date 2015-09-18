@@ -84,8 +84,6 @@ var Frame = React.createClass({
       outerClassName += " expanded";
     }
 
-    // delete data.context;
-
     let context = '';
 
     // delete data.context;
