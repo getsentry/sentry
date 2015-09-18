@@ -88,7 +88,7 @@ var Frame = React.createClass({
 
     let context = '';
 
-    delete data.context;
+    // delete data.context;
 
     if (defined(data.context) && data.context.length || !objectIsEmpty(data.vars)) {
       var startLineNo = defined(data.context) ? data.context[0][0] : '';
@@ -117,7 +117,7 @@ var Frame = React.createClass({
               <li className={liClassName} key={line[0]}>
                 <span className="ws">{
                 lineWs}</span><span className="contextline">{lineCode
-                }</span> <span className="icon-plus"></span>
+                }</span>
               </li>
             );
           })}
