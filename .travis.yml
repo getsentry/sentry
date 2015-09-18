@@ -22,6 +22,7 @@ env:
     - DB=postgres
   global:
     - PIP_DOWNLOAD_CACHE=".pip_download_cache"
+    - SENTRY_LIGHT_BUILD=1
 install:
   - time make develop dev-postgres dev-mysql
 before_script:
