@@ -25,7 +25,8 @@ var Frame = React.createClass({
     return filename.indexOf('http:') !== -1 || filename.indexOf('https:') !== -1;
   },
 
-  toggleContext() {
+  toggleContext(evt) {
+    evt && evt.preventDefault();
     this.setState({
       isExpanded: !this.state.isExpanded
     });
@@ -76,9 +77,10 @@ var Frame = React.createClass({
       outerClassName += " expanded";
     }
 
-    var context = '';
-    if (defined(data.context) && data.context.length) {
-      var startLineNo = data.context[0][0];
+    let context = '';
+
+    if (defined(data.context) && data.context.length || !objectIsEmpty(data.vars)) {
+      var startLineNo = defined(data.context) ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
@@ -86,7 +88,7 @@ var Frame = React.createClass({
           <li className="expandable error"
               key="errors">{data.errors.join(", ")}</li>
           }
-          {data.context.map((line) => {
+          {(data.context || []).map((line) => {
             var liClassName = "expandable";
             if (line[0] === data.lineNo) {
               liClassName += " active";
@@ -104,21 +106,33 @@ var Frame = React.createClass({
               <li className={liClassName} key={line[0]}>
                 <span className="ws">{
                 lineWs}</span><span className="contextline">{lineCode
-                }</span> <span className="icon-plus"></span>
+                }</span>
               </li>
             );
           })}
+
           {!objectIsEmpty(data.vars) &&
             <FrameVariables data={data.vars} key="vars" />
           }
         </ol>
       );
     }
+
     // TODO(dcramer): implement popover annotations
     // TODO(dcramer): implement local vars
     return (
       <li className={className}>
-        <p>{title}</p>
+        <p>{title}
+          {context ?
+            <a
+              title="Toggle context"
+              onClick={this.toggleContext}
+              className="btn btn-sm btn-default btn-toggle">
+              <span className={this.state.isExpanded ? "icon-minus" : "icon-plus"}/>
+            </a>
+            : ''
+          }
+        </p>
         {context}
       </li>
     );

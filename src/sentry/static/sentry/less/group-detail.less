@@ -877,6 +877,21 @@
     }
   }
 
+  .btn-toggle {
+    display: block;
+    float: right;
+    .square(18px);
+    padding: 0;
+    margin-top: 4px;
+    line-height: 18px;
+    font-size: 9px;
+    text-align: center;
+  }
+
+  .expand-button:hover {
+    cursor: pointer;
+  }
+
   &.expanded {
 
     > p {
@@ -920,10 +935,6 @@
     display: none;
   }
 
-  .contextline {
-    padding-left: 12px;
-  }
-
   &:hover {
     .icon-plus {
       opacity: .5;
@@ -932,9 +943,6 @@
 }
 
 .expanded {
-  .icon-plus {
-    display: none;
-  }
   .expandable {
     overflow: none;
     height: auto;
@@ -942,10 +950,6 @@
 
   .ws {
     display: inline;
-  }
-
-  .contextline {
-    padding-left: 0;
   }
 
   dl.vars {
