@@ -50,7 +50,7 @@ def safe_execute(func, *args, **kwargs):
 
 
 def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
-         _depth=0, _size=0, **kwargs):
+         object_hook=None, _depth=0, _size=0, **kwargs):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
 
@@ -59,6 +59,7 @@ def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
     options = {
         'max_depth': max_depth,
         'max_size': max_size,
+        'object_hook': object_hook,
         '_depth': _depth + 1,
     }
 
@@ -91,7 +92,9 @@ def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
     else:
         result = value
 
-    return result
+    if object_hook is None:
+        return result
+    return object_hook(result)
 
 
 def trim_pairs(iterable, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
