@@ -31,3 +31,7 @@ class JSONTest(TestCase):
         res = '<script>alert(1);</script>'
         assert json.dumps(res) == '"<script>alert(1);</script>"'
         assert json.dumps(res, escape=True) == '"<script>alert(1);<\/script>"'
+
+    def test_inf(self):
+        res = float('inf')
+        self.assertEquals(json.dumps(res), 'null')
