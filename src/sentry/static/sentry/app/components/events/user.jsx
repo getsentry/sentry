@@ -35,7 +35,7 @@ var EventUser = React.createClass({
           type="user"
           title="User">
         <div className="user-widget">
-          <div className="pull-left"><Gravatar email={user.email} size={84} /></div>
+          <div className="pull-left"><Gravatar email={user.email} size={96} /></div>
           <DefinitionList data={children} />
         </div>
       </EventDataSection>
