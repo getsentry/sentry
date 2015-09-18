@@ -1,13 +1,24 @@
 import React from "react";
+import _ from "underscore";
 import classNames from "classnames";
 import {defined, objectIsEmpty} from "../../../utils";
 
+import TooltipMixin from "../../../mixins/tooltip";
 import FrameVariables from "./frameVariables";
+
 
 var Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },
+
+  mixins: [
+    TooltipMixin({
+      html: true,
+      selector: ".tip",
+      trigger: "click"
+    })
+  ],
 
   getInitialState() {
     // isExpanded can be initialized to true via parent component;
@@ -32,16 +43,34 @@ var Frame = React.createClass({
     });
   },
 
-  render() {
-    var data = this.props.data;
+  renderOriginalSourceInfo() {
+    let data = this.props.data;
 
-    var className = classNames({
-      "frame": true,
-      "system-frame": !data.inApp,
-      "frame-errors": data.errors,
-    });
+    // TODO: is there a way to render a react element as a string? All the
+    // documented methods don't exist on the client (meant for server rendering)
+    let escapedAbsPath = this.isUrl(data.origAbsPath)
+      ? `<a href="${_.escape(data.origAbsPath)}">${_.escape(data.origAbsPath)}</a>`
+      : _.escape(data.origAbsPath);
 
-    var title = [];
+    return (`
+      <div>
+        <strong>Original Filename</strong><br/>
+        ${escapedAbsPath}<br/>
+        <strong>Line Number</strong><br/>
+        ${_.escape(data.origLineNo)}<br/>
+        <strong>Column Number</strong><br/>
+        ${_.escape(data.origColNo)}<br/>
+        <strong>Function</strong><br/>
+        ${_.escape(data.origFunction)}<br/>
+        <strong>Source Map</strong><br/>
+        <a href="${_.escape(data.mapUrl)}">${_.escape(data.map)}<br/>
+      </div>
+    `);
+  },
+
+  renderTitle() {
+    let data = this.props.data;
+    let title = [];
 
     if (defined(data.filename || data.module)) {
       title.push(<code key="filename">{data.filename || data.module}</code>);
@@ -68,21 +97,34 @@ var Frame = React.createClass({
       }
     }
 
+    if (defined(data.origAbsPath)) {
+      title.push(
+        <a className="in-at tip original-src" title={this.renderOriginalSourceInfo()}>
+          <span className="icon-question" />
+        </a>
+      );
+    }
+
     if (data.inApp) {
       title.push(<span key="in-app"><span className="divider"/>application</span>);
     }
+    return title;
+  },
 
-    var outerClassName = "context";
+  renderContext() {
+    let data = this.props.data;
+    let context = '';
+
+    let outerClassName = "context";
     if (this.state.isExpanded) {
       outerClassName += " expanded";
     }
 
-    let context = '';
     let hasContextSource = defined(data.context) && data.context.length;
     let hasContextVars = !objectIsEmpty(data.vars);
 
     if (hasContextSource || hasContextVars) {
-      var startLineNo = hasContextSource ? data.context[0][0] : '';
+      let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
@@ -91,13 +133,13 @@ var Frame = React.createClass({
               key="errors">{data.errors.join(", ")}</li>
           }
           {(data.context || []).map((line) => {
-            var liClassName = "expandable";
+            let liClassName = "expandable";
             if (line[0] === data.lineNo) {
               liClassName += " active";
             }
 
-            var lineWs;
-            var lineCode;
+            let lineWs;
+            let lineCode;
             if (defined(line[1])) {
               [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
             } else {
@@ -119,12 +161,23 @@ var Frame = React.createClass({
         </ol>
       );
     }
+    return context;
+  },
 
-    // TODO(dcramer): implement popover annotations
-    // TODO(dcramer): implement local vars
+  render() {
+    let data = this.props.data;
+
+    let className = classNames({
+      "frame": true,
+      "system-frame": !data.inApp,
+      "frame-errors": data.errors,
+    });
+
+    let context = this.renderContext();
+
     return (
       <li className={className}>
-        <p>{title}
+        <p>{this.renderTitle()}
           {context ?
             <a
               title="Toggle context"
