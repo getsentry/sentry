@@ -9,32 +9,44 @@ sentry.utils.json
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
-from django.core.serializers.json import DjangoJSONEncoder
-import json
-
+import simplejson
 import datetime
 import uuid
+import decimal
+
+from django.utils.timezone import is_aware
 
 
-class BetterJSONEncoder(DjangoJSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, uuid.UUID):
-            return obj.hex
-        elif isinstance(obj, datetime.datetime):
-            return obj.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        elif isinstance(obj, (set, frozenset)):
-            return list(obj)
-        return super(BetterJSONEncoder, self).default(obj)
+class BetterJSONEncoder(simplejson.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, uuid.UUID):
+            return o.hex
+        elif isinstance(o, datetime.datetime):
+            return o.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        elif isinstance(o, datetime.date):
+            return o.isoformat()
+        elif isinstance(o, datetime.time):
+            if is_aware(o):
+                raise ValueError("JSON can't represent timezone-aware times.")
+            r = o.isoformat()
+            if o.microsecond:
+                r = r[:12]
+            return r
+        elif isinstance(o, (set, frozenset)):
+            return list(o)
+        elif isinstance(o, decimal.Decimal):
+            return str(o)
+        return super(BetterJSONEncoder, self).default(o)
 
 
 def dumps(value, escape=False, **kwargs):
-    if 'separators' not in kwargs:
-        kwargs['separators'] = (',', ':')
-    rv = json.dumps(value, cls=BetterJSONEncoder, **kwargs)
+    kwargs.setdefault('separators', (',', ':'))
+    kwargs.setdefault('ignore_nan', True)
+    rv = simplejson.dumps(value, cls=BetterJSONEncoder, **kwargs)
     if escape:
         rv = rv.replace('</', '<\/')
     return rv
 
 
 def loads(value, **kwargs):
-    return json.loads(value)
+    return simplejson.loads(value)
