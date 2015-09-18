@@ -145,6 +145,19 @@ def validate_bool(value, required=True):
     return value
 
 
+def handle_nan(value):
+    "Remove nan values that can't be json encoded"
+    if isinstance(value, float):
+        if value == float('inf'):
+            return '<inf>'
+        if value == float('-inf'):
+            return '<-inf>'
+        # lol checking for float('nan')
+        if value != value:
+            return '<nan>'
+    return value
+
+
 class Frame(Interface):
     @classmethod
     def to_python(cls, data):
@@ -179,7 +192,7 @@ class Frame(Interface):
             context_locals = dict(enumerate(context_locals))
         elif not isinstance(context_locals, dict):
             context_locals = {}
-        context_locals = trim_dict(context_locals)
+        context_locals = trim_dict(context_locals, object_hook=handle_nan)
 
         # extra data is used purely by internal systems,
         # so we dont trim it

@@ -350,6 +350,29 @@ class StacktraceTest(TestCase):
                 'module': 1,
             })
 
+    def test_context_with_nan(self):
+        self.assertEquals(
+            Frame.to_python({
+                'filename': 'x',
+                'vars': {'x': float('inf')},
+            }).vars,
+            {'x': '<inf>'},
+        )
+        self.assertEquals(
+            Frame.to_python({
+                'filename': 'x',
+                'vars': {'x': float('-inf')},
+            }).vars,
+            {'x': '<-inf>'},
+        )
+        self.assertEquals(
+            Frame.to_python({
+                'filename': 'x',
+                'vars': {'x': float('nan')},
+            }).vars,
+            {'x': '<nan>'},
+        )
+
 
 class SlimFrameDataTest(TestCase):
     def test_under_max(self):
