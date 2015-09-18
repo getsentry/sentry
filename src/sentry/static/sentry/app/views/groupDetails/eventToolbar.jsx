@@ -78,6 +78,10 @@ var GroupEventToolbar  = React.createClass({
       )
     ];
 
+    // TODO: possible to define this as a route in react-router, but without a corresponding
+    //       React component?
+    let jsonUrl = `/${params.orgId}/${params.projectId}/group/${params.groupId}/events/${evt.id}/json/`;
+
     return (
       <div className="event-toolbar">
         <div className="pull-right">
@@ -86,7 +90,10 @@ var GroupEventToolbar  = React.createClass({
           </div>
         </div>
         <h4>Event {evt.eventID}</h4>
-        <span><DateTime date={evt.dateCreated} /> <span className="file-size">&#40;<FileSize bytes={evt.size} />&#41;</span></span>
+        <span>
+          <DateTime date={evt.dateCreated} />
+          <a href={jsonUrl} target="_blank" className="json-link">JSON &#40;<FileSize bytes={evt.size} />&#41;</a>
+        </span>
       </div>
     );
   }
