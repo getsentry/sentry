@@ -2,19 +2,12 @@ import React from "react";
 import classNames from "classnames";
 import {defined, objectIsEmpty} from "../../../utils";
 
-import TooltipMixin from "../../../mixins/tooltip";
 import FrameVariables from "./frameVariables";
 
 var Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired
   },
-
-  mixins: [
-    TooltipMixin({
-      selector: ".expand-button"
-    })
-  ],
 
   getInitialState() {
     // isExpanded can be initialized to true via parent component;
@@ -86,8 +79,6 @@ var Frame = React.createClass({
 
     let context = '';
 
-    // delete data.context;
-
     if (defined(data.context) && data.context.length || !objectIsEmpty(data.vars)) {
       var startLineNo = defined(data.context) ? data.context[0][0] : '';
       context = (
@@ -131,7 +122,16 @@ var Frame = React.createClass({
     // TODO(dcramer): implement local vars
     return (
       <li className={className}>
-        <p>{title} <a onClick={(e) => { e.preventDefault(); this.toggleContext(); }} className="btn btn-sm btn-default btn-toggle"><span className="icon-plus"/></a>
+        <p>{title}
+          {context ?
+            <a
+              title="Toggle context"
+              onClick={this.toggleContext}
+              className="btn btn-sm btn-default btn-toggle">
+              <span className={this.state.isExpanded ? "icon-minus" : "icon-plus"}/>
+            </a>
+            : ''
+          }
         </p>
         {context}
       </li>
