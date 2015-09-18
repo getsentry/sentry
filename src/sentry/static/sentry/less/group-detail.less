@@ -1067,7 +1067,6 @@ dl.vars {
     padding-top: 7px;
     padding-bottom: 7px;
     margin-bottom: 5px;
-    background: #f6f7f8;
     font-size: 12px;
     color: @gray-dark;
     white-space: pre-wrap;
@@ -1242,8 +1241,7 @@ pre.val, span.val {
 }
 
 .val-string {
-  color: darken(@purple, 5);
-  background: white;
+  color: darken(@purple, 10);
   border-radius: 3px;
   padding: 2px 4px;
   margin: -2px -4px;
@@ -1257,20 +1255,20 @@ pre.val, span.val {
 }
 
 .val-stripped {
-  color: darken(@red, 5);
+  color: darken(@red, 10);
   background: transparent;
 }
 
 .val-repr {
-  color: darken(@blue, 5);
+  color: darken(@blue, 10);
 }
 
 .val-number {
-  color: @pink;
+  color: darken(@pink, 10);
 }
 
 .val-bool, .val-null {
-  color: @blue;
+  color: darken(@blue, 10);
   font-weight: bold;
 }
 
@@ -1288,7 +1286,7 @@ pre.val, span.val {
   }
 
   .val-dict-key, .val-dict-key .val-string {
-    color: @red;
+    color: darken(@red, 5);
     background: transparent;
     border-radius: none;
   }
