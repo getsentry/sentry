@@ -804,7 +804,7 @@
 }
 
 .frame {
-  overflow: hidden;
+  list-style-type: none;
   position: relative;
   margin-bottom: 0;
 
@@ -831,6 +831,13 @@
     }
   }
 
+  .original-src {
+    padding-left: 3px;
+    font-size: 13px;
+    position: relative;
+    top: 1px;
+  }
+
   .icon-open {
     font-size: 12px;
     margin-right: 3px;
@@ -855,6 +862,12 @@
       position: relative;
       top: 1px;
     }
+  }
+
+  .tooltip-inner {
+    word-wrap: break-word;
+    text-align: left;
+    max-width: 300px;
   }
 
   .divider {
