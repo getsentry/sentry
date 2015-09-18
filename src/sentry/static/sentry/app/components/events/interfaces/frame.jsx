@@ -78,9 +78,11 @@ var Frame = React.createClass({
     }
 
     let context = '';
+    let hasContextSource = defined(data.context) && data.context.length;
+    let hasContextVars = !objectIsEmpty(data.vars);
 
-    if (defined(data.context) && data.context.length || !objectIsEmpty(data.vars)) {
-      var startLineNo = defined(data.context) ? data.context[0][0] : '';
+    if (hasContextSource || hasContextVars) {
+      var startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}
             onClick={this.toggleContext}>
@@ -111,7 +113,7 @@ var Frame = React.createClass({
             );
           })}
 
-          {!objectIsEmpty(data.vars) &&
+          {hasContextVars &&
             <FrameVariables data={data.vars} key="vars" />
           }
         </ol>
