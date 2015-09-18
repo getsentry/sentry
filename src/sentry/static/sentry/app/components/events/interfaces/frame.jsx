@@ -46,7 +46,7 @@ var Frame = React.createClass({
     if (defined(data.filename || data.module)) {
       title.push(<code key="filename">{data.filename || data.module}</code>);
       if (this.isUrl(data.absPath)) {
-        title.push(<a href={data.absPath} className="icon-share" key="share" />);
+        title.push(<a href={data.absPath} className="icon-open" key="share" />);
       }
       if (defined(data.function)) {
         title.push(<span className="in-at" key="in"> in </span>);
