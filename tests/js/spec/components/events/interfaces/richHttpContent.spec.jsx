@@ -133,5 +133,16 @@ describe("RichHttpContent", function () {
 
       expect(out.type).to.eql('pre');
     });
+
+    it("should now blow up in a malformed uri", function () {
+      let data = {
+        query: 'a%AFc',
+        data: '',
+        headers: [],
+        cookies: [],
+        env: {}
+      };
+      expect(() => TestUtils.renderIntoDocument(<RichHttpContent data={data} />)).to.not.throw(URIError);
+    });
   });
 });
