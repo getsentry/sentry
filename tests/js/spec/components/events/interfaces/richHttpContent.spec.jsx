@@ -135,6 +135,8 @@ describe("RichHttpContent", function () {
     });
 
     it("should now blow up in a malformed uri", function () {
+      // > decodeURIComponent('a%AFc')
+      // URIError: URI malformed
       let data = {
         query: 'a%AFc',
         data: '',
