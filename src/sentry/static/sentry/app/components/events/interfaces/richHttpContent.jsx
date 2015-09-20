@@ -66,7 +66,7 @@ var RichHttpContent = React.createClass({
       <div>
         {data.query &&
           <ClippedBox title="Query String">
-            <DefinitionList data={this.objectToSortedTupleArray(queryString.parse(data.query))}/>
+            {this.getQueryStringOrRaw(data.query)}
           </ClippedBox>
         }
         {data.fragment &&

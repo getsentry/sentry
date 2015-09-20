@@ -4,28 +4,22 @@ import Gravatar from "../../components/gravatar";
 import DefinitionList from "./interfaces/definitionList";
 import EventDataSection from "./eventDataSection";
 
-function keyToName(key) {
-  // Take a given key, and transform it from
-  // camel case to title case
-  if (!key) return '';
-  key = key[0].toUpperCase() + key.slice(1);
-  return key.replace(/_/g, ' ');
-}
 
 var EventUser = React.createClass({
   render() {
     var user = this.props.event.user;
+    var builtins = [];
     var children = [];
 
     // Handle our native attributes special
-    user.id && children.push(['ID', user.id]);
-    user.email && children.push(['Email', user.email]);
-    user.username && children.push(['Username', user.username]);
-    user.ip_address && children.push(['IP Address', user.ip_address]);
+    user.id && builtins.push(['ID', user.id]);
+    user.email && builtins.push(['Email', user.email]);
+    user.username && builtins.push(['Username', user.username]);
+    user.ip_address && builtins.push(['IP Address', user.ip_address]);
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {
-      children.push([keyToName(key), value]);
+      children.push([key, value]);
     });
 
     return (
@@ -36,7 +30,10 @@ var EventUser = React.createClass({
           title="User">
         <div className="user-widget">
           <div className="pull-left"><Gravatar email={user.email} size={96} /></div>
-          <DefinitionList data={children} />
+          <DefinitionList data={builtins} isContextData={false} />
+          {children &&
+            <DefinitionList data={children} isContextData={true} />
+          }
         </div>
       </EventDataSection>
     );
