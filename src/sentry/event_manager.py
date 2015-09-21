@@ -423,6 +423,9 @@ class EventManager(object):
         safe_execute(Group.objects.add_tags, group, tags,
                      _with_transaction=False)
 
+        if not project.first_event:
+            project.update(first_event=date)
+
         if not raw:
             post_process_group.delay(
                 group=group,
