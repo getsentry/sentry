@@ -128,16 +128,17 @@ class Http(Interface):
             headers = {}
 
         body = data.get('data')
+        max_size = settings.SENTRY_MAX_HTTP_BODY_SIZE
         # TODO(dcramer): a list as a body is not even close to valid
         if isinstance(body, (list, tuple)):
-            body = trim_dict(dict(enumerate(body)))
+            body = trim_dict(dict(enumerate(body)), max_size=max_size)
         elif isinstance(body, dict):
             body = trim_dict(dict(
                 (k, v or '')
                 for k, v in body.iteritems()
-            ))
+            ), max_size=max_size)
         elif body:
-            body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
+            body = trim(body, max_size=max_size)
             if headers.get('Content-Type') == cls.FORM_TYPE and '=' in body:
                 body = dict(parse_qsl(body, True))
 

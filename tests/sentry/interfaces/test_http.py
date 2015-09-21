@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 from exam import fixture
 
+from django.conf import settings
 from sentry.interfaces.http import Http
 from sentry.testutils import TestCase
 
@@ -151,3 +152,12 @@ class HttpTest(TestCase):
             data={u'föo': u'bär'},
         ))
         assert result.to_curl() == "curl -XPOST --data f%C3%B6o=b%C3%A4r http://example.com"
+
+    def test_does_not_truncate_body_dict(self):
+        data = {'payload': 'x' * (settings.SENTRY_MAX_VARIABLE_SIZE + 1)}
+        result = Http.to_python(dict(
+            method='POST',
+            url='http://example.com',
+            data=data,
+        ))
+        assert result.data == data
