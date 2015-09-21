@@ -14,11 +14,11 @@ from .base import BaseCache
 
 
 class DjangoCache(BaseCache):
-    def set(self, key, value, timeout):
-        cache.set(key, value, timeout, version=self.version)
+    def set(self, key, value, timeout, version=None):
+        cache.set(key, value, timeout, version=version or self.version)
 
-    def delete(self, key):
-        cache.delete(key, version=self.version)
+    def delete(self, key, version=None):
+        cache.delete(key, version=version or self.version)
 
-    def get(self, key):
-        return cache.get(key, version=self.version)
+    def get(self, key, version=None):
+        return cache.get(key, version=version or self.version)
