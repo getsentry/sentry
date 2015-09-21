@@ -194,6 +194,7 @@ class APIView(BaseView):
                 if not project_:
                     raise APIError('Unable to identify project')
                 project = project_
+                helper.context.bind_project(project)
             elif project_ != project:
                 raise APIError('Two different project were specified')
 
