@@ -86,9 +86,9 @@ class CreateProjectView(OrganizationView):
         if form.is_valid():
             project = form.save(request.user, request.META['REMOTE_ADDR'])
 
-            url = reverse('sentry-stream', args=[organization.slug, project.slug])
+            url = reverse('sentry-project-setup', args=[organization.slug, project.slug])
 
-            return self.redirect(url + '?newinstall=1')
+            return self.redirect(url)
 
         context = {
             'form': form,
