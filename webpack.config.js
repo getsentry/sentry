@@ -14,6 +14,7 @@ var config = {
       "bootstrap/js/dropdown",
       "bootstrap/js/tab",
       "bootstrap/js/tooltip",
+      "bootstrap/js/alert",
       "crypto-js/md5",
       "jquery",
       "marked",
