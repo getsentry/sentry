@@ -90,6 +90,9 @@ class Project(Model):
         (ProjectStatus.PENDING_DELETION, _('Pending Deletion')),
         (ProjectStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), db_index=True)
+    # projects that were created before this field was present
+    # will have their first_event field set to date_added
+    first_event = models.DateTimeField(null=True)
 
     objects = ProjectManager(cache_fields=[
         'pk',
