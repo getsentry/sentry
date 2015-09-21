@@ -9,15 +9,16 @@ sentry.cache.django
 from __future__ import absolute_import
 
 from django.core.cache import cache
-from threading import local
+
+from .base import BaseCache
 
 
-class DjangoCache(local):
+class DjangoCache(BaseCache):
     def set(self, key, value, timeout):
-        cache.set(key, value, timeout)
+        cache.set(key, value, timeout, version=self.version)
 
     def delete(self, key):
-        cache.delete(key)
+        cache.delete(key, version=self.version)
 
     def get(self, key):
-        return cache.get(key)
+        return cache.get(key, version=self.version)

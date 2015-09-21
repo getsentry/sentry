@@ -311,6 +311,8 @@ def initialize_app(config, skip_backend_validation=False):
     settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
 
+    settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
+
     if USE_GEVENT:
         from django.db import connections
         connections['default'].allow_thread_sharing = True
