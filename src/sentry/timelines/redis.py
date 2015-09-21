@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import base64
-import hashlib
 import itertools
 import logging
 import random
@@ -20,7 +18,6 @@ from redis.exceptions import (
     WatchError,
 )
 
-from sentry.utils import json
 from sentry.utils.compat import pickle
 
 from .base import Backend
@@ -99,21 +96,8 @@ def make_schedule_key(state):
     return 's:{0}'.format(state)
 
 
-def make_timeline_identifier(target, properties):
-    # XXX: This doesn't use pickle to ensure keys are sorted recursively.
-    # (Ideally we'd just use something like Avro here in the future instead.)
-    # XXX: This doesn't really **need** base64, but it makes the keys more
-    # readable. We can disable this for performance reasons, if necessary.
-    signature = base64.b64encode(hashlib.sha1(json.dumps(properties, sort_keys=True)).digest())
-    return '{0}:{1}'.format(target, signature)
-
-
-def make_timeline_key(identifier):
-    return 't:{0}'.format(identifier)
-
-
-def make_properties_key(timeline_key):
-    return '{0}:p'.format(timeline_key)
+def make_timeline_key(target):
+    return 't:{0}'.format(target)
 
 
 def make_iteration_key(timeline_key):
@@ -151,9 +135,8 @@ class RedisBackend(Backend):
         self.capacity = 1000
         self.trim_chance = 1.0 / self.capacity
 
-    def add(self, target, properties, record):
-        timeline_identifier = make_timeline_identifier(target, properties)
-        timeline_key = make_timeline_key(timeline_identifier)
+    def add(self, target, record):
+        timeline_key = make_timeline_key(target)
         record_key = make_record_key(timeline_key, record.key)
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
@@ -166,12 +149,11 @@ class RedisBackend(Backend):
                 ex=self.backoff(self.maximum_backoff_steps) + self.delivery_grace_seconds,
             )
 
+            # TODO: This probably should just be rolled into some sort of
+            # metadata key instead of something specifically for backoff.
             # TODO: Does this need a timeout? This assumes that the iteration
             # counter will be deleted when the timeline has no more records.
             pipeline.set(make_iteration_key(timeline_key), 0, nx=True)
-
-            # XXX: What happens if this is evicted? Do we lose the timeline? :(
-            pipeline.set(make_properties_key(timeline_key), self.codec.encode(properties), nx=True)
 
             # TODO: Prefix the entry with the timestamp (lexicographically
             # sortable) to ensure that we can maintain abitrary precision:
@@ -180,7 +162,7 @@ class RedisBackend(Backend):
 
             add_to_schedule(
                 map(make_schedule_key, (WAITING_STATE, READY_STATE)),
-                (timeline_identifier, record.timestamp),
+                (target, record.timestamp),
                 pipeline,
             )
 
@@ -190,7 +172,7 @@ class RedisBackend(Backend):
 
             results = pipeline.execute()
             if should_truncate:
-                logger.info('Removed %s extra records from %s.', results[-1], timeline_identifier)
+                logger.info('Removed %s extra records from %s.', results[-1], target)
 
     def schedule(self, cutoff, chunk=1000):
         """
@@ -247,14 +229,14 @@ class RedisBackend(Backend):
         raise NotImplementedError
 
     @contextmanager
-    def digest(self, timeline_identifier):
-        timeline_key = make_timeline_key(timeline_identifier)
+    def digest(self, target):
+        timeline_key = make_timeline_key(target)
         digest_key = make_digest_key(timeline_key)
 
         # TODO: Need to wrap this whole section in a lease to try and avoid data races.
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        if connection.zscore(make_schedule_key(READY_STATE), timeline_identifier) is None:
+        if connection.zscore(make_schedule_key(READY_STATE), target) is None:
             raise Exception('Cannot digest timeline, timeline is not in the ready state.')
 
         with connection.pipeline() as pipeline:
@@ -278,6 +260,8 @@ class RedisBackend(Backend):
         # be returned if they exceed the capacity, to ensure that all records
         # will be garbage collected.
         records = connection.zrevrange(digest_key, 0, -1, withscores=True)
+        if not records:
+            logger.info('Retrieved timeline containing no records.')
 
         # TODO: This should gracefully handle the iteration key being evicted.
         iteration = int(connection.get(make_iteration_key(timeline_key)))
@@ -298,9 +282,7 @@ class RedisBackend(Backend):
                         # TODO: Could make this lazy, but that might be unnecessary complexity.
                         yield Record(key, self.codec.decode(value), timestamp)
 
-        properties = self.codec.decode(connection.get(make_properties_key(timeline_key)))
-
-        yield properties, itertools.islice(get_records_for_digest(), self.capacity)
+        yield itertools.islice(get_records_for_digest(), self.capacity)
 
         def reschedule():
             with connection.pipeline() as pipeline:
@@ -309,8 +291,8 @@ class RedisBackend(Backend):
 
                 record_keys = [make_record_key(timeline_key, key) for key, score in records]
                 pipeline.delete(digest_key, *record_keys)
-                pipeline.zrem(make_schedule_key(READY_STATE), timeline_identifier)
-                pipeline.zadd(make_schedule_key(WAITING_STATE), time.time() + self.backoff(iteration + 1), timeline_identifier)
+                pipeline.zrem(make_schedule_key(READY_STATE), target)
+                pipeline.zadd(make_schedule_key(WAITING_STATE), time.time() + self.backoff(iteration + 1), target)
                 pipeline.set(make_iteration_key(timeline_key), iteration + 1)
                 pipeline.execute()
 
@@ -322,9 +304,8 @@ class RedisBackend(Backend):
                 pipeline.multi()
                 if connection.zcard(timeline_key) is 0:
                     pipeline.delete(make_iteration_key(timeline_key))
-                    pipeline.delete(make_properties_key(timeline_key))
-                    pipeline.zrem(make_schedule_key(READY_STATE), timeline_identifier)
-                    pipeline.zrem(make_schedule_key(WAITING_STATE), timeline_identifier)
+                    pipeline.zrem(make_schedule_key(READY_STATE), target)
+                    pipeline.zrem(make_schedule_key(WAITING_STATE), target)
                     pipeline.execute()
 
         # If there were records in the digest, we need to schedule it so that

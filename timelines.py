@@ -36,8 +36,7 @@ with timer('Generated {0} records to be loaded into {1} timelines'.format(n_reco
     for i in xrange(0, n_records):
         p = random.randint(1, n_timelines)
         record = Record(uuid.uuid1().hex, payload, time.time())
-        properties = {'plugin': random.choice(('foo', 'bar', 'baz'))}
-        calls.append(functools.partial(timelines.add, 'projects/{0}'.format(p), properties, record))
+        calls.append(functools.partial(timelines.add, 'projects/{0}'.format(p), record))
 
 
 with timer('Loaded {0} records'.format(len(calls))):
@@ -82,7 +81,7 @@ with timer('Scheduled timelines for digestion'):
 
 with timer('Digested {0} timelines'.format(len(ready))):
     for timeline in ready:
-        with timelines.digest(timeline) as (properties, records):
+        with timelines.digest(timeline) as records:
             i = 0
             for i, record in enumerate(records, 1):
                 pass
