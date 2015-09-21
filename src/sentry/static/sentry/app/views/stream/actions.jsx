@@ -50,7 +50,7 @@ var StreamActions = React.createClass({
     var selectedIds;
 
     if (actionType === this.props.actionTypes.ALL) {
-      selectedIds = this.props.groupIds;
+      selectedIds = undefined; // undefined means "all"
     } else if (actionType === this.props.actionTypes.SELECTED) {
       var itemIdSet = SelectedGroupStore.getSelectedIds();
       selectedIds = this.props.groupIds.filter(
