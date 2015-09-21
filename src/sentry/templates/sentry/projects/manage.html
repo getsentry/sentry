@@ -177,7 +177,7 @@
         <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
     <li{% if page == 'keys' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys" %}</a>
+        <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Configuration" %}</a>
     </li>
   </ul>
   {% with project|get_plugins as plugins %}
