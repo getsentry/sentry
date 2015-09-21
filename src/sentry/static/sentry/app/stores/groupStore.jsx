@@ -283,7 +283,9 @@ var GroupStore = Reflux.createStore({
   },
 
   onUpdate(changeId, itemIds, data) {
-    if (typeof itemIds === 'undefined') this.items.map(item => item.id);
+    if (typeof itemIds === 'undefined') {
+      itemIds = this.items.map(item => item.id);
+    }
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'update');
       this.pendingChanges.push(changeId, itemId, data);
