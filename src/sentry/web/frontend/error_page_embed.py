@@ -7,7 +7,7 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry.models import Group, ProjectKey, UserReport
+from sentry.models import Group, ProjectKey, UserReport, UserReportResolution
 from sentry.web.helpers import render_to_response
 from sentry.utils import json
 from sentry.utils.http import is_valid_origin
@@ -24,6 +24,7 @@ class UserReportForm(forms.ModelForm):
     comments = forms.CharField(widget=forms.Textarea(attrs={
         'placeholder': "I clicked on 'X' and then hit 'Confirm'",
     }))
+    notifyme = forms.BooleanField(required=False)
 
     class Meta:
         model = UserReport
@@ -81,12 +82,15 @@ class ErrorPageEmbedView(View):
         initial = {
             'name': request.GET.get('name'),
             'email': request.GET.get('email'),
+            'notifyme': True,
         }
 
         form = UserReportForm(request.POST if request.method == 'POST' else None,
                               initial=initial)
         if form.is_valid():
             report = form.save(commit=False)
+            if form.cleaned_data.get('notifyme'):
+                report.resolution = UserReportResolution.AWAITING_RESOLUTION
             report.project = key.project
             report.event_id = event_id
             try:

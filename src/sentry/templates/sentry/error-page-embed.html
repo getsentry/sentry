@@ -70,7 +70,7 @@
 }
 .sentry-error-embed header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
 }
 .sentry-error-embed header p {
   color: #999;
@@ -101,6 +101,10 @@
   -webkit-box-sizing : border-box;‌​
   -moz-box-sizing : border-box;
   box-sizing : border-box;
+}
+.sentry-error-embed .form-field.checkbox {
+  line-height: 17px;
+  vertical-align: middle;
 }
 .sentry-error-embed .form-errors input,
 .sentry-error-embed .form-errors textarea {
@@ -226,6 +230,9 @@
       <div class="form-field clearfix">
         <label>What happened?</label>
         {{ form.comments }}
+      </div>
+      <div class="form-field clearfix checkbox">
+        <label>{{ form.notifyme }} I'd like to be notified when this issue is resolved.</label>
       </div>
     </div>
     <div class="form-submit clearfix">

@@ -70,6 +70,7 @@ var GroupUserReports = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
+    var group = this.getGroup();
     var children = this.state.reportList.map((item, itemIdx) => {
       var body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
 
@@ -78,7 +79,12 @@ var GroupUserReports = React.createClass({
           <Gravatar email={item.email} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
-            <div className="activity-author">{item.name} <small>{item.email}</small></div>
+            <div className="activity-author">
+              {item.name} <small>{item.email}</small>
+              {item.resolution === 'awaiting_resolution' &&
+                " Awaiting Resolution"
+              }
+            </div>
             <p dangerouslySetInnerHTML={{__html: body}} />
           </div>
         </li>
@@ -94,6 +100,18 @@ var GroupUserReports = React.createClass({
                 {children}
               </ul>
             </div>
+          </div>
+          <div className="col-md-3">
+            {group.userReportWaitingResolutionCount === 1 ?
+              <p>There is <strong>one user</strong> who has asked to be notified
+                when this issue is resolved.</p>
+            :
+              <p>There are <strong>{group.userReportWaitingResolutionCount || 'no'} users</strong>
+                who have asked to be notified when this issue is resolved.</p>
+            }
+            {group.userReportWaitingResolutionCount &&
+              <a className="btn btn-sm btn-primary">Message Subscribed Users</a>
+            }
           </div>
         </div>
       );

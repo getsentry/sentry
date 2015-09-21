@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from urllib import quote
 from uuid import uuid4
 
-from sentry.models import UserReport
+from sentry.models import UserReport, UserReportResolution
 from sentry.testutils import TestCase
 
 
@@ -40,6 +40,7 @@ class ErrorPageEmbedTest(TestCase):
             'name': 'Jane Doe',
             'email': 'jane@example.com',
             'comments': 'This is an example!',
+            'notifyme': '1'
         }, HTTP_REFERER='http://example.com')
         assert resp.status_code == 200
 
@@ -50,3 +51,4 @@ class ErrorPageEmbedTest(TestCase):
         assert report.event_id == self.event_id
         assert report.project == self.project
         assert report.group is None
+        assert report.resolution == UserReportResolution.AWAITING_RESOLUTION
