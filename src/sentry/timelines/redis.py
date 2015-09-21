@@ -35,12 +35,12 @@ ADD_TO_SCHEDULE_SCRIPT = """\
 -- ARGV: {TIMELINE, TIMESTAMP}
 
 -- Check to see if the timeline exists in the "waiting" set (heuristics tell us
--- that this should be more likely than it's presence in the ready set.)
+-- that this should be more likely than it's presence in the "ready" set.)
 local waiting = redis.call('ZSCORE', KEYS[1], ARGV[1])
 
--- If the item already exists, update the score if the provided timestamp is
--- less than the current score.
 if waiting ~= false then
+    -- If the item already exists, update the score if the provided timestamp
+    -- is less than the current score.
     if tonumber(waiting) > tonumber(ARGV[2]) then
         redis.call('ZADD', KEYS[1], ARGV[2], ARGV[1])
     end
@@ -48,7 +48,7 @@ if waiting ~= false then
 end
 
 -- Otherwise, check to see if the timeline already exists in the "ready" set.
--- If oust doesn't, it needs to be added to the waiting set.
+-- If it doesn't, it needs to be added to the "waiting" set to be scheduled.
 if redis.call('ZSCORE', KEYS[2], ARGV[1]) == false then
     redis.call('ZADD', KEYS[1], ARGV[2], ARGV[1])
     return
@@ -131,7 +131,9 @@ class RedisBackend(Backend):
         # TODO: Allow this to be configured (probably via a import path.)
         self.codec = CompressedPickleCodec()
 
-        self.backoff = backoff(60 * 5)
+        self.maximum_backoff_steps = 2
+        self.backoff = backoff(60 * 5, self.maximum_backoff_steps)
+        self.delivery_grace_seconds = 60 * 15
 
         self.capacity = 1000
         self.trim_chance = 1.0 / self.capacity
@@ -147,12 +149,16 @@ class RedisBackend(Backend):
         with connection.pipeline() as pipeline:
             pipeline.multi()
 
-            # TODO: This actually should be SETEX, but need to figure out what the
-            # correct TTL would be, based on scheduling, etc.
-            pipeline.set(record_key, self.codec.encode(record.value))
+            pipeline.set(
+                record_key,
+                self.codec.encode(record.value),
+                ex=self.backoff(self.maximum_backoff_steps) + self.delivery_grace_seconds,
+            )
 
             # TODO: This probably should just be rolled into some sort of
             # metadata key instead of something specifically for backoff.
+            # TODO: Does this need a timeout? This assumes that the iteration
+            # counter will be deleted when the timeline has no more records.
             pipeline.set(self.prefix_key(make_iteration_key(timeline)), 0, nx=True)
 
             # TODO: Prefix the entry with the timestamp (lexicographically
