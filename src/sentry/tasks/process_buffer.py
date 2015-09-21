@@ -9,6 +9,7 @@ sentry.tasks.process_buffer
 from __future__ import absolute_import
 
 from sentry.tasks.base import instrumented_task
+from sentry.utils.cache import Lock
 
 
 @instrumented_task(
@@ -18,8 +19,9 @@ def process_pending():
     Process pending buffers.
     """
     from sentry import app
-
-    app.buffer.process_pending()
+    lock_key = 'buffer:process_pending'
+    with Lock(lock_key, nowait=True, timeout=60):
+        app.buffer.process_pending()
 
 
 @instrumented_task(
