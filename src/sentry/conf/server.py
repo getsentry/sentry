@@ -41,12 +41,6 @@ PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardi
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-    }
-}
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -557,8 +551,6 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT = None
 
-SENTRY_CACHE_BACKEND = 'default'
-
 SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:create': True,
@@ -687,6 +679,19 @@ SENTRY_BUFFER_OPTIONS = {}
 # and causes serious confusion with the default django cache
 SENTRY_CACHE = None
 SENTRY_CACHE_OPTIONS = {}
+
+# The internal Django cache is still used in many places
+# TODO(dcramer): convert uses over to Sentry's backend
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+    }
+}
+
+# The cache version affects both Django's internal cache (at runtime) as well
+# as Sentry's cache. This automatically overrides VERSION on the default
+# CACHES backend.
+CACHE_VERSION = 1
 
 # Quota backend
 SENTRY_QUOTAS = 'sentry.quotas.Quota'

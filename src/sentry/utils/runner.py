@@ -318,6 +318,8 @@ def initialize_app(config):
     settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
     settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
 
+    settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
+
     initialize_receivers()
 
     validate_backends()
