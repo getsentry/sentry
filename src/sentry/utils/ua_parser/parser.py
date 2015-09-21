@@ -417,7 +417,7 @@ def GetFilters(user_agent_string, js_user_agent_string=None,
 
 def load_regexes(path):
     with open(path) as fp:
-        return yaml.load(fp)
+        return yaml.safe_load(fp)
 
 
 def load_user_agent_parsers(regexes):
