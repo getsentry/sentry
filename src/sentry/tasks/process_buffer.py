@@ -9,7 +9,7 @@ sentry.tasks.process_buffer
 from __future__ import absolute_import
 
 from sentry.tasks.base import instrumented_task
-from sentry.utils.cache import Lock
+from sentry.utils.cache import Lock, UnableToGetLock
 
 
 @instrumented_task(
@@ -20,8 +20,11 @@ def process_pending():
     """
     from sentry import app
     lock_key = 'buffer:process_pending'
-    with Lock(lock_key, nowait=True, timeout=60):
-        app.buffer.process_pending()
+    try:
+        with Lock(lock_key, nowait=True, timeout=60):
+            app.buffer.process_pending()
+    except UnableToGetLock:
+        pass
 
 
 @instrumented_task(
