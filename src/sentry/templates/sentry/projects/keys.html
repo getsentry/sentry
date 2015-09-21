@@ -3,28 +3,27 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{% trans "Client Keys" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Client Configuration" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
     {% if ACCESS.project_write %}
         <a href="{% url 'sentry-new-project-key' project.organization.slug project.slug %}" class="btn pull-right btn-primary btn-sm" style="position: relative; top: -6px;">{% trans "Generate New Key" %}</a>
     {% endif %}
-    <h2>{% trans "Client Keys" %}</h2>
+    <h2>{% trans "Client Configuration" %}</h2>
+
+    <p>To send data to Sentry you will need to configure an SDK with a client key (usually referred to as the
+        <code>SENTRY_DSN</code> value). For more information on integrating Sentry with your application take
+        a look at our <a href="https://docs.getsentry.com">documentation</a>.</p>
 
     <table class="table table-bordered">
         <colgroup>
             <col/>
             <col width="200px"/>
         </colgroup>
-        <thead>
-            <tr>
-                <th colspan="2">{% trans "Client Key" %}</th>
-            </tr>
-        </thead>
         <tbody>
             {% for key in key_list %}
                 <tr>
-                    <td style="width: 70%">
+                    <td>
                         {% if key.label %}
                             <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.label }}</a></h5>
                         {% else %}
@@ -32,7 +31,7 @@
                         {% endif %}<br>
                         <input class="form-control" value="{{ key.dsn_private }}" onclick="this.select()" />
                     </td>
-                    <td style="text-align:right; vertical-align:bottom !important;">
+                    <td style="text-align:right;padding-top:50px !important;">
                         {% if ACCESS.project_write %}
                             {% if key.is_active %}
                                 <form method="POST" action="{% url 'sentry-disable-project-key' project.organization.slug project.slug key.id %}" style="display:inline">
