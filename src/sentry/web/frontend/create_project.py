@@ -29,11 +29,14 @@ class AddProjectWithTeamForm(AddProjectForm):
 
         self.team_list = team_list
 
-        self.fields['team'].choices = (
-            (t.slug, t.name)
-            for t in team_list
-        )
-        self.fields['team'].widget.choices = self.fields['team'].choices
+        if len(self.team_list) == 1:
+            del self.fields['team']
+        else:
+            self.fields['team'].choices = (
+                (t.slug, t.name)
+                for t in team_list
+            )
+            self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_team(self):
         value = self.cleaned_data['team']
@@ -43,7 +46,7 @@ class AddProjectWithTeamForm(AddProjectForm):
         return None
 
     def save(self, actor, ip_address):
-        team = self.cleaned_data['team']
+        team = self.cleaned_data.get('team', self.team_list[0])
         return super(AddProjectWithTeamForm, self).save(actor, team, ip_address)
 
 

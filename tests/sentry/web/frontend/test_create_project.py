@@ -39,9 +39,27 @@ class CreateProjectTest(TestCase):
         assert resp.context['organization'] == organization
         assert resp.context['form']
 
-    def test_valid_params(self):
+    def test_implicit_single_team(self):
         organization = self.create_organization()
         team = self.create_team(organization=organization, name='Foo', slug='foo')
+        path = reverse('sentry-create-project', args=[organization.slug])
+        self.login_as(self.user)
+        resp = self.client.post(path, {
+            'name': 'bar',
+        })
+        assert resp.status_code == 302, resp.context['form'].errors
+
+        project = Project.objects.get(team__organization=organization, name='bar')
+
+        assert project.team == team
+
+        redirect_uri = reverse('sentry-stream', args=[organization.slug, project.slug])
+        assert resp['Location'] == 'http://testserver%s?newinstall=1' % (redirect_uri,)
+
+    def test_multiple_teams(self):
+        organization = self.create_organization()
+        team = self.create_team(organization=organization, name='Foo', slug='foo')
+        team = self.create_team(organization=organization, name='Bar', slug='bar')
         path = reverse('sentry-create-project', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.post(path, {
