@@ -5,10 +5,6 @@
 
 {% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
 
-{% block alerts %}
-{% endblock %}
-
-
 {% block content %}
 <div class="box">
     <div class="box-content with-padding">
@@ -30,7 +26,7 @@
         {% endif %}
         </ul>
       {% endblock %}
-      {% include "sentry/partial/alerts.html" %}
+
       {% block main %}
       {% endblock %}
     </div>
