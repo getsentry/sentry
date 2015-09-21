@@ -5,8 +5,6 @@ import itertools
 import logging
 import random
 import time
-import zlib
-from collections import namedtuple
 from contextlib import contextmanager
 from datetime import datetime
 
@@ -19,18 +17,14 @@ from redis.exceptions import (
     WatchError,
 )
 
-from sentry.utils.compat import pickle
 
 from .base import (
     Backend,
-    Backoff,
+    Record,
 )
 
 
-logger = logging.getLogger(__name__)
-
-
-Record = namedtuple('Record', 'key value timestamp')
+logger = logging.getLogger('sentry.timelines')
 
 
 ADD_TO_SCHEDULE_SCRIPT = """\
@@ -59,6 +53,7 @@ if redis.call('ZSCORE', KEYS[2], ARGV[1]) == false then
 end
 """
 
+
 TRUNCATE_TIMELINE_SCRIPT = """\
 -- Trims a timeline to a maximum number of records.
 -- Returns the number of keys that were deleted.
@@ -74,6 +69,7 @@ end
 return table.getn(keys)
 """
 
+
 # XXX: Passing `None` as the first argument is a dirty hack to allow us to use
 # this more easily with the cluster
 add_to_schedule = Script(None, ADD_TO_SCHEDULE_SCRIPT)
@@ -82,14 +78,6 @@ truncate_timeline = Script(None, TRUNCATE_TIMELINE_SCRIPT)
 
 def to_timestamp(value):
     return (value - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
-
-
-class CompressedPickleCodec(object):
-    def encode(self, value):
-        return zlib.compress(pickle.dumps(value))
-
-    def decode(self, value):
-        return pickle.loads(zlib.decompress(value))
 
 
 WAITING_STATE = 'w'
@@ -120,20 +108,14 @@ def make_record_key(timeline_key, record):
 
 class RedisBackend(Backend):
     def __init__(self, **options):
-        if not options:
-            options = settings.SENTRY_REDIS_OPTIONS
+        super(RedisBackend, self).__init__(**options)
 
-        self.cluster = Cluster(options['hosts'])
-        self.namespace = 'digests'
+        self.cluster = Cluster(**options.pop('cluster', settings.SENTRY_REDIS_OPTIONS))
+        self.namespace = options.pop('namespace', 'digests')
+        self.record_ttl = options.pop('record_ttl', 60 * 60)
 
-        # TODO: Allow this to be configured (probably via a import path.)
-        self.codec = CompressedPickleCodec()
-
-        self.backoff = Backoff(lambda step: (60 * 5) << step)
-        self.delivery_grace_seconds = 60 * 15
-
-        self.capacity = 1000
-        self.trim_chance = 1.0 / self.capacity
+        if options:
+            logger.warning('Discarding invalid options: %r', options)
 
     def add(self, target, record):
         timeline_key = make_timeline_key(self.namespace, target)
@@ -146,11 +128,9 @@ class RedisBackend(Backend):
             pipeline.set(
                 record_key,
                 self.codec.encode(record.value),
-                ex=self.backoff.maximum + self.delivery_grace_seconds,
+                ex=self.record_ttl,
             )
 
-            # TODO: Does this need a timeout? This assumes that the iteration
-            # counter will be deleted when the timeline has no more records.
             pipeline.set(make_iteration_key(timeline_key), 0, nx=True)
 
             # TODO: Prefix the entry with the timestamp (lexicographically
@@ -167,7 +147,7 @@ class RedisBackend(Backend):
                 pipeline,
             )
 
-            should_truncate = random.random() <= self.trim_chance
+            should_truncate = random.random() < self.trim_chance
             if should_truncate:
                 truncate_timeline((timeline_key,), (self.capacity,), pipeline)
 
