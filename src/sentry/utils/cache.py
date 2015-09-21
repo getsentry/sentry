@@ -10,9 +10,9 @@ from __future__ import absolute_import, print_function
 import functools
 import logging
 import random
-import time
 
 from django.core.cache import cache
+from time import sleep, time
 
 default_cache = cache
 
@@ -43,6 +43,7 @@ class Lock(object):
         lock_key = self.lock_key
         cache = self.cache
 
+        start = time()
         delay = 0.01 + random.random() / 10
         attempt = 0
         max_attempts = self.timeout / delay
@@ -54,11 +55,13 @@ class Lock(object):
                 if self.nowait:
                     break
                 self.was_locked = True
-                time.sleep(delay)
+                sleep(delay)
                 attempt += 1
+        stop = time()
 
         if not got_lock:
-            raise UnableToGetLock('Unable to fetch lock after on %s' % (lock_key,))
+            raise UnableToGetLock('Unable to fetch lock after %.3fs on %s' % (
+                stop - start, lock_key,))
 
         return self
 
