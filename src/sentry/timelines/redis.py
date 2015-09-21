@@ -21,7 +21,10 @@ from redis.exceptions import (
 
 from sentry.utils.compat import pickle
 
-from .base import Backend
+from .base import (
+    Backend,
+    Backoff,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -115,10 +118,6 @@ def make_record_key(timeline_key, record):
     return '{0}:r:{1}'.format(timeline_key, record)
 
 
-def backoff(duration, maximum=2):
-    return lambda iteration: duration << min(iteration, maximum)
-
-
 class RedisBackend(Backend):
     def __init__(self, **options):
         if not options:
@@ -130,8 +129,7 @@ class RedisBackend(Backend):
         # TODO: Allow this to be configured (probably via a import path.)
         self.codec = CompressedPickleCodec()
 
-        self.maximum_backoff_steps = 2
-        self.backoff = backoff(60 * 5, self.maximum_backoff_steps)
+        self.backoff = Backoff(lambda step: (60 * 5) << step)
         self.delivery_grace_seconds = 60 * 15
 
         self.capacity = 1000
@@ -148,11 +146,9 @@ class RedisBackend(Backend):
             pipeline.set(
                 record_key,
                 self.codec.encode(record.value),
-                ex=self.backoff(self.maximum_backoff_steps) + self.delivery_grace_seconds,
+                ex=self.backoff.maximum + self.delivery_grace_seconds,
             )
 
-            # TODO: This probably should just be rolled into some sort of
-            # metadata key instead of something specifically for backoff.
             # TODO: Does this need a timeout? This assumes that the iteration
             # counter will be deleted when the timeline has no more records.
             pipeline.set(make_iteration_key(timeline_key), 0, nx=True)
