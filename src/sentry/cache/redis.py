@@ -32,20 +32,20 @@ class RedisCache(BaseCache):
 
         super(RedisCache, self).__init__(version=version, prefix=prefix)
 
-    def set(self, key, value, timeout):
-        key = self.make_key(key)
+    def set(self, key, value, timeout, version=None):
+        key = self.make_key(key, version=version)
         v = json.dumps(value)
         if timeout:
             self.client.setex(key, int(timeout), v)
         else:
             self.client.set(key, v)
 
-    def delete(self, key):
-        key = self.make_key(key)
+    def delete(self, key, version=None):
+        key = self.make_key(key, version=version)
         self.client.delete(key)
 
-    def get(self, key):
-        key = self.make_key(key)
+    def get(self, key, version=None):
+        key = self.make_key(key, version=version)
         result = self.client.get(key)
         if result is not None:
             result = json.loads(result)
