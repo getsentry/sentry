@@ -14,9 +14,7 @@
 # limitations under the License.
 from __future__ import absolute_import
 
-import os
 import re
-import yaml
 
 
 class UserAgentParser(object):
@@ -415,51 +413,5 @@ def GetFilters(user_agent_string, js_user_agent_string=None,
     return filters
 
 
-def load_regexes(path):
-    with open(path) as fp:
-        return yaml.safe_load(fp)
-
-
-def load_user_agent_parsers(regexes):
-    parsers = []
-    for ua_parser in regexes['user_agent_parsers']:
-        parsers.append(UserAgentParser(
-            ua_parser['regex'],
-            ua_parser.get('family_replacement'),
-            ua_parser.get('v1_replacement'),
-            ua_parser.get('v2_replacement'),
-        ))
-    return parsers
-
-
-def load_device_parsers(regexes):
-    parsers = []
-    for device_parser in regexes['device_parsers']:
-        parsers.append(DeviceParser(
-            device_parser['regex'],
-            device_parser.get('regex_flag'),
-            device_parser.get('device_replacement'),
-            device_parser.get('brand_replacement'),
-            device_parser.get('model_replacement'),
-        ))
-    return parsers
-
-
-def load_os_parsers(regexes):
-    parsers = []
-    for os_parser in regexes['os_parsers']:
-        parsers.append(OSParser(
-            os_parser['regex'],
-            os_parser.get('os_replacement'),
-            os_parser.get('os_v1_replacement'),
-            os_parser.get('os_v2_replacement'),
-        ))
-    return parsers
-
-
-regex_path = os.path.join(os.path.dirname(__file__), 'regexes.yaml')
-regexes = load_regexes(regex_path)
-
-USER_AGENT_PARSERS = load_user_agent_parsers(regexes)
-DEVICE_PARSERS = load_device_parsers(regexes)
-OS_PARSERS = load_os_parsers(regexes)
+# Imported at bottom because circular import dependency
+from ._regexes import USER_AGENT_PARSERS, DEVICE_PARSERS, OS_PARSERS

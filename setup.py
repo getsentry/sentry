@@ -65,6 +65,7 @@ tests_require = [
     'pytest-cov>=1.4',
     'pytest-timeout',
     'python-coveralls',
+    'PyYAML>=3.11,<4.0',
     'responses',
 ]
 
@@ -100,7 +101,6 @@ install_requires = [
     'pytest-django>=2.7.0,<2.8.0',
     'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
-    'PyYAML>=3.11,<4.0',
     'raven>=5.3.0',
     'redis>=2.10.3,<2.11.0',
     'requests%s>=2.7.0,<2.8.0' % (not IS_LIGHT_BUILD and '[security]' or ''),
