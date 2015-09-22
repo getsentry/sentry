@@ -8,7 +8,7 @@ from mock import patch
 
 from django.conf import settings
 
-from sentry.constants import MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
     EventManager, get_hashes_for_event, get_hashes_from_fingerprint
 )
@@ -260,6 +260,16 @@ class EventManagerTest(TransactionTestCase):
 
         group = event.group
         assert group.first_release.version == '1.0'
+
+    def test_bad_logger(self):
+        manager = EventManager(self.make_event(logger='foo bar'))
+        data = manager.normalize()
+        assert data['logger'] == DEFAULT_LOGGER_NAME
+
+    def test_bad_tag_key(self):
+        manager = EventManager(self.make_event(tags=[('foo bar', 'x')]))
+        data = manager.normalize()
+        assert data['tags'] == []
 
 
 class GetHashesFromEventTest(TestCase):
