@@ -232,10 +232,10 @@ class RedisBackend(Backend):
                 try:
                     pipeline.execute()
                 except ResponseError as error:
-                    # TODO: This means that there are actually no contents in
-                    # the original timeline -- we should be able to ignore this
-                    # error, but it would be nice to be more specific.
-                    logger.debug('Could not move timeline for digestion (likely has no contents.)')
+                    if 'no such key' in str(error):
+                        logger.debug('Could not move timeline for digestion (likely has no contents.)')
+                    else:
+                        raise
 
         # XXX: This must select all records, even though not all of them will
         # be returned if they exceed the capacity, to ensure that all records
