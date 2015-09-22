@@ -206,7 +206,7 @@ const InstallWizard = React.createClass({
               </LoadingIndicator>
             : (error ?
               <div className="loading-error">
-                <span className="icon" />
+                <span className="icon-exclamation" />
                 {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
               </div>
             :
