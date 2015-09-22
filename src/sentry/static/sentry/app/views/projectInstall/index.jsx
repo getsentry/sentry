@@ -1,4 +1,5 @@
 import React from "react";
+import {Link} from "react-router";
 
 var ProjectInstall = React.createClass({
   contextTypes: {
@@ -6,22 +7,24 @@ var ProjectInstall = React.createClass({
   },
 
   render() {
+    let params = Object.assign({}, this.context.router.getCurrentParams());
+
     return (
       <div>
-        <h1>Configure your application to send events</h1>
+        <h1>Configure your application</h1>
 
         <p>Choose a language/platform:</p>
 
         <ul>
-          <li><a href="python/">Python</a></li>
-          <li><a href="javascript/">JavaScript</a></li>
-          <li><a href="nodejs/">Node.js</a></li>
-          <li><a href="php/">PHP</a></li>
-          <li><a href="ruby/">Ruby</a></li>
-          <li><a href="objective/-c">Objective-C</a></li>
-          <li><a href="java/">Java</a></li>
-          <li><a href="c-sharp/">C#</a></li>
-          <li><a href="go/">Go</a></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python"})}>Python</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"javascript"})}>JavaScript</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"nodejs"})}>Node.js</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php"})}>PHP</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"ruby"})}>Ruby</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"objective-c"})}>Objective-C</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java"})}>Java</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"c-sharp"})}>C#</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"go"})}>Go</Link></li>
         </ul>
 
         <p>
@@ -29,7 +32,7 @@ var ProjectInstall = React.createClass({
           please visit see <a href="http://docs.getsentry.com">our in-depth documentation</a>.
         </p>
 
-        <button className="btn btn-primary">Skip this step</button>
+        <Link to="stream" params={params} className="btn btn-primary">Skip this step</Link>
       </div>
     );
   }
