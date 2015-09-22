@@ -38,6 +38,7 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.strings import truncatechars
 
 # Valid pattern for tag key names
 TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
@@ -111,6 +112,30 @@ else:
             return False
 
         return True
+
+
+def generate_culprit(data):
+    from sentry.interfaces.stacktrace import Stacktrace
+
+    try:
+        stacktraces = [
+            e['stacktrace']
+            for e in data['sentry.interfaces.Exception']['values']
+            if e.get('stacktrace')
+        ]
+    except KeyError:
+        if 'sentry.interfaces.Stacktrace' in data:
+            stacktraces = [data['sentry.interfaces.Stacktrace']]
+        else:
+            return ''
+
+    if not stacktraces:
+        return ''
+
+    return truncatechars(
+        Stacktrace.to_python(stacktraces[-1]).get_culprit_string(),
+        MAX_CULPRIT_LENGTH
+    )
 
 
 def plugin_is_regression(group, event):
@@ -305,7 +330,7 @@ class EventManager(object):
         message = data.pop('message')
         level = data.pop('level')
 
-        culprit = data.pop('culprit', None) or ''
+        culprit = data.pop('culprit', None)
         time_spent = data.pop('time_spent', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
@@ -314,6 +339,9 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
+
+        if not culprit:
+            culprit = generate_culprit(data)
 
         date = datetime.fromtimestamp(data.pop('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
