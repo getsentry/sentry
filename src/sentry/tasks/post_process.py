@@ -36,7 +36,7 @@ def _capture_stats(event, is_new):
     metrics.incr('events.processed')
     metrics.incr('events.processed.{platform}'.format(
         platform=platform))
-    metrics.timing('events.size.data', amount=len(unicode(event.data)))
+    metrics.timing('events.size.data', len(unicode(event.data)))
 
 
 @instrumented_task(
