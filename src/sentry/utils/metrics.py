@@ -51,7 +51,7 @@ def _incr_internal(key, instance=None, tags=None, amount=1):
         tsdb.incr(tsdb.models.internal, full_key, count=amount)
 
 
-def incr(key, instance=None, tags=None, amount=1):
+def incr(key, amount=1, instance=None, tags=None):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     _incr_internal(key, instance, tags, amount)
     backend.incr(key, instance, tags, amount, sample_rate)
