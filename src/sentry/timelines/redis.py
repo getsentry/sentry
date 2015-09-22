@@ -266,7 +266,6 @@ class RedisBackend(Backend):
                     if value is None:
                         logger.warning('Could not retrieve event for timeline.')
                     else:
-                        # TODO: Could make this lazy, but that might be unnecessary complexity.
                         yield Record(key, self.codec.decode(value), timestamp)
 
         yield itertools.islice(get_records_for_digest(), self.capacity)
