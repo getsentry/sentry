@@ -363,6 +363,15 @@ class Frame(Interface):
             'context_line': self.context_line,
         }).strip('\n')
 
+    def get_culprit_string(self):
+        fileloc = self.module or self.filename
+        if not fileloc:
+            return ''
+        return '%s in %s' % (
+            fileloc,
+            self.function or '?',
+        )
+
 
 class Stacktrace(Interface):
     """
@@ -603,3 +612,12 @@ class Stacktrace(Interface):
         ]
 
         return '\n'.join(result)
+
+    def get_culprit_string(self):
+        default = None
+        for frame in reversed(self.frames):
+            if frame.in_app:
+                return frame.get_culprit_string()
+            elif default is None:
+                default = frame.get_culprit_string()
+        return default
