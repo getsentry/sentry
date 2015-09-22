@@ -31,12 +31,12 @@ def _capture_stats(event, is_new):
         return
 
     if is_new:
-        metrics.incr('events.unique', 1)
+        metrics.incr('events.unique')
 
-    metrics.incr('events.processed', 1)
+    metrics.incr('events.processed')
     metrics.incr('events.processed.{platform}'.format(
-        platform=platform), 1)
-    metrics.timing('events.size.data', len(unicode(event.data)))
+        platform=platform))
+    metrics.timing('events.size.data', amount=len(unicode(event.data)))
 
 
 @instrumented_task(
