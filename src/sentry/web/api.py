@@ -302,7 +302,7 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, helper, data, **kwargs):
-        metrics.incr('events.total', 1)
+        metrics.incr('events.total')
 
         event_received.send_robust(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
@@ -319,7 +319,7 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
-            metrics.incr('events.dropped', 1)
+            metrics.incr('events.dropped')
             raise APIRateLimited(rate_limit.retry_after)
         else:
             app.tsdb.incr_multi([
