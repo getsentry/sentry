@@ -15,7 +15,7 @@ from optparse import make_option
 
 from sentry.app import nodestore
 from sentry.models import (
-    Activity, Event, EventMapping, Group, GroupRuleStatus, GroupTagValue,
+    Event, EventMapping, Group, GroupRuleStatus, GroupTagValue,
     LostPasswordHash, TagValue, GroupEmailThread,
 )
 from sentry.utils import db
@@ -39,7 +39,6 @@ class Command(BaseCommand):
     BULK_DELETES = (
         (GroupRuleStatus, 'date_added'),
         (GroupTagValue, 'last_seen'),
-        (Activity, 'datetime'),
         (TagValue, 'last_seen'),
         (GroupEmailThread, 'date'),
     )
