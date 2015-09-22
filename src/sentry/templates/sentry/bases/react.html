@@ -13,7 +13,7 @@
   </div>
   <script>
   $(function(){
-    Router.run(Sentry.routes, Router.HistoryLocation, function(Handler) {
+    Sentry.router.run(function(Handler, state) {
       React.render(React.createFactory(Handler)({
       }), document.getElementById('blk_router'));
     });
