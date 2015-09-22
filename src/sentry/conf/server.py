@@ -702,9 +702,9 @@ CACHES = {
 # CACHES backend.
 CACHE_VERSION = 1
 
-# Timelines backend
-SENTRY_TIMELINES = 'sentry.timelines.redis.RedisBackend'
-SENTRY_TIMELINES_OPTIONS = {}
+# Digests backend
+SENTRY_DIGESTS = 'sentry.digests.redis.RedisBackend'
+SENTRY_DIGESTS_OPTIONS = {}
 
 # Quota backend
 SENTRY_QUOTAS = 'sentry.quotas.Quota'

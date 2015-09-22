@@ -17,14 +17,14 @@ from redis.exceptions import (
     WatchError,
 )
 
-
 from .base import (
     Backend,
     Record,
+    ScheduleEntry,
 )
 
 
-logger = logging.getLogger('sentry.timelines')
+logger = logging.getLogger('sentry.digests')
 
 
 ADD_TO_SCHEDULE_SCRIPT = """\
@@ -88,8 +88,8 @@ def make_schedule_key(namespace, state):
     return '{0}:s:{1}'.format(namespace, state)
 
 
-def make_timeline_key(namespace, target):
-    return '{0}:t:{1}'.format(namespace, target)
+def make_timeline_key(namespace, key):
+    return '{0}:t:{1}'.format(namespace, key)
 
 
 def make_iteration_key(timeline_key):
@@ -117,8 +117,8 @@ class RedisBackend(Backend):
         if options:
             logger.warning('Discarding invalid options: %r', options)
 
-    def add(self, target, record):
-        timeline_key = make_timeline_key(self.namespace, target)
+    def add(self, key, record):
+        timeline_key = make_timeline_key(self.namespace, key)
         record_key = make_record_key(timeline_key, record.key)
 
         connection = self.cluster.get_local_client_for_key(timeline_key)
@@ -143,23 +143,19 @@ class RedisBackend(Backend):
                     functools.partial(make_schedule_key, self.namespace),
                     (WAITING_STATE, READY_STATE),
                 ),
-                (target, record.timestamp),
+                (key, record.timestamp),
                 pipeline,
             )
 
-            should_truncate = random.random() < self.trim_chance
+            should_truncate = random.random() < self.truncation_chance
             if should_truncate:
                 truncate_timeline((timeline_key,), (self.capacity,), pipeline)
 
             results = pipeline.execute()
             if should_truncate:
-                logger.info('Removed %s extra records from %s.', results[-1], target)
+                logger.info('Removed %s extra records from %s.', results[-1], key)
 
-    def schedule(self, cutoff, chunk=1000):
-        """
-        Moves timelines that are ready to be digested from the ``WAITING`` to
-        the ``READY`` state.
-        """
+    def schedule(self, deadline, chunk=1000):
         # TODO: This doesn't lead to a fair balancing of workers, ideally each
         # scheduling task would be executed by a different process for each
         # host.
@@ -169,7 +165,7 @@ class RedisBackend(Backend):
                 items = connection.zrangebyscore(
                     make_schedule_key(self.namespace, WAITING_STATE),
                     min=0,
-                    max=cutoff,
+                    max=deadline,
                     withscores=True,
                     start=0,
                     num=chunk,
@@ -197,7 +193,8 @@ class RedisBackend(Backend):
                         *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
                     )
 
-                    yield items
+                    for key, timestamp in items:
+                        yield ScheduleEntry(key, timestamp)
 
                     pipeline.execute()
 
@@ -206,18 +203,18 @@ class RedisBackend(Backend):
                 if len(items) < chunk:
                     break
 
-    def maintenance(self, timeout):
+    def maintenance(self, deadline):
         raise NotImplementedError
 
     @contextmanager
-    def digest(self, target):
-        timeline_key = make_timeline_key(self.namespace, target)
+    def digest(self, key):
+        timeline_key = make_timeline_key(self.namespace, key)
         digest_key = make_digest_key(timeline_key)
 
         # TODO: Need to wrap this whole section in a lease to try and avoid data races.
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        if connection.zscore(make_schedule_key(self.namespace, READY_STATE), target) is None:
+        if connection.zscore(make_schedule_key(self.namespace, READY_STATE), key) is None:
             raise Exception('Cannot digest timeline, timeline is not in the ready state.')
 
         with connection.pipeline() as pipeline:
@@ -247,7 +244,7 @@ class RedisBackend(Backend):
         def get_iteration_count(default=0):
             value = connection.get(make_iteration_key(timeline_key))
             if not value:
-                logger.warning('Could not retrieve iteration counter for %s, defaulting to %s.', target, default)
+                logger.warning('Could not retrieve iteration counter for %s, defaulting to %s.', key, default)
                 return default
             return int(value)
 
@@ -255,10 +252,10 @@ class RedisBackend(Backend):
 
         def get_records_for_digest():
             with connection.pipeline(transaction=False) as pipeline:
-                for key, timestamp in records:
-                    pipeline.get(make_record_key(timeline_key, key))
+                for record_key, timestamp in records:
+                    pipeline.get(make_record_key(timeline_key, record_key))
 
-                for (key, timestamp), value in zip(records, pipeline.execute()):
+                for (record_key, timestamp), value in zip(records, pipeline.execute()):
                     # We have to handle failures if the key does not exist --
                     # this could happen due to evictions or race conditions
                     # where the record was added to a timeline while it was
@@ -266,7 +263,7 @@ class RedisBackend(Backend):
                     if value is None:
                         logger.warning('Could not retrieve event for timeline.')
                     else:
-                        yield Record(key, self.codec.decode(value), timestamp)
+                        yield Record(record_key, self.codec.decode(value), timestamp)
 
         yield itertools.islice(get_records_for_digest(), self.capacity)
 
@@ -275,10 +272,10 @@ class RedisBackend(Backend):
                 pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
                 pipeline.multi()
 
-                record_keys = [make_record_key(timeline_key, key) for key, score in records]
+                record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
                 pipeline.delete(digest_key, *record_keys)
-                pipeline.zrem(make_schedule_key(self.namespace, READY_STATE), target)
-                pipeline.zadd(make_schedule_key(self.namespace, WAITING_STATE), time.time() + self.backoff(iteration + 1), target)
+                pipeline.zrem(make_schedule_key(self.namespace, READY_STATE), key)
+                pipeline.zadd(make_schedule_key(self.namespace, WAITING_STATE), time.time() + self.backoff(iteration + 1), key)
                 pipeline.set(make_iteration_key(timeline_key), iteration + 1)
                 pipeline.execute()
 
@@ -290,8 +287,8 @@ class RedisBackend(Backend):
                 pipeline.multi()
                 if connection.zcard(timeline_key) is 0:
                     pipeline.delete(make_iteration_key(timeline_key))
-                    pipeline.zrem(make_schedule_key(self.namespace, READY_STATE), target)
-                    pipeline.zrem(make_schedule_key(self.namespace, WAITING_STATE), target)
+                    pipeline.zrem(make_schedule_key(self.namespace, READY_STATE), key)
+                    pipeline.zrem(make_schedule_key(self.namespace, WAITING_STATE), key)
                     pipeline.execute()
 
         # If there were records in the digest, we need to schedule it so that
