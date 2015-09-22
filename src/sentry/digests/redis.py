@@ -26,12 +26,40 @@ from .base import (
 
 logger = logging.getLogger('sentry.digests')
 
+SCHEDULE_PATH_COMPONENT = 's'
+SCHEDULE_STATE_WAITING = 'w'
+SCHEDULE_STATE_READY = 'r'
 
+TIMELINE_PATH_COMPONENT = 't'
+TIMELINE_ITERATION_PATH_COMPONENT = 'i'
+TIMELINE_DIGEST_PATH_COMPONENT = 'd'
+TIMELINE_RECORD_PATH_COMPONENT = 'r'
+
+
+def make_schedule_key(namespace, state):
+    return '{0}:{1}:{2}'.format(namespace, SCHEDULE_PATH_COMPONENT, state)
+
+
+def make_timeline_key(namespace, key):
+    return '{0}:{1}:{2}'.format(namespace, TIMELINE_PATH_COMPONENT, key)
+
+
+def make_iteration_key(timeline_key):
+    return '{0}:{1}'.format(timeline_key, TIMELINE_ITERATION_PATH_COMPONENT)
+
+
+def make_digest_key(timeline_key):
+    return '{0}:{1}'.format(timeline_key, TIMELINE_DIGEST_PATH_COMPONENT)
+
+
+def make_record_key(timeline_key, record):
+    return '{0}:{1}:{2}'.format(timeline_key, TIMELINE_RECORD_PATH_COMPONENT, record)
+
+
+# Ensures an timeline is scheduled to be digested.
+# KEYS: {WATING, READY}
+# ARGV: {TIMELINE, TIMESTAMP}
 ADD_TO_SCHEDULE_SCRIPT = """\
--- Ensures an timeline is scheduled to be digested.
--- KEYS: {WATING, READY}
--- ARGV: {TIMELINE, TIMESTAMP}
-
 -- Check to see if the timeline exists in the "waiting" set (heuristics tell us
 -- that this should be more likely than it's presence in the "ready" set.)
 local waiting = redis.call('ZSCORE', KEYS[1], ARGV[1])
@@ -54,20 +82,18 @@ end
 """
 
 
+# Trims a timeline to a maximum number of records.
+# Returns the number of keys that were deleted.
+# KEYS: {TIMELINE}
+# ARGV: {LIMIT}
 TRUNCATE_TIMELINE_SCRIPT = """\
--- Trims a timeline to a maximum number of records.
--- Returns the number of keys that were deleted.
--- KEYS: {TIMELINE}
--- ARGV: {LIMIT}
-
 local keys = redis.call('ZREVRANGE', KEYS[1], ARGV[1], -1)
 for i, record in pairs(keys) do
-    -- TODO: This could probably be optimized into single operations.
-    redis.call('DEL', KEYS[1] .. ':r:' .. record)
+    redis.call('DEL', KEYS[1] .. ':{TIMELINE_RECORD_PATH_COMPONENT}:' .. record)
     redis.call('ZREM', KEYS[1], record)
 end
 return table.getn(keys)
-"""
+""".format(TIMELINE_RECORD_PATH_COMPONENT=TIMELINE_RECORD_PATH_COMPONENT)
 
 
 # XXX: Passing `None` as the first argument is a dirty hack to allow us to use
@@ -78,32 +104,6 @@ truncate_timeline = Script(None, TRUNCATE_TIMELINE_SCRIPT)
 
 def to_timestamp(value):
     return (value - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
-
-
-WAITING_STATE = 'w'
-READY_STATE = 'r'
-
-
-def make_schedule_key(namespace, state):
-    return '{0}:s:{1}'.format(namespace, state)
-
-
-def make_timeline_key(namespace, key):
-    return '{0}:t:{1}'.format(namespace, key)
-
-
-def make_iteration_key(timeline_key):
-    return '{0}:i'.format(timeline_key)
-
-
-def make_digest_key(timeline_key):
-    return '{0}:d'.format(timeline_key)
-
-
-def make_record_key(timeline_key, record):
-    # XXX: Don't update this without updating the Lua script!
-    # TODO: Just interpolate the hierarchical part here into the script.
-    return '{0}:r:{1}'.format(timeline_key, record)
 
 
 class RedisBackend(Backend):
@@ -141,7 +141,7 @@ class RedisBackend(Backend):
             add_to_schedule(
                 map(
                     functools.partial(make_schedule_key, self.namespace),
-                    (WAITING_STATE, READY_STATE),
+                    (SCHEDULE_STATE_WAITING, SCHEDULE_STATE_READY,),
                 ),
                 (key, record.timestamp),
                 pipeline,
@@ -163,7 +163,7 @@ class RedisBackend(Backend):
             # TODO: Scheduling for each host should be protected by a lease.
             while True:
                 items = connection.zrangebyscore(
-                    make_schedule_key(self.namespace, WAITING_STATE),
+                    make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
                     min=0,
                     max=deadline,
                     withscores=True,
@@ -184,12 +184,12 @@ class RedisBackend(Backend):
                     pipeline.multi()
 
                     pipeline.zrem(
-                        make_schedule_key(self.namespace, WAITING_STATE),
+                        make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
                         *[key for key, timestamp in items]
                     )
 
                     pipeline.zadd(
-                        make_schedule_key(self.namespace, READY_STATE),
+                        make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
                         *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
                     )
 
@@ -214,7 +214,7 @@ class RedisBackend(Backend):
         # TODO: Need to wrap this whole section in a lease to try and avoid data races.
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        if connection.zscore(make_schedule_key(self.namespace, READY_STATE), key) is None:
+        if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
             raise Exception('Cannot digest timeline, timeline is not in the ready state.')
 
         with connection.pipeline() as pipeline:
@@ -274,8 +274,8 @@ class RedisBackend(Backend):
 
                 record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
                 pipeline.delete(digest_key, *record_keys)
-                pipeline.zrem(make_schedule_key(self.namespace, READY_STATE), key)
-                pipeline.zadd(make_schedule_key(self.namespace, WAITING_STATE), time.time() + self.backoff(iteration + 1), key)
+                pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
+                pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.backoff(iteration + 1), key)
                 pipeline.set(make_iteration_key(timeline_key), iteration + 1)
                 pipeline.execute()
 
@@ -287,8 +287,8 @@ class RedisBackend(Backend):
                 pipeline.multi()
                 if connection.zcard(timeline_key) is 0:
                     pipeline.delete(make_iteration_key(timeline_key))
-                    pipeline.zrem(make_schedule_key(self.namespace, READY_STATE), key)
-                    pipeline.zrem(make_schedule_key(self.namespace, WAITING_STATE), key)
+                    pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
+                    pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
                     pipeline.execute()
 
         # If there were records in the digest, we need to schedule it so that
