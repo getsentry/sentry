@@ -42,7 +42,9 @@ describe('GroupStore', function () {
       this.sandbox.stub(GroupStore, 'trigger');
       GroupStore.onUpdate(1337, undefined, 'somedata');
 
-      expect(GroupStore.trigger.withArgs(new Set([1,2,3])).calledOnce).to.be.ok;
+
+      expect(GroupStore.trigger.calledOnce).to.be.ok;
+      expect(GroupStore.trigger.firstCall.args[0]).to.eql(new Set([1,2,3]));
     });
   });
 
@@ -57,7 +59,8 @@ describe('GroupStore', function () {
       this.sandbox.stub(GroupStore, 'trigger');
       GroupStore.onUpdateSuccess(1337, undefined, 'somedata');
 
-      expect(GroupStore.trigger.withArgs(new Set([1,2,3])).calledOnce).to.be.ok;
+      expect(GroupStore.trigger.calledOnce).to.be.ok;
+      expect(GroupStore.trigger.firstCall.args[0]).to.eql(new Set([1,2,3]));
     });
   });
 });
