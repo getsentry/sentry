@@ -157,19 +157,41 @@ class IPlugin2(local):
         return self.conf_key
 
     def get_conf_form(self, project=None):
+        """
+        Returns the Form required to configure the plugin.
+
+        >>> plugin.get_conf_form(project)
+        """
         if project is not None:
             return self.project_conf_form
         return self.site_conf_form
 
     def get_conf_template(self, project=None):
+        """
+        Returns the template required to render the configuration page.
+
+        >>> plugin.get_conf_template(project)
+        """
         if project is not None:
             return self.project_conf_template
         return self.site_conf_template
 
     def get_conf_options(self, project=None):
+        """
+        Returns a dict of all of the configured options for a project.
+
+        >>> plugin.get_conf_options(project)
+        """
         return default_plugin_options(self, project)
 
     def get_conf_version(self, project):
+        """
+        Returns a version string that represents the current configuration state.
+
+        If any option changes or new options added, the version will change.
+
+        >>> plugin.get_conf_version(project)
+        """
         options = self.get_conf_options(project)
         return md5(
             '&'.join(sorted('%s=%s' % o for o in options.iteritems()))
