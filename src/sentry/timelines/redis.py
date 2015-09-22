@@ -244,8 +244,14 @@ class RedisBackend(Backend):
         if not records:
             logger.info('Retrieved timeline containing no records.')
 
-        # TODO: This should gracefully handle the iteration key being evicted.
-        iteration = int(connection.get(make_iteration_key(timeline_key)))
+        def get_iteration_count(default=0):
+            value = connection.get(make_iteration_key(timeline_key))
+            if not value:
+                logger.warning('Could not retrieve iteration counter for %s, defaulting to %s.', target, default)
+                return default
+            return int(value)
+
+        iteration = get_iteration_count()
 
         def get_records_for_digest():
             with connection.pipeline(transaction=False) as pipeline:
