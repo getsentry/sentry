@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import six
+import re
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -37,6 +38,9 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
+
+# Valid pattern for tag key names
+TAG_KEY_RE = re.compile(r'^[a-zA-Z0-9_\.:-]+$')
 
 
 def count_limit(count):
@@ -171,7 +175,11 @@ class EventManager(object):
         if not data.get('logger'):
             data['logger'] = DEFAULT_LOGGER_NAME
         else:
-            data['logger'] = trim(data['logger'], 64)
+            logger = trim(data['logger'].strip(), 64)
+            if TAG_KEY_RE.match(logger):
+                data['logger'] = logger
+            else:
+                data['logger'] = DEFAULT_LOGGER_NAME
 
         if data.get('platform'):
             data['platform'] = trim(data['platform'], 64)
@@ -227,6 +235,10 @@ class EventManager(object):
 
             if len(value) > MAX_TAG_VALUE_LENGTH:
                 continue
+
+            if not TAG_KEY_RE.match(key):
+                continue
+
             data['tags'].append((key, value))
 
         if not isinstance(data['extra'], dict):
