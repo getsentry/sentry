@@ -10,8 +10,8 @@ import sys
 import time
 import uuid
 
-from sentry.app import timelines
-from sentry.timelines.redis import Record
+from sentry.app import digests
+from sentry.digests.redis import Record
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -36,7 +36,7 @@ with timer('Generated {0} records to be loaded into {1} timelines'.format(n_reco
     for i in xrange(0, n_records):
         p = random.randint(1, n_timelines)
         record = Record(uuid.uuid1().hex, payload, time.time())
-        calls.append(functools.partial(timelines.add, 'projects/{0}'.format(p), record))
+        calls.append(functools.partial(digests.add, 'projects/{0}'.format(p), record))
 
 
 with timer('Loaded {0} records'.format(len(calls))):
@@ -49,16 +49,15 @@ with timer('Loaded {0} records'.format(len(calls))):
 ready = set()
 
 with timer('Scheduled timelines for digestion'):
-    for chunk in timelines.schedule(time.time()):
-        for timeline, timestamp in chunk:
-            ready.add(timeline)
+    for entry in digests.schedule(time.time()):
+        ready.add(entry.key)
 
 
 # Run them through the digestion process.
 
 with timer('Digested {0} timelines'.format(len(ready))):
     for timeline in ready:
-        with timelines.digest(timeline) as records:
+        with digests.digest(timeline) as records:
             i = 0
 
             # Iterate through the records to ensure that all data is deserialized.
@@ -71,9 +70,8 @@ with timer('Digested {0} timelines'.format(len(ready))):
 ready.clear()
 
 with timer('Scheduled timelines for digestion'):
-    for chunk in timelines.schedule(time.time() + timelines.backoff(1)):
-        for timeline, timestamp in chunk:
-            ready.add(timeline)
+    for entry in digests.schedule(time.time() + digests.backoff(1)):
+        ready.add(entry.key)
 
 
 # Run them through the digestion process again (this should result in all of
@@ -81,7 +79,7 @@ with timer('Scheduled timelines for digestion'):
 
 with timer('Digested {0} timelines'.format(len(ready))):
     for timeline in ready:
-        with timelines.digest(timeline) as records:
+        with digests.digest(timeline) as records:
             i = 0
             for i, record in enumerate(records, 1):
                 pass
@@ -89,7 +87,7 @@ with timer('Digested {0} timelines'.format(len(ready))):
 
 # Check to make sure we're not leaking any data.
 
-with timelines.cluster.all() as client:
+with digests.cluster.all() as client:
     result = client.keys('*')
 
 for host, value in result.value.iteritems():
