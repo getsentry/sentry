@@ -146,7 +146,7 @@
     parent.appendChild(this.element);
   };
 
-  var options = window.sentryConfig;
+  var options = window.sentryConfig || {};
   var embed = new SentryErrorEmbed(options);
   if (options.attachOnLoad !== false) {
     onReady(function(){
