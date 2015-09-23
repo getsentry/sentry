@@ -57,7 +57,7 @@ def make_record_key(timeline_key, record):
 # Ensures an timeline is scheduled to be digested.
 # KEYS: {WATING, READY}
 # ARGV: {TIMELINE, TIMESTAMP}
-ADD_TO_SCHEDULE_SCRIPT = """\
+ENSURE_TIMELINE_SCHEDULED_SCRIPT = """\
 -- Check to see if the timeline exists in the "waiting" set (heuristics tell us
 -- that this should be more likely than it's presence in the "ready" set.)
 local waiting = redis.call('ZSCORE', KEYS[1], ARGV[1])
@@ -96,7 +96,7 @@ return table.getn(keys)
 
 # XXX: Passing `None` as the first argument is a dirty hack to allow us to use
 # this more easily with the cluster
-add_to_schedule = Script(None, ADD_TO_SCHEDULE_SCRIPT)
+ensure_timeline_scheduled = Script(None, ENSURE_TIMELINE_SCHEDULED_SCRIPT)
 truncate_timeline = Script(None, TRUNCATE_TIMELINE_SCRIPT)
 
 
@@ -132,7 +132,7 @@ class RedisBackend(Backend):
             # http://redis.io/commands/ZADD#elements-with-the-same-score
             pipeline.zadd(timeline_key, record.timestamp, record.key)
 
-            add_to_schedule(
+            ensure_timeline_scheduled(
                 map(
                     functools.partial(make_schedule_key, self.namespace),
                     (SCHEDULE_STATE_WAITING, SCHEDULE_STATE_READY,),

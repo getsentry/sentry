@@ -15,7 +15,7 @@ from sentry.digests.redis import (
     SCHEDULE_STATE_READY,
     SCHEDULE_STATE_WAITING,
     RedisBackend,
-    add_to_schedule,
+    ensure_timeline_scheduled,
     make_digest_key,
     make_iteration_key,
     make_record_key,
@@ -58,7 +58,7 @@ class BaseRedisBackendTestCase(TestCase):
 
 
 class RedisScriptTestCase(BaseRedisBackendTestCase):
-    def test_add_to_schedule_script(self):
+    def test_ensure_timeline_scheduled_script(self):
         client = StrictRedis(db=9)
 
         timeline = 'timeline'
@@ -72,18 +72,18 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
         # The first addition should cause the timeline to be added to the waiting set.
         with self.assertChanges(waiting_set_size, before=0, after=1), \
                 self.assertChanges(timeline_score_in_waiting_set, before=None, after=timestamp):
-            add_to_schedule(('waiting', 'ready'), (timeline, timestamp), client)
+            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp), client)
 
         # Adding it again with a timestamp in the future should not change the schedule time.
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertDoesNotChange(timeline_score_in_waiting_set):
-            add_to_schedule(('waiting', 'ready'), (timeline, timestamp + 50), client)
+            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp + 50), client)
 
         # If we see a record with a timestamp earlier than the schedule time,
         # we should change the schedule.
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertChanges(timeline_score_in_waiting_set, before=timestamp, after=timestamp - 50):
-            add_to_schedule(('waiting', 'ready'), (timeline, timestamp - 50), client)
+            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp - 50), client)
 
         # Move the timeline from the waiting set to the ready set.
         client.zrem('waiting', timeline)
@@ -93,7 +93,7 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
         with self.assertDoesNotChange(waiting_set_size), \
                 self.assertDoesNotChange(ready_set_size), \
                 self.assertDoesNotChange(timeline_score_in_ready_set):
-            add_to_schedule(('waiting', 'ready'), (timeline, timestamp - 50), client)
+            ensure_timeline_scheduled(('waiting', 'ready'), (timeline, timestamp - 50), client)
 
     def test_truncate_timeline_script(self):
         client = StrictRedis(db=9)
