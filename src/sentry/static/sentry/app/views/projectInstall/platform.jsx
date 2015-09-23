@@ -2,7 +2,7 @@ import React from "react";
 import {Link} from "react-router";
 
 import api from "../../api";
-
+import ListLink from "../../components/listLink";
 import LoadingIndicator from "../../components/loadingIndicator";
 
 var ProjectInstallPlatform = React.createClass({
@@ -74,9 +74,27 @@ var ProjectInstallPlatform = React.createClass({
         <div className="col-md-2">
           <h6 className="nav-header">Python</h6>
           <ul className="nav nav-stacked">
-            <li className="active"><a href="#">Generic</a></li>
-            <li><a href="#">Bottle</a></li>
-            <li><a href="#">Django</a></li>
+            <ListLink
+              to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: 'python'})}>Generic</ListLink>
+            <ListLink
+              to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: 'python-bottle'})}>Bottle</ListLink>
+            <ListLink
+              to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: 'python-django'})}>Django</ListLink>
+            <ListLink
+              to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: 'python-flask'})}>Flask</ListLink>
+            <ListLink
+              to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: 'python-pylons'})}>Pylons</ListLink>
+            <ListLink
+              to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: 'python-pyramid'})}>Pyramid</ListLink>
+            <ListLink
+              to="projectInstallPlatform"
+              params={Object.assign({}, params, {platform: 'python-tornado'})}>Tornado</ListLink>
           </ul>
           <h6 className="nav-header">JavaScript</h6>
           <ul className="nav nav-stacked">
