@@ -240,7 +240,18 @@ class DigestTestCase(BaseRedisBackendTestCase):
                 entries = list(entries)
                 assert entries == records[::-1]
 
-            assert client.zscore(waiting_set_key, timeline) == timestamp + backend.backoff(1)
+            next_scheduled_delivery = timestamp + backend.backoff(1)
+            assert client.zscore(waiting_set_key, timeline) == next_scheduled_delivery
+
+        # Move the timeline back to the ready set.
+        for entry in backend.schedule(next_scheduled_delivery):
+            pass
+
+        # The digest should be removed from the schedule if it is empty.
+        with self.assertDoesNotChange(get_waiting_set_size), \
+                self.assertChanges(get_ready_set_size, before=1, after=0):
+            with backend.digest(timeline) as entries:
+                assert list(entries) == []
 
     def test_digesting_failure_recovery(self):
         backend = self.get_backend()
