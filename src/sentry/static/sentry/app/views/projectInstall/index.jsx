@@ -16,10 +16,19 @@ var ProjectInstall = React.createClass({
         <p>Choose a language/platform:</p>
 
         <ul>
-          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-flask"})}>Flask</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python"})}>Python</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-bottle"})}>Bottle</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-celery"})}>Celery</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-django"})}>Django</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-flask"})}>Flask</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-pylons"})}>Pylons</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-pyramid"})}>Pyramid</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-tornado"})}>Tornado</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"javascript"})}>JavaScript</Link></li>
-          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"nodejs"})}>Node.js</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node"})}>Node.js</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-express"})}>Express</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-koa"})}>Koa</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-connect"})}>Connect</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php"})}>PHP</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"ruby"})}>Ruby</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"objective-c"})}>Objective-C</Link></li>
