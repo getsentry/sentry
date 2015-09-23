@@ -57,6 +57,15 @@ var ProjectInstallPlatform = React.createClass({
       php: {
         display: "PHP"
       },
+      "php-laravel": {
+        display: "Laravel"
+      },
+      "php-monolog": {
+        display: "Monolog"
+      },
+      "php-symfony2": {
+        display: "Symfony2"
+      },
       ruby: {
         display: "Ruby"
       },

@@ -30,6 +30,9 @@ var ProjectInstall = React.createClass({
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-koa"})}>Koa</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"node-connect"})}>Connect</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php"})}>PHP</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php-laravel"})}>Laravel</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php-monolog"})}>Monolog</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"php-symfony2"})}>Symfony2</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"ruby"})}>Ruby</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"objective-c"})}>Objective-C</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java"})}>Java</Link></li>
