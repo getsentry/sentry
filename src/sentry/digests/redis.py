@@ -217,6 +217,8 @@ class RedisBackend(Backend):
             if pipeline.exists(digest_key):
                 pipeline.multi()
                 pipeline.zunionstore(digest_key, (timeline_key, digest_key), aggregate='max')
+                pipeline.delete(timeline_key)
+                pipeline.execute()
             else:
                 pipeline.multi()
                 pipeline.rename(timeline_key, digest_key)

@@ -1,6 +1,7 @@
 import functools
 import itertools
 import mock
+import time
 from datetime import datetime
 
 import pytz
@@ -15,6 +16,7 @@ from sentry.digests.redis import (
     SCHEDULE_STATE_WAITING,
     RedisBackend,
     add_to_schedule,
+    make_digest_key,
     make_iteration_key,
     make_record_key,
     make_schedule_key,
@@ -28,12 +30,34 @@ def to_timestamp(value):
     return (value - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
 
 
-class RedisScriptTestCase(TestCase):
+def get_set_size(cluster, key):
+    results = []
+    with cluster.all() as client:
+        results = client.zcard(key)
+    return sum(results.value.values())
+
+
+class BaseRedisBackendTestCase(TestCase):
+    DEFAULT_BACKEND_OPTIONS = {
+        'cluster': {
+            'hosts': {
+                0: {'db': 9},
+            },
+        },
+    }
+
+    def get_backend(self, options={}):
+        kwargs = self.DEFAULT_BACKEND_OPTIONS.copy()
+        kwargs.update(options)
+        return RedisBackend(**kwargs)
+
     @fixture
     def records(self):
         for i in itertools.count():
-            yield Record(i, i, i)
+            yield Record(str(i), str(i), float(i))
 
+
+class RedisScriptTestCase(BaseRedisBackendTestCase):
     def test_add_to_schedule_script(self):
         client = StrictRedis(db=9)
 
@@ -96,25 +120,7 @@ class RedisScriptTestCase(TestCase):
                 assert client.exists(make_record_key(timeline, record.key))
 
 
-class RedisBackendTestCase(TestCase):
-    defaults = {
-        'cluster': {
-            'hosts': {
-                0: {'db': 9},
-            },
-        },
-    }
-
-    @fixture
-    def records(self):
-        for i in itertools.count():
-            yield Record(i, i, i)
-
-    def get_backend(self, options={}):
-        kwargs = self.defaults.copy()
-        kwargs.update(options)
-        return RedisBackend(**kwargs)
-
+class RedisBackendTestCase(BaseRedisBackendTestCase):
     def test_add_record(self):
         timeline = 'timeline'
         backend = self.get_backend()
@@ -180,18 +186,12 @@ class RedisBackendTestCase(TestCase):
             with backend.cluster.map() as client:
                 client.zadd(ready_set_key, i, 'timelines:{0}'.format(i))
 
-        def get_set_size(key):
-            results = []
-            with backend.cluster.all() as client:
-                results = client.zcard(key)
-            return sum(results.value.values())
-
-        get_waiting_set_size = functools.partial(get_set_size, waiting_set_key)
-        get_ready_set_size = functools.partial(get_set_size, ready_set_key)
+        get_waiting_set_size = functools.partial(get_set_size, backend.cluster, waiting_set_key)
+        get_ready_set_size = functools.partial(get_set_size, backend.cluster, ready_set_key)
 
         with self.assertChanges(get_waiting_set_size, before=n, after=0), \
                 self.assertChanges(get_ready_set_size, before=n, after=n * 2):
-            results = zip(range(n), list(backend.schedule(n)))
+            results = zip(range(n), list(backend.schedule(n, chunk=5)))
             assert len(results) is n
 
             # Ensure scheduled entries are returned earliest first.
@@ -199,8 +199,95 @@ class RedisBackendTestCase(TestCase):
                 assert entry.key == 'timelines:{0}'.format(i)
                 assert entry.timestamp == float(i)
 
+
+class ExpectedError(Exception):
+    pass
+
+
+class DigestTestCase(BaseRedisBackendTestCase):
     def test_digesting(self):
-        raise NotImplementedError
+        backend = self.get_backend()
+
+        # XXX: This assumes the that adding records and scheduling are working
+        # correctly to set up the state needed for this test!
+
+        timeline = 'timeline'
+        n = 10
+        records = list(itertools.islice(self.records, n))
+        for record in records:
+            backend.add(timeline, record)
+
+        for entry in backend.schedule(time.time()):
+            pass
+
+        def get_timeline_size():
+            key = make_timeline_key(backend.namespace, timeline)
+            client = backend.cluster.get_local_client_for_key(key)
+            return client.zcard(key)
+
+        waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
+        ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
+
+        get_waiting_set_size = functools.partial(get_set_size, backend.cluster, waiting_set_key)
+        get_ready_set_size = functools.partial(get_set_size, backend.cluster, ready_set_key)
+
+        with self.assertChanges(get_timeline_size, before=n, after=0), \
+                self.assertChanges(get_waiting_set_size, before=0, after=1), \
+                self.assertChanges(get_ready_set_size, before=1, after=0), \
+                backend.digest(timeline) as entries:
+            entries = list(entries)
+            assert entries == records[::-1]
 
     def test_digesting_failure_recovery(self):
-        raise NotImplementedError
+        backend = self.get_backend()
+
+        # XXX: This assumes the that adding records and scheduling are working
+        # correctly to set up the state needed for this test!
+
+        timeline = 'timeline'
+        n = 10
+        records = list(itertools.islice(self.records, n))
+        for record in records:
+            backend.add(timeline, record)
+
+        for entry in backend.schedule(time.time()):
+            pass
+
+        def get_timeline_size():
+            key = make_timeline_key(backend.namespace, timeline)
+            client = backend.cluster.get_local_client_for_key(key)
+            return client.zcard(key)
+
+        def get_digest_size():
+            key = make_timeline_key(backend.namespace, timeline)
+            client = backend.cluster.get_local_client_for_key(key)
+            return client.zcard(make_digest_key(key))
+
+        waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
+        ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
+
+        get_waiting_set_size = functools.partial(get_set_size, backend.cluster, waiting_set_key)
+        get_ready_set_size = functools.partial(get_set_size, backend.cluster, ready_set_key)
+
+        with self.assertChanges(get_timeline_size, before=n, after=0), \
+                self.assertChanges(get_digest_size, before=0, after=n), \
+                self.assertDoesNotChange(get_waiting_set_size), \
+                self.assertDoesNotChange(get_ready_set_size):
+            try:
+                with backend.digest(timeline) as entries:
+                    raise ExpectedError
+            except ExpectedError:
+                pass
+
+        # Add another few records to the timeline to ensure they end up in the digest.
+        extra = list(itertools.islice(self.records, 5))
+        for record in extra:
+            backend.add(timeline, record)
+
+        with self.assertChanges(get_timeline_size, before=len(extra), after=0), \
+                self.assertChanges(get_digest_size, before=len(records), after=0), \
+                self.assertChanges(get_waiting_set_size, before=0, after=1), \
+                self.assertChanges(get_ready_set_size, before=1, after=0):
+            with backend.digest(timeline) as entries:
+                entries = list(entries)
+                assert entries == (records + extra)[::-1]
