@@ -21,6 +21,9 @@ var ProjectInstallPlatform = React.createClass({
       "python-bottle": {
         display: "Bottle"
       },
+      "python-celery": {
+        display: "Celery",
+      },
       "python-django": {
         display: "Django",
       },
@@ -37,10 +40,19 @@ var ProjectInstallPlatform = React.createClass({
         display: "Tornado"
       },
       javascript: {
-        display: "Javascript"
+        display: "JavaScript"
       },
-      nodejs: {
+      node: {
         display: "Node JS"
+      },
+      "node-express": {
+        display: "Express"
+      },
+      "node-koa": {
+        display: "Koa"
+      },
+      "node-connect": {
+        display: "Connect"
       },
       php: {
         display: "PHP"

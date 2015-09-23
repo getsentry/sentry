@@ -20,6 +20,16 @@ PLATFORMS = set([
     'python-pyramid',
     'python-tornado',
     'javascript',
+    'node',
+    'node-express',
+    'node-koa',
+    'node-connect',
+    'php',
+    'ruby',
+    'objective-c',
+    'java',
+    'c-sharp',
+    'go',
 ])
 
 
