@@ -5,7 +5,6 @@ import _ from "underscore";
 // import TagStore from "../../stores/tagStore";
 import MemberListStore from "../../stores/memberListStore";
 
-import api from "../../api";
 import tagsApi from "../../api/tags";
 
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
