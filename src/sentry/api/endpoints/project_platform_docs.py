@@ -33,6 +33,10 @@ PLATFORMS = set([
     'ruby-rails',
     'objective-c',
     'java',
+    'java-log4j',
+    'java-log4j2',
+    'java-logback',
+    'java-appengine',
     'c-sharp',
     'go',
 ])

@@ -79,8 +79,20 @@ var ProjectInstallPlatform = React.createClass({
       "objective-c": {
         display: "Objective-C"
       },
-      "java": {
+      java: {
         display: "Java"
+      },
+      "java-log4j": {
+        display: "Log4j"
+      },
+      "java-log4j2": {
+        display: "Log4j 2"
+      },
+      "java-logback": {
+        display: "Logback"
+      },
+      "java-appengine": {
+        display: "App Engine"
       },
       "c-sharp": {
         display: "C#"

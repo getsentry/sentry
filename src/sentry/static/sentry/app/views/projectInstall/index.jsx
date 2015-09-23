@@ -38,6 +38,10 @@ var ProjectInstall = React.createClass({
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"ruby-rails"})}>Rails</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"objective-c"})}>Objective-C</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java"})}>Java</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java-log4j"})}>Log4j</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java-log4j2"})}>Log4j 2</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java-logback"})}>Logback</Link></li>
+          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"java-appengine"})}>App Engine</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"c-sharp"})}>C#</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"go"})}>Go</Link></li>
         </ul>
