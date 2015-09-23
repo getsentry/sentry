@@ -69,10 +69,12 @@ var ExpandedTeamList = React.createClass({
     return (
       <tr key={project.id}>
         <td>
-          <Router.Link to="projectDetails"
-              params={{orgId: org.slug, projectId: project.slug}}>
-            {project.name}
-          </Router.Link>
+          <h5>
+            <Router.Link to="projectDetails"
+                params={{orgId: org.slug, projectId: project.slug}}>
+              {project.name}
+            </Router.Link>
+          </h5>
         </td>
         <td className="align-right project-chart">
           {chartData && <BarChart points={chartData} className="sparkline" /> }
