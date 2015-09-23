@@ -16,7 +16,7 @@
     border-top-color: transparent;
     border-bottom-color: transparent;
     box-shadow: 0 1px 0 rgba(52, 60, 69, 0.15);
-    background: lighten(#f5f8fa, 1.75); // alpha transparency too slow, so using fixed color
+    background: @headerBgColor; // alpha transparency too slow, so using fixed color
     margin: 0 auto;
   }
 }
@@ -62,7 +62,7 @@
 }
 
 .stream-actions {
-  background: lighten(#f5f8fa, 1.75);
+  background: @headerBgColor;
   border: 1px solid @trim;
   border-bottom: none;
   border-radius: 3px 3px 0 0;
