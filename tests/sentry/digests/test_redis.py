@@ -28,7 +28,6 @@ def to_timestamp(value):
 
 
 class RedisScriptTestCase(TestCase):
-
     @fixture
     def records(self):
         for i in itertools.count():
@@ -87,10 +86,12 @@ class RedisScriptTestCase(TestCase):
 
             # Ensure the early records don't exist.
             for record in records[:5]:
+                assert not client.zscore(timeline, record.key)
                 assert not client.exists(make_record_key(timeline, record.key))
 
             # Ensure the later records do exist.
             for record in records[-5:]:
+                assert client.zscore(timeline, record.key) == float(record.timestamp)
                 assert client.exists(make_record_key(timeline, record.key))
 
 
