@@ -11,6 +11,7 @@ from sentry.digests.base import (
     Record,
 )
 from sentry.digests.redis import (
+    SCHEDULE_STATE_READY,
     SCHEDULE_STATE_WAITING,
     RedisBackend,
     add_to_schedule,
@@ -162,3 +163,44 @@ class RedisBackendTestCase(TestCase):
         with mock.patch('random.random', return_value=0.0):
             with self.assertChanges(get_timeline_size, before=fill, after=capacity):
                 backend.add(timeline, next(self.records))
+
+    def test_scheduling(self):
+        backend = self.get_backend()
+
+        waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
+        ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
+
+        n = 10
+
+        for i in xrange(n):
+            with backend.cluster.map() as client:
+                client.zadd(waiting_set_key, i, 'timelines:{0}'.format(i))
+
+        for i in xrange(n, n * 2):
+            with backend.cluster.map() as client:
+                client.zadd(ready_set_key, i, 'timelines:{0}'.format(i))
+
+        def get_set_size(key):
+            results = []
+            with backend.cluster.all() as client:
+                results = client.zcard(key)
+            return sum(results.value.values())
+
+        get_waiting_set_size = functools.partial(get_set_size, waiting_set_key)
+        get_ready_set_size = functools.partial(get_set_size, ready_set_key)
+
+        with self.assertChanges(get_waiting_set_size, before=n, after=0), \
+                self.assertChanges(get_ready_set_size, before=n, after=n * 2):
+            results = zip(range(n), list(backend.schedule(n)))
+            assert len(results) is n
+
+            # Ensure scheduled entries are returned earliest first.
+            for i, entry in results:
+                assert entry.key == 'timelines:{0}'.format(i)
+                assert entry.timestamp == float(i)
+
+    def test_digesting(self):
+        raise NotImplementedError
+
+    def test_digesting_failure_recovery(self):
+        raise NotImplementedError
