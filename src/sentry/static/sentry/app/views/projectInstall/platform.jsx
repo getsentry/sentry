@@ -27,6 +27,15 @@ var ProjectInstallPlatform = React.createClass({
       "python-flask": {
         display: "Flask"
       },
+      "python-pylons": {
+        display: "Pylons"
+      },
+      "python-pyramid": {
+        display: "Pyramid"
+      },
+      "python-tornado": {
+        display: "Tornado"
+      },
       javascript: {
         display: "Javascript"
       },
@@ -55,7 +64,6 @@ var ProjectInstallPlatform = React.createClass({
   },
 
   getInitialState() {
-    let params = this.context.router.getCurrentParams();
     return {
       isFramework: null,
       link: null,
@@ -63,9 +71,6 @@ var ProjectInstallPlatform = React.createClass({
       sdk: null,
       html: '',
       loading: true,
-      orgId: params.orgId,
-      projectId: params.projectId,
-      platform: params.platform
     };
   },
 
@@ -74,17 +79,13 @@ var ProjectInstallPlatform = React.createClass({
   },
 
   routeDidChange() {
-    let params = this.context.router.getCurrentParams();
     this.setState({
-      orgId: params.orgId,
-      projectId: params.projectId,
-      platform: params.platform,
       loading: true
     }, this.fetchData);
   },
 
   fetchData() {
-    let {orgId, projectId, platform} = this.state;
+    let {orgId, projectId, platform} = this.context.router.getCurrentParams();
     api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
       success: (data) => {
         this.setState(Object.assign({loading:false}, data));
@@ -92,36 +93,36 @@ var ProjectInstallPlatform = React.createClass({
     });
   },
 
+  getPlatformLink(platform, display) {
+    let params = this.context.router.getCurrentParams();
+    if (typeof display === "undefined") {
+      display = this.static.platforms[platform].display;
+    }
+    return (
+      <ListLink
+        to="projectInstallPlatform"
+        params={Object.assign({}, params, {platform: platform})}>
+          {display}
+      </ListLink>
+    );
+  },
+
   render() {
     let params = this.context.router.getCurrentParams();
-    let {platform} = this.state;
+    let {platform} = params;
 
     return (
       <div className="row">
         <div className="col-md-2">
           <h6 className="nav-header">Python</h6>
           <ul className="nav nav-stacked">
-            <ListLink
-              to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: 'python'})}>Generic</ListLink>
-            <ListLink
-              to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: 'python-bottle'})}>Bottle</ListLink>
-            <ListLink
-              to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: 'python-django'})}>Django</ListLink>
-            <ListLink
-              to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: 'python-flask'})}>Flask</ListLink>
-            <ListLink
-              to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: 'python-pylons'})}>Pylons</ListLink>
-            <ListLink
-              to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: 'python-pyramid'})}>Pyramid</ListLink>
-            <ListLink
-              to="projectInstallPlatform"
-              params={Object.assign({}, params, {platform: 'python-tornado'})}>Tornado</ListLink>
+            {this.getPlatformLink('python', 'Generic')}
+            {this.getPlatformLink('python-bottle')}
+            {this.getPlatformLink('python-django')}
+            {this.getPlatformLink('python-flask')}
+            {this.getPlatformLink('python-pylons')}
+            {this.getPlatformLink('python-pyramid')}
+            {this.getPlatformLink('python-tornado')}
           </ul>
           <h6 className="nav-header">JavaScript</h6>
           <ul className="nav nav-stacked">
