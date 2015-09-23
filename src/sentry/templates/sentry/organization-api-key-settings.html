@@ -31,10 +31,7 @@
         <div class="col-md-6">
           <div class="control-group">
             <label for="api-key">{% trans "Key" %}</label>
-            <div class="controls">
-              <input id="api-key" class="form-control" value="{{ key.key }}" readonly style="width: 100%"
-                     onclick="this.select()">
-            </div>
+            <div class="form-control disabled auto-select">{{ key.key }}</div>
           </div>
         </div>
       </div>

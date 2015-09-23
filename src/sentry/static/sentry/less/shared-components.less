@@ -276,6 +276,19 @@ table.table {
     width: 1%;
   }
 
+  h5 {
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0;
+
+    a {
+      color: @gray-dark;
+      &:hover, &:active {
+        color: darken(@gray-dark, 20);
+      }
+    }
+  }
+
   .table-user-info {
     position: relative;
     padding-left: 65px !important;
@@ -283,16 +296,7 @@ table.table {
     font-size: 13px;
 
     h5 {
-      font-weight: 600;
-      font-size: 15px;
-      margin: 0 0 4px;
-
-      a {
-        color: @gray-dark;
-        &:hover, &:active {
-          color: darken(@gray-dark, 20);
-        }
-      }
+      margin-bottom: 4px;
     }
 
     .avatar {
