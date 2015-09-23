@@ -19,6 +19,7 @@ PLATFORMS = set([
     'python-pylons',
     'python-pyramid',
     'python-tornado',
+    'javascript',
 ])
 
 
