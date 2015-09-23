@@ -98,9 +98,6 @@ var ReleaseDetails = React.createClass({
           <div className="release-details">
             <div className="row">
               <div className="col-sm-6 col-xs-12">
-                <Router.Link to="projectReleases" params={params} className="back-arrow">
-                  <span className="icon-arrow-left"></span>
-                </Router.Link>
                 <h3>Release <strong><Version version={release.version} anchor={false} /></strong></h3>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
