@@ -6,9 +6,7 @@ import logging
 import random
 import time
 from contextlib import contextmanager
-from datetime import datetime
 
-import pytz
 from django.conf import settings
 from rb import Cluster
 from redis.client import Script
@@ -100,10 +98,6 @@ return table.getn(keys)
 # this more easily with the cluster
 add_to_schedule = Script(None, ADD_TO_SCHEDULE_SCRIPT)
 truncate_timeline = Script(None, TRUNCATE_TIMELINE_SCRIPT)
-
-
-def to_timestamp(value):
-    return (value - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
 
 
 class RedisBackend(Backend):
