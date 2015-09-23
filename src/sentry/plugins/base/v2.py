@@ -92,6 +92,10 @@ class IPlugin2(local):
             return True
         if not self.can_enable_for_projects():
             return True
+        if project is not None:
+            from sentry import features
+            if not features.has('projects:plugins', project, self, actor=None):
+                return False
 
         if project:
             project_enabled = self.get_option('enabled', project)
