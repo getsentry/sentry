@@ -70,6 +70,12 @@ var ProjectInstallPlatform = React.createClass({
       ruby: {
         display: "Ruby"
       },
+      "ruby-rack": {
+        display: "Rack"
+      },
+      "ruby-rails": {
+        display: "Rails"
+      },
       "objective-c": {
         display: "Objective-C"
       },

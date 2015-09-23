@@ -29,6 +29,8 @@ PLATFORMS = set([
     'php-monolog',
     'php-symfony2',
     'ruby',
+    'ruby-rack',
+    'ruby-rails',
     'objective-c',
     'java',
     'c-sharp',
