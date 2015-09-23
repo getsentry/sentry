@@ -2,6 +2,7 @@ import React from "react";
 import {Link} from "react-router";
 
 import api from "../../api";
+import LanguageNav from "./languageNav";
 import ListLink from "../../components/listLink";
 import LoadingIndicator from "../../components/loadingIndicator";
 import RouteMixin from "../../mixins/routeMixin";
@@ -135,8 +136,7 @@ var ProjectInstallPlatform = React.createClass({
     return (
       <div className="row">
         <div className="col-md-2">
-          <h6 className="nav-header">Python</h6>
-          <ul className="nav nav-stacked">
+          <LanguageNav name="Python" active={platform.indexOf('python') !== -1}>
             {this.getPlatformLink('python', 'Generic')}
             {this.getPlatformLink('python-bottle')}
             {this.getPlatformLink('python-django')}
@@ -144,14 +144,10 @@ var ProjectInstallPlatform = React.createClass({
             {this.getPlatformLink('python-pylons')}
             {this.getPlatformLink('python-pyramid')}
             {this.getPlatformLink('python-tornado')}
-          </ul>
-          <h6 className="nav-header">JavaScript</h6>
-          <ul className="nav nav-stacked">
-            <li><a href="#">Generic</a></li>
-            <li><a href="#">Angular</a></li>
-            <li><a href="#">Ember</a></li>
-            <li><a href="#">React</a></li>
-          </ul>
+          </LanguageNav>
+          <LanguageNav name="JavaScript" active={platform.indexOf('javascript') !== -1}>
+            {this.getPlatformLink('javascript', 'Generic')}
+          </LanguageNav>
         </div>
         <div className="col-md-10">
           <div className="box">
