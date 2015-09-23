@@ -115,7 +115,7 @@ var RuleEditor = React.createClass({
               Every time
               <Selectize ref="actionMatch"
                       className={"selectize-inline" + (this.hasError('actionMatch') ? ' error' : '')}
-                      defaultValue={actionMatch}
+                      value={actionMatch}
                       required={true}>
                 <option value="all">all</option>
                 <option value="any">any</option>
