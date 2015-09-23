@@ -29,7 +29,7 @@
                         {% else %}
                             <h5 style="margin-bottom: 0;"><a href="{% url 'sentry-edit-project-key' project.organization.slug project.slug key.id %}">{{ key.public_key }}</a></h5>
                         {% endif %}<br>
-                        <input class="form-control" value="{{ key.dsn_private }}" onclick="this.select()" />
+                        <div class="form-control disabled auto-select">{{ key.dsn_private }}</div>
                     </td>
                     <td style="text-align:right;padding-top:50px !important;">
                         {% if ACCESS.project_write %}
