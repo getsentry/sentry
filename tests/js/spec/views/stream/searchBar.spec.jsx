@@ -173,4 +173,63 @@ describe("SearchBar", function() {
 
   });
 
+  describe("updateAutoCompleteItems()", function() {
+    it("sets state when empty", function() {
+      var props = {
+        query: "",
+      };
+      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      wrapper.updateAutoCompleteItems();
+      expect(wrapper.state.searchTerm).to.eql('');
+      expect(wrapper.state.searchItems).to.eql(wrapper.props.defaultSearchItems);
+      expect(wrapper.state.activeSearchItem).to.eql(0);
+    });
+
+    it("sets state when incomplete tag", function() {
+      var props = {
+        query: "fu",
+      };
+      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      wrapper.updateAutoCompleteItems();
+      expect(wrapper.state.searchTerm).to.eql('fu');
+      expect(wrapper.state.searchItems).to.eql([]);
+      expect(wrapper.state.activeSearchItem).to.eql(0);
+    });
+
+    it("sets state with complete tag", function() {
+      var props = {
+        query: "url:\"fu\"",
+      };
+      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      wrapper.updateAutoCompleteItems();
+      expect(wrapper.state.searchTerm).to.eql('"fu"');
+      expect(wrapper.state.searchItems).to.eql([]);
+      expect(wrapper.state.activeSearchItem).to.eql(0);
+    });
+
+    it("sets state when incomplete tag as second input", function() {
+      var props = {
+        query: "is:unresolved fu",
+      };
+      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      wrapper.updateAutoCompleteItems();
+      expect(wrapper.state.searchTerm).to.eql('unresolved');
+      expect(wrapper.state.searchItems.length).to.eql(1);
+      expect(wrapper.state.searchItems[0].desc).to.eql('unresolved');
+      expect(wrapper.state.searchItems[0].value).to.eql('unresolved');
+      expect(wrapper.state.activeSearchItem).to.eql(0);
+    });
+
+    it("sets state when value has colon", function() {
+      var props = {
+        query: "url:\"http://example.com\"",
+      };
+      var wrapper = React.render(<this.ContextStubbedSearchBar {...props} />, document.body).refs.wrapped;
+      wrapper.updateAutoCompleteItems();
+      expect(wrapper.state.searchTerm).to.eql('"http://example.com"');
+      expect(wrapper.state.searchItems).to.eql([]);
+      expect(wrapper.state.activeSearchItem).to.eql(0);
+    });
+  });
+
 });

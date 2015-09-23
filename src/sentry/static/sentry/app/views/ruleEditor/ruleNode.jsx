@@ -3,11 +3,33 @@ import $ from "jquery";
 
 var RuleNode = React.createClass({
   componentDidMount() {
-    $(this.refs.html.getDOMNode()).find('select').selectize();
+    let $html = $(this.refs.html.getDOMNode());
+
+    $html.find('select, input, textarea').each((_, el) => {
+      let $el = $(el);
+      $el.attr('id', '');
+      $el.val(this.props[el.name]);
+    });
+
+    $html.find('select').select2();
+
+    $html.find('input.typeahead').each((_, el) => {
+      let $el = $(el);
+      $el.select2({
+        initSelection: function(option, callback) {
+          let $option = $(option);
+          callback({id: $option.val(), text: $option.val()});
+        },
+        data: $el.data('choices'),
+        createSearchChoice: function(term) {
+          return {id: $.trim(term), text: $.trim(term)};
+        }
+      });
+    });
   },
 
   render() {
-    var {id, node} = this.props;
+    let {id, node} = this.props;
     return (
       <tr>
         <td className="rule-form">

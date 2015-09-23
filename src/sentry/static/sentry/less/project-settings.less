@@ -49,6 +49,15 @@
   }
 }
 
+.rules-list {
+  h6 {
+    margin-bottom: 15px;
+  }
+  .table {
+    margin: 0;
+  }
+}
+
 .rules-list, .rule-detail {
   h6 {
     font-weight: 600;
@@ -59,7 +68,7 @@
     strong {
       padding: 1px 5px;
       border-radius: 2px;
-      background-color: lighten(@gray, 49);
+      background: darken(@bgColor, 2.5);
       margin-right: 2px;
     }
   }
@@ -69,8 +78,12 @@
   }
 
   .table {
-    border-radius: 2.5px;
-    border: 1px solid darken(@trim, 4);
+    border: 0;
+    border-radius: 3px;
+
+    tr:nth-child(odd) td {
+      background: darken(@bgColor, 1.5);
+    }
   }
 
   .add {

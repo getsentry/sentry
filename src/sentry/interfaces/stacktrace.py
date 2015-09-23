@@ -16,7 +16,7 @@ from six import string_types
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from urlparse import urljoin, urlparse
+from urlparse import urlparse
 
 from sentry.app import env
 from sentry.interfaces.base import Interface
@@ -318,8 +318,8 @@ class Frame(Interface):
                 'origLineNo': self.data.get('orig_lineno', '?'),
                 'origColNo': self.data.get('orig_colno', '?'),
             })
-            if self.is_url():
-                data['mapUrl'] = urljoin(self.abs_path, self.data['sourcemap'])
+            if is_url(self.data['sourcemap']):
+                data['mapUrl'] = self.data['sourcemap']
         return data
 
     def is_url(self):
@@ -362,6 +362,15 @@ class Frame(Interface):
             'colno': self.colno,
             'context_line': self.context_line,
         }).strip('\n')
+
+    def get_culprit_string(self):
+        fileloc = self.module or self.filename
+        if not fileloc:
+            return ''
+        return '%s in %s' % (
+            fileloc,
+            self.function or '?',
+        )
 
 
 class Stacktrace(Interface):
@@ -603,3 +612,12 @@ class Stacktrace(Interface):
         ]
 
         return '\n'.join(result)
+
+    def get_culprit_string(self):
+        default = None
+        for frame in reversed(self.frames):
+            if frame.in_app:
+                return frame.get_culprit_string()
+            elif default is None:
+                default = frame.get_culprit_string()
+        return default

@@ -23,12 +23,11 @@ except ImportError:
         pass
 
 from sentry import http
-from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
+from sentry.event_manager import generate_culprit
 from sentry.utils.cache import cache
 from sentry.utils.http import is_valid_origin
-from sentry.utils.strings import truncatechars
 
 from .cache import SourceCache, SourceMapCache
 from .sourcemaps import sourcemap_to_index, find_source
@@ -370,10 +369,6 @@ def generate_module(src):
     return CLEAN_MODULE_RE.sub('', filename) or UNKNOWN_MODULE
 
 
-def generate_culprit(frame):
-    return '%s in %s' % (frame.module or frame.filename, frame.function)
-
-
 class SourceProcessor(object):
     """
     Attempts to fetch source code for javascript frames.
@@ -456,9 +451,7 @@ class SourceProcessor(object):
         return data
 
     def fix_culprit(self, data, stacktraces):
-        culprit_frame = stacktraces[-1][1].frames[-1]
-        if culprit_frame.filename and culprit_frame.function:
-            data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
+        data['culprit'] = generate_culprit(data)
 
     def update_stacktraces(self, stacktraces):
         for raw, interface in stacktraces:
