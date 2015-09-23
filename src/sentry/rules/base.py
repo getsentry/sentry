@@ -73,7 +73,6 @@ class RuleBase(object):
         return self.data.get(key)
 
     def get_form_instance(self):
-        print(self.data)
         if self.had_data:
             data = self.data
         else:
