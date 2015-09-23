@@ -46,7 +46,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
-    "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
+    "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
   },
   "devDependencies": {
