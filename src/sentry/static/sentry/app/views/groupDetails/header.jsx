@@ -156,9 +156,6 @@ var GroupHeader = React.createClass({
           }}>
             Details
           </ListLink>
-          <ListLink to="groupEvents" params={params}>
-            Similar Events
-          </ListLink>
           <ListLink to="groupActivity" params={params}>
             Comments <span className="badge animated">{group.numComments}</span>
           </ListLink>
@@ -169,6 +166,9 @@ var GroupHeader = React.createClass({
           }
           <ListLink to="groupTags" params={params}>
             Tags
+          </ListLink>
+          <ListLink to="groupEvents" params={params}>
+            Similar Events
           </ListLink>
         </ul>
       </div>
