@@ -363,6 +363,8 @@ var SearchBar = React.createClass({
       return;
 
     if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
+      evt.preventDefault();
+
       // Move active selection up/down
       delete searchItems[state.activeSearchItem].active;
 
@@ -374,6 +376,8 @@ var SearchBar = React.createClass({
       this.setState({ searchItems: searchItems.slice(0) });
 
     } else if ((evt.key === 'Tab' || evt.key === 'Enter') && !this.isDefaultDropdown()) {
+      evt.preventDefault();
+
       this.onAutoComplete(searchItems[state.activeSearchItem].value);
     }
   },
