@@ -21,8 +21,10 @@ var RuleEditor = React.createClass({
 
   serializeNode(node) {
     var result = {};
-    $(node).find('input, select').each(function() {
-      result[this.name] = $(this).val();
+    $(node).find('input, select').each((_, el) => {
+      if (el.name) {
+        result[el.name] = $(el).val();
+      }
     });
     return result;
   },
