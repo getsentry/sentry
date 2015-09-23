@@ -51,9 +51,9 @@ var RuleNodeList = React.createClass({
             {this.state.items.map((item, idx) => {
               return (
                 <RuleNode key={idx}
-                  id={item.id}
                   node={this.getNode(item.id)}
-                  onDelete={this.onDeleteRow.bind(this, idx)} />
+                  onDelete={this.onDeleteRow.bind(this, idx)}
+                  {...item} />
               );
             })}
           </tbody>
