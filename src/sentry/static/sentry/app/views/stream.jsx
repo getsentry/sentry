@@ -194,7 +194,7 @@ var Stream = React.createClass({
     this.lastRequest = api.request(url, {
       method: 'GET',
       data: requestParams,
-      success: (data, _, jqXHR) => {
+      success: (data, ignore, jqXHR) => {
         // Was this the result of an event SHA search? If so, redirect
         // to corresponding group details
         if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
@@ -386,37 +386,33 @@ var Stream = React.createClass({
     }, {});
 
     return (
-      <div>
-        <StreamFilters
-          query={this.state.query}
-          sort={this.state.sort}
-          tags={this.state.tags}
-          defaultQuery={this.props.defaultQuery}
-          onSortChange={this.onSortChange}
-          onFilterChange={this.onFilterChange}
-          onSearch={this.onSearch}
-        />
-        <div className="row">
-          <div className="col-md-10">
-            <div className="group-header">
-              <Sticky>
-                <StreamActions
-                  orgId={params.orgId}
-                  projectId={params.projectId}
-                  onSelectStatsPeriod={this.onSelectStatsPeriod}
-                  onRealtimeChange={this.onRealtimeChange}
-                  realtimeActive={this.state.realtimeActive}
-                  statsPeriod={this.state.statsPeriod}
-                  groupIds={this.state.groupIds} />
-              </Sticky>
-            </div>
-            {this.renderStreamBody()}
-            <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+      <div className="stream-row show-sideba">
+        <div className="stream-content">
+          <StreamFilters
+            query={this.state.query}
+            sort={this.state.sort}
+            tags={this.state.tags}
+            defaultQuery={this.props.defaultQuery}
+            onSortChange={this.onSortChange}
+            onFilterChange={this.onFilterChange}
+            onSearch={this.onSearch}
+          />
+          <div className="group-header">
+            <Sticky>
+              <StreamActions
+                orgId={params.orgId}
+                projectId={params.projectId}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onRealtimeChange={this.onRealtimeChange}
+                realtimeActive={this.state.realtimeActive}
+                statsPeriod={this.state.statsPeriod}
+                groupIds={this.state.groupIds} />
+            </Sticky>
           </div>
-          <div className="col-md-2">
-            <StreamSidebar tags={this.state.tags} initialQuery={queryObj} onQueryChange={this.onSearch}/>
-          </div>
-        </div>
+          {this.renderStreamBody()}
+          <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
+        </div>  
+        <StreamSidebar tags={this.state.tags} initialQuery={queryObj} onQueryChange={this.onSearch}/>
       </div>
     );
   }
