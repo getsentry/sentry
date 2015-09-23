@@ -16,7 +16,7 @@ from six import string_types
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from urlparse import urljoin, urlparse
+from urlparse import urlparse
 
 from sentry.app import env
 from sentry.interfaces.base import Interface
@@ -318,8 +318,8 @@ class Frame(Interface):
                 'origLineNo': self.data.get('orig_lineno', '?'),
                 'origColNo': self.data.get('orig_colno', '?'),
             })
-            if self.is_url():
-                data['mapUrl'] = urljoin(self.abs_path, self.data['sourcemap'])
+            if is_url(self.data['sourcemap']):
+                data['mapUrl'] = self.data['sourcemap']
         return data
 
     def is_url(self):
