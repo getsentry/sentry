@@ -14,11 +14,14 @@ import logging
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from threading import local
+from hashlib import md5
 
 from sentry.auth import access
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
-from sentry.plugins.base.configuration import default_plugin_config
+from sentry.plugins.base.configuration import (
+    default_plugin_config, default_plugin_options,
+)
 
 
 class PluginMount(type):
@@ -95,6 +98,10 @@ class IPlugin(local, PluggableViewMixin):
             return True
         if not self.can_enable_for_projects():
             return True
+        if project is not None:
+            from sentry import features
+            if not features.has('projects:plugins', project, self, actor=None):
+                return False
 
         if project:
             project_enabled = self.get_option('enabled', project)
@@ -166,6 +173,47 @@ class IPlugin(local, PluggableViewMixin):
         if not self.conf_key:
             return self.get_conf_title().lower().replace(' ', '_')
         return self.conf_key
+
+    def get_conf_form(self, project=None):
+        """
+        Returns the Form required to configure the plugin.
+
+        >>> plugin.get_conf_form(project)
+        """
+        if project is not None:
+            return self.project_conf_form
+        return self.site_conf_form
+
+    def get_conf_template(self, project=None):
+        """
+        Returns the template required to render the configuration page.
+
+        >>> plugin.get_conf_template(project)
+        """
+        if project is not None:
+            return self.project_conf_template
+        return self.site_conf_template
+
+    def get_conf_options(self, project=None):
+        """
+        Returns a dict of all of the configured options for a project.
+
+        >>> plugin.get_conf_options(project)
+        """
+        return default_plugin_options(self, project)
+
+    def get_conf_version(self, project):
+        """
+        Returns a version string that represents the current configuration state.
+
+        If any option changes or new options added, the version will change.
+
+        >>> plugin.get_conf_version(project)
+        """
+        options = self.get_conf_options(project)
+        return md5(
+            '&'.join(sorted('%s=%s' % o for o in options.iteritems()))
+        ).hexdigest()[:3]
 
     def get_conf_title(self):
         """

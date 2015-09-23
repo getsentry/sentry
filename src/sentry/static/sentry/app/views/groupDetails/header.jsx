@@ -92,9 +92,6 @@ var GroupHeader = React.createClass({
       <div className={className}>
         <div className="row">
           <div className="col-sm-8">
-            <Router.Link to="projectDetails" params={params} className="back-arrow">
-              <span className="icon-arrow-left"></span>
-            </Router.Link>
             <h3>
               {group.title}
             </h3>
@@ -159,9 +156,6 @@ var GroupHeader = React.createClass({
           }}>
             Details
           </ListLink>
-          <ListLink to="groupEvents" params={params}>
-            Similar Events
-          </ListLink>
           <ListLink to="groupActivity" params={params}>
             Comments <span className="badge animated">{group.numComments}</span>
           </ListLink>
@@ -172,6 +166,9 @@ var GroupHeader = React.createClass({
           }
           <ListLink to="groupTags" params={params}>
             Tags
+          </ListLink>
+          <ListLink to="groupEvents" params={params}>
+            Similar Events
           </ListLink>
         </ul>
       </div>

@@ -30,7 +30,7 @@ var ProjectHeader = React.createClass({
                 </li>
                 <li className={navSection == 'stream' ? 'active': ''}>
                   <Router.Link to="stream" params={routeParams}>
-                    Stream
+                    Issues
                   </Router.Link>
                 </li>
                 <li className={navSection == 'releases' ? 'active': ''}>

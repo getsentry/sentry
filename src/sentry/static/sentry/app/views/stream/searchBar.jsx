@@ -292,8 +292,9 @@ var SearchBar = React.createClass({
     let autoCompleteItems;
     let matchValue;
     let tagName;
+    let index = last.indexOf(':');
 
-    if (last.indexOf(':') === -1) {
+    if (index === -1) {
       // No colon present; must still be deciding key
       matchValue = last;
       autoCompleteItems = this.getTagKeys(matchValue);
@@ -301,7 +302,8 @@ var SearchBar = React.createClass({
       this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(autoCompleteItems, matchValue);
     } else {
-      [tagName, query] = last.split(':');
+      tagName = last.slice(0, index);
+      query = last.slice(index + 1);
       this.setState({searchTerm: query});
 
       let tag = this.getTag(tagName);
@@ -361,6 +363,8 @@ var SearchBar = React.createClass({
       return;
 
     if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
+      evt.preventDefault();
+
       // Move active selection up/down
       delete searchItems[state.activeSearchItem].active;
 
@@ -372,6 +376,8 @@ var SearchBar = React.createClass({
       this.setState({ searchItems: searchItems.slice(0) });
 
     } else if ((evt.key === 'Tab' || evt.key === 'Enter') && !this.isDefaultDropdown()) {
+      evt.preventDefault();
+
       this.onAutoComplete(searchItems[state.activeSearchItem].value);
     }
   },

@@ -35,7 +35,7 @@ var SlimTeamList = React.createClass({
       return (
         <tr key={team.slug}>
           <td>
-            <strong>{team.name}</strong>
+            <h5>{team.name}</h5>
           </td>
           <td className="actions align-right">
             {team.isMember ?
