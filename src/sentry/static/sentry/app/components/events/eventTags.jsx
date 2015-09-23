@@ -1,5 +1,5 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 import _ from "underscore";
 
 import PropTypes from "../../proptypes";
@@ -8,22 +8,19 @@ import EventDataSection from "./eventDataSection";
 import {isUrl} from "../../utils";
 
 var EventTags = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
     group: PropTypes.Group.isRequired,
-    event: PropTypes.Event.isRequired
+    event: PropTypes.Event.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   render() {
-    var params = this.context.router.getCurrentParams();
-
     let tags = this.props.event.tags;
     if (_.isEmpty(tags))
       return null;
 
+    let {orgId, projectId} = this.props;
     return (
       <EventDataSection
           group={this.props.group}
@@ -34,12 +31,11 @@ var EventTags = React.createClass({
           {tags.map((tag) => {
             return (
               <li key={tag.key}>
-                {tag.key} = <Router.Link
-                  to="stream"
-                  params={params}
+                {tag.key} = <Link
+                  to={`/${orgId}/${projectId}/`}
                   query={{query: `${tag.key}:"${tag.value}"`}}>
                   {tag.value}
-                </Router.Link>
+                </Link>
                 {isUrl(tag.value) &&
                   <a href={tag.value} className="external-icon">
                     <em className="icon-open" />

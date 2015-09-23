@@ -1,22 +1,19 @@
 import React from "react";
-import Router from "react-router";
 
 import api from "../../api";
 import ConfigStore from "../../stores/configStore";
 import ListLink from "../../components/listLink";
 import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
-import RouteMixin from "../../mixins/routeMixin";
 
 const ProjectSettings = React.createClass({
-  mixins: [RouteMixin],
 
   contextTypes: {
-    router: React.PropTypes.func
+    location: React.PropTypes.object
   },
 
   propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
+    setProjectNavSection: React.PropTypes.func
   },
 
   componentWillMount() {
@@ -24,10 +21,10 @@ const ProjectSettings = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(nextPath, nextParams) {
-    var params = this.context.router.getCurrentParams();
-    if (nextParams.projectId != params.projectId ||
-        nextParams.orgId != params.orgId) {
+  componentWillReceiveProps(nextProps) {
+    var params = this.props.params;
+    if (nextProps.params.projectId !== params.projectId ||
+        nextProps.params.orgId !== params.orgId) {
       this.setState({
         loading: true,
         error: false
@@ -44,7 +41,7 @@ const ProjectSettings = React.createClass({
   },
 
   fetchData() {
-    var params = this.context.router.getCurrentParams();
+    var params = this.props.params;
 
     api.request(`/projects/${params.orgId}/${params.projectId}/`, {
       success: (data) => {
@@ -71,8 +68,8 @@ const ProjectSettings = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     let urlPrefix = ConfigStore.get('urlPrefix');
-    let params = this.context.router.getCurrentParams();
-    let settingsUrlRoot = `${urlPrefix}/${params.orgId}/${params.projectId}/settings`;
+    let {orgId, projectId} = this.props.params;
+    let settingsUrlRoot = `${urlPrefix}/${orgId}/${projectId}/settings`;
     let project = this.state.project;
 
     return (
@@ -89,10 +86,13 @@ const ProjectSettings = React.createClass({
           </ul>
           <h6 className="nav-header">Setup</h6>
           <ul className="nav nav-stacked">
-            <ListLink to="projectInstall" params={params} isActive={function (to) {
-              let router = this.context.router;
-              return router.isActive('projectInstall') || router.isActive('projectInstallPlatform');
-            }}>Instructions</ListLink>
+            <ListLink to="install/" isActive={function (to) {
+              let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
+              let pathname = this.context.location.pathname;
+
+              // Because react-router 1.0 removes router.isActive(route)
+              return pathname === rootInstallPath || /install\/[\w\-]+\/$/.test(pathname);
+            }.bind(this)}>Instructions</ListLink>
             <li><a href={`${settingsUrlRoot}/keys/`}>Client Keys</a></li>
           </ul>
           <h6 className="nav-header">Integrations</h6>
@@ -104,10 +104,10 @@ const ProjectSettings = React.createClass({
           </ul>
         </div>
         <div className="col-md-10">
-          <Router.RouteHandler
-              setProjectNavSection={this.setProjectNavSection}
-              project={project}
-              {...this.props} />
+          {React.cloneElement(this.props.children, {
+            setProjectNavSection: this.props.setProjectNavSection,
+            project: project
+          })}
         </div>
       </div>
     );

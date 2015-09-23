@@ -25,8 +25,7 @@ module.exports = function(config) {
       cache: true,
       resolve: {
         alias: {
-          "app": appPrefix,
-          "react-router": path.join(__dirname, "..", "node_modules", "react-router", "build", "lib")
+          "app": appPrefix
         },
         modulesDirectories: ["node_modules"],
         extensions: ["", ".jsx", ".js", ".json"]

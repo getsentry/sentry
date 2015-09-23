@@ -1,5 +1,6 @@
 import React from "react";
 import Reflux from "reflux";
+import {History} from "react-router";
 import $ from "jquery";
 import Cookies from "js-cookie";
 import Sticky from 'react-sticky';
@@ -12,7 +13,6 @@ import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
-import RouteMixin from "../mixins/routeMixin";
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
 import StreamTagActions from "../actions/streamTagActions";
@@ -26,15 +26,11 @@ var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, "onGroupChange"),
     Reflux.listenTo(StreamTagStore, "onStreamTagChange"),
-    RouteMixin
+    History
   ],
 
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
+    setProjectNavSection: React.PropTypes.func
   },
 
   getDefaultProps() {
@@ -74,8 +70,19 @@ var Stream = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.projectId !== this.props.params.projectId) {
-      this.fetchTags();
+    if (nextProps.location.search !== this.props.location.search) {
+      this.setState(this.getQueryStringState(nextProps), this.fetchData);
+      this._poller.disable();
+    }
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.realtimeActive !== this.state.realtimeActive) {
+      if (this.state.realtimeActive) {
+        this._poller.enable();
+      } else {
+        this._poller.disable();
+      }
     }
   },
 
@@ -88,8 +95,6 @@ var Stream = React.createClass({
       endpoint: this.getGroupListEndpoint()
     });
 
-    this.fetchTags();
-
     var realtime = Cookies.get("realtimeActive");
     if (realtime) {
       var realtimeActive = realtime === "true";
@@ -101,6 +106,7 @@ var Stream = React.createClass({
       }
     }
 
+    this.fetchTags();
     this.fetchData();
   },
 
@@ -117,7 +123,7 @@ var Stream = React.createClass({
       tagsLoading: true
     });
 
-    var params = this.context.router.getCurrentParams();
+    let params = this.props.params;
     api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
       success: (tags) => {
         this.setState({tagsLoading: false});
@@ -130,8 +136,9 @@ var Stream = React.createClass({
     });
   },
 
-  getQueryStringState() {
-    var currentQuery = this.context.router.getCurrentQuery();
+  getQueryStringState(props) {
+    props = props || this.props;
+    var currentQuery = props.location.query;
 
     var filter = {};
     if (currentQuery.bookmarks) {
@@ -167,22 +174,6 @@ var Stream = React.createClass({
     };
   },
 
-  routeDidChange() {
-    this.setState(this.getQueryStringState());
-    this._poller.disable();
-    this.fetchData();
-  },
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.realtimeActive !== this.state.realtimeActive) {
-      if (this.state.realtimeActive) {
-        this._poller.enable();
-      } else {
-        this._poller.disable();
-      }
-    }
-  },
-
   fetchData() {
     GroupStore.loadInitialData([]);
 
@@ -193,8 +184,7 @@ var Stream = React.createClass({
 
     var url = this.getGroupListEndpoint();
 
-    var router = this.context.router;
-    var requestParams = $.extend({}, router.getCurrentQuery(), {
+    var requestParams = $.extend({}, this.props.location.query, {
       limit: this.props.maxItems,
       statsPeriod: this.state.statsPeriod
     });
@@ -214,10 +204,10 @@ var Stream = React.createClass({
         // Was this the result of an event SHA search? If so, redirect
         // to corresponding group details
         if (data.length === 1 && /^[a-zA-Z0-9]{32}$/.test(requestParams.query.trim())) {
-          const params = $.extend({}, router.getCurrentParams(), {
-            groupId: data[0].id
-          });
-          return void this.context.router.transitionTo('groupDetails', params);
+          let params = this.props.params;
+          let groupId = data[0].id;
+
+          return void this.history.pushState(null, `/${params.orgId}/${params.projectId}/${groupId}/`);
         }
 
         this._streamManager.push(data);
@@ -250,8 +240,7 @@ var Stream = React.createClass({
   },
 
   getGroupListEndpoint() {
-    var router = this.context.router,
-      params = router.getCurrentParams();
+    var params = this.props.params;
 
     return '/projects/' + params.orgId + '/' + params.projectId + '/groups/';
   },
@@ -300,12 +289,11 @@ var Stream = React.createClass({
   },
 
   onPage(cursor) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = $.extend({}, router.getCurrentQuery());
+    var params = this.props.params;
+    var queryParams = $.extend({}, this.props.location.query);
     queryParams.cursor = cursor;
 
-    router.transitionTo('stream', params, queryParams);
+    this.history.pushState(null, `/${params.orgId}/${params.projectId}/`, queryParams);
   },
 
   onSearch(query) {
@@ -339,7 +327,6 @@ var Stream = React.createClass({
   },
 
   transitionTo() {
-    var router = this.context.router;
     var queryParams = {};
 
     for (var prop in this.state.filter) {
@@ -358,12 +345,21 @@ var Stream = React.createClass({
       queryParams.statsPeriod = this.state.statsPeriod;
     }
 
-    router.transitionTo('stream', router.getCurrentParams(), queryParams);
+    let params = this.props.params;
+    this.history.pushState(null, `/${params.orgId}/${params.projectId}/`, queryParams);
   },
 
   renderGroupNodes(ids, statsPeriod) {
+    var {orgId, projectId} = this.props.params;
     var groupNodes = ids.map((id) => {
-      return <StreamGroup key={id} id={id} statsPeriod={statsPeriod} />;
+      return (
+        <StreamGroup
+          key={id}
+          id={id}
+          orgId={orgId}
+          projectId={projectId}
+          statsPeriod={statsPeriod} />
+      );
     });
 
     return (<ul className="group-list" ref="groupList">{groupNodes}</ul>);
@@ -403,17 +399,19 @@ var Stream = React.createClass({
   },
 
   render() {
-    let router = this.context.router;
-    let params = router.getCurrentParams();
+    let params = this.props.params;
 
     let classes = ['stream-row'];
     if (this.state.isSidebarVisible)
       classes.push('show-sidebar');
 
+    let {orgId, projectId} = this.props.params;
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
           <StreamFilters
+            orgId={orgId}
+            projectId={projectId}
             query={this.state.query}
             sort={this.state.sort}
             tags={this.state.tags}
@@ -445,7 +443,10 @@ var Stream = React.createClass({
           loading={this.state.tagsLoading}
           tags={this.state.tags}
           query={this.state.query}
-          onQueryChange={this.onSearch}/>
+          onQueryChange={this.onSearch}
+          orgId={params.orgId}
+          projectId={params.projectId}
+          />
       </div>
     );
   }

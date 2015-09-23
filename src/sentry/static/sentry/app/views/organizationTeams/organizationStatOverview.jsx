@@ -1,5 +1,5 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 import classNames from "classnames";
 
 import api from "../../api";
@@ -12,8 +12,12 @@ var OrganizationStatOverview = React.createClass({
     OrganizationState
   ],
 
+  propTypes: {
+    orgId: React.PropTypes.string
+  },
+
   contextTypes: {
-    router: React.PropTypes.func
+    location: React.PropTypes.object
   },
 
   getInitialState() {
@@ -28,9 +32,7 @@ var OrganizationStatOverview = React.createClass({
   },
 
   getOrganizationStatsEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    return '/organizations/' + params.orgId + '/stats/';
+    return '/organizations/' + this.props.orgId + '/stats/';
   },
 
   fetchData() {
@@ -72,7 +74,6 @@ var OrganizationStatOverview = React.createClass({
     if (!defined(this.state.epm) || !defined(this.state.totalRejected))
       return null;
 
-    var router = this.context.router;
     var access = this.getAccess();
 
     var rejectedClasses = ['count'];
@@ -86,8 +87,9 @@ var OrganizationStatOverview = React.createClass({
         <h6 className="nav-header">Rejected in last 24h</h6>
         <p className={classNames(rejectedClasses)}>{this.state.totalRejected}</p>
         {access.has('org:read') &&
-          <Router.Link to="organizationStats" params={router.getCurrentParams()}
-                       className="stats-link">View all stats</Router.Link>
+          <Link to={`/organizations/${this.props.orgId}/stats/`} className="stats-link">
+            View all stats
+          </Link>
         }
       </div>
     );

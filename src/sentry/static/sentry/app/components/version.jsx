@@ -1,13 +1,11 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 
 var Version = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
     version: React.PropTypes.string.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getDefaultProps() {
@@ -17,20 +15,18 @@ var Version = React.createClass({
   },
 
   render() {
-    var version = this.props.version;
+    // NOTE: version is encoded because it can contain slashes "/",
+    //       which can interfere with URL construction
+    var version = encodeURIComponent(this.props.version);
     var shortVersion = version.length === 40 ? version.substr(0, 12) : version;
-    var params = this.context.router.getCurrentParams();
+
+    let {orgId, projectId} = this.props;
+
     if (this.props.anchor) {
       return (
-        <Router.Link
-            to="releaseDetails"
-            params={{
-              orgId: params.orgId,
-              projectId: params.projectId,
-              version: window.encodeURIComponent(version),
-            }}>
+        <Link to={`/${orgId}/${projectId}/releases/${version}/`}>
           <span title={version}>{shortVersion}</span>
-        </Router.Link>
+        </Link>
       );
     }
     return <span title={version}>{shortVersion}</span>;

@@ -1,10 +1,6 @@
 import React from "react";
 
 var FilterSelectLink = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
     label: React.PropTypes.string,
     onSelect: React.PropTypes.func,

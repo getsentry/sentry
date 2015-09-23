@@ -1,14 +1,15 @@
 import React from "react";
-import Router from "react-router";
+import {Link, History} from "react-router";
 import classNames from 'classnames';
 
 var ListLink = React.createClass({
+  mixins: [History],
+
   displayName: 'ListLink',
 
   propTypes: {
     activeClassName: React.PropTypes.string.isRequired,
     to: React.PropTypes.string.isRequired,
-    params: React.PropTypes.object,
     query: React.PropTypes.object,
     onClick: React.PropTypes.func,
 
@@ -18,10 +19,6 @@ var ListLink = React.createClass({
     isActive: React.PropTypes.func
   },
 
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   getDefaultProps() {
     return {
       activeClassName: 'active'
@@ -29,8 +26,7 @@ var ListLink = React.createClass({
   },
 
   isActive() {
-    return (this.props.isActive || this.context.router.isActive)
-      .call(this, this.props.to, this.props.params, this.props.query);
+    return (this.props.isActive || this.history.isActive)(this.props.to, this.props.query);
   },
 
   getClassName() {
@@ -39,7 +35,7 @@ var ListLink = React.createClass({
     if (this.props.className)
       _classNames[this.props.className] = true;
 
-    if (this.isActive(this.props.to, this.props.params, this.props.query))
+    if (this.isActive())
       _classNames[this.props.activeClassName] = true;
 
     return classNames(_classNames);
@@ -48,9 +44,9 @@ var ListLink = React.createClass({
   render() {
     return (
       <li className={this.getClassName()}>
-        <Router.Link {...this.props}>
+        <Link {...this.props}>
           {this.props.children}
-        </Router.Link>
+        </Link>
       </li>
     );
   }

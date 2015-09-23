@@ -1,5 +1,4 @@
 import React from "react";
-import Router from "react-router";
 import api from "../api";
 import DocumentTitle from "react-document-title";
 import Footer from "../components/footer";
@@ -8,7 +7,6 @@ import HookStore from "../stores/hookStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import PropTypes from "../proptypes";
-import RouteMixin from "../mixins/routeMixin";
 import TeamStore from "../stores/teamStore";
 
 const ERROR_TYPES = {
@@ -16,16 +14,8 @@ const ERROR_TYPES = {
 };
 
 var OrganizationDetails = React.createClass({
-  mixins: [
-    RouteMixin
-  ],
-
   childContextTypes: {
     organization: PropTypes.Organization
-  },
-
-  contextTypes: {
-    router: React.PropTypes.func
   },
 
   getChildContext() {
@@ -55,10 +45,8 @@ var OrganizationDetails = React.createClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    if (nextParams.orgId != params.orgId) {
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.params.orgId !== this.props.params.orgId) {
       this.remountComponent();
     }
   },
@@ -92,9 +80,7 @@ var OrganizationDetails = React.createClass({
   },
 
   getOrganizationDetailsEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    return '/organizations/' + params.orgId + '/';
+    return '/organizations/' + this.props.params.orgId + '/';
   },
 
   getTitle() {
@@ -130,14 +116,14 @@ var OrganizationDetails = React.createClass({
       children.push(cb(org));
     });
 
-    var params = this.context.router.getCurrentParams();
+    var params = this.props.params;
 
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {children}
           <Header orgId={params.orgId}/>
-          <Router.RouteHandler />
+          {this.props.children}
           <Footer />
         </div>
       </DocumentTitle>

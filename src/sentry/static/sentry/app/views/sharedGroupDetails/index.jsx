@@ -13,9 +13,6 @@ import PropTypes from "../../proptypes";
 import SharedGroupHeader from "./sharedGroupHeader";
 
 var SharedGroupDetails = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
 
   childContextTypes: {
     group: PropTypes.Group,
@@ -72,7 +69,7 @@ var SharedGroupDetails = React.createClass({
   },
 
   getGroupDetailsEndpoint() {
-    var id = this.context.router.getCurrentParams().shareId;
+    var id = this.props.params.shareId;
 
     return '/shared/groups/' + id + '/';
   },

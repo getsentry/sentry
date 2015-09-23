@@ -1,22 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import Router from "react-router";
+import {Link} from "react-router";
 import jQuery from "jquery";
 import ConfigStore from "../../stores/configStore";
 import DropdownLink from "../dropdownLink";
 import MenuItem from "../menuItem";
 
 var ProjectSelector = React.createClass({
-  childContextTypes: {
-    router: React.PropTypes.func
-  },
-
-  getChildContext() {
-    return {
-      router: this.props.router
-    };
-  },
-
   getInitialState() {
     return {
       filter: ''
@@ -74,25 +64,16 @@ var ProjectSelector = React.createClass({
 
   getProjectNode(team, project, highlightText, hasSingleTeam) {
     var org = this.props.organization;
-    var projectRouteParams = {
-      orgId: org.slug,
-      projectId: project.slug
-    };
-
+    let orgId = org.slug;
+    let projectId = project.slug;
     var label = this.getProjectLabel(team, project, hasSingleTeam);
 
-    if (!this.props.router) {
-      return (
-        <MenuItem key={project.slug} href={this.getRawLink(project)}
-            linkClassName={project.slug == this.props.projectId && 'active'}>
-          {this.highlight(label, highlightText)}
-        </MenuItem>
-      );
-    }
-
     return (
-      <MenuItem key={project.slug} to="projectDetails"
-            params={projectRouteParams}>
+      <MenuItem
+        key={projectId}
+        to={`/${orgId}/${projectId}/`}
+        linkClassName={projectId === this.props.projectId && 'active'}>
+
         {this.highlight(label, highlightText)}
       </MenuItem>
     );
@@ -113,22 +94,14 @@ var ProjectSelector = React.createClass({
   },
 
   getLinkNode(team, project) {
-    var org = this.props.organization;
-    var label = this.getProjectLabel(team, project);
+    let org = this.props.organization;
+    let label = this.getProjectLabel(team, project);
 
-    if (!this.props.router) {
-      return (
-        <a href={this.getRawLink(project)}>{label}</a>
-      );
-    }
-
-    var projectRouteParams = {
-      orgId: org.slug,
-      projectId: project.slug
-    };
+    let orgId = org.slug;
+    let projectId = project.slug;
 
     return (
-      <Router.Link to="stream" params={projectRouteParams}>{label}</Router.Link>
+      <Link to={`/${orgId}/${projectId}/`}>{label}</Link>
     );
   },
 

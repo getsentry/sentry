@@ -1,4 +1,4 @@
-import Router from "react-router";
+import {Link} from "react-router";
 import React from "react";
 import PropTypes from "../../proptypes";
 import DateTime from "../../components/dateTime";
@@ -15,55 +15,48 @@ var GroupEventToolbar  = React.createClass({
   render() {
     let evt = this.props.event;
 
-    let params = {
-      orgId: this.props.orgId,
-      projectId: this.props.projectId,
-      groupId: this.props.group.id
-    };
+    let {orgId, projectId} = this.props;
+    let groupId = this.props.group.id;
 
     let eventNavNodes = [
       (evt.previousEventID ?
-        <Router.Link
+        <Link
             key="oldest"
-            to="groupEventDetails"
-            params={{...params, eventId: 'oldest'}}
+            to={`/${orgId}/${projectId}/group/${groupId}/events/oldest/`}
             className="btn btn-default"
             title="Oldest">
             <span className="icon-skip-back"></span>
-        </Router.Link>
+        </Link>
       :
         <a key="oldest"
           className="btn btn-default disabled"><span className="icon-skip-back"></span></a>
       ),
       (evt.previousEventID ?
-        <Router.Link
+        <Link
             key="prev"
-            to="groupEventDetails"
-            params={{...params, eventId: evt.previousEventID}}
-            className="btn btn-default">Older</Router.Link>
+            to={`/${orgId}/${projectId}/group/${groupId}/events/${evt.previousEventID}/`}
+            className="btn btn-default">Older</Link>
       :
         <a key="prev"
            className="btn btn-default disabled">Older</a>
       ),
       (evt.nextEventID ?
-        <Router.Link
+        <Link
             key="next"
-            to="groupEventDetails"
-            params={{...params, eventId: evt.nextEventID}}
-            className="btn btn-default">Newer</Router.Link>
+            to={`/${orgId}/${projectId}/group/${groupId}/events/${evt.nextEventID}/`}
+            className="btn btn-default">Newer</Link>
       :
         <a key="next"
            className="btn btn-default disabled">Newer</a>
       ),
       (evt.nextEventID ?
-        <Router.Link
+        <Link
           key="latest"
-          to="groupEventDetails"
-          params={{...params, eventId: 'latest'}}
+          to={`/${orgId}/${projectId}/group/${groupId}/events/latest/`}
           className="btn btn-default"
           title="Newest">
           <span className="icon-skip-forward"></span>
-        </Router.Link>
+        </Link>
       :
         <a key="latest"
           className="btn btn-default disabled"><span className="icon-skip-forward"></span></a>
@@ -72,7 +65,7 @@ var GroupEventToolbar  = React.createClass({
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
-    let jsonUrl = `/${params.orgId}/${params.projectId}/group/${params.groupId}/events/${evt.id}/json/`;
+    let jsonUrl = `/${orgId}/${projectId}/group/${groupId}/events/${evt.id}/json/`;
 
     return (
       <div className="event-toolbar">

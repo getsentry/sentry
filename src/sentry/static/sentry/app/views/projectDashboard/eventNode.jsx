@@ -1,5 +1,5 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 import Count from "../../components/count";
 import PropTypes from "../../proptypes";
 import TimeSince from "../../components/timeSince";
@@ -16,16 +16,14 @@ var EventNode = React.createClass({
     var group = this.props.group;
     var org = this.getOrganization();
 
-    var params = {
-      orgId: org.slug,
-      projectId: group.project.slug,
-      groupId: group.id
-    };
+    let orgId = org.slug;
+    let projectId = group.project.slug;
+    let groupId = group.id;
 
     return (
-      <Router.Link to="groupDetails" params={params}>
+      <Link to={`/${orgId}/${projectId}/group/${groupId}/`}>
         {title}
-      </Router.Link>
+      </Link>
     );
   },
 

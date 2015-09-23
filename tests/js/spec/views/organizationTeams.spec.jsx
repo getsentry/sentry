@@ -2,7 +2,11 @@ import React from "react";
 import TestUtils from "react-addons-test-utils";
 import api from "app/api";
 import OrganizationTeams from "app/views/organizationTeams";
-import stubRouter from "../../helpers/stubRouter";
+import ExpandedTeamList from "app/views/organizationTeams/expandedTeamList";
+import AllTeamsList from "app/views/organizationTeams/allTeamsList";
+import OrganizationHomeContainer from "app/components/organizations/homeContainer";
+
+import stubReactComponent from "../../helpers/stubReactComponent";
 import stubContext from "../../helpers/stubContext";
 
 describe("OrganizationTeams", function() {
@@ -11,20 +15,13 @@ describe("OrganizationTeams", function() {
     this.sandbox = sinon.sandbox.create();
 
     this.stubbedApiRequest = this.sandbox.stub(api, "request");
+    stubReactComponent(this.sandbox, [ExpandedTeamList, AllTeamsList, OrganizationHomeContainer]);
 
     var ContextStubbedOrganizationTeams = stubContext(OrganizationTeams, {
-      organization: { id: "1337" },
-      router: stubRouter({
-        getCurrentParams() {
-          return { orgId: "123" };
-        },
-        getCurrentQuery() {
-          return { limit: 0 };
-        }
-      })
+      organization: { id: "1337" }
     });
 
-    this.Element = <ContextStubbedOrganizationTeams/>;
+    this.Element = <ContextStubbedOrganizationTeams params={{orgId:"123"}}/>;
   });
 
   afterEach(function() {

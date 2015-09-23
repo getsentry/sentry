@@ -8,18 +8,12 @@ import GroupState from "../mixins/groupState";
 import MutedBox from "../components/mutedBox";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
-import RouteMixin from "../mixins/routeMixin";
 
 
 var GroupEventDetails = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   mixins: [
     ApiMixin,
-    GroupState,
-    RouteMixin
+    GroupState
   ],
 
   getInitialState() {
@@ -35,12 +29,14 @@ var GroupEventDetails = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange(prevPath) {
-    this.fetchData();
+  componentDidUpdate(prevProps) {
+    if (prevProps.params.eventId !== this.props.params.eventId) {
+      this.fetchData();
+    }
   },
 
   fetchData() {
-    var eventId = this.context.router.getCurrentParams().eventId || 'latest';
+    var eventId = this.props.params.eventId || 'latest';
 
     var url = (eventId === 'latest' || eventId === 'oldest' ?
       '/groups/' + this.getGroup().id + '/events/' + eventId + '/' :
@@ -79,7 +75,7 @@ var GroupEventDetails = React.createClass({
   render() {
     var group = this.getGroup();
     var evt = this.state.event;
-    var params = this.context.router.getCurrentParams();
+    var params = this.props.params;
 
     return (
       <div>
@@ -98,7 +94,11 @@ var GroupEventDetails = React.createClass({
             : (this.state.error ?
               <LoadingError onRetry={this.fetchData} />
             :
-              <EventEntries group={group} event={evt} />
+              <EventEntries
+                group={group}
+                event={evt}
+                orgId={params.orgId}
+                projectId={params.projectId} />
             )}
           </div>
           <div className="col-md-3">
