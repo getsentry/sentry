@@ -5,7 +5,6 @@ import Gravatar from "../../components/gravatar";
 import GroupState from "../../mixins/groupState";
 import {userDisplayName} from "../../utils/formatters";
 import TooltipMixin from "../../mixins/tooltip";
-import {logException} from "../../utils/logging";
 
 var GroupSeenBy = React.createClass({
   mixins: [
@@ -18,20 +17,15 @@ var GroupSeenBy = React.createClass({
 
   render() {
     var group = this.getGroup();
-    var seenByNodes;
 
-    try {
-      seenByNodes = group.seenBy.map((user, userIdx) => {
-        let title = userDisplayName(user) + '<br/>' + moment(user.lastSeen).format("LL");
-        return (
-          <li key={userIdx} className="tip" data-title={title}>
-            <Gravatar size={52} email={user.email} />
-          </li>
-        );
-      });
-    } catch(ex) {
-      logException(ex, group);
-    }
+    var seenByNodes = group.seenBy.map((user, userIdx) => {
+      let title = userDisplayName(user) + '<br/>' + moment(user.lastSeen).format("LL");
+      return (
+        <li key={userIdx} className="tip" data-title={title}>
+          <Gravatar size={52} email={user.email} />
+        </li>
+      );
+    });
 
     if (!seenByNodes) {
       return null;
