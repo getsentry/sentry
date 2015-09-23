@@ -32,7 +32,7 @@
         {% for key in key_list %}
           <tr>
             <td>
-              <strong><a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a></strong>
+              <h5><a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a></h5>
             </td>
             <td>
               <div class="form-control disabled auto-select">{{ key.key }}</div>
