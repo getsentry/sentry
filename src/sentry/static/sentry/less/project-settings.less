@@ -69,8 +69,12 @@
   }
 
   .table {
-    border-radius: 2.5px;
-    border: 1px solid darken(@trim, 4);
+    border: 0;
+    border-radius: 3px;
+
+    tr:nth-child(odd) td {
+      background: darken(@bgColor, 1.5);
+    }
   }
 
   .add {
