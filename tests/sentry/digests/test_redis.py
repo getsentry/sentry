@@ -140,7 +140,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
             value = connection.get(record_key)
             return backend.codec.decode(value) if value is not None else None
 
-        with self.assertChanges(get_timeline_score_in_waiting_set, before=None, after=record.timestamp), \
+        with self.assertChanges(get_timeline_score_in_waiting_set, before=None, after=record.timestamp + backend.backoff(0)), \
                 self.assertChanges(get_timeline_iteration_counter, before=None, after='0'), \
                 self.assertChanges(get_record_score_in_timeline_set, before=None, after=record.timestamp), \
                 self.assertChanges(get_record_value, before=None, after=record.value):
@@ -220,23 +220,27 @@ class DigestTestCase(BaseRedisBackendTestCase):
         for entry in backend.schedule(time.time()):
             pass
 
-        def get_timeline_size():
-            key = make_timeline_key(backend.namespace, timeline)
-            client = backend.cluster.get_local_client_for_key(key)
-            return client.zcard(key)
+        timeline_key = make_timeline_key(backend.namespace, timeline)
+        client = backend.cluster.get_local_client_for_key(timeline_key)
 
         waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
         ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
 
+        get_timeline_size = functools.partial(client.zcard, timeline_key)
         get_waiting_set_size = functools.partial(get_set_size, backend.cluster, waiting_set_key)
         get_ready_set_size = functools.partial(get_set_size, backend.cluster, ready_set_key)
 
         with self.assertChanges(get_timeline_size, before=n, after=0), \
                 self.assertChanges(get_waiting_set_size, before=0, after=1), \
-                self.assertChanges(get_ready_set_size, before=1, after=0), \
-                backend.digest(timeline) as entries:
-            entries = list(entries)
-            assert entries == records[::-1]
+                self.assertChanges(get_ready_set_size, before=1, after=0):
+
+            timestamp = time.time()
+            with mock.patch('time.time', return_value=timestamp), \
+                    backend.digest(timeline) as entries:
+                entries = list(entries)
+                assert entries == records[::-1]
+
+            assert client.zscore(waiting_set_key, timeline) == timestamp + backend.backoff(1)
 
     def test_digesting_failure_recovery(self):
         backend = self.get_backend()
@@ -253,26 +257,23 @@ class DigestTestCase(BaseRedisBackendTestCase):
         for entry in backend.schedule(time.time()):
             pass
 
-        def get_timeline_size():
-            key = make_timeline_key(backend.namespace, timeline)
-            client = backend.cluster.get_local_client_for_key(key)
-            return client.zcard(key)
-
-        def get_digest_size():
-            key = make_timeline_key(backend.namespace, timeline)
-            client = backend.cluster.get_local_client_for_key(key)
-            return client.zcard(make_digest_key(key))
+        timeline_key = make_timeline_key(backend.namespace, timeline)
+        client = backend.cluster.get_local_client_for_key(timeline_key)
 
         waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
         ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
 
         get_waiting_set_size = functools.partial(get_set_size, backend.cluster, waiting_set_key)
         get_ready_set_size = functools.partial(get_set_size, backend.cluster, ready_set_key)
+        get_timeline_size = functools.partial(client.zcard, timeline_key)
+        get_digest_size = functools.partial(client.zcard, make_digest_key(timeline_key))
+        get_iteration_counter = functools.partial(client.get, make_iteration_key(timeline_key))
 
         with self.assertChanges(get_timeline_size, before=n, after=0), \
                 self.assertChanges(get_digest_size, before=0, after=n), \
                 self.assertDoesNotChange(get_waiting_set_size), \
-                self.assertDoesNotChange(get_ready_set_size):
+                self.assertDoesNotChange(get_ready_set_size), \
+                self.assertDoesNotChange(get_iteration_counter):
             try:
                 with backend.digest(timeline) as entries:
                     raise ExpectedError
@@ -287,7 +288,13 @@ class DigestTestCase(BaseRedisBackendTestCase):
         with self.assertChanges(get_timeline_size, before=len(extra), after=0), \
                 self.assertChanges(get_digest_size, before=len(records), after=0), \
                 self.assertChanges(get_waiting_set_size, before=0, after=1), \
-                self.assertChanges(get_ready_set_size, before=1, after=0):
-            with backend.digest(timeline) as entries:
+                self.assertChanges(get_ready_set_size, before=1, after=0), \
+                self.assertChanges(get_iteration_counter, before='0', after='1'):
+
+            timestamp = time.time()
+            with mock.patch('time.time', return_value=timestamp), \
+                    backend.digest(timeline) as entries:
                 entries = list(entries)
                 assert entries == (records + extra)[::-1]
+
+            assert client.zscore(waiting_set_key, timeline) == timestamp + backend.backoff(1)

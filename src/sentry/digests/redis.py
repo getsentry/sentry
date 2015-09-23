@@ -137,7 +137,7 @@ class RedisBackend(Backend):
                     functools.partial(make_schedule_key, self.namespace),
                     (SCHEDULE_STATE_WAITING, SCHEDULE_STATE_READY,),
                 ),
-                (key, record.timestamp),
+                (key, record.timestamp + self.backoff(0)),
                 pipeline,
             )
 
