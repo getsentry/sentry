@@ -52,20 +52,26 @@ var Frame = React.createClass({
       ? `<a href="${_.escape(data.origAbsPath)}">${_.escape(data.origAbsPath)}</a>`
       : _.escape(data.origAbsPath);
 
-    return (`
-      <div>
-        <strong>Original Filename</strong><br/>
-        ${escapedAbsPath}<br/>
-        <strong>Line Number</strong><br/>
-        ${_.escape(data.origLineNo)}<br/>
-        <strong>Column Number</strong><br/>
-        ${_.escape(data.origColNo)}<br/>
-        <strong>Function</strong><br/>
-        ${_.escape(data.origFunction)}<br/>
-        <strong>Source Map</strong><br/>
-        <a href="${_.escape(data.mapUrl)}">${_.escape(data.map)}<br/>
-      </div>
-    `);
+    let out = `
+    <div>
+      <strong>Original Filename</strong><br/>
+      ${escapedAbsPath}<br/>
+      <strong>Line Number</strong><br/>
+      ${_.escape(data.origLineNo)}<br/>
+      <strong>Column Number</strong><br/>
+      ${_.escape(data.origColNo)}<br/>
+      <strong>Function</strong><br/>
+      ${_.escape(data.origFunction)}<br/>
+      <strong>Source Map</strong><br/>`;
+
+    // mapUrl not always present; e.g. uploaded source maps
+    out += data.mapUrl
+      ? `<a href="${_.escape(data.mapUrl)}">${_.escape(data.map)}<br/>`
+      : `${_.escape(data.map)}<br/>`;
+
+    out += '</div>';
+
+    return out;
   },
 
   renderTitle() {
