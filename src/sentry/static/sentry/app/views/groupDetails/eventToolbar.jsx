@@ -26,9 +26,7 @@ var GroupEventToolbar  = React.createClass({
         <Router.Link
             key="oldest"
             to="groupEventDetails"
-            params={Object.assign({}, params, {
-              eventId: 'oldest'
-            })}
+            params={{...params, eventId: 'oldest'}}
             className="btn btn-default"
             title="Oldest">
             <span className="icon-skip-back"></span>
@@ -41,9 +39,7 @@ var GroupEventToolbar  = React.createClass({
         <Router.Link
             key="prev"
             to="groupEventDetails"
-            params={Object.assign({}, params, {
-              eventId: evt.previousEventID
-             })}
+            params={{...params, eventId: evt.previousEventID}}
             className="btn btn-default">Older</Router.Link>
       :
         <a key="prev"
@@ -53,9 +49,7 @@ var GroupEventToolbar  = React.createClass({
         <Router.Link
             key="next"
             to="groupEventDetails"
-            params={Object.assign({}, params, {
-              eventId: evt.nextEventID
-            })}
+            params={{...params, eventId: evt.nextEventID}}
             className="btn btn-default">Newer</Router.Link>
       :
         <a key="next"
@@ -65,9 +59,7 @@ var GroupEventToolbar  = React.createClass({
         <Router.Link
           key="latest"
           to="groupEventDetails"
-          params={Object.assign({}, params, {
-            eventId: 'latest'
-          })}
+          params={{...params, eventId: 'latest'}}
           className="btn btn-default"
           title="Newest">
           <span className="icon-skip-forward"></span>

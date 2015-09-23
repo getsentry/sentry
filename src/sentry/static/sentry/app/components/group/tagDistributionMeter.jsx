@@ -82,7 +82,7 @@ var TagDistributionMeter = React.createClass({
     let otherPct = percent(totalValues - totalVisible, totalValues);
     let otherPctLabel = Math.floor(otherPct);
 
-    let params = Object.assign({}, this.context.router.getCurrentParams());
+    let params = {...this.context.router.getCurrentParams()};
     params.tagKey = this.props.tag;
 
     return (
