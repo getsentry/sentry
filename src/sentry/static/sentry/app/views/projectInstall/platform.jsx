@@ -4,16 +4,25 @@ import {Link} from "react-router";
 import api from "../../api";
 import ListLink from "../../components/listLink";
 import LoadingIndicator from "../../components/loadingIndicator";
+import RouteMixin from "../../mixins/routeMixin";
 
 var ProjectInstallPlatform = React.createClass({
   contextTypes: {
     router: React.PropTypes.func
   },
 
+  mixins: [RouteMixin],
+
   static: {
     platforms: {
       python: {
         display: "Python"
+      },
+      "python-bottle": {
+        display: "Bottle"
+      },
+      "python-django": {
+        display: "Django",
       },
       "python-flask": {
         display: "Flask"
@@ -46,19 +55,37 @@ var ProjectInstallPlatform = React.createClass({
   },
 
   getInitialState() {
+    let params = this.context.router.getCurrentParams();
     return {
       isFramework: null,
       link: null,
       name: null,
       sdk: null,
       html: '',
-      loading: true
+      loading: true,
+      orgId: params.orgId,
+      projectId: params.projectId,
+      platform: params.platform
     };
   },
 
   componentDidMount() {
-    var params = this.context.router.getCurrentParams();
-    api.request(`/projects/${params.orgId}/${params.projectId}/docs/${params.platform}/`, {
+    this.fetchData();
+  },
+
+  routeDidChange() {
+    let params = this.context.router.getCurrentParams();
+    this.setState({
+      orgId: params.orgId,
+      projectId: params.projectId,
+      platform: params.platform,
+      loading: true
+    }, this.fetchData);
+  },
+
+  fetchData() {
+    let {orgId, projectId, platform} = this.state;
+    api.request(`/projects/${orgId}/${projectId}/docs/${platform}/`, {
       success: (data) => {
         this.setState(Object.assign({loading:false}, data));
       }
@@ -67,7 +94,7 @@ var ProjectInstallPlatform = React.createClass({
 
   render() {
     let params = this.context.router.getCurrentParams();
-    let {platform} = params;
+    let {platform} = this.state;
 
     return (
       <div className="row">
