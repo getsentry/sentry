@@ -22,10 +22,6 @@ var OrganizationTeams = React.createClass({
     })
   ],
 
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   getInitialState() {
     return {
       activeNav: 'your-teams',
@@ -57,8 +53,7 @@ var OrganizationTeams = React.createClass({
   },
 
   getOrganizationStatsEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    var params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
   },
 
@@ -81,6 +76,9 @@ var OrganizationTeams = React.createClass({
   },
 
   render() {
+    if (!this.context.organization)
+      return null;
+
     var access = this.getAccess();
     var features = this.getFeatures();
     var org = this.getOrganization();
@@ -140,7 +138,7 @@ var OrganizationTeams = React.createClass({
               }
             </div>
           </div>
-          <OrganizationStatOverview className="col-md-3 stats-column" />
+          <OrganizationStatOverview orgId={this.props.params.orgId} className="col-md-3 stats-column" />
         </div>
       </OrganizationHomeContainer>
     );

@@ -3,12 +3,10 @@ import ReactDOM from "react-dom";
 import _ from "underscore";
 
 var StreamTagFilter = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
-    tag: React.PropTypes.object.isRequired
+    tag: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getDefaultProps() {
@@ -90,8 +88,7 @@ var StreamTagFilter = React.createClass({
   },
 
   getTagValuesAPIEndpoint() {
-    let params = this.context.router.getCurrentParams();
-    return `/api/0/projects/${params.orgId}/${params.projectId}/tags/${this.props.tag.key}/values/`;
+    return `/api/0/projects/${this.props.orgId}/${this.props.projectId}/tags/${this.props.tag.key}/values/`;
   },
 
   onSelectValue(evt) {

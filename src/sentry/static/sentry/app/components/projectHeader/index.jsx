@@ -1,16 +1,11 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 import ConfigStore from "../../stores/configStore";
 
 import ProjectSelector from "./projectSelector";
 
 var ProjectHeader = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   render() {
-    var routeParams = this.context.router.getCurrentParams();
     var navSection = this.props.activeSection;
     var urlPrefix = ConfigStore.get('urlPrefix');
     var project = this.props.project;
@@ -24,23 +19,23 @@ var ProjectHeader = React.createClass({
             <div className="pull-right">
               <ul className="nav nav-tabs">
                 <li className={navSection == 'dashboard' ? 'active' : ''}>
-                  <Router.Link to="projectDashboard" params={routeParams}>
+                  <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
                     Dashboard
-                  </Router.Link>
+                  </Link>
                 </li>
                 <li className={navSection == 'stream' ? 'active' : ''}>
-                  <Router.Link to="stream" params={routeParams}>
+                  <Link to={`/${org.slug}/${project.slug}/`}>
                     Issues
-                  </Router.Link>
+                  </Link>
                 </li>
                 <li className={navSection == 'releases' ? 'active' : ''}>
-                  <Router.Link to="projectReleases" params={routeParams}>
+                  <Link to={`/${org.slug}/${project.slug}/releases/`}>
                     Releases
-                  </Router.Link>
+                  </Link>
                 </li>
                 {access.has('project:write') &&
                   <li className={navSection == 'settings' ? 'active' : ''}>
-                    <a href={urlPrefix + '/' + routeParams.orgId + '/' + routeParams.projectId + '/settings/'}>
+                    <a href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
                       Settings
                     </a>
                   </li>
@@ -49,8 +44,7 @@ var ProjectHeader = React.createClass({
             </div>
             <ProjectSelector
                 organization={org}
-                projectId={project.slug}
-                router={this.context.router} />
+                projectId={project.slug}/>
            </div>
         </div>
       </div>

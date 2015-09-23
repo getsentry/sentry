@@ -6,19 +6,13 @@ import LoadingError from "../../components/loadingError";
 import LoadingIndicator from "../../components/loadingIndicator";
 import OrganizationHomeContainer from "../../components/organizations/homeContainer";
 import OrganizationState from "../../mixins/organizationState";
-import RouteMixin from "../../mixins/routeMixin";
 
 import ProjectTable from "./projectTable";
 
 var OrganizationStats = React.createClass({
   mixins: [
-    OrganizationState,
-    RouteMixin
+    OrganizationState
   ],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
 
   getInitialState() {
     let until = Math.floor(new Date().getTime() / 1000);
@@ -46,20 +40,20 @@ var OrganizationStats = React.createClass({
     this.fetchData();
   },
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
+    let prevParams = prevProps.params,
+      currentParams = this.props.params;
+
+    if (prevParams.orgId !== currentParams.orgId) {
+      this.fetchData();
+    }
+
     var state = this.state;
     if (state.statsLoading && !state.statsRequestsPending) {
       this.processOrgData();
     }
     if (state.projectsLoading && !state.projectsRequestsPending) {
       this.processProjectData();
-    }
-  },
-
-  routeDidChange(nextPath, nextParams) {
-    var router = this.context.router;
-    if (nextParams.orgId != router.getCurrentParams().orgId) {
-      this.fetchData();
     }
   },
 
@@ -145,14 +139,12 @@ var OrganizationStats = React.createClass({
   },
 
   getOrganizationStatsEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    var params = this.props.params;
     return '/organizations/' + params.orgId + '/stats/';
   },
 
   getOrganizationProjectsEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    var params = this.props.params;
     return '/organizations/' + params.orgId + '/projects/';
   },
 

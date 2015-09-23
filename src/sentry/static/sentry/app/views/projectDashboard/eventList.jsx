@@ -6,10 +6,6 @@ import LoadingIndicator from "../../components/loadingIndicator";
 import EventNode from "./eventNode";
 
 var EventList = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
     title: React.PropTypes.string.isRequired,
     endpoint: React.PropTypes.string.isRequired

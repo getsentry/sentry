@@ -1,5 +1,5 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 import classNames from "classnames";
 
 var MenuItem = React.createClass({
@@ -15,12 +15,7 @@ var MenuItem = React.createClass({
     href:      React.PropTypes.string,
     // router link
     to:        React.PropTypes.string,
-    params:    React.PropTypes.object,
     query:     React.PropTypes.object,
-  },
-
-  contextTypes: {
-    router: React.PropTypes.func
   },
 
   handleClick(e) {
@@ -33,16 +28,15 @@ var MenuItem = React.createClass({
   renderAnchor() {
     if (this.props.to) {
       return (
-        <Router.Link
+        <Link
             to={this.props.to}
-            params={this.props.params}
             query={this.props.query}
             title={this.props.title}
             onClick={this.handleClick}
             className={this.props.linkClassName}
             tabIndex="-1">
           {this.props.children}
-        </Router.Link>
+        </Link>
       );
     }
     return (

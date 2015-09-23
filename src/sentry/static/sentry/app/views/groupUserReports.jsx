@@ -1,5 +1,6 @@
 import $ from "jquery";
 import React from "react";
+import {History} from "react-router";
 import api from "../api";
 import Gravatar from "../components/gravatar";
 import GroupState from "../mixins/groupState";
@@ -9,12 +10,10 @@ import TimeSince from "../components/timeSince";
 import utils from "../utils";
 
 var GroupUserReports = React.createClass({
-  // TODO(dcramer): only re-render on group/activity change
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  mixins: [GroupState],
+  mixins: [
+    GroupState,
+    History
+  ],
 
   getInitialState() {
     return {
@@ -30,7 +29,7 @@ var GroupUserReports = React.createClass({
   },
 
   fetchData() {
-    var queryParams = this.context.router.getCurrentQuery();
+    var queryParams = this.props.params;
     var querystring = $.param(queryParams);
 
     this.setState({
@@ -57,10 +56,14 @@ var GroupUserReports = React.createClass({
   },
 
   onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = $.extend({}, router.getCurrentQuery(), {cursor: cursor});
+    var queryParams = $.extend({}, this.props.location.query, {cursor: cursor});
 
-    router.transitionTo('groupUserReports', this.context.router.getCurrentParams(), queryParams);
+    let {orgId, projectId, groupId} = this.props.params;
+    this.history.pushState(
+      null,
+      `/${orgId}/${projectId}/group/${groupId}/reports/`,
+      queryParams
+    );
   },
 
   render() {

@@ -5,8 +5,6 @@ import TestUtils from "react-addons-test-utils";
 
 import api from "app/api";
 import TagDistributionMeter from "app/components/group/tagDistributionMeter";
-import stubRouter from "../../../helpers/stubRouter";
-import stubContext from "../../../helpers/stubContext";
 
 describe("TagDistributionMeter", function() {
 
@@ -15,19 +13,9 @@ describe("TagDistributionMeter", function() {
 
     this.stubbedApiRequest = this.sandbox.stub(api, "request");
 
-    let ContextStubbedTagDistributionMeter = stubContext(TagDistributionMeter, {
-      organization: { id: 1337 },
-      router: stubRouter({
-        getCurrentParams() {
-          return { orgId: "123" };
-        },
-        getCurrentQuery() {
-          return { limit: 0 };
-        }
-      })
-    });
-
-    this.element = TestUtils.renderIntoDocument(<ContextStubbedTagDistributionMeter tag="browser" group={{id:"1337"}}/>).refs.wrapped;
+    this.element = TestUtils.renderIntoDocument(
+      <TagDistributionMeter tag="browser" group={{id:"1337"}} orgId="123" projectId="456"/>
+    );
   });
 
   afterEach(function() {

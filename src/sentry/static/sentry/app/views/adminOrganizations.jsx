@@ -1,25 +1,18 @@
 import jQuery from "jquery";
 import React from "react";
-import Router from "react-router";
+import {Link, History} from "react-router";
 
 import api from "../api";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
-import RouteMixin from "../mixins/routeMixin";
 import SearchBar from "../components/searchBar.jsx";
 
 const AdminOrganizations = React.createClass({
-  mixins: [
-    RouteMixin
-  ],
-
-  contextTypes: {
-    router: React.PropTypes.func
-  },
+  mixins: [History],
 
   getInitialState() {
-    let queryParams = this.context.router.getCurrentQuery();
+    let queryParams = this.props.location.query;
 
     return {
       data: [],
@@ -39,7 +32,7 @@ const AdminOrganizations = React.createClass({
   },
 
   fetchData() {
-    let queryParams = this.context.router.getCurrentQuery();
+    let queryParams = this.props.location.query;
 
     api.request(`/organizations/`, {
       method: 'GET',
@@ -61,33 +54,29 @@ const AdminOrganizations = React.createClass({
     });
   },
 
-  routeDidChange() {
-    let queryParams = this.context.router.getCurrentQuery();
-    this.setState({
-      query: queryParams.query,
-      loading: true,
-      error: false
-    }, this.fetchData);
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.location.search !== this.props.location.search) {
+      this.setState({
+        query: this.props.location.query,
+        loading: true,
+        error: false
+      }, this.fetchData);
+    }
   },
 
   onPage(cursor) {
-    let router = this.context.router;
-    let params = router.getCurrentParams();
-    let queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+    let queryParams = jQuery.extend({}, this.props.location.query, {
       cursor: cursor
     });
-    router.transitionTo('adminOrganizations', params, queryParams);
+    this.history.pushState(null, '/manage/organizations/', queryParams);
   },
 
   onSearch(query) {
-    let router = this.context.router;
-    let params = router.getCurrentParams();
-
     let targetQueryParams = {};
     if (query !== '')
       targetQueryParams.query = query;
 
-    router.transitionTo("adminOrganizations", params, targetQueryParams);
+    this.history.pushState(null, '/manage/organizations/', targetQueryParams);
   },
 
   renderLoading() {
@@ -126,9 +115,9 @@ const AdminOrganizations = React.createClass({
       return (
         <tr>
           <td>
-            <Router.Link to="organizationDetails" params={{orgId: item.slug}}>
+            <Link to={`/${item.slug}/`}>
               {item.name}
-            </Router.Link><br />
+            </Link><br />
             <small>{item.slug}</small>
           </td>
           <td>&mdash;</td>

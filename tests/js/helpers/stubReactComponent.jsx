@@ -7,6 +7,7 @@ var originalCreateElement = React.createElement;
 
 export default function(stubber, stubbedComponents) {
   stubber.stub(React, "createElement", function(component, props) {
+    props = props || {};
     if (stubbedComponents.indexOf(component) === -1) {
       return originalCreateElement.apply(React, arguments);
     } else {

@@ -1,4 +1,5 @@
 import React from "react";
+import {History} from "react-router";
 import api from "../../api";
 import DropdownLink from "../../components/dropdownLink";
 import GroupState from "../../mixins/groupState";
@@ -7,11 +8,10 @@ import MenuItem from "../../components/menuItem";
 import LinkWithConfirmation from "../../components/linkWithConfirmation";
 
 var GroupActions = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
-  mixins: [GroupState],
+  mixins: [
+    GroupState,
+    History
+  ],
 
   onDelete() {
     var group = this.getGroup();
@@ -29,10 +29,7 @@ var GroupActions = React.createClass({
       }
     });
 
-    this.context.router.transitionTo('stream', {
-      orgId: org.slug,
-      projectId: project.slug
-    });
+    this.history.pushState(null, `/${org.slug}/${project.slug}/`);
   },
 
   onToggleResolve() {

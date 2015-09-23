@@ -79,8 +79,7 @@ var config = {
   resolve: {
     alias: {
       "flot": path.join(__dirname, staticPrefix, "vendor", "jquery-flot"),
-      "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip"),
-      "react-router": path.join(__dirname, "node_modules", "react-router", "build", "lib")
+      "flot-tooltip": path.join(__dirname, staticPrefix, "vendor", "jquery-flot-tooltip")
     },
     modulesDirectories: [path.join(__dirname, staticPrefix), "node_modules"],
     extensions: ["", ".jsx", ".js", ".json"]

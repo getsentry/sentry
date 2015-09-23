@@ -11,10 +11,6 @@ var ProjectChart = React.createClass({
     ProjectState,
   ],
 
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   getInitialState() {
     return {
       loading: true,

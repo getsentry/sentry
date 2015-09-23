@@ -1,5 +1,5 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 import LazyLoad from "react-lazy-load";
 
 import api from "../../api";
@@ -13,10 +13,6 @@ var ExpandedTeamList = React.createClass({
     organization: PropTypes.Organization.isRequired,
     teamList: React.PropTypes.arrayOf(PropTypes.Team).isRequired,
     projectStats: React.PropTypes.object
-  },
-
-  contextTypes: {
-    router: React.PropTypes.func
   },
 
   leaveTeam(team) {
@@ -104,10 +100,9 @@ var ExpandedTeamList = React.createClass({
       <tr key={project.id}>
         <td>
           <h5>
-            <Router.Link to="projectDetails"
-                params={{orgId: org.slug, projectId: project.slug}}>
+            <Link to={`/${org.slug}/${project.slug}/`}>
               {project.name}
-            </Router.Link>
+            </Link>
           </h5>
         </td>
         <td className="align-right project-chart">

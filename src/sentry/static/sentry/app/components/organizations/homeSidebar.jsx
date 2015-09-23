@@ -13,7 +13,6 @@ var HomeSidebar = React.createClass({
     var access = this.getAccess();
     var features = this.getFeatures();
     var org = this.getOrganization();
-    var orgParams = {orgId: org.slug};
     var urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     // Allow injection via getsentry et all
@@ -22,13 +21,14 @@ var HomeSidebar = React.createClass({
       children.push(cb(org));
     });
 
+    let orgId = org.slug;
     return (
       <div>
         <h6 className="nav-header">General</h6>
         <ul className="nav nav-stacked">
-          <ListLink to="organizationTeams" params={orgParams}>Projects</ListLink>
+          <ListLink to={`/${orgId}/`}>Projects</ListLink>
           {access.has('org:read') &&
-            <ListLink to="organizationStats" params={orgParams}>Stats</ListLink>
+            <ListLink to={`/organizations/${orgId}/stats/`}>Stats</ListLink>
           }
         </ul>
         {access.has('org:read') &&

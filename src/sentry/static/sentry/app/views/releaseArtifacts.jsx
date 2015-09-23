@@ -1,5 +1,5 @@
 import React from "react";
-import PropTypes from "../proptypes";
+import {History} from "react-router";
 import jQuery from "jquery";
 
 import api from "../api";
@@ -9,9 +9,10 @@ import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
 
 var ReleaseArtifacts = React.createClass({
+  mixins: [ History ],
+
   contextTypes: {
-    router: React.PropTypes.func,
-    release: PropTypes.AnyModel
+    release: React.PropTypes.object
   },
 
   getInitialState() {
@@ -27,13 +28,14 @@ var ReleaseArtifacts = React.createClass({
     this.fetchData();
   },
 
-  routeDidChange() {
-    this.fetchData();
+  componentDidUpdate(prevProps) {
+    if (this.props.location.search !== prevProps.location.search) {
+      this.fetchData();
+    }
   },
 
   fetchData() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    var params = this.props.params;
     var endpoint = '/projects/' + params.orgId + '/' + params.projectId + '/releases/' + params.version + '/files/';
 
     this.setState({
@@ -60,12 +62,12 @@ var ReleaseArtifacts = React.createClass({
   },
 
   onPage(cursor) {
-    var router = this.context.router;
-    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+    var queryParams = jQuery.extend({}, this.props.location.query, {
       cursor: cursor
     });
 
-    router.transitionTo('releaseArtifacts', router.getCurrentParams(), queryParams);
+    let {orgId, projectId, version} = this.props.params;
+    this.history.pushState(null, `/${orgId}/${projectId}/releases/${version}/artifacts/`, queryParams);
   },
 
   render() {
@@ -85,6 +87,7 @@ var ReleaseArtifacts = React.createClass({
     return (
       <div>
         <table className="table">
+          <tbody>
           {this.state.fileList.map((file) => {
             return (
               <tr key={file.id}>
@@ -93,6 +96,7 @@ var ReleaseArtifacts = React.createClass({
               </tr>
             );
           })}
+          </tbody>
         </table>
         <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
       </div>

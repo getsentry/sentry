@@ -1,19 +1,17 @@
 import React from "react";
-import Router from "react-router";
+import {Link} from "react-router";
 import ApiMixin from "../../mixins/apiMixin";
 import PropTypes from "../../proptypes";
 import TooltipMixin from "../../mixins/tooltip";
 import {escape, percent} from "../../utils";
 
 var TagDistributionMeter = React.createClass({
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
     group: PropTypes.Group.isRequired,
     tag: React.PropTypes.string.isRequired,
-    name: React.PropTypes.string
+    name: React.PropTypes.string,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   mixins: [
@@ -82,9 +80,7 @@ var TagDistributionMeter = React.createClass({
     let otherPct = percent(totalValues - totalVisible, totalValues);
     let otherPctLabel = Math.floor(otherPct);
 
-    let params = {...this.context.router.getCurrentParams()};
-    params.tagKey = this.props.tag;
-
+    let {orgId, projectId} = this.props;
     return (
       <div className="segments">
         {data.topValues.map((value) => {
@@ -92,31 +88,29 @@ var TagDistributionMeter = React.createClass({
           var pctLabel = Math.floor(pct);
 
           return (
-            <Router.Link
+            <Link
                 key={value.value}
                 className="segment" style={{width: pct + "%"}}
-                to="groupTagValues"
-                params={params}
+                to={`/${orgId}/${projectId}/group/${this.props.group.id}/tags/${this.props.tag}/`}
                 title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
               <span className="tag-description">
                 <span className="tag-percentage">{pctLabel}%</span>
                 <span className="tag-label">{value.name}</span>
               </span>
-            </Router.Link>
+            </Link>
           );
         })}
         {hasOther &&
-          <Router.Link
+          <Link
               key="other"
               className="segment" style={{width: otherPct + "%"}}
-              to="groupTagValues"
-              params={params}
+              to={`/${orgId}/${projectId}/group/${this.props.group.id}/tags/${this.props.tag}/`}
               title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">
               <span className="tag-percentage">{otherPctLabel}%</span>
               <span className="tag-label">Other</span>
             </span>
-          </Router.Link>
+          </Link>
         }
       </div>
     );

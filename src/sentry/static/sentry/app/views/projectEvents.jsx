@@ -1,4 +1,5 @@
 import React from "react";
+import {History} from "react-router";
 import Reflux from "reflux";
 import jQuery from "jquery";
 import Cookies from "js-cookie";
@@ -9,21 +10,16 @@ import EventStore from "../stores/eventStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
 import Pagination from "../components/pagination";
-import RouteMixin from "../mixins/routeMixin";
 import utils from "../utils";
 
 var ProjectEvents = React.createClass({
   mixins: [
     Reflux.listenTo(EventStore, "onEventChange"),
-    RouteMixin
+    History
   ],
 
-  contextTypes: {
-    router: React.PropTypes.func
-  },
-
   propTypes: {
-    setProjectNavSection: React.PropTypes.func.isRequired
+    setProjectNavSection: React.PropTypes.func
   },
 
   getInitialState() {
@@ -68,12 +64,12 @@ var ProjectEvents = React.createClass({
     EventStore.reset();
   },
 
-  routeDidChange() {
-    this._poller.disable();
-    this.fetchData();
-  },
-
   componentDidUpdate(prevProps, prevState) {
+    if (prevProps.params.projectId !== this.props.params.projectId) {
+      this._poller.disable();
+      this.fetchData();
+    }
+
     this._poller.setEndpoint(this.getEventListEndpoint());
     if (prevState.realtimeActive !== this.state.realtimeActive) {
       if (this.state.realtimeActive) {
@@ -120,9 +116,8 @@ var ProjectEvents = React.createClass({
   },
 
   getEventListEndpoint() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = router.getCurrentQuery();
+    var params = this.props.params;
+    var queryParams = this.props.location.query;
     queryParams.limit = 50;
     var querystring = jQuery.param(queryParams);
 
@@ -155,17 +150,14 @@ var ProjectEvents = React.createClass({
   },
 
   onPage(cursor) {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
-    var queryParams = jQuery.extend({}, router.getCurrentQuery(), {
+    var queryParams = jQuery.extend({}, this.props.location.query, {
       cursor: cursor
     });
 
-    router.transitionTo('events', params, queryParams);
+    this.history.pushState(null, this.props.location.pathname, queryParams);
   },
 
   transitionTo() {
-    var router = this.context.router;
     var queryParams = {};
 
     for (var prop in this.state.filter) {
@@ -180,11 +172,12 @@ var ProjectEvents = React.createClass({
       queryParams.statsPeriod = this.state.statsPeriod;
     }
 
-    router.transitionTo('stream', router.getCurrentParams(), queryParams);
+    let {orgId, projectId} = this.props.params;
+    this.history.pushState(null, `/${orgId}/${projectId}/`, queryParams);
   },
 
   renderEventNodes(ids) {
-    var params = this.context.router.getCurrentParams();
+    var params = this.props.params;
     var nodes = ids.map((id) => {
       return (
         <EventRow key={id} id={id} orgSlug={params.orgId}
@@ -229,8 +222,7 @@ var ProjectEvents = React.createClass({
   },
 
   render() {
-    var router = this.context.router;
-    var params = router.getCurrentParams();
+    var params = this.props.params;
 
     return (
       <div>

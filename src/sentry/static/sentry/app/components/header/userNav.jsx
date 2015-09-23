@@ -29,7 +29,7 @@ var UserNav = React.createClass({
           title={title}>
         <MenuItem href={urlPrefix + '/account/settings/'}>Account</MenuItem>
         {user.isSuperuser &&
-          <MenuItem to="admin">Admin</MenuItem>
+          <MenuItem to="/manage/">Admin</MenuItem>
         }
         <MenuItem href={urlPrefix + '/auth/logout/'}>Sign out</MenuItem>
       </DropdownLink>
