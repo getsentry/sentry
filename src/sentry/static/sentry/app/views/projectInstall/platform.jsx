@@ -97,7 +97,7 @@ var ProjectInstallPlatform = React.createClass({
       "c-sharp": {
         display: "C#"
       },
-      "go": {
+      go: {
         display: "Go"
       }
     }
