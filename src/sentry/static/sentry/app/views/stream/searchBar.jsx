@@ -6,6 +6,7 @@ import _ from "underscore";
 import MemberListStore from "../../stores/memberListStore";
 
 import api from "../../api";
+import tagsApi from "../../api/tags";
 
 var PureRenderMixin = require('react/addons').addons.PureRenderMixin;
 
@@ -75,20 +76,6 @@ var SearchBar = React.createClass({
       dropdownVisible: false,
       loading: false
     };
-  },
-
-  componentWillMount() {
-    var params = this.context.router.getCurrentParams();
-    api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
-      success: (tags) => {
-        this.setState({
-          tags: tags.reduce((obj, tag) => {
-            obj[tag.key] = tag;
-            return obj;
-          }, this.state.tags)
-        });
-      }
-    });
   },
 
   statics: {
@@ -221,16 +208,20 @@ var SearchBar = React.createClass({
     });
 
     var params = this.context.router.getCurrentParams();
-    api.request(`/projects/${params.orgId}/${params.projectId}/tags/${tag.key}/values/`, {
-      data: {
-        query: query
-      },
-      method: "GET",
-      success: (values) => {
-        this.setState({ loading: false });
-        callback(values.map(v => '"' + v.value + '"'), tag.key, query);
-      }
+    tagsApi.fetchTagValues(params, tag, query, function (values) {
+      this.setState({ loading: false });
+      callback(values.map(v => '"' + v.value + '"'), tag.key, query);
     });
+    // api.request(`/projects/${params.orgId}/${params.projectId}/tags/${tag.key}/values/`, {
+    //   data: {
+    //     query: query
+    //   },
+    //   method: "GET",
+    //   success: (values) => {
+    //     this.setState({ loading: false });
+    //     callback(values.map(v => '"' + v.value + '"'), tag.key, query);
+    //   }
+    // });
   }, 300),
 
   /**

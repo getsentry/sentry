@@ -2,7 +2,10 @@ import React from "react";
 import Reflux from "reflux";
 import $ from "jquery";
 import Cookies from "js-cookie";
+import Sticky from 'react-sticky';
+
 import api from "../api";
+
 import GroupStore from "../stores/groupStore";
 import LoadingError from "../components/loadingError";
 import LoadingIndicator from "../components/loadingIndicator";
@@ -10,14 +13,17 @@ import Pagination from "../components/pagination";
 import RouteMixin from "../mixins/routeMixin";
 import StreamGroup from '../components/stream/group';
 import StreamActions from './stream/actions';
+import StreamTagActions from "../actions/streamTagActions";
+import StreamTagStore from "../stores/streamTagStore";
 import StreamFilters from './stream/filters';
+import StreamSidebar from "./stream/sidebar";
 import utils from "../utils";
-import Sticky from 'react-sticky';
 
 
 var Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, "onGroupChange"),
+    Reflux.listenTo(StreamTagStore, "onStreamTagChange"),
     RouteMixin
   ],
 
@@ -53,7 +59,8 @@ var Stream = React.createClass({
       error: false,
       query: this.props.defaultQuery,
       sort: this.props.defaultSort,
-      filter: {}
+      filter: {},
+      tags: {}
     }, this.getQueryStringState());
   },
 
@@ -69,6 +76,8 @@ var Stream = React.createClass({
       success: this.onRealtimePoll,
       endpoint: this.getGroupListEndpoint()
     });
+
+    this.fetchTags();
 
     var realtime = Cookies.get("realtimeActive");
     if (realtime) {
@@ -87,6 +96,20 @@ var Stream = React.createClass({
   componentWillUnmount() {
     this._poller.disable();
     GroupStore.reset();
+  },
+
+  fetchTags() {
+    StreamTagActions.loadTags();
+
+    var params = this.context.router.getCurrentParams();
+    api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
+      success: (tags) => {
+        StreamTagActions.loadTagsSuccess(tags);
+      },
+      error: (error) => {
+        StreamTagActions.loadTagsError();
+      }
+    });
   },
 
   getQueryStringState() {
@@ -248,6 +271,16 @@ var Stream = React.createClass({
     }
   },
 
+  onStreamTagChange(tags) {
+    console.log(tags);
+    this.setState({
+      tags: tags.reduce((obj, tag) => {
+        obj[tag.key] = tag;
+        return obj;
+      }, this.state.tags)
+    });
+  },
+
   onPage(cursor) {
     var router = this.context.router;
     var params = router.getCurrentParams();
@@ -348,25 +381,33 @@ var Stream = React.createClass({
         <StreamFilters
           query={this.state.query}
           sort={this.state.sort}
+          tags={this.state.tags}
           defaultQuery={this.props.defaultQuery}
           onSortChange={this.onSortChange}
           onFilterChange={this.onFilterChange}
-          onSearch={this.onSearch} />
-          <div className="group-header">
-            <Sticky>
-              <StreamActions
-                orgId={params.orgId}
-                projectId={params.projectId}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onRealtimeChange={this.onRealtimeChange}
-                realtimeActive={this.state.realtimeActive}
-                statsPeriod={this.state.statsPeriod}
-                groupIds={this.state.groupIds} />
-            </Sticky>
+          onSearch={this.onSearch}
+        />
+        <div className="row">
+          <div className="col-md-10">
+            <div className="group-header">
+              <Sticky>
+                <StreamActions
+                  orgId={params.orgId}
+                  projectId={params.projectId}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onRealtimeChange={this.onRealtimeChange}
+                  realtimeActive={this.state.realtimeActive}
+                  statsPeriod={this.state.statsPeriod}
+                  groupIds={this.state.groupIds} />
+              </Sticky>
+            </div>
+            {this.renderStreamBody()}
+            <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
           </div>
-          {this.renderStreamBody()}
-          <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
-
+          <div className="col-md-2">
+            <StreamSidebar tags={this.state.tags}/>
+          </div>
+        </div>
       </div>
     );
   }
