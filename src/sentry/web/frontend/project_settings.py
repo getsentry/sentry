@@ -57,7 +57,8 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Allow Sentry to scrape missing JavaScript source context when possible.'),
         required=False,
     )
-    blacklisted_ips = IPNetworksField(label=_('Blacklisted IP Addresses'), required=False)
+    blacklisted_ips = IPNetworksField(label=_('Blacklisted IP Addresses'), required=False,
+        help_text=_('Separate multiple entries with a newline.'))
 
     class Meta:
         fields = ('name', 'team', 'slug')
