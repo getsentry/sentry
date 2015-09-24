@@ -69,11 +69,7 @@ class StoreViewTest(TestCase):
 
     @mock.patch('sentry.web.api.is_valid_ip', mock.Mock(return_value=False))
     def test_request_with_backlisted_ip(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 403, resp.content
-        resp = self.client.post(self.path)
-        assert resp.status_code == 403, resp.content
-        resp = self.client.options(self.path)
+        resp = self._postWithHeader({})
         assert resp.status_code == 403, resp.content
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
