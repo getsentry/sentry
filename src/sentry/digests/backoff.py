@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+
 class BackoffStrategy(object):
     def __call__(self, iteration):
         raise NotImplementedError
