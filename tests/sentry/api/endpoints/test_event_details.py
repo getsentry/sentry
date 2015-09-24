@@ -69,55 +69,95 @@ class EventDetailsTest(APITestCase):
 
         group = self.create_group()
         created = datetime(2013, 8, 13, 3, 8, 24)
-        prev_event = self.create_event(
+        events = []
+        events.append(self.create_event(
             event_id='a',
             group=group,
             datetime=created,
-        )
-        cur_event = self.create_event(
+        ))
+        events.append(self.create_event(
             event_id='b',
             group=group,
             datetime=created,
-        )
-        next_event = self.create_event(
+        ))
+        events.append(self.create_event(
             event_id='c',
             group=group,
             datetime=created,
-        )
+        ))
+        events.append(self.create_event(
+            event_id='d',
+            group=group,
+            datetime=created,
+        ))
+        events.append(self.create_event(
+            event_id='e',
+            group=group,
+            datetime=created,
+        ))
 
+        # First event, no prev
         url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': cur_event.id,
+            'event_id': events[0].id,
         })
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(cur_event.id)
-        assert response.data['nextEventID'] == str(next_event.id)
-        assert response.data['previousEventID'] == str(prev_event.id)
-        assert response.data['groupID'] == group.id
-        assert not response.data['userReport']
-
-        url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': prev_event.id,
-        })
-        response = self.client.get(url, format='json')
-
-        assert response.status_code == 200, response.content
-        assert response.data['id'] == str(prev_event.id)
-        assert response.data['nextEventID'] == str(cur_event.id)
+        assert response.data['id'] == str(events[0].id)
+        assert response.data['nextEventID'] == str(events[1].id)
         assert response.data['previousEventID'] is None
         assert response.data['groupID'] == group.id
         assert not response.data['userReport']
 
+        # Middle event, has prev and next
         url = reverse('sentry-api-0-event-details', kwargs={
-            'event_id': next_event.id,
+            'event_id': events[1].id,
         })
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(next_event.id)
+        assert response.data['id'] == str(events[1].id)
+        assert response.data['nextEventID'] == str(events[2].id)
+        assert response.data['previousEventID'] == str(events[0].id)
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
+        # Middle event, has prev and next
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': events[2].id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(events[2].id)
+        assert response.data['nextEventID'] == str(events[3].id)
+        assert response.data['previousEventID'] == str(events[1].id)
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
+        # Middle event, has prev and next
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': events[3].id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(events[3].id)
+        assert response.data['nextEventID'] == str(events[4].id)
+        assert response.data['previousEventID'] == str(events[2].id)
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
+        # Last event, no next
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': events[4].id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(events[4].id)
         assert response.data['nextEventID'] is None
-        assert response.data['previousEventID'] == str(cur_event.id)
+        assert response.data['previousEventID'] == str(events[3].id)
         assert response.data['groupID'] == group.id
         assert not response.data['userReport']
 
