@@ -272,7 +272,6 @@ var Stream = React.createClass({
   },
 
   onStreamTagChange(tags) {
-    console.log(tags);
     this.setState({
       tags: tags.reduce((obj, tag) => {
         obj[tag.key] = tag;
