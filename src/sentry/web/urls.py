@@ -322,6 +322,9 @@ urlpatterns += patterns(
     url(r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$', api.crossdomain_xml,
         name='sentry-api-crossdomain-xml'),
 
+    # plugins
+    url(r'', include('sentry.plugins.base.urls')),
+
     # Generic API
     url(r'^api/(?P<organization_slug>[\w_-]+)/(?P<team_slug>[\w_-]+)/groups/trends/$', api.get_group_trends,
         name='sentry-api-groups-trends'),
