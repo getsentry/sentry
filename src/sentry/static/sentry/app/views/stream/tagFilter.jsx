@@ -19,6 +19,10 @@ var StreamTagFilter = React.createClass({
     router: React.PropTypes.func
   },
 
+  propTypes: {
+    tag: React.PropTypes.object.isRequired
+  },
+
   getDefaultProps() {
     return {
       tag: {},
@@ -27,10 +31,10 @@ var StreamTagFilter = React.createClass({
 
   getInitialState() {
     return {
-      tagValues: [],
+      tagValues: this.props.tag.values || [],
       query: '',
       loading: false,
-      selectedValue: 'Select a value'
+      selectedValue: 'Search for a ' + this.props.tag.name
     };
   },
 
@@ -81,6 +85,8 @@ var StreamTagFilter = React.createClass({
     this.setState({
       selectedValue: val
     });
+
+    this.props.onSelect && this.props.onSelect(this.props.tag, val);
   },
 
   render() {

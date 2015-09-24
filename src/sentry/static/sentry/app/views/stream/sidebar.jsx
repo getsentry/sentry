@@ -7,20 +7,51 @@ var StreamSidebar = React.createClass({
     router: React.PropTypes.func
   },
 
+  propTypes: {
+    tags: React.PropTypes.object.isRequired,
+    onQueryChange: React.PropTypes.func.isRequired
+  },
+
   getDefaultProps() {
     return {
-      tags: {}
+      tags: {},
+      onQueryChange: function () {}
     };
   },
 
-  componentWillMount() {
+  getInitialState() {
+    return {
+      activeTagValues: {},
+    };
+  },
+
+  buildQuery() {
+    return _.map(this.state.activeTagValues, (value, tagKey) => {
+      return `${tagKey}:${value}`;
+    }).join(' ');
+  },
+
+  onSelectTag(tag, value) {
+    this.setState({
+      activeTagValues: {...this.state.activeTagValues, [tag.key]:value}
+    }, () => {
+      let query = this.buildQuery();
+      console.log(query);
+      this.props.onQueryChange && this.props.onQueryChange(query);
+    });
   },
 
   render() {
     return (
       <div className="stream-sidebar">
         {_.map(this.props.tags, (tag) => {
-          return <StreamTagFilter tag={tag}/>;
+          return (
+            <StreamTagFilter
+              key={tag.key}
+              tag={tag}
+              onSelect={this.onSelectTag}
+            />
+          );
         })}
       </div>
     );
