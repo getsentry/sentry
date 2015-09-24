@@ -165,7 +165,7 @@ def is_valid_ip(ip_address, project):
     Verify that an IP address is not being blacklisted
     for the given project.
     """
-    blacklist = project.get_option('sentry:blacklisted-ips')
+    blacklist = project.get_option('sentry:blacklisted_ips')
     if not blacklist:
         return True
 

@@ -194,7 +194,7 @@ class IsValidOriginTestCase(TestCase):
 
 class IsValidIPTestCase(TestCase):
     def is_valid_ip(self, ip, inputs):
-        self.project.update_option('sentry:blacklisted-ips', inputs)
+        self.project.update_option('sentry:blacklisted_ips', inputs)
         return is_valid_ip(ip, self.project)
 
     def test_not_in_blacklist(self):
