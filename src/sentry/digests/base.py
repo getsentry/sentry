@@ -155,5 +155,24 @@ class Backend(object):
         (e.g. if the process executing the task can no longer communicate with
         the messaging broker) which can result in a task remaining in the ready
         state without an execution plan.
+
+        This may cause issues when asynchronously processing timelines and
+        there is a severe backlog of timelines to be digested. Timelines in the
+        "ready" state that were scheduled for execution prior to the deadline
+        may still have outstanding tasks associated with them -- remember that
+        without the ability to interrogate the queue, we are unable to identify
+        if these tasks have finished but were unable to bea removed from the
+        schedule, failed outright, or are still pending. As part of
+        maintenance, those timelines are moved back to the "waiting" state for
+        rescheduling, and if a pending task for a timeline that was previously
+        in the "ready" state but is now back in the "waiting" state actually
+        executes, it will fail to be executed. The timeline will later be moved
+        back to the "ready" state and rescheduled -- so it's contents will
+        eventually be processed -- but this may be significantly delayed from
+        the originally scheduled time. Both the queue backlog as well as the
+        frequency of the digest task raising an exception when a timeline is in
+        an invalid state should be monitored. If these exceptions happen
+        frequently -- especially during periods of abnormal queue growth -- the
+        frequency of maintenance tasks should be decreased.
         """
         raise NotImplementedError
