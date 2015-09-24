@@ -45,29 +45,49 @@ class EventDetailsEndpoint(Endpoint):
         base_qs = Event.objects.filter(
             group=event.group_id,
         ).exclude(id=event.id)
-        try:
-            gt = lambda x: x.id > event.id
-            next_event = filter(gt, sorted(
-                base_qs.filter(
-                    datetime__gte=event.datetime,
-                ).order_by('datetime')[0:5],
-                key=lambda x: (x.datetime, x.id),
-            ))[0]
-        except IndexError:
-            next_event = None
 
-        try:
-            lt = lambda x: x.id < event.id
-            prev_event = filter(lt, sorted(
-                base_qs.filter(
-                    id__lt=event.id,
-                    datetime__lte=event.datetime,
-                ).order_by('-datetime')[0:5],
-                key=lambda x: (x.datetime, x.id),
-                reverse=True,
-            ))[0]
-        except IndexError:
-            prev_event = None
+        # First, we collect 5 leading/trailing events
+        next_events = sorted(
+            base_qs.filter(
+                datetime__gte=event.datetime,
+            ).order_by('datetime')[0:5],
+            key=lambda x: (x.datetime, x.id),
+        )
+        prev_events = sorted(
+            base_qs.filter(
+                datetime__lte=event.datetime,
+            ).order_by('-datetime')[0:5],
+            key=lambda x: (x.datetime, x.id),
+            reverse=True,
+        )
+
+        # Now, try and find the real next event.
+        # "next" means:
+        #  * If identical timestamps, greater of the ids
+        #  * else greater of the timestamps
+        next_event = None
+        for e in next_events:
+            if e.datetime == event.datetime and e.id > event.id:
+                next_event = e
+                break
+
+            if e.datetime > event.datetime:
+                next_event = e
+                break
+
+        # Last, pick the previous event
+        # "previous" means:
+        #  * If identical timestamps, lesser of the ids
+        #  * else lesser of the timestamps
+        prev_event = None
+        for e in prev_events:
+            if e.datetime == event.datetime and e.id < event.id:
+                prev_event = e
+                break
+
+            if e.datetime < event.datetime:
+                prev_event = e
+                break
 
         try:
             user_report = UserReport.objects.get(
