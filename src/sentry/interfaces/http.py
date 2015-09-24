@@ -71,14 +71,12 @@ class Http(Interface):
     >>>  {
     >>>     "url": "http://absolute.uri/foo",
     >>>     "method": "POST",
-    >>>     "data": {
-    >>>         "foo": "bar"
-    >>>     },
+    >>>     "data": "foo=bar",
     >>>     "query_string": "hello=world",
     >>>     "cookies": "foo=bar",
-    >>>     "headers": {
-    >>>         "Content-Type": "text/html"
-    >>>     },
+    >>>     "headers": [
+    >>>         ["Content-Type", "text/html"]
+    >>>     ],
     >>>     "env": {
     >>>         "REMOTE_ADDR": "192.168.0.1"
     >>>     }
