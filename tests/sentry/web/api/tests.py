@@ -67,6 +67,15 @@ class StoreViewTest(TestCase):
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
 
+    @mock.patch('sentry.web.api.is_valid_ip', mock.Mock(return_value=False))
+    def test_request_with_backlisted_ip(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 403, resp.content
+        resp = self.client.post(self.path)
+        assert resp.status_code == 403, resp.content
+        resp = self.client.options(self.path)
+        assert resp.status_code == 403, resp.content
+
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrubs_ip_address(self, mock_insert_data_to_database):
         self.project.update_option('sentry:scrub_ip_address', True)
