@@ -87,8 +87,8 @@ class IPlugin2(local):
         >>> plugin.is_enabled()
         """
         if project is not None:
-            from sentry import features
-            if not features.has('projects:plugins', project, self, actor=None):
+            if self.can_enable_for_projects() and \
+               not self.can_configure_for_project(project):
                 return False
         if not self.enabled:
             return False
@@ -218,6 +218,11 @@ class IPlugin2(local):
         Returns a boolean describing whether this plugin can be enabled on a per project basis
         """
         return True
+
+    def can_configure_for_project(self, project):
+        """Checks if the plugin can be configured for a specific project."""
+        from sentry import features
+        return features.has('projects:plugins', project, self, actor=None)
 
     # Response methods
 
