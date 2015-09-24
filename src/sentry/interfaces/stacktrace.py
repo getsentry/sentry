@@ -187,6 +187,9 @@ class Frame(Interface):
 
         assert filename or function or module
 
+        if function == '?':
+            function = None
+
         context_locals = data.get('vars') or {}
         if isinstance(context_locals, (list, tuple)):
             context_locals = dict(enumerate(context_locals))
@@ -265,6 +268,11 @@ class Frame(Interface):
         if self.context_line is None:
             can_use_context = False
         elif len(self.context_line) > 120:
+            can_use_context = False
+        elif self.is_url() and not self.function:
+            # the context is too risky to use here as it could be something
+            # coming from an HTML page or it could be minified/unparseable
+            # code, so lets defer to other lesser heuristics (like lineno)
             can_use_context = False
         elif self.function and self.is_unhashable_function():
             can_use_context = True
@@ -529,7 +537,7 @@ class Stacktrace(Interface):
         # we could improve this check using that information.
         stack_invalid = (
             len(frames) == 1 and frames[0].lineno == 1
-            and frames[0].function in ('?', None) and frames[0].is_url()
+            and not frames[0].function and frames[0].is_url()
         )
 
         if stack_invalid:
