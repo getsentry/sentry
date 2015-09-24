@@ -459,6 +459,9 @@ class IPlugin(local, PluggableViewMixin):
         """Configures the plugin."""
         return default_plugin_config(self, project, request)
 
+    def get_url_patterns(self):
+        """Allows a plugin to return a URL module."""
+
 
 class Plugin(IPlugin):
     """
