@@ -44,25 +44,31 @@ class EventDetailsEndpoint(Endpoint):
         # HACK(dcramer): work around lack of unique sorting on datetime
         base_qs = Event.objects.filter(
             group=event.group_id,
-        ).exclude(id=event.id)
+        )
         try:
             next_event = sorted(
                 base_qs.filter(
-                    datetime__gte=event.datetime
+                    id__gt=event.id,
+                    datetime__gte=event.datetime,
                 ).order_by('datetime')[0:5],
-                key=lambda x: (x.datetime, x.id)
+                key=lambda x: (x.datetime, x.id),
             )[0]
+            if next_event.id < event.id:
+                next_event = None
         except IndexError:
             next_event = None
 
         try:
             prev_event = sorted(
                 base_qs.filter(
+                    id__lt=event.id,
                     datetime__lte=event.datetime,
                 ).order_by('-datetime')[0:5],
                 key=lambda x: (x.datetime, x.id),
-                reverse=True
+                reverse=True,
             )[0]
+            if prev_event.id > event.id:
+                prev_event = None
         except IndexError:
             prev_event = None
 
