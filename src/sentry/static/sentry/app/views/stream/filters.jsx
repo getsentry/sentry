@@ -84,6 +84,7 @@ var StreamFilters = React.createClass({
           <div className="col-sm-5">
             <SearchBar
               ref="searchBar"
+              tags={this.props.tags}
               defaultQuery={this.props.defaultQuery}
               placeholder="Search for events, users, tags, and everything else."
               query={this.props.query}
