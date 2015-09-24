@@ -40,6 +40,63 @@ class EventDetailsTest(APITestCase):
         assert response.data['groupID'] == group.id
         assert not response.data['userReport']
 
+    def test_identical_datetime(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        created = datetime(2013, 8, 13, 3, 8, 24)
+        prev_event = self.create_event(
+            event_id='a',
+            group=group,
+            datetime=created,
+        )
+        cur_event = self.create_event(
+            event_id='b',
+            group=group,
+            datetime=created,
+        )
+        next_event = self.create_event(
+            event_id='c',
+            group=group,
+            datetime=created,
+        )
+
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': cur_event.id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(cur_event.id)
+        assert response.data['nextEventID'] == str(next_event.id)
+        assert response.data['previousEventID'] == str(prev_event.id)
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': prev_event.id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(prev_event.id)
+        assert response.data['nextEventID'] == str(cur_event.id)
+        assert response.data['previousEventID'] is None
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': next_event.id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(next_event.id)
+        assert response.data['nextEventID'] is None
+        assert response.data['previousEventID'] == str(cur_event.id)
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
     def test_user_report(self):
         self.login_as(user=self.user)
 
