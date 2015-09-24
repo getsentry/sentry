@@ -589,7 +589,7 @@ def crossdomain_xml(request, project_id):
         return HttpResponse(status=404)
 
     origin_list = get_origins(project)
-    if origin_list == '*':
+    if origin_list == ['*']:
         origin_list = [origin_list]
 
     response = render_to_response('sentry/crossdomain.xml', {
