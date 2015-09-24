@@ -37,7 +37,9 @@ from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
 from sentry.utils.javascript import to_json
-from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
+from sentry.utils.http import (
+    is_valid_origin, get_origins, is_same_domain, is_valid_ip,
+)
 from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
@@ -180,6 +182,10 @@ class APIView(BaseView):
                 raise APIError('Client must be upgraded for CORS support')
             if not is_valid_origin(origin, project):
                 raise APIForbidden('Invalid origin: %s' % (origin,))
+
+        if project and not is_valid_ip(request.META['REMOTE_ADDR'], project):
+            metrics.incr('events.blacklisted')
+            raise APIForbidden('Blacklisted IP address: %s' % (request.META['REMOTE_ADDR'],))
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':

@@ -10,7 +10,8 @@ from exam import fixture
 from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import (
-    is_same_domain, is_valid_origin, get_origins, absolute_uri)
+    is_same_domain, is_valid_origin, get_origins, absolute_uri, is_valid_ip,
+)
 
 
 class AbsoluteUriTest(TestCase):
@@ -189,3 +190,21 @@ class IsValidOriginTestCase(TestCase):
 
         result = self.isValidOrigin('sp://custom-thing.bizbaz/foo/bar', ['sp://*.foobar'])
         assert result is False
+
+
+class IsValidIPTestCase(TestCase):
+    def is_valid_ip(self, ip, inputs):
+        self.project.update_option('sentry:blacklisted-ips', inputs)
+        return is_valid_ip(ip, self.project)
+
+    def test_not_in_blacklist(self):
+        assert self.is_valid_ip('127.0.0.1', [])
+        assert self.is_valid_ip('127.0.0.1', ['0.0.0.0', '192.168.1.1', '10.0.0.0/8'])
+
+    def test_match_blacklist(self):
+        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.1'])
+        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.1', '192.168.1.1'])
+
+    def test_match_blacklist_range(self):
+        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.1/8'])
+        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
