@@ -126,6 +126,5 @@ def get_plugins(project):
 def get_plugins_with_status(project):
     return [
         (plugin, safe_execute(plugin.is_enabled, project))
-        for plugin in plugins.all(version=None)
-        if plugin.can_enable_for_projects()
+        for plugin in plugins.configurable_for_project(project, version=None)
     ]

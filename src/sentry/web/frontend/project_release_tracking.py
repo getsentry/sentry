@@ -92,8 +92,7 @@ class ProjectReleaseTrackingView(ProjectView):
                 }))
                 content = plugin.get_release_doc_html(hook_url=hook_url)
                 enabled_plugins.append((plugin, mark_safe(content)))
-            elif (plugin.can_enable_for_projects() and
-                  plugin.can_configure_for_project(project)):
+            elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
         context = {
