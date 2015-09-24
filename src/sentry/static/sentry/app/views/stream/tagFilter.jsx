@@ -26,6 +26,7 @@ var StreamTagFilter = React.createClass({
   getDefaultProps() {
     return {
       tag: {},
+      initialValue: null
     };
   },
 
@@ -34,7 +35,7 @@ var StreamTagFilter = React.createClass({
       tagValues: this.props.tag.values || [],
       query: '',
       loading: false,
-      selectedValue: 'Search for a ' + this.props.tag.name
+      selectedValue: this.props.initialValue
     };
   },
 
@@ -97,7 +98,7 @@ var StreamTagFilter = React.createClass({
         <h6>{tag.name}</h6>
         <DropdownLink
           className="btn btn-default btn-sm"
-          title={this.state.selectedValue}>
+          title={this.state.selectedValue || 'Search for a ' + this.props.tag.name}>
           <MenuItem noAnchor={true} key="filter">
             <input type="text"
               className="form-control input-sm"

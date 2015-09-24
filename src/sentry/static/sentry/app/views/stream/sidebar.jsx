@@ -9,34 +9,35 @@ var StreamSidebar = React.createClass({
 
   propTypes: {
     tags: React.PropTypes.object.isRequired,
-    onQueryChange: React.PropTypes.func.isRequired
+    onQueryChange: React.PropTypes.func.isRequired,
+    defaultQuery: React.PropTypes.string
   },
 
   getDefaultProps() {
     return {
       tags: {},
-      onQueryChange: function () {}
+      onQueryChange: function () {},
+      initialQuery: {}
     };
   },
 
   getInitialState() {
     return {
-      activeTagValues: {},
+      currentQuery: this.props.initialQuery
     };
   },
 
-  buildQuery() {
-    return _.map(this.state.activeTagValues, (value, tagKey) => {
+  getQueryStr() {
+    return _.map(this.state.currentQuery, (value, tagKey) => {
       return `${tagKey}:${value}`;
     }).join(' ');
   },
 
   onSelectTag(tag, value) {
     this.setState({
-      activeTagValues: {...this.state.activeTagValues, [tag.key]:value}
+      currentQuery: {...this.state.currentQuery, [tag.key]:value}
     }, () => {
-      let query = this.buildQuery();
-      console.log(query);
+      let query = this.getQueryStr();
       this.props.onQueryChange && this.props.onQueryChange(query);
     });
   },
@@ -47,6 +48,7 @@ var StreamSidebar = React.createClass({
         {_.map(this.props.tags, (tag) => {
           return (
             <StreamTagFilter
+              initialValue={this.state.currentQuery[tag.key]}
               key={tag.key}
               tag={tag}
               onSelect={this.onSelectTag}
