@@ -26,7 +26,8 @@ def manage_plugins(request, organization, project):
     if request.POST:
         enabled = set(request.POST.getlist('plugin'))
         for plugin in plugins.all(version=None):
-            if plugin.can_enable_for_projects():
+            if plugin.can_enable_for_projects() and \
+               plugin.can_configure_for_project(project):
                 if plugin.slug in enabled:
                     plugin.enable(project)
                 else:
