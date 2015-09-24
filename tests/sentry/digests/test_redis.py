@@ -4,9 +4,7 @@ import functools
 import itertools
 import mock
 import time
-from datetime import datetime
 
-import pytz
 from exam import fixture
 from redis.client import StrictRedis
 
@@ -26,10 +24,6 @@ from sentry.digests.redis import (
     truncate_timeline,
 )
 from sentry.testutils import TestCase
-
-
-def to_timestamp(value):
-    return (value - datetime(1970, 1, 1, tzinfo=pytz.utc)).total_seconds()
 
 
 def get_set_size(cluster, key):

@@ -12,9 +12,14 @@ import logging
 from django import forms
 
 from sentry import features
-from sentry.app import ratelimiter
+from sentry.app import (
+    digests,
+    ratelimiter,
+)
+from sentry.digests.base import Record
 from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption
+from sentry.utils.dates import to_timestamp
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -57,7 +62,14 @@ class NotificationPlugin(Plugin):
 
         notification = Notification(event=event, rules=rules)
         if features.has('projects:digests', event.group.project):
-            raise NotImplementedError
+            payload = (event.project_id, event.group_id, event.id, event.data.data, rules)
+            digests.add(
+                '{plugin.slug}:p:{project.id}'.format(
+                    plugin=self,
+                    project=event.group.project,
+                ),
+                Record(event.event_id, payload, to_timestamp(event.datetime)),
+            )
         else:
             self.notify(notification)
 
@@ -97,7 +109,7 @@ class NotificationPlugin(Plugin):
         # If digests are enabled for this project, we always want to add the
         # notification to the digest (even if it may be filtered out later.)
         if features.has('projects:digests', group.project):
-            raise NotImplementedError
+            return True
 
         if group.is_muted():
             return False
