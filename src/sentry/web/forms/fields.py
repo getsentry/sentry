@@ -8,6 +8,7 @@ sentry.web.forms.fields
 from __future__ import absolute_import
 
 import six
+from ipaddr import IPNetwork
 
 from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Widget
@@ -146,3 +147,26 @@ class OriginsField(CharField):
             return False
 
         return True
+
+
+class IPNetworksField(CharField):
+    widget = Textarea(
+        attrs={
+            'placeholder': mark_safe(_('e.g. 127.0.0.1 or 10.0.0.0/8')),
+            'class': 'span8',
+        },
+    )
+
+    def clean(self, value):
+        if not value:
+            return None
+        value = value.strip()
+        if not value:
+            return None
+        values = filter(bool, (v.strip() for v in value.split('\n')))
+        for value in values:
+            try:
+                IPNetwork(value)
+            except ValueError:
+                raise ValidationError('%r is not an acceptable value' % value)
+        return values
