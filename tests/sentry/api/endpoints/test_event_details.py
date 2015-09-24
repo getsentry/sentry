@@ -40,6 +40,30 @@ class EventDetailsTest(APITestCase):
         assert response.data['groupID'] == group.id
         assert not response.data['userReport']
 
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': prev_event.id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(prev_event.id)
+        assert response.data['nextEventID'] == str(cur_event.id)
+        assert response.data['previousEventID'] is None
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
+        url = reverse('sentry-api-0-event-details', kwargs={
+            'event_id': next_event.id,
+        })
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == str(next_event.id)
+        assert response.data['nextEventID'] is None
+        assert response.data['previousEventID'] == str(cur_event.id)
+        assert response.data['groupID'] == group.id
+        assert not response.data['userReport']
+
     def test_identical_datetime(self):
         self.login_as(user=self.user)
 
