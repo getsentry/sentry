@@ -3,6 +3,7 @@ import Reflux from "reflux";
 import $ from "jquery";
 import Cookies from "js-cookie";
 import Sticky from 'react-sticky';
+import _ from "underscore";
 
 import api from "../api";
 
@@ -375,6 +376,15 @@ var Stream = React.createClass({
     var router = this.context.router;
     var params = router.getCurrentParams();
 
+    let queryItems = this.state.query.match(/\S+:"[^"]*"?|\S+/g);
+    let queryObj = _.inject(queryItems, (obj, item) => {
+      let index = item.indexOf(':');
+      let tagKey = item.slice(0, index);
+      let value = item.slice(index + 1);
+      obj[tagKey] = value;
+      return obj;
+    }, {});
+
     return (
       <div>
         <StreamFilters
@@ -404,7 +414,7 @@ var Stream = React.createClass({
             <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
           </div>
           <div className="col-md-2">
-            <StreamSidebar tags={this.state.tags} onQueryChange={this.onSearch}/>
+            <StreamSidebar tags={this.state.tags} initialQuery={queryObj} onQueryChange={this.onSearch}/>
           </div>
         </div>
       </div>
