@@ -404,7 +404,7 @@ var Stream = React.createClass({
             <Pagination pageLinks={this.state.pageLinks} onPage={this.onPage} />
           </div>
           <div className="col-md-2">
-            <StreamSidebar tags={this.state.tags}/>
+            <StreamSidebar tags={this.state.tags} onQueryChange={this.onSearch}/>
           </div>
         </div>
       </div>
