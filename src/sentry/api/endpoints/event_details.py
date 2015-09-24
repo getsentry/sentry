@@ -53,8 +53,6 @@ class EventDetailsEndpoint(Endpoint):
                 ).order_by('datetime')[0:5],
                 key=lambda x: (x.datetime, x.id),
             )[0]
-            if next_event.id < event.id:
-                next_event = None
         except IndexError:
             next_event = None
 
@@ -67,8 +65,6 @@ class EventDetailsEndpoint(Endpoint):
                 key=lambda x: (x.datetime, x.id),
                 reverse=True,
             )[0]
-            if prev_event.id > event.id:
-                prev_event = None
         except IndexError:
             prev_event = None
 
