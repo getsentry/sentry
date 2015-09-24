@@ -59,7 +59,8 @@ class ProjectIssueTrackingView(ProjectView):
                 elif content:
                     enabled_plugins.append((plugin, mark_safe(content)))
                 enabled_plugins.append((plugin, mark_safe(content + view)))
-            else:
+            elif (plugin.can_enable_for_projects() and
+                  plugin.can_configure_for_project(project)):
                 other_plugins.append(plugin)
 
         context = {
