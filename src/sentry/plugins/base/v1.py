@@ -92,10 +92,6 @@ class IPlugin(local, PluggableViewMixin):
 
         >>> plugin.is_enabled()
         """
-        if project is not None:
-            if self.can_enable_for_projects() and \
-               not self.can_configure_for_project(project):
-                return False
         if not self.enabled:
             return False
         if not self.can_disable:
@@ -228,15 +224,31 @@ class IPlugin(local, PluggableViewMixin):
         return self.project_conf_form is not None
 
     def can_enable_for_projects(self):
-        """Returns a boolean describing whether this plugin can be enabled on
-        a per project basis
+        """
+        Returns a boolean describing whether this plugin can be enabled for
+        projects.
         """
         return True
 
     def can_configure_for_project(self, project):
-        """Checks if the plugin can be configured for a specific project."""
+        """
+        Returns a boolean describing whether this plugin can be enabled on
+        a per project basis
+        """
         from sentry import features
-        return features.has('projects:plugins', project, self, actor=None)
+
+        if not self.enabled:
+            return False
+        if not self.can_enable_for_projects():
+            return False
+
+        if not features.has('projects:plugins', project, self, actor=None):
+            return False
+
+        if not self.can_disable:
+            return True
+
+        return True
 
     def get_form_initial(self, project=None):
         return {}

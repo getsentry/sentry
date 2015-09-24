@@ -30,6 +30,12 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
+    def configurable_for_project(self, project, version=1):
+        for plugin in self.all(version=version):
+            if not safe_execute(plugin.can_configure_for_project, project):
+                continue
+            yield plugin
+
     def for_project(self, project, version=1):
         for plugin in self.all(version=version):
             if not safe_execute(plugin.is_enabled, project):
