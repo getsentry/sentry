@@ -392,8 +392,8 @@ class IPlugin2(local):
         """Configures the plugin."""
         return default_plugin_config(self, project, request)
 
-    def get_url_patterns(self):
-        """Allows a plugin to return a URL module."""
+    def get_url_module(self):
+        """Allows a plugin to return the import path to a URL module."""
 
 
 class Plugin2(IPlugin2):
