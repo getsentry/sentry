@@ -15,6 +15,8 @@ from redis.exceptions import (
     WatchError,
 )
 
+from sentry.utils.cache import Lock
+
 from .base import (
     Backend,
     Record,
@@ -153,49 +155,61 @@ class RedisBackend(Backend):
         # TODO: This doesn't lead to a fair balancing of workers, ideally each
         # scheduling task would be executed by a different process for each
         # host.
-        for connection in itertools.imap(self.cluster.get_local_client, self.cluster.hosts):
-            # TODO: Scheduling for each host should be protected by a lease.
-            while True:
-                items = connection.zrangebyscore(
-                    make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                    min=0,
-                    max=deadline,
-                    withscores=True,
-                    start=0,
-                    num=chunk,
-                )
+        for host in self.cluster.hosts:
+            connection = self.cluster.get_local_client(host)
 
-                # XXX: Redis will error if we try and execute an empty
-                # transaction. If there are no items to move between states, we
-                # need to exit the loop now. (This can happen on the first
-                # iteration of the loop if there is nothing to do, or on a
-                # subsequent iteration if there was exactly the same number of
-                # items to change states as the chunk size.)
-                if not items:
-                    break
-
-                with connection.pipeline() as pipeline:
-                    pipeline.multi()
-
-                    pipeline.zrem(
+            # TODO: This needs to handle partial failures gracefully.
+            # TODO: This lock duration is totally arbitrary (it should be a
+            # function of the scheduler execution interval.)
+            with Lock('{0}:s:{1}'.format(self.namespace, host), nowait=True, timeout=60 * 5):
+                # Prevent a runaway loop by setting a maximum number of
+                # iterations. Note that this limits the total number of
+                # expected items in any specific scheduling interval to chunk *
+                # maximum_iterations.
+                maximum_iterations = 1000
+                for i in xrange(maximum_iterations):
+                    items = connection.zrangebyscore(
                         make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
-                        *[key for key, timestamp in items]
+                        min=0,
+                        max=deadline,
+                        withscores=True,
+                        start=0,
+                        num=chunk,
                     )
 
-                    pipeline.zadd(
-                        make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
-                        *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
-                    )
+                    # XXX: Redis will error if we try and execute an empty
+                    # transaction. If there are no items to move between states, we
+                    # need to exit the loop now. (This can happen on the first
+                    # iteration of the loop if there is nothing to do, or on a
+                    # subsequent iteration if there was exactly the same number of
+                    # items to change states as the chunk size.)
+                    if not items:
+                        break
 
-                    for key, timestamp in items:
-                        yield ScheduleEntry(key, timestamp)
+                    with connection.pipeline() as pipeline:
+                        pipeline.multi()
 
-                    pipeline.execute()
+                        pipeline.zrem(
+                            make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING),
+                            *[key for key, timestamp in items]
+                        )
 
-                # If we retrieved less than the chunk size of items, we don't
-                # need try to retrieve more items.
-                if len(items) < chunk:
-                    break
+                        pipeline.zadd(
+                            make_schedule_key(self.namespace, SCHEDULE_STATE_READY),
+                            *itertools.chain.from_iterable([(timestamp, key) for (key, timestamp) in items])
+                        )
+
+                        for key, timestamp in items:
+                            yield ScheduleEntry(key, timestamp)
+
+                        pipeline.execute()
+
+                    # If we retrieved less than the chunk size of items, we don't
+                    # need try to retrieve more items.
+                    if len(items) < chunk:
+                        break
+                else:
+                    raise RuntimeError('loop exceeded maximum iterations (%s)' % (maximum_iterations,))
 
     def maintenance(self, deadline):
         raise NotImplementedError
@@ -205,97 +219,99 @@ class RedisBackend(Backend):
         timeline_key = make_timeline_key(self.namespace, key)
         digest_key = make_digest_key(timeline_key)
 
-        # TODO: Need to wrap this whole section in a lease to try and avoid data races.
         connection = self.cluster.get_local_client_for_key(timeline_key)
 
-        if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
-            raise Exception('Cannot digest timeline, timeline is not in the ready state.')
+        # TODO: This timeout is totally arbitrary.
+        # TODO: Note that callers must be prepared to handle this exception.
+        with Lock(timeline_key, nowait=True, timeout=60):
+            if connection.zscore(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key) is None:
+                raise Exception('Cannot digest timeline, timeline is not in the ready state.')
 
-        with connection.pipeline() as pipeline:
-            pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
-
-            if pipeline.exists(digest_key):
-                pipeline.multi()
-                pipeline.zunionstore(digest_key, (timeline_key, digest_key), aggregate='max')
-                pipeline.delete(timeline_key)
-                pipeline.execute()
-            else:
-                pipeline.multi()
-                pipeline.rename(timeline_key, digest_key)
-                try:
-                    pipeline.execute()
-                except ResponseError as error:
-                    if 'no such key' in str(error):
-                        logger.debug('Could not move timeline for digestion (likely has no contents.)')
-                    else:
-                        raise
-
-        # XXX: This must select all records, even though not all of them will
-        # be returned if they exceed the capacity, to ensure that all records
-        # will be garbage collected.
-        records = connection.zrevrange(digest_key, 0, -1, withscores=True)
-        if not records:
-            logger.info('Retrieved timeline containing no records.')
-
-        def get_iteration_count(default=0):
-            value = connection.get(make_iteration_key(timeline_key))
-            if not value:
-                logger.warning('Could not retrieve iteration counter for %s, defaulting to %s.', key, default)
-                return default
-            return int(value)
-
-        iteration = get_iteration_count()
-
-        def get_records_for_digest():
-            with connection.pipeline(transaction=False) as pipeline:
-                for record_key, timestamp in records:
-                    pipeline.get(make_record_key(timeline_key, record_key))
-
-                for (record_key, timestamp), value in zip(records, pipeline.execute()):
-                    # We have to handle failures if the key does not exist --
-                    # this could happen due to evictions or race conditions
-                    # where the record was added to a timeline while it was
-                    # already being digested.
-                    if value is None:
-                        logger.warning('Could not retrieve event for timeline.')
-                    else:
-                        yield Record(record_key, self.codec.decode(value), timestamp)
-
-        yield itertools.islice(get_records_for_digest(), self.capacity)
-
-        def reschedule():
             with connection.pipeline() as pipeline:
                 pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
-                pipeline.multi()
 
-                record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
-                pipeline.delete(digest_key, *record_keys)
-                pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.backoff(iteration + 1), key)
-                pipeline.set(make_iteration_key(timeline_key), iteration + 1)
-                pipeline.execute()
+                if pipeline.exists(digest_key):
+                    pipeline.multi()
+                    pipeline.zunionstore(digest_key, (timeline_key, digest_key), aggregate='max')
+                    pipeline.delete(timeline_key)
+                    pipeline.execute()
+                else:
+                    pipeline.multi()
+                    pipeline.rename(timeline_key, digest_key)
+                    try:
+                        pipeline.execute()
+                    except ResponseError as error:
+                        if 'no such key' in str(error):
+                            logger.debug('Could not move timeline for digestion (likely has no contents.)')
+                        else:
+                            raise
 
-        def unschedule():
-            with connection.pipeline() as pipeline:
-                # Watch the timeline to ensure that no other transactions add
-                # events to the timeline while we are trying to delete it.
-                pipeline.watch(timeline_key)
-                pipeline.multi()
-                if connection.zcard(timeline_key) is 0:
-                    pipeline.delete(make_iteration_key(timeline_key))
+            # XXX: This must select all records, even though not all of them will
+            # be returned if they exceed the capacity, to ensure that all records
+            # will be garbage collected.
+            records = connection.zrevrange(digest_key, 0, -1, withscores=True)
+            if not records:
+                logger.info('Retrieved timeline containing no records.')
+
+            def get_iteration_count(default=0):
+                value = connection.get(make_iteration_key(timeline_key))
+                if not value:
+                    logger.warning('Could not retrieve iteration counter for %s, defaulting to %s.', key, default)
+                    return default
+                return int(value)
+
+            iteration = get_iteration_count()
+
+            def get_records_for_digest():
+                with connection.pipeline(transaction=False) as pipeline:
+                    for record_key, timestamp in records:
+                        pipeline.get(make_record_key(timeline_key, record_key))
+
+                    for (record_key, timestamp), value in zip(records, pipeline.execute()):
+                        # We have to handle failures if the key does not exist --
+                        # this could happen due to evictions or race conditions
+                        # where the record was added to a timeline while it was
+                        # already being digested.
+                        if value is None:
+                            logger.warning('Could not retrieve event for timeline.')
+                        else:
+                            yield Record(record_key, self.codec.decode(value), timestamp)
+
+            yield itertools.islice(get_records_for_digest(), self.capacity)
+
+            def reschedule():
+                with connection.pipeline() as pipeline:
+                    pipeline.watch(digest_key)  # This shouldn't be necessary, but better safe than sorry?
+                    pipeline.multi()
+
+                    record_keys = [make_record_key(timeline_key, record_key) for record_key, score in records]
+                    pipeline.delete(digest_key, *record_keys)
                     pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
-                    pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
+                    pipeline.zadd(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), time.time() + self.backoff(iteration + 1), key)
+                    pipeline.set(make_iteration_key(timeline_key), iteration + 1)
                     pipeline.execute()
 
-        # If there were records in the digest, we need to schedule it so that
-        # we schedule any records that were added during digestion with the
-        # appropriate backoff. If there were no items, we can try to remove the
-        # timeline from the digestion schedule.
-        if records:
-            reschedule()
-        else:
-            try:
-                unschedule()
-            except WatchError:
-                logger.debug('Could not remove timeline from schedule, rescheduling instead')
+            def unschedule():
+                with connection.pipeline() as pipeline:
+                    # Watch the timeline to ensure that no other transactions add
+                    # events to the timeline while we are trying to delete it.
+                    pipeline.watch(timeline_key)
+                    pipeline.multi()
+                    if connection.zcard(timeline_key) is 0:
+                        pipeline.delete(make_iteration_key(timeline_key))
+                        pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_READY), key)
+                        pipeline.zrem(make_schedule_key(self.namespace, SCHEDULE_STATE_WAITING), key)
+                        pipeline.execute()
+
+            # If there were records in the digest, we need to schedule it so that
+            # we schedule any records that were added during digestion with the
+            # appropriate backoff. If there were no items, we can try to remove the
+            # timeline from the digestion schedule.
+            if records:
                 reschedule()
+            else:
+                try:
+                    unschedule()
+                except WatchError:
+                    logger.debug('Could not remove timeline from schedule, rescheduling instead')
+                    reschedule()
