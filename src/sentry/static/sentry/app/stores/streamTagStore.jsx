@@ -13,9 +13,9 @@ var StreamTagStore = Reflux.createStore({
         key: 'is',
         name: 'Status',
         values: [
-          { value: 'resolved' },
-          { value: 'unresolved' },
-          { value: 'muted' }
+          'resolved',
+          'unresolved',
+          'muted'
         ],
         predefined: true
       },
@@ -23,7 +23,7 @@ var StreamTagStore = Reflux.createStore({
         key: 'assigned',
         name: 'User',
         values: MemberListStore.getAll().map(user => {
-          return { value: user.email };
+          return user.email;
         }),
         predefined: true
       }
