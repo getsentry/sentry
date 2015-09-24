@@ -173,6 +173,8 @@ class Backend(object):
         frequency of the digest task raising an exception when a timeline is in
         an invalid state should be monitored. If these exceptions happen
         frequently -- especially during periods of abnormal queue growth -- the
-        frequency of maintenance tasks should be decreased.
+        frequency of maintenance tasks should be decreased, or the deadline
+        should be pushed further towards the past (execution grace period
+        increased) or both.
         """
         raise NotImplementedError
