@@ -13,15 +13,25 @@ import urllib
 from collections import namedtuple
 from django.conf import settings
 from urlparse import urlparse, urljoin
+from django.core.urlresolvers import get_script_prefix
 
 
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
 
 def absolute_uri(url=None):
+    """
+    Given a path (possibly with a query/fragment part), create a full url with
+    scheme, domain and path parts based on the current sentry configuration.
+    This honours the WSGI `SCRIPT_NAME` environment variable as per
+    https://www.python.org/dev/peps/pep-0333/#id19 or the overridden
+    ``django.conf.settings.FORCE_SCRIPT_NAME`` if given.
+    """
+    full_prefix = urljoin(settings.SENTRY_URL_PREFIX, get_script_prefix().rstrip('/'))
     if not url:
-        return settings.SENTRY_URL_PREFIX
-    return urljoin(settings.SENTRY_URL_PREFIX.rstrip('/') + '/', url.lstrip('/'))
+        return full_prefix
+
+    return urljoin(full_prefix.rstrip('/') + '/', url.lstrip('/'))
 
 
 def safe_urlencode(params, doseq=0):
