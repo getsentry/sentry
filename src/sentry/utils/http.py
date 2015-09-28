@@ -11,8 +11,10 @@ import six
 import urllib
 
 from collections import namedtuple
-from django.conf import settings
 from urlparse import urlparse, urljoin
+from ipaddr import IPNetwork
+
+from django.conf import settings
 
 
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
@@ -156,3 +158,26 @@ def is_valid_origin(origin, project=None, allowed=None):
         if parsed.path.startswith(path):
             return True
     return False
+
+
+def is_valid_ip(ip_address, project):
+    """
+    Verify that an IP address is not being blacklisted
+    for the given project.
+    """
+    blacklist = project.get_option('sentry:blacklisted_ips')
+    if not blacklist:
+        return True
+
+    ip_network = IPNetwork(ip_address)
+    for addr in blacklist:
+        # We want to error fast if it's an exact match
+        if ip_address == addr:
+            return False
+
+        # Check to make sure it's actually a range before
+        # attempting to see if we're within that range
+        if '/' in addr and ip_network in IPNetwork(addr):
+            return False
+
+    return True
