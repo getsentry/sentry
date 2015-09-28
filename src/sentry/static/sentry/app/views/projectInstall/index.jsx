@@ -15,8 +15,11 @@ var ProjectInstall = React.createClass({
 
         <p>Choose a language/platform:</p>
 
-        <ul>
-          <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python"})}>Python</Link></li>
+        <ul className="client-platform-list">
+          <li className="python">
+            <span className="platformicon platformicon-python"/>
+            <Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python"})}>Python</Link>
+          </li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-bottle"})}>Bottle</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-celery"})}>Celery</Link></li>
           <li><Link to="projectInstallPlatform" params={Object.assign({}, params, {platform:"python-django"})}>Django</Link></li>
