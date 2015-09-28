@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import functools
 import itertools
 import logging
 from collections import namedtuple
@@ -38,39 +39,30 @@ def event_to_record(event, rules=[]):
     )
 
 
-def group_score((group, records)):
-    return max(record.timestamp for record in records)
-
-
-def record_score(record):
-    return record.timestamp
-
-
-def build_digest(project, records):
-    """
-    """
+def group(records):
     key = lambda record: record.value.group_id
-
     raw = {}
     for group, records in itertools.groupby(sorted(records, key=key), key=key):
-        raw[group] = list(records)
+        yield group, list(records)
 
-    groups = Group.objects.filter(project=project).in_bulk(raw.keys())
 
-    results = []
-    for id, records in raw.iteritems():
+def associate_with_instance(project, groups):
+    groups = dict(groups)
+
+    instances = Group.objects.filter(project=project).in_bulk(groups.keys())
+    for key, records in groups.iteritems():
         try:
-            group = groups[id]
-        except IndexError:
+            yield instances[key], records
+        except KeyError:
             logger.warning('Skipping %s records for %s, no corresponding group instance exists.', len(records), id)
             continue
 
-        if group.is_muted():
-            logger.debug('Skipping %s records for %r, group is muted.', len(records), group)
-            continue
 
-        # TODO: Add other filter criteria.
+filter_muted_groups = functools.partial(
+    itertools.ifilter,
+    lambda (group, records): not group.is_muted(),
+)
 
-        results.append((group, sorted(records, key=record_score)))
 
-    return sorted(results, key=group_score)
+def build_digest(project, records):
+    return filter_muted_groups(associate_with_instance(project, group(records)))
