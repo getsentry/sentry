@@ -13,7 +13,7 @@ from sentry.models import (
 )
 from sentry.permissions import can_remove_project
 from sentry.web.forms.fields import (
-    CustomTypedChoiceField, RangeField, OriginsField
+    CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
 )
 from sentry.web.frontend.base import ProjectView
 
@@ -57,6 +57,8 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Allow Sentry to scrape missing JavaScript source context when possible.'),
         required=False,
     )
+    blacklisted_ips = IPNetworksField(label=_('Blacklisted IP Addresses'), required=False,
+        help_text=_('Separate multiple entries with a newline.'))
 
     class Meta:
         fields = ('name', 'team', 'slug')
@@ -166,13 +168,14 @@ class ProjectSettingsView(ProjectView):
         return EditProjectForm(
             request, organization, team_list, request.POST or None,
             instance=project, initial={
-                'origins': '\n'.join(project.get_option('sentry:origins', '*') or []),
+                'origins': '\n'.join(project.get_option('sentry:origins', ['*'])),
                 'token': security_token,
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
+                'blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
             },
         )
 
@@ -182,7 +185,7 @@ class ProjectSettingsView(ProjectView):
         if form.is_valid():
             project = form.save()
             for opt in ('origins', 'resolve_age', 'scrub_data', 'sensitive_fields',
-                        'scrape_javascript', 'scrub_ip_address', 'token'):
+                        'scrape_javascript', 'scrub_ip_address', 'token', 'blacklisted_ips'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     project.delete_option('sentry:%s' % (opt,))
