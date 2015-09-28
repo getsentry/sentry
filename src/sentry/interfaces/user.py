@@ -62,11 +62,18 @@ class User(Interface):
         if not isinstance(extra_data, dict):
             extra_data = {}
 
+        ident = trim(data.pop('id', None), 128)
+        email = trim(validate_email(data.pop('email', None), False), 128)
+        username = trim(data.pop('username', None), 128)
+        ip_address = validate_ip(data.pop('ip_address', None), False)
+
+        assert ident or email or username or ip_address
+
         kwargs = {
-            'id': trim(data.pop('id', None), 128),
-            'email': trim(validate_email(data.pop('email', None), False), 128),
-            'username': trim(data.pop('username', None), 128),
-            'ip_address': validate_ip(data.pop('ip_address', None), False),
+            'id': ident,
+            'email': email,
+            'username': username,
+            'ip_address': ip_address,
         }
 
         kwargs['data'] = trim_dict(extra_data)
