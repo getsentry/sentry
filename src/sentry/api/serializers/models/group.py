@@ -64,6 +64,7 @@ class GroupSerializer(Serializer):
         for item in item_list:
             active_date = item.active_at or item.last_seen
 
+            # TODO(dcramer): switch to serializers
             tags = {}
             for key in tag_counts.iterkeys():
                 try:

@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 
 from celery.utils.log import get_task_logger
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from hashlib import md5
 
 from sentry.constants import PLATFORM_LIST, PLATFORM_ROOTS
@@ -99,14 +100,20 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
 @instrumented_task(
     name='sentry.tasks.post_process.record_affected_user')
 def record_affected_user(event, **kwargs):
-    from sentry.models import Group
+    from sentry.models import EventUser, Group
 
-    user_ident = event.user_ident
-    if not user_ident:
+    user_data = event.data.get('sentry.interfaces.User', event.data.get('user'))
+    if not user_data:
         logger.info('No user data found for event_id=%s', event.event_id)
         return
 
-    user_data = event.data.get('sentry.interfaces.User', event.data.get('user', {}))
+    euser = EventUser(
+        project=event.project,
+        ident=user_data.get('id'),
+        email=user_data.get('email'),
+        username=user_data.get('username'),
+        ip_address=event.ip_address,
+    )
 
     tag_data = {}
     for key in ('id', 'email', 'username', 'data'):
@@ -117,8 +124,14 @@ def record_affected_user(event, **kwargs):
     if ip_address:
         tag_data['ip'] = ip_address
 
+    try:
+        with transaction.atomic():
+            euser.save()
+    except IntegrityError:
+        pass
+
     Group.objects.add_tags(event.group, [
-        ('sentry:user', user_ident, tag_data)
+        ('sentry:user', euser.tag_value, tag_data)
     ])
 
 

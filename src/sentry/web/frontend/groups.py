@@ -113,7 +113,7 @@ def _get_group_list(request, project):
 
     query = request.GET.get('query', '')
     if query is not None:
-        for key, value in parse_query(query, request.user).iteritems():
+        for key, value in parse_query(project, query, request.user).iteritems():
             if key == 'tags':
                 query_kwargs['tags'].update(value)
             else:
