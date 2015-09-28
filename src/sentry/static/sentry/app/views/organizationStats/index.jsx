@@ -234,7 +234,7 @@ var OrganizationStats = React.createClass({
     return [
       {
         data: stats.accepted,
-        label: 'Events Accepted',
+        label: 'Accepted',
         color: 'rgba(86, 175, 232, 1)',
         shadowSize: 0,
         stack: true,
@@ -248,7 +248,7 @@ var OrganizationStats = React.createClass({
         data: stats.rejected,
         color: 'rgba(244, 63, 32, 1)',
         shadowSize: 0,
-        label: 'Events Rejected',
+        label: 'Dropped (Rate Limit)',
         stack: true,
         lines: {
           lineWidth: 2,
@@ -260,7 +260,7 @@ var OrganizationStats = React.createClass({
         data: stats.blacklisted,
         color: 'rgba(192, 152, 83, 1)',
         shadowSize: 0,
-        label: 'Events Blacklisted',
+        label: 'Dropped (Blacklist)',
         stack: true,
         lines: {
           lineWidth: 2,
@@ -279,8 +279,8 @@ var OrganizationStats = React.createClass({
           <div className="col-md-9">
             <p>The chart below reflects events the system has received
             across your entire organization. Events are broken down into
-            three categories: Accepted, Rejected, and Blacklisted. Rejected
-            events are entries that the system threw away due to quotas
+            three categories: Accepted, Rate Limited, and Blacklisted. Rate
+            Limited events are entries that the system threw away due to quotas
             being hit, and Blacklisted events are events that were blocked
             due to your Blacklisted IPs setting.</p>
           </div>
