@@ -26,5 +26,6 @@ print ''
 
 for group, records in build_digest(project, records):
     print '*', group.message_short
+    print ' ', group.culprit
+    print ' ', group.get_absolute_url()
     print ' ', len(records), 'events from', min(r.timestamp for r in records), 'to', max(r.timestamp for r in records)
-    print ''
