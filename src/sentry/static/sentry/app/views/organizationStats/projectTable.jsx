@@ -34,8 +34,8 @@ var ProjectTable = React.createClass({
           <tr>
             <th>Project</th>
             <th className="align-right">Accepted</th>
-            <th className="align-right">Rejected</th>
-            <th className="align-right">Blacklisted</th>
+            <th className="align-right">Dropped<br/>(Rate Limit)</th>
+            <th className="align-right">Dropped<br/>(Blacklist)</th>
             <th className="align-right">Total</th>
           </tr>
         </thead>
