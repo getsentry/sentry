@@ -109,7 +109,7 @@ def record_affected_user(event, **kwargs):
 
     euser = EventUser(
         project=event.project,
-        ident=unicode(user_data.get('id')),
+        ident=unicode(user_data.get('id')) if user_data.get('id') else None,
         email=user_data.get('email'),
         username=user_data.get('username'),
         ip_address=event.ip_address,
