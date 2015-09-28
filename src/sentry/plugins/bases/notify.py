@@ -16,10 +16,12 @@ from sentry.app import (
     digests,
     ratelimiter,
 )
-from sentry.digests import Record
+from sentry.digests.notifications import (
+    event_to_record,
+    unsplit_key,
+)
 from sentry.plugins import Notification, Plugin
 from sentry.models import UserOption
-from sentry.utils.dates import to_timestamp
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -62,13 +64,9 @@ class NotificationPlugin(Plugin):
 
         notification = Notification(event=event, rules=rules)
         if features.has('projects:digests', event.group.project):
-            payload = (event.project_id, event.group_id, event.id, event.data.data, rules)
             digests.add(
-                '{plugin.slug}:p:{project.id}'.format(
-                    plugin=self,
-                    project=event.group.project,
-                ),
-                Record(event.event_id, payload, to_timestamp(event.datetime)),
+                unsplit_key(self, event.group.project),
+                event_to_record(event, rules),
             )
         else:
             self.notify(notification)
